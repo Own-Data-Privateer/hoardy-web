@@ -1,0 +1,35 @@
+From 314dca490a2b07dd3210be1b5c1afa59f376141a Mon Sep 17 00:00:00 2001
+From: Jan Malakhovski <oxij@oxij.org>
+Date: Tue, 15 Aug 2023 07:54:18 +0000
+Subject: [PATCH] 
+ toolkit/components/extensions/webrequest/WebRequestUpload.jsm: always give
+ raw
+
+---
+ .../components/extensions/webrequest/WebRequestUpload.jsm    | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/toolkit/components/extensions/webrequest/WebRequestUpload.jsm b/toolkit/components/extensions/webrequest/WebRequestUpload.jsm
+index aca855de1277..3ba47dd65bd4 100644
+--- a/toolkit/components/extensions/webrequest/WebRequestUpload.jsm
++++ b/toolkit/components/extensions/webrequest/WebRequestUpload.jsm
+@@ -538,16 +538,17 @@ WebRequestUpload = {
+     try {
+       let stream = channel.uploadStream;
+ 
++      let raw = Array.from(getRawDataChunked(stream));
+       let formData = createFormData(stream, channel);
+       if (formData) {
+-        return { formData };
++        return { raw, formData };
+       }
+ 
+       // If we failed to parse the stream as form data, return it as a
+       // sequence of raw data chunks, along with a leniently-parsed form
+       // data object, which ignores encoding errors.
+       return {
+-        raw: Array.from(getRawDataChunked(stream)),
++        raw,
+         lenientFormData: createFormData(stream, channel, true),
+       };
+     } catch (e) {

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>pWebArc: request log</title>
+    <link rel="shortcut icon" type="image/svg" href="../icon/on.svg">
+    <link rel="stylesheet" href="main.css">
+    <style>
+table, th, td {
+    border: 1px solid black;
+}
+
+table {
+    width: 100%;
+}
+
+td.long {
+    line-break: anywhere;
+}
+    </style>
+  </head>
+  <body>
+    <table>
+      <thead>
+        <tr>
+          <th>State</th>
+          <th>Request started</th>
+          <th>Response started</th>
+          <th>Protocol</th>
+          <th>Method</th>
+          <th>URL</th>
+          <th>Code</th>
+          <th>Reason</th>
+          <th>Origin</th>
+          <th><span title="Request body complete">Req</span></th>
+          <th><span title="Response body complete">Res</span></th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+      </tbody>
+    </table>
+    <script src="../lib/utils.js"></script>
+    <script src="log.js"></script>
+  </body>
+</html>

@@ -1,0 +1,66 @@
+:root {
+    --uncheckbox-background: rgba(207,207,216,.33);
+    --uncheckbox-border-color: rgb(207,207,216);
+    --checkbox-background: #0250bb;
+    --checkbox-border-color: #053e94;
+    --text-background: inherit;
+    --text-border-color: black;
+}
+
+body {
+    font: 14px sans-serif;
+}
+
+input[type="checkbox"] {
+    appearance: none;
+    padding: 0;
+    margin: 0;
+    height: 16px;
+    width: 26px;
+    border-radius: 8px;
+    background: var(--uncheckbox-background);
+    border: 1px solid var(--uncheckbox-border-color);
+    box-sizing: border-box;
+}
+
+input[type="checkbox"]::before {
+    display: block;
+    content: "";
+    background: #fff;
+    height: 10px;
+    width: 10px;
+    margin: 2px;
+    border-radius: 5px;
+    outline: 1px solid black;
+    transition: transform 500ms;
+    transform: translate(0, calc(50% - 10px / 2));
+}
+
+input[type="checkbox"]:checked {
+    background: var(--checkbox-background);
+    border-color: var(--checkbox-border-color);
+}
+
+input[type="checkbox"]:checked::before {
+    transform: translate(10px, calc(50% - 10px / 2));
+}
+
+input[type="text"] {
+    background: var(--text-background);
+    border: 1px solid var(--text-border-color);
+}
+
+h1 {
+    font-size: 110%;
+    margin: 0;
+    margin-top: 5px;
+}
+
+h2 {
+    font-size: 100%;
+    margin: 0;
+}
+
+.right {
+    float: right;
+}
