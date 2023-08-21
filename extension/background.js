@@ -694,6 +694,9 @@ function handleBeforeRequest(e) {
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
 
+    // ignore data URLs
+    if (e.url.startsWith("data:")) return;
+
     let fromExtension = false;
     if (e.documentUrl !== undefined && e.documentUrl !== null) {
         // ignore our own requests
