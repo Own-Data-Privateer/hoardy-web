@@ -1,3 +1,11 @@
+/*
+ * The core code of pWebArc.
+ *
+ * Copyright (c) 2023 Jan Malakhovski <oxij@oxij.org>
+ *
+ * This file can be distributed under the terms of the GNU GPL, version 3 or later.
+ */
+
 "use strict";
 
 let selfURL = browser.runtime.getURL("/"); // for filtering out our own requests
