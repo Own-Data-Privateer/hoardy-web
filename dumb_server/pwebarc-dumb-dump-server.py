@@ -17,6 +17,11 @@ import time
 from wsgiref.validate import validator
 from wsgiref.simple_server import make_server
 
+try:
+    import cbor2
+except ImportError:
+    cbor2 = None
+
 class HTTPDumpServer(threading.Thread):
     """HTTP server that accepts HTTP dumps as POST data, tries to compresses them
        with gzip, and saves them in a given directory.
@@ -62,6 +67,16 @@ class HTTPDumpServer(threading.Thread):
                 res = fp.read(todo)
                 data += res
                 todo -= len(res)
+
+            if cbor2 is not None:
+                rparsed = repr(cbor2.loads(data))
+                if len(rparsed) < 3000:
+                    print("parsed", rparsed)
+                else:
+                    print("parsed", rparsed[:1500])
+                    print("...")
+                    print(rparsed[-1500:])
+                del rparsed
 
             # gzip it, if it gzips
             buf = io.BytesIO()
