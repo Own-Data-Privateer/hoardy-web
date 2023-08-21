@@ -4,8 +4,8 @@
 It consists of
 
 - Required parts:
-  - =pwebarc-dumb-dump-server.py=: [[./dumb_server/][A dumb archiving server]], written in [[./dumb_server/pwebarc-dumb-dump-server.py][less than 120 lines of pure Python]] that uses the Python's standard library and nothing else. Have Python installed? You can run it right now, no need to install anything.
-  - =pWebArc.xpi=: [[./extension/][A browser extension]] (currently only for Firefox and Firefox-derivative browsers, but Chromium/Chrome support is coming eventually) that collects your browsing data (HTTP requests and responses) and sends them to the archiving server as you browse.
+  - =pwebarc-dumb-dump-server.py=: [[./dumb_server/][A dumb archiving server]], written in [[./dumb_server/pwebarc-dumb-dump-server.py][less than 120 lines of pure Python]] that uses the Python's standard library and nothing else. Have Python installed? You can run it right now, no need to install anything else.
+  - =pWebArc.xpi=: [[./extension/][A browser extension]] (on [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][addons.mozilla.org]], currently only for Firefox-based browsers, but Chromium/Chrome support is coming eventually) that collects your browsing data (HTTP requests and responses) and sends them to the archiving server as you browse.
 - Recommended parts:
   - [[./firefox/][A patch for Firefox]] to allow the above extension to properly collect request POST data. This is not required, but could be useful if you want to archive POST request properly.
 - WIP parts:
@@ -79,8 +79,11 @@ After converting all my previous =wget=, =curl=, =mitmproxy=, and HAR archives i
 For me, it uses about *3GiB per year of browsing* on average (~5 years of mostly uninterrupted data collection ATM) but I use things like uBlockOrigin and uMatrix to cut things down, and image boorus and video hosting sites have their own pipelines.
 * How to use
 ** Quickstart
-- Download [[./dumb_server/pwebarc-dumb-dump-server.py][the dumb archiving server script]] and run it, it will start saving data into =pwebarc-dump= directory wherever you run it.
-- Install the browser extension [[TODO][into your Firefox or Firefox-derivative]].
+:PROPERTIES:
+:CUSTOM_ID: quickstart
+:END:
+- Download [[./dumb_server/pwebarc-dumb-dump-server.py][the dumb archiving server script]] and run it, it will start saving data into =pwebarc-dump= directory wherever you run it from.
+- Install the browser extension [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][into your Firefox-based browser]].
 
 You are done.
 ** Developing the extension
@@ -125,7 +128,7 @@ responseV1 = null | [
 optionalData = <map from str to anything>
 #+END_SRC
 
-- =source= is a short description of the data source, like =Firefox/102.0+pWebArc/0.1;
+- =source= is a short description of the data source, like =Firefox/102.0+pWebArc/0.1=;
 - =optionalData= currently stores optional =origin_url= and =document_url= when different from browser's =Referer= request header;
 - =responseV1= can be =null= when the request got no response, like when experiencing a network issue (dumping such request+response pairs is disabled by default).
 * License
