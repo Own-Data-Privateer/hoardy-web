@@ -93,7 +93,7 @@ You are done.
 ** Installing an unsigned XPI
 - Make sure your browser [[https://wiki.mozilla.org/Add-ons/Extension_Signing][supports installation of unsigned add-ons]] (Firefox ESR, Nightly, Developer Edition, and Tor Browser do).
 - Go to =about:config=, set =xpinstall.signatures.required= to =false=.
-- Build the XPI by running src_bash{./make-firefox-xpi.sh} from the =extension= directory.
+- Build the XPI by running =./make-firefox-xpi.sh= from the =extension= directory.
 - Install it into your Firefox by going to =about:addons=, clicking the gear button, and selecting "Install Add-on from File" (or by doing =File > Open File= from the menu and selecting the XPI, or by drag-and-dropping the XPI into the browser window).
 * Data format
 [[https://datatracker.ietf.org/doc/html/rfc8949][CBOR (RFC8949)]] encoding of the following structure:
