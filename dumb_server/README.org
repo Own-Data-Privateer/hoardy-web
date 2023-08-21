@@ -1,4 +1,4 @@
 * What?
 =pwebarc-dumb-dump-server.py=: a very +dumb+ simple archiving server for [[../extension/][pWebArc]].
-This thing is less than 120 lines of pure Python that only uses the Python's standard library and nothing else.
+This thing is less than 150 lines of pure Python that only uses the Python's standard library and nothing else.
 You could be running it already.

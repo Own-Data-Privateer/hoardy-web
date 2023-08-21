@@ -1,14 +1,14 @@
 * What?
 =pwebarc= is a suite of tools implementing a Private Web Archive, basically your own private [[https://web.archive.org/][Wayback Machine]].
 
-It consists of
-
-- Required parts:
-  - =pwebarc-dumb-dump-server.py=: [[./dumb_server/][A dumb archiving server]], written in [[./dumb_server/pwebarc-dumb-dump-server.py][less than 120 lines of pure Python]] that uses the Python's standard library and nothing else. Have Python installed? You can run it right now, no need to install anything else.
+See [[#quickstart][Quickstart]] section for setup instructions, starting to use this takes two easy steps.
+* Parts
+- Required:
+  - =pwebarc-dumb-dump-server.py=: [[./dumb_server/][A dumb archiving server]], written in [[./dumb_server/pwebarc-dumb-dump-server.py][less than 150 lines of pure Python]] that uses the Python's standard library and nothing else. Have Python installed? You can run it right now, no need to install anything else.
   - =pWebArc.xpi=: [[./extension/][A browser extension]] (on [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][addons.mozilla.org]], currently only for Firefox-based browsers, but Chromium/Chrome support is coming eventually) that collects your browsing data (HTTP requests and responses) and sends them to the archiving server as you browse.
-- Recommended parts:
+- Recommended:
   - [[./firefox/][A patch for Firefox]] to allow the above extension to properly collect request POST data. This is not required, but could be useful if you want to archive POST request properly.
-- WIP parts:
+- WIP:
   - A tool to display, search, manipulate, and deduplicate archive files.
   - A set of tools to convert mitmproxy, WARC, HAR, and PCAP files into the internal format used by =pwebarc= and from the internal format to at least WARC.
   - (eventually) A non-dumb server with data deduplication, timelines, full text search, and etc.
@@ -76,16 +76,30 @@ You can figure out what to do with it later.
 
 =pwebarc= uses compressed [[https://datatracker.ietf.org/doc/html/rfc8949][CBOR (RFC8949)]] of decoded HTTP data as on-disk representation format, which is actually more efficient than storing raw HTTP request dumps.
 After converting all my previous =wget=, =curl=, =mitmproxy=, and HAR archives into this, it is about as efficient as compressed =mitmproxy= dumps, with some (WIP) data-deduplication and xdelta compression between same-URL revisions it is much more efficient.
-For me, it uses about *3GiB per year of browsing* on average (~5 years of mostly uninterrupted data collection ATM) but I use things like uBlockOrigin and uMatrix to cut things down, and image boorus and video hosting sites have their own pipelines.
+For me, it uses about *3GiB per year of browsing* on average (~5 years of mostly uninterrupted data collection ATM) but I use things like [[https://github.com/gorhill/uBlock][uBlock Origin]] and [[https://github.com/gorhill/uMatrix][uMatrix]] to cut things down, and image boorus and video hosting sites have their own pipelines.
 * How to use
 ** Quickstart
 :PROPERTIES:
 :CUSTOM_ID: quickstart
 :END:
-- Download [[./dumb_server/pwebarc-dumb-dump-server.py][the dumb archiving server script]] and run it, it will start saving data into =pwebarc-dump= directory wherever you run it from.
+- (On Windows) [[https://www.python.org/downloads/windows/][Download Python from the official site]].
+- Download [[./dumb_server/pwebarc-dumb-dump-server.py][the dumb archiving server script aka =pwebarc-dumb-dump-server.py=]] (or clone the whole repo first) and run it (on Windows you can just associate =.py= files with =Python.exe=), it has no dependencies except Python itself.
+  It will start saving data into =pwebarc-dump= directory wherever you run it from.
 - Install the browser extension [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][into your Firefox-based browser]].
+- (Optionally) Add =pwebarc-dumb-dump-server.py= to Autorun or start it from your =~/.xsession=, =systemd --user=, etc.
 
 You are done.
+
+You can figure out what to do with the data =pwebarc-dumb-dump-server.py= will collect for you later.
+It took me about 6 months before I had to refer back to previously archived data for the first time when I started using =mitmproxy= to sporadically collect my HTTP traffic in 2017.
+** Using with Tor Browser
+- Run server as =./pwebarc-dumb-dump-server.py --host 127.0.99.1= or similar.
+- Go to =about:config= and add =127.0.99.1= to =network.proxy.no_proxies_on=.
+- Set the dumping URL in the extension to =http://127.0.99.1:3210/pwebarc/dump=.
+
+You won't want to use =127.0.0.1= and =127.0.1.1= with Tor Browser as those are normal loopback addresses and you probably don't want to allow stuff from there the ability to access it.
+
+Or, you could run both the Tor Browser, and =./pwebarc-dumb-dump-server.py= in a container/VM.
 ** Developing the extension
 - =git clone= this repository.
 - In Firefox, go to =about:debugging#/runtime/this-firefox=, click "Load Temporary Add-on" button, and select [[./extension/manifest.json]].

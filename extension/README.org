@@ -6,4 +6,4 @@ Also similar to [[https://github.com/webrecorder/archiveweb.page][archiveweb.pag
 
 Basically, you install this, enable it, run the archiving server, and forget about it until you need to refer back to something you've seen before.
 * Installation
-See [[../README.org#quickstart]].
+See [[../README.org#quickstart][Quickstart]].
