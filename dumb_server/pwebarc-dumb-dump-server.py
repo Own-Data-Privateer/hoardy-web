@@ -38,7 +38,7 @@ class HTTPDumpServer(threading.Thread):
         self.root = root
         self.prevsec = 0
         self.num = 0
-        print(f"Listening on {host} port {port}....")
+        print(f"Listening for archive requests on http://{host}:{port}/pwebarc/dump")
 
     def run(self):
         self.httpd.serve_forever()
