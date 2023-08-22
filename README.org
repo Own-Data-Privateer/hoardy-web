@@ -4,7 +4,7 @@
 See [[#quickstart][Quickstart]] section for setup instructions, starting to use this takes two easy steps.
 * Parts
 - Required:
-  - [[./dumb_server/][A dumb archiving server]] (aka =pwebarc-dumb-dump-server.py=) written in [[./dumb_server/pwebarc-dumb-dump-server.py][less than 150 lines of pure Python]] that uses the Python's standard library and nothing else. Have Python installed? You can run it right now, no need to install anything else.
+  - [[./dumb_server/][A dumb archiving server]] (aka =pwebarc-dumb-dump-server.py=) written in [[./dumb_server/pwebarc-dumb-dump-server.py][less than 200 lines of pure Python]] that uses the Python's standard library and nothing else. Have Python installed? You can run it right now, no need to install anything else.
 
   - [[./extension/][A browser extension]] (aka =pWebArc.xpi=, currently only for Firefox-based browsers, but Chromium/Chrome support is coming eventually) that collects your browsing data (HTTP requests and responses) and sends them to the archiving server as you browse.
 

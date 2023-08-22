@@ -14,6 +14,8 @@ import sys
 import threading
 import time
 
+import urllib.parse as up
+
 from wsgiref.validate import validator
 from wsgiref.simple_server import make_server
 
@@ -59,6 +61,12 @@ class HTTPDumpServer(threading.Thread):
                 yield from end_with("400 Bad Request", b"expecting CBOR data")
                 return
 
+            try:
+                query = environ["QUERY_STRING"]
+            except KeyError:
+                query = ""
+            params = up.parse_qs(query)
+
             # read request body data
             fp = environ["wsgi.input"]
             data = b""
@@ -101,7 +109,11 @@ class HTTPDumpServer(threading.Thread):
             self.prevsec = epoch
 
             gm = time.gmtime(epoch)
-            directory = os.path.join(self.root, *map(str, gm[0:3]))
+            if "profile" in params:
+                directory = os.path.join(params["profile"][0], *map(str, gm[0:3]))
+            else:
+                directory = os.path.join(*map(str, gm[0:3]))
+            directory = os.path.join(self.root, directory)
             path = os.path.join(directory, str(epoch) + "_" + str(self.num) + ".wrr")
             os.makedirs(directory, exist_ok=True)
 
