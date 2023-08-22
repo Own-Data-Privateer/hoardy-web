@@ -4,8 +4,11 @@
 See [[#quickstart][Quickstart]] section for setup instructions, starting to use this takes two easy steps.
 * Parts
 - Required:
-  - =pwebarc-dumb-dump-server.py=: [[./dumb_server/][A dumb archiving server]], written in [[./dumb_server/pwebarc-dumb-dump-server.py][less than 150 lines of pure Python]] that uses the Python's standard library and nothing else. Have Python installed? You can run it right now, no need to install anything else.
-  - =pWebArc.xpi=: [[./extension/][A browser extension]] (on [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][addons.mozilla.org]], currently only for Firefox-based browsers, but Chromium/Chrome support is coming eventually) that collects your browsing data (HTTP requests and responses) and sends them to the archiving server as you browse.
+  - [[./dumb_server/][A dumb archiving server]] (aka =pwebarc-dumb-dump-server.py=) written in [[./dumb_server/pwebarc-dumb-dump-server.py][less than 150 lines of pure Python]] that uses the Python's standard library and nothing else. Have Python installed? You can run it right now, no need to install anything else.
+
+  - [[./extension/][A browser extension]] (aka =pWebArc.xpi=, currently only for Firefox-based browsers, but Chromium/Chrome support is coming eventually) that collects your browsing data (HTTP requests and responses) and sends them to the archiving server as you browse.
+
+    You can install the latest stable version from [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][addons.mozilla.org]].
 - Recommended:
   - [[./firefox/][A patch for Firefox]] to allow the above extension to properly collect request POST data. This is not required, but could be useful if you want to archive POST request properly.
 - WIP:
@@ -72,7 +75,9 @@ Yes, but
 And then you still need something like this suite to look into the generated archives.
 * Meanwhile, this suite of tools
 With =pwebarc=, [[./extension/][the extension]] simply collect all the data as you browse, immediately sends it to the archiving sever, and [[./dumb_server/][the dumb archiving server implementation]] simply dumps data it gets to disk, one file per HTTP request+response pair.
-You can figure out what to do with it later.
+
+It took me about 6 months before I had to refer back to previously archived data for the first time when I started using =mitmproxy= to sporadically collect my HTTP traffic in 2017.
+So, I recommend you start collecting immediately and figure out how to use the rest of this suite later.
 
 =pwebarc= uses compressed [[https://datatracker.ietf.org/doc/html/rfc8949][CBOR (RFC8949)]] of decoded HTTP data as on-disk representation format, which is actually more efficient than storing raw HTTP request dumps.
 After converting all my previous =wget=, =curl=, =mitmproxy=, and HAR archives into this, it is about as efficient as compressed =mitmproxy= dumps, with some (WIP) data-deduplication and xdelta compression between same-URL revisions it is much more efficient.
@@ -82,24 +87,28 @@ For me, it uses about *3GiB per year of browsing* on average (~5 years of mostly
 :PROPERTIES:
 :CUSTOM_ID: quickstart
 :END:
-- (On Windows) [[https://www.python.org/downloads/windows/][Download Python from the official site]].
-- Download [[./dumb_server/pwebarc-dumb-dump-server.py][the dumb archiving server script aka =pwebarc-dumb-dump-server.py=]] (or clone the whole repo first) and run it (on Windows you can just associate =.py= files with =Python.exe=), it has no dependencies except Python itself.
+- (On Windows) [[https://www.python.org/downloads/windows/][Download Python from the official website]].
+- Download [[./dumb_server/pwebarc-dumb-dump-server.py][the dumb archiving server script]] (aka =pwebarc-dumb-dump-server.py=) and run it (on Windows you can just associate =.py= files with =Python.exe=), it has no dependencies except Python itself.
   It will start saving data into =pwebarc-dump= directory wherever you run it from.
-- Install the browser extension [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][into your Firefox-based browser]].
 - (Optionally) Add =pwebarc-dumb-dump-server.py= to Autorun or start it from your =~/.xsession=, =systemd --user=, etc.
+- (Optionally) Make a new browser profile for archived browsing, run Firefox as =firefox -ProfileManager= to get to the appropriate UI. On Windows you can just edit your desktop or toolbar shortcut to target
+
+  #+BEGIN_SRC sh
+  "C:\Program Files\Mozilla Firefox\firefox.exe" -ProfileManager
+  #+END_SRC
+
+  or similar by default to switch between profiles on browser startup.
+- Install the latest stable version of the browser extension for your Firefox-based browser from [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][addons.mozilla.org]].
 
 You are done.
-
-You can figure out what to do with the data =pwebarc-dumb-dump-server.py= will collect for you later.
-It took me about 6 months before I had to refer back to previously archived data for the first time when I started using =mitmproxy= to sporadically collect my HTTP traffic in 2017.
 ** Using with Tor Browser
 - Run server as =./pwebarc-dumb-dump-server.py --host 127.0.99.1= or similar.
 - Go to =about:config= and add =127.0.99.1= to =network.proxy.no_proxies_on=.
 - Set the dumping URL in the extension to =http://127.0.99.1:3210/pwebarc/dump=.
 
-You won't want to use =127.0.0.1= and =127.0.1.1= with Tor Browser as those are normal loopback addresses and you probably don't want to allow stuff from there the ability to access it.
+You probably don't want to use =127.0.0.1= and =127.0.1.1= with Tor Browser as those are normal loopback addresses and you probably don't want to allow stuff from under Tor to access your everyday stuff.
 
-Or, you could run both the Tor Browser, and =./pwebarc-dumb-dump-server.py= in a container/VM.
+Or, you could run both the Tor Browser, and =./pwebarc-dumb-dump-server.py= in a container/VM and use the default =127.0.0.1= address.
 ** Developing the extension
 - =git clone= this repository.
 - In Firefox, go to =about:debugging#/runtime/this-firefox=, click "Load Temporary Add-on" button, and select [[./extension/manifest.json]].
@@ -107,7 +116,7 @@ Or, you could run both the Tor Browser, and =./pwebarc-dumb-dump-server.py= in a
 ** Installing an unsigned XPI
 - Make sure your browser [[https://wiki.mozilla.org/Add-ons/Extension_Signing][supports installation of unsigned add-ons]] (Firefox ESR, Nightly, Developer Edition, and Tor Browser do).
 - Go to =about:config=, set =xpinstall.signatures.required= to =false=.
-- Build the XPI by running =./make-firefox-xpi.sh= from the =extension= directory.
+- Build the XPI by running =./make-firefox-xpi.sh= from the [[./extension]] directory.
 - Install it into your Firefox by going to =about:addons=, clicking the gear button, and selecting "Install Add-on from File" (or by doing =File > Open File= from the menu and selecting the XPI, or by drag-and-dropping the XPI into the browser window).
 * Data format
 [[https://datatracker.ietf.org/doc/html/rfc8949][CBOR (RFC8949)]] encoding of the following structure:
