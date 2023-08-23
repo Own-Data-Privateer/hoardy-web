@@ -84,7 +84,9 @@ function makeUI(prefix, value, update) {
     if (el === null || el.tagName !== "UI") return;
     //console.log("making UI", prefix, el, value);
 
-    let res;
+    let res = document.createElement("div");
+    res.id = "div-" + prefix;
+
     let sep = " "; // "<span class=\"sep\"> </span>";
 
     if (typ == "boolean") {
@@ -97,10 +99,10 @@ function makeUI(prefix, value, update) {
             update(ne.checked);
         }
 
-        res = document.createElement("label");
-        res.innerHTML = sep + el.innerHTML;
-        res.prepend(ne);
-        res = res;
+        let lbl = document.createElement("label");
+        lbl.innerHTML = sep + el.innerHTML;
+        lbl.prepend(ne);
+        res.appendChild(lbl);
     } else if (typ == "string") {
         let ne = document.createElement("input");
         ne.style.float = "right";
@@ -113,9 +115,10 @@ function makeUI(prefix, value, update) {
             update(ne.value);
         }
 
-        res = document.createElement("label");
-        res.innerHTML = el.innerHTML + sep;
-        res.appendChild(ne);
+        let lbl = document.createElement("label");
+        lbl.innerHTML = el.innerHTML + sep;
+        lbl.appendChild(ne);
+        res.appendChild(lbl);
     }
 
     for (let attr of el.attributes) {

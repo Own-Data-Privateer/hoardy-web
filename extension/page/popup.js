@@ -34,7 +34,6 @@ document.addEventListener("DOMContentLoaded", () => {
         buttonToAction("show", () => {
             document.getElementById("show").style.display = "none";
             document.getElementById("more").style.display = "block";
-            document.getElementById("main").classList.remove("bottoms");
         });
 
         // open connection to the background script

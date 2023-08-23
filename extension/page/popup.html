@@ -26,10 +26,31 @@
     --checkbox-background: var(--uncheckbox-background);
     --checkbox-border-color: var(--uncheckbox-border-color);
 }
+
+/* can't use :target because some nodes are procedurally generated */
+.target {
+    background-color: #ffaa00;
+    animation-name: highlight;
+    animation-duration: 2s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+@keyframes highlight {
+    from {
+        background-color: #ffaa00;
+    }
+    50% {
+        background-color: #ffffff;
+    }
+    to {
+        background-color: #ffaa00;
+    }
+}
     </style>
   </head>
   <body style="display: none">
-    <div id="main" class="bottoms">
+    <div id="main">
       <div id="stats">
         <h1>Stats
           <span class="right">
@@ -37,9 +58,8 @@
             <span title="Open the help page."><input type="button" id="help" value="Help" /></span>
           </span>
         </h1>
-        <div title="Requests+responses (aka reqres) successfully archived to the server.">Archived <span class="right"><span id="stats.archived">0</span> reqres</span></div>
-        <div title="Requests+responses queued for archival. They are just hanging there eating you browser's memory, so be sure to archive them soon!">Queued for archival <span class="right"><span id="stats.queued">0</span> reqres</span></div>
-        <div>
+        <div id="div-stats.archived" title="Requests+responses (aka reqres) successfully archived to the server.">Archived <span class="right"><span id="stats.archived">0</span> reqres</span></div>
+        <div id="div-stats.failedToArchive">
           <span title="Requests+responses that failed to be archived to the server.">Failed to archive</span>
           <span class="right">
             <span title="Move all failed to archive requests+responses to the archiving queue. This action will be performed automatically every 60 seconds when archiving is enabled."><input type="button" id="retryAllFailedArchives" value="Retry" /></span>
@@ -48,8 +68,9 @@
             </span>
           </span>
         </div>
-        <div title="Requests that failed to complete and so were not queued for archival.">Failed to complete <span class="right"><span id="stats.failedToFetch">0</span> reqres</span></div>
-        <div>
+        <div id="div-stats.queued" title="Requests+responses queued for archival. They are just hanging there eating you browser's memory, so be sure to archive them soon!">Queued for archival <span class="right"><span id="stats.queued">0</span> reqres</span></div>
+        <div id="div-stats.failedToFetch" title="Requests that failed to complete and so were not queued for archival.">Failed to complete <span class="right"><span id="stats.failedToFetch">0</span> reqres</span></div>
+        <div id="div-stats.inflight">
           <span title="Requests+responses that are still in-flight.">In-flight</span>
           <span class="right">
             <span title="Stop tracking progress of all in-flight requests and either move them to failed list or to the archival queue, depending on request's completion status and settings in the &quot;Options&quot; section below."><input type="button" id="forceFinishRequests" value="Stop" /></span>
@@ -87,12 +108,16 @@
         <ui id="config.background.collecting" title="Collect requests+responses originating from browser's background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this, as browsers do link pre-fetching in background, and disabling this will miss that data.">Collect background reqres</ui>
         <ui id="config.background.profile" title="Use this server-side profile when archiving requests+responses originating from browser's background tasks.">Profile</ui>
         <h1>Options</h1>
-        <h2 id="archive-options">Archive reqres with</h2>
-        <ui id="config.archivePartialRequest" title="Queue a request+response for archival even when its request body is incomplete. This only happens when a buggy browser generates a POST request and then fails to feed all of the request data to extensions that ask for it. pWebArc will try to recover as much of the POST request data as it can, but doing a POST request with an attached file will trigger this problem. Archiving something is better than archiving nothing, so you should probably never disable this. Unless you require all your archived requests to have the original POST data and don't mind missing some of the data. pWebArc's source repository contains a tiny patch for Firefox that fixes the bug in question for most but a very small number of corner cases.">... partial POST form data</ui>
-        <ui id="config.archiveNoResponse" title="Queue request+response for archival even when there was no response, i.e. request was interrupted before getting headers (this usually means a network issue). Disabled by default because such archived request+responses carry no information except that the browser tried to do a request at specified time.">... no responses</ui>
-        <ui id="config.archiveIncompleteResponse" title="Queue request+response for archival even when its response body is incomplete(e.g. response body was interrupted in the middle by a network issue). Disabled by default because simply reloading the page and not dealing with partial files is usually a better option.">... incomplete response bodies</ui>
-        <h2>Misc</h2>
-        <ui id="config.debugging" title="This makes extension's debugging log in about:debugging much more verbose. Makes things very slow, eats lots of memory. Do not enable unless you know what you are doing.">Print verbose debugging log (very slow!)</ui>
+        <div id="archive-options">
+          <h2>Archive reqres with</h2>
+          <ui id="config.archivePartialRequest" title="Queue a request+response for archival even when its request body is incomplete. This only happens when a buggy browser generates a POST request and then fails to feed all of the request data to extensions that ask for it. pWebArc will try to recover as much of the POST request data as it can, but doing a POST request with an attached file will trigger this problem. Archiving something is better than archiving nothing, so you should probably never disable this. Unless you require all your archived requests to have the original POST data and don't mind missing some of the data. pWebArc's source repository contains a tiny patch for Firefox that fixes the bug in question for most but a very small number of corner cases.">... partial POST form data</ui>
+          <ui id="config.archiveNoResponse" title="Queue request+response for archival even when there was no response, i.e. request was interrupted before getting headers (this usually means a network issue). Disabled by default because such archived request+responses carry no information except that the browser tried to do a request at specified time.">... no responses</ui>
+          <ui id="config.archiveIncompleteResponse" title="Queue request+response for archival even when its response body is incomplete(e.g. response body was interrupted in the middle by a network issue). Disabled by default because simply reloading the page and not dealing with partial files is usually a better option.">... incomplete response bodies</ui>
+        </div>
+        <div id="misc-options">
+          <h2>Misc</h2>
+          <ui id="config.debugging" title="This makes extension's debugging log in about:debugging much more verbose. Makes things very slow, eats lots of memory. Do not enable unless you know what you are doing.">Print verbose debugging log (very slow!)</ui>
+        </div>
       </div>
     </div>
     <script src="../lib/utils.js"></script>

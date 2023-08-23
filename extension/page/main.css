@@ -50,10 +50,6 @@ input[type="text"] {
     border: 1px solid var(--text-border-color);
 }
 
-label {
-    display: block;
-}
-
 h1 {
     font-size: 110%;
     margin: 0;
