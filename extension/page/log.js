@@ -28,18 +28,20 @@ document.addEventListener("DOMContentLoaded", () => {
             tr = document.createElement("tr");
             mtr(reqres.state);
             mtr(fdate(reqres.requestTimeStamp));
-            mtr(fdate(reqres.responseTimeStamp));
-            mtr(reqres.protocol);
             mtr(reqres.method);
             mtr(reqres.url).className = "long";
-            mtr(reqres.statusCode);
-            mtr(reqres.reason);
             if (reqres.fromExtension)
                 mtr("extension");
             else
                 mtr(`tab ${reqres.tabId}`);
             mtr(reqres.requestComplete);
+
+            mtr(fdate(reqres.responseTimeStamp));
+            mtr(reqres.statusCode);
+            mtr(reqres.reason);
             mtr(reqres.responseComplete);
+            mtr(reqres.protocol);
+
             tr.setAttribute("style", `background-color: ${reqres.archiving ? "#aaffaa" : "#ffaaaa"}`);
             tbody.appendChild(tr);
         }
