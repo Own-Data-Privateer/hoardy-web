@@ -49,18 +49,3 @@ input[type="text"] {
     background: var(--text-background);
     border: 1px solid var(--text-border-color);
 }
-
-h1 {
-    font-size: 110%;
-    margin: 0;
-    margin-top: 5px;
-}
-
-h2 {
-    font-size: 100%;
-    margin: 0;
-}
-
-.right {
-    margin-left: auto;
-}

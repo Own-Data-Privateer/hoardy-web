@@ -7,3 +7,6 @@ Also similar to [[https://github.com/webrecorder/archiveweb.page][archiveweb.pag
 Basically, you install this, enable it, run the archiving server, and forget about it until you need to refer back to something you've seen before.
 * Installation
 See [[../README.org#quickstart][Quickstart]].
+* What does it do exactly? I have questions.
+See [[./page/help.org][extension's "Help" page]] and the FAQ there.
+If your question is unanswered by it, then open an Issue on GitHub.

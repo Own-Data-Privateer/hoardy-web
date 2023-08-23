@@ -6,6 +6,8 @@ mkdir -p dist
 DEST=dist/build
 mkdir -p $DEST
 
+./make-help.sh
+
 echo "Copying files..."
 
 install -d $DEST/icon
@@ -17,6 +19,8 @@ install -t $DEST/page page/*.html page/*.css page/*.js
 install -t $DEST *.js
 install -t $DEST manifest.json
 install -t $DEST ../LICENSE.txt
+
+echo "Zipping..."
 
 (
     cd $DEST

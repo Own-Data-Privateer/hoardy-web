@@ -1,0 +1,56 @@
+* What?
+=pWebArc= (Private Web Archive): a browser extension that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server][the dumb archiving server]]) as you browse the web.
+* Glossary
+- A /reqres/ is a pWebArc-internal object containing information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
+- [[./popup.html#div-stats.inflight][An /in-flight reqres/]] is a reqres of an HTTP request that is still tracked by pWebArc, i.e. it has not finished yet, nor yet failed to finish.
+- [[./popup.html#div-stats.queued][A /queued for archival reqres/]] is a reqres of a finished (either successfully or with an error) HTTP request that satisfied the archiving conditions controlled by [[./popup.html#archive-options]["Archive reqres with" options in Settings]].
+- [[./popup.html#div-stats.failedToFetch][A /failed to collect reqres/]] is a reqres of a finished (either successfully or with an error) HTTP request that did /NOT/ satisfy the archiving conditions and thus was (mostly, except for the data used by the [[./log.html][Log]]) discarded.
+- [[./popup.html#div-stats.failedToArchive][A /failed to archive reqres/]] is a queued for archival reqres that failed to be archived to the archiving server controlled by [[./popup.html#div-config.archiveURLBase]["Archive to" URL in Settings]]. Archiving of these reqres' will be retried every 60 seconds.
+- [[./popup.html#div-stats.archived][An /archived reqres/]] is a reqres that was successfully archived to the archiving server and thus was (mostly, except for the data used by the [[./log.html][Log]]) discarded from memory.
+* General operation
+** Step 1
+pWebArc attaches to browser's runtime and tracks progress of HTTP requests and their responses, saving both their request and response headers and data at appropriate times in the browser's request and response processing pipeline.
+
+Whether pWebArc will track a given request depends on the "Track new reqres" toggles (or checkboxes, if you are using a browser without support for the needed CSS) in [[./popup.html][Settings]], e.g:
+
+- [[./popup.html#div-config.collecting][this one]] allows you to disable tracking of newly spawned HTTP requests globally, thus basically disabling pWebArc (except for reqres that are already being tracked and unfinished archivals),
+- while [[./popup.html#div-tabconfig.collecting][this one]] controls whether pWebArc will track new reqres originating from the currently active tab,
+- and [[./popup.html#div-tabconfig.children.collecting][this one]] controls whether it will track new reqres originating from tabs opened from the currently active tab (e.g. via middle mouse click, context menu, etc),
+- and so forth for the others (you can hover over each one of them to get a tooltip explaining what each of them does).
+
+Disabling any of these toggles does not stop tracking of already initiated requests, it only stops new requests controlled by that toggle from being tracked.
+** Step 2
+In-flight reqres can finish in one of the following states (this is the "State" column in the [[./log.html][Log]]):
+
+- =canceled=: request was canceled before it was sent (usually by another extension like uBlock Origin);
+- =noresponse=: request was sent, but then it was canceled before getting a response, or the connection was rejected, or network timeout was reached;
+- =incomplete=: request was sent, response headers were received, but downloading of the response's body was interrupted;
+- =complete=: request was completed successfully.
+** Step 3
+Then, depending on the [[./popup.html#archive-options]["Archive reqres with" options in Settings]], the reqres in question will either be queued for archival or discarded as failed (displayed as green and red colors respectively in the [[./log.html][Log]]).
+** Step 4
+Then, if [[./popup.html#div-config.archiving]["Archive collected reqres" toggle/checkbox in Settings]] is enabled, pWebArc will make a POST HTTP request to the server at [[./popup.html#div-config.archiveURLBase]["Archive to" URL in Settings]] to archive each request in the queue with CBOR-formatted dump of reqres as POST request body.
+It will also specify =profile= query parameter to the POST request using the appropriate "Profile" setting, e.g.
+
+- [[./popup.html#div-tabconfig.profile][this one]] will be used for requests originating from the currently active tab,
+- while [[./popup.html#div-config.root.profile][this one]] will be used for new tabs opened via browser's "New Tab" browser action,
+- and so forth for the others.
+
+Evaluation of the =profile=  parameter gets done just before the POST request is sent, so if the queue is not yet empty, and you disable [[./popup.html#div-config.archiving]["Archive collected reqres"]], edit some of the "Profile" settings, and enable [[./popup.html#div-config.archiving]["Archive collected reqres"]] again, pWebArc will start using the new setting immediately.
+* Quirks
+- Without the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/firefox][patch for Firefox]], Firefox only supplies =formData= to =browser.webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a POST request.
+
+  pWebArc will mark such requests as having a "partial request body" and try its best to recover the data from =formData= structure, but if a POST request was uploading files, they won't be recoverable from =formData= (in fact, it is not even possible to tell if there were any files attached there), and so your archived request data will be incomplete even after pWebArc did its best.
+
+  Disabling [[./popup.html#div-config.archivePartialRequest]["Archive reqres with partial POST form data" toggle/checkbox in Settings]] will disable archiving of such broken requests.
+  This is not recommended, however, as archiving some data is usually better than archiving none.
+
+- Reqres are only stored in memory, so if you close the browser or reload the extension before all the queued reqres finish archiving you will lose some data.
+
+  Unfortunately, there appears to be no efficient way to store binary blobs with WebExtensions, so this is by design.
+
+  After all, under normal conditions, archiving a reqres takes milliseconds, so your queues should stay empty almost all of the time.
+* FAQ
+** Does pWebArc send any data to any third-parties?
+No. It only sends data to the archiving server URL you specify.
+Do =grep -r XMLHttpRequest extension= in the source repository, there's only a single use (or two, if you count this).
