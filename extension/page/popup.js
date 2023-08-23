@@ -6,6 +6,23 @@
 
 "use strict";
 
+let highlightedNode = null;
+function highlight(target) {
+    document.getElementById("show").style.display = "none";
+    document.getElementById("more").style.display = "block";
+
+    if (highlightedNode !== null) {
+        highlightedNode.classList.remove("target");
+    }
+
+    let el = document.getElementById(target);
+    if (el !== null) {
+        el.classList.add("target");
+        el.scrollIntoView();
+        highlightedNode = el;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     browser.runtime.sendMessage(["getConfig"]).then((config) => {
         let updateClasses;
@@ -13,6 +30,13 @@ document.addEventListener("DOMContentLoaded", () => {
             updateClasses(newconfig);
             browser.runtime.sendMessage(["setConfig", newconfig]);
         });
+
+        // when #hash is specified (used in the ./help.org), we don't
+        // want anything hidden and we want to point user to the
+        // appropriate node
+        var hash = window.location.hash.substr(1);
+        if (hash !== "")
+            highlight(hash);
 
         // make id=depends's classes depend on config
         let dependNodes = document.getElementsByName("depends");
@@ -28,7 +52,10 @@ document.addEventListener("DOMContentLoaded", () => {
         updateClasses(config);
 
         buttonToAction("log", () => window.open(browser.runtime.getURL("/page/log.html"), "_blank"));
-        buttonToAction("help", () => window.open(browser.runtime.getURL("/page/help.html"), "_blank"));
+        buttonToAction("help", () => {
+            window.open(browser.runtime.getURL("/page/help.html"), "_blank");
+            window.close();
+        });
         buttonToMessage("retryAllFailedArchives");
         buttonToMessage("forceFinishRequests");
         buttonToAction("show", () => {
@@ -38,11 +65,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // open connection to the background script
         let port = browser.runtime.connect();
-        // update stats UI when stats update
+        // and listen for updates
         port.onMessage.addListener((update) => {
             let [what, data] = update;
             if (what == "stats")
                 setUI("stats", data);
+            else if (what == "highlight")
+                highlight(data);
         });
 
         // get current windowId and tabId of the active tab

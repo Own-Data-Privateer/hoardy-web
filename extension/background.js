@@ -206,7 +206,7 @@ function setIcons() {
     else
         browser.browserAction.setBadgeText({ text: "" })
 
-    postUpdate(["stats", stats]);
+    broadcast(["stats", stats]);
 }
 
 // mark this archiveURL as failing
@@ -564,7 +564,7 @@ function processDone() {
 
         // log it
         reqresLog.push(reqres);
-        postUpdate(["log", reqres]);
+        broadcast(["log", reqres]);
         while (reqresLog.length > config.history)
             reqresLog.shift();
     }
@@ -897,7 +897,7 @@ function handleTabReplaced(addedTabId, removedTabId) {
 // open client tab ports
 let openPorts = new Map();
 
-function postUpdate(data) {
+function broadcast(data) {
     for (let [portId, port] of openPorts.entries()) {
         port.postMessage(data);
     }
@@ -968,6 +968,9 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "getLog":
         sendResponse(reqresLog);
+        break;
+    case "broadcast":
+        broadcast(request[1]);
         break;
     default:
         console.log("what?", request);
