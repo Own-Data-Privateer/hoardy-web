@@ -30,15 +30,15 @@ let config = {
     debugging: false,
     history: 1000,
 
+    // are we collecting new data?
+    collecting: true,
+    archivePartialRequest: true,
+    archiveNoResponse: false,
+    archiveIncompleteResponse: false,
+
     // are we archiving? or temporarily paused
     archiving: true,
     archiveURLBase: "http://127.0.0.1:3210/pwebarc/dump",
-
-    // are we collecting new data?
-    collecting: true,
-    collectPartialRequests: true,
-    collectNoResponse: false,
-    collectIncompleteResponses: false,
 
     root: {
         collecting: true,
@@ -500,25 +500,25 @@ function processDone() {
     if (reqresDone.length > 0) {
         let reqres = reqresDone.shift()
 
-        let state = "ok";
+        let state = "complete";
         let archiving = true;
         if (reqres.requestHeaders === undefined) {
             // it failed somewhere before handleSendHeaders
-            state = "blocked";
+            state = "canceled";
             archiving = false;
         } else if (reqres.responseTimeStamp === undefined) {
             // no response after sending headers
             state = "noresponse";
-            archiving = config.collectNoResponse;
+            archiving = config.archiveNoResponse;
             // filter.onstop might have set it to true
             reqres.responseComplete = false;
         } else if (!reqres.responseComplete) {
-            state = "hup";
-            archiving = config.collectIncompleteResponses;
+            state = "incomplete";
+            archiving = config.archiveIncompleteResponse;
         }
 
         if (archiving && !reqres.requestComplete)
-            archiving = config.collectPartialRequests;
+            archiving = config.archivePartialRequest;
 
         reqres.archiving = archiving;
         reqres.state = state;
@@ -943,15 +943,14 @@ function handleMessage(request, sender, sendResponse) {
         }
 
         // save config in 2s to give the user some time to change more settings
-        let eConfig = assignRec({ version: 1 }, config);
+        let eConfig = assignRec({ version: 2 }, config);
 
         if (saveConfigTID !== null)
             clearTimeout(saveConfigTID);
 
         saveConfigTID = setTimeout(() => {
             saveConfigTID = null;
-            if (config.debugging)
-                console.log("saving config", eConfig);
+            console.log("saving config", eConfig);
             browser.storage.local.set({ config: eConfig });
         }, 2000);
         break;
@@ -979,8 +978,19 @@ function handleMessage(request, sender, sendResponse) {
 function init(storage) {
     if (storage.config !== undefined) {
         let oldConfig = storage.config;
+        function rename(from, to) {
+            let old = oldConfig[from];
+            delete oldConfig[from];
+            oldConfig[to] = old;
+        }
         if (oldConfig.version == 1) {
             console.log("using old config version " + oldConfig.version);
+            rename("collectPartialRequests", "archivePartialRequest");
+            rename("collectNoResponse", "archiveNoResponse");
+            rename("collectIncompleteResponses", "archiveIncompleteResponse")
+            config = assignRec(config, oldConfig);
+        } else if (oldConfig.version == 2) {
+            console.log("using config version " + oldConfig.version);
             config = assignRec(config, oldConfig);
         } else {
             console.log("ignoring old config with version " + oldConfig.version);
