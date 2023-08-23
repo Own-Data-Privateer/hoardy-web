@@ -510,6 +510,8 @@ function processDone() {
             // no response after sending headers
             state = "noresponse";
             archiving = config.collectNoResponse;
+            // filter.onstop might have set it to true
+            reqres.responseComplete = false;
         } else if (!reqres.responseComplete) {
             state = "hup";
             archiving = config.collectIncompleteResponses;
