@@ -7,8 +7,8 @@
     <link rel="shortcut icon" type="image/svg" href="../icon/on.svg">
     <link rel="stylesheet" href="main.css">
     <style>
-div {
-    display: block flow-root;
+#stats > div, #stats > h1 {
+    display: flex;
 }
 
 #show {
@@ -30,31 +30,34 @@ div {
   </head>
   <body style="display: none">
     <div id="main" class="bottoms">
-      <div>
-        <span class="right" title="Open the help page."><input type="button" id="help" value="Help" /></span>
-        <span class="right" title="Open the request log page."><input type="button" id="log" value="Log" /></span>
-        <h1>Stats</h1>
-      </div>
-      <div title="Requests+responses (aka reqres) successfully archived to the server.">Archived <span class="right"><span id="stats.archived">0</span> reqres</span></div>
-      <div title="Requests+responses queued for archival. They are just hanging there eating you browser's memory, so be sure to archive them soon!">Queued for archival <span class="right"><span id="stats.queued">0</span> reqres</span></div>
-      <div>
-        <span title="Requests+responses that failed to be archived to the server.">Failed to archive</span>
-        <span class="right">
-          <span title="Move all failed to archive requests+responses to the archiving queue. This action will be performed automatically every 60 seconds when archiving is enabled."><input type="button" id="retryAllFailedArchives" value="Retry" /></span>
-          <span title="Requests+responses that failed to be archived to the server.">
-            <span id="stats.failedToArchive">0</span> reqres
+      <div id="stats">
+        <h1>Stats
+          <span class="right">
+            <span title="Open the request log page."><input type="button" id="log" value="Log" /></span>
+            <span title="Open the help page."><input type="button" id="help" value="Help" /></span>
           </span>
-        </span>
-      </div>
-      <div title="Requests that failed to complete and so were not queued for archival.">Failed to complete <span class="right"><span id="stats.failedToFetch">0</span> reqres</span></div>
-      <div>
-        <span title="Requests+responses that are still in-flight.">In-flight</span>
-        <span class="right">
-          <span title="Stop tracking progress of all in-flight requests and either move them to failed list or to the archival queue, depending on request's completion status and settings in the &quot;Options&quot; section below."><input type="button" id="forceFinishRequests" value="Stop" /></span>
-          <span title="Requests+responses that are still in-flight.">
-            <span id="stats.inflight">0</span> reqres
+        </h1>
+        <div title="Requests+responses (aka reqres) successfully archived to the server.">Archived <span class="right"><span id="stats.archived">0</span> reqres</span></div>
+        <div title="Requests+responses queued for archival. They are just hanging there eating you browser's memory, so be sure to archive them soon!">Queued for archival <span class="right"><span id="stats.queued">0</span> reqres</span></div>
+        <div>
+          <span title="Requests+responses that failed to be archived to the server.">Failed to archive</span>
+          <span class="right">
+            <span title="Move all failed to archive requests+responses to the archiving queue. This action will be performed automatically every 60 seconds when archiving is enabled."><input type="button" id="retryAllFailedArchives" value="Retry" /></span>
+            <span title="Requests+responses that failed to be archived to the server.">
+              <span id="stats.failedToArchive">0</span> reqres
+            </span>
           </span>
-        </span>
+        </div>
+        <div title="Requests that failed to complete and so were not queued for archival.">Failed to complete <span class="right"><span id="stats.failedToFetch">0</span> reqres</span></div>
+        <div>
+          <span title="Requests+responses that are still in-flight.">In-flight</span>
+          <span class="right">
+            <span title="Stop tracking progress of all in-flight requests and either move them to failed list or to the archival queue, depending on request's completion status and settings in the &quot;Options&quot; section below."><input type="button" id="forceFinishRequests" value="Stop" /></span>
+            <span title="Requests+responses that are still in-flight.">
+              <span id="stats.inflight">0</span> reqres
+            </span>
+          </span>
+        </div>
       </div>
       <div name="depends">
         <h1>This tab</h1>
@@ -63,20 +66,20 @@ div {
         <h1>New tabs opened from this tab</h1>
         <ui id="tabconfig.children.collecting" title="Collect requests+responses originating from new tabs opened from this tab (e.g. via middle mouse click, context menu, etc).">Collect reqres in spawned tabs</ui>
         <ui id="tabconfig.children.profile" title="Use this server-side profile when archiving requests+responses originating from new tabs opened from this tab (e.g. via middle mouse click).">Profile</ui>
+        <h1>New root tabs</h1>
+        <ui id="config.root.collecting" title="Collect requests+responses originating from new tabs opened via browser's &quot;New Tab&quot; browser action (i.e. the plus sign in the tab bar, Control+T, menu item, etc).">Collect reqres in new root tabs</ui>
+        <ui id="config.root.profile" title="Use this server-side profile when archiving requests+responses originating from new tabs opened via browser's &quot;New Tab&quot; browser action.">Profile</ui>
       </div>
+      <h1>Globally</h1>
+      <ui id="config.collecting" title="Track progress of new (network) requests+responses generated by the browser and collect them for archival when they complete. Disabling this will option stop pWebArc from recording any new data.">Collect reqres (request+response)</ui>
     </div>
 
     <input type="button" id="show" value="Show all" />
 
     <div id="more" style="display: none">
-      <h1>Globally</h1>
-      <ui id="config.collecting" title="Track progress of new (network) requests+responses generated by the browser and collect them for archival when they complete. Disabling this will option stop pWebArc from recording any new data.">Collect reqres (request+response)</ui>
       <ui id="config.archiving" title="Archive already collected requests+responses (&quot;queued for archival&quot; in the stats) by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
       <div name="depends">
         <ui id="config.archiveURLBase" title="URL of the server we are archiving to.">To</ui>
-        <h1>New root tabs</h1>
-        <ui id="config.root.collecting" title="Collect requests+responses originating from new tabs opened via browser's &quot;New Tab&quot; browser action (i.e. the plus sign in the tab bar, Control+T, menu item, etc).">Collect reqres in new root tabs</ui>
-        <ui id="config.root.profile" title="Use this server-side profile when archiving requests+responses originating from new tabs opened via browser's &quot;New Tab&quot; browser action.">Profile</ui>
         <h1>Originating from extensions</h1>
         <ui id="config.extension.collecting" title="Collect requests+responses originating from other browser extensions.">Collect reqres from extensions</ui>
         <ui id="config.extension.profile" title="Use this server-side profile when archiving requests+responses originating from other browser extensions.">Profile</ui>

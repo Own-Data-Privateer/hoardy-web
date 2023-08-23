@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
         buttonToMessage("retryAllFailedArchives");
         buttonToMessage("forceFinishRequests");
         buttonToAction("show", () => {
+            document.getElementById("show").style.display = "none";
             document.getElementById("more").style.display = "block";
             document.getElementById("main").classList.remove("bottoms");
         });

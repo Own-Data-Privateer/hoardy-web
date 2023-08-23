@@ -98,7 +98,6 @@ function makeUI(prefix, value, update) {
         }
 
         res = document.createElement("label");
-        res.style.display = "block flow-root";
         res.innerHTML = sep + el.innerHTML;
         res.prepend(ne);
         res = res;
@@ -115,7 +114,6 @@ function makeUI(prefix, value, update) {
         }
 
         res = document.createElement("label");
-        res.style.display = "block flow-root";
         res.innerHTML = el.innerHTML + sep;
         res.appendChild(ne);
     }
