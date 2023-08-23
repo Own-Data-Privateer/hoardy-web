@@ -564,6 +564,7 @@ function processDone() {
 
         // log it
         reqresLog.push(reqres);
+        postUpdate(["log", reqres]);
         while (reqresLog.length > config.history)
             reqresLog.shift();
     }

@@ -12,38 +12,58 @@ function fdate(epoch) {
     return new Date(epoch).toISOString();
 }
 
+function newReqres(reqres) {
+    let tr = document.createElement("tr");
+    tr.setAttribute("style", `background-color: ${reqres.archiving ? "#aaffaa" : "#ffaaaa"}`);
+
+    function mtr(data) {
+        let td = document.createElement("td");
+        td.innerText = data;
+        tr.appendChild(td);
+        return td;
+    }
+
+    mtr(reqres.state);
+    mtr(fdate(reqres.requestTimeStamp));
+    mtr(reqres.method);
+    mtr(reqres.url).className = "long";
+    if (reqres.fromExtension)
+        mtr("extension");
+    else
+        mtr(`tab ${reqres.tabId}`);
+    mtr(reqres.requestComplete);
+
+    mtr(fdate(reqres.responseTimeStamp));
+    mtr(reqres.statusCode);
+    mtr(reqres.reason);
+    mtr(reqres.responseComplete);
+    mtr(reqres.protocol);
+
+    return tr;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+    // open connection to the background script
+    let port = browser.runtime.connect();
+
+    // add new rows on log status message
+    port.onMessage.addListener((update) => {
+        let [what, data] = update;
+        if (what == "log") {
+            let tbody = document.getElementById("tbody");
+            tbody.appendChild(newReqres(data));
+        }
+    });
+
+    // meanwhile, get the whole log, render it, and replace the whole
+    // page with it
     browser.runtime.sendMessage(["getLog"]).then((log) => {
+        let newtbody = document.createElement("tbody");
+        newtbody.id = "tbody";
+        for (let reqres of log)
+            newtbody.appendChild(newReqres(reqres));
+
         let tbody = document.getElementById("tbody");
-        let tr;
-
-        function mtr(data) {
-            let td = document.createElement("td");
-            td.innerText = data;
-            tr.appendChild(td);
-            return td;
-        }
-
-        for (let reqres of log) {
-            tr = document.createElement("tr");
-            mtr(reqres.state);
-            mtr(fdate(reqres.requestTimeStamp));
-            mtr(reqres.method);
-            mtr(reqres.url).className = "long";
-            if (reqres.fromExtension)
-                mtr("extension");
-            else
-                mtr(`tab ${reqres.tabId}`);
-            mtr(reqres.requestComplete);
-
-            mtr(fdate(reqres.responseTimeStamp));
-            mtr(reqres.statusCode);
-            mtr(reqres.reason);
-            mtr(reqres.responseComplete);
-            mtr(reqres.protocol);
-
-            tr.setAttribute("style", `background-color: ${reqres.archiving ? "#aaffaa" : "#ffaaaa"}`);
-            tbody.appendChild(tr);
-        }
+        tbody.parentElement.replaceChild(newtbody, tbody);
     });
 });
