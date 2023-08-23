@@ -569,9 +569,11 @@ function processDone() {
     }
 
     if (reqresDone.length > 0)
-        setTimeout(processDone, 100);
-    else
-        setTimeout(processArchiving, 100);
+        setTimeout(processDone, 10);
+    else {
+        setIcons();
+        setTimeout(processArchiving, 1);
+    }
 }
 
 function forceFinishRequests() {
