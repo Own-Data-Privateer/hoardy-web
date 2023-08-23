@@ -261,10 +261,10 @@ function retryAllFailedArchivesIn(msec) {
     cancelRetryAll();
 
     reqresRetryTID = setTimeout(() => {
+        reqresRetryTID = null;
         retryAllFailedArchives();
         setIcons();
         setTimeout(processArchiving, 1);
-        reqresRetryTID = null;
     }, msec);
 }
 
@@ -376,6 +376,7 @@ function processArchiving() {
             clearTimeout(reqresNotifyTID);
 
         reqresNotifyTID = setTimeout(() => {
+            reqresNotifyTID = null;
             browser.notifications.clear("archivingOK").finally(() => {
                 for (let [archiveURL, failed] of reqresArchivingFailed.entries()) {
                     browser.notifications.create(`archiving-${archiveURL}`, {
@@ -386,7 +387,6 @@ function processArchiving() {
                     });
                 }
             });
-            reqresNotifyTID = null;
         }, 1000);
     } else { // if all queues are empty
         cancelRetryAll();
@@ -946,10 +946,10 @@ function handleMessage(request, sender, sendResponse) {
             clearTimeout(saveConfigTID);
 
         saveConfigTID = setTimeout(() => {
+            saveConfigTID = null;
             if (config.debugging)
                 console.log("saving config", eConfig);
             browser.storage.local.set({ config: eConfig });
-            saveConfigTID = null;
         }, 2000);
         break;
     case "getTabConfig":
