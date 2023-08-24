@@ -878,6 +878,13 @@ function handleErrorOccurred(e) {
     emitRequest(e.requestId, reqres, e.error);
 }
 
+function handleNotificationClicked(notificationId) {
+    if (notificationId === "archivingOK") return;
+    browser.tabs.create({
+        url: browser.runtime.getURL("/page/help.html#errors"),
+    });
+}
+
 function handleTabCreated(tab) {
     console.log("tab added", tab.id, tab.openerTabId);
     processNewTab(tab.id, tab.openerTabId);
@@ -1008,6 +1015,8 @@ function init(storage) {
     browser.webRequest.onAuthRequired.addListener(catchAll(handleAuthRequired), {urls: ["<all_urls>"]});
     browser.webRequest.onCompleted.addListener(catchAll(handleCompleted), {urls: ["<all_urls>"]});
     browser.webRequest.onErrorOccurred.addListener(catchAll(handleErrorOccurred), {urls: ["<all_urls>"]});
+
+    browser.notifications.onClicked.addListener(catchAll(handleNotificationClicked));
 
     browser.tabs.onCreated.addListener(catchAll(handleTabCreated));
     browser.tabs.onRemoved.addListener(catchAll(handleTabRemoved));

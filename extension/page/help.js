@@ -7,6 +7,11 @@
 "use strict";
 
 document.addEventListener("DOMContentLoaded", () => {
+    // highlight current target
+    var hash = window.location.hash.substr(1);
+    if (hash !== "")
+        highlightNode(hash);
+
     let popupURL = browser.runtime.getURL("/page/popup.html");
 
     // show settings as iframe

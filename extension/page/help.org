@@ -50,6 +50,25 @@ Evaluation of the =profile=  parameter gets done just before the POST request is
   Unfortunately, there appears to be no efficient way to store binary blobs with WebExtensions, so this is by design.
 
   After all, under normal conditions, archiving a reqres takes milliseconds, so your queues should stay empty almost all of the time.
+#+BEGIN_EXPORT html
+<div id="errors">
+#+END_EXPORT
+* Error messages
+- =pWebArc FAILED to archive <N> items in the queue because it can't establish a connection to the archive at <URL>=
+
+  Are you running the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/pwebarc-dumb-dump-server.py][the archiving server script]]?
+  pWebArc requires an archiving server to actually archive anything.
+- =pWebArc FAILED to archive <N> items in the queue because requests to URL fail with: <STATUS> <REASON>: <RESPONSE>=
+
+  Your archiving sever is returning HTTP errors when pWebArc is trying to archive data to it.
+  See its error console for more information.
+
+  Some common reasons it could be failing:
+  - No space left on the device you are archiving to.
+  - It's a bug.
+#+BEGIN_EXPORT html
+</div>
+#+END_EXPORT
 * FAQ
 ** Does pWebArc send any data to any third-parties?
 No. It only sends data to the archiving server URL you specify.
