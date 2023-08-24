@@ -7,6 +7,10 @@
     <link rel="shortcut icon" type="image/svg" href="../icon/on.svg">
     <link rel="stylesheet" href="main.css">
     <style>
+body {
+    line-height: 160%;
+}
+
 h1 {
     font-size: 110%;
     margin: 0;
@@ -25,6 +29,10 @@ h2 {
 
 #stats > div, #stats > h1 {
     display: flex;
+}
+
+input[type="button"], .help {
+    vertical-align: top;
 }
 
 #show {
@@ -53,18 +61,26 @@ h2 {
             <span data-help="Open the help page."><input type="button" id="help" value="Help" /></span>
           </span>
         </h1>
-        <div id="div-stats.archived" data-help="Reqres (HTTP requests+responses) successfully archived to the server.">Archived <span class="right"><span id="stats.archived">0</span> reqres</span></div>
+        <div id="div-stats.archived" data-help="Reqres (HTTP requests+responses) successfully archived to the server.">
+          <span>Archived</span>
+          <span class="right"><span id="stats.archived">0</span> reqres</span>
+        </div>
         <div id="div-stats.failedToArchive" data-help="Reqres that failed to be archived to the server.">
-          Failed to archive
+          <span>Failed to archive</span>
           <span class="right">
             <span data-help="Move all failed to archive reqres to the archiving queue. This action will be performed automatically every 60 seconds when archiving is enabled."><input type="button" id="retryAllFailedArchives" value="Retry" /></span>
             <span id="stats.failedToArchive">0</span> reqres
           </span>
         </div>
-        <div id="div-stats.queued" data-help="Finished reqres queued for archival.">Queued for archival <span class="right"><span id="stats.queued">0</span> reqres</span></div>
-        <div id="div-stats.failedToFetch" data-help="Finished reqres that failed to satisfy the archiving conditions and thus were discarded.">Failed to collect<span class="right"><span id="stats.failedToFetch">0</span> reqres</span></div>
+        <div id="div-stats.queued" data-help="Finished reqres queued for archival.">
+          <span>Queued for archival</span>
+          <span class="right"><span id="stats.queued">0</span> reqres</span></div>
+        <div id="div-stats.failedToFetch" data-help="Finished reqres that failed to satisfy the archiving conditions and thus were discarded.">
+          <span>Failed to collect</span>
+          <span class="right"><span id="stats.failedToFetch">0</span> reqres</span>
+        </div>
         <div id="div-stats.inflight" data-help="Tracked reqres that have not finished yet.">
-          In-flight
+          <span>In-flight</span>
           <span class="right">
             <span data-help="Stop tracking progress of all in-flight requests and either queue them for archival or fail them, depending on completion and &quot;Archive reqres with&quot; options below."><input type="button" id="forceFinishRequests" value="Stop" /></span>
             <span id="stats.inflight">0</span> reqres
