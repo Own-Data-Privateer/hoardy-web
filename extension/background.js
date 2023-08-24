@@ -986,6 +986,7 @@ function handleMessage(request, sender, sendResponse) {
 }
 
 function init(storage) {
+    let showHelp = false;
     if (storage.config !== undefined) {
         let oldConfig = storage.config;
         function rename(from, to) {
@@ -1005,7 +1006,8 @@ function init(storage) {
         } else {
             console.log("ignoring old config with version " + oldConfig.version);
         }
-    }
+    } else
+        showHelp = true;
 
     browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), {urls: ["<all_urls>"]}, ["blocking", "requestBody"]);
     browser.webRequest.onBeforeSendHeaders.addListener(catchAll(handleBeforeSendHeaders), {urls: ["<all_urls>"]}, ["blocking"]);
@@ -1035,6 +1037,11 @@ function init(storage) {
     setIcons();
 
     console.log(`initialized pWebArc with source of '${sourceDesc}' and config of`, config);
+
+    if (showHelp)
+        browser.tabs.create({
+            url: browser.runtime.getURL("/page/help.html"),
+        });
 }
 
 browser.storage.local.get().then(init, (error) => {
