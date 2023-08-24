@@ -94,6 +94,7 @@ function makeUI(prefix, value, update) {
         ne.id = prefix;
         ne.name = prefix;
         ne.type = "checkbox";
+        ne.classList.add("toggle");
         ne.checked = value;
         ne.onchange = () => {
             update(ne.checked);
@@ -105,8 +106,7 @@ function makeUI(prefix, value, update) {
         res.appendChild(lbl);
     } else if (typ == "string") {
         let ne = document.createElement("input");
-        ne.style.float = "right";
-        ne.style.width = `calc(100% - ${el.textContent.length + 2}ch)`;
+        ne.style.width = `calc(100% - ${el.textContent.length + 3}ch)`;
         ne.id = prefix;
         ne.name = prefix;
         ne.type = "text";
@@ -127,4 +127,40 @@ function makeUI(prefix, value, update) {
     }
 
     el.parentElement.replaceChild(res, el);
+}
+
+function addHelp(node) {
+    for (let child of node.childNodes) {
+        if (child.nodeName === "#text") continue;
+        addHelp(child);
+    }
+
+    let help = node.getAttribute("data-help");
+    if (help === null) return;
+
+    let div = document.createElement("div");
+    div.classList.add("help");
+    div.style.display = "none";
+    div.innerText = help;
+
+    let el = document.createElement("input");
+    el.type = "checkbox";
+    el.classList.add("help");
+    el.setAttribute("data-help", help);
+
+
+    div.onclick = () => {
+        el.checked = false;
+        div.style.display = "none";
+    }
+
+    el.onchange = () => {
+        if (el.checked)
+            div.style.display = "block";
+        else
+            div.style.display = "none";
+    }
+
+    node.appendChild(el);
+    node.appendChild(div);
 }

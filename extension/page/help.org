@@ -16,7 +16,7 @@ Whether pWebArc will track a given request depends on the "Track new reqres" tog
 - [[./popup.html#div-config.collecting][this one]] allows you to disable tracking of newly spawned HTTP requests globally, thus basically disabling pWebArc (except for reqres that are already being tracked and unfinished archivals),
 - while [[./popup.html#div-tabconfig.collecting][this one]] controls whether pWebArc will track new reqres originating from the currently active tab,
 - and [[./popup.html#div-tabconfig.children.collecting][this one]] controls whether it will track new reqres originating from tabs opened from the currently active tab (e.g. via middle mouse click, context menu, etc),
-- and so forth for the others (you can hover over each one of them to get a tooltip explaining what each of them does).
+- and so forth for the others (press "?" symbols to see a tooltip explaining what each of them does).
 
 Disabling any of these toggles does not stop tracking of already initiated requests, it only stops new requests controlled by that toggle from being tracked.
 ** Step 2

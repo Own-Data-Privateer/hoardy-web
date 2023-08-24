@@ -70,69 +70,65 @@ h2 {
       <div id="stats">
         <h1>Stats
           <span class="right">
-            <span title="Open the request log page."><input type="button" id="log" value="Log" /></span>
-            <span title="Open the help page."><input type="button" id="help" value="Help" /></span>
+            <span data-help="Open the request log page."><input type="button" id="log" value="Log" /></span>
+            <span data-help="Open the help page."><input type="button" id="help" value="Help" /></span>
           </span>
         </h1>
-        <div id="div-stats.archived" title="Reqres (HTTP requests+responses) successfully archived to the server.">Archived <span class="right"><span id="stats.archived">0</span> reqres</span></div>
-        <div id="div-stats.failedToArchive">
-          <span title="Reqres that failed to be archived to the server, to be retried later.">Failed to archive</span>
+        <div id="div-stats.archived" data-help="Reqres (HTTP requests+responses) successfully archived to the server.">Archived <span class="right"><span id="stats.archived">0</span> reqres</span></div>
+        <div id="div-stats.failedToArchive" data-help="Reqres that failed to be archived to the server.">
+          Failed to archive
           <span class="right">
-            <span title="Move all failed to archive reqres to the archiving queue. This action will be performed automatically every 60 seconds when archiving is enabled."><input type="button" id="retryAllFailedArchives" value="Retry" /></span>
-            <span title="Reqres that failed to be archived to the server, to be retried later.">
-              <span id="stats.failedToArchive">0</span> reqres
-            </span>
+            <span data-help="Move all failed to archive reqres to the archiving queue. This action will be performed automatically every 60 seconds when archiving is enabled."><input type="button" id="retryAllFailedArchives" value="Retry" /></span>
+            <span id="stats.failedToArchive">0</span> reqres
           </span>
         </div>
-        <div id="div-stats.queued" title="Finished reqres queued for archival.">Queued for archival <span class="right"><span id="stats.queued">0</span> reqres</span></div>
-        <div id="div-stats.failedToFetch" title="Finished reqres that failed to satisfy the archiving conditions and thus were discarded.">Failed to collect<span class="right"><span id="stats.failedToFetch">0</span> reqres</span></div>
-        <div id="div-stats.inflight">
-          <span title="Tracked reqres that have not finished yet.">In-flight</span>
+        <div id="div-stats.queued" data-help="Finished reqres queued for archival.">Queued for archival <span class="right"><span id="stats.queued">0</span> reqres</span></div>
+        <div id="div-stats.failedToFetch" data-help="Finished reqres that failed to satisfy the archiving conditions and thus were discarded.">Failed to collect<span class="right"><span id="stats.failedToFetch">0</span> reqres</span></div>
+        <div id="div-stats.inflight" data-help="Tracked reqres that have not finished yet.">
+          In-flight
           <span class="right">
-            <span title="Stop tracking progress of all in-flight requests and either queue them for archival or fail them, depending on completion and &quot;Archive reqres with&quot; options below."><input type="button" id="forceFinishRequests" value="Stop" /></span>
-            <span title="Reqres that are still in-flight.">
-              <span id="stats.inflight">0</span> reqres
-            </span>
+            <span data-help="Stop tracking progress of all in-flight requests and either queue them for archival or fail them, depending on completion and &quot;Archive reqres with&quot; options below."><input type="button" id="forceFinishRequests" value="Stop" /></span>
+            <span id="stats.inflight">0</span> reqres
           </span>
         </div>
       </div>
       <div name="depends">
         <h1>This tab</h1>
-        <ui id="tabconfig.collecting" title="Track new reqres originating from this tab.">Track new reqres from this tab</ui>
-        <ui id="tabconfig.profile" title="Use this server-side profile when archiving reqres originating from this tab.">Profile</ui>
+        <ui id="tabconfig.collecting" data-help="Track new reqres originating from this tab.">Track new reqres from this tab</ui>
+        <ui id="tabconfig.profile" data-help="Use this server-side profile when archiving reqres originating from this tab.">Profile</ui>
         <h1>New tabs opened from this tab</h1>
-        <ui id="tabconfig.children.collecting" title="Track reqres originating from new tabs spawned from this tab (e.g. via middle mouse click, context menu, etc).">Track new tab's reqres</ui>
-        <ui id="tabconfig.children.profile" title="Use this server-side profile when archiving reqres originating from new tabs opened from this tab (e.g. via middle mouse click).">Profile</ui>
+        <ui id="tabconfig.children.collecting" data-help="Track reqres originating from new tabs spawned from this tab (e.g. via middle mouse click, context menu, etc).">Track reqres in such tabs</ui>
+        <ui id="tabconfig.children.profile" data-help="Use this server-side profile when archiving reqres originating from new tabs opened from this tab (e.g. via middle mouse click).">Profile</ui>
         <h1>New root tabs</h1>
-        <ui id="config.root.collecting" title="Track reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (i.e. the plus sign in the tab bar, Control+T, menu item, etc).">Track new root tabs' reqres</ui>
-        <ui id="config.root.profile" title="Use this server-side profile when archiving reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action.">Profile</ui>
+        <ui id="config.root.collecting" data-help="Track reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (i.e. the plus sign in the tab bar, Control+T, menu item, etc).">Track reqres in new root tabs</ui>
+        <ui id="config.root.profile" data-help="Use this server-side profile when archiving reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action.">Profile</ui>
       </div>
       <h1>Globally</h1>
-      <ui id="config.collecting" title="Generate and start tracking a new reqres when browser makes a new HTTP request. Disabling this will option stop pWebArc from recording any new data.">Track any new reqres at all</ui>
+      <ui id="config.collecting" data-help="Generate and start tracking a new reqres when browser makes a new HTTP request. Disabling this will option stop pWebArc from recording any new data.">Track any new reqres at all</ui>
     </div>
 
     <input type="button" id="show" value="Show all" />
 
     <div id="more" style="display: none">
-      <ui id="config.archiving" title="Archive already collected reqres (&quot;queued for archival&quot; in the stats) by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that the archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
+      <ui id="config.archiving" data-help="Archive already collected reqres (&quot;queued for archival&quot; in the stats) by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that the archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
       <div name="depends">
-        <ui id="config.archiveURLBase" title="URL of the server we are archiving to.">Archive to</ui>
+        <ui id="config.archiveURLBase" data-help="URL of the server we are archiving to.">Archive to</ui>
         <h1>Originating from extensions</h1>
-        <ui id="config.extension.collecting" title="Track new reqres originating from other browser extensions.">Track new extensions' reqres</ui>
-        <ui id="config.extension.profile" title="Use this server-side profile when archiving reqres originating from other browser extensions.">Profile</ui>
+        <ui id="config.extension.collecting" data-help="Track new reqres originating from other browser extensions.">Track reqres from extensions</ui>
+        <ui id="config.extension.profile" data-help="Use this server-side profile when archiving reqres originating from other browser extensions.">Profile</ui>
         <h1>Other background tasks</h1>
-        <ui id="config.background.collecting" title="Track new reqres originating from browser's background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this, as browsers do link pre-fetching in background, and disabling this will miss that data.">Track new background reqres</ui>
-        <ui id="config.background.profile" title="Use this server-side profile when archiving reqres originating from browser's background tasks.">Profile</ui>
+        <ui id="config.background.collecting" data-help="Track new reqres originating from browser's background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this, as browsers do link pre-fetching in background, and disabling this will miss that data.">Track reqres from background tasks</ui>
+        <ui id="config.background.profile" data-help="Use this server-side profile when archiving reqres originating from browser's background tasks.">Profile</ui>
         <h1>Options</h1>
         <div id="archive-options">
           <h2>Archive reqres with</h2>
-          <ui id="config.archivePartialRequest" title="Queue a reqres for archival even when its request body is incomplete. You probably want to keep this enabled. See the &quot;Quirks&quot; section of the &quot;Help&quot; page for details.">... partial POST form data</ui>
-          <ui id="config.archiveNoResponse" title="Queue a reqres for archival even when there was no response, i.e. request was interrupted before request headers were received (this usually means a networking issue). Disabled by default because such archived reqress carry no information except that the browser tried to do a request at specified time.">... no responses</ui>
-          <ui id="config.archiveIncompleteResponse" title="Queue a reqres for archival even when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Disabled by default because simply reloading the page and not dealing with partial files is usually a better option.">... incomplete response bodies</ui>
+          <ui id="config.archivePartialRequest" data-help="Queue a reqres for archival even when its request body is incomplete. You probably want to keep this enabled. See the &quot;Quirks&quot; section of the &quot;Help&quot; page for details.">... partial POST form data</ui>
+          <ui id="config.archiveNoResponse" data-help="Queue a reqres for archival even when there was no response, i.e. request was interrupted before request headers were received (this usually means a networking issue). Disabled by default because such archived reqress carry no information except that the browser tried to do a request at specified time.">... no responses</ui>
+          <ui id="config.archiveIncompleteResponse" data-help="Queue a reqres for archival even when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Disabled by default because simply reloading the page and not dealing with partial files is usually a better option.">... incomplete response bodies</ui>
         </div>
         <div id="misc-options">
           <h2>Misc</h2>
-          <ui id="config.debugging" title="This makes extension's debugging log in about:debugging much more verbose. Makes things very slow, eats lots of memory. Do not enable unless you know what you are doing.">Print verbose debugging log (very slow!)</ui>
+          <ui id="config.debugging" data-help="This makes extension's debugging log in about:debugging much more verbose. Makes things very slow, eats lots of memory. Do not enable unless you know what you are doing.">Print verbose debugging log (very slow!)</ui>
         </div>
       </div>
     </div>

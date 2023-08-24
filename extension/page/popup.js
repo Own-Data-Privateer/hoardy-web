@@ -117,6 +117,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]);
                 });
 
+                // add help buttons
+                addHelp(document.body);
+
                 // replace recordTabId with updateTabUI
                 browser.tabs.onActivated.removeListener(recordTabId);
                 browser.tabs.onActivated.addListener(updateTabUI);
