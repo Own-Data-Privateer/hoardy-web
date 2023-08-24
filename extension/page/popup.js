@@ -6,20 +6,10 @@
 
 "use strict";
 
-let highlightedNode = null;
-function highlight(target) {
+function showAll() {
     document.getElementById("show").style.display = "none";
-    document.getElementById("more").style.display = "block";
-
-    if (highlightedNode !== null) {
-        highlightedNode.classList.remove("target");
-    }
-
-    let el = document.getElementById(target);
-    if (el !== null) {
-        el.classList.add("target");
-        el.scrollIntoView();
-        highlightedNode = el;
+    for (let node of document.getElementsByName("more")) {
+        node.style.display = "block";
     }
 }
 
@@ -30,13 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
             updateClasses(newconfig);
             browser.runtime.sendMessage(["setConfig", newconfig]);
         });
-
-        // when #hash is specified (used in the ./help.org), we don't
-        // want anything hidden and we want to point user to the
-        // appropriate node
-        var hash = window.location.hash.substr(1);
-        if (hash !== "")
-            highlight(hash);
 
         // make id=depends's classes depend on config
         let dependNodes = document.getElementsByName("depends");
@@ -58,10 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         buttonToMessage("retryAllFailedArchives");
         buttonToMessage("forceFinishRequests");
-        buttonToAction("show", () => {
-            document.getElementById("show").style.display = "none";
-            document.getElementById("more").style.display = "block";
-        });
+        buttonToAction("show", () => showAll());
 
         // open connection to the background script
         let port = browser.runtime.connect();
@@ -70,8 +50,10 @@ document.addEventListener("DOMContentLoaded", () => {
             let [what, data] = update;
             if (what == "stats")
                 setUI("stats", data);
-            else if (what == "highlight")
-                highlight(data);
+            else if (what == "highlight") {
+                showAll();
+                highlightNode(data);
+            }
         });
 
         // get current windowId and tabId of the active tab
@@ -119,6 +101,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // add help buttons
                 addHelp(document.body);
+
+                // when #hash is specified (used in the ./help.org), we don't
+                // want anything hidden and we want to point user to the
+                // appropriate node
+                var hash = window.location.hash.substr(1);
+                if (hash !== "")
+                    highlightNode(hash);
+                else {
+                    // othirwise hide things under elements named "more" until showAll()
+                    for (let node of document.getElementsByName("more")) {
+                        node.style.display = "none";
+                    }
+                }
 
                 // replace recordTabId with updateTabUI
                 browser.tabs.onActivated.removeListener(recordTabId);

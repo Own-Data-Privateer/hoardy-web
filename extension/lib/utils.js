@@ -129,6 +129,20 @@ function makeUI(prefix, value, update) {
     el.parentElement.replaceChild(res, el);
 }
 
+let targetNode = null;
+function highlightNode(target) {
+    if (targetNode !== null) {
+        targetNode.classList.remove("target");
+    }
+
+    let el = document.getElementById(target);
+    if (el !== null) {
+        el.classList.add("target");
+        el.scrollIntoView();
+        targetNode = el;
+    }
+}
+
 function addHelp(node) {
     for (let child of node.childNodes) {
         if (child.nodeName === "#text") continue;

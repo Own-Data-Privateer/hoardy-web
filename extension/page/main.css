@@ -88,3 +88,24 @@ div.help {
     padding: 4px;
     white-space: pre-line;
 }
+
+/* can't use :target because some nodes are procedurally generated */
+.target {
+    background-color: #ffaa00;
+    animation-name: highlight;
+    animation-duration: 2s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+@keyframes highlight {
+    from {
+        background-color: #ffaa00;
+    }
+    50% {
+        background-color: #ffffff;
+    }
+    to {
+        background-color: #ffaa00;
+    }
+}

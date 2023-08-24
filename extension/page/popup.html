@@ -42,27 +42,6 @@ h2 {
     --checkbox-background: var(--uncheckbox-background);
     --checkbox-border-color: var(--uncheckbox-border-color);
 }
-
-/* can't use :target because some nodes are procedurally generated */
-.target {
-    background-color: #ffaa00;
-    animation-name: highlight;
-    animation-duration: 2s;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
-}
-
-@keyframes highlight {
-    from {
-        background-color: #ffaa00;
-    }
-    50% {
-        background-color: #ffffff;
-    }
-    to {
-        background-color: #ffaa00;
-    }
-}
     </style>
   </head>
   <body style="display: none">
@@ -92,6 +71,14 @@ h2 {
           </span>
         </div>
       </div>
+      <h1>Globally</h1>
+      <ui id="config.collecting" data-help="Generate and start tracking a new reqres when browser makes a new HTTP request. Disabling this option will stop pWebArc from recording any new data.">Track any new reqres at all</ui>
+      <div name="more">
+        <ui id="config.archiving" data-help="Archive already collected reqres (&quot;queued for archival&quot; in the stats) by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that the archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
+        <div name="depends">
+          <ui id="config.archiveURLBase" data-help="URL of the server we are archiving to.">Archive to</ui>
+        </div>
+      </div>
       <div name="depends">
         <h1>This tab</h1>
         <ui id="tabconfig.collecting" data-help="Track new reqres originating from this tab.">Track new reqres from this tab</ui>
@@ -103,16 +90,12 @@ h2 {
         <ui id="config.root.collecting" data-help="Track reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (i.e. the plus sign in the tab bar, Control+T, menu item, etc).">Track reqres in new root tabs</ui>
         <ui id="config.root.profile" data-help="Use this server-side profile when archiving reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action.">Profile</ui>
       </div>
-      <h1>Globally</h1>
-      <ui id="config.collecting" data-help="Generate and start tracking a new reqres when browser makes a new HTTP request. Disabling this will option stop pWebArc from recording any new data.">Track any new reqres at all</ui>
     </div>
 
     <input type="button" id="show" value="Show all" />
 
-    <div id="more" style="display: none">
-      <ui id="config.archiving" data-help="Archive already collected reqres (&quot;queued for archival&quot; in the stats) by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that the archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
+    <div name="more">
       <div name="depends">
-        <ui id="config.archiveURLBase" data-help="URL of the server we are archiving to.">Archive to</ui>
         <h1>Originating from extensions</h1>
         <ui id="config.extension.collecting" data-help="Track new reqres originating from other browser extensions.">Track reqres from extensions</ui>
         <ui id="config.extension.profile" data-help="Use this server-side profile when archiving reqres originating from other browser extensions.">Profile</ui>
