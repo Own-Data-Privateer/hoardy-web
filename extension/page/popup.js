@@ -106,10 +106,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 // want anything hidden and we want to point user to the
                 // appropriate node
                 var hash = window.location.hash.substr(1);
-                if (hash !== "")
+                if (hash !== "") {
+                    showAll();
                     highlightNode(hash);
-                else {
-                    // othirwise hide things under elements named "more" until showAll()
+                } else {
+                    // otherwise hide things under elements named "more" until showAll()
                     for (let node of document.getElementsByName("more")) {
                         node.style.display = "none";
                     }
