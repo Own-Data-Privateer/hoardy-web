@@ -143,6 +143,7 @@ function highlightNode(target) {
     }
 }
 
+let helpNodes = null;
 function addHelp(node) {
     for (let child of node.childNodes) {
         if (child.nodeName === "#text") continue;
@@ -162,16 +163,24 @@ function addHelp(node) {
     el.classList.add("help");
     el.setAttribute("data-help", help);
 
-
-    div.onclick = () => {
+    function unset(el, div) {
         el.checked = false;
         div.style.display = "none";
+        helpNodes = null;
     }
 
+    div.onclick = () => unset(el, div);
+
     el.onchange = () => {
-        if (el.checked)
+        if (helpNodes !== null) {
+            let [nel, ndiv] = helpNodes;
+            unset(nel, ndiv);
+        }
+
+        if (el.checked) {
             div.style.display = "block";
-        else
+            helpNodes = [el, div];
+        } else
             div.style.display = "none";
     }
 
