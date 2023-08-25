@@ -486,8 +486,8 @@ function renderReqres(reqres) {
         reqres.emitTimeStamp,
         rest,
     ], {
-        allow_null: true,
-        allow_undefined: false,
+        allowNull: true,
+        allowUndefined: false,
     });
 
     return {

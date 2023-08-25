@@ -156,8 +156,8 @@ class CBOREncoder {
     encode(value, limits) {
         if (limits === undefined)
             limits = {
-                allow_null: true,
-                allow_undefined: true
+                allowNull: true,
+                allowUndefined: true
             };
 
         //console.log("CBOR encode", typeof value, value);
@@ -168,12 +168,12 @@ class CBOREncoder {
             return this.writeUint8(0xf5);
 
         if (value === null) {
-            if (limits.allow_null)
+            if (limits.allowNull)
                 return this.writeUint8(0xf6);
             else
                 throw new Error("try to encode null")
         } else if (value === undefined) {
-            if (limits.allow_undefined)
+            if (limits.allowUndefined)
                 return this.writeUint8(0xf7);
             else
                 throw new Error("try to encode undefined")
