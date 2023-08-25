@@ -32,10 +32,11 @@ class HTTPDumpServer(threading.Thread):
        would not interrupt a dump in the middle.
     """
 
-    def __init__(self, host, port, root, *args, **kwargs):
+    def __init__(self, host, port, root, use_profiles, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.httpd = make_server(host, port, validator(self.handle_request))
         self.root = root
+        self.use_profiles = use_profiles
         self.prevsec = 0
         self.num = 0
         print(f"Listening for archive requests on http://{host}:{port}/pwebarc/dump")
@@ -66,6 +67,10 @@ class HTTPDumpServer(threading.Thread):
             except KeyError:
                 query = ""
             params = up.parse_qs(query)
+
+            profile = ""
+            if "profile" in params:
+                profile = params["profile"][0]
 
             # read request body data
             fp = environ["wsgi.input"]
@@ -109,8 +114,8 @@ class HTTPDumpServer(threading.Thread):
             self.prevsec = epoch
 
             gm = time.gmtime(epoch)
-            if "profile" in params:
-                directory = os.path.join(params["profile"][0], *map(str, gm[0:3]))
+            if self.use_profiles and profile != "":
+                directory = os.path.join(profile, *map(str, gm[0:3]))
             else:
                 directory = os.path.join(*map(str, gm[0:3]))
             directory = os.path.join(self.root, directory)
@@ -135,15 +140,16 @@ class HTTPDumpServer(threading.Thread):
             yield from end_with("404 Not Found", b"")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="pwebarc-dumb-dump-server", description="Dumb dump server for pWebArc. Simply dumps each request to `ROOT/<year>/<month>/<day>/<epoch>_<number>.wrr`.")
+    parser = argparse.ArgumentParser(prog="pwebarc-dumb-dump-server", description="Dumb dump server for pWebArc. Simply dumps each request to `ROOT/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.")
     parser.add_argument("--version", action="version", version="%(prog)s 1.0")
     parser.add_argument("--host", default="127.0.0.1", type=str, help="listen on what host/IP (default: 127.0.0.1)")
     parser.add_argument("--port", default=3210, type=int, help="listen on what port (default: 3210)")
     parser.add_argument("--root", default="pwebarc-dump", type=str, help="path to dump data into (default: pwebarc-dump)")
+    parser.add_argument("--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension")
 
     args = parser.parse_args(sys.argv[1:])
 
-    t = HTTPDumpServer(args.host, args.port, args.root)
+    t = HTTPDumpServer(args.host, args.port, args.root, not args.ignore_profiles)
     t.start()
     try:
         t.join()
