@@ -994,18 +994,23 @@ function init(storage) {
             delete oldConfig[from];
             oldConfig[to] = old;
         }
-        if (oldConfig.version == 1) {
-            console.log("using old config version " + oldConfig.version);
+
+        let version = oldConfig.version;
+        delete oldConfig["version"];
+
+        if (version == 1) {
+            console.log("Using old config version " + version);
             rename("collectPartialRequests", "archivePartialRequest");
             rename("collectNoResponse", "archiveNoResponse");
             rename("collectIncompleteResponses", "archiveIncompleteResponse")
-            config = assignRec(config, oldConfig);
-        } else if (oldConfig.version == 2) {
-            console.log("using config version " + oldConfig.version);
-            config = assignRec(config, oldConfig);
+        } else if (version == 2) {
+            console.log("Using config version " + version);
         } else {
-            console.log("ignoring old config with version " + oldConfig.version);
+            console.log("Unknwon old config version " + version);
+            oldConfig = undefined;
         }
+
+        config = updateFromRec(config, oldConfig);
     } else
         showHelp = true;
 

@@ -19,10 +19,16 @@ function catchAll(func) {
 }
 
 function assignRec(target, value) {
-    if (target === undefined)
+    if (value === undefined)
+        return target;
+    else if (target === undefined)
         return value;
 
+    let typt = typeof target;
     let typ = typeof value;
+    if (typt !== typ)
+        return value;
+
     if (typ == "object") {
         for (let [k, v] of Object.entries(value)) {
             target[k] = assignRec(target[k], v);
@@ -31,7 +37,32 @@ function assignRec(target, value) {
     } else if (typ == "boolean" || typ == "number" || typ == "string") {
         return value;
     } else {
-        console.log(typ);
+        console.log(typ, value);
+        throw new Error("what?");
+    }
+}
+
+// like assignRec, but only updating existing keys in an Object
+function updateFromRec(target, value) {
+    if (value === undefined)
+        return target;
+    else if (target === undefined)
+        return value;
+
+    let typt = typeof target;
+    let typ = typeof value;
+    if (typt !== typ)
+        return value;
+
+    if (typ == "object") {
+        for (let k of Object.keys(target)) {
+            target[k] = updateFromRec(target[k], value[k]);
+        }
+        return target;
+    } else if (typ == "boolean" || typ == "number" || typ == "string") {
+        return value;
+    } else {
+        console.log(typ, value);
         throw new Error("what?");
     }
 }
