@@ -38,12 +38,14 @@ It will also specify =profile= query parameter to the POST request using the app
 
 Evaluation of the =profile=  parameter gets done just before the POST request is sent, so if the queue is not yet empty, and you disable [[./popup.html#div-config.archiving]["Archive collected reqres"]], edit some of the "Profile" settings, and enable [[./popup.html#div-config.archiving]["Archive collected reqres"]] again, pWebArc will start using the new setting immediately.
 * Quirks
-- Without the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/firefox][patch for Firefox]], Firefox only supplies =formData= to =browser.webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a POST request.
+- On Firefox, without the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/firefox][patch]], the browser only supplies =formData= to =browser.webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a POST request.
 
   pWebArc will mark such requests as having a "partial request body" and try its best to recover the data from =formData= structure, but if a POST request was uploading files, they won't be recoverable from =formData= (in fact, it is not even possible to tell if there were any files attached there), and so your archived request data will be incomplete even after pWebArc did its best.
 
   Disabling [[./popup.html#div-config.archivePartialRequest]["Archive reqres with partial POST form data" toggle/checkbox in Settings]] will disable archiving of such broken requests.
   This is not recommended, however, as archiving some data is usually better than archiving none.
+
+- On Firefox, =If-Modified-Since= and =If-None-Match= headers never get archived, because it never supplies them to the extensions. Thus, you can get "304 Not Modified" reqres response to a seemingly normal "GET" request.
 
 - Reqres are only stored in memory, so if you close the browser or reload the extension before all the queued reqres finish archiving you will lose some data.
 

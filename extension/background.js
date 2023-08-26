@@ -458,6 +458,9 @@ function renderReqres(reqres) {
     if (reqres.documentUrl !== undefined && reqres.documentUrl !== referer && reqres.documentUrl !== reqres.originUrl)
         rest.document_url = reqres.documentUrl;
 
+    if (reqres.fromCache === true)
+        rest.from_cache = true;
+
     let response = null;
     if (reqres.responseTimeStamp !== undefined) {
         response = [
@@ -766,7 +769,35 @@ function handleBeforeRequest(e) {
         }
     }
 
-    reqresInFlight.set(e.requestId, reqres);
+    let requestId = e.requestId;
+
+    let filter = browser.webRequest.filterResponseData(requestId);
+    filter.onstart = (event) => {
+        if (config.debugging)
+            console.log("response data started", requestId);
+    };
+    filter.ondata = (event) => {
+        if (config.debugging)
+            console.log("response data chunk", requestId, event.data);
+        reqres.responseBody.push(new Uint8Array(event.data));
+        filter.write(event.data);
+    };
+    filter.onstop = (event) => {
+        if (config.debugging)
+            console.log("response data finished", requestId);
+        reqres.responseComplete = true;
+        filter.disconnect();
+        setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
+    };
+    filter.onerror = (event) => {
+        if (config.debugging)
+            console.log("response data failed", requestId, "because", filter.error);
+        setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
+    };
+
+    reqres.filter = filter;
+
+    reqresInFlight.set(requestId, reqres);
 }
 
 function handleBeforeSendHeaders(e) {
@@ -774,30 +805,6 @@ function handleBeforeSendHeaders(e) {
     if (reqres === undefined) return;
 
     logRequest("before send headers", e);
-
-    let filter = browser.webRequest.filterResponseData(e.requestId);
-    //filter.onstart = (event) => {
-    //    console.log("started", e.requestId);
-    //};
-    filter.ondata = (event) => {
-        if (config.debugging)
-            console.log("request data chunk", e.requestId, event.data);
-        reqres.responseBody.push(new Uint8Array(event.data));
-        filter.write(event.data);
-    };
-    filter.onstop = (event) => {
-        if (config.debugging)
-            console.log("request data finished", e.requestId);
-        reqres.responseComplete = true;
-        filter.disconnect();
-        setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
-    };
-    filter.onerror = (event) => {
-        console.log("request data failed", e.requestId, "because", filter.error);
-        setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
-    };
-
-    reqres.filter = filter;
 }
 
 function handleSendHeaders(e) {
@@ -808,15 +815,62 @@ function handleSendHeaders(e) {
     reqres.requestHeaders = e.requestHeaders;
 }
 
+function emptyCopyOfReqres(reqres) {
+    return {
+        tabId: reqres.tabId,
+
+        method: reqres.method,
+        url: reqres.url,
+
+        documentUrl: reqres.documentUrl,
+        originUrl: reqres.originUrl,
+
+        requestTimeStamp: reqres.requestTimeStamp,
+        requestComplete: reqres.requestComplete,
+        requestBody: reqres.requestBody,
+        formData: reqres.formData,
+
+        requestHeaders: reqres.requestHeaders,
+
+        responseTimeStamp: reqres.responseTimeStamp,
+        statusCode: reqres.statusCode,
+        statusLine: reqres.statusLine,
+        responseHeaders: reqres.responseHeaders,
+        fromCache: reqres.fromCache,
+
+        responseComplete: true,
+        responseBody: new ChunkedBuffer(),
+
+        // note we do not copy the filter
+    };
+}
+
 function handleHeadersRecieved(e) {
     let reqres = reqresInFlight.get(e.requestId);
     if (reqres === undefined) return;
 
     logRequest("headers recieved", e);
+
+    if (reqres.responseTimeStamp !== undefined) {
+        // the browser can call this multiple times for the same request, e.g.
+        // when sending If-Modified-Since and If-None-Match and receiving
+        // 304 response.
+
+        // So, we emit a completed copy of this with an empty response body
+        let creqres = emptyCopyOfReqres(reqres);
+        emitRequest(e.requestId, creqres);
+
+        // and continue with the old one (not vice versa, because the filter
+        // refers to the old one, and changing that reference would be
+        // impossible, since it's asynchronous)
+        reqresInFlight.set(e.requestId, reqres);
+    }
+
     reqres.responseTimeStamp = e.timeStamp;
     reqres.statusCode = e.statusCode;
     reqres.statusLine = e.statusLine;
     reqres.responseHeaders = e.responseHeaders;
+    reqres.fromCache = e.fromCache;
 }
 
 function handleBeforeRedirect(e) {
@@ -836,30 +890,13 @@ function handleAuthRequired(e) {
     if (reqres === undefined) return;
 
     logRequest("auth required", e);
-    reqres.responseComplete = true;
-    emitRequest(e.requestId, reqres);
 
-    // after this it will goto back to handleBeforeSendHeaders, so we have to
-    // make a copy of the request so that the old one could be processed
-    // independently
-    let newreqres = {
-        tabId: reqres.tabId,
+    // similarly to above
+    let creqres = emptyCopyOfReqres(reqres);
+    emitRequest(e.requestId, creqres);
 
-        method: reqres.method,
-        url: reqres.url,
-
-        documentUrl: reqres.documentUrl,
-        originUrl: reqres.originUrl,
-
-        requestTimeStamp: reqres.requestTimeStamp,
-        requestComplete: reqres.requestComplete,
-        requestBody: reqres.requestBody,
-        formData: reqres.formData,
-
-        responseComplete: false,
-        responseBody: new ChunkedBuffer(),
-    };
-    reqresInFlight.set(e.requestId, newreqres);
+    // after this it will goto back to handleBeforeSendHeaders, so
+    reqresInFlight.set(e.requestId, reqres);
 }
 
 function handleCompleted(e) {
