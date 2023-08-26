@@ -50,6 +50,13 @@ class ChunkedBuffer extends Array {
         else
             throw new TypeError("Expecting Uint8Array");
     }
+
+    get byteLength() {
+        let length = 0;
+        for (let e of this)
+            length += e.byteLength;
+        return length;
+    }
 }
 
 class CBOREncoder {
@@ -199,10 +206,7 @@ class CBOREncoder {
             this.writeUint8Array(value);
         } else if (value instanceof ChunkedBuffer) {
             // same thing, but given as an array of chunks
-            let length = 0;
-            for (let e of value)
-                length += e.byteLength;
-            this.writeTypeAndLength(2, length);
+            this.writeTypeAndLength(2, value.byteLength);
             for (let e of value)
                 this.dumpUint8Array(e);
         } else if (typ == "string") {
