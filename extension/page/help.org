@@ -47,6 +47,13 @@ Evaluation of the =profile=  parameter gets done just before the POST request is
 
 - On Firefox, =If-Modified-Since= and =If-None-Match= headers never get archived, because it never supplies them to the extensions. Thus, you can get "304 Not Modified" reqres response to a seemingly normal "GET" request.
 
+- On Firefox, reqres of already cached media files (images, audio, video, except for svg and favicons) will be set to =incomplete= state in the [[./log.html][Log]] because =browser.webRequest.filterResponseData= API does not provide response bodies for such requests.
+
+  Thus, no data about already cached media will be archived unless [[./popup.html#div-config.archiveIncompleteResponse]["Archive reqres with incomplete response bodies" toggle/checkbox in Settings]] is set.
+
+  Usually this is not a problem since such media will be archived on first (non-cached) access.
+  But if you want to force everything on the page to be archived, you can reload the page without the cache with =Control+F5=.
+
 - Reqres are only stored in memory, so if you close the browser or reload the extension before all the queued reqres finish archiving you will lose some data.
 
   Unfortunately, there appears to be no efficient way to store binary blobs with WebExtensions, so this is by design.

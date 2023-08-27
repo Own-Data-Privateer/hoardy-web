@@ -407,9 +407,10 @@ function processArchiving() {
 
 // get header value as string
 function getHeaderValue(headers, name) {
+    name = name.toLowerCase();
     for (let i = 0; i < headers.length; ++i) {
         let header = headers[i];
-        if (header.name == name) {
+        if (header.name.toLowerCase() == name) {
             if (header.binValue !== undefined) {
                 let dec = new TextDecoder("utf-8", { fatal: false });
                 return dec.decode(header.binaryValue);
@@ -502,6 +503,18 @@ function renderReqres(reqres) {
 function processDone() {
     if (reqresDone.length > 0) {
         let reqres = reqresDone.shift()
+
+        if (reqres.responseHeaders !== undefined) {
+            let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
+            if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
+                // Under Firefox, filterResponseData for cached images receives no
+                // response data.
+                if (config.debugging)
+                    console.log("fake complete reqres", reqres);
+                // Let's mark all such things as incomplete.
+                reqres.responseComplete = false;
+            }
+        }
 
         let state = "complete";
         let archiving = true;
