@@ -4,7 +4,7 @@
 - A /reqres/ is a pWebArc-internal object containing information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
 - [[./popup.html#div-stats.inflight][An /in-flight reqres/]] is a reqres of an HTTP request that is still tracked by pWebArc, i.e. it has not finished yet, nor yet failed to finish.
 - [[./popup.html#div-stats.queued][A /queued for archival reqres/]] is a reqres of a finished (either successfully or with an error) HTTP request that satisfied the archiving conditions controlled by [[./popup.html#archive-options]["Archive reqres with" options in Settings]].
-- [[./popup.html#div-stats.failedToFetch][A /failed to collect reqres/]] is a reqres of a finished (either successfully or with an error) HTTP request that did /NOT/ satisfy the archiving conditions and thus was (mostly, except for the data used by the [[./log.html][Log]]) discarded.
+- [[./popup.html#div-stats.failedToFetch][A /discarded reqres/]] is a reqres of a finished (either successfully or with an error) HTTP request that did /NOT/ satisfy the archiving conditions and thus was (mostly, except for the data used by the [[./log.html][Log]]) discarded.
 - [[./popup.html#div-stats.failedToArchive][A /failed to archive reqres/]] is a queued for archival reqres that failed to be archived to the archiving server controlled by [[./popup.html#div-config.archiveURLBase]["Archive to" URL in Settings]]. Archiving of these reqres' will be retried every 60 seconds.
 - [[./popup.html#div-stats.archived][An /archived reqres/]] is a reqres that was successfully archived to the archiving server and thus was (mostly, except for the data used by the [[./log.html][Log]]) discarded from memory.
 * General operation
@@ -27,7 +27,7 @@ In-flight reqres can finish in one of the following states (this is the "State" 
 - =incomplete=: request was sent, response headers were received, but downloading of the response's body was interrupted;
 - =complete=: request was completed successfully.
 ** Step 3
-Then, depending on the [[./popup.html#archive-options]["Archive reqres with" options in Settings]], the reqres in question will either be queued for archival or discarded as failed (displayed as green and red colors respectively in the [[./log.html][Log]]).
+Then, depending on the [[./popup.html#archive-options]["Archive reqres with" options in Settings]], the reqres in question will either be queued for archival or discarded (displayed as green and red colors respectively in the [[./log.html][Log]]).
 ** Step 4
 Then, if [[./popup.html#div-config.archiving]["Archive collected reqres" toggle/checkbox in Settings]] is enabled, pWebArc will make a POST HTTP request to the server at [[./popup.html#div-config.archiveURLBase]["Archive to" URL in Settings]] to archive each request in the queue with CBOR-formatted dump of reqres as POST request body.
 It will also specify =profile= query parameter to the POST request using the appropriate "Profile" setting, e.g.
