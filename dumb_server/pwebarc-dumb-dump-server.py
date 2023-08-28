@@ -49,7 +49,7 @@ class HTTPDumpServer(threading.Thread):
 
     def handle_request(self, environ, start_response):
         def end_with(explanation, more):
-            start_response(explanation, [("Content-type", "text/plain; charset=utf-8")])
+            start_response(explanation, [("Content-Type", "text/plain; charset=utf-8")])
             yield more
 
         method = environ["REQUEST_METHOD"]
