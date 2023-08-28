@@ -26,6 +26,7 @@ function getSourceDesc() {
 let sourceDesc = getSourceDesc();
 
 // default config
+let configVersion = 2;
 let config = {
     debugging: false,
     dumping: false,
@@ -1001,7 +1002,7 @@ function handleMessage(request, sender, sendResponse) {
         }
 
         // save config in 2s to give the user some time to change more settings
-        let eConfig = assignRec({ version: 2 }, config);
+        let eConfig = assignRec({ version: configVersion }, config);
 
         if (saveConfigTID !== null)
             clearTimeout(saveConfigTID);
@@ -1048,6 +1049,10 @@ function init(storage) {
 
         let version = oldConfig.version;
         delete oldConfig["version"];
+
+        // show help when config version changes
+        if (version !== configVersion)
+            showHelp = true;
 
         if (version == 1) {
             console.log("Using old config version " + version);
