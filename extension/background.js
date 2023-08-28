@@ -28,6 +28,7 @@ let sourceDesc = getSourceDesc();
 // default config
 let config = {
     debugging: false,
+    dumping: false,
     history: 1000,
 
     // are we collecting new data?
@@ -564,7 +565,7 @@ function processDone() {
             let archivable = renderReqres(reqres);
             reqresArchiving.push(archivable);
 
-            if (config.debugging) {
+            if (config.dumping) {
                 let dec = new TextDecoder("utf-8", { fatal: false });
                 console.log("dump:")
                 console.log(dec.decode(archivable.data));
