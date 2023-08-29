@@ -330,7 +330,7 @@ function processArchiving() {
         }
 
         if (config.debugging)
-            console.log("archiving", reqres);
+            console.log("trying to archive", reqres);
 
         const req = new XMLHttpRequest();
         req.open("POST", archiveURL, true);
@@ -536,6 +536,7 @@ function processDone() {
         }
 
         if (archiving && !reqres.requestComplete)
+            // requestBody recovered from formData
             archiving = config.archivePartialRequest;
 
         reqres.archiving = archiving;
@@ -555,12 +556,13 @@ function processDone() {
         }
 
         if (config.debugging)
-            console.log(archiving ? "archiving" : "NOT archiving",
+            console.log(archiving ? "QUEUED" : "DISCARDED",
                         state, reqres.method, reqres.url,
                         "from tabId", reqres.tabId,
                         "partial", !reqres.requestComplete,
                         "incomplete", !reqres.responseComplete,
-                        "returned", reqres.statusLine);
+                        "returned", reqres.statusLine,
+                        reqres);
 
         if (archiving) {
             let archivable = renderReqres(reqres);
@@ -697,9 +699,9 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
                 let epilog = enc.encode("--" + boundary + "--\r\n");
                 reqres.requestBody.push(epilog);
             } else
-                console.log("can't recover requestBody from formData, unknown Content-Type format", contentType);
+                console.warn("can't recover requestBody from formData, unknown Content-Type format", contentType);
         } else
-            console.log("can't recover requestBody from formData, unknown Content-Type format", contentType);
+            console.warn("can't recover requestBody from formData, unknown Content-Type format", contentType);
         reqres.requestComplete = false;
         delete reqres["formData"];
     }
@@ -707,7 +709,7 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
     if (error !== undefined)
         // we basically ignore this, because completeness will be derived from
         // reqres fields before renderReqres call in processDone
-        console.log("failed fetching", requestId, error, reqres);
+        console.warn("error while fetching", requestId, error, reqres);
 
     reqresFinishingUp.push(reqres);
     if (!dontFinishUp)
