@@ -1011,7 +1011,7 @@ function handleMessage(request, sender, sendResponse) {
             saveConfigTID = null;
             console.log("saving config", eConfig);
             browser.storage.local.set({ config: eConfig });
-        }, 2000);
+        }, 500);
         break;
     case "getTabConfig":
         sendResponse(getTabConfig(request[1]));
