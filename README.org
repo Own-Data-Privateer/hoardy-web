@@ -176,21 +176,25 @@ Or, you could run both the Tor Browser, and =./pwebarc-dumb-dump-server.py= in a
 [[https://datatracker.ietf.org/doc/html/rfc8949][CBOR (RFC8949)]] encoding of the following structure:
 
 #+BEGIN_SRC
+reqres = reqresV1
+
 reqresV1 = [
     "WEBREQRES/1",
     source,
     protocol,
-    [
-        requestTimeStamp,
-        requestMethod,
-        requestURL,
-        requestHeaders,
-        isRequestComplete,
-        requestBody,
-    ],
+    requestV1,
     responseV1,
     endTimeStamp,
     optionalData,
+]
+
+requestV1 = [
+    requestTimeStamp,
+    requestMethod,
+    requestURL,
+    requestHeaders,
+    isRequestComplete,
+    requestBody,
 ]
 
 responseV1 = null | [
@@ -206,7 +210,10 @@ optionalData = <map from str to anything>
 #+END_SRC
 
 - =source= is a short description of the data source, like =Firefox/102.0+pWebArc/0.1=;
-- =optionalData= currently stores optional =origin_url= and =document_url= when different from browser's =Referer= request header;
-- =responseV1= can be =null= when the request got no response, like when experiencing a network issue (dumping such request+response pairs is disabled by default).
+- =optionalData= currently stores optional =origin_url= and =document_url= when different from both the URL in question and =Referer= request header (this is useful for indexing and search by URL);
+- =responseV1= can be =null= when the request got no response, like when experiencing a network issue (dumping such request+response pairs is disabled by default, see extension's settings).
+
+On-disk these are stored as compressed files.
+[[./dumb_server/][The dumb archiving server]] stores them one file per =reqres= and only compresses them with =GZip=, since =zlib= compression comes bundled with Python.
 * License
 GPLv3+, some small library parts are MIT.
