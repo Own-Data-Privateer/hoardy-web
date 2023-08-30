@@ -199,14 +199,14 @@ function setIcons() {
 
     if (reqresStateIcon != newIcon) {
         reqresStateIcon = newIcon;
-        browser.browserAction.setIcon({ path: `icon/${reqresStateIcon}.svg` });
+        browser.browserAction.setIcon({ path: `icon/${reqresStateIcon}.svg` }).catch(logError);
     }
 
-    browser.browserAction.setTitle({ title: `pWebArc: ${state}`});
+    browser.browserAction.setTitle({ title: `pWebArc: ${state}`}).catch(logError);
     if (total > 0)
-        browser.browserAction.setBadgeText({ text: total.toString() })
+        browser.browserAction.setBadgeText({ text: total.toString() }).catch(logError);
     else
-        browser.browserAction.setBadgeText({ text: "" })
+        browser.browserAction.setBadgeText({ text: "" }).catch(logError);
 
     broadcast(["stats", stats]);
 }
@@ -1012,7 +1012,7 @@ function handleMessage(request, sender, sendResponse) {
         saveConfigTID = setTimeout(() => {
             saveConfigTID = null;
             console.log("saving config", eConfig);
-            browser.storage.local.set({ config: eConfig });
+            browser.storage.local.set({ config: eConfig }).catch(logError);
         }, 500);
         break;
     case "getTabConfig":

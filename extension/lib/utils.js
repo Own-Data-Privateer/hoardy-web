@@ -18,6 +18,11 @@ function catchAll(func) {
     };
 }
 
+function logError(err) {
+    console.log("uncaught error", err);
+    console.trace();
+}
+
 function assignRec(target, value) {
     if (value === undefined)
         return target;

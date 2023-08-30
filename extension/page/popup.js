@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let updateClasses;
         makeUI("config", config, (newconfig) => {
             updateClasses(newconfig);
-            browser.runtime.sendMessage(["setConfig", newconfig]);
+            browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
         });
 
         // make id=depends's classes depend on config
@@ -86,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 browser.runtime.sendMessage(["getTabConfig", tabId]).then((tabconfig) => {
                     setUI("tabconfig", tabconfig);
-                });
+                }, logError);
             }
 
             // remember current value
@@ -127,7 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // show UI
                 document.body.style.display = "block";
-            });
+            }, logError);
         });
     }, (error) => {
         let body = document.createElement("body");
