@@ -1,0 +1,39 @@
+{
+    "manifest_version": 2,
+
+    "icons": {
+        "48": "icon/on.svg",
+        "96": "icon/on.svg",
+        "128": "icon/on.svg"
+    },
+
+    "browser_action": {
+        "default_title": "pWebArc",
+        "default_popup": "page/popup.html",
+        "default_icon": {
+            "48": "icon/on.svg",
+            "96": "icon/on.svg",
+            "128": "icon/on.svg"
+        }
+    },
+
+    "background": {
+        "page": "background/main.html"
+    },
+
+    "permissions": [
+        "storage",
+        "tabs",
+        "notifications",
+        "webRequest",
+        "webRequestBlocking",
+        "<all_urls>"
+    ],
+
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "pwebarc@oxij.org",
+            "strict_min_version": "68.0"
+        }
+    }
+}

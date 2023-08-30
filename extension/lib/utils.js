@@ -72,6 +72,10 @@ function updateFromRec(target, value) {
     }
 }
 
+function unBase64(data) {
+    return Uint8Array.from(atob(data), (x) => x.codePointAt(0));
+}
+
 function buttonToAction(id, action) {
     let e = document.getElementById(id);
     e.onclick = action;

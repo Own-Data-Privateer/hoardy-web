@@ -1,21 +1,12 @@
 * What?
-=pwebarc= is a suite of tools implementing a Private Web Archive, basically your own private [[https://web.archive.org/][Wayback Machine]].
+=pwebarc= is a suite of tools implementing a Private Web Archive, basically your own private [[https://web.archive.org/][Wayback Machine]] that can also archive POST requests, or HTTP-level [[https://github.com/danny0838/webscrapbook][WebScrapBook]] following "archive everything now, figure out what to do with it later" philosophy.
 
-See [[#quickstart][Quickstart]] section for setup instructions, starting to use this takes two easy steps.
-* Parts
-- Required:
-  - [[./dumb_server/][A dumb archiving server]] (aka =pwebarc-dumb-dump-server.py=) written in [[./dumb_server/pwebarc-dumb-dump-server.py][less than 200 lines of pure Python]] that uses the Python's standard library and nothing else. Have Python installed? You can run it right now, no need to install anything else.
-
-  - [[./extension/][A browser extension]] (aka =pWebArc.xpi=, currently only for Firefox-based browsers, but Chromium/Chrome support is coming eventually) that collects your browsing data (HTTP requests and responses) and sends them to the archiving server as you browse.
-
-    You can install the latest stable version from [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][addons.mozilla.org]].
-- Recommended:
-  - [[./firefox/][A patch for Firefox]] to allow the above extension to properly collect request POST data. This is not required, but could be useful if you want to archive POST request properly.
-- WIP:
-  - A tool to display, search, manipulate, and deduplicate archive files.
-  - A set of tools to convert mitmproxy, WARC, HAR, and PCAP files into the internal format used by =pwebarc= and from the internal format to at least WARC.
-  - (eventually) A non-dumb server with data deduplication, timelines, full text search, and etc.
+Basically, you browse the web with this thing installed, and it archives /everything/ you see [[#motivation][in case you will want to return to it later]].
+This is different from all other similarly easy to use tools that do similar things in that they require you to archive things one-by-one, while this archives /everything/ by default, allowing you to disable archiving on case-by-case basis.
 * Why?
+:PROPERTIES:
+:CUSTOM_ID: motivation
+:END:
 So, you wake up remembering something interesting, you try to look it up on Google, you fail, eventually you remember the website you seen it at (or a tool like  [[https://github.com/karlicoss/promnesia][Promnesia]] helps you), you go there to look it up... and discovered it offline/gone/a parked domain.
 Not a problem! Have no fear! You go to [[https://web.archive.org/][Wayback Machine]] and look it up there... and discover they only archived an ancient version of it and the thing you wanted is missing there.
 
@@ -33,6 +24,34 @@ Things vanish from the Internet all the time, [[https://web.archive.org/][Waybac
 - they only archive the public web and only what can be reached with GET requests.
 
 And, obviously, you wouldn't want it to archive you banking app's output.
+* Quickstart
+:PROPERTIES:
+:CUSTOM_ID: quickstart
+:END:
+(Assuming you have Python installed.)
+
+- Download [[./dumb_server/pwebarc-dumb-dump-server.py][the dumb archiving server script]] (aka =pwebarc-dumb-dump-server.py=) and run it (on Windows you can just associate =.py= files with =Python.exe=), it has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python and is very simple.
+  It will start saving data into =pwebarc-dump= directory wherever you run it from.
+- On Firefox/Tor Browser/etc: [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][Install the extension from addons.mozilla.org]] or see [[#build-firefox][Installing from source on Firefox/Tor Browser]].
+- On Chromium/Chrome/etc (experimental): See [[#install-chromium][Installing on Chromium/Chrome]] or [[#build-chromium][Installing from source on Chromium/Chrome]].
+
+You are done.
+
+You should then *read extension's [[./extension/page/help.org]["Help" page]], it has a ton of useful information about how it works and its quirks in different browsers.*
+If you open it by clicking the "Help" button in the extension's UI, then hovering over or clicking on links in there will highlight relevant settings.
+** On a system with no Python installed
+- On Windows: [[https://www.python.org/downloads/windows/][Download Python from the official website]].
+- On Linux/etc: Install via package manager, then go back to [[#quickstart][Quickstart]].
+* Parts and pieces
+- Required:
+  - The [[./extension/][browser extension]] that collects all HTTP requests and responses your browser fetches and sends them to the archiving server.
+  - The [[./dumb_server/][dumb archiving server]] that simply dumps everything it gets to disk one file per HTTP request+response.
+- Recommended:
+  - [[./firefox/][A patch for Firefox]] to allow the above extension to properly collect request POST data. This is not required, but could be useful if you want to archive POST requests properly.
+- WIP:
+  - A tool to display, search, manipulate, and deduplicate archive files.
+  - A set of tools to convert mitmproxy, WARC, HAR, and PCAP files into the internal format used by =pwebarc= and from the internal format to at least WARC.
+  - (eventually) A non-dumb server with data deduplication, timelines, full text search, and etc.
 * But you could do X instead
 ** But you could use [[https://github.com/danny0838/webscrapbook][WebScrapBook]] instead
 Sure, but
@@ -51,8 +70,10 @@ And then you still need something like this suite to look into the generated arc
 ** But you could use [[https://github.com/webrecorder/archiveweb.page][archiveweb.page]] instead.
 Yes, but
 
-- it's Chromium-only,
-- stores data internally in the browser, as similarly inefficient JSONs, and
+- it's Chromium/Chrome-only,
+- stores data internally in the browser, which is inefficient, and then
+- you will have to manually enable it for each browser tab, and then
+- opening a link in a new tab will fail to archive the first page, as the archival is per-tab,
 - it also requires constant user interaction to export the data out.
 
 And then you still need something like this suite to look into the generated archives.
@@ -83,24 +104,32 @@ So, I recommend you start collecting immediately and figure out how to use the r
 After converting all my previous =wget=, =curl=, =mitmproxy=, and HAR archives into this, it is about as efficient as compressed =mitmproxy= dumps, with some (WIP) data-deduplication and xdelta compression between same-URL revisions it is much more efficient.
 For me, it uses about *3GiB per year of browsing* on average (~5 years of mostly uninterrupted data collection ATM) but I use things like [[https://github.com/gorhill/uBlock][uBlock Origin]] and [[https://github.com/gorhill/uMatrix][uMatrix]] to cut things down, and image boorus and video hosting sites have their own pipelines.
 * How to use
-** Quickstart
+Start with [[#quickstart][Quickstart]].
+** Installing the extension
+*** Installing on Firefox/Tor Browser/etc
 :PROPERTIES:
-:CUSTOM_ID: quickstart
+:CUSTOM_ID: install-firefox
 :END:
-- (On Windows) [[https://www.python.org/downloads/windows/][Download Python from the official website]].
-- Download [[./dumb_server/pwebarc-dumb-dump-server.py][the dumb archiving server script]] (aka =pwebarc-dumb-dump-server.py=) and run it (on Windows you can just associate =.py= files with =Python.exe=), it has no dependencies except Python itself.
-  It will start saving data into =pwebarc-dump= directory wherever you run it from.
-- (Optionally) Add =pwebarc-dumb-dump-server.py= to Autorun or start it from your =~/.xsession=, =systemd --user=, etc.
-- (Optionally) Make a new browser profile for archived browsing, run Firefox as =firefox -ProfileManager= to get to the appropriate UI. On Windows you can just edit your desktop or toolbar shortcut to target
+- [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][Install the extension from addons.mozilla.org]].
+*** Experimental: Installing on Chromium/Chrome
+:PROPERTIES:
+:CUSTOM_ID: install-chromium
+:END:
+
+- Download =pWebArc-chromium-v*.zip= from Releases, unpack it, it's packed with a single directory named =pWebArc-chromium-v*= inside for convenience.
+- Go to =Extensions > Manage Extensions= in the menu, enable "Developer mode" toggle, press "Load Unpacked", and select the directory the unpack produced, it should have =manifest.json= file in it, just navigate into it and then press the "Open" button.
+- Then press "Extensions" toolbar button and pin "pWebArc".
+** System setup
+- You can add =pwebarc-dumb-dump-server.py= to Autorun or start it from your =~/.xsession=, =systemd --user=, etc.
+
+- You can also make a new browser profile specifically for archived browsing, run Firefox as =firefox -ProfileManager= to get to the appropriate UI.
+  On Windows you can just edit your desktop or toolbar shortcut to target
 
   #+BEGIN_SRC sh
   "C:\Program Files\Mozilla Firefox\firefox.exe" -ProfileManager
   #+END_SRC
 
   or similar by default to switch between profiles on browser startup.
-- Install the latest stable version of the browser extension for your Firefox-based browser from [[https://addons.mozilla.org/en-US/firefox/addon/pwebarc/][addons.mozilla.org]].
-
-You are done.
 ** Using with Tor Browser
 - Run server as =./pwebarc-dumb-dump-server.py --host 127.0.99.1= or similar.
 - Go to =about:config= and add =127.0.99.1= to =network.proxy.no_proxies_on=.
@@ -109,15 +138,40 @@ You are done.
 You probably don't want to use =127.0.0.1= and =127.0.1.1= with Tor Browser as those are normal loopback addresses and you probably don't want to allow stuff from under Tor to access your everyday stuff.
 
 Or, you could run both the Tor Browser, and =./pwebarc-dumb-dump-server.py= in a container/VM and use the default =127.0.0.1= address.
-** Developing the extension
+** Installing from source
+*** Build
+:PROPERTIES:
+:CUSTOM_ID: build
+:END:
 - =git clone= this repository.
-- In Firefox, go to =about:debugging#/runtime/this-firefox=, click "Load Temporary Add-on" button, and select [[./extension/manifest.json]].
+- For Firefox/Tor Browser/etc: build by running =./build.sh clean firefox= from the =./extension= directory.
+- For Chromium/Chrome/etc: build by running =./build.sh clean chromium= from the =./extension= directory.
+*** On Firefox, Tor Browser, etc
+:PROPERTIES:
+:CUSTOM_ID: build-firefox
+:END:
+**** As a temporary add-on
+- [[#build][Bulid it]].
+- In the browser, go to =about:debugging#/runtime/this-firefox=, click "Load Temporary Add-on" button, and select =./extension/dist/pWebArc-firefox-v*/manifest.json=.
 - Then you might need to go into =about:addons= and enable "Run in Private Windows" for =pWebArc= if your Firefox is running in Private-Windows-only mode.
-** Installing an unsigned XPI
+- To get the debugger console go to =about:debugging= and press extension's "Inspect" button.
+**** Installing an unsigned XPI
+- [[#build][Bulid it]].
 - Make sure your browser [[https://wiki.mozilla.org/Add-ons/Extension_Signing][supports installation of unsigned add-ons]] (Firefox ESR, Nightly, Developer Edition, and Tor Browser do).
 - Go to =about:config=, set =xpinstall.signatures.required= to =false=.
-- Build the XPI by running =./make-firefox-xpi.sh= from the [[./extension]] directory.
-- Install it into your Firefox by going to =about:addons=, clicking the gear button, and selecting "Install Add-on from File" (or by doing =File > Open File= from the menu and selecting the XPI, or by drag-and-dropping the XPI into the browser window).
+- Go to =about:addons=, click the gear button, select "Install Add-on from File", and select the XPI file in =./extension/dist= directory (or do =File > Open File= from the menu and then select the XPI file, or drag-and-drop the XPI file into the browser window).
+*** On Chromium, Chrome, etc
+:PROPERTIES:
+:CUSTOM_ID: build-chromium
+:END:
+**** As an unpacked extension
+- [[#build][Bulid it]].
+- Go to =Extensions > Manage Extensions= in the menu, enable "Developer mode" toggle, press "Load Unpacked", and select =./extension/dist/pWebArc-chromium-v*= directory (navigate into it and then press the "Open" button).
+- Then press "Extensions" toolbar button and pin "pWebArc".
+- To get the debugger console press "Inspect views" link after the extension's ID.
+**** As CRX
+- You can [[#build][build it]], but
+- installing the CRX manually does not appear work in modern version of Chromium/Chrome.
 * Data format
 [[https://datatracker.ietf.org/doc/html/rfc8949][CBOR (RFC8949)]] encoding of the following structure:
 

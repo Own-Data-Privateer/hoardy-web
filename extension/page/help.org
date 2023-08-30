@@ -3,9 +3,9 @@
 * Glossary
 - A /reqres/ is a pWebArc-internal object containing information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
 - [[./popup.html#div-stats.inflight][An /in-flight reqres/]] is a reqres of an HTTP request that is still tracked by pWebArc, i.e. it has not finished yet, nor yet failed to finish.
-- [[./popup.html#div-stats.queued][A /queued for archival reqres/]] is a reqres of a finished (either successfully or with an error) HTTP request that satisfied the archiving conditions controlled by [[./popup.html#archive-options]["Archive reqres with" options in Settings]].
+- [[./popup.html#div-stats.queued][A /queued for archival reqres/]] is a reqres of a finished (either successfully or with an error) HTTP request that satisfied the archiving conditions controlled by [[./popup.html#archive-options]["Archive reqres with" settings]].
 - [[./popup.html#div-stats.failedToFetch][A /discarded reqres/]] is a reqres of a finished (either successfully or with an error) HTTP request that did /NOT/ satisfy the archiving conditions and thus was (mostly, except for the data used by the [[./log.html][Log]]) discarded.
-- [[./popup.html#div-stats.failedToArchive][A /failed to archive reqres/]] is a queued for archival reqres that failed to be archived to the archiving server controlled by [[./popup.html#div-config.archiveURLBase]["Archive to" URL in Settings]]. Archiving of these reqres' will be retried every 60 seconds.
+- [[./popup.html#div-stats.failedToArchive][A /failed to archive reqres/]] is a queued for archival reqres that failed to be archived to the archiving server controlled by [[./popup.html#div-config.archiveURLBase]["Archive to" URL setting]]. Archiving of these reqres' will be retried every 60 seconds.
 - [[./popup.html#div-stats.archived][An /archived reqres/]] is a reqres that was successfully archived to the archiving server and thus was (mostly, except for the data used by the [[./log.html][Log]]) discarded from memory.
 * General operation
 ** Step 1
@@ -16,7 +16,7 @@ Whether pWebArc will track a given request depends on the "Track new reqres" tog
 - [[./popup.html#div-config.collecting][this one]] allows you to disable tracking of newly spawned HTTP requests globally, thus basically disabling pWebArc (except for reqres that are already being tracked and unfinished archivals),
 - [[./popup.html#div-tabconfig.collecting][this one]] controls whether pWebArc will track new reqres originating from the currently active tab,
 - [[./popup.html#div-tabconfig.children.collecting][this one]] controls whether it will track new reqres originating from new tabs opened from the currently active tab (e.g. via middle mouse click, context menu, etc),
-- while [[./popup.html#div-config.root.collecting][this one]] controls whether it will track new reqres originating from new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, Control+T, menu item, etc),
+- while [[./popup.html#div-config.root.collecting][this one]] controls whether it will track new reqres originating from new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
 - and so forth for the others (press "?" symbols to see a tooltip explaining what each of them does).
 
 Disabling any of these toggles does not stop tracking of already initiated requests, it only stops new requests controlled by that toggle from being tracked.
@@ -28,39 +28,83 @@ In-flight reqres can finish in one of the following states (this is the "State" 
 - =incomplete=: request was sent, response headers were received, but downloading of the response's body was interrupted;
 - =complete=: request was completed successfully.
 ** Step 3
-Then, depending on the [[./popup.html#archive-options]["Archive reqres with" options in Settings]], the reqres in question will either be queued for archival or discarded (displayed as green and red colors respectively in the [[./log.html][Log]]).
+Then, depending on the [[./popup.html#archive-options]["Archive reqres with" settings]], the reqres in question will either be queued for archival or discarded (displayed as green and red colors respectively in the [[./log.html][Log]]).
 ** Step 4
-Then, if [[./popup.html#div-config.archiving]["Archive collected reqres" toggle/checkbox in Settings]] is enabled, pWebArc will make a POST HTTP request to the server at [[./popup.html#div-config.archiveURLBase]["Archive to" URL in Settings]] to archive each request in the queue with CBOR-formatted dump of reqres as POST request body.
+Then, if [[./popup.html#div-config.archiving]["Archive collected reqres" toggle/checkbox]] is enabled, pWebArc will make a POST HTTP request to the server at [[./popup.html#div-config.archiveURLBase]["Archive to" URL setting]] to archive each request in the queue with CBOR-formatted dump of reqres as POST request body.
 It will also specify =profile= query parameter to the POST request using the appropriate "Profile" setting, e.g.
 
 - [[./popup.html#div-tabconfig.profile][this one]] will be used for requests originating from the currently active tab,
-- [[./popup.html#div-tabconfig.children.profile][this one]] will be used for requests originating from new tabs opened from the currently active tab (e.g. via middle mouse click, context menu, etc),
-- while [[./popup.html#div-config.root.profile][this one]] will be used for new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, Control+T, menu item, etc),
+- [[./popup.html#div-tabconfig.children.profile][this one]] will be used for requests originating from new child tabs opened from the currently active tab (e.g. via middle mouse click, context menu, etc),
+- while [[./popup.html#div-config.root.profile][this one]] will be used for new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
 - and so forth for the others (press "?" symbols to see a tooltip explaining what each of them does).
 
 Evaluation of the =profile=  parameter gets done just before the POST request is sent, so if the queue is not yet empty, and you disable [[./popup.html#div-config.archiving]["Archive collected reqres"]], edit some of the "Profile" settings, and enable [[./popup.html#div-config.archiving]["Archive collected reqres"]] again, pWebArc will start using the new setting immediately.
-* Quirks
-- On Firefox, without the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/firefox][patch]], the browser only supplies =formData= to =browser.webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a POST request.
+* Quirks and Bugs
+** All browsers
+*** Known extension bugs
+- At the moment, reqres are only stored in memory, so if you close the browser or reload the extension before all the queued reqres finish archiving you will lose some data.
+
+  Not an issue under normal conditions, as archiving a reqres takes milliseconds, meaning that the queues will stay empty almost all of the time.
+  But this is technically a bug that might get fixed later.
+
+- When the extension is (re-)loaded, all tabs inherit the values of [[./popup.html#div-config.root.collecting][this]] and [[./popup.html#div-config.root.profile][this]] setting.
+** On Firefox, Tor Browser, etc
+*** Known browser bugs
+- On Firefox-based browsers, without the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/firefox][patch]], the browser only supplies =formData= to =browser.webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a POST request.
 
   pWebArc will mark such requests as having a "partial request body" and try its best to recover the data from =formData= structure, but if a POST request was uploading files, they won't be recoverable from =formData= (in fact, it is not even possible to tell if there were any files attached there), and so your archived request data will be incomplete even after pWebArc did its best.
 
-  Disabling [[./popup.html#div-config.archivePartialRequest]["Archive reqres with partial POST form data" toggle/checkbox in Settings]] will disable archiving of such broken requests.
+  Disabling [[./popup.html#div-config.archivePartialRequest]["Archive reqres with partial POST form data" toggle/checkbox]] will disable archiving of such broken requests.
   This is not recommended, however, as archiving some data is usually better than archiving none.
 
-- On Firefox, =If-Modified-Since= and =If-None-Match= headers never get archived, because it never supplies them to the extensions. Thus, you can get "304 Not Modified" reqres response to a seemingly normal "GET" request.
+  With the above patch applied, small POST requests will be archived completely and correctly.
+  POST requests that upload large files and only those will be marked as having a "partial request body".
 
-- On Firefox, reqres of already cached media files (images, audio, video, except for svg and favicons) will be set to =incomplete= state in the [[./log.html][Log]] because =browser.webRequest.filterResponseData= API does not provide response bodies for such requests.
+- =If-Modified-Since= and =If-None-Match= headers never get archived, because the browser never supplies them to the extensions. Thus, you can get "304 Not Modified" reqres response to a seemingly normal "GET" request.
 
-  Thus, no data about already cached media will be archived unless [[./popup.html#div-config.archiveIncompleteResponse]["Archive reqres with incomplete response bodies" toggle/checkbox in Settings]] is set.
+- Reqres of already cached media files (images, audio, video, except for svg and favicons) will end in =incomplete= state because =browser.webRequest.filterResponseData= API does not provide response bodies for such requests.
+
+  Thus, no data about already cached media will be archived unless [[./popup.html#div-config.archiveIncompleteResponse]["Archive reqres with incomplete response bodies" toggle/checkbox]] is set.
 
   Usually this is not a problem since such media will be archived on first (non-cached) access.
   But if you want to force everything on the page to be archived, you can reload the page without the cache with =Control+F5=.
+** On Chromium, Chrome, etc
+*** Known browser quirks
+On Chromium-based browsers, there is no way to get HTTP response data without attaching Chromium's debugger to a tab from which a request originates from.
+This makes things a bit tricky, for instance:
 
-- Reqres are only stored in memory, so if you close the browser or reload the extension before all the queued reqres finish archiving you will lose some data.
+- With [[./popup.html#div-config.collecting][pWebArc enabled]], new tabs will be set to =about:blank= because the default of =chrome://newtab/= does not allow attaching debugger to the tabs with =chrome:= URLs.
 
-  Unfortunately, there appears to be no efficient way to store binary blobs with WebExtensions, so this is by design.
+- Requests made before the debugger is attached will get canceled by the extension.
+  So, for instance, when you middle-click a link, Chromium will open a new tab, but pWebArc will block the requests from there until the debugger gets attached and then automatically reload the tab after.
+  As side-effect of this, Chromium will show "Request blocked" page until the debugger is attached and the page is reloaded, meaning it will get visually stuck on "Request blocked" page if fetching the request ended up spawning a download instead of showing a page.
+  The download will proceed as normal, though.
 
-  After all, under normal conditions, archiving a reqres takes milliseconds, so your queues should stay empty almost all of the time.
+- You will get an annoying notification bar constantly displayed in the browser while [[./popup.html#div-config.collecting][pWebArc is enabled]], trying to close it will detach the debugger, so pWebArc will reattach immediately (because it assumes you don't want to lose data), and the bar will appear again.
+
+  *Also, closing the notification will make all in-flight requests lose their response data.*
+
+  If you [[./popup.html#div-config.collecting][disable pWebArc]] the debuggers will get disconnected only after all requests finish.
+  But even if there are no requests in-flight the notification will not disappear immediately.
+  Chromium takes its time updating the UI after the debugger is detached.
+
+Moreover:
+
+- On Chromium-based browsers, "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc) does not create a new root tab, instead it creates a new child tab of the currently active tab.
+  In other words, on Chromium-based browser "New Tab" browser action uses [[./popup.html#div-tabconfig.children.collecting][this]] and [[./popup.html#div-tabconfig.children.profile][this]] settings instead of [[./popup.html#div-config.root.collecting][this]] and [[./popup.html#div-config.root.profile][this]] one.
+  The latter pair only ever get used for a first tab in a new window (e.g. =Control+N=) and when the extension is (re-)loaded.
+*** Known browser bugs
+- Similarly to unpatched Firefox, Chromium-based browsers do not supply contents of files in POST request data.
+  They do, however, provide a way to see if files were present in the request, so pWebArc will mark such and only such requests as having a "partial request body".
+  There is no patch for Chromium to fix this, nor does the author plan to make one (feel free to contribute one, though).
+
+  As with Firefox, disabling [[./popup.html#div-config.archivePartialRequest]["Archive reqres with partial POST form data" toggle/checkbox]] will disable archiving of such broken requests.
+  This is not recommended, however, as archiving some data is usually better than archiving none.
+
+- If the server supplies the same header multiple times (which happens sometimes) then archived response headers will be incomplete, as Chromium's =Network.responseReceived= debugging API event provides a dictionary of headers, not a list.
+*** Known extension bugs
+- Response data of background requests and requests made by other extensions does not get collected.
+
 #+BEGIN_EXPORT html
 <div id="errors">
 #+END_EXPORT

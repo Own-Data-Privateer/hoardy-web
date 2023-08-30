@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="main.css">
     <style>
 body {
+    min-width: 300px;
     line-height: 160%;
 }
 
@@ -99,12 +100,11 @@ input[type="button"], .help {
         <h1>This tab</h1>
         <ui id="tabconfig.collecting" data-help="Track new reqres originating from this tab.">Track new reqres from this tab</ui>
         <ui id="tabconfig.profile" data-help="Use this server-side profile when archiving reqres originating from this tab.">Profile</ui>
-        <h1>New tabs opened from this tab</h1>
-        <ui id="tabconfig.children.collecting" data-help="Track reqres originating from new tabs spawned from this tab (e.g. via middle mouse click, context menu, etc).">Track reqres in such tabs</ui>
-        <ui id="tabconfig.children.profile" data-help="Use this server-side profile when archiving reqres originating from new tabs opened from this tab (e.g. via middle mouse click).">Profile</ui>
+        <ui id="tabconfig.children.collecting" data-help="Track reqres originating from new tabs spawned from this tab (on Firefox: middle mouse click, context menu; on Chromium: same as Firefox, but also those created via the plus sign in the tab bar and Control+T; see the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details).">Track reqres in new child tabs</ui>
+        <ui id="tabconfig.children.profile" data-help="Use this server-side profile when archiving reqres originating from new tabs opened from this tab (on Firefox: middle mouse click, context menu; on Chromium: same as Firefox, but also those created via the plus sign in the tab bar and Control+T; see the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details).">Profile</ui>
         <h1>New root tabs</h1>
-        <ui id="config.root.collecting" data-help="Track reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (i.e. the plus sign in the tab bar, Control+T, menu item, etc).">Track reqres in new root tabs</ui>
-        <ui id="config.root.profile" data-help="Use this server-side profile when archiving reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (i.e. the plus sign in the tab bar, Control+T, menu item, etc).">Profile</ui>
+        <ui id="config.root.collecting" data-help="Track reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (in Firefox: all tabs after a reload, new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item; in Chromium: all tabs after a reload, every first tab in every new window; see the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details).">Track reqres in new root tabs</ui>
+        <ui id="config.root.profile" data-help="Use this server-side profile when archiving reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (in Firefox: all tabs after a reload, new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item; in Chromium: all tabs after a reload, every first tab in every new window; see the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details).">Profile</ui>
       </div>
     </div>
 
@@ -121,7 +121,7 @@ input[type="button"], .help {
         <h1>Options</h1>
         <div id="archive-options">
           <h2>Archive reqres with</h2>
-          <ui id="config.archivePartialRequest" data-help="Queue a reqres for archival even when its request body is incomplete. You probably want to keep this enabled. See the &quot;Quirks&quot; section of the &quot;Help&quot; page for details.">... partial POST form data</ui>
+          <ui id="config.archivePartialRequest" data-help="Queue a reqres for archival even when its request body is incomplete. You probably want to keep this enabled. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">... partial POST form data</ui>
           <ui id="config.archiveNoResponse" data-help="Queue a reqres for archival even when there was no response, i.e. request was interrupted before request headers were received (this usually means a networking issue). Disabled by default because such archived reqress carry no information except that the browser tried to do a request at specified time.">... no responses</ui>
           <ui id="config.archiveIncompleteResponse" data-help="Queue a reqres for archival even when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Disabled by default because simply reloading the page and not dealing with partial files is usually a better option.">... incomplete response bodies</ui>
         </div>
@@ -132,6 +132,7 @@ input[type="button"], .help {
         </div>
       </div>
     </div>
+    <script src="../lib/compat.js"></script>
     <script src="../lib/utils.js"></script>
     <script src="popup.js"></script>
   </body>

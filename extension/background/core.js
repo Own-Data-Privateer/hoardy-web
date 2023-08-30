@@ -1,5 +1,6 @@
 /*
  * The core code of pWebArc.
+ * And WebRequest-assisted request collection (for Firefox-based browsers).
  *
  * Copyright (c) 2023 Jan Malakhovski <oxij@oxij.org>
  *
@@ -8,22 +9,19 @@
 
 "use strict";
 
+let svgIcons = browser.nameVersion.startsWith("Firefox/");
+
 let selfURL = browser.runtime.getURL("/"); // for filtering out our own requests
 
 // for archiving
-function getSourceDesc() {
-    let result = null;
-    let UA = window.navigator.userAgent;
-    for (let e of UA.split(" ")) {
-        if (e.startsWith("Firefox/"))
-            result = e;
-    }
-    if (result === null)
-        throw new Error("unknown/unsupported User-Agent: " + UA);
+let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
 
-    return result + "+pWebArc/" + browser.runtime.getManifest().version;
+function iconPath(name) {
+    if (svgIcons)
+        return `/icon/${name}.svg`;
+    else
+        return `/icon/128/${name}.png`;
 }
-let sourceDesc = getSourceDesc();
 
 // default config
 let configVersion = 2;
@@ -88,6 +86,7 @@ function processNewTab(tabId, openerTabId) {
     let openercfg = getTabConfig(openerTabId);
     let tabcfg = prefillChildren(openercfg.children);
     tabConfig.set(tabId, tabcfg);
+    return tabcfg;
 }
 
 function cleanupTabs() {
@@ -95,7 +94,11 @@ function cleanupTabs() {
     let usedTabs = new Set();
     for (let [k, v] of reqresInFlight.entries())
         usedTabs.add(v.tabId);
+    for (let [k, v] of debugReqresInFlight.entries())
+        usedTabs.add(v.tabId);
     for (let v of reqresFinishingUp)
+        usedTabs.add(v.tabId);
+    for (let v of debugReqresFinishingUp)
         usedTabs.add(v.tabId);
     for (let v of reqresDone)
         usedTabs.add(v.tabId);
@@ -166,7 +169,8 @@ function getStats() {
     return {
         archived: reqresArchivedTotal,
         queued: reqresArchiving.length + reqresDone.length,
-        inflight: reqresInFlight.size + reqresFinishingUp.length,
+        inflight: Math.max(reqresInFlight.size, debugReqresInFlight.size) +
+            Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length),
         failedToArchive: fails,
         failedToFetch: reqresFailedTotal,
     };
@@ -199,7 +203,7 @@ function setIcons() {
 
     if (reqresStateIcon != newIcon) {
         reqresStateIcon = newIcon;
-        browser.browserAction.setIcon({ path: `icon/${reqresStateIcon}.svg` }).catch(logError);
+        browser.browserAction.setIcon({ path: iconPath(reqresStateIcon) }).catch(logError);
     }
 
     browser.browserAction.setTitle({ title: `pWebArc: ${state}`}).catch(logError);
@@ -320,7 +324,7 @@ function processArchiving() {
                     browser.notifications.create(`archiving-${archiveURL}`, {
                         title: "pWebArc is working OK",
                         message: `with the archive at\n${archiveURL}`,
-                        iconUrl: browser.runtime.getURL("icon/on.svg"),
+                        iconUrl: browser.runtime.getURL(iconPath("on")),
                         type: "basic",
                     }).finally(() => {
                         setTimeout(processArchiving, 1);
@@ -384,7 +388,7 @@ function processArchiving() {
                     browser.notifications.create(`archiving-${archiveURL}`, {
                         title: "pWebArc FAILED",
                         message: `to archive ${failed.queue.length} items in the queue because ${failed.reason}`,
-                        iconUrl: browser.runtime.getURL("icon/error.svg"),
+                        iconUrl: browser.runtime.getURL(iconPath("error")),
                         type: "basic",
                     });
                 }
@@ -400,26 +404,28 @@ function processArchiving() {
             browser.notifications.create("archivingOK", {
                 title: "pWebArc is working OK",
                 message: "successfully archived everything!\n\nNew archivals won't be reported unless something breaks.",
-                iconUrl: browser.runtime.getURL("icon/on.svg"),
+                iconUrl: browser.runtime.getURL(iconPath("on")),
                 type: "basic",
             });
         }
     }
 }
 
+function getHeaderString(header) {
+    if (header.binValue !== undefined) {
+        let dec = new TextDecoder("utf-8", { fatal: false });
+        return dec.decode(header.binaryValue);
+    } else {
+        return header.value;
+    }
+}
+
 // get header value as string
 function getHeaderValue(headers, name) {
     name = name.toLowerCase();
-    for (let i = 0; i < headers.length; ++i) {
-        let header = headers[i];
-        if (header.name.toLowerCase() == name) {
-            if (header.binValue !== undefined) {
-                let dec = new TextDecoder("utf-8", { fatal: false });
-                return dec.decode(header.binaryValue);
-            } else {
-                return header.value;
-            }
-        }
+    for (let header of headers) {
+        if (header.name.toLowerCase() == name)
+            return getHeaderString(header);
     }
     return;
 }
@@ -451,17 +457,27 @@ function renderReqres(reqres) {
 
     let referer = getHeaderValue(reqres.requestHeaders, "Referer");
 
+    // Chromium frequently forgets trailing slashes in initiator field, work around it
+    if (referer !== undefined && reqres.originUrl !== undefined
+        && reqres.originUrl + "/" == referer)
+        reqres.originUrl = referer;
+
     let rest = {};
 
-    // remember originUrl if it is not referer
-    if (reqres.originUrl !== undefined && reqres.originUrl !== referer)
+    // remember originUrl if it is not url or referer
+    if (reqres.originUrl !== undefined
+        && reqres.originUrl !== reqres.url
+        && reqres.originUrl !== referer)
         rest.orgin_url = reqres.originUrl;
 
-    // remember documentUrl if it is not referer or originUrl
-    if (reqres.documentUrl !== undefined && reqres.documentUrl !== referer && reqres.documentUrl !== reqres.originUrl)
+    // remember documentUrl if it is not url, referer, or originUrl
+    if (reqres.documentUrl !== undefined
+        && reqres.documentUrl !== reqres.url
+        && reqres.documentUrl !== referer
+        && reqres.documentUrl !== reqres.originUrl)
         rest.document_url = reqres.documentUrl;
 
-    if (reqres.fromCache === true)
+    if (reqres.fromCache)
         rest.from_cache = true;
 
     let response = null;
@@ -541,18 +557,32 @@ function processDone() {
 
         reqres.archiving = archiving;
         reqres.state = state;
-        reqres.protocol = "HTTP/1.0";
 
-        if (reqres.responseTimeStamp !== undefined) {
-            let protocol = reqres.statusLine.split(" ", 1)[0];
-            let reason = "";
-            let pos = reqres.statusLine.indexOf(" ", protocol.length + 1);
+        let lineProtocol;
+        let lineReason;
+        if (reqres.statusLine !== undefined) {
+            lineProtocol = reqres.statusLine.split(" ", 1)[0];
+            lineReason = "";
+            let pos = reqres.statusLine.indexOf(" ", lineProtocol.length + 1);
             if (pos !== -1) {
-                reason = reqres.statusLine.substr(pos + 1);
+                lineReason = reqres.statusLine.substr(pos + 1);
             }
+        }
 
-            reqres.protocol = protocol;
-            reqres.reason = reason;
+        if (reqres.protocol === undefined) {
+            if (reqres.requestHeaders !== undefined && getHeaderValue(reqres.requestHeaders, ":authority") !== undefined)
+                reqres.protocol = "HTTP/2.0";
+            else if (lineProtocol !== undefined)
+                reqres.protocol = lineProtocol;
+            else
+                reqres.protocol = "HTTP/1.0";
+        }
+
+        if (reqres.reason === undefined) {
+            if (lineReason !== undefined)
+                reqres.reason = lineReason;
+            else
+                reqres.reason = "";
         }
 
         if (config.debugging)
@@ -561,7 +591,8 @@ function processDone() {
                         "from tabId", reqres.tabId,
                         "partial", !reqres.requestComplete,
                         "incomplete", !reqres.responseComplete,
-                        "returned", reqres.statusLine,
+                        "returned", reqres.statusCode, reqres.reason,
+                        "statusLine", reqres.statusLine,
                         reqres);
 
         if (archiving) {
@@ -576,11 +607,13 @@ function processDone() {
         } else
             reqresFailedTotal += 1;
 
-        // free some memory
-        delete reqres["requestHeaders"];
-        delete reqres["requestBody"];
-        delete reqres["responseHeaders"];
-        delete reqres["responseBody"];
+        if (!config.debugging) {
+            // free some memory
+            delete reqres["requestHeaders"];
+            delete reqres["requestBody"];
+            delete reqres["responseHeaders"];
+            delete reqres["responseBody"];
+        }
 
         // log it
         reqresLog.push(reqres);
@@ -599,12 +632,14 @@ function processDone() {
 
 function forceFinishRequests() {
     forceEmitAll();
+    if (useDebugger)
+        forceEmitAllDebug();
     forceFinishingUp();
     setTimeout(processDone, 1);
 }
 
 // flush reqresFinishingUp into the reqresDone, interrupting filters
-function forceFinishingUp() {
+function forceFinishingUpSimple() {
     for (let reqres of reqresFinishingUp) {
         // disconnect the filter, if not disconnected already
         if (reqres.filter !== undefined) {
@@ -622,8 +657,12 @@ function forceFinishingUp() {
     reqresFinishingUp = [];
 }
 
+let forceFinishingUp = forceFinishingUpSimple;
+if (useDebugger)
+    forceFinishingUp = forceFinishingUpDebug;
+
 // wait up for reqres filters to finish
-function processFinishingUp() {
+function processFinishingUpSimple() {
     if (reqresFinishingUp.length > 0) {
         let notFinished = [];
 
@@ -652,6 +691,10 @@ function processFinishingUp() {
 
     setTimeout(processDone, 1);
 }
+
+let processFinishingUp = processFinishingUpSimple;
+if (useDebugger)
+    processFinishingUp = processFinishingUpDebug;
 
 function forceEmitAll() {
     for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
@@ -702,7 +745,6 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
                 console.warn("can't recover requestBody from formData, unknown Content-Type format", contentType);
         } else
             console.warn("can't recover requestBody from formData, unknown Content-Type format", contentType);
-        reqres.requestComplete = false;
         delete reqres["formData"];
     }
 
@@ -718,7 +760,7 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
 
 function logRequest(rtype, e) {
     if (config.debugging)
-        console.log(rtype, e.timeStamp, e.tabId, e.requestId, e.method, e.url, e.statusCode, e.statusLine, e);
+        console.log("webRequest " + rtype, e.timeStamp, e.tabId, e.requestId, e.method, e.url, e.statusCode, e.statusLine, e);
 }
 
 // handlers
@@ -727,21 +769,45 @@ function handleBeforeRequest(e) {
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
 
-    // ignore data URLs
-    if (e.url.startsWith("data:")) return;
+    // on Chromium, cancel all network requests from tabs that are not
+    // yet debugged, start debugging, and then reload the tab
+    if (useDebugger && e.tabId !== -1 && !tabsDebugging.has(e.tabId)
+        && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
+        console.log("canceling request to", e.url, "as tab", e.tabId, "is not managed yet", e);
+        attachDebuggerAndReloadIn(e.tabId, 1000);
+        return { cancel: true };
+    }
+
+    // ignore data and file URLs
+    if (e.url.startsWith("data:") // Firefox and Chromium
+        || e.url.startsWith("file:")) // only Chromium, Firefox does not emit those
+        return;
+
+    // ignore requests to extension pages
+    if (e.url.startsWith("moz-extension://") // Firefox
+        || e.url.startsWith("chrome-extension://")) // Chromium
+        return;
+
+    let initiator;
+    if (e.documentUrl !== undefined && e.documentUrl !== null)
+        initiator = e.documentUrl; // Firefox
+    else if (e.initiator !== undefined && e.initiator !== null && e.initiator !== "null")
+        initiator = e.initiator; // Chromium
 
     let fromExtension = false;
-    if (e.documentUrl !== undefined && e.documentUrl !== null) {
+    if (initiator !== undefined) {
         // ignore our own requests
-        if (e.documentUrl.startsWith(selfURL))
+        if (initiator.startsWith(selfURL) // Firefox
+            || (initiator + "/") == selfURL) // Chromium
             return;
 
         // request originates from another extension
-        if (e.documentUrl.startsWith("moz-extension://"))
+        if (initiator.startsWith("moz-extension://") // Firefox
+            || initiator.startsWith("chrome-extension://")) // Chromium
             fromExtension = true;
     }
 
-    // ignore this request if archiving is disabled in this tab
+    // ignore this request if archiving is disabled for this tab or extension
     let options = getTabConfig(e.tabId, fromExtension);
     if (!options.collecting) return;
 
@@ -758,6 +824,7 @@ function handleBeforeRequest(e) {
         requestComplete: true,
         requestBody: new ChunkedBuffer(),
 
+        fromCache: false,
         responseComplete: false,
         responseBody: new ChunkedBuffer(),
     };
@@ -766,7 +833,9 @@ function handleBeforeRequest(e) {
         reqres.documentUrl = e.documentUrl;
 
     if (e.originUrl !== undefined && e.originUrl !== null)
-        reqres.originUrl = e.originUrl;
+        reqres.originUrl = e.originUrl; // Firefox
+    else if (e.initiator !== undefined && e.initiator !== null && e.initiator !== "null")
+        reqres.originUrl = e.initiator; // Chromium
 
     if (e.requestBody !== undefined && e.requestBody !== null) {
         if (e.requestBody.raw !== undefined) {
@@ -783,36 +852,40 @@ function handleBeforeRequest(e) {
             reqres.requestComplete = complete;
         } else if (e.requestBody.formData !== undefined) {
             reqres.formData = e.requestBody.formData;
+            reqres.requestComplete = false;
         }
     }
 
     let requestId = e.requestId;
 
-    let filter = browser.webRequest.filterResponseData(requestId);
-    filter.onstart = (event) => {
-        if (config.debugging)
-            console.log("response data started", requestId);
-    };
-    filter.ondata = (event) => {
-        if (config.debugging)
-            console.log("response data chunk", requestId, event.data);
-        reqres.responseBody.push(new Uint8Array(event.data));
-        filter.write(event.data);
-    };
-    filter.onstop = (event) => {
-        if (config.debugging)
-            console.log("response data finished", requestId);
-        reqres.responseComplete = true;
-        filter.disconnect();
-        setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
-    };
-    filter.onerror = (event) => {
-        if (config.debugging)
-            console.log("response data failed", requestId, "because", filter.error);
-        setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
-    };
+    if (!useDebugger) {
+        // Firefox
+        let filter = browser.webRequest.filterResponseData(requestId);
+        filter.onstart = (event) => {
+            if (config.debugging)
+                console.log("response data started", requestId);
+        };
+        filter.ondata = (event) => {
+            if (config.debugging)
+                console.log("response data chunk", requestId, event.data);
+            reqres.responseBody.push(new Uint8Array(event.data));
+            filter.write(event.data);
+        };
+        filter.onstop = (event) => {
+            if (config.debugging)
+                console.log("response data finished", requestId);
+            reqres.responseComplete = true;
+            filter.disconnect();
+            setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
+        };
+        filter.onerror = (event) => {
+            if (config.debugging)
+                console.log("response data failed", requestId, "because", filter.error);
+            setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
+        };
 
-    reqres.filter = filter;
+        reqres.filter = filter;
+    }
 
     reqresInFlight.set(requestId, reqres);
 }
@@ -836,6 +909,8 @@ function emptyCopyOfReqres(reqres) {
     return {
         tabId: reqres.tabId,
 
+        protocol: reqres.protocol,
+
         method: reqres.method,
         url: reqres.url,
 
@@ -850,13 +925,16 @@ function emptyCopyOfReqres(reqres) {
         requestHeaders: reqres.requestHeaders,
 
         responseTimeStamp: reqres.responseTimeStamp,
-        statusCode: reqres.statusCode,
         statusLine: reqres.statusLine,
+        statusCode: reqres.statusCode,
+        reason: reqres.reason,
         responseHeaders: reqres.responseHeaders,
         fromCache: reqres.fromCache,
 
         responseComplete: true,
         responseBody: new ChunkedBuffer(),
+
+        emitTimeStamp: reqres.emitTimeStamp,
 
         // note we do not copy the filter
     };
@@ -941,7 +1019,19 @@ function handleNotificationClicked(notificationId) {
 
 function handleTabCreated(tab) {
     console.log("tab added", tab.id, tab.openerTabId);
-    processNewTab(tab.id, tab.openerTabId);
+    let tabcfg = processNewTab(tab.id, tab.openerTabId);
+    if (useDebugger
+        && config.collecting && tabcfg.collecting
+        && tab.pendingUrl == "chrome://newtab/") {
+        // Unfortunately, Chromium does not allow attaching the
+        // debugger to chrome:// URLs, meaning that new tabs with the
+        // default page opened will not get debugged, thus no response
+        // bodies will ever get collected there. So, we navigate new
+        // tabs to about:blank instead.
+        browser.tabs.update(tab.id, { url: "about:blank" }).then(() => {
+            setTimeout(() => attachDebugger(tab.id), 500);
+        }, logError);
+    }
 }
 
 function handleTabRemoved(tabId) {
@@ -1003,6 +1093,9 @@ function handleMessage(request, sender, sendResponse) {
             }
         }
 
+        if (useDebugger)
+            syncDebuggersState();
+
         // save config in 2s to give the user some time to change more settings
         let eConfig = assignRec({ version: configVersion }, config);
 
@@ -1020,6 +1113,8 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "setTabConfig":
         tabConfig.set(request[1], request[2]);
+        if (useDebugger)
+            syncDebuggersState();
         break;
     case "retryAllFailedArchives":
         retryAllFailedArchivesIn(100);
@@ -1039,7 +1134,7 @@ function handleMessage(request, sender, sendResponse) {
     }
 }
 
-function init(storage) {
+async function init(storage) {
     let showHelp = false;
     if (storage.config !== undefined) {
         let oldConfig = storage.config;
@@ -1072,7 +1167,10 @@ function init(storage) {
     } else
         showHelp = true;
 
-    browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), {urls: ["<all_urls>"]}, ["blocking", "requestBody"]);
+    if (useBlocking)
+        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), {urls: ["<all_urls>"]}, ["blocking", "requestBody"]);
+    else
+        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), {urls: ["<all_urls>"]}, ["requestBody"]);
     browser.webRequest.onBeforeSendHeaders.addListener(catchAll(handleBeforeSendHeaders), {urls: ["<all_urls>"]});
     browser.webRequest.onSendHeaders.addListener(catchAll(handleSendHeaders), {urls: ["<all_urls>"]}, ["requestHeaders"]);
     browser.webRequest.onHeadersReceived.addListener(catchAll(handleHeadersRecieved), {urls: ["<all_urls>"]}, ["responseHeaders"]);
@@ -1087,26 +1185,28 @@ function init(storage) {
     browser.tabs.onRemoved.addListener(catchAll(handleTabRemoved));
     browser.tabs.onReplaced.addListener(catchAll(handleTabReplaced));
 
-    browser.tabs.query({}).then((tabs) => {
-        // compute and cache configs for all open tabs
-        for (let tab of tabs) {
-            getTabConfig(tab.id);
-        }
+    let tabs = await browser.tabs.query({});
+    // compute and cache configs for all open tabs
+    for (let tab of tabs) {
+        getTabConfig(tab.id);
+    }
 
-        browser.runtime.onMessage.addListener(catchAll(handleMessage));
-        browser.runtime.onConnect.addListener(catchAll(handleConnect));
-    });
+    browser.runtime.onMessage.addListener(catchAll(handleMessage));
+    browser.runtime.onConnect.addListener(catchAll(handleConnect));
 
     setIcons();
 
-    console.log(`initialized pWebArc with source of '${sourceDesc}' and config of`, config);
+    if (useDebugger)
+        await initDebugger(tabs);
+
+    console.log(`initialized pWebArc with source of '${sourceDesc}'`);
+    console.log("runtime options are", { useBlocking, useDebugger });
+    console.log("config is", config);
 
     if (showHelp)
-        browser.tabs.create({
+        await browser.tabs.create({
             url: browser.runtime.getURL("/page/help.html"),
         });
 }
 
-browser.storage.local.get().then(init, (error) => {
-    init({});
-});
+browser.storage.local.get(null).then(init, (error) => init({}));

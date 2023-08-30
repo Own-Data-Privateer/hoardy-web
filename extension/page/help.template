@@ -29,6 +29,7 @@ iframe {
     <div id="main">
       $body$
     </div>
+    <script src="../lib/compat.js"></script>
     <script src="../lib/utils.js"></script>
     <script src="help.js"></script>
   </body>

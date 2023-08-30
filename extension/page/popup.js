@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }, (error) => {
         let body = document.createElement("body");
-        body.innerHTML = "<p>Extension failed to initialize. Go to <pre>about:debugging#/runtime/this-firefox</pre> click inspect on \"pWebArc\", select \"Console\" and see the log there for more details.</p>"
+        body.innerHTML = "<p>Extension failed to initialize. Go to (on Firefox-based browser) <pre>about:debugging#/runtime/this-firefox</pre> or (on Chromium-based browser) <pre>chrome://extensions/</pre> click inspect \"pWebArc\", select \"Console\" and see the log there for more details.</p>"
         document.body = body;
     });
 });
