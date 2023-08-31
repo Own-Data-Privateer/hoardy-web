@@ -184,6 +184,15 @@ function highlightNode(target) {
 }
 
 let helpNodes = null;
+function hideHelp() {
+    if (helpNodes === null) return;
+
+    let [el, div] = helpNodes;
+    el.checked = false;
+    div.style.display = "none";
+    helpNodes = null;
+}
+
 function addHelp(node) {
     for (let child of node.childNodes) {
         if (child.nodeName === "#text") continue;
@@ -203,19 +212,10 @@ function addHelp(node) {
     el.classList.add("help");
     el.setAttribute("data-help", help);
 
-    function unset(el, div) {
-        el.checked = false;
-        div.style.display = "none";
-        helpNodes = null;
-    }
-
-    div.onclick = () => unset(el, div);
+    div.onclick = hideHelp;
 
     el.onchange = () => {
-        if (helpNodes !== null) {
-            let [nel, ndiv] = helpNodes;
-            unset(nel, ndiv);
-        }
+        hideHelp();
 
         if (el.checked) {
             div.style.display = "block";

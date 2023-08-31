@@ -131,6 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // show UI
                 document.body.style.display = "block";
+                document.body.onclick = hideHelp;
             }, logError);
         });
     }, (error) => {
