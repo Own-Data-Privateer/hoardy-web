@@ -95,7 +95,11 @@ document.addEventListener("DOMContentLoaded", () => {
             // ask for current tab's config
             browser.runtime.sendMessage(["getTabConfig", tabId]).then((tabconfig) => {
                 // generate UI from it
-                makeUI("tabconfig", tabconfig, (newtabconfig) => {
+                makeUI("tabconfig", tabconfig, (newtabconfig, path) => {
+                    if (path == "tabconfig.collecting") {
+                        newtabconfig.children.collecting = newtabconfig.collecting;
+                        setUI("tabconfig", newtabconfig);
+                    }
                     browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]);
                 });
 

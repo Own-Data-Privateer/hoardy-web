@@ -112,9 +112,9 @@ function makeUI(prefix, value, update) {
 
     if (typ == "object") {
         for (let k of Object.keys(value)) {
-            makeUI(prefix + "." + k, value[k], (newvalue) => {
+            makeUI(prefix + "." + k, value[k], (newvalue, path) => {
                 value[k] = newvalue;
-                update(value);
+                update(value, path);
             })
         }
         return;
@@ -137,7 +137,7 @@ function makeUI(prefix, value, update) {
         ne.classList.add("toggle");
         ne.checked = value;
         ne.onchange = () => {
-            update(ne.checked);
+            update(ne.checked, prefix);
         }
 
         let lbl = document.createElement("label");
@@ -152,7 +152,7 @@ function makeUI(prefix, value, update) {
         ne.type = "text";
         ne.value = value;
         ne.onchange = () => {
-            update(ne.value);
+            update(ne.value, prefix);
         }
 
         let lbl = document.createElement("label");
