@@ -126,9 +126,6 @@ function processRemoveTab(tabId) {
 // archiving state
 // reqres means "request + response"
 
-// state icon
-let reqresStateIcon = null;
-
 // requests in-flight, indexed by requestId
 let reqresInFlight = new Map();
 // requests that are "completed" by the browser, but might have an unfinished filterResponseData filter
@@ -176,13 +173,12 @@ function getStats() {
     };
 }
 
-function setIcons() {
-    let newIcon;
-    let state;
-
+async function setIcons() {
     let stats = getStats();
     let total = stats.queued + stats.failedToArchive;
 
+    let newIcon;
+    let state;
     if (reqresArchivingFailed.size > 0) {
         newIcon = "error";
         state = `have data to archive (${total} reqres), last archiving failed`;
@@ -201,16 +197,28 @@ function setIcons() {
         state = "all good, all queues empty";
     }
 
-    if (reqresStateIcon != newIcon) {
-        reqresStateIcon = newIcon;
-        browser.browserAction.setIcon({ path: iconPath(reqresStateIcon) }).catch(logError);
-    }
-
-    browser.browserAction.setTitle({ title: `pWebArc: ${state}`}).catch(logError);
+    let newTitle = `pWebArc: ${state}`;
+    let text = "";
     if (total > 0)
-        browser.browserAction.setBadgeText({ text: total.toString() }).catch(logError);
-    else
-        browser.browserAction.setBadgeText({ text: "" }).catch(logError);
+        text = total.toString();
+
+    await browser.browserAction.setBadgeText({ text }).catch(logError);
+
+    let tabs = await browser.tabs.query({ active: true });
+    for (let tab of tabs) {
+        let windowId = tab.windowId;
+        let tabcfg = getTabConfig(tab.id);
+
+        let icon = newIcon;
+        let title = newTitle;
+        if (newIcon == "on" && !tabcfg.collecting) {
+            icon = "off";
+            title += ", disabled in this tab";
+        }
+
+        await browser.browserAction.setIcon({ windowId, path: iconPath(icon) }).catch(logError);
+        await browser.browserAction.setTitle({ windowId, title }).catch(logError);
+    }
 
     broadcast(["stats", stats]);
 }
@@ -1045,6 +1053,11 @@ function handleTabReplaced(addedTabId, removedTabId) {
     processNewTab(addedTabId);
 }
 
+function handleTabActivated(e) {
+    console.log("tab activated", e.tabId);
+    setIcons();
+}
+
 // open client tab ports
 let openPorts = new Map();
 
@@ -1113,6 +1126,7 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "setTabConfig":
         tabConfig.set(request[1], request[2]);
+        setIcons();
         if (useDebugger)
             syncDebuggersState();
         break;
@@ -1184,6 +1198,7 @@ async function init(storage) {
     browser.tabs.onCreated.addListener(catchAll(handleTabCreated));
     browser.tabs.onRemoved.addListener(catchAll(handleTabRemoved));
     browser.tabs.onReplaced.addListener(catchAll(handleTabReplaced));
+    browser.tabs.onActivated.addListener(catchAll(handleTabActivated));
 
     let tabs = await browser.tabs.query({});
     // compute and cache configs for all open tabs
