@@ -76,6 +76,30 @@ function unBase64(data) {
     return Uint8Array.from(atob(data), (x) => x.codePointAt(0));
 }
 
+// remove #.* from the end of the URL
+function removeURLHash(url) {
+    if (url === undefined) return url;
+
+    let pos = url.indexOf("#");
+    if (pos !== -1)
+        url = url.substring(0, pos);
+    return url;
+}
+
+// given a URL, return its canonical version
+function canonicalizeURL(url) {
+    if (url === undefined) return url;
+
+    let parsed = new URL(url);
+    return parsed.href;
+}
+
+// given a URL, return its normalized, i.e. minimal HTTP-wire-level
+// equal, version
+function normalizeURL(url) {
+    return canonicalizeURL(removeURLHash(url));
+}
+
 function buttonToAction(id, action) {
     let e = document.getElementById(id);
     e.onclick = action;

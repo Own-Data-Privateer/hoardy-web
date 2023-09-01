@@ -463,27 +463,37 @@ function encodeHeaders(headers) {
 function renderReqres(reqres) {
     let encoder = new CBOREncoder();
 
+    // record URL as sent over the wire, i.e. without a #hash and with a
+    // trailing slash instead of an empty path
+    let url = normalizeURL(reqres.url);
+
+    // use the Referer header as is, if browser f*cked it up, we want to know
     let referer = getHeaderValue(reqres.requestHeaders, "Referer");
 
-    // Chromium frequently forgets trailing slashes in initiator field, work around it
-    if (referer !== undefined && reqres.originUrl !== undefined
-        && reqres.originUrl + "/" == referer)
-        reqres.originUrl = referer;
+    // canonicalize these (i.e. add trailing slashes), Chromium f*cks up its
+    // initiator field all the time
+    let originUrl = canonicalizeURL(reqres.originUrl);
+    let documentUrl = canonicalizeURL(reqres.documentUrl);
+
+    // The primary effect of the normalization and canonicalization above and
+    // the code below is that loading a URL with a #hash will record a
+    // normalized URL in the Request part, but then will also record the full
+    // URL with the hash in origin_url or document_url.
 
     let rest = {};
 
     // remember originUrl if it is not url or referer
-    if (reqres.originUrl !== undefined
-        && reqres.originUrl !== reqres.url
-        && reqres.originUrl !== referer)
-        rest.origin_url = reqres.originUrl;
+    if (originUrl !== undefined
+        && originUrl !== url
+        && originUrl !== referer)
+        rest.origin_url = originUrl;
 
     // remember documentUrl if it is not url, referer, or originUrl
-    if (reqres.documentUrl !== undefined
-        && reqres.documentUrl !== reqres.url
-        && reqres.documentUrl !== referer
-        && reqres.documentUrl !== reqres.originUrl)
-        rest.document_url = reqres.documentUrl;
+    if (documentUrl !== undefined
+        && documentUrl !== url
+        && documentUrl !== referer
+        && documentUrl !== originUrl)
+        rest.document_url = documentUrl;
 
     if (reqres.fromCache)
         rest.from_cache = true;
@@ -507,7 +517,7 @@ function renderReqres(reqres) {
         [
             reqres.requestTimeStamp,
             reqres.method,
-            reqres.url,
+            url,
             encodeHeaders(reqres.requestHeaders),
             reqres.requestComplete,
             reqres.requestBody,
@@ -572,9 +582,8 @@ function processDone() {
             lineProtocol = reqres.statusLine.split(" ", 1)[0];
             lineReason = "";
             let pos = reqres.statusLine.indexOf(" ", lineProtocol.length + 1);
-            if (pos !== -1) {
+            if (pos !== -1)
                 lineReason = reqres.statusLine.substr(pos + 1);
-            }
         }
 
         if (reqres.protocol === undefined) {
