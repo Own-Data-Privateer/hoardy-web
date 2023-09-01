@@ -476,7 +476,7 @@ function renderReqres(reqres) {
     if (reqres.originUrl !== undefined
         && reqres.originUrl !== reqres.url
         && reqres.originUrl !== referer)
-        rest.orgin_url = reqres.originUrl;
+        rest.origin_url = reqres.originUrl;
 
     // remember documentUrl if it is not url, referer, or originUrl
     if (reqres.documentUrl !== undefined
