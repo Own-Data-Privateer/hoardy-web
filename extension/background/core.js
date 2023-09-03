@@ -766,10 +766,14 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
         delete reqres["formData"];
     }
 
-    if (error !== undefined)
+    if (error !== undefined) {
         // we basically ignore this, because completeness will be derived from
         // reqres fields before renderReqres call in processDone
-        console.warn("error while fetching", requestId, error, reqres);
+        if (config.debugging
+            || (error !== "NS_ERROR_ABORT" // only Firefox
+                && error !== "net::ERR_ABORTED")) // only Chromium
+            console.warn("error while fetching", requestId, error, reqres);
+    }
 
     reqresFinishingUp.push(reqres);
     if (!dontFinishUp)
