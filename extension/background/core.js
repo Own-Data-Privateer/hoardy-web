@@ -746,7 +746,8 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
                 }
             }
 
-            console.log(reqres.formData);
+            if (config.debugging)
+                console.log(reqres.formData);
 
             let enc = new TextEncoder("utf-8", { fatal: true });
 
@@ -880,24 +881,24 @@ function handleBeforeRequest(e) {
         let filter = browser.webRequest.filterResponseData(requestId);
         filter.onstart = (event) => {
             if (config.debugging)
-                console.log("response data started", requestId);
+                console.log("response data filter started", requestId);
         };
         filter.ondata = (event) => {
             if (config.debugging)
-                console.log("response data chunk", requestId, event.data);
+                console.log("response data filter data chunk", requestId, event.data);
             reqres.responseBody.push(new Uint8Array(event.data));
             filter.write(event.data);
         };
         filter.onstop = (event) => {
             if (config.debugging)
-                console.log("response data finished", requestId);
+                console.log("response data filter finished", requestId);
             reqres.responseComplete = true;
             filter.disconnect();
             setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
         };
         filter.onerror = (event) => {
             if (config.debugging)
-                console.log("response data failed", requestId, "because", filter.error);
+                console.log("response data filter failed", requestId, "because", filter.error);
             setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
         };
 
@@ -1035,7 +1036,8 @@ function handleNotificationClicked(notificationId) {
 }
 
 function handleTabCreated(tab) {
-    console.log("tab added", tab.id, tab.openerTabId);
+    if (config.debugging)
+        console.log("tab added", tab.id, tab.openerTabId);
     let tabcfg = processNewTab(tab.id, tab.openerTabId);
     if (useDebugger
         && config.collecting && tabcfg.collecting
@@ -1052,18 +1054,21 @@ function handleTabCreated(tab) {
 }
 
 function handleTabRemoved(tabId) {
-    console.log("tab removed", tabId);
+    if (config.debugging)
+        console.log("tab removed", tabId);
     processRemoveTab(tabId);
 }
 
 function handleTabReplaced(addedTabId, removedTabId) {
-    console.log("tab replaced", removedTabId, addedTabId);
+    if (config.debugging)
+        console.log("tab replaced", removedTabId, addedTabId);
     processRemoveTab(removedTabId);
     processNewTab(addedTabId);
 }
 
 function handleTabActivated(e) {
-    console.log("tab activated", e.tabId);
+    if (config.debugging)
+        console.log("tab activated", e.tabId);
     setIcons();
 }
 
