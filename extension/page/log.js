@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // add new rows on log status message
     port.onMessage.addListener((update) => {
         let [what, data] = update;
-        if (what == "log") {
+        if (what == "newReqres") {
             let tbody = document.getElementById("tbody");
             tbody.appendChild(newReqres(data));
         }

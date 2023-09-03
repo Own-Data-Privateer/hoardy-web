@@ -634,7 +634,7 @@ function processDone() {
 
         // log it
         reqresLog.push(reqres);
-        broadcast(["log", reqres]);
+        broadcast(["newReqres", reqres]);
         while (reqresLog.length > config.history)
             reqresLog.shift();
     }
