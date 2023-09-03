@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateClasses(config);
 
         buttonToAction("log", () => window.open(browser.runtime.getURL("/page/log.html"), "_blank"));
+        buttonToMessage("clearStats");
         buttonToAction("help", () => {
             window.open(browser.runtime.getURL("/page/help.html"), "_blank");
             window.close();
@@ -103,8 +104,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]);
                 });
 
-                // add help buttons
+                // add help tooltips
                 addHelp(document.body);
+                document.body.onclick = hideHelp;
 
                 // when #hash is specified (used in the ./help.org), we don't
                 // want anything hidden and we want to point user to the
@@ -131,7 +133,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // show UI
                 document.body.style.display = "block";
-                document.body.onclick = hideHelp;
             }, logError);
         });
     }, (error) => {

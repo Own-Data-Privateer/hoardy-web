@@ -32,8 +32,17 @@ h2 {
     display: flex;
 }
 
+div.help {
+    left: 10%;
+    right: 10%;
+}
+
 input[type="button"], .help {
     vertical-align: top;
+}
+
+#clearStats {
+    margin-left: 1em;
 }
 
 #show {
@@ -57,6 +66,7 @@ input[type="button"], .help {
     <div id="main">
       <div id="stats">
         <h1>Stats
+          <span data-help="Clear stats: will zero out &quot;Archived&quot; and &quot;Discarded&quot;."><input type="button" id="clearStats" value="Clear" /></span>
           <span class="right">
             <span data-help="Open the request log page."><input type="button" id="log" value="Log" /></span>
             <span data-help="Open the help page."><input type="button" id="help" value="Help" /></span>

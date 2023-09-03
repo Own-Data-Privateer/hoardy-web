@@ -141,8 +141,17 @@ let reqresArchivedTotal = 0;
 // failed requests, indexed by archiveURL
 let reqresArchivingFailed = new Map();
 
+function clearStats() {
+    reqresFailedTotal = 0;
+    reqresArchivedTotal = 0;
+}
+
 // request log
 let reqresLog = [];
+
+function clearLog() {
+    reqresLog = [];
+}
 
 // should we notify the user when the queues get empty? this flag is here so
 // that the user won't get notified on extension start, only after some work
@@ -1153,6 +1162,14 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "forceFinishRequests":
         forceFinishRequests();
+        break;
+    case "clearStats":
+        clearStats();
+        setIcons();
+        break;
+    case "clearLog":
+        clearLog();
+        broadcast(["setLog", []]);
         break;
     case "getLog":
         sendResponse(reqresLog);

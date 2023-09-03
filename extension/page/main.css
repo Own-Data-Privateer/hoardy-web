@@ -76,8 +76,6 @@ input[type="checkbox"].help:checked {
 div.help {
     position: absolute;
     z-index: 20;
-    left: 10%;
-    right: 10%;
 
     background-color: #fffffa;
     border-radius: 3px;
