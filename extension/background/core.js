@@ -538,6 +538,10 @@ function renderReqres(reqres) {
     if (reqres.fromCache)
         rest.from_cache = true;
 
+    // Chromium did not emit the WebRequest half
+    if (reqres.fake)
+        rest.fake = true;
+
     let response = null;
     if (reqres.responseTimeStamp !== undefined) {
         response = [

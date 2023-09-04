@@ -345,6 +345,67 @@ function addMissingDebugHeaders(headers, obj) {
     }
 }
 
+function emitDone(closest, dreqres) {
+    if (closest === undefined) {
+        closest = {
+            tabId: dreqres.tabId,
+            fromExtension: false, // most likely
+
+            method: dreqres.method,
+            url: dreqres.url,
+
+            requestTimeStamp: dreqres.requestTimeStamp,
+            requestHeaders: [],
+            requestComplete: true,
+            requestBody: new ChunkedBuffer(),
+
+            responseTimeStamp: dreqres.responseTimeStamp,
+            statusCode: dreqres.statusCode,
+            responseHeaders: [],
+            responseComplete: false,
+            responseBody: new ChunkedBuffer(),
+
+            emitTimeStamp: dreqres.emitTimeStamp,
+
+            fake: true,
+        };
+    }
+
+    closest.protocol = dreqres.protocol;
+    closest.reason = dreqres.reason;
+
+    if (dreqres.documentUrl !== undefined)
+        closest.documentUrl = dreqres.documentUrl;
+
+    if (closest.fake)
+        closest.originUrl = getHeaderValue(closest.requestHeaders, "Referer");
+
+    // round timestamps to int
+    closest.requestTimeStamp = Math.floor(closest.requestTimeStamp);
+    if (closest.responseTimeStamp !== undefined)
+        closest.responseTimeStamp = Math.floor(closest.responseTimeStamp);
+
+    addMissingDebugHeaders(closest.requestHeaders, dreqres.requestHeaders);
+    addMissingDebugHeaders(closest.requestHeaders, dreqres.requestHeadersExtra);
+    addMissingDebugHeaders(closest.responseHeaders, dreqres.responseHeaders);
+    addMissingDebugHeaders(closest.responseHeaders, dreqres.responseHeadersExtra);
+
+    if (dreqres.statusCodeExtra !== undefined && dreqres.statusCodeExtra == 304) {
+        // handle 304 Not Modified cached result by submitting this request twice,
+        // first time with 304 code and with no response body
+        let creqres = emptyCopyOfReqres(closest);
+        creqres.statusCode = 304;
+        creqres.responseBody = "";
+        creqres.responseComplete = true;
+        reqresDone.push(creqres);
+        // and then, again, normally
+    }
+
+    closest.responseBody = dreqres.responseBody;
+    closest.responseComplete = dreqres.responseComplete;
+    reqresDone.push(closest);
+}
+
 function processFinishingUpDebug() {
     if (debugReqresFinishingUp.length > 0 && reqresFinishingUp.length > 0) {
         // match elements from debugReqresFinishingUp to elements from
@@ -385,36 +446,7 @@ function processFinishingUpDebug() {
                 if (config.debugging)
                     console.log("MATCHED", dreqres, closest);
 
-                if (dreqres.documentUrl !== undefined)
-                    closest.documentUrl = dreqres.documentUrl;
-
-                closest.protocol = dreqres.protocol;
-                closest.reason = dreqres.reason;
-
-                // round timestamps to int
-                closest.requestTimeStamp = Math.floor(closest.requestTimeStamp);
-                if (closest.responseTimeStamp !== undefined)
-                    closest.responseTimeStamp = Math.floor(closest.responseTimeStamp);
-
-                addMissingDebugHeaders(closest.requestHeaders, dreqres.requestHeaders);
-                addMissingDebugHeaders(closest.requestHeaders, dreqres.requestHeadersExtra);
-                addMissingDebugHeaders(closest.responseHeaders, dreqres.responseHeaders);
-                addMissingDebugHeaders(closest.responseHeaders, dreqres.responseHeadersExtra);
-
-                if (dreqres.statusCodeExtra !== undefined && dreqres.statusCodeExtra == 304) {
-                    // handle 304 Not Modified cached result by submitting this request twice,
-                    // first time with 304 code and with no response body
-                    let creqres = emptyCopyOfReqres(closest);
-                    creqres.statusCode = 304;
-                    creqres.responseBody = "";
-                    creqres.responseComplete = true;
-                    reqresDone.push(creqres);
-                    // and then, again, normally
-                }
-
-                closest.responseBody = dreqres.responseBody;
-                closest.responseComplete = dreqres.responseComplete;
-                reqresDone.push(closest);
+                emitDone(closest, dreqres);
             } else
                 notFinished.push(dreqres);
 
@@ -422,6 +454,25 @@ function processFinishingUpDebug() {
         }
 
         debugReqresFinishingUp = notFinished;
+    }
+
+    if (debugReqresFinishingUp.length > 0
+        && reqresFinishingUp.length === 0 && reqresInFlight.size === 0) {
+        // This means Chromium generated some debug events without generating
+        // WebRequest events. This actually happens sometimes when loading a
+        // tab in background. Chromium has a surprising number of bugs...
+        //
+        // Anyway, we can't do anything about it, except emit these by making
+        // up fake WebRequest counterparts for them.
+
+        for (let dreqres of debugReqresFinishingUp) {
+            if (config.debugging)
+                console.log("STUCK", dreqres);
+
+            emitDone(undefined, dreqres);
+        }
+
+        debugReqresFinishingUp = [];
     }
 
     if (config.debugging) {
