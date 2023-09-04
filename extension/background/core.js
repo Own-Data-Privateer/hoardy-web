@@ -193,21 +193,26 @@ function setIcons(tabChanged) {
 
     let newIcon;
     let state;
-    if (reqresArchivingFailed.size > 0) {
+    if (stats.failedToArchive > 0) {
         newIcon = "error";
-        state = `have data to archive (${total} reqres), last archiving failed`;
+        state = `have ${todo} reqres to archive, failed to archive ${stats.failedToArchive} reqres`;
         if (!config.archiving)
             state += ", not archiving";
-    } else if (reqresArchiving.length > 0) {
+    } else if (stats.queued > 0) {
         newIcon = "archiving";
-        state = `have data to archive (${total} reqres)`;
+        state = `have ${todo} reqres to archive`;
+        if (!config.archiving)
+            state += ", not archiving";
+    } else if (stats.inflight > 0) {
+        newIcon = "tracking";
+        state = `still tracking ${stats.inflight} reqres`;
         if (!config.archiving)
             state += ", not archiving";
     } else if (!config.collecting) {
         newIcon = "off";
         state = "off";
     } else {
-        newIcon = "on";
+        newIcon = "idle";
         state = "all good, all queues empty";
     }
 
@@ -233,7 +238,7 @@ function setIcons(tabChanged) {
 
                 let icon = newIcon;
                 let title = newTitle;
-                if (newIcon == "on" && !tabcfg.collecting) {
+                if (newIcon == "idle" && !tabcfg.collecting) {
                     icon = "off";
                     title += ", disabled in this tab";
                 }
@@ -367,7 +372,7 @@ function processArchiving() {
                     browser.notifications.create(`archiving-${archiveURL}`, {
                         title: "pWebArc is working OK",
                         message: `with the archive at\n${archiveURL}`,
-                        iconUrl: browser.runtime.getURL(iconPath("on")),
+                        iconUrl: browser.runtime.getURL(iconPath("archiving")),
                         type: "basic",
                     }).finally(() => {
                         setTimeout(processArchiving, 1);
@@ -447,7 +452,7 @@ function processArchiving() {
             browser.notifications.create("archivingOK", {
                 title: "pWebArc is working OK",
                 message: "successfully archived everything!\n\nNew archivals won't be reported unless something breaks.",
-                iconUrl: browser.runtime.getURL(iconPath("on")),
+                iconUrl: browser.runtime.getURL(iconPath("idle")),
                 type: "basic",
             });
         }

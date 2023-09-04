@@ -2,18 +2,18 @@
     "manifest_version": 2,
 
     "icons": {
-        "48": "icon/on.svg",
-        "96": "icon/on.svg",
-        "128": "icon/on.svg"
+        "48": "icon/main.svg",
+        "96": "icon/main.svg",
+        "128": "icon/main.svg"
     },
 
     "browser_action": {
         "default_title": "pWebArc",
         "default_popup": "page/popup.html",
         "default_icon": {
-            "48": "icon/on.svg",
-            "96": "icon/on.svg",
-            "128": "icon/on.svg"
+            "48": "icon/main.svg",
+            "96": "icon/main.svg",
+            "128": "icon/main.svg"
         }
     },
 
