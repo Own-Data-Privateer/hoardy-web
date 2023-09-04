@@ -832,15 +832,6 @@ function handleBeforeRequest(e) {
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
 
-    // on Chromium, cancel all network requests from tabs that are not
-    // yet debugged, start debugging, and then reload the tab
-    if (useDebugger && e.tabId !== -1 && !tabsDebugging.has(e.tabId)
-        && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
-        console.log("canceling request to", e.url, "as tab", e.tabId, "is not managed yet", e);
-        attachDebuggerAndReloadIn(e.tabId, 1000);
-        return { cancel: true };
-    }
-
     // ignore data and file URLs
     if (e.url.startsWith("data:") // Firefox and Chromium
         || e.url.startsWith("file:")) // only Chromium, Firefox does not emit those
@@ -873,6 +864,15 @@ function handleBeforeRequest(e) {
     // ignore this request if archiving is disabled for this tab or extension
     let options = getTabConfig(e.tabId, fromExtension);
     if (!options.collecting) return;
+
+    // on Chromium, cancel all network requests from tabs that are not
+    // yet debugged, start debugging, and then reload the tab
+    if (useDebugger && e.tabId !== -1 && !tabsDebugging.has(e.tabId)
+        && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
+        console.log("canceling request to", e.url, "as tab", e.tabId, "is not managed yet", e);
+        attachDebuggerAndReloadIn(e.tabId, 1000);
+        return { cancel: true };
+    }
 
     logRequest("before request", e);
 
@@ -1085,19 +1085,21 @@ function handleNotificationClicked(notificationId) {
 function handleTabCreated(tab) {
     if (config.debugging)
         console.log("tab added", tab.id, tab.openerTabId);
-    let tabcfg = processNewTab(tab.id, tab.openerTabId);
-    if (useDebugger
-        && config.collecting && tabcfg.collecting
-        && tab.pendingUrl == "chrome://newtab/") {
-        // Unfortunately, Chromium does not allow attaching the
-        // debugger to chrome:// URLs, meaning that new tabs with the
-        // default page opened will not get debugged, thus no response
-        // bodies will ever get collected there. So, we navigate new
-        // tabs to about:blank instead.
-        browser.tabs.update(tab.id, { url: "about:blank" }).then(() => {
-            setTimeout(() => attachDebugger(tab.id), 500);
-        }, logError);
-    }
+
+    if (useDebugger && tab.pendingUrl == "chrome://newtab/") {
+        // work around Chrome's "New Tab" action creating a child tab by
+        // ignoring openerTabId
+        let tabcfg = processNewTab(tab.id, undefined);
+        // Unfortunately, Chromium does not allow attaching the debugger to
+        // chrome:// URLs, meaning that new tabs with the default page opened
+        // will not get debugged, thus no response bodies will ever get
+        // collected there. So, we navigate new tabs to about:blank instead.
+        if (config.collecting && tabcfg.collecting)
+            browser.tabs.update(tab.id, { url: "about:blank" }).then(() => {
+                setTimeout(() => attachDebugger(tab.id), 500);
+            }, logError);
+    } else
+        processNewTab(tab.id, tab.openerTabId);
 }
 
 function handleTabRemoved(tabId) {

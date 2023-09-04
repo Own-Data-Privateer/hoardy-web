@@ -87,12 +87,6 @@ This makes things a bit tricky, for instance:
   If you [[./popup.html#div-config.collecting][disable pWebArc]] the debuggers will get disconnected only after all requests finish.
   But even if there are no requests in-flight the notification will not disappear immediately.
   Chromium takes its time updating the UI after the debugger is detached.
-
-Moreover:
-
-- On Chromium-based browsers, "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc) does not create a new root tab, instead it creates a new child tab of the currently active tab.
-  In other words, on Chromium-based browser "New Tab" browser action uses [[./popup.html#div-tabconfig.children.collecting][this]] and [[./popup.html#div-tabconfig.children.profile][this]] settings instead of [[./popup.html#div-config.root.collecting][this]] and [[./popup.html#div-config.root.profile][this]] one.
-  The latter pair only ever get used for a first tab in a new window (e.g. =Control+N=) and when the extension is (re-)loaded.
 *** Known browser bugs
 - Similarly to unpatched Firefox, Chromium-based browsers do not supply contents of files in POST request data.
   They do, however, provide a way to see if files were present in the request, so pWebArc will mark such and only such requests as having a "partial request body".
