@@ -123,6 +123,10 @@ function processRemoveTab(tabId) {
     cleanupTabs();
 }
 
+// browserAction state
+let oldIcon = null;
+let oldBadge = null;
+
 // archiving state
 // reqres means "request + response"
 
@@ -182,9 +186,10 @@ function getStats() {
     };
 }
 
-async function setIcons() {
+function setIcons(tabChanged) {
     let stats = getStats();
-    let total = stats.queued + stats.failedToArchive;
+    let todo = stats.queued + stats.failedToArchive;
+    let total = stats.inflight + todo;
 
     let newIcon;
     let state;
@@ -207,26 +212,47 @@ async function setIcons() {
     }
 
     let newTitle = `pWebArc: ${state}`;
-    let text = "";
+    let newBadge = "";
     if (total > 0)
-        text = total.toString();
+        newBadge = total.toString();
 
-    await browser.browserAction.setBadgeText({ text }).catch(logError);
+    if (tabChanged || oldIcon !== newIcon || oldBadge !== newBadge) {
+        if (config.debugging)
+            console.log("new badge", newIcon, newBadge);
 
-    let tabs = await browser.tabs.query({ active: true });
-    for (let tab of tabs) {
-        let windowId = tab.windowId;
-        let tabcfg = getTabConfig(tab.id);
+        oldIcon = newIcon;
+        oldBadge = newBadge;
 
-        let icon = newIcon;
-        let title = newTitle;
-        if (newIcon == "on" && !tabcfg.collecting) {
-            icon = "off";
-            title += ", disabled in this tab";
+        async function updateBrowserAction() {
+            let tabs = await browser.tabs.query({ active: true }).catch(logError);
+
+            await browser.browserAction.setBadgeText({ text: newBadge }).catch(logError);
+
+            for (let tab of tabs) {
+                let tabcfg = getTabConfig(tab.id);
+
+                let icon = newIcon;
+                let title = newTitle;
+                if (newIcon == "on" && !tabcfg.collecting) {
+                    icon = "off";
+                    title += ", disabled in this tab";
+                }
+
+                if (useDebugger) {
+                    // Chromium does not support per-window browserActions, so
+                    // we have to update per-tab, this is inefficient
+                    let tabId = tab.id;
+                    await browser.browserAction.setIcon({ tabId, path: iconPath(icon) }).catch(logError);
+                    await browser.browserAction.setTitle({ tabId, title }).catch(logError);
+                } else {
+                    let windowId = tab.windowId;
+                    await browser.browserAction.setIcon({ windowId, path: iconPath(icon) }).catch(logError);
+                    await browser.browserAction.setTitle({ windowId, title }).catch(logError);
+                }
+            }
         }
 
-        await browser.browserAction.setIcon({ windowId, path: iconPath(icon) }).catch(logError);
-        await browser.browserAction.setTitle({ windowId, title }).catch(logError);
+        updateBrowserAction();
     }
 
     broadcast(["stats", stats]);
@@ -648,12 +674,11 @@ function processDone() {
             reqresLog.shift();
     }
 
+    setIcons();
     if (reqresDone.length > 0)
         setTimeout(processDone, 10);
-    else {
-        setIcons();
+    else
         setTimeout(processArchiving, 1);
-    }
 }
 
 function forceFinishRequests() {
@@ -681,6 +706,7 @@ function forceFinishingUpSimple() {
     }
 
     reqresFinishingUp = [];
+    setIcons();
 }
 
 let forceFinishingUp = forceFinishingUpSimple;
@@ -715,6 +741,7 @@ function processFinishingUpSimple() {
         reqresFinishingUp = notFinished;
     }
 
+    setIcons();
     setTimeout(processDone, 1);
 }
 
@@ -919,6 +946,7 @@ function handleBeforeRequest(e) {
     }
 
     reqresInFlight.set(requestId, reqres);
+    setIcons();
 }
 
 function handleBeforeSendHeaders(e) {
@@ -1080,9 +1108,10 @@ function handleTabReplaced(addedTabId, removedTabId) {
 }
 
 function handleTabActivated(e) {
+    // This will do nothing on Chromium, see handleTabUpdatedDebugger
     if (config.debugging)
         console.log("tab activated", e.tabId);
-    setIcons();
+    setIcons(true);
 }
 
 // open client tab ports
@@ -1153,7 +1182,7 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "setTabConfig":
         tabConfig.set(request[1], request[2]);
-        setIcons();
+        setIcons(true);
         if (useDebugger)
             syncDebuggersState();
         break;
@@ -1234,6 +1263,8 @@ async function init(storage) {
     browser.tabs.onRemoved.addListener(catchAll(handleTabRemoved));
     browser.tabs.onReplaced.addListener(catchAll(handleTabReplaced));
     browser.tabs.onActivated.addListener(catchAll(handleTabActivated));
+    if (useDebugger)
+        browser.tabs.onUpdated.addListener(catchAll(handleTabUpdatedDebugger));
 
     let tabs = await browser.tabs.query({});
     // compute and cache configs for all open tabs

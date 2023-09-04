@@ -143,6 +143,14 @@ function logDebugRequest(rtype, extra, e) {
 
 // handlers
 
+function handleTabUpdatedDebugger(tabId, changeInfo, tabInfo) {
+    // Chromium resets the browserAction icon when tab chages state, so we
+    // have to update icons after each one
+    if (config.debugging)
+        console.log("tab updated", tabId);
+    setIcons(true);
+}
+
 function handleDebugRequestWillBeSent(e, extra) {
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
@@ -271,6 +279,7 @@ function forceFinishingUpDebug() {
     // and drop the rest
     reqresFinishingUp = [];
     debugReqresFinishingUp = [];
+    setIcons();
 }
 
 function debugHeadersMatchScore(dreqres, reqres) {
@@ -422,5 +431,6 @@ function processFinishingUpDebug() {
             console.log("still unmatched", debugReqresFinishingUp, reqresFinishingUp);
     }
 
+    setIcons();
     setTimeout(processDone, 1);
 }
