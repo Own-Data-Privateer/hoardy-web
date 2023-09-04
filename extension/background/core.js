@@ -365,20 +365,17 @@ function processArchiving() {
                 return;
             }
 
-            // forget other notifications about it
-            browser.notifications.clear(`archiving-${archiveURL}`).finally(() => {
-                // if this was previously broken, notify about it being fixed
-                browser.notifications.clear("archivingOK").finally(() => {
-                    browser.notifications.create(`archiving-${archiveURL}`, {
-                        title: "pWebArc is working OK",
-                        message: `with the archive at\n${archiveURL}`,
-                        iconUrl: browser.runtime.getURL(iconPath("archiving")),
-                        type: "basic",
-                    }).finally(() => {
-                        setTimeout(processArchiving, 1);
-                    });
-                });
+            // clear all-ok notification
+            browser.notifications.clear("archivingOK");
+            // notify about it being fixed
+            browser.notifications.create(`archiving-${archiveURL}`, {
+                title: "pWebArc is working OK",
+                message: `with the archive at\n${archiveURL}`,
+                iconUrl: browser.runtime.getURL(iconPath("archiving")),
+                type: "basic",
             });
+
+            setTimeout(processArchiving, 1);
         }
 
         if (config.debugging)
@@ -431,16 +428,19 @@ function processArchiving() {
 
         reqresNotifyTID = setTimeout(() => {
             reqresNotifyTID = null;
-            browser.notifications.clear("archivingOK").finally(() => {
-                for (let [archiveURL, failed] of reqresArchivingFailed.entries()) {
-                    browser.notifications.create(`archiving-${archiveURL}`, {
-                        title: "pWebArc FAILED",
-                        message: `to archive ${failed.queue.length} items in the queue because ${failed.reason}`,
-                        iconUrl: browser.runtime.getURL(iconPath("error")),
-                        type: "basic",
-                    });
-                }
-            });
+            if (reqresArchivingFailed.size === 0)
+                // we got outdated
+                return;
+
+            browser.notifications.clear("archivingOK");
+            for (let [archiveURL, failed] of reqresArchivingFailed.entries()) {
+                browser.notifications.create(`archiving-${archiveURL}`, {
+                    title: "pWebArc FAILED",
+                    message: `to archive ${failed.queue.length} items in the queue because ${failed.reason}`,
+                    iconUrl: browser.runtime.getURL(iconPath("error")),
+                    type: "basic",
+                });
+            }
         }, 1000);
     } else { // if all queues are empty
         cancelRetryAll();
@@ -1075,7 +1075,8 @@ function handleErrorOccurred(e) {
 }
 
 function handleNotificationClicked(notificationId) {
-    if (notificationId === "archivingOK") return;
+    if (reqresArchivingFailed.size === 0) return;
+
     browser.tabs.create({
         url: browser.runtime.getURL("/page/help.html#errors"),
     });
