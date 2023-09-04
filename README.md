@@ -2,7 +2,12 @@
 
 `pwebarc` is a suite of tools implementing a Private Web Archive, basically your own private [Wayback Machine](https://web.archive.org/) that can also archive POST requests, or HTTP-level [WebScrapBook](https://github.com/danny0838/webscrapbook) following "archive everything now, figure out what to do with it later" philosophy.
 
-Basically, you browse the web with this thing installed, and it archives *everything* you see [in case you will want to return to it later](#why). This is different from all other similarly easy to use tools that do similar things in that they require you to archive things one-by-one, while this archives *everything* by default, allowing you to disable archiving on case-by-case basis.
+Basically, [you install the browser extension, run the archiving server](#quickstart), and just browse the web while `pwebarc` (by default) archives *everything* your browser fetches from the network.
+Then, some indeterminate time later, [you refer back to your collected data](#why).
+
+This is different from all other similar tools, including the [Wayback Machine](https://web.archive.org/) itself, in that they require you to archive and replay things one-by-one.
+
+[There are some other alternatives to this](#alternatives), but AFAIK `pwebarc` is the simplest and easiest to use if you want to archive everything.
 
 # Why?
 
@@ -25,22 +30,27 @@ And, obviously, you wouldn't want it to archive you banking app's output.
 
 # Quickstart
 
-(Assuming you have Python installed.)
+## <span id="quickstart-with-python"/>On a system with Python installed
 
-- Download [the dumb archiving server script](./dumb_server/pwebarc-dumb-dump-server.py) (aka `pwebarc-dumb-dump-server.py`) and run it (on Windows you can just associate `.py` files with `Python.exe`), it has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python and is very simple. It will start saving data into `pwebarc-dump` directory wherever you run it from.
-
+- Download [the dumb archiving server script](./dumb_server/pwebarc-dumb-dump-server.py) (aka `pwebarc-dumb-dump-server.py`) and run it, it has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python and is very simple. It will start saving data into `pwebarc-dump` directory wherever you run it from.
 - On Firefox/Tor Browser/etc: [Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Installing from source on Firefox/Tor Browser](#build-firefox).
 
 - On Chromium/Chrome/etc (experimental): See [Installing on Chromium/Chrome](#install-chromium) or [Installing from source on Chromium/Chrome](#build-chromium).
 
-You are done.
+Congratulations, you are now collecting your network traffic.
 
-You should then **read extension's ["Help" page](./extension/page/help.org), it has a ton of useful information about how it works and its quirks in different browsers.** If you open it by clicking the "Help" button in the extension's UI, then hovering over or clicking on links in there will highlight relevant settings.
+Next, you can read the extension's ["Help" page](./extension/page/help.org).
+It has lots of useful details about how it works and quirks of different browsers.
+If you open it by clicking the "Help" button in the extension's UI, then hovering over or clicking on links in there will highlight relevant settings.
+
+It took me about 6 months before I had to refer back to previously archived data for the first time when I started using `mitmproxy` to sporadically collect my HTTP traffic in 2017.
+So, I recommend you start collecting immediately and figure out how to use the rest of this suite later.
 
 ## On a system with no Python installed
 
 - On Windows: [Download Python from the official website](https://www.python.org/downloads/windows/).
-- On Linux/etc: Install via package manager, then go back to [Quickstart](#quickstart).
+- On Linux/etc: Install via package manager.
+- Go back to [Quickstart with Python installed](#quickstart-with-python).
 
 # Parts and pieces
 
@@ -54,7 +64,7 @@ You should then **read extension's ["Help" page](./extension/page/help.org), it 
     - A set of tools to convert mitmproxy, WARC, HAR, and PCAP files into the internal format used by `pwebarc` and from the internal format to at least WARC.
     - (eventually) A non-dumb server with data deduplication, timelines, full text search, and etc.
 
-# But you could do X instead
+# <span id="alternatives"/>But you could do X instead
 
 ## But you could use [WebScrapBook](https://github.com/danny0838/webscrapbook) instead
 
@@ -107,11 +117,9 @@ Yes, but
 
 And then you still need something like this suite to look into the generated archives.
 
-# Meanwhile, this suite of tools
+# How it works
 
 With `pwebarc`, [the extension](./extension/) simply collect all the data as you browse, immediately sends it to the archiving sever, and [the dumb archiving server implementation](./dumb_server/) simply dumps data it gets to disk, one file per HTTP request+response pair.
-
-It took me about 6 months before I had to refer back to previously archived data for the first time when I started using `mitmproxy` to sporadically collect my HTTP traffic in 2017. So, I recommend you start collecting immediately and figure out how to use the rest of this suite later.
 
 `pwebarc` uses compressed [CBOR (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) of decoded HTTP data as on-disk representation format, which is actually more efficient than storing raw HTTP request dumps. After converting all my previous `wget`, `curl`, `mitmproxy`, and HAR archives into this, it is about as efficient as compressed `mitmproxy` dumps, with some (WIP) data-deduplication and xdelta compression between same-URL revisions it is much more efficient. For me, it uses about **3GiB per year of browsing** on average (\~5 years of mostly uninterrupted data collection ATM) but I use things like [uBlock Origin](https://github.com/gorhill/uBlock) and [uMatrix](https://github.com/gorhill/uMatrix) to cut things down, and image boorus and video hosting sites have their own pipelines.
 
