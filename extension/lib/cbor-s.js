@@ -38,8 +38,12 @@ const pow_2_53 = 9007199254740992;
 
 class ChunkedBuffer extends Array {
     constructor(value) {
-        if (value !== undefined)
+        if (value !== undefined) {
+            for (let e of value)
+                if (!(e instanceof Uint8Array))
+                    throw new TypeError("expecting Uint8Array");
             super(value);
+        }
         else
             super();
     }
@@ -48,7 +52,7 @@ class ChunkedBuffer extends Array {
         if (value instanceof Uint8Array)
             super.push(value);
         else
-            throw new TypeError("Expecting Uint8Array");
+            throw new TypeError("expecting Uint8Array");
     }
 
     get byteLength() {
@@ -169,21 +173,22 @@ class CBOREncoder {
 
         //console.log("CBOR encode", typeof value, value);
 
-        if (value === false)
-            return this.writeUint8(0xf4);
-        else if (value === true)
-            return this.writeUint8(0xf5);
-
-        if (value === null) {
-            if (limits.allowNull)
-                return this.writeUint8(0xf6);
-            else
-                throw new Error("try to encode null")
+        if (value === false) {
+            this.writeUint8(0xf4);
+            return this;
+        } else if (value === true) {
+            this.writeUint8(0xf5);
+            return this;
+        } else if (value === null) {
+            if (!limits.allowNull)
+                throw new Error("trying to encode null")
+            this.writeUint8(0xf6);
+            return this;
         } else if (value === undefined) {
-            if (limits.allowUndefined)
-                return this.writeUint8(0xf7);
-            else
-                throw new Error("try to encode undefined")
+            if (!limits.allowUndefined)
+                throw new Error("trying to encode undefined")
+            this.writeUint8(0xf7);
+            return this;
         }
 
         let typ = typeof value;
@@ -194,9 +199,8 @@ class CBOREncoder {
                     this.writeTypeAndLength(0, value);
                 } else if (-pow_2_53 <= value && value < 0) {
                     this.writeTypeAndLength(1, -(value + 1));
-                } else {
+                } else
                     throw new TypeError(`can't encode ${value}`);
-                }
             } else {
                 this.writeUint8(0xfb);
                 this.writeFloat64(value);
@@ -232,9 +236,8 @@ class CBOREncoder {
                 this.encode(k, limits);
                 this.encode(value[k], limits);
             }
-        } else {
+        } else
             throw new TypeError(`can't encode ${value}`);
-        }
 
         return this;
     }
