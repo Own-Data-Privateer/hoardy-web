@@ -2,7 +2,7 @@
 
 `pwebarc` is a suite of tools implementing a Private Web Archive, basically your own private [Wayback Machine](https://web.archive.org/) that can also archive POST requests, or HTTP-level [WebScrapBook](https://github.com/danny0838/webscrapbook) following "archive everything now, figure out what to do with it later" philosophy.
 
-Basically, [you install the browser extension, run the archiving server](#quickstart), and just browse the web while `pwebarc` (by default) archives *everything* your browser fetches from the network.
+Basically, [you install the browser extension, run the archiving server](#quickstart), and just browse the web while `pwebarc` archives *everything* your browser fetches from the network (by default, the extension has lots of options controlling what should and should not be archived).
 Then, some indeterminate time later, [you refer back to your collected data](#why).
 
 This is different from all other similar tools, including the [Wayback Machine](https://web.archive.org/) itself, in that they require you to archive and replay things one-by-one.
@@ -121,7 +121,10 @@ And then you still need something like this suite to look into the generated arc
 
 With `pwebarc`, [the extension](./extension/) simply collect all the data as you browse, immediately sends it to the archiving sever, and [the dumb archiving server implementation](./dumb_server/) simply dumps data it gets to disk, one file per HTTP request+response pair.
 
-`pwebarc` uses compressed [CBOR (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) of decoded HTTP data as on-disk representation format, which is actually more efficient than storing raw HTTP request dumps. After converting all my previous `wget`, `curl`, `mitmproxy`, and HAR archives into this, it is about as efficient as compressed `mitmproxy` dumps, with some (WIP) data-deduplication and xdelta compression between same-URL revisions it is much more efficient. For me, it uses about **3GiB per year of browsing** on average (\~5 years of mostly uninterrupted data collection ATM) but I use things like [uBlock Origin](https://github.com/gorhill/uBlock) and [uMatrix](https://github.com/gorhill/uMatrix) to cut things down, and image boorus and video hosting sites have their own pipelines.
+`pwebarc` uses [compressed CBOR (RFC8949) of decoded HTTP request+responses](#data-format) as on-disk representation format.
+This is actually more efficient than storing raw HTTP request dumps.
+After converting all my previous `wget`, `curl`, `mitmproxy`, and HAR archives into this, it is about as efficient as compressed `mitmproxy` dumps, with some (WIP) data-deduplication and xdelta compression between same-URL revisions it is much more efficient.
+For me, it uses about **3GiB per year of browsing** on average (\~5 years of mostly uninterrupted data collection ATM) but I use things like [uBlock Origin](https://github.com/gorhill/uBlock) and [uMatrix](https://github.com/gorhill/uMatrix) to cut things down, and image boorus and video hosting sites have their own pipelines.
 
 # How to use
 
@@ -237,7 +240,7 @@ Or, you could run both the Tor Browser, and `./pwebarc-dumb-dump-server.py` in a
 
 - `source` is a short description of the data source, like `Firefox/102.0+pWebArc/0.1`;
 - `optionalData` currently stores optional `origin_url` and `document_url` when different from both the URL in question and `Referer` request header (this is useful for indexing and search by URL);
-- `responseV1` can be `null` when the request got no response, like when experiencing a network issue (dumping such request+response pairs is disabled by default, see extension's settings).
+- `responseV1` can be `null` when the request got no response, like when experiencing a network issue (archival of such request+response pairs is disabled by default, see extension's settings).
 
 On-disk these are stored as compressed files. [The dumb archiving server](./dumb_server/) stores them one file per `reqres` and only compresses them with `GZip`, since `zlib` compression comes bundled with Python.
 
