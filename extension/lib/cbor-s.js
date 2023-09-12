@@ -32,6 +32,7 @@
 "use strict";
 
 const pow_2_8 = 256;
+const pow_2_12 = 4096;
 const pow_2_16 = 65536;
 const pow_2_32 = 4294967296;
 const pow_2_53 = 9007199254740992;
@@ -82,22 +83,41 @@ class CBOREncoder {
 
         let newdata = new ArrayBuffer(currently);
 
-        let oldview = new Uint8Array(this.data);
-        let newview = new Uint8Array(newdata);
-        for (let i = 0; i < this.offset; ++i) {
-            newview[i] = oldview[i];
+        let oldarr = new Uint8Array(this.data);
+        let newarr = new Uint8Array(newdata);
+        let offset = this.offset;
+        for (let i = 0; i < offset; ++i) {
+            newarr[i] = oldarr[i];
         }
 
         this.data = newdata;
         this.view = new DataView(this.data);
     }
 
-    commitChunk() {
-        if (this.offset == 0) return;
-        this.chunks.push(new Uint8Array(this.data.slice(0, this.offset)));
-        this.data = new ArrayBuffer(pow_2_8);
-        this.view = new DataView(this.data);
-        this.offset = 0;
+    flush(desired) {
+        let currently = this.data.byteLength;
+        if (desired === undefined)
+            desired = currently;
+
+        let offset = this.offset;
+        let taken = false;
+        if (offset !== 0) {
+            if (offset === currently) {
+                // if we are flushing the whole buffer, take it as is
+                this.chunks.push(new Uint8Array(this.data));
+                taken = true;
+            } else
+                // otherwise, slice off the needed part
+                this.chunks.push(new Uint8Array(this.data.slice(0, offset)));
+            this.offset = 0;
+        }
+
+        if (taken || currently !== desired) {
+            // reallocate the buffer
+            this.data = new ArrayBuffer(desired);
+            this.view = new DataView(this.data);
+        }
+        // otherwise, reuse the buffer
     }
 
     writeUint8(value) {
@@ -107,15 +127,23 @@ class CBOREncoder {
     }
 
     writeUint8Array(value) {
-        this.ensureHave(value.length);
-        for (let i = 0; i < value.length; ++i)
-            this.view.setUint8(this.offset + i, value[i]);
-        this.offset += value.length;
+        let length = value.length;
+        this.ensureHave(length);
+        let offset = this.offset;
+        for (let i = 0; i < length; ++i)
+            this.view.setUint8(offset + i, value[i]);
+        this.offset += length;
     }
 
     dumpUint8Array(value) {
-        this.commitChunk();
-        this.chunks.push(value);
+        let offset = this.offset;
+        if (offset === 0)
+            this.chunks.push(value);
+        else if (offset >= pow_2_8 || value.length >= pow_2_12) {
+            this.flush(pow_2_8);
+            this.chunks.push(value);
+        } else
+            this.writeUint8Array(value);
     }
 
     writeUint16(value) {
@@ -193,7 +221,7 @@ class CBOREncoder {
 
         let typ = typeof value;
 
-        if (typ == "number") {
+        if (typ === "number") {
             if (Math.floor(value) === value) {
                 if (0 <= value && value <= pow_2_53) {
                     this.writeTypeAndLength(0, value);
@@ -213,11 +241,11 @@ class CBOREncoder {
             this.writeTypeAndLength(2, value.byteLength);
             for (let e of value)
                 this.dumpUint8Array(e);
-        } else if (typ == "string") {
+        } else if (typ === "string") {
             let enc = new TextEncoder("utf-8", { fatal: true });
             let utf8data = enc.encode(value);
             this.writeTypeAndLength(3, utf8data.length);
-            this.writeUint8Array(utf8data);
+            this.dumpUint8Array(utf8data);
         } else if (Array.isArray(value)) {
             let length = value.length;
             this.writeTypeAndLength(4, length);
@@ -229,7 +257,7 @@ class CBOREncoder {
                 this.encode(k, limits);
                 this.encode(v, limits);
             }
-        } else if (typ == "object") {
+        } else if (typ === "object") {
             let keys = Object.keys(value);
             this.writeTypeAndLength(5, keys.length);
             for (let k of keys) {
@@ -244,26 +272,20 @@ class CBOREncoder {
 
     // return the resulting Uint8Array
     result() {
-        this.commitChunk();
+        this.flush();
 
-        let length = 0;
-        for (let chunk of this.chunks)
-            length += chunk.byteLength;
-
-        let resbuf = new ArrayBuffer(length);
-        let resview = new Uint8Array(resbuf);
+        let resbuf = new ArrayBuffer(this.chunks.byteLength);
+        let resarr = new Uint8Array(resbuf);
 
         let resoffset = 0;
         for (let chunk of this.chunks) {
-            for (let i = 0; i < chunk.byteLength; ++i) {
-                resview[resoffset + i] = chunk[i];
+            let length = chunk.byteLength;
+            for (let i = 0; i < length; ++i) {
+                resarr[resoffset + i] = chunk[i];
             }
-            resoffset += chunk.byteLength;
+            resoffset += length;
         }
 
-        this.chunks = new ChunkedBuffer();
-        this.chunks.push(resview);
-
-        return resview;
+        return resarr;
     }
 }
