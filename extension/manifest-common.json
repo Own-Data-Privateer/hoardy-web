@@ -1,6 +1,6 @@
 {
     "name": "pWebArc",
-    "version": "1.3",
+    "version": "1.3.5",
     "description": "Private Web Archive: collects and archives dumps of HTTP requests and responses to your own private archiving server as you browse the web. So, a ScrapBook following \"archive everything now, figure out what to do with it later\" philosophy.",
 
     "author": "Jan Malakhovski",
