@@ -88,8 +88,6 @@ function removeURLHash(url) {
 
 // given a URL, return its canonical version
 function canonicalizeURL(url) {
-    if (url === undefined) return url;
-
     let parsed = new URL(url);
     return parsed.href;
 }

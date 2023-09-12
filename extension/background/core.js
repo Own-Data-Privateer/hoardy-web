@@ -510,30 +510,40 @@ function renderReqres(reqres) {
     // use the Referer header as is, if browser f*cked it up, we want to know
     let referer = getHeaderValue(reqres.requestHeaders, "Referer");
 
-    // canonicalize these (i.e. add trailing slashes), Chromium f*cks up its
-    // initiator field all the time
-    let originUrl = canonicalizeURL(reqres.originUrl);
-    let documentUrl = canonicalizeURL(reqres.documentUrl);
+    // canonicalize documentUrl (i.e. add trailing slashes, as Chromium f*cks
+    // up its initiator field all the time) and use the canonicalized URL when
+    // no documentUrl is set (in Firefox topmost level document does not get
+    // documentUrl, which is annoying, we want to save the #hashes there).
+    let documentUrl;
+    if (reqres.documentUrl !== undefined)
+        documentUrl = canonicalizeURL(reqres.documentUrl);
+    else
+        documentUrl = canonicalizeURL(reqres.url);
+
+    // do similarly for originUrl for similar Chromium-related reasons
+    let originUrl = undefined;
+    if (reqres.originUrl !== undefined)
+        originUrl = canonicalizeURL(reqres.originUrl);
 
     // The primary effect of the normalization and canonicalization above and
     // the code below is that loading a URL with a #hash will record a
-    // normalized URL in the Request part, but then will also record the full
-    // URL with the hash in origin_url or document_url.
+    // normalized URL in the Request, but then will also record the full URL
+    // with the hash in document_url and/or origin_url.
 
     let rest = {};
 
-    // remember originUrl if it is not url or referer
-    if (originUrl !== undefined
-        && originUrl !== url
-        && originUrl !== referer)
-        rest.origin_url = originUrl;
-
-    // remember documentUrl if it is not url, referer, or originUrl
+    // record if different from normalized URL and referer
     if (documentUrl !== undefined
         && documentUrl !== url
-        && documentUrl !== referer
-        && documentUrl !== originUrl)
+        && documentUrl !== referer)
         rest.document_url = documentUrl;
+
+    // record if different from normalized URL, referer, and documentUrl
+    if (originUrl !== undefined
+        && originUrl !== url
+        && originUrl !== referer
+        && originUrl !== documentUrl)
+        rest.origin_url = originUrl;
 
     if (reqres.fromCache)
         rest.from_cache = true;
