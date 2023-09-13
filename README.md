@@ -39,7 +39,7 @@ And, obviously, you wouldn't want it to archive you banking app's output.
 
 Congratulations, you are now collecting your network traffic.
 
-Next, you can read the extension's ["Help" page](./extension/page/help.org).
+Next, you should read the extension's ["Help" page](./extension/page/help.org).
 It has lots of useful details about how it works and quirks of different browsers.
 If you open it by clicking the "Help" button in the extension's UI, then hovering over or clicking on links in there will highlight relevant settings.
 
@@ -59,6 +59,7 @@ So, I recommend you start collecting immediately and figure out how to use the r
     - The [dumb archiving server](./dumb_server/) that simply dumps everything it gets to disk one file per HTTP request+response.
 - Recommended:
     - [A patch for Firefox](./firefox/) to allow the above extension to properly collect request POST data. This is not required, but could be useful if you want to archive POST requests properly.
+      See "Quirks and Bugs" section of extension's ["Help" page](./extension/page/help.org) for more info.
 - WIP:
     - A tool to display, search, manipulate, and deduplicate archive files.
     - A set of tools to convert mitmproxy, WARC, HAR, and PCAP files into the internal format used by `pwebarc` and from the internal format to at least WARC.
