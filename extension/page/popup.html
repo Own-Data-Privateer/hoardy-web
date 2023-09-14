@@ -137,8 +137,8 @@ input[type="button"], .help {
         </div>
         <div id="misc-options">
           <h2>Misc</h2>
-          <ui id="config.debugging" data-help="This makes extension's debugging log (about:debugging, extension inspector) much more verbose. Makes things very slow, eats lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (very slow!)</ui>
-          <ui id="config.dumping" data-help="This dumps raw CBOR outputs to extension's debugging log (about:debugging, extension inspector). Makes things very slow, eats lots of memory. Do not enable unless you know what you are doing.">Dump raw CBORs into the debugging log</ui>
+          <ui id="config.debugging" data-help="Dump lots of data into extension's debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (very slow!)</ui>
+          <ui id="config.dumping" data-help="Dumps raw CBOR outputs to extension's debugging log. Does nothing when the previous option is not enabled. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Dump raw CBORs into the debugging log</ui>
         </div>
       </div>
     </div>
