@@ -80,9 +80,11 @@ This makes things a bit tricky, for instance:
   As side-effect of this, Chromium will show "Request blocked" page until the debugger is attached and the page is reloaded, meaning it will get visually stuck on "Request blocked" page if fetching the request ended up spawning a download instead of showing a page.
   The download will proceed as normal, though.
 
-- You will get an annoying notification bar constantly displayed in the browser while [[./popup.html#div-config.collecting][pWebArc is enabled]], trying to close it will detach the debugger, so pWebArc will reattach immediately (because it assumes you don't want to lose data), and the bar will appear again.
+- You will get an annoying notification bar constantly displayed in the browser while [[./popup.html#div-config.collecting][pWebArc is enabled]].
+  Closing that notification will detach the debugger.
+  pWebArc will reattach it immediately because it assumes you don't want to lose data and closing that notification on accident is, unfortunately, quite easy.
 
-  *Also, closing the notification will make all in-flight requests lose their response data.*
+  *However, closing the notification will make all in-flight requests lose their response data.*
 
   If you [[./popup.html#div-config.collecting][disable pWebArc]] the debuggers will get disconnected only after all requests finish.
   But even if there are no requests in-flight the notification will not disappear immediately.
