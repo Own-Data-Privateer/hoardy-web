@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     for (let el of document.getElementsByTagName("a")) {
         if (!el.href.startsWith(popupURL + "#")) continue;
         let target = el.href.substr(popupURL.length + 1);
-        el.href = "#";
+        el.href = "javascript:void(0)";
         el.onclick = (event) => {
             sticky = !sticky;
         };
