@@ -233,11 +233,14 @@ function hideHelp() {
 }
 
 // given a DOM node, add help tooltips to all its children with data-help attribute
-function addHelp(node) {
+function addHelp(node, attachHide) {
     for (let child of node.childNodes) {
         if (child.nodeName === "#text") continue;
         addHelp(child);
     }
+
+    if (attachHide === true)
+        node.onclick = hideHelp;
 
     let help = node.getAttribute("data-help");
     if (help === null) return;

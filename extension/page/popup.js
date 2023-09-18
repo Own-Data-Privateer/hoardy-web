@@ -105,8 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
                 // add help tooltips
-                addHelp(document.body);
-                document.body.onclick = hideHelp;
+                addHelp(document.body, true);
 
                 // when #hash is specified (used in the ./help.org), we don't
                 // want anything hidden and we want to point user to the

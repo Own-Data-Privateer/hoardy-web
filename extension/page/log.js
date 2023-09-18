@@ -56,8 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
     buttonToMessage("clearLog");
 
     // add help tooltips
-    addHelp(document.body);
-    document.body.onclick = hideHelp;
+    addHelp(document.body, true);
 
     // open connection to the background script
     let port = browser.runtime.connect();
