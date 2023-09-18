@@ -8,21 +8,26 @@
 
 "use strict";
 
+// turn all uncaught exceptions into console.error
 function catchAll(func) {
     return (...args) => {
         try {
             return func(...args);
         } catch (exc) {
-            console.log("exception in", func, ":", exc);
+            console.error("exception in", func, ":", exc);
+            console.trace();
         }
     };
 }
 
+// `catchAll`, but for use in Promises
 function logError(err) {
-    console.log("uncaught error", err);
+    console.error("uncaught error", err);
     console.trace();
 }
 
+// recursively assign fields in target from fields in value
+// i.e. `assignRec({}, value)` would just copy `value`
 function assignRec(target, value) {
     if (value === undefined)
         return target;
@@ -47,7 +52,7 @@ function assignRec(target, value) {
     }
 }
 
-// like assignRec, but only updating existing keys in an Object
+// like `assignRec`, but only updates fields that already exist in target
 function updateFromRec(target, value) {
     if (value === undefined)
         return target;
@@ -72,6 +77,7 @@ function updateFromRec(target, value) {
     }
 }
 
+// decode base64 into Uint8Array
 function unBase64(data) {
     return Uint8Array.from(atob(data), (x) => x.codePointAt(0));
 }
@@ -98,15 +104,18 @@ function normalizeURL(url) {
     return canonicalizeURL(removeURLHash(url));
 }
 
+// attach function to `onclick` of DOM node with a given id
 function buttonToAction(id, action) {
-    let e = document.getElementById(id);
-    e.onclick = action;
+    let el = document.getElementById(id);
+    el.onclick = action;
 }
 
+// make a DOM node with a given id emit a `browser.runtime.sendMessage` with the same id
 function buttonToMessage(id) {
     buttonToAction(id, () => browser.runtime.sendMessage([id]));
 }
 
+// set values of DOM elements from a given object
 function setUI(prefix, value) {
     let typ = typeof value;
 
@@ -129,6 +138,8 @@ function setUI(prefix, value) {
         el.innerText = value;
 }
 
+// set values of DOM elements from a given object and subscribe fields
+// of the object to changes to corresponding DOM elements
 function makeUI(prefix, value, update) {
     let typ = typeof value;
 
@@ -191,13 +202,16 @@ function makeUI(prefix, value, update) {
     el.parentElement.replaceChild(res, el);
 }
 
+// currently highlighted node
 let targetNode = null;
-function highlightNode(target) {
-    if (targetNode !== null) {
-        targetNode.classList.remove("target");
-    }
 
-    let el = document.getElementById(target);
+// Highlight DOM node with the given id by adding "target" to its class list.
+// It also un-highlights previously highlighted one, if any.
+function highlightNode(id) {
+    if (targetNode !== null)
+        targetNode.classList.remove("target");
+
+    let el = document.getElementById(id);
     if (el !== null) {
         el.classList.add("target");
         el.scrollIntoView();
@@ -205,16 +219,20 @@ function highlightNode(target) {
     }
 }
 
+// current helpMark and helpDiv
 let helpNodes = null;
+
+// hide current tooltip
 function hideHelp() {
     if (helpNodes === null) return;
 
-    let [el, div] = helpNodes;
-    el.checked = false;
-    div.style.display = "none";
+    let [helpMark, helpDiv] = helpNodes;
+    helpMark.checked = false;
+    helpDiv.style.display = "none";
     helpNodes = null;
 }
 
+// given a DOM node, add help tooltips to all its children with data-help attribute
 function addHelp(node) {
     for (let child of node.childNodes) {
         if (child.nodeName === "#text") continue;
@@ -223,29 +241,29 @@ function addHelp(node) {
 
     let help = node.getAttribute("data-help");
     if (help === null) return;
+    node.removeAttribute("data-help");
 
-    let div = document.createElement("div");
-    div.classList.add("help");
-    div.style.display = "none";
-    div.innerText = help;
+    let helpDiv = document.createElement("div");
+    helpDiv.classList.add("help");
+    helpDiv.style.display = "none";
+    helpDiv.innerText = help;
+    helpDiv.onclick = hideHelp;
 
-    let el = document.createElement("input");
-    el.type = "checkbox";
-    el.classList.add("help");
-    el.setAttribute("data-help", help);
+    let helpMark = document.createElement("input");
+    helpMark.type = "checkbox";
+    helpMark.classList.add("help");
+    helpMark.setAttribute("data-help", help);
 
-    div.onclick = hideHelp;
-
-    el.onchange = () => {
+    helpMark.onchange = () => {
         hideHelp();
 
-        if (el.checked) {
-            div.style.display = "block";
-            helpNodes = [el, div];
+        if (helpMark.checked) {
+            helpDiv.style.display = "block";
+            helpNodes = [helpMark, helpDiv];
         } else
-            div.style.display = "none";
+            helpDiv.style.display = "none";
     }
 
-    node.appendChild(el);
-    node.appendChild(div);
+    node.appendChild(helpMark);
+    node.appendChild(helpDiv);
 }
