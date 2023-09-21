@@ -22,12 +22,13 @@
     },
 
     "permissions": [
+        "<all_urls>",
+        "menus",
+        "notifications",
         "storage",
         "tabs",
-        "notifications",
         "webRequest",
-        "webRequestBlocking",
-        "<all_urls>"
+        "webRequestBlocking"
     ],
 
     "browser_specific_settings": {

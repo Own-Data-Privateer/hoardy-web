@@ -18,12 +18,13 @@
     },
 
     "permissions": [
+        "<all_urls>",
+        "contextMenus",
         "debugger",
+        "notifications",
         "storage",
         "tabs",
-        "notifications",
         "webRequest",
-        "webRequestBlocking",
-        "<all_urls>"
+        "webRequestBlocking"
     ]
 }

@@ -15,9 +15,11 @@ Whether pWebArc will track a given request depends on the "Track new reqres" tog
 
 - [[./popup.html#div-config.collecting][this one]] allows you to disable tracking of newly spawned HTTP requests globally, thus basically disabling pWebArc (except for reqres that are already being tracked and unfinished archivals),
 - [[./popup.html#div-tabconfig.collecting][this one]] controls whether pWebArc will track new reqres originating from the currently active tab,
-- [[./popup.html#div-tabconfig.children.collecting][this one]] controls whether it will track new reqres originating from new tabs opened from the currently active tab (e.g. via middle mouse click, context menu, etc),
+- [[./popup.html#div-tabconfig.children.collecting][this one]] controls whether it will track new reqres originating from new tabs opened from the currently active tab (aka "children tabs", e.g. via middle mouse click, context menu, etc),
 - while [[./popup.html#div-config.root.collecting][this one]] controls whether it will track new reqres originating from new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
 - and so forth for the others (press "?" symbols to see a tooltip explaining what each of them does).
+
+Also, pWebArc provides a context menu for links (do a right-click while pointing at a link) which allows opening new tabs and windows with [[./popup.html#div-tabconfig.children.collecting][children tabs setting]] negated to remove the need for "toggle it, middle-click a link, toggle it again" interactions.
 
 Disabling any of these toggles does not stop tracking of already initiated requests, it only stops new requests controlled by that toggle from being tracked.
 ** Step 2
@@ -98,6 +100,9 @@ This makes things a bit tricky, for instance:
   This is not recommended, however, as archiving some data is usually better than archiving none.
 
 - If the server supplies the same header multiple times (which happens sometimes) then archived response headers will be incomplete, as Chromium's =Network.responseReceived= debugging API event provides a dictionary of headers, not a list.
+
+- Chromium fails to provide =openerTabId= to tabs created with =chrome.tabs.create= API so in the unlikely case of opening two or more new tabs/windows in rapid succession via pWebArc context menu actions and not giving them time to initialize pWebArc could end up mix up settings between the newly created tabs/windows.
+  This bug is impossible to trigger unless your system is very slow or you are clicking things with automation tools like =AutoHotKey= or =xnee=.
 *** Known extension bugs
 - Response data of background requests and requests made by other extensions does not get collected.
 

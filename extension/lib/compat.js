@@ -23,6 +23,20 @@ function parseUA() {
     return result;
 }
 
+function makePromiseAPI0(old, nthis) {
+    return () => {
+        return new Promise((resolve, reject) => {
+            old.apply(nthis, [(data) => {
+                if (browser.runtime.lastError === undefined)
+                    resolve(data);
+                else {
+                    reject(browser.runtime.lastError.message);
+                }
+            }]);
+        });
+    };
+}
+
 function makePromiseAPI(old, nthis) {
     return (arg) => {
         return new Promise((resolve, reject) => {
@@ -78,9 +92,16 @@ function makeFirefoxish(browser) {
     browser.notifications.clear = makePromiseAPI(browser.notifications.clear);
     browser.notifications.create = makePromiseAPI2(browser.notifications.create);
     browser.runtime.sendMessage = makePromiseAPI(browser.runtime.sendMessage);
+    browser.tabs.create = makePromiseAPI(browser.tabs.create);
     browser.tabs.get = makePromiseAPI(browser.tabs.get);
     browser.tabs.query = makePromiseAPI(browser.tabs.query);
     browser.tabs.update = makePromiseAPI2(browser.tabs.update);
+    browser.windows.create = makePromiseAPI(browser.windows.create);
+
+    browser.menus = browser.contextMenus;
+    browser.menus.create = makePromiseAPI(browser.contextMenus.create);
+    browser.menus.update = makePromiseAPI2(browser.contextMenus.update);
+    browser.menus.refresh = makePromiseAPI0(browser.contextMenus.refresh);
 
     let old_local = browser.storage.local;
     browser.storage.local = {

@@ -16,11 +16,17 @@ let selfURL = browser.runtime.getURL("/"); // for filtering out our own requests
 // for archiving
 let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
 
-function iconPath(name) {
+function iconPath(name, size) {
     if (svgIcons)
         return `/icon/${name}.svg`;
     else
-        return `/icon/128/${name}.png`;
+        return `/icon/${size}/${name}.png`;
+}
+
+function mkIcons(what) {
+    return {
+        128: iconPath(what, 128),
+    };
 }
 
 // default config
@@ -59,6 +65,8 @@ let config = {
 // per-tab config
 let tabConfig = new Map();
 let tabsToDelete = new Set();
+let negateConfigFor = new Set();
+let negateOpenerTabIds = [];
 
 function prefillChildren(data) {
     return assignRec({
@@ -83,8 +91,21 @@ function getTabConfig(tabId, fromExtension) {
 }
 
 function processNewTab(tabId, openerTabId) {
+    if (useDebugger && openerTabId === undefined && negateOpenerTabIds.length > 0) {
+        // On Chromium, `browser.tabs.create` with `openerTabId` specified
+        // does not pass it into `openerTabId` variable here (it's a bug), so
+        // we have to work around it by using `negateOpenerTabIds` variable.
+        openerTabId = negateOpenerTabIds.shift();
+    }
+
     let openercfg = getTabConfig(openerTabId);
-    let tabcfg = prefillChildren(openercfg.children);
+    let children = openercfg.children;
+    if (openerTabId !== undefined && negateConfigFor.delete(openerTabId)) {
+        // Negate children.collecting when `openerTabId` is in `negateConfigFor`.
+        children = assignRec({}, openercfg.children);
+        children.collecting = !children.collecting;
+    }
+    let tabcfg = prefillChildren(children);
     tabConfig.set(tabId, tabcfg);
     return tabcfg;
 }
@@ -247,11 +268,11 @@ function setIcons(tabChanged) {
                     // Chromium does not support per-window browserActions, so
                     // we have to update per-tab, this is inefficient
                     let tabId = tab.id;
-                    await browser.browserAction.setIcon({ tabId, path: iconPath(icon) }).catch(logError);
+                    await browser.browserAction.setIcon({ tabId, path: mkIcons(icon) }).catch(logError);
                     await browser.browserAction.setTitle({ tabId, title }).catch(logError);
                 } else {
                     let windowId = tab.windowId;
-                    await browser.browserAction.setIcon({ windowId, path: iconPath(icon) }).catch(logError);
+                    await browser.browserAction.setIcon({ windowId, path: mkIcons(icon) }).catch(logError);
                     await browser.browserAction.setTitle({ windowId, title }).catch(logError);
                 }
             }
@@ -371,7 +392,7 @@ function processArchiving() {
             browser.notifications.create(`archiving-${archiveURL}`, {
                 title: "pWebArc is working OK",
                 message: `with the archive at\n${archiveURL}`,
-                iconUrl: browser.runtime.getURL(iconPath("archiving")),
+                iconUrl: browser.runtime.getURL(iconPath("archiving", 128)),
                 type: "basic",
             });
 
@@ -437,7 +458,7 @@ function processArchiving() {
                 browser.notifications.create(`archiving-${archiveURL}`, {
                     title: "pWebArc FAILED",
                     message: `to archive ${failed.queue.length} items in the queue because ${failed.reason}`,
-                    iconUrl: browser.runtime.getURL(iconPath("error")),
+                    iconUrl: browser.runtime.getURL(iconPath("error", 128)),
                     type: "basic",
                 });
             }
@@ -452,7 +473,7 @@ function processArchiving() {
             browser.notifications.create("archivingOK", {
                 title: "pWebArc is working OK",
                 message: "successfully archived everything!\n\nNew archivals won't be reported unless something breaks.",
-                iconUrl: browser.runtime.getURL(iconPath("idle")),
+                iconUrl: browser.runtime.getURL(iconPath("idle", 128)),
                 type: "basic",
             });
         }
@@ -1130,9 +1151,20 @@ function handleTabReplaced(addedTabId, removedTabId) {
 }
 
 function handleTabActivated(e) {
-    // This will do nothing on Chromium, see handleTabUpdatedDebugger
     if (config.debugging)
         console.log("tab activated", e.tabId);
+    if (useDebugger)
+        // Chromium does not provide `browser.menus.onShown` event
+        updateMenu(e.tabId);
+    // This will do nothing on Chromium, see handleTabUpdatedChromium
+    setIcons(true);
+}
+
+function handleTabUpdatedChromium(tabId, changeInfo, tabInfo) {
+    if (config.debugging)
+        console.log("tab updated", tabId);
+    // Chromium resets the browserAction icon when tab chages state, so we
+    // have to update icons after each one
     setIcons(true);
 }
 
@@ -1204,6 +1236,9 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "setTabConfig":
         tabConfig.set(request[1], request[2]);
+        if (useDebugger)
+            // Chromium does not provide `browser.menus.onShown` event
+            updateMenu(request[1]);
         setIcons(true);
         if (useDebugger)
             syncDebuggersState();
@@ -1232,6 +1267,91 @@ function handleMessage(request, sender, sendResponse) {
         console.log("what?", request);
         throw new Error("what request?");
     }
+}
+
+let menuTitleTab = {
+    true: "Open Link in New Tracked Tab",
+    false: "Open Link in New Untracked Tab",
+}
+let menuTitleWindow = {
+    true: "Open Link in New Tracked Window",
+    false: "Open Link in New Untracked Window",
+}
+let menuIcons = {
+    true: mkIcons("idle"),
+    false: mkIcons("off"),
+}
+let menuOldState = true;
+
+function updateMenu(tabId) {
+    let cfg = getTabConfig(tabId);
+    let newState = !cfg.children.collecting;
+
+    if (menuOldState === newState) return;
+    menuOldState = newState;
+
+    if (useDebugger) {
+        browser.menus.update("open-not-tab", { title: menuTitleTab[newState] });
+        browser.menus.update("open-not-window", { title: menuTitleWindow[newState] });
+    } else {
+        browser.menus.update("open-not-tab", { title: menuTitleTab[newState], icons: menuIcons[newState] });
+        browser.menus.update("open-not-window", { title: menuTitleWindow[newState], icons: menuIcons[newState] });
+    }
+}
+
+function initMenus() {
+    browser.menus.create({
+        id: "open-not-tab",
+        contexts: ["link"],
+        title: menuTitleTab[true],
+    });
+
+    browser.menus.create({
+        id: "open-not-window",
+        contexts: ["link"],
+        title: menuTitleWindow[true],
+    });
+
+    if (!useDebugger) {
+        browser.menus.update("open-not-tab", { icons: menuIcons[true] });
+        browser.menus.update("open-not-window", { icons: menuIcons[true] });
+
+        // Firefox provides `browser.menus.onShown` event, so `updateMenu` can be called on-demand
+        browser.menus.onShown.addListener(catchAll((info, tab) => {
+            updateMenu(tab.id);
+            browser.menus.refresh();
+        }));
+    }
+
+    browser.menus.onClicked.addListener(catchAll((info, tab) => {
+        if (config.debugging)
+            console.log("menu action", info, tab);
+        let url = info.linkUrl;
+        let newWindow = info.menuItemId === "open-not-window"
+            && (url.startsWith("http:") || url.startsWith("https:"));
+
+        negateConfigFor.add(tab.id);
+        if (useDebugger)
+            // work around Chromium bug
+            negateOpenerTabIds.push(tab.id);
+
+        browser.tabs.create({
+            url,
+            openerTabId: tab.id,
+            windowId: tab.windowId,
+        }).then((tab) => {
+            if (config.debugging)
+                console.log("created new tab", tab);
+
+            if (!useDebugger && tab.url.startsWith("about:"))
+                // On Firefox, downloads spawned as new tabs become "about:blank"s and get closed.
+                // Spawning a new window in this case is counterproductive.
+                newWindow = false;
+
+            if (newWindow)
+                browser.windows.create({ tabId: tab.id }).catch(logError);
+        }, logError);
+    }));
 }
 
 async function init(storage) {
@@ -1286,7 +1406,7 @@ async function init(storage) {
     browser.tabs.onReplaced.addListener(catchAll(handleTabReplaced));
     browser.tabs.onActivated.addListener(catchAll(handleTabActivated));
     if (useDebugger)
-        browser.tabs.onUpdated.addListener(catchAll(handleTabUpdatedDebugger));
+        browser.tabs.onUpdated.addListener(catchAll(handleTabUpdatedChromium));
 
     let tabs = await browser.tabs.query({});
     // compute and cache configs for all open tabs
@@ -1297,6 +1417,7 @@ async function init(storage) {
     browser.runtime.onMessage.addListener(catchAll(handleMessage));
     browser.runtime.onConnect.addListener(catchAll(handleConnect));
 
+    initMenus();
     setIcons();
 
     if (useDebugger)
