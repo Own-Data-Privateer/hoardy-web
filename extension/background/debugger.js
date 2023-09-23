@@ -224,7 +224,7 @@ function handleDebugErrorOccuried(e) {
 
     logDebugRequest("error", false, e);
 
-    emitDebugRequest(e.requestId, dreqres, false, e.errorText);
+    emitDebugRequest(e.requestId, dreqres, false, "debugger::" + e.errorText);
 }
 
 function emitDebugRequest(requestId, dreqres, noResponse, error, dontFinishUp) {
@@ -236,8 +236,11 @@ function emitDebugRequest(requestId, dreqres, noResponse, error, dontFinishUp) {
     dreqres.emitTimeStamp = Date.now();
     dreqres.requestId = requestId;
 
-    if (error !== undefined)
-        console.warn("error while debug-fetching", requestId, error, dreqres);
+    if (error !== undefined) {
+        if (importantError(error))
+            console.error("emitDebugRequest", requestId, "error", error, dreqres);
+        dreqres.error = error;
+    }
 
     if (!noResponse) {
         browser.debugger.sendCommand({ tabId: dreqres.tabId }, "Network.getResponseBody", { requestId }).then((res) => {
@@ -262,7 +265,7 @@ function emitDebugRequest(requestId, dreqres, noResponse, error, dontFinishUp) {
 
 function forceEmitAllDebug() {
     for (let [requestId, dreqres] of Array.from(debugReqresInFlight.entries())) {
-        emitDebugRequest(requestId, dreqres, false, "interrupted by the user", true);
+        emitDebugRequest(requestId, dreqres, false, "debugger::pWebArc::EMIT_FORCED_BY_USER", true);
     }
 }
 
@@ -347,6 +350,8 @@ function emitDone(closest, dreqres) {
             method: dreqres.method,
             url: dreqres.url,
 
+            errors: [],
+
             requestTimeStamp: dreqres.requestTimeStamp,
             requestHeaders: [],
             requestComplete: true,
@@ -363,6 +368,9 @@ function emitDone(closest, dreqres) {
             fake: true,
         };
     }
+
+    if (dreqres.error !== undefined)
+        closest.errors.push(dreqres.error);
 
     closest.protocol = dreqres.protocol;
     closest.reason = dreqres.reason;

@@ -566,6 +566,9 @@ function renderReqres(reqres) {
         && originUrl !== documentUrl)
         rest.origin_url = originUrl;
 
+    if (reqres.errors.length > 0)
+        rest.errors = reqres.errors;
+
     if (reqres.fromCache)
         rest.from_cache = true;
 
@@ -685,6 +688,7 @@ function processDone() {
                         "req", reqres.requestComplete,
                         "res", reqres.responseComplete,
                         "result", reqres.statusCode, reqres.reason, reqres.statusLine,
+                        "errors", reqres.errors,
                         reqres);
 
         if (archiving) {
@@ -791,8 +795,19 @@ if (useDebugger)
 
 function forceEmitAll() {
     for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
-        emitRequest(requestId, reqres, "interrupted by the user", true);
+        emitRequest(requestId, reqres, "webRequest::pWebArc::EMIT_FORCED_BY_USER", true);
     }
+}
+
+function importantError(error) {
+    if (useDebugger && (error === "webRequest::net::ERR_ABORTED"
+                     || error === "debugger::net::ERR_ABORTED"))
+        // Chromium
+        return false;
+    else if (!useDebugger && error === "webRequest::NS_ERROR_ABORT")
+        // Firefox
+        return false;
+    return true;
 }
 
 function emitRequest(requestId, reqres, error, dontFinishUp) {
@@ -844,12 +859,9 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
     }
 
     if (error !== undefined) {
-        // we basically ignore this, because completeness will be derived from
-        // reqres fields before renderReqres call in processDone
-        if (config.debugging
-            || (error !== "NS_ERROR_ABORT" // only Firefox
-                && error !== "net::ERR_ABORTED")) // only Chromium
-            console.warn("error while fetching", requestId, error, reqres);
+        if (importantError(error))
+            console.error("emitRequest", requestId, "error", error, reqres);
+        reqres.errors.push(error);
     }
 
     reqresFinishingUp.push(reqres);
@@ -919,6 +931,8 @@ function handleBeforeRequest(e) {
         method: e.method,
         url: e.url,
 
+        errors: [],
+
         requestTimeStamp: e.timeStamp,
         requestComplete: true,
         requestBody: new ChunkedBuffer(),
@@ -962,24 +976,29 @@ function handleBeforeRequest(e) {
         let filter = browser.webRequest.filterResponseData(requestId);
         filter.onstart = (event) => {
             if (config.debugging)
-                console.log("response data filter started", requestId);
+                console.log("filterResponseData", requestId, "started");
         };
         filter.ondata = (event) => {
             if (config.debugging)
-                console.log("response data filter data chunk", requestId, event.data);
+                console.log("filterResponseData", requestId, "chunk", event.data);
             reqres.responseBody.push(new Uint8Array(event.data));
             filter.write(event.data);
         };
         filter.onstop = (event) => {
             if (config.debugging)
-                console.log("response data filter finished", requestId);
+                console.log("filterResponseData", requestId, "finished");
             reqres.responseComplete = true;
             filter.disconnect();
             setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
         };
         filter.onerror = (event) => {
-            if (config.debugging)
-                console.log("response data filter failed", requestId, "because", filter.error);
+            if (filter.error !== "Invalid request ID") {
+                // if filter was actually started
+                let error = "filterResponseData::" + filter.error;
+                if (importantError(error))
+                    console.error("filterResponseData", requestId, "error", error);
+                reqres.errors.push(error);
+            }
             setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
         };
 
@@ -1016,6 +1035,7 @@ function emptyCopyOfReqres(reqres) {
 
         documentUrl: reqres.documentUrl,
         originUrl: reqres.originUrl,
+        errors: Array.from(reqres.errors),
 
         requestTimeStamp: reqres.requestTimeStamp,
         requestComplete: reqres.requestComplete,
@@ -1107,7 +1127,7 @@ function handleErrorOccurred(e) {
     if (reqres === undefined) return;
 
     logRequest("error", e);
-    emitRequest(e.requestId, reqres, e.error);
+    emitRequest(e.requestId, reqres, "webRequest::" + e.error);
 }
 
 function handleNotificationClicked(notificationId) {
