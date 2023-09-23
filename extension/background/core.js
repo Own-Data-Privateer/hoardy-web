@@ -678,13 +678,13 @@ function processDone() {
         }
 
         if (config.debugging)
-            console.log(archiving ? "QUEUED" : "DISCARDED",
-                        state, reqres.method, reqres.url,
-                        "from tabId", reqres.tabId,
-                        "partial", !reqres.requestComplete,
-                        "incomplete", !reqres.responseComplete,
-                        "returned", reqres.statusCode, reqres.reason,
-                        "statusLine", reqres.statusLine,
+            console.log(archiving ? "QUEUED" : "DISCARDED", reqres.requestId,
+                        "state", state,
+                        reqres.protocol, reqres.method, reqres.url,
+                        "tabId", reqres.tabId,
+                        "req", reqres.requestComplete,
+                        "res", reqres.responseComplete,
+                        "result", reqres.statusCode, reqres.reason, reqres.statusLine,
                         reqres);
 
         if (archiving) {
@@ -799,6 +799,7 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
     reqresInFlight.delete(requestId);
 
     reqres.emitTimeStamp = Date.now();
+    reqres.requestId = requestId;
 
     if (reqres.formData !== undefined) {
         // recover requestBody from formData
@@ -858,7 +859,7 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
 
 function logRequest(rtype, e) {
     if (config.debugging)
-        console.log("webRequest " + rtype, e.timeStamp, e.tabId, e.requestId, e.method, e.url, e.statusCode, e.statusLine, e);
+        console.log("webRequest", e.requestId, rtype, e.timeStamp, e.tabId, e.method, e.url, e.statusCode, e.statusLine, e);
 }
 
 // handlers

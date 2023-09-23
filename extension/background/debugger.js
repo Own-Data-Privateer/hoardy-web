@@ -234,6 +234,7 @@ function emitDebugRequest(requestId, dreqres, noResponse, error, dontFinishUp) {
     if (dreqres.url.startsWith("data:") || dreqres.url.startsWith("file:")) return;
 
     dreqres.emitTimeStamp = Date.now();
+    dreqres.requestId = requestId;
 
     if (error !== undefined)
         console.warn("error while debug-fetching", requestId, error, dreqres);
