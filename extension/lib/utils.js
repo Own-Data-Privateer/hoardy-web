@@ -158,6 +158,8 @@ function makeUI(prefix, value, update) {
     //console.log("making UI", prefix, el, value);
 
     let res = document.createElement("div");
+    res.classList.add("ui");
+    res.classList.add(typ);
     res.id = "div-" + prefix;
 
     let sep = " "; // "<span class=\"sep\"> </span>";
@@ -179,7 +181,6 @@ function makeUI(prefix, value, update) {
         res.appendChild(lbl);
     } else if (typ == "string") {
         let ne = document.createElement("input");
-        ne.style.width = `calc(100% - ${el.textContent.length + 3}ch)`;
         ne.id = prefix;
         ne.name = prefix;
         ne.type = "text";

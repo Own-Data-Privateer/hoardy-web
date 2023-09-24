@@ -73,6 +73,24 @@ input[type="checkbox"].help:checked {
     background: #666666;
 }
 
+div.ui,
+div.ui label {
+    display: flex;
+}
+
+div.ui label,
+div.ui label input[type="text"] {
+    flex: 1 0 auto;
+}
+
+div.ui label input[type="text"] {
+    margin-left: 1ch;
+}
+
+div.ui label input[type="checkbox"] {
+    margin-right: 1ch;
+}
+
 div.help {
     position: absolute;
     z-index: 20;
