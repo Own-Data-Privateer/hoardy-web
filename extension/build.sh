@@ -7,6 +7,7 @@ if [[ "$1" == clean ]]; then
     shift
 fi
 
+timestamp=$(git log --format='%ci' HEAD~1..HEAD)
 version=$(jq -r .version ./manifest-common.json)
 
 for target in "$@"; do
@@ -72,7 +73,13 @@ for target in "$@"; do
 
     if [[ "$target" == firefox ]]; then
         jq -s --indent 4 '.[0] * .[1]' manifest-common.json "manifest-$target.json" > "$DEST"/manifest.json
+    else
+        jq -s --indent 4 '.[0] * .[1] * .[2]' manifest-common.json "dist/manifest-$target-id.json" "manifest-$target.json" > "$DEST"/manifest.json
+    fi
 
+    find "$DEST" -exec touch --date="$timestamp" {} \;
+
+    if [[ "$target" == firefox ]]; then
         echo "  Zipping..."
 
         (
@@ -80,8 +87,6 @@ for target in "$@"; do
             zip -qr -9 -X "../$NAME.xpi" .
         )
     else
-        jq -s --indent 4 '.[0] * .[1] * .[2]' manifest-common.json "dist/manifest-$target-id.json" "manifest-$target.json" > "$DEST"/manifest.json
-
         echo "  Making CRX..."
 
         (
