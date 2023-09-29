@@ -1,6 +1,6 @@
 # What?
 
-`pWebArc` (Private Web Archive): a browser extension that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [the dumb archiving server](./dumb_server/)) as you browse the web.
+`pWebArc` (Private Web Archive): a browser extension that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [the dumb archiving server](../dumb_server/)) as you browse the web.
 
 This is similar to ScrapBook add-ons like [WebScrapBook](https://github.com/danny0838/webscrapbook), but following "archive everything now, figure out what to do with it later" philosophy instead of manually archiving things one-by-one. Also similar to [archiveweb.page](https://github.com/webrecorder/archiveweb.page), but with less user interaction.
 
