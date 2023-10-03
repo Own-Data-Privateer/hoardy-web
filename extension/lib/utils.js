@@ -20,6 +20,19 @@ function catchAll(func) {
     };
 }
 
+// same, but for async
+function catchAllAsync(func) {
+    return async (...args) => {
+        try {
+            let res = await func(...args);
+            return res;
+        } catch (exc) {
+            console.error("exception in", func, ":", exc);
+            console.trace();
+        }
+    };
+}
+
 // `catchAll`, but for use in Promises
 function logError(err) {
     console.error("uncaught error", err);
