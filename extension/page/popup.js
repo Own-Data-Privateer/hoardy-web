@@ -34,11 +34,9 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     });
     browser.tabs.onActivated.addListener(recordTabId);
 
-    // get config and generate UI from it
-    let config = await browser.runtime.sendMessage(["getConfig"]);
-    makeUI("config", config, (newconfig) => {
-        browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
-    });
+    // generate UI
+    makeUI(document.body);
+    addHelp(document.body, true);
 
     buttonToAction("log", () => window.open(browser.runtime.getURL("/page/log.html"), "_blank"));
     buttonToMessage("clearStats");
@@ -49,17 +47,6 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     buttonToMessage("retryAllFailedArchives");
     buttonToMessage("forceFinishRequests");
     buttonToAction("show", () => showAll());
-
-    // get tabconfig and generate UI from it
-    let tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
-    makeUI("tabconfig", tabconfig, (newtabconfig, path) => {
-        if (path == "tabconfig.collecting")
-            newtabconfig.children.collecting = newtabconfig.collecting;
-        browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]);
-    });
-
-    // add help tooltips
-    addHelp(document.body, true);
 
     // when #hash is specified (used in the ./help.org), we don't
     // want anything hidden and we want to point user to the
@@ -83,9 +70,10 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
 
     let dependNodes = document.getElementsByName("depends");
     async function updateConfig() {
-        let config_ = await browser.runtime.sendMessage(["getConfig"]);
-        assignRec(config, config_);
-        setUI("config", config);
+        let config = await browser.runtime.sendMessage(["getConfig"]);
+        setUI("config", config, (newconfig) => {
+            browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
+        });
 
         for (let depends of dependNodes) {
             depends.classList.remove("disabled-archiving", "disabled-collecting")
@@ -97,9 +85,12 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     }
 
     async function updateTabConfig() {
-        let tabconfig_ = await browser.runtime.sendMessage(["getTabConfig", tabId]);
-        assignRec(tabconfig, tabconfig_);
-        setUI("tabconfig", tabconfig);
+        let tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
+        setUI("tabconfig", tabconfig, (newtabconfig, path) => {
+            if (path == "tabconfig.collecting")
+                newtabconfig.children.collecting = newtabconfig.collecting;
+            browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]);
+        });
     }
 
     // replace recordTabId with this

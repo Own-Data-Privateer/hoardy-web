@@ -99,22 +99,22 @@ input[type="button"], .help {
         </div>
       </div>
       <h1>Globally</h1>
-      <ui id="config.collecting" data-help="Generate and start tracking a new reqres when browser makes a new HTTP request. Disabling this option will stop pWebArc from recording any new data.">Track any new reqres at all</ui>
+      <ui id="config.collecting" type="boolean" data-help="Generate and start tracking a new reqres when browser makes a new HTTP request. Disabling this option will stop pWebArc from recording any new data.">Track any new reqres at all</ui>
       <div name="more">
-        <ui id="config.archiving" data-help="Archive already collected reqres (&quot;queued for archival&quot; in the stats) by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that the archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
+        <ui id="config.archiving" type="boolean" data-help="Archive already collected reqres (&quot;queued for archival&quot; in the stats) by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that the archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
         <div name="depends">
-          <ui id="config.archiveURLBase" data-help="URL of the server we are archiving to.">Archive to</ui>
+          <ui id="config.archiveURLBase" type="string" data-help="URL of the server we are archiving to.">Archive to</ui>
         </div>
       </div>
       <div name="depends">
         <h1>This tab</h1>
-        <ui id="tabconfig.collecting" data-help="Track new reqres originating from this tab.">Track new reqres from this tab</ui>
-        <ui id="tabconfig.profile" data-help="Use this server-side profile when archiving reqres originating from this tab.">Profile</ui>
-        <ui id="tabconfig.children.collecting" data-help="Track reqres originating from new tabs spawned from this tab (middle mouse click, context menu actions).">Track reqres in new child tabs</ui>
-        <ui id="tabconfig.children.profile" data-help="Use this server-side profile when archiving reqres originating from new tabs opened from this tab (middle mouse click, context menu actions).">Profile</ui>
+        <ui id="tabconfig.collecting" type="boolean" data-help="Track new reqres originating from this tab.">Track new reqres from this tab</ui>
+        <ui id="tabconfig.profile" type="string" data-help="Use this server-side profile when archiving reqres originating from this tab.">Profile</ui>
+        <ui id="tabconfig.children.collecting" type="boolean" data-help="Track reqres originating from new tabs spawned from this tab (middle mouse click, context menu actions).">Track reqres in new child tabs</ui>
+        <ui id="tabconfig.children.profile" type="string" data-help="Use this server-side profile when archiving reqres originating from new tabs opened from this tab (middle mouse click, context menu actions).">Profile</ui>
         <h1>New root tabs</h1>
-        <ui id="config.root.collecting" data-help="Track reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (all tabs after a reload, new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item).">Track reqres in new root tabs</ui>
-        <ui id="config.root.profile" data-help="Use this server-side profile when archiving reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (all tabs after a reload, new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item).">Profile</ui>
+        <ui id="config.root.collecting" type="boolean" data-help="Track reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (all tabs after a reload, new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item).">Track reqres in new root tabs</ui>
+        <ui id="config.root.profile" type="string" data-help="Use this server-side profile when archiving reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (all tabs after a reload, new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item).">Profile</ui>
       </div>
     </div>
 
@@ -123,22 +123,22 @@ input[type="button"], .help {
     <div name="more">
       <div name="depends">
         <h1>Originating from extensions</h1>
-        <ui id="config.extension.collecting" data-help="Track new reqres originating from other browser extensions.">Track reqres from extensions</ui>
-        <ui id="config.extension.profile" data-help="Use this server-side profile when archiving reqres originating from other browser extensions.">Profile</ui>
+        <ui id="config.extension.collecting" type="boolean" data-help="Track new reqres originating from other browser extensions.">Track reqres from extensions</ui>
+        <ui id="config.extension.profile" type="string" data-help="Use this server-side profile when archiving reqres originating from other browser extensions.">Profile</ui>
         <h1>Other background tasks</h1>
-        <ui id="config.background.collecting" data-help="Track new reqres originating from browser's background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this, as browsers do link pre-fetching in background, and disabling this will miss that data.">Track reqres from background tasks</ui>
-        <ui id="config.background.profile" data-help="Use this server-side profile when archiving reqres originating from browser's background tasks (excluding those originating from extensions).">Profile</ui>
+        <ui id="config.background.collecting" type="boolean" data-help="Track new reqres originating from browser's background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this, as browsers do link pre-fetching in background, and disabling this will miss that data.">Track reqres from background tasks</ui>
+        <ui id="config.background.profile" type="string" data-help="Use this server-side profile when archiving reqres originating from browser's background tasks (excluding those originating from extensions).">Profile</ui>
         <h1>Options</h1>
         <div id="archive-options">
           <h2>Archive reqres with</h2>
-          <ui id="config.archivePartialRequest" data-help="Queue a reqres for archival even when its request body is incomplete. You probably want to keep this enabled. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">... partial POST form data</ui>
-          <ui id="config.archiveNoResponse" data-help="Queue a reqres for archival even when there was no response, i.e. request was interrupted before request headers were received (this usually means a networking issue). Disabled by default because such archived reqress carry no information except that the browser tried to do a request at specified time.">... no responses</ui>
-          <ui id="config.archiveIncompleteResponse" data-help="Queue a reqres for archival even when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Disabled by default because simply reloading the page and not dealing with partial files is usually a better option.">... incomplete response bodies</ui>
+          <ui id="config.archivePartialRequest" type="boolean" data-help="Queue a reqres for archival even when its request body is incomplete. You probably want to keep this enabled. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">... partial POST form data</ui>
+          <ui id="config.archiveNoResponse" type="boolean" data-help="Queue a reqres for archival even when there was no response, i.e. request was interrupted before request headers were received (this usually means a networking issue). Disabled by default because such archived reqress carry no information except that the browser tried to do a request at specified time.">... no responses</ui>
+          <ui id="config.archiveIncompleteResponse" type="boolean" data-help="Queue a reqres for archival even when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Disabled by default because simply reloading the page and not dealing with partial files is usually a better option.">... incomplete response bodies</ui>
         </div>
         <div id="misc-options">
           <h2>Misc</h2>
-          <ui id="config.debugging" data-help="Dump lots of data into extension's debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (very slow!)</ui>
-          <ui id="config.dumping" data-help="Dumps raw CBOR outputs to extension's debugging log. Does nothing when the previous option is not enabled. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Dump raw CBORs into the debugging log</ui>
+          <ui id="config.debugging" type="boolean" data-help="Dump lots of data into extension's debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (very slow!)</ui>
+          <ui id="config.dumping" type="boolean" data-help="Dumps raw CBOR outputs to extension's debugging log. Does nothing when the previous option is not enabled. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Dump raw CBORs into the debugging log</ui>
         </div>
       </div>
     </div>

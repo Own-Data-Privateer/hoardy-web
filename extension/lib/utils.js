@@ -129,12 +129,21 @@ function buttonToMessage(id) {
 }
 
 // set values of DOM elements from a given object
-function setUI(prefix, value) {
+function setUI(prefix, value, update) {
     let typ = typeof value;
 
     if (typ == "object") {
-        for (let k of Object.keys(value)) {
-            setUI(prefix + "." + k, value[k]);
+        if (update === undefined) {
+            for (let k of Object.keys(value)) {
+                setUI(prefix + "." + k, value[k]);
+            }
+        } else {
+            for (let k of Object.keys(value)) {
+                setUI(prefix + "." + k, value[k], (newvalue, path) => {
+                    value[k] = newvalue;
+                    update(value, path);
+                });
+            }
         }
         return;
     }
@@ -143,77 +152,72 @@ function setUI(prefix, value) {
     if (el === null) return;
     //console.log("setting UI", prefix, el, value);
 
-    if (typ == "boolean" && el.tagName == "INPUT" && el.type == "checkbox")
+    if (typ == "boolean" && el.tagName == "INPUT" && el.type == "checkbox") {
         el.checked = value;
-    else if (typ == "string" && el.tagName == "INPUT" && el.type == "text")
+        if (update !== undefined)
+            el.onchange = () => {
+                update(el.checked, prefix);
+            };
+    } else if (typ == "string" && el.tagName == "INPUT" && el.type == "text") {
         el.value  = value;
-    else
+        if (update !== undefined)
+            el.onchange = () => {
+                update(el.value, prefix);
+            };
+    } else
         el.innerText = value;
 }
 
-// set values of DOM elements from a given object and subscribe fields
-// of the object to changes to corresponding DOM elements
-function makeUI(prefix, value, update) {
-    let typ = typeof value;
-
-    if (typ == "object") {
-        for (let k of Object.keys(value)) {
-            makeUI(prefix + "." + k, value[k], (newvalue, path) => {
-                value[k] = newvalue;
-                update(value, path);
-            })
-        }
-        return;
+// given a DOM node, replace <ui> nodes with corresponding UI elements
+function makeUI(node) {
+    for (let child of node.childNodes) {
+        if (child.nodeName === "#text") continue;
+        makeUI(child);
     }
 
-    let el = document.getElementById(prefix);
-    if (el === null || el.tagName !== "UI") return;
-    //console.log("making UI", prefix, el, value);
+    if (node.tagName !== "UI") return;
+
+    let id = node.getAttribute("id");
+    let typ = node.getAttribute("type");
 
     let res = document.createElement("div");
+    res.id = "div-" + id;
     res.classList.add("ui");
     res.classList.add(typ);
-    res.id = "div-" + prefix;
 
     let sep = " "; // "<span class=\"sep\"> </span>";
 
     if (typ == "boolean") {
         let ne = document.createElement("input");
-        ne.id = prefix;
-        ne.name = prefix;
+        ne.id = id;
+        ne.name = id;
         ne.type = "checkbox";
         ne.classList.add("toggle");
-        ne.checked = value;
-        ne.onchange = () => {
-            update(ne.checked, prefix);
-        }
+        ne.checked = false;
 
         let lbl = document.createElement("label");
-        lbl.innerHTML = sep + el.innerHTML;
+        lbl.innerHTML = sep + node.innerHTML;
         lbl.prepend(ne);
         res.appendChild(lbl);
     } else if (typ == "string") {
         let ne = document.createElement("input");
-        ne.id = prefix;
-        ne.name = prefix;
+        ne.id = id;
+        ne.name = id;
         ne.type = "text";
-        ne.value = value;
-        ne.onchange = () => {
-            update(ne.value, prefix);
-        }
+        ne.value = "";
 
         let lbl = document.createElement("label");
-        lbl.innerHTML = el.innerHTML + sep;
+        lbl.innerHTML = node.innerHTML + sep;
         lbl.appendChild(ne);
         res.appendChild(lbl);
     }
 
-    for (let attr of el.attributes) {
+    for (let attr of node.attributes) {
         if (attr.name == "id") continue;
-        res.setAttribute(attr.name, el.getAttribute(attr.name))
+        res.setAttribute(attr.name, node.getAttribute(attr.name))
     }
 
-    el.parentElement.replaceChild(res, el);
+    node.parentElement.replaceChild(res, node);
 }
 
 // currently highlighted node
