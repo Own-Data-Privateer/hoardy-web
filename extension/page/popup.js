@@ -14,26 +14,31 @@ function showAll() {
 }
 
 document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
-    let config = await browser.runtime.sendMessage(["getConfig"]);
+    // get current windowId and tabId of the active tab
+    let windowId;
+    let tabId;
 
-    let updateClasses;
+    let tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    for (let tab of tabs) {
+        windowId = tab.windowId;
+        tabId = tab.id;
+    }
+
+    if (tabId === undefined || windowId === undefined)
+        throw new Error("failed to get tabId or windowId");
+
+    // start recording tabId changes
+    let recordTabId = catchAll((event) => {
+        if (event.windowId == windowId)
+            tabId = event.tabId;
+    });
+    browser.tabs.onActivated.addListener(recordTabId);
+
+    // get config and generate UI from it
+    let config = await browser.runtime.sendMessage(["getConfig"]);
     makeUI("config", config, (newconfig) => {
-        updateClasses(newconfig);
         browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
     });
-
-    // make id=depends's classes depend on config
-    let dependNodes = document.getElementsByName("depends");
-    updateClasses = (config) => {
-        for (let depends of dependNodes) {
-            depends.classList.remove("disabled-archiving", "disabled-collecting")
-            if (!config.archiving)
-                depends.classList.add("disabled-archiving");
-            if (!config.collecting)
-                depends.classList.add("disabled-collecting");
-        }
-    }
-    updateClasses(config);
 
     buttonToAction("log", () => window.open(browser.runtime.getURL("/page/log.html"), "_blank"));
     buttonToMessage("clearStats");
@@ -45,64 +50,11 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     buttonToMessage("forceFinishRequests");
     buttonToAction("show", () => showAll());
 
-    // open connection to the background script
-    let port = browser.runtime.connect();
-    // and listen for updates
-    port.onMessage.addListener((update) => {
-        let [what, data] = update;
-        if (what == "stats")
-            setUI("stats", data);
-        else if (what == "highlight") {
-            showAll();
-            highlightNode(data);
-        }
-    });
-
-    // get current windowId and tabId of the active tab
-    let tabs = await browser.tabs.query({ currentWindow: true });
-    let windowId;
-    let tabId;
-
-    for (let tab of tabs) {
-        if (tab.active) {
-            windowId = tab.windowId;
-            tabId = tab.id;
-            break;
-        }
-    }
-
-    if (tabId === undefined || windowId === undefined)
-        throw new Error("failed to get tabId or windowId");
-
-    // start recording tabId changes
-    function recordTabId(event) {
-        if (event.windowId == windowId)
-            tabId = event.tabId;
-    }
-    browser.tabs.onActivated.addListener(recordTabId);
-
-    // this does what recordTabId does, but also updates tabconfig UI
-    function updateTabUI(event) {
-        if (event !== undefined && event.windowId == windowId)
-            tabId = event.tabId;
-
-        browser.runtime.sendMessage(["getTabConfig", tabId]).then((tabconfig) => {
-            setUI("tabconfig", tabconfig);
-        }, logError);
-    }
-
-    // remember current value
-    let oldTabId = tabId;
-
-    // ask for current tab's config
+    // get tabconfig and generate UI from it
     let tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
-
-    // generate UI from it
     makeUI("tabconfig", tabconfig, (newtabconfig, path) => {
-        if (path == "tabconfig.collecting") {
+        if (path == "tabconfig.collecting")
             newtabconfig.children.collecting = newtabconfig.collecting;
-            setUI("tabconfig", newtabconfig);
-        }
         browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]);
     });
 
@@ -123,14 +75,60 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
         }
     }
 
-    // replace recordTabId with updateTabUI
-    browser.tabs.onActivated.removeListener(recordTabId);
-    browser.tabs.onActivated.addListener(updateTabUI);
-
-    if (tabId != oldTabId) {
-        // if tabId changed while we were doing getTabConfig, update UI again
-        updateTabUI();
+    async function updateStats(stats) {
+        if (stats === undefined)
+            stats = await browser.runtime.sendMessage(["getStats"]);
+        setUI("stats", stats);
     }
+
+    let dependNodes = document.getElementsByName("depends");
+    async function updateConfig() {
+        let config_ = await browser.runtime.sendMessage(["getConfig"]);
+        assignRec(config, config_);
+        setUI("config", config);
+
+        for (let depends of dependNodes) {
+            depends.classList.remove("disabled-archiving", "disabled-collecting")
+            if (!config.archiving)
+                depends.classList.add("disabled-archiving");
+            if (!config.collecting)
+                depends.classList.add("disabled-collecting");
+        }
+    }
+
+    async function updateTabConfig() {
+        let tabconfig_ = await browser.runtime.sendMessage(["getTabConfig", tabId]);
+        assignRec(tabconfig, tabconfig_);
+        setUI("tabconfig", tabconfig);
+    }
+
+    // replace recordTabId with this
+    let recordUpdateTabId = catchAllAsync (async (event) => {
+        recordTabId(event);
+        await updateTabConfig();
+    });
+    browser.tabs.onActivated.removeListener(recordTabId);
+    browser.tabs.onActivated.addListener(recordUpdateTabId);
+
+    // open connection to the background script and listen for updates
+    let port = browser.runtime.connect();
+    port.onMessage.addListener(catchAllAsync (async (update) => {
+        let [what, data] = update;
+        if (what == "updateStats")
+            await updateStats(data);
+        else if (what == "updateConfig")
+            await updateConfig();
+        else if (what == "updateTabConfig" && data == tabId)
+            await updateTabConfig();
+        else if (what == "highlight") {
+            showAll();
+            highlightNode(data);
+        }
+    }));
+
+    await updateStats();
+    await updateConfig();
+    await updateTabConfig();
 
     // show UI
     document.body.style.display = "block";

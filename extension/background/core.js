@@ -281,7 +281,7 @@ function setIcons(tabChanged) {
         updateBrowserAction();
     }
 
-    broadcast(["stats", stats]);
+    broadcast(["updateStats", stats]);
 }
 
 // mark this archiveURL as failing
@@ -1193,6 +1193,9 @@ function handleTabUpdatedChromium(tabId, changeInfo, tabInfo) {
 let openPorts = new Map();
 
 function broadcast(data) {
+    if (config.debugging)
+        console.log("broadcasting", data);
+
     for (let [portId, port] of openPorts.entries()) {
         port.postMessage(data);
     }
@@ -1204,8 +1207,7 @@ function handleConnect(port) {
     port.onDisconnect.addListener((p) => {
         //console.log("del port", port);
         openPorts.delete(port.sender.contextId);
-    })
-    port.postMessage(["stats", getStats()]);
+    });
 }
 
 function handleMessage(request, sender, sendResponse) {
@@ -1251,6 +1253,8 @@ function handleMessage(request, sender, sendResponse) {
             console.log("saving config", eConfig);
             browser.storage.local.set({ config: eConfig }).catch(logError);
         }, 500);
+
+        broadcast(["updateConfig"]);
         break;
     case "getTabConfig":
         sendResponse(getTabConfig(request[1]));
@@ -1263,12 +1267,16 @@ function handleMessage(request, sender, sendResponse) {
         setIcons(true);
         if (useDebugger)
             syncDebuggersState();
+        broadcast(["updateTabConfig", request[1]]);
         break;
     case "retryAllFailedArchives":
         retryAllFailedArchivesIn(100);
         break;
     case "forceFinishRequests":
         forceFinishRequests();
+        break;
+    case "getStats":
+        sendResponse(getStats());
         break;
     case "clearStats":
         clearStats();
