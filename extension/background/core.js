@@ -1339,6 +1339,7 @@ function initMenus() {
 
         // Firefox provides `browser.menus.onShown` event, so `updateMenu` can be called on-demand
         browser.menus.onShown.addListener(catchAll((info, tab) => {
+            if (tab === undefined) return;
             updateMenu(tab.id);
             browser.menus.refresh();
         }));
@@ -1347,6 +1348,7 @@ function initMenus() {
     browser.menus.onClicked.addListener(catchAll((info, tab) => {
         if (config.debugging)
             console.log("menu action", info, tab);
+
         let url = info.linkUrl;
         let newWindow = info.menuItemId === "open-not-window"
             && (url.startsWith("http:") || url.startsWith("https:"));
