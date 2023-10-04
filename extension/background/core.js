@@ -198,6 +198,7 @@ function getStats() {
     }
 
     return {
+        version: manifest.version,
         archived: reqresArchivedTotal,
         queued: reqresArchiving.length + reqresDone.length,
         inflight: Math.max(reqresInFlight.size, debugReqresInFlight.size) +

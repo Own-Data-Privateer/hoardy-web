@@ -28,6 +28,12 @@ h2 {
     margin-left: auto;
 }
 
+.version {
+    font-size: 60%;
+    color: rgb(107,107,116);
+    vertical-align: top;
+}
+
 #stats > div, #stats > h1 {
     display: flex;
 }
@@ -98,7 +104,10 @@ input[type="button"], .help {
           </span>
         </div>
       </div>
-      <h1>Globally</h1>
+      <h1>
+        Globally
+        <span class="version">v<span id="stats.version">?</span></span>
+      </h1>
       <ui id="config.collecting" type="boolean" data-help="Generate and start tracking a new reqres when browser makes a new HTTP request. Disabling this option will stop pWebArc from recording any new data.">Track any new reqres at all</ui>
       <div name="more">
         <ui id="config.archiving" type="boolean" data-help="Archive already collected reqres (&quot;queued for archival&quot; in the stats) by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that the archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
