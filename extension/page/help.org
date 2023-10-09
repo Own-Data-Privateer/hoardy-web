@@ -19,9 +19,13 @@ Whether pWebArc will track a given request depends on the "Track new reqres" tog
 - while [[./popup.html#div-config.root.collecting][this one]] controls whether it will track new reqres originating from new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
 - and so forth for the others (press "?" symbols to see a tooltip explaining what each of them does).
 
-Also, pWebArc provides a context menu for links (do a right-click while pointing at a link) which allows opening new tabs and windows with [[./popup.html#div-tabconfig.children.collecting][children tabs setting]] negated to remove the need for "toggle it, middle-click a link, toggle it again" interactions.
-
 Disabling any of these toggles does not stop tracking of already initiated requests, it only stops new requests controlled by that toggle from being tracked.
+*** Shortcuts
+Also, note that pWebArc provides
+
+- a shortcut to toggle tracking of newly spawned HTTP requests in the [[./popup.html#div-tabconfig.collecting][currently active tab]] and [[./popup.html#div-tabconfig.children.collecting][its children]]: the default shortcut is `Alt+C` (in Firefox, it can be edited in extension's settings -> Manage Extension Shortcuts);
+- a shortcut to toggle tracking of newly spawned HTTP requests in [[./popup.html#div-tabconfig.children.collecting][children tabs]]: the default shortcut is `Alt+Shift+C`;
+- a context menu action to open a given link with current tab's [[./popup.html#div-tabconfig.children.collecting][tracking in children tabs setting]] negated: do a right-click while pointing at a link and navigate to "pWebArc" sub-menu, this removes the need for "toggle it, middle-click a link, toggle it again" interactions.
 ** Step 2
 In-flight reqres can finish in one of the following states (this is the "State" column in the [[./log.html][Log]]):
 

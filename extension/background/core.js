@@ -1386,6 +1386,27 @@ function initMenus() {
     }));
 }
 
+async function handleCommand(command) {
+    let tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    if (command === "toggle-tabconfig-tracking") {
+        for (let tab of tabs) {
+            let tabcfg = getTabConfig(tab.id);
+            tabcfg.collecting = !tabcfg.collecting;
+            tabcfg.children.collecting = tabcfg.collecting;
+        }
+    } else if (command === "toggle-tabconfig-children-tracking") {
+        for (let tab of tabs) {
+            let tabcfg = getTabConfig(tab.id);
+            tabcfg.children.collecting = !tabcfg.children.collecting;
+        }
+    } else
+        return;
+    setIcons(true);
+    for (let tab of tabs) {
+        broadcast(["updateTabConfig", tab.id]);
+    }
+}
+
 async function init(storage) {
     let showHelp = false;
     if (storage.config !== undefined) {
@@ -1454,6 +1475,8 @@ async function init(storage) {
 
     if (useDebugger)
         await initDebugger(tabs);
+
+    browser.commands.onCommand.addListener(catchAllAsync(handleCommand));
 
     console.log(`initialized pWebArc with source of '${sourceDesc}'`);
     console.log("runtime options are", { useBlocking, useDebugger });

@@ -15,5 +15,20 @@
     "browser_action": {
         "default_title": "pWebArc",
         "default_popup": "page/popup.html"
+    },
+
+    "commands": {
+        "toggle-tabconfig-tracking": {
+            "suggested_key": {
+                "default": "Alt+C"
+            },
+            "description": "Toggle tracking in this tab"
+        },
+        "toggle-tabconfig-children-tracking": {
+            "suggested_key": {
+                "default": "Alt+Shift+C"
+            },
+            "description": "Toggle tracking in this tab's children"
+        }
     }
 }
