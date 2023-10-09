@@ -146,6 +146,7 @@ function processRemoveTab(tabId) {
 
 // browserAction state
 let oldIcon = null;
+let oldTitle = null;
 let oldBadge = null;
 
 // archiving state
@@ -208,7 +209,7 @@ function getStats() {
     };
 }
 
-function setIcons(tabChanged) {
+function updateDisplay(statsChanged, tabChanged) {
     let stats = getStats();
     let todo = stats.queued + stats.failedToArchive;
     let total = stats.inflight + todo;
@@ -243,11 +244,12 @@ function setIcons(tabChanged) {
     if (total > 0)
         newBadge = total.toString();
 
-    if (tabChanged || oldIcon !== newIcon || oldBadge !== newBadge) {
+    if (tabChanged || oldIcon !== newIcon || oldTitle != newTitle || oldBadge !== newBadge) {
         if (config.debugging)
             console.log("new badge", newIcon, newBadge);
 
         oldIcon = newIcon;
+        oldTitle = newTitle;
         oldBadge = newBadge;
 
         async function updateBrowserAction() {
@@ -282,7 +284,8 @@ function setIcons(tabChanged) {
         updateBrowserAction();
     }
 
-    broadcast(["updateStats", stats]);
+    if (statsChanged)
+        broadcast(["updateStats", stats]);
 }
 
 // mark this archiveURL as failing
@@ -339,14 +342,14 @@ function retryAllFailedArchivesIn(msec) {
     reqresRetryTID = setTimeout(() => {
         reqresRetryTID = null;
         retryAllFailedArchives();
-        setIcons();
+        updateDisplay(true, false);
         setTimeout(processArchiving, 1);
     }, msec);
 }
 
 function processArchiving() {
     if (!config.archiving) {
-        setIcons();
+        updateDisplay(false, false);
         return;
     }
 
@@ -360,7 +363,7 @@ function processArchiving() {
         if (failed !== undefined && (Date.now() - failed.when) < 1000) {
             // this archiveURL is marked broken, and we just had a failure there, fail this reqres immediately
             failed.queue.push(archivable);
-            setIcons();
+            updateDisplay(true, false);
             setTimeout(processArchiving, 1);
             return;
         }
@@ -370,7 +373,7 @@ function processArchiving() {
             failed.queue.push(archivable);
             reqresNotifyEmpty = true;
             reqresNotifiedEmpty = false; // force another archivingOK notification later
-            setIcons();
+            updateDisplay(true, false);
             setTimeout(processArchiving, 1);
         }
 
@@ -380,7 +383,7 @@ function processArchiving() {
             let previouslyBroken = retryFailedArchive(archiveURL);
             reqresArchivedTotal += 1;
             reqresNotifyEmpty = true;
-            setIcons();
+            updateDisplay(true, false);
 
             if (!previouslyBroken) {
                 setTimeout(processArchiving, 1);
@@ -432,7 +435,7 @@ function processArchiving() {
                 reqresArchivingFailed.delete(archiveURL);
         }
 
-        setIcons();
+        updateDisplay(false, false);
         cleanupTabs();
 
         if (reqresArchivingFailed.size == 0) {
@@ -451,7 +454,7 @@ function processArchiving() {
         reqresNotifyTID = setTimeout(() => {
             reqresNotifyTID = null;
             if (reqresArchivingFailed.size === 0)
-                // we got outdated
+                // failed elements were cleared while we slept, nothing to do
                 return;
 
             browser.notifications.clear("archivingOK");
@@ -466,7 +469,7 @@ function processArchiving() {
         }, 1000);
     } else { // if all queues are empty
         cancelRetryAll();
-        setIcons();
+        updateDisplay(false, false);
         cleanupTabs();
 
         if (reqresNotifyEmpty && !reqresNotifiedEmpty) {
@@ -719,7 +722,7 @@ function processDone() {
             reqresLog.shift();
     }
 
-    setIcons();
+    updateDisplay(true, false);
     if (reqresDone.length > 0)
         setTimeout(processDone, 10);
     else
@@ -751,7 +754,7 @@ function forceFinishingUpSimple() {
     }
 
     reqresFinishingUp = [];
-    setIcons();
+    updateDisplay(true, false);
 }
 
 let forceFinishingUp = forceFinishingUpSimple;
@@ -786,7 +789,7 @@ function processFinishingUpSimple() {
         reqresFinishingUp = notFinished;
     }
 
-    setIcons();
+    updateDisplay(true, false);
     setTimeout(processDone, 1);
 }
 
@@ -1007,7 +1010,7 @@ function handleBeforeRequest(e) {
     }
 
     reqresInFlight.set(requestId, reqres);
-    setIcons();
+    updateDisplay(true, false);
 }
 
 function handleBeforeSendHeaders(e) {
@@ -1179,7 +1182,7 @@ function handleTabActivated(e) {
         // Chromium does not provide `browser.menus.onShown` event
         updateMenu(e.tabId);
     // This will do nothing on Chromium, see handleTabUpdatedChromium
-    setIcons(true);
+    updateDisplay(false, true);
 }
 
 function handleTabUpdatedChromium(tabId, changeInfo, tabInfo) {
@@ -1187,7 +1190,7 @@ function handleTabUpdatedChromium(tabId, changeInfo, tabInfo) {
         console.log("tab updated", tabId);
     // Chromium resets the browserAction icon when tab chages state, so we
     // have to update icons after each one
-    setIcons(true);
+    updateDisplay(false, true);
 }
 
 // open client tab ports
@@ -1223,7 +1226,7 @@ function handleMessage(request, sender, sendResponse) {
     case "setConfig":
         let oldconfig = config;
         config = request[1];
-        setIcons();
+        updateDisplay(false, false);
 
         if (oldconfig.archiving !== config.archiving) {
             if (!config.archiving) {
@@ -1265,7 +1268,7 @@ function handleMessage(request, sender, sendResponse) {
         if (useDebugger)
             // Chromium does not provide `browser.menus.onShown` event
             updateMenu(request[1]);
-        setIcons(true);
+        updateDisplay(false, true);
         if (useDebugger)
             syncDebuggersState();
         broadcast(["updateTabConfig", request[1]]);
@@ -1281,7 +1284,7 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "clearStats":
         clearStats();
-        setIcons();
+        updateDisplay(true, false);
         break;
     case "clearLog":
         clearLog();
@@ -1401,7 +1404,7 @@ async function handleCommand(command) {
         }
     } else
         return;
-    setIcons(true);
+    updateDisplay(false, true);
     for (let tab of tabs) {
         broadcast(["updateTabConfig", tab.id]);
     }
@@ -1471,7 +1474,7 @@ async function init(storage) {
     browser.runtime.onConnect.addListener(catchAll(handleConnect));
 
     initMenus();
-    setIcons();
+    updateDisplay(true, true);
 
     if (useDebugger)
         await initDebugger(tabs);

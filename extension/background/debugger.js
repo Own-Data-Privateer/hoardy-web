@@ -275,7 +275,7 @@ function forceFinishingUpDebug() {
     // and drop the rest
     reqresFinishingUp = [];
     debugReqresFinishingUp = [];
-    setIcons();
+    updateDisplay(true, false);
 }
 
 function debugHeadersMatchScore(dreqres, reqres) {
@@ -483,6 +483,6 @@ function processFinishingUpDebug() {
             console.log("still unmatched", debugReqresFinishingUp, reqresFinishingUp);
     }
 
-    setIcons();
+    updateDisplay(true, false);
     setTimeout(processDone, 1);
 }
