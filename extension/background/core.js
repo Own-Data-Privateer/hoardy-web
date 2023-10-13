@@ -622,7 +622,7 @@ function processDone() {
     if (reqresDone.length > 0) {
         let reqres = reqresDone.shift()
 
-        if (reqres.responseHeaders !== undefined) {
+        if (reqres.statusCode === 200 && reqres.fromCache && reqres.responseHeaders !== undefined) {
             let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
             if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
                 // Under Firefox, filterResponseData for cached images receives no
