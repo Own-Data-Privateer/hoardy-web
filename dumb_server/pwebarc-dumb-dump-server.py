@@ -122,17 +122,18 @@ class HTTPDumpServer(threading.Thread):
             path = os.path.join(directory, str(epoch) + "_" + str(self.num) + ".wrr")
             os.makedirs(directory, exist_ok=True)
 
+            tmp_path = path + ".part"
             try:
-                with open(path + ".tmp", "wb") as f:
+                with open(tmp_path, "wb") as f:
                     f.write(data)
             except Exception as exc:
                 try:
-                    os.unlink(path + ".tmp")
+                    os.unlink(tmp_path)
                 except Exception:
                     pass
                 raise exc
 
-            os.rename(path + ".tmp", path)
+            os.rename(tmp_path, path)
             print("dumped", path)
 
             yield from end_with("200 OK", b"")
