@@ -113,12 +113,11 @@ class HTTPDumpServer(threading.Thread):
                 self.num += 1
             self.prevsec = epoch
 
-            gm = time.gmtime(epoch)
+            dd = list(map(lambda x: format(x, "02"), time.gmtime(epoch)[0:3]))
             if self.use_profiles and profile != "":
-                directory = os.path.join(profile, *map(str, gm[0:3]))
+                directory = os.path.join(self.root, profile, *dd)
             else:
-                directory = os.path.join(*map(str, gm[0:3]))
-            directory = os.path.join(self.root, directory)
+                directory = os.path.join(self.root, *dd)
             path = os.path.join(directory, str(epoch) + "_" + str(self.num) + ".wrr")
             os.makedirs(directory, exist_ok=True)
 
