@@ -808,7 +808,8 @@ function importantError(error) {
                      || error === "debugger::net::ERR_ABORTED"))
         // Chromium
         return false;
-    else if (!useDebugger && error === "webRequest::NS_ERROR_ABORT")
+    else if (!useDebugger && (error === "webRequest::NS_ERROR_ABORT"
+                              || "filterResponseData::Channel redirected"))
         // Firefox
         return false;
     return true;
