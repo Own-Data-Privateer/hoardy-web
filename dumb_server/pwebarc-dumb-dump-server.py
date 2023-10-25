@@ -19,10 +19,7 @@ import urllib.parse as up
 from wsgiref.validate import validator
 from wsgiref.simple_server import make_server
 
-try:
-    import cbor2
-except ImportError:
-    cbor2 = None
+cbor2 = None
 
 mypid = str(os.getpid())
 
@@ -148,8 +145,19 @@ if __name__ == "__main__":
     parser.add_argument("--port", default=3210, type=int, help="listen on what port (default: 3210)")
     parser.add_argument("--root", default="pwebarc-dump", type=str, help="path to dump data into (default: pwebarc-dump)")
     parser.add_argument("--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension")
+    parser.add_argument("--no-cbor", action="store_true", help="don't load `cbor2` module, disables parsing of input data")
 
     args = parser.parse_args(sys.argv[1:])
+
+    if not args.no_cbor:
+        try:
+            import cbor2 as cbor2_
+        except ImportError:
+            sys.stderr.write("warning: `cbor2` module is not available, forcing `--no-cbor` option\n")
+            sys.stderr.flush()
+        else:
+            cbor2 = cbor2_
+            del cbor2_
 
     t = HTTPDumpServer(args.host, args.port, args.root, not args.ignore_profiles)
     t.start()
