@@ -19,6 +19,12 @@ import urllib.parse as up
 from wsgiref.validate import validator
 from wsgiref.simple_server import make_server
 
+try:
+    import importlib.metadata as meta
+    version = meta.version(__package__)
+except Exception:
+    version = "dev"
+
 cbor2 = None
 
 mypid = str(os.getpid())
@@ -138,9 +144,11 @@ class HTTPDumpServer(threading.Thread):
         else:
             yield from end_with("404 Not Found", b"")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="pwebarc-dumb-dump-server", description="Dumb dump server for pWebArc. Simply dumps each request to `ROOT/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.")
-    parser.add_argument("--version", action="version", version="%(prog)s 1.1")
+def main():
+    global cbor2
+
+    parser = argparse.ArgumentParser(prog=__package__, description="Simple archiving server for pWebArc. Dumps each request to `ROOT/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.")
+    parser.add_argument("--version", action="version", version=f"{__package__} {version}")
     parser.add_argument("--host", default="127.0.0.1", type=str, help="listen on what host/IP (default: 127.0.0.1)")
     parser.add_argument("--port", default=3210, type=int, help="listen on what port (default: 3210)")
     parser.add_argument("--root", default="pwebarc-dump", type=str, help="path to dump data into (default: pwebarc-dump)")
@@ -168,3 +176,6 @@ if __name__ == "__main__":
         print("Interrupted.")
         t.stop()
         t.join()
+
+if __name__ == "__main__":
+    main()

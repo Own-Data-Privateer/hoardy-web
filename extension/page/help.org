@@ -1,5 +1,5 @@
 * What?
-=pWebArc= (Private Web Archive): a browser extension that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server][the dumb archiving server]]) as you browse the web.
+=pWebArc= (Private Web Archive): a browser extension that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the dumb archiving server]]) as you browse the web.
 * Glossary
 - A /reqres/ is a pWebArc-internal object containing information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
 - [[./popup.html#div-stats.inflight][An /in-flight reqres/]] is a reqres of an HTTP request that is still tracked by pWebArc, i.e. it has not finished yet, nor yet failed to finish.
@@ -116,7 +116,7 @@ This makes things a bit tricky, for instance:
 * Error messages
 - =pWebArc FAILED to archive <N> items in the queue because it can't establish a connection to the archive at <URL>=
 
-  Are you running the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/pwebarc-dumb-dump-server.py][the archiving server script]]?
+  Are you running the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the archiving server script]]?
   pWebArc requires an archiving server to actually archive anything.
 - =pWebArc FAILED to archive <N> items in the queue because requests to URL fail with: <STATUS> <REASON>: <RESPONSE>=
 

@@ -32,7 +32,7 @@ And, obviously, you wouldn't want it to archive you banking app's output.
 
 ## <span id="quickstart-with-python"/>On a system with Python installed
 
-- Download [the dumb archiving server script](./dumb_server/pwebarc-dumb-dump-server.py) (aka `pwebarc-dumb-dump-server.py`) and run it, it has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python and is very simple. It will start saving data into `pwebarc-dump` directory wherever you run it from.
+- Download [the dumb archiving server script](./dumb_server/pwebarc_dumb_dump_server.py) (aka `pwebarc_dumb_dump_server.py`) and run it, it has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python and is very simple. It will start saving data into `pwebarc-dump` directory wherever you run it from.
 - On Firefox/Tor Browser/etc: [Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Installing from source on Firefox/Tor Browser](#build-firefox).
 
 - On Chromium/Chrome/etc (experimental): See [Installing on Chromium/Chrome](#install-chromium) or [Installing from source on Chromium/Chrome](#build-chromium).
@@ -51,6 +51,18 @@ So, I recommend you start collecting immediately and figure out how to use the r
 - On Windows: [Download Python from the official website](https://www.python.org/downloads/windows/).
 - On Linux/etc: Install via package manager.
 - Go back to [Quickstart with Python installed](#quickstart-with-python).
+
+## On a system with [Nix package manager](https://nixos.org/nix/)
+
+- Install by running
+  ```
+  nix-env -i -f ./default.nix
+  ```
+- Start [the dumb archiving server](./dumb_server/) by running
+  ```
+  pwebarc-dumb-dump-server
+  ```
+- Install the add-on and etc as [above](#quickstart-with-python).
 
 # Parts and pieces
 
@@ -145,7 +157,7 @@ Start with [Quickstart](#quickstart).
 
 ## System setup
 
-- You can add `pwebarc-dumb-dump-server.py` to Autorun or start it from your `~/.xsession`, `systemd --user`, etc.
+- You can add `pwebarc_dumb_dump_server.py` to Autorun or start it from your `~/.xsession`, `systemd --user`, etc.
 
 - You can also make a new browser profile specifically for archived browsing, run Firefox as `firefox -ProfileManager` to get to the appropriate UI. On Windows you can just edit your desktop or toolbar shortcut to target
 
@@ -157,13 +169,13 @@ Start with [Quickstart](#quickstart).
 
 ## Using with Tor Browser
 
-- Run server as `./pwebarc-dumb-dump-server.py --host 127.0.99.1` or similar.
+- Run server as `./pwebarc_dumb_dump_server.py --host 127.0.99.1` or similar.
 - Go to `about:config` and add `127.0.99.1` to `network.proxy.no_proxies_on`.
 - Set the dumping URL in the extension to `http://127.0.99.1:3210/pwebarc/dump`.
 
 You probably don't want to use `127.0.0.1` and `127.0.1.1` with Tor Browser as those are normal loopback addresses and you probably don't want to allow stuff from under Tor to access your everyday stuff.
 
-Or, you could run both the Tor Browser, and `./pwebarc-dumb-dump-server.py` in a container/VM and use the default `127.0.0.1` address.
+Or, you could run both the Tor Browser, and `./pwebarc_dumb_dump_server.py` in a container/VM and use the default `127.0.0.1` address.
 
 ## Installing from source
 

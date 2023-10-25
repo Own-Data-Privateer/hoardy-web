@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "pwebarc-dumb-dump-server"
+version = "1.1"
+authors = [{ name = "Jan Malakhovski", email = "oxij@oxij.org" }]
+description = "A very simple archiving server for pWebArc extension of Private Web Archive (pwebarc) project"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: System :: Archiving",
+    "Topic :: System :: Archiving :: Backup",
+    "Topic :: System :: Archiving :: Mirroring",
+    "Topic :: System :: Logging",
+    "Topic :: Internet :: Log Analysis",
+    "Operating System :: POSIX",
+    "Environment :: Console",
+]
+keywords = [
+    "HTTP",
+    "HTTPS",
+    "archive",
+    "wayback machine",
+    "download",
+]
+dependencies = [
+    'importlib-metadata; python_version<"3.8"',
+]
+requires-python = ">=3.7"
+[project.optional-dependencies]
+cbor = ["cbor2"]
+[project.scripts]
+pwebarc-dumb-dump-server = "pwebarc_dumb_dump_server:main"
