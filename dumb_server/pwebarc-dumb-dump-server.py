@@ -31,11 +31,12 @@ class HTTPDumpServer(threading.Thread):
        would not interrupt a dump in the middle.
     """
 
-    def __init__(self, host, port, root, use_profiles, *args, **kwargs):
+    def __init__(self, host, port, root, default_profile, ignore_profiles, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.httpd = make_server(host, port, validator(self.handle_request))
         self.root = os.path.expanduser(root)
-        self.use_profiles = use_profiles
+        self.default_profile = default_profile
+        self.ignore_profiles = ignore_profiles
         self.prevsec = 0
         self.num = 0
         print(f"Listening for archive requests on http://{host}:{port}/pwebarc/dump")
@@ -70,6 +71,8 @@ class HTTPDumpServer(threading.Thread):
             profile = ""
             if "profile" in params:
                 profile = params["profile"][0]
+            if self.ignore_profiles or profile == "":
+                profile = self.default_profile
 
             # read request body data
             fp = environ["wsgi.input"]
@@ -113,10 +116,7 @@ class HTTPDumpServer(threading.Thread):
             self.prevsec = epoch
 
             dd = list(map(lambda x: format(x, "02"), time.gmtime(epoch)[0:3]))
-            if self.use_profiles and profile != "":
-                directory = os.path.join(self.root, profile, *dd)
-            else:
-                directory = os.path.join(self.root, *dd)
+            directory = os.path.join(self.root, profile, *dd)
             path = os.path.join(directory, f"{str(epoch)}_{mypid}_{str(self.num)}.wrr")
             os.makedirs(directory, exist_ok=True)
 
@@ -144,7 +144,8 @@ if __name__ == "__main__":
     parser.add_argument("--host", default="127.0.0.1", type=str, help="listen on what host/IP (default: 127.0.0.1)")
     parser.add_argument("--port", default=3210, type=int, help="listen on what port (default: 3210)")
     parser.add_argument("--root", default="pwebarc-dump", type=str, help="path to dump data into (default: pwebarc-dump)")
-    parser.add_argument("--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension")
+    parser.add_argument("--default-profile", metavar="NAME", default="default", type=str, help="default profile to use when no `profile` query parameter is supplied by the extension (default: `default`)")
+    parser.add_argument("--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension and use the value of `--default-profile` instead")
     parser.add_argument("--no-cbor", action="store_true", help="don't load `cbor2` module, disables parsing of input data")
 
     args = parser.parse_args(sys.argv[1:])
@@ -159,7 +160,7 @@ if __name__ == "__main__":
             cbor2 = cbor2_
             del cbor2_
 
-    t = HTTPDumpServer(args.host, args.port, args.root, not args.ignore_profiles)
+    t = HTTPDumpServer(args.host, args.port, args.root, args.default_profile, args.ignore_profiles)
     t.start()
     try:
         t.join()
