@@ -24,6 +24,8 @@ try:
 except ImportError:
     cbor2 = None
 
+mypid = str(os.getpid())
+
 class HTTPDumpServer(threading.Thread):
     """HTTP server that accepts HTTP dumps as POST data, tries to compresses them
        with gzip, and saves them in a given directory.
@@ -118,7 +120,7 @@ class HTTPDumpServer(threading.Thread):
                 directory = os.path.join(self.root, profile, *dd)
             else:
                 directory = os.path.join(self.root, *dd)
-            path = os.path.join(directory, str(epoch) + "_" + str(self.num) + ".wrr")
+            path = os.path.join(directory, f"{str(epoch)}_{mypid}_{str(self.num)}.wrr")
             os.makedirs(directory, exist_ok=True)
 
             tmp_path = path + ".part"
