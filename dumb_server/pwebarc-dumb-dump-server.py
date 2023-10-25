@@ -37,7 +37,7 @@ class HTTPDumpServer(threading.Thread):
     def __init__(self, host, port, root, use_profiles, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.httpd = make_server(host, port, validator(self.handle_request))
-        self.root = root
+        self.root = os.path.expanduser(root)
         self.use_profiles = use_profiles
         self.prevsec = 0
         self.num = 0
