@@ -87,6 +87,12 @@ for target in "$@"; do
             zip -qr -9 -X "../$NAME.xpi" .
         )
     else
+        echo "  Zipping..."
+
+        cd dist
+        zip -qr -9 -X "$NAME.zip" "$NAME"
+        cd ..
+
         echo "  Making CRX..."
 
         (
@@ -100,9 +106,6 @@ for target in "$@"; do
             else
                 ../../bin/crx.sh "../$NAME" "$key"
             fi
-
-            cd ..
-            zip -qr -9 -X "$NAME.zip" "$NAME"
         )
     fi
 done

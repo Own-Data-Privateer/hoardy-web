@@ -7,5 +7,6 @@ pkgs.buildEnv {
   name = "pwebarc-20231019";
   paths = with packages; [
     dumb_server
+    extension
   ];
 }

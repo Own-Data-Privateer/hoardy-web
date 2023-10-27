@@ -14,7 +14,7 @@ key=$2
 crx="$output.crx"
 pub="$output.pub"
 sig="$output.sig"
-zip="$output.zip"
+zip="$output.crxzip"
 tosign="$output.presig"
 binary_crx_id="$output.crxid"
 trap 'rm -f "$pub" "$sig" "$zip" "$tosign" "$binary_crx_id"' EXIT
