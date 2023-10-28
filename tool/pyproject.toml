@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "pwebarc-wrrarms"
+version = "0.0"
+authors = [{ name = "Jan Malakhovski", email = "oxij@oxij.org" }]
+description = "A tool for displaying and manipulating Private Web Archive Web Request+Response (pwebarc WRR) files of Private Web Archive (pwebarc) project"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+    "Topic :: System :: Archiving",
+    "Topic :: System :: Archiving :: Backup",
+    "Topic :: System :: Archiving :: Mirroring",
+    "Topic :: System :: Logging",
+    "Topic :: Internet :: Log Analysis",
+    "Operating System :: POSIX",
+    "Environment :: Console",
+]
+keywords = [
+    "HTTP",
+    "HTTPS",
+    "archive",
+    "wayback machine",
+    "download",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "kisstdlib",
+    "cbor2",
+]
+[project.scripts]
+wrrarms = "wrrarms.__main__:main"

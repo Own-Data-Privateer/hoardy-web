@@ -8,5 +8,6 @@ pkgs.buildEnv {
   paths = with packages; [
     dumb_server
     extension
+    tool
   ];
 }

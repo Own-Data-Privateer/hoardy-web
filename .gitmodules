@@ -1,0 +1,3 @@
+[submodule "vendor/kisstdlib"]
+	path = vendor/kisstdlib
+	url = https://github.com/oxij/kisstdlib
