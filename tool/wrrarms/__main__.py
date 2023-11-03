@@ -136,6 +136,165 @@ def cmd_find(cargs : _t.Any) -> None:
     for _ in wrr_map_paths(emit, cargs.paths, cargs.errors):
         pass
 
+output_aliases = {
+    "default":  "%(ryear)d/%(rmonth)02d/%(rday)02d/%(rhour)02d%(rminute)02d%(rsecond)02d%(rtime_msq)03d_%(stime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr",
+    "short": "%(ryear)d/%(rmonth)02d/%(rday)02d/%(rtime_ms)d_%(stime_ms)s.%(num)d.wrr",
+    "surl_msn":   "%(scheme)s/%(netloc)s/%(path|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "url_msn":               "%(netloc)s/%(path|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "shpq_msn":   "%(scheme)s/%(hostname)s/%(path|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "hpq_msn":               "%(hostname)s/%(path|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "shupq_msn":  "%(scheme)s/%(hostname)s/%(path|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "hupq_msn":              "%(hostname)s/%(path|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "srhupq_msn": "%(scheme)s/%(rhostname)s/%(path|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "rhupq_msn":             "%(rhostname)s/%(path|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "full_shpq":  "%(scheme)s/%(hostname)s/%(ipath)s%(oqm)s%(query)s.wrr",
+    "full_hpq":              "%(hostname)s/%(ipath)s%(oqm)s%(query)s.wrr",
+    "shpq":       "%(scheme)s/%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 120)s.wrr",
+    "hpq":                   "%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 120)s.wrr",
+    "shupq":      "%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 120)s.wrr",
+    "hupq":                  "%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 120)s.wrr",
+    "hupnq":                 "%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s.wrr",
+}
+
+def make_organize_emit(cargs : _t.Any, destination : str) -> _t.Callable[[Reqres, str, str], None]:
+    destination = _os.path.expanduser(destination)
+
+    action_func : _t.Any
+    if cargs.action == "rename":
+        action_desc = "renaming"
+        action_func = _os.rename
+    elif cargs.action == "hardlink":
+        action_desc = "hardlinking"
+        action_func = _os.link
+    elif cargs.action == "symlink":
+        action_desc = "symlinking"
+        action_func = _os.symlink
+    elif cargs.action == "symlink-update":
+        action_desc = "updating symlink"
+        action_func = _os.symlink
+    else:
+        assert False
+
+    seen_count_state : dict[str, int] = {}
+    def seen_count(value : str) -> int:
+        try:
+            count = seen_count_state[value]
+        except KeyError:
+            seen_count_state[value] = 0
+            return 0
+        else:
+            count += 1
+            seen_count_state[value] = count
+            return count
+
+    last_updated_ms_state : dict[str, int] = {}
+
+    def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
+        rrexpr = ReqresExpr(reqres, abs_path)
+        if is_filtered_out(rrexpr, cargs): return
+
+        rrexpr.items["num"] = 0
+        ogprefix = _os.path.join(destination, cargs.output % rrexpr)
+        prev_rel_out_path = None
+        need_to_unlink = False
+        while True:
+            rrexpr.items["num"] = seen_count(ogprefix)
+            rel_out_path = _os.path.join(destination, cargs.output % rrexpr)
+            abs_out_path = _os.path.abspath(rel_out_path)
+            if abs_path == abs_out_path:
+                # trying to rename, hardlink, or symlink to itself
+                return
+
+            try:
+                out_stat = _os.lstat(abs_out_path)
+            except FileNotFoundError:
+                break
+
+            if _stat.S_ISLNK(out_stat.st_mode):
+                # check that symlink target exists
+                try:
+                    out_stat_target = _os.stat(abs_out_path)
+                except FileNotFoundError:
+                    need_to_unlink = True
+                    break
+
+            if _os.path.samefile(abs_path, abs_out_path):
+                # target already points to source
+                return
+
+            if cargs.action == "symlink-update":
+                if not _stat.S_ISLNK(out_stat.st_mode):
+                    raise Failure(f"trying to {cargs.action} `%s` to `%s` which already exists and is not a symlink; this is not allowed to prevent accidential data loss", rel_path, rel_out_path)
+
+                this_update_ms = rrexpr.rtime_ms
+                try:
+                    last_update_ms = last_updated_ms_state[ogprefix]
+                except KeyError:
+                    last_update_ms = ReqresExpr(wrr_loadf(abs_out_path), abs_out_path).rtime_ms
+                    last_updated_ms_state[ogprefix] = last_update_ms
+                if last_update_ms >= this_update_ms:
+                    # target in newer
+                    return
+                last_updated_ms_state[ogprefix] = this_update_ms
+
+                need_to_unlink = True
+                break
+
+            if prev_rel_out_path == rel_out_path:
+                raise Failure(f"trying to {cargs.action} `%s` to `%s` which already exists and is not the same file; meanwhile `--output` does not appear to allow for variance (did your forget to place a `%%(num)d` substitution in there?); this is not allowed to prevent accidential data loss", rel_path, rel_out_path)
+            prev_rel_out_path = rel_out_path
+            continue
+
+        if cargs.dry_run:
+            stderr.write_str_ln(f"dry-run: (not) {action_desc}: {rel_path} -> {rel_out_path}")
+            stderr.flush()
+            return
+
+        if need_to_unlink:
+            _os.unlink(abs_out_path)
+        else:
+            dirname = _os.path.dirname(abs_out_path)
+            _os.makedirs(dirname, exist_ok = True)
+        action_func(abs_path, abs_out_path)
+
+        stderr.write_str_ln(f"{action_desc}: {rel_path} -> {rel_out_path}")
+        stderr.flush()
+        if cargs.terminator is not None:
+            stdout.write_bytes(_os.fsencode(abs_out_path) + cargs.terminator)
+            stdout.flush()
+
+    return emit
+
+def cmd_organize(cargs : _t.Any) -> None:
+    if cargs.output in output_aliases:
+        cargs.output = output_aliases[cargs.output]
+
+    if cargs.destination is not None:
+        # destination is set explicitly
+        slurp_stdin0(cargs)
+
+        emit = make_organize_emit(cargs, cargs.destination)
+        for _ in wrr_map_paths(emit, cargs.paths, cargs.errors, follow_symlinks=False):
+            pass
+    else:
+        # each path is its own destination
+        if cargs.stdin0:
+            raise Failure("`--stdin0` but no `--to` is specified")
+
+        for path in cargs.paths:
+            try:
+                fstat = _os.stat(_os.path.expanduser(path))
+            except FileNotFoundError:
+                raise Failure("%s does not exist", path)
+            else:
+                if cargs.destination is None and not _stat.S_ISDIR(fstat.st_mode):
+                    raise Failure("%s is not a directory but no `--to` is specified", path)
+
+        for path in cargs.paths:
+            emit = make_organize_emit(cargs, path)
+            for _ in wrr_map_paths(emit, [path], cargs.errors, follow_symlinks=False):
+                pass
+
 def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
     stream : StreamEncoder
     if cargs.format == "py":
@@ -194,6 +353,22 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f"""wrrarms find --and "status|== 200C" --and "response.body|len|> 1024" ../dumb_server/pwebarc-dump""")
     fmt.end_section()
 
+    fmt.start_section(_(f"Rename all WRR files in `../dumb_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `{__package__} organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic)"))
+    fmt.add_code(f"{__package__} organize ../dumb_server/pwebarc-dump/default")
+    fmt.add_text(_("alternatively, just show what would be done"))
+    fmt.add_code(f"{__package__} organize --dry-run ../dumb_server/pwebarc-dump/default")
+    fmt.end_section()
+
+    fmt.start_section(_(f"The output of `{__package__} organize --zero-terminated` can be piped into `{__package__} organize --stdin0` to perform complex updates. E.g. the following will rename new reqres from `../dumb_server/pwebarc-dump` to `~/pwebarc/raw` renaming them with `--output default`, the `for` loop is there to preserve profiles"))
+    fmt.add_code(f"""for arg in ../dumb_server/pwebarc-dump/* ; do
+  wrrarms organize --zero-terminated --to ~/pwebarc/raw/"$(basename "$arg")" "$arg"
+done > changes""")
+    fmt.add_text(_("then, we can reuse `changes` to symlink all new files from `~/pwebarc/raw` to `~/pwebarc/all` using `--output hupq_msn`, which would show most of the URL in the file name:"))
+    fmt.add_code(f"""wrrarms organize --stdin0 --action symlink --to ~/pwebarc/all --output hupq_msn < changes""")
+    fmt.add_text(_("and then, we can reuse `changes` again and use them to update `~/pwebarc/latest`, filling it with symlinks pointing to the latest `200 OK` complete reqres from `~/pwebarc/raw`, similar to what `wget -r` would produce (except `wget` would do network requests and produce responce bodies, while this will build a file system tree of symlinks to WRR files in `/pwebarc/raw`):"))
+    fmt.add_code(f"""wrrarms organize --stdin0 --action symlink-update --to ~/pwebarc/latest --output hupq --and "status|== 200C" < changes""")
+    fmt.end_section()
+
     fmt.add_text(_("# Advanced examples"))
 
     fmt.start_section(_("Pretty-print all reqres in `../dumb_server/pwebarc-dump` by dumping their whole structure into an abridged Pythonic Object Representation (repr)"))
@@ -244,7 +419,7 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
 def main() -> None:
     parser = argparse.BetterArgumentParser(
         prog=__package__,
-        description=_("A tool to pretty-print, compute and print values from, search, (WIP: check, deduplicate, and edit) pWebArc WRR (WEBREQRES, Web REQuest+RESponse) archive files.") + "\n\n" +
+        description=_("A tool to pretty-print, compute and print values from, search, organize (programmatically rename/move/symlink/hardlink files), (WIP: check, deduplicate, and edit) pWebArc WRR (WEBREQRES, Web REQuest+RESponse) archive files.") + "\n\n" +
 _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing HTTP request+response pair with some additional metadata."),
         additional_sections = [add_doc],
         allow_abbrev = False,
@@ -341,6 +516,39 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 
     add_paths(cmd)
     cmd.set_defaults(func=cmd_find)
+
+    # organize
+    cmd = subparsers.add_parser("organize", help=_("rename/hardlink/symlink WRR files based on their metadata"),
+                                description = _(f"""Rename/hardlink/symlink given WRR files to DESTINATION based on their metadata.
+
+Operations that could lead to accidental data loss are not permitted.
+E.g. `{__package__} organize --action rename` will not overwrite any files, which is why the default `--output` contains `%(num)d`."""))
+    add_errors(cmd)
+    add_filters(cmd)
+    cmd.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
+    add_stdin0(cmd)
+
+    grp = cmd.add_mutually_exclusive_group()
+    grp.add_argument("-n", "--no-output", dest="terminator", action="store_const", const = None, help=_("don't print anything to stdout (default)"))
+    grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("output absolute paths of newly produced files terminated with `\\n` (LF) newline characters to stdout"))
+    cmd.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of newly produced files terminated with `\\0` (NUL) bytes to stdout"))
+    cmd.set_defaults(terminator = None)
+
+    cmd.add_argument("--action", choices=["rename", "hardlink", "symlink", "symlink-update"], default="rename", help=_("""organize how:
+- `rename`: rename source files under DESTINATION, will fail if target already exists (default)
+- `hardlink`: create hardlinks from source files to paths under DESTINATION, will fail if target already exists
+- `symlink`: create symlinks from source files to paths under DESTINATION, will fail if target already exists
+- `symlink-update`: create symlinks from source files to paths under DESTINATION, will overwrite the target if `rtime_ms` for the source reqres is newer than the same value for the target
+"""))
+    cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_("format describing the generated output path, an alias name or a custom pythonic %%-substitution string:") + "\n" + \
+                     "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
+                     "".join([f"  - `{name}`: `{value.replace('%', '%%')}`" + (" (default)" if name == "default" else "") + "\n" for name, value in output_aliases.items()]) + \
+                     "- " + _("available substitutions:") + "\n" + \
+                     "  - `num`: " + _("number of times an output path like this was seen; this value gets incremened for each new WRR file generating the same path with `num` set to `0` and when the file at the path generated with the current value of `num` already exists; i.e. adding this parameter to your `--output` format will ensure all generated file names will be unique") + "\n" + \
+                     "  - " + _(f"all expressions of `{__package__} get --expr`, which see"))
+    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("target directory, if not set then each source PATH must be a directory which will be is its own DESTINATION"))
+    add_paths(cmd)
+    cmd.set_defaults(func=cmd_organize)
 
     # stream
     cmd = subparsers.add_parser("stream", help=_(f"produce a stream structured lists containing expressions computed from specified WRR files to stdout, a generalized `{__package__} get`"),
