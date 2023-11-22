@@ -9,7 +9,7 @@ with pkgs.python3Packages;
 
 buildPythonApplication (rec {
   pname = "pwebarc-wrrarms";
-  version = "0.0";
+  version = "0.5";
   format = "pyproject";
 
   inherit (source) src unpackPhase;
