@@ -221,12 +221,12 @@ Print paths of WRR files matching specified criteria.
     - `fail`: report failure and stop the execution (default)
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
-  - `--stdin0`
-  : read zero-terminated PATHs from stdin, these will be processed after PATHs specified as command-line arguments, requires specified `--to`
   - `-l, --lf-terminated`
   : output absolute paths of matching WRR files terminated with `\n` (LF) newline characters to stdout (default)
   - `-z, --zero-terminated`
   : output absolute paths of matching WRR files terminated with `\0` (NUL) bytes to stdout
+  - `--stdin0`
+  : read zero-terminated PATHs from stdin, these will be processed after PATHs specified as command-line arguments, requires specified `--to`
 
 - filters:
   - `--or EXPR`
@@ -253,8 +253,8 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
     - `ignore`: `skip`, but don't report the failure
   - `--dry-run`
   : perform a trial run without actually performing any changes
-  - `--stdin0`
-  : read zero-terminated PATHs from stdin, these will be processed after PATHs specified as command-line arguments, requires specified `--to`
+  - `-q, --quiet`
+  : don't log computed updates to stderr
   - `-n, --no-output`
   : don't print anything to stdout (default)
   - `-l, --lf-terminated`
@@ -267,6 +267,10 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
     - `hardlink`: create hardlinks from source files to paths under DESTINATION, will fail if target already exists
     - `symlink`: create symlinks from source files to paths under DESTINATION, will fail if target already exists
     - `symlink-update`: create symlinks from source files to paths under DESTINATION, will overwrite the target if `rtime_ms` for the source reqres is newer than the same value for the target
+  - `--batch-number INT`
+  : batch at most this many `--action`s together (default: `1024`), making this larger improves performance at the cost of increased memory consumption, setting it to zero will force all `--action`s to be applied immediately
+  - `--lazy`
+  : sets `--batch-number` to positive infinity; most useful in combination with `--action symlink-update` in which case it will force `wrrarms` to compute the desired file system state first and then perform disk writes in a single batch
   - `-o FORMAT, --output FORMAT`
   : format describing the generated output path, an alias name or a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
@@ -291,7 +295,9 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
       - `num`: number of times an output path like this was seen; this value gets incremened for each new WRR file generating the same path with `num` set to `0` and when the file at the path generated with the current value of `num` already exists; i.e. adding this parameter to your `--output` format will ensure all generated file names will be unique
       - all expressions of `wrrarms get --expr`, which see
   - `-t DESTINATION, --to DESTINATION`
-  : target directory, if not set then each source PATH must be a directory which will be is its own DESTINATION
+  : target directory, when unset each source PATH must be a directory which will be treated as its own DESTINATION
+  - `--stdin0`
+  : read zero-terminated PATHs from stdin, these will be processed after PATHs specified as command-line arguments, requires specified `--to`
 
 - filters:
   - `--or EXPR`

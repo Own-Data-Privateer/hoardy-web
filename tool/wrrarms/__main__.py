@@ -156,7 +156,10 @@ output_aliases = {
     "hupnq":                 "%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s.wrr",
 }
 
-def make_organize_emit(cargs : _t.Any, destination : str) -> _t.Callable[[Reqres, str, str], None]:
+variance_help = _("your `--output` format fails to provide enough variance (did your forget to place a `%%(num)d` substitution in there?); this is not allowed to prevent accidental data loss")
+
+def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqres, str, str], None],
+                                                              _t.Callable[[], None]]:
     destination = _os.path.expanduser(destination)
 
     action_func : _t.Any
@@ -175,6 +178,9 @@ def make_organize_emit(cargs : _t.Any, destination : str) -> _t.Callable[[Reqres
     else:
         assert False
 
+    if cargs.dry_run:
+        action_desc = _("dry-run: (not)") + " " + action_desc
+
     seen_count_state : dict[str, int] = {}
     def seen_count(value : str) -> int:
         try:
@@ -187,7 +193,22 @@ def make_organize_emit(cargs : _t.Any, destination : str) -> _t.Callable[[Reqres
             seen_count_state[value] = count
             return count
 
-    last_updated_ms_state : dict[str, int] = {}
+    file_mtimes_ms : dict[str, int] = {}
+    intent_log : dict[str, tuple[int, bool, str]] = {}
+    def perform_updates() -> None:
+        for abs_out_path in list(intent_log.keys()):
+            _, need_to_unlink, abs_path = intent_log.pop(abs_out_path)
+
+            if need_to_unlink:
+                _os.unlink(abs_out_path)
+            else:
+                dirname = _os.path.dirname(abs_out_path)
+                _os.makedirs(dirname, exist_ok = True)
+            action_func(abs_path, abs_out_path)
+
+            if cargs.terminator is not None:
+                stdout.write_bytes(_os.fsencode(abs_out_path) + cargs.terminator)
+                stdout.flush()
 
     def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
         rrexpr = ReqresExpr(reqres, abs_path)
@@ -204,6 +225,22 @@ def make_organize_emit(cargs : _t.Any, destination : str) -> _t.Callable[[Reqres
             if abs_path == abs_out_path:
                 # trying to rename, hardlink, or symlink to itself
                 return
+
+            if abs_out_path in intent_log:
+                # we have this path waiting in intent_log
+                prev_modified_ms, prev_need_to_unlink, prev_abs_path = intent_log[abs_out_path]
+                if cargs.action != "symlink-update":
+                    if _os.path.samefile(abs_path, prev_abs_path):
+                        # batched source and this are the same file
+                        return
+                    raise Failure(f"trying to {cargs.action} `%s` to `%s` which is already batched to be taken from `%s`; {variance_help}", rel_path, rel_out_path, prev_abs_path)
+
+                if prev_modified_ms >= rrexpr.rtime_ms:
+                    # batched source in newer
+                    return
+
+                need_to_unlink = prev_need_to_unlink
+                break
 
             try:
                 out_stat = _os.lstat(abs_out_path)
@@ -224,46 +261,39 @@ def make_organize_emit(cargs : _t.Any, destination : str) -> _t.Callable[[Reqres
 
             if cargs.action == "symlink-update":
                 if not _stat.S_ISLNK(out_stat.st_mode):
-                    raise Failure(f"trying to {cargs.action} `%s` to `%s` which already exists and is not a symlink; this is not allowed to prevent accidential data loss", rel_path, rel_out_path)
+                    raise Failure(f"trying to {cargs.action} `%s` to `%s` which already exists and is not a symlink; this is not allowed to prevent accidental data loss", rel_path, rel_out_path)
 
-                this_update_ms = rrexpr.rtime_ms
+                # cache rtime_ms for performance
                 try:
-                    last_update_ms = last_updated_ms_state[ogprefix]
+                    file_modified_ms = file_mtimes_ms[abs_out_path]
                 except KeyError:
-                    last_update_ms = ReqresExpr(wrr_loadf(abs_out_path), abs_out_path).rtime_ms
-                    last_updated_ms_state[ogprefix] = last_update_ms
-                if last_update_ms >= this_update_ms:
+                    file_modified_ms = ReqresExpr(wrr_loadf(abs_out_path), abs_out_path).rtime_ms
+                    file_mtimes_ms[abs_out_path] = file_modified_ms
+
+                if file_modified_ms >= rrexpr.rtime_ms:
                     # target in newer
                     return
-                last_updated_ms_state[ogprefix] = this_update_ms
 
                 need_to_unlink = True
                 break
 
             if prev_rel_out_path == rel_out_path:
-                raise Failure(f"trying to {cargs.action} `%s` to `%s` which already exists and is not the same file; meanwhile `--output` does not appear to allow for variance (did your forget to place a `%%(num)d` substitution in there?); this is not allowed to prevent accidential data loss", rel_path, rel_out_path)
+                raise Failure(f"trying to {cargs.action} `%s` to `%s` which already exists and is not the same file; {variance_help}", rel_path, rel_out_path)
             prev_rel_out_path = rel_out_path
             continue
 
-        if cargs.dry_run:
-            stderr.write_str_ln(f"dry-run: (not) {action_desc}: {rel_path} -> {rel_out_path}")
+        if not cargs.quiet:
+            stderr.write_str_ln(f"{action_desc}: {rel_path} -> {rel_out_path}")
             stderr.flush()
+
+        if cargs.dry_run:
             return
 
-        if need_to_unlink:
-            _os.unlink(abs_out_path)
-        else:
-            dirname = _os.path.dirname(abs_out_path)
-            _os.makedirs(dirname, exist_ok = True)
-        action_func(abs_path, abs_out_path)
+        intent_log[abs_out_path] = (rrexpr.rtime_ms, need_to_unlink, abs_path)
+        if not cargs.lazy and len(intent_log) >= cargs.batch:
+            perform_updates()
 
-        stderr.write_str_ln(f"{action_desc}: {rel_path} -> {rel_out_path}")
-        stderr.flush()
-        if cargs.terminator is not None:
-            stdout.write_bytes(_os.fsencode(abs_out_path) + cargs.terminator)
-            stdout.flush()
-
-    return emit
+    return emit, perform_updates
 
 def cmd_organize(cargs : _t.Any) -> None:
     if cargs.output in output_aliases:
@@ -273,9 +303,10 @@ def cmd_organize(cargs : _t.Any) -> None:
         # destination is set explicitly
         slurp_stdin0(cargs)
 
-        emit = make_organize_emit(cargs, cargs.destination)
+        emit, finish = make_organize(cargs, cargs.destination)
         for _ in wrr_map_paths(emit, cargs.paths, cargs.errors, follow_symlinks=False):
             pass
+        finish()
     else:
         # each path is its own destination
         if cargs.stdin0:
@@ -291,9 +322,10 @@ def cmd_organize(cargs : _t.Any) -> None:
                     raise Failure("%s is not a directory but no `--to` is specified", path)
 
         for path in cargs.paths:
-            emit = make_organize_emit(cargs, path)
+            emit, finish = make_organize(cargs, path)
             for _ in wrr_map_paths(emit, [path], cargs.errors, follow_symlinks=False):
                 pass
+            finish()
 
 def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
     stream : StreamEncoder
@@ -507,13 +539,13 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                                 description = _(f"""Print paths of WRR files matching specified criteria."""))
     add_errors(cmd)
     add_filters(cmd)
-    add_stdin0(cmd)
 
     grp = cmd.add_mutually_exclusive_group()
     grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("output absolute paths of matching WRR files terminated with `\\n` (LF) newline characters to stdout (default)"))
     cmd.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of matching WRR files terminated with `\\0` (NUL) bytes to stdout"))
     cmd.set_defaults(terminator = b"\n")
 
+    add_stdin0(cmd)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_find)
 
@@ -525,8 +557,10 @@ Operations that could lead to accidental data loss are not permitted.
 E.g. `{__package__} organize --action rename` will not overwrite any files, which is why the default `--output` contains `%(num)d`."""))
     add_errors(cmd)
     add_filters(cmd)
-    cmd.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
-    add_stdin0(cmd)
+
+    grp = cmd.add_mutually_exclusive_group()
+    grp.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
+    grp.add_argument("-q", "--quiet", action="store_true", help=_("don't log computed updates to stderr"))
 
     grp = cmd.add_mutually_exclusive_group()
     grp.add_argument("-n", "--no-output", dest="terminator", action="store_const", const = None, help=_("don't print anything to stdout (default)"))
@@ -540,13 +574,20 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
 - `symlink`: create symlinks from source files to paths under DESTINATION, will fail if target already exists
 - `symlink-update`: create symlinks from source files to paths under DESTINATION, will overwrite the target if `rtime_ms` for the source reqres is newer than the same value for the target
 """))
+
+    grp = cmd.add_mutually_exclusive_group()
+    grp.add_argument("--batch-number", metavar = "INT", dest="batch", type=int, default=1024, help=_("batch at most this many `--action`s together (default: `%(default)s`), making this larger improves performance at the cost of increased memory consumption, setting it to zero will force all `--action`s to be applied immediately"))
+    grp.add_argument("--lazy", action="store_true", help=_(f"sets `--batch-number` to positive infinity; most useful in combination with `--action symlink-update` in which case it will force `{__package__}` to compute the desired file system state first and then perform disk writes in a single batch"))
+
     cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_("format describing the generated output path, an alias name or a custom pythonic %%-substitution string:") + "\n" + \
                      "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
                      "".join([f"  - `{name}`: `{value.replace('%', '%%')}`" + (" (default)" if name == "default" else "") + "\n" for name, value in output_aliases.items()]) + \
                      "- " + _("available substitutions:") + "\n" + \
                      "  - `num`: " + _("number of times an output path like this was seen; this value gets incremened for each new WRR file generating the same path with `num` set to `0` and when the file at the path generated with the current value of `num` already exists; i.e. adding this parameter to your `--output` format will ensure all generated file names will be unique") + "\n" + \
                      "  - " + _(f"all expressions of `{__package__} get --expr`, which see"))
-    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("target directory, if not set then each source PATH must be a directory which will be is its own DESTINATION"))
+    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("target directory, when unset each source PATH must be a directory which will be treated as its own DESTINATION"))
+
+    add_stdin0(cmd)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_organize)
 
