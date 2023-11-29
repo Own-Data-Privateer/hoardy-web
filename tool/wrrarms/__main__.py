@@ -534,7 +534,7 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
     cmd.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of newly produced files terminated with `\\0` (NUL) bytes to stdout"))
     cmd.set_defaults(terminator = None)
 
-    cmd.add_argument("--action", choices=["rename", "hardlink", "symlink", "symlink-update"], default="rename", help=_("""organize how:
+    cmd.add_argument("-a", "--action", choices=["rename", "hardlink", "symlink", "symlink-update"], default="rename", help=_("""organize how:
 - `rename`: rename source files under DESTINATION, will fail if target already exists (default)
 - `hardlink`: create hardlinks from source files to paths under DESTINATION, will fail if target already exists
 - `symlink`: create symlinks from source files to paths under DESTINATION, will fail if target already exists

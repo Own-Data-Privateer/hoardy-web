@@ -261,7 +261,7 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   : output absolute paths of newly produced files terminated with `\n` (LF) newline characters to stdout
   - `-z, --zero-terminated`
   : output absolute paths of newly produced files terminated with `\0` (NUL) bytes to stdout
-  - `--action {rename,hardlink,symlink,symlink-update}`
+  - `-a {rename,hardlink,symlink,symlink-update}, --action {rename,hardlink,symlink,symlink-update}`
   : organize how:
     - `rename`: rename source files under DESTINATION, will fail if target already exists (default)
     - `hardlink`: create hardlinks from source files to paths under DESTINATION, will fail if target already exists
