@@ -139,21 +139,33 @@ def cmd_find(cargs : _t.Any) -> None:
 output_aliases = {
     "default":  "%(ryear)d/%(rmonth)02d/%(rday)02d/%(rhour)02d%(rminute)02d%(rsecond)02d%(rtime_msq)03d_%(stime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr",
     "short": "%(ryear)d/%(rmonth)02d/%(rday)02d/%(rtime_ms)d_%(stime_ms)s.%(num)d.wrr",
-    "surl_msn":   "%(scheme)s/%(netloc)s/%(path|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "url_msn":               "%(netloc)s/%(path|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "shpq_msn":   "%(scheme)s/%(hostname)s/%(path|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "hpq_msn":               "%(hostname)s/%(path|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "shupq_msn":  "%(scheme)s/%(hostname)s/%(path|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "hupq_msn":              "%(hostname)s/%(path|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "srhupq_msn": "%(scheme)s/%(rhostname)s/%(path|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "rhupq_msn":             "%(rhostname)s/%(path|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "full_shpq":  "%(scheme)s/%(hostname)s/%(ipath)s%(oqm)s%(query)s.wrr",
-    "full_hpq":              "%(hostname)s/%(ipath)s%(oqm)s%(query)s.wrr",
+
+    "surl":       "%(scheme)s/%(netloc)s/%(path)s%(oqm)s%(query)s",
+    "url":                   "%(netloc)s/%(path)s%(oqm)s%(query)s",
+    "surl_msn":   "%(scheme)s/%(netloc)s/%(path)s%(oqm)s%(query)s_%(method)s_%(status)s.%(num)d.wrr",
+    "url_msn":               "%(netloc)s/%(path)s%(oqm)s%(query)s_%(method)s_%(status)s.%(num)d.wrr",
+
     "shpq":       "%(scheme)s/%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 120)s.wrr",
     "hpq":                   "%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 120)s.wrr",
+    "shpq_msn":   "%(scheme)s/%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "hpq_msn":               "%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+
     "shupq":      "%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 120)s.wrr",
     "hupq":                  "%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 120)s.wrr",
+    "shupq_msn":  "%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "hupq_msn":              "%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+
+    "srhupq":     "%(scheme)s/%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s.wrr",
+    "rhupq":                 "%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s.wrr",
+    "srhupq_msn": "%(scheme)s/%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "rhupq_msn":             "%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+
+    "shupnq":     "%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s.wrr",
     "hupnq":                 "%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s.wrr",
+    "shupnq_msn": "%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s_%(method)s_%(status)s.%(num)d.wrr",
+    "hupnq_msn":             "%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s_%(method)s_%(status)s.%(num)d.wrr",
+
+    "flat":                  "%(hostname)s/%(ipath|unquote|replace / __|abbrev 120)s%(oqm)s%(nquery|unquote_plus|replace / __|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.wrr",
 }
 
 variance_help = _("your `--output` format fails to provide enough variance (did your forget to place a `%%(num)d` substitution in there?); this is not allowed to prevent accidental data loss")
