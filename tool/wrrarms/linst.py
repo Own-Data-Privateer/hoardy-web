@@ -144,6 +144,13 @@ def linst_apply1(typ : _t.Any, func : _t.Any) -> LinstAtom:
         return envfunc
     return [typ], args1
 
+def linst_apply2(typ1 : _t.Any, typ2 : _t.Any, func : _t.Any) -> LinstAtom:
+    def args2(arg1 : _t.Any, arg2 : _t.Any) -> _t.Callable[..., LinstFunc]:
+        def envfunc(env : _t.Any, v : _t.Any) -> _t.Any:
+            return func(v, arg1, arg2)
+        return envfunc
+    return [typ1, typ2], args2
+
 def linst_getenv(name : str) -> LinstAtom:
     def args0() -> _t.Callable[..., LinstFunc]:
         def envfunc(env : _t.Any, v : _t.Any) -> _t.Any:
@@ -202,4 +209,6 @@ linst_atoms : dict[str, tuple[str, LinstAtom]] = {
           linst_apply1(int, lambda v, arg: v[len(v) - arg:])),
     "abbrev": ("leave the current value as if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters",
           linst_apply1(int, abbrev)),
+    "replace": ("replace all occurences of the first argument in the current value with the second argument, casts arguments to the same type as the current value",
+          linst_apply2(str, str, lambda v, arg1, arg2: v.replace(linst_cast_val(v, arg1), linst_cast_val(v, arg2)))),
 }

@@ -120,6 +120,7 @@ Compute an expression EXPR for a reqres stored at PATH and then print it to stdo
       - `prefix`: take first `arg` characters
       - `suffix`: take last `arg` characters
       - `abbrev`: leave the current value as if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters
+      - `replace`: replace all occurences of the first argument in the current value with the second argument, casts arguments to the same type as the current value
     - reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:
       - `version`: WEBREQRES format version; int
       - `source`: `+`-separated list of applications that produced this reqres; str
