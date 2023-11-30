@@ -137,8 +137,8 @@ def cmd_find(cargs : _t.Any) -> None:
         pass
 
 output_aliases = {
-    "default":  "%(ryear)d/%(rmonth)02d/%(rday)02d/%(rhour)02d%(rminute)02d%(rsecond)02d%(rtime_msq)03d_%(stime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr",
-    "short": "%(ryear)d/%(rmonth)02d/%(rday)02d/%(rtime_ms)d_%(stime_ms)s.%(num)d.wrr",
+    "default":  "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr",
+    "short": "%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d.wrr",
 
     "surl":       "%(scheme)s/%(netloc)s/%(path)s%(oqm)s%(query)s",
     "url":                   "%(netloc)s/%(path)s%(oqm)s%(query)s",
@@ -247,7 +247,7 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
                         return
                     raise Failure(f"trying to {cargs.action} `%s` to `%s` which is already batched to be taken from `%s`; {variance_help}", rel_path, rel_out_path, prev_abs_path)
 
-                if prev_modified_ms >= rrexpr.rtime_ms:
+                if prev_modified_ms >= rrexpr.stime_ms:
                     # batched source in newer
                     return
 
@@ -275,14 +275,14 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
                 if not _stat.S_ISLNK(out_stat.st_mode):
                     raise Failure(f"trying to {cargs.action} `%s` to `%s` which already exists and is not a symlink; this is not allowed to prevent accidental data loss", rel_path, rel_out_path)
 
-                # cache rtime_ms for performance
+                # cache stime_ms for performance
                 try:
                     file_modified_ms = file_mtimes_ms[abs_out_path]
                 except KeyError:
-                    file_modified_ms = ReqresExpr(wrr_loadf(abs_out_path), abs_out_path).rtime_ms
+                    file_modified_ms = ReqresExpr(wrr_loadf(abs_out_path), abs_out_path).stime_ms
                     file_mtimes_ms[abs_out_path] = file_modified_ms
 
-                if file_modified_ms >= rrexpr.rtime_ms:
+                if file_modified_ms >= rrexpr.stime_ms:
                     # target in newer
                     return
 
@@ -301,7 +301,7 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
         if cargs.dry_run:
             return
 
-        intent_log[abs_out_path] = (rrexpr.rtime_ms, need_to_unlink, abs_path)
+        intent_log[abs_out_path] = (rrexpr.stime_ms, need_to_unlink, abs_path)
         if not cargs.lazy and len(intent_log) >= cargs.batch:
             perform_updates()
 
@@ -584,7 +584,7 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
 - `rename`: rename source files under DESTINATION, will fail if target already exists (default)
 - `hardlink`: create hardlinks from source files to paths under DESTINATION, will fail if target already exists
 - `symlink`: create symlinks from source files to paths under DESTINATION, will fail if target already exists
-- `symlink-update`: create symlinks from source files to paths under DESTINATION, will overwrite the target if `rtime_ms` for the source reqres is newer than the same value for the target
+- `symlink-update`: create symlinks from source files to paths under DESTINATION, will overwrite the target if `stime_ms` for the source reqres is newer than the same value for the target
 """))
 
     grp = cmd.add_mutually_exclusive_group()

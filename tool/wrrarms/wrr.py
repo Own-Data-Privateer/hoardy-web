@@ -102,25 +102,26 @@ Reqres_fields = {
 
 Reqres_derived_attrs = {
     "fs_path": "file system path for the WRR file containing this reqres; str",
-    "stime_ms": "aliast for `request.started_at`; int",
-    "stime": "`stime_ms` rounded down to seconds (UNIX epoch); int",
-    "stime_msq": "three least significant digits of `stime_ms`; int",
-    "syear": "year number of `gmtime(rtime)` (UTC year number of `rtime`); int",
-    "smonth": "month number of `gmtime(rtime)`; int",
-    "sday": "day of the month of `gmtime(rtime)`; int",
-    "shour": "hour of `gmtime(rtime)` in 24h format; int",
-    "sminute": "minute of `gmtime(rtime)`; int",
-    "ssecond": "second of `gmtime(rtime)`; int",
 
-    "rtime_ms": "`response.started_at` if there was a response, `finished_at` otherwise; int",
-    "rtime": "`rtime_ms` rounded down to seconds (UNIX epoch); int",
-    "rtime_msq": "three least significant digits of `rtime_msq`; int",
-    "ryear": "similar to `syear`, but for `rtime`; int",
-    "rmonth": "similar to `smonth`, but for `rtime`; int",
-    "rday": "similar to `sday`, but for `rtime`; int",
-    "rhour": "similar to `shour`, but for `rtime`; int",
-    "rminute": "similar to `sminute`, but for `rtime`; int",
-    "rsecond": "similar to `ssecond`, but for `rtime`; int",
+    "qtime_ms": 'aliast for `request.started_at`; mnemonic: "reQuest TIME"; int',
+    "qtime": "`qtime_ms` rounded down to seconds (UNIX epoch); int",
+    "qtime_msq": "three least significant digits of `qtime_ms`; int",
+    "qyear": "year number of `gmtime(qtime)` (UTC year number of `qtime`); int",
+    "qmonth": "month number of `gmtime(qtime)`; int",
+    "qday": "day of the month of `gmtime(qtime)`; int",
+    "qhour": "hour of `gmtime(qtime)` in 24h format; int",
+    "qminute": "minute of `gmtime(qtime)`; int",
+    "qsecond": "second of `gmtime(qtime)`; int",
+
+    "stime_ms": '`response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; int',
+    "stime": "`stime_ms` rounded down to seconds (UNIX epoch); int",
+    "stime_msq": "three least significant digits of `stime_msq`; int",
+    "syear": "similar to `syear`, but for `stime`; int",
+    "smonth": "similar to `smonth`, but for `stime`; int",
+    "sday": "similar to `sday`, but for `stime`; int",
+    "shour": "similar to `shour`, but for `stime`; int",
+    "sminute": "similar to `sminute`, but for `stime`; int",
+    "ssecond": "similar to `ssecond`, but for `stime`; int",
 
     "ftime_ms": "aliast for `finished_at`; int",
     "ftime": "`ftime_ms` rounded down to seconds (UNIX epoch); int",
@@ -183,33 +184,33 @@ class ReqresExpr:
         reqres = self.reqres
         if name == "method":
             self.items[name] = reqres.request.method
-        elif (name.startswith("s") and \
+        elif (name.startswith("q") and \
               name[1:] in ["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"]):
-            stime_ms = int(reqres.request.started_at)
-            stime = stime_ms // 1000
-            self.items["stime_ms"] = stime_ms
-            self.items["stime"] = stime
-            self.items["stime_msq"] = stime_ms % 1000
-            self._fill_time("s", stime)
-        elif (name.startswith("r") and \
+            qtime_ms = int(reqres.request.started_at)
+            qtime = qtime_ms // 1000
+            self.items["qtime_ms"] = qtime_ms
+            self.items["qtime"] = qtime
+            self.items["qtime_msq"] = qtime_ms % 1000
+            self._fill_time("q", qtime)
+        elif (name.startswith("s") and \
               name[1:] in ["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"]) or \
               name == "status":
             if reqres.response is not None:
-                rtime_ms = int(reqres.response.started_at)
+                stime_ms = int(reqres.response.started_at)
                 status = str(reqres.response.code)
                 if reqres.response.complete:
                     status += "C"
                 else:
                     status += "N"
             else:
-                rtime_ms = int(reqres.finished_at)
+                stime_ms = int(reqres.finished_at)
                 status = "NR"
             self.items["status"] = status
-            rtime = rtime_ms // 1000
-            self.items["rtime_ms"] = rtime_ms
-            self.items["rtime"] = rtime
-            self.items["rtime_msq"] = rtime_ms % 1000
-            self._fill_time("r", rtime)
+            stime = stime_ms // 1000
+            self.items["stime_ms"] = stime_ms
+            self.items["stime"] = stime
+            self.items["stime_msq"] = stime_ms % 1000
+            self._fill_time("s", stime)
         elif (name.startswith("f") and \
               name[1:] in ["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"]):
             ftime_ms = int(reqres.finished_at)

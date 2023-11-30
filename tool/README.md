@@ -140,24 +140,24 @@ Compute an expression EXPR for a reqres stored at PATH and then print it to stdo
       - `finished_at`: request completion time in milliseconds since 1970-01-01 00:00; EpochMsec
     - derived attributes:
       - `fs_path`: file system path for the WRR file containing this reqres; str
-      - `stime_ms`: aliast for `request.started_at`; int
+      - `qtime_ms`: aliast for `request.started_at`; mnemonic: "reQuest TIME"; int
+      - `qtime`: `qtime_ms` rounded down to seconds (UNIX epoch); int
+      - `qtime_msq`: three least significant digits of `qtime_ms`; int
+      - `qyear`: year number of `gmtime(qtime)` (UTC year number of `qtime`); int
+      - `qmonth`: month number of `gmtime(qtime)`; int
+      - `qday`: day of the month of `gmtime(qtime)`; int
+      - `qhour`: hour of `gmtime(qtime)` in 24h format; int
+      - `qminute`: minute of `gmtime(qtime)`; int
+      - `qsecond`: second of `gmtime(qtime)`; int
+      - `stime_ms`: `response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; int
       - `stime`: `stime_ms` rounded down to seconds (UNIX epoch); int
-      - `stime_msq`: three least significant digits of `stime_ms`; int
-      - `syear`: year number of `gmtime(rtime)` (UTC year number of `rtime`); int
-      - `smonth`: month number of `gmtime(rtime)`; int
-      - `sday`: day of the month of `gmtime(rtime)`; int
-      - `shour`: hour of `gmtime(rtime)` in 24h format; int
-      - `sminute`: minute of `gmtime(rtime)`; int
-      - `ssecond`: second of `gmtime(rtime)`; int
-      - `rtime_ms`: `response.started_at` if there was a response, `finished_at` otherwise; int
-      - `rtime`: `rtime_ms` rounded down to seconds (UNIX epoch); int
-      - `rtime_msq`: three least significant digits of `rtime_msq`; int
-      - `ryear`: similar to `syear`, but for `rtime`; int
-      - `rmonth`: similar to `smonth`, but for `rtime`; int
-      - `rday`: similar to `sday`, but for `rtime`; int
-      - `rhour`: similar to `shour`, but for `rtime`; int
-      - `rminute`: similar to `sminute`, but for `rtime`; int
-      - `rsecond`: similar to `ssecond`, but for `rtime`; int
+      - `stime_msq`: three least significant digits of `stime_msq`; int
+      - `syear`: similar to `syear`, but for `stime`; int
+      - `smonth`: similar to `smonth`, but for `stime`; int
+      - `sday`: similar to `sday`, but for `stime`; int
+      - `shour`: similar to `shour`, but for `stime`; int
+      - `sminute`: similar to `sminute`, but for `stime`; int
+      - `ssecond`: similar to `ssecond`, but for `stime`; int
       - `ftime_ms`: aliast for `finished_at`; int
       - `ftime`: `ftime_ms` rounded down to seconds (UNIX epoch); int
       - `ftime_msq`: three least significant digits of `ftime_msq`; int
@@ -270,7 +270,7 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
     - `rename`: rename source files under DESTINATION, will fail if target already exists (default)
     - `hardlink`: create hardlinks from source files to paths under DESTINATION, will fail if target already exists
     - `symlink`: create symlinks from source files to paths under DESTINATION, will fail if target already exists
-    - `symlink-update`: create symlinks from source files to paths under DESTINATION, will overwrite the target if `rtime_ms` for the source reqres is newer than the same value for the target
+    - `symlink-update`: create symlinks from source files to paths under DESTINATION, will overwrite the target if `stime_ms` for the source reqres is newer than the same value for the target
   - `--batch-number INT`
   : batch at most this many `--action`s together (default: `1024`), making this larger improves performance at the cost of increased memory consumption, setting it to zero will force all `--action`s to be applied immediately
   - `--lazy`
@@ -278,8 +278,8 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   - `-o FORMAT, --output FORMAT`
   : format describing the generated output path, an alias name or a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
-      - `default`: `%(ryear)d/%(rmonth)02d/%(rday)02d/%(rhour)02d%(rminute)02d%(rsecond)02d%(rtime_msq)03d_%(stime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr` (default)
-      - `short`: `%(ryear)d/%(rmonth)02d/%(rday)02d/%(rtime_ms)d_%(stime_ms)s.%(num)d.wrr`
+      - `default`: `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr` (default)
+      - `short`: `%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d.wrr`
       - `surl`: `%(scheme)s/%(netloc)s/%(path)s%(oqm)s%(query)s`
       - `url`: `%(netloc)s/%(path)s%(oqm)s%(query)s`
       - `surl_msn`: `%(scheme)s/%(netloc)s/%(path)s%(oqm)s%(query)s_%(method)s_%(status)s.%(num)d.wrr`
