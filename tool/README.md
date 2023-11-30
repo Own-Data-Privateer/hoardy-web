@@ -176,11 +176,14 @@ Compute an expression EXPR for a reqres stored at PATH and then print it to stdo
       - `hostname`: hostname part of `request.url`
       - `rhostname`: hostname part of `request.url` with the order of parts reversed, e.g. `"https://www.example.com"` -> `"com.example.www"`
       - `raw_path`: raw path part of `request.url`, e.g. `"https://www.example.com"` -> `""`, `"https://www.example.com/"` -> `"/"`, `"https://www.example.com/index.html"` -> `"/index.html"`
-      - `path`: `request.url.path_raw` without the leading slash, if any, e.g. `"https://www.example.com"` -> `""`, `"https://www.example.com/"` -> `""`, `"https://www.example.com/index.html"` -> `"index.html"`
-      - `ipath`: `path + "index.html"` if `path` is empty or ends with a slash
+      - `path`: `raw_path` without the leading slash, if any, e.g. `"https://www.example.com"` -> `""`, `"https://www.example.com/"` -> `""`, `"https://www.example.com/index.html"` -> `"index.html"`
+      - `ipath`: `path + "index.html"` if `path` is empty or ends with a slash, `path` otherwise
       - `query`: query part of `request.url` (everything after the `?` character and before the `#` character)
       - `nquery`: normalized `query` (with empty query parameters removed)
-      - `oqm`: optional question mark: `?` character if `query` is non-empty and an empty string otherwise
+      - `nquery_url`: `full_url` with normalized `query`; str
+      - `oqm`: optional query mark: `?` character if `query` is non-empty, an empty string otherwise; str
+      - `fragment`: fragment (hash) part of the url; str
+      - `ofm`: optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str
     - a compound expression built by piping (`|`) the above, for example:
       - `net_url|sha256`
       - `net_url|sha256|prefix 4`

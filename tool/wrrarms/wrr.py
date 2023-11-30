@@ -142,11 +142,14 @@ Reqres_derived_attrs = {
     "hostname": "hostname part of `request.url`",
     "rhostname": 'hostname part of `request.url` with the order of parts reversed, e.g. `"https://www.example.com"` -> `"com.example.www"`',
     "raw_path": 'raw path part of `request.url`, e.g. `"https://www.example.com"` -> `""`, `"https://www.example.com/"` -> `"/"`, `"https://www.example.com/index.html"` -> `"/index.html"`',
-    "path": '`request.url.path_raw` without the leading slash, if any, e.g. `"https://www.example.com"` -> `""`, `"https://www.example.com/"` -> `""`, `"https://www.example.com/index.html"` -> `"index.html"`',
-    "ipath": '`path + "index.html"` if `path` is empty or ends with a slash',
+    "path": '`raw_path` without the leading slash, if any, e.g. `"https://www.example.com"` -> `""`, `"https://www.example.com/"` -> `""`, `"https://www.example.com/index.html"` -> `"index.html"`',
+    "ipath": '`path + "index.html"` if `path` is empty or ends with a slash, `path` otherwise',
     "query": "query part of `request.url` (everything after the `?` character and before the `#` character)",
     "nquery": "normalized `query` (with empty query parameters removed)",
-    "oqm": "optional question mark: `?` character if `query` is non-empty and an empty string otherwise",
+    "nquery_url": "`full_url` with normalized `query`; str",
+    "oqm": "optional query mark: `?` character if `query` is non-empty, an empty string otherwise; str",
+    "fragment": "fragment (hash) part of the url; str",
+    "ofm": "optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str",
 }
 
 class ReqresExpr:
@@ -219,18 +222,22 @@ class ReqresExpr:
                       "scheme", "netloc", "hostname", "rhostname",
                       "raw_path", "path",
                       "oqm",
-                      "query", "nquery"]:
+                      "query", "nquery", "nquery_url",
+                      "ofm", "fragment"]:
             url = reqres.request.url
             self.items["full_url"] = url
             purl = _up.urlsplit(url)
+            netloc = purl.netloc
             query = purl.query
             oqm = "?" if query != "" else ""
+            fragment = purl.fragment
+            ofm = "#" if fragment != "" else ""
 
-            net_url = f"{purl.scheme}://{purl.netloc}{purl.path}{oqm}{query}"
+            net_url = f"{purl.scheme}://{netloc}{purl.path}{oqm}{query}"
             self.items["net_url"] = net_url
 
             self.items["scheme"] = purl.scheme
-            self.items["netloc"] = purl.netloc
+            self.items["netloc"] = netloc
 
             hostname = purl.hostname
             if hostname is None: assert False
@@ -254,6 +261,12 @@ class ReqresExpr:
             self.items["query"] = query
             nquery = _up.urlencode(_up.parse_qsl(query))
             self.items["nquery"] = nquery
+
+            nquery_url = f"{purl.scheme}://{netloc}{purl.path}{oqm}{nquery}{ofm}{fragment}"
+            self.items["nquery_url"] = nquery_url
+
+            self.items["ofm"] = ofm
+            self.items["fragment"] = fragment
         elif name == "" or name in Reqres_fields:
             if name == "":
                 field = []
