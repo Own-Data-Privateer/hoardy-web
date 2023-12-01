@@ -168,7 +168,8 @@ output_aliases = {
     "flat":                  "%(hostname)s/%(ipath|unquote|replace / __|abbrev 120)s%(oqm)s%(nquery|unquote_plus|replace / __|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.wrr",
 }
 
-variance_help = _("your `--output` format fails to provide enough variance (did your forget to place a `%%(num)d` substitution in there?); this is not allowed to prevent accidental data loss")
+not_allowed = _("; this is not allowed to prevent accidental data loss")
+variance_help = _("; your `--output` format fails to provide enough variance (did your forget to place a `%%(num)d` substitution in there?)") + not_allowed
 
 def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqres, str, str], None],
                                                               _t.Callable[[], None]]:
@@ -245,7 +246,8 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
                     if _os.path.samefile(abs_path, prev_abs_path):
                         # batched source and this are the same file
                         return
-                    raise Failure(f"trying to {cargs.action} `%s` to `%s` which is already batched to be taken from `%s`; {variance_help}", rel_path, rel_out_path, prev_abs_path)
+                    raise Failure(_(f"trying to {cargs.action} `%s` to `%s` which is already batched to be taken from `%s`") +
+                                  variance_help, rel_path, rel_out_path, prev_abs_path)
 
                 if prev_modified_ms >= rrexpr.stime_ms:
                     # batched source in newer
@@ -273,7 +275,8 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
 
             if cargs.action == "symlink-update":
                 if not _stat.S_ISLNK(out_stat.st_mode):
-                    raise Failure(f"trying to {cargs.action} `%s` to `%s` which already exists and is not a symlink; this is not allowed to prevent accidental data loss", rel_path, rel_out_path)
+                    raise Failure(_(f"trying to {cargs.action} `%s` to `%s` which already exists and is not a symlink") +
+                                  not_allowed, rel_path, rel_out_path)
 
                 # cache stime_ms for performance
                 try:
@@ -290,7 +293,8 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
                 break
 
             if prev_rel_out_path == rel_out_path:
-                raise Failure(f"trying to {cargs.action} `%s` to `%s` which already exists and is not the same file; {variance_help}", rel_path, rel_out_path)
+                raise Failure(_(f"trying to {cargs.action} `%s` to `%s` which already exists and is not the same file") +
+                              variance_help, rel_path, rel_out_path)
             prev_rel_out_path = rel_out_path
             continue
 
