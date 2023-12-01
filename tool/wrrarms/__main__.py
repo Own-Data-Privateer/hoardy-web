@@ -484,7 +484,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     parser.set_defaults(func=no_cmd)
 
     def add_errors(cmd : _t.Any) -> None:
-        cmd.add_argument("--errors", choices=["fail", "skip", "ignore"], default="fail", help=_("""when an error occurs:
+        grp = cmd.add_argument_group("error handling")
+        grp.add_argument("--errors", choices=["fail", "skip", "ignore"], default="fail", help=_("""when an error occurs:
 - `fail`: report failure and stop the execution (default)
 - `skip`: report failure but skip the reqres that produced it from the output and continue
 - `ignore`: `skip`, but don't report the failure"""))
@@ -556,9 +557,10 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     add_errors(cmd)
     add_filters(cmd)
 
-    grp = cmd.add_mutually_exclusive_group()
+    agrp = cmd.add_argument_group("output")
+    grp = agrp.add_mutually_exclusive_group()
     grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("output absolute paths of matching WRR files terminated with `\\n` (LF) newline characters to stdout (default)"))
-    cmd.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of matching WRR files terminated with `\\0` (NUL) bytes to stdout"))
+    grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of matching WRR files terminated with `\\0` (NUL) bytes to stdout"))
     cmd.set_defaults(terminator = b"\n")
 
     add_stdin0(cmd)
@@ -567,7 +569,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 
     # organize
     cmd = subparsers.add_parser("organize", help=_("rename/hardlink/symlink WRR files based on their metadata"),
-                                description = _(f"""Rename/hardlink/symlink given WRR files to DESTINATION based on their metadata.
+                                description = _(f"""Rename/hardlink/symlink given WRR files to `DESTINATION` based on their metadata.
 
 Operations that could lead to accidental data loss are not permitted.
 E.g. `{__package__} organize --action rename` will not overwrite any files, which is why the default `--output` contains `%(num)d`."""))
@@ -578,10 +580,11 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
     grp.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
     grp.add_argument("-q", "--quiet", action="store_true", help=_("don't log computed updates to stderr"))
 
-    grp = cmd.add_mutually_exclusive_group()
+    agrp = cmd.add_argument_group("output")
+    grp = agrp.add_mutually_exclusive_group()
     grp.add_argument("-n", "--no-output", dest="terminator", action="store_const", const = None, help=_("don't print anything to stdout (default)"))
     grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("output absolute paths of newly produced files terminated with `\\n` (LF) newline characters to stdout"))
-    cmd.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of newly produced files terminated with `\\0` (NUL) bytes to stdout"))
+    grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of newly produced files terminated with `\\0` (NUL) bytes to stdout"))
     cmd.set_defaults(terminator = None)
 
     cmd.add_argument("-a", "--action", choices=["rename", "hardlink", "symlink", "symlink-update"], default="rename", help=_("""organize how:
@@ -621,13 +624,15 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
 - raw: concatenate raw values (termination is controlled by `*-terminated` options)
 """))
 
-    grp = cmd.add_mutually_exclusive_group()
-    grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("terminate `raw` output values with `\\n` (LF) newline characters (default)"))
-    cmd.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("terminate `raw` output values with `\\0` (NUL) bytes"))
+    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute, see `{__package__} get --expr` for more info on expression format, can be specified multiple times (default: `%(default)s`); to dump all the fields of a reqres, specify "`.`"'))
+
+    agrp = cmd.add_argument_group("`--format=raw` output")
+    grp = agrp.add_mutually_exclusive_group()
     grp.add_argument("-n", "--not-terminated", dest="terminator", action="store_const", const = b"", help=_("don't terminate `raw` output values with anything, just concatenate them"))
+    grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("terminate `raw` output values with `\\n` (LF) newline characters (default)"))
+    grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("terminate `raw` output values with `\\0` (NUL) bytes"))
     cmd.set_defaults(terminator = b"\n")
 
-    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute, see `{__package__} get --expr` for more info on expression format, can be specified multiple times (default: `%(default)s`); to dump all the fields of a reqres, specify "`.`"'))
     add_paths(cmd)
     cmd.set_defaults(func=cmd_stream)
 

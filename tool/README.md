@@ -67,15 +67,17 @@ Pretty-print given WRR files to stdout.
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - options:
+  - `-u, --unabridged`
+  : print all data in full
+  - `--abridged`
+  : shorten long strings for brevity (useful when you want to visually scan through batch data dumps) (default)
+
+- error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
     - `fail`: report failure and stop the execution (default)
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
-  - `-u, --unabridged`
-  : print all data in full
-  - `--abridged`
-  : shorten long strings for brevity (useful when you want to visually scan through batch data dumps) (default)
 
 - filters:
   - `--or EXPR`
@@ -220,17 +222,15 @@ Print paths of WRR files matching specified criteria.
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - options:
+  - `--stdin0`
+  : read zero-terminated PATHs from stdin, these will be processed after PATHs specified as command-line arguments, requires specified `--to`
+
+- error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
     - `fail`: report failure and stop the execution (default)
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
-  - `-l, --lf-terminated`
-  : output absolute paths of matching WRR files terminated with `\n` (LF) newline characters to stdout (default)
-  - `-z, --zero-terminated`
-  : output absolute paths of matching WRR files terminated with `\0` (NUL) bytes to stdout
-  - `--stdin0`
-  : read zero-terminated PATHs from stdin, these will be processed after PATHs specified as command-line arguments, requires specified `--to`
 
 - filters:
   - `--or EXPR`
@@ -238,9 +238,15 @@ Print paths of WRR files matching specified criteria.
   - `--and EXPR`
   : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
 
+- output:
+  - `-l, --lf-terminated`
+  : output absolute paths of matching WRR files terminated with `\n` (LF) newline characters to stdout (default)
+  - `-z, --zero-terminated`
+  : output absolute paths of matching WRR files terminated with `\0` (NUL) bytes to stdout
+
 ### wrrarms organize
 
-Rename/hardlink/symlink given WRR files to DESTINATION based on their metadata.
+Rename/hardlink/symlink given WRR files to `DESTINATION` based on their metadata.
 
 Operations that could lead to accidental data loss are not permitted.
 E.g. `wrrarms organize --action rename` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
@@ -250,21 +256,10 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - options:
-  - `--errors {fail,skip,ignore}`
-  : when an error occurs:
-    - `fail`: report failure and stop the execution (default)
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
   : don't log computed updates to stderr
-  - `-n, --no-output`
-  : don't print anything to stdout (default)
-  - `-l, --lf-terminated`
-  : output absolute paths of newly produced files terminated with `\n` (LF) newline characters to stdout
-  - `-z, --zero-terminated`
-  : output absolute paths of newly produced files terminated with `\0` (NUL) bytes to stdout
   - `-a {rename,hardlink,symlink,symlink-update}, --action {rename,hardlink,symlink,symlink-update}`
   : organize how:
     - `rename`: rename source files under DESTINATION, will fail if target already exists (default)
@@ -309,11 +304,26 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   - `--stdin0`
   : read zero-terminated PATHs from stdin, these will be processed after PATHs specified as command-line arguments, requires specified `--to`
 
+- error handling:
+  - `--errors {fail,skip,ignore}`
+  : when an error occurs:
+    - `fail`: report failure and stop the execution (default)
+    - `skip`: report failure but skip the reqres that produced it from the output and continue
+    - `ignore`: `skip`, but don't report the failure
+
 - filters:
   - `--or EXPR`
   : only work on reqres which match any of these expressions...
   - `--and EXPR`
   : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+
+- output:
+  - `-n, --no-output`
+  : don't print anything to stdout (default)
+  - `-l, --lf-terminated`
+  : output absolute paths of newly produced files terminated with `\n` (LF) newline characters to stdout
+  - `-z, --zero-terminated`
+  : output absolute paths of newly produced files terminated with `\0` (NUL) bytes to stdout
 
 ### wrrarms stream
 
@@ -324,11 +334,6 @@ Compute given expressions for each of given WRR files, encode them into a reques
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - options:
-  - `--errors {fail,skip,ignore}`
-  : when an error occurs:
-    - `fail`: report failure and stop the execution (default)
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
   - `-u, --unabridged`
   : print all data in full
   - `--abridged`
@@ -339,20 +344,29 @@ Compute given expressions for each of given WRR files, encode them into a reques
     - cbor: CBOR (RFC8949)
     - json: JavaScript Object Notation aka JSON (binary data can't be represented, UNICODE replacement characters will be used)
     - raw: concatenate raw values (termination is controlled by `*-terminated` options)
-  - `-l, --lf-terminated`
-  : terminate `raw` output values with `\n` (LF) newline characters (default)
-  - `-z, --zero-terminated`
-  : terminate `raw` output values with `\0` (NUL) bytes
-  - `-n, --not-terminated`
-  : don't terminate `raw` output values with anything, just concatenate them
   - `-e EXPR, --expr EXPR`
   : an expression to compute, see `wrrarms get --expr` for more info on expression format, can be specified multiple times (default: `[]`); to dump all the fields of a reqres, specify "`.`"
+
+- error handling:
+  - `--errors {fail,skip,ignore}`
+  : when an error occurs:
+    - `fail`: report failure and stop the execution (default)
+    - `skip`: report failure but skip the reqres that produced it from the output and continue
+    - `ignore`: `skip`, but don't report the failure
 
 - filters:
   - `--or EXPR`
   : only work on reqres which match any of these expressions...
   - `--and EXPR`
   : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+
+- `--format=raw` output:
+  - `-n, --not-terminated`
+  : don't terminate `raw` output values with anything, just concatenate them
+  - `-l, --lf-terminated`
+  : terminate `raw` output values with `\n` (LF) newline characters (default)
+  - `-z, --zero-terminated`
+  : terminate `raw` output values with `\0` (NUL) bytes
 
 ## Examples
 
