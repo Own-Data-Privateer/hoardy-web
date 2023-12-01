@@ -153,6 +153,8 @@ Reqres_derived_attrs = {
     "ofm": "optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str",
 }
 
+_time_attrs = set(["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"])
+
 class ReqresExpr:
     reqres : Reqres
     items : dict[str, _t.Any]
@@ -185,7 +187,7 @@ class ReqresExpr:
         if name == "method":
             self.items[name] = reqres.request.method
         elif (name.startswith("q") and \
-              name[1:] in ["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"]):
+              name[1:] in _time_attrs):
             qtime_ms = int(reqres.request.started_at)
             qtime = qtime_ms // 1000
             self.items["qtime_ms"] = qtime_ms
@@ -193,7 +195,7 @@ class ReqresExpr:
             self.items["qtime_msq"] = qtime_ms % 1000
             self._fill_time("q", qtime)
         elif (name.startswith("s") and \
-              name[1:] in ["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"]) or \
+              name[1:] in _time_attrs) or \
               name == "status":
             if reqres.response is not None:
                 stime_ms = int(reqres.response.started_at)
@@ -212,7 +214,7 @@ class ReqresExpr:
             self.items["stime_msq"] = stime_ms % 1000
             self._fill_time("s", stime)
         elif (name.startswith("f") and \
-              name[1:] in ["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"]):
+              name[1:] in _time_attrs):
             ftime_ms = int(reqres.finished_at)
             ftime = ftime_ms // 1000
             self.items["ftime_ms"] = ftime_ms
