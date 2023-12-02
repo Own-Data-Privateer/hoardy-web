@@ -1,0 +1,11 @@
+#!/bin/sh -e
+# like `wrrarms-w3m`, but using `wrrarms stream` and `jq` instead
+
+json=$(wrrarms stream --format=json -ue "net_url" -e "nquery_url|unquote_plus" -- "$1")
+url=$(jq -r ".[0][0]" <<< "$json")
+norm=$(jq -r ".[0][1]" <<< "$json")
+echo "# url: $url"
+echo "# normalized: $norm"
+echo
+
+wrrarms run -- w3m -T text/html -dump "$1"

@@ -1,0 +1,4 @@
+#!/bin/sh -e
+# like `wrrarms-xdg-open`, but for `mimi`'s `xdg-open`
+
+exec wrrarms run -- xdg-open --wait "$1"

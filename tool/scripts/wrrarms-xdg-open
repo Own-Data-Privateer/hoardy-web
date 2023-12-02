@@ -1,0 +1,5 @@
+#!/bin/sh -e
+# purpose: open `response.body` of the given WRR file with `xdg-open`
+# this works for Debian's `xdg-open`, which waits for the child process to finish, will probably fail otherwise
+
+exec wrrarms run -- xdg-open "$1"
