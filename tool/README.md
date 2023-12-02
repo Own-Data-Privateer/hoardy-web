@@ -219,7 +219,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   - `-e EXPR, --expr EXPR`
   : the expression to compute, can be specified multiple times, see `{__package__} get --expr` for more info; (default: `response.body|es`)
   - `-n NUM, --num-args NUM`
-  : number of PATHs (default: `1`)
+  : number of `PATH`s (default: `1`)
 
 - output:
   - `--not-terminated`
@@ -239,7 +239,7 @@ Print paths of WRR files matching specified criteria.
 
 - options:
   - `--stdin0`
-  : read zero-terminated PATHs from stdin, these will be processed after PATHs specified as command-line arguments, requires specified `--to`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments, requires specified `--to`
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -278,10 +278,10 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   : don't log computed updates to stderr
   - `-a {rename,hardlink,symlink,symlink-update}, --action {rename,hardlink,symlink,symlink-update}`
   : organize how:
-    - `rename`: rename source files under DESTINATION, will fail if target already exists (default)
-    - `hardlink`: create hardlinks from source files to paths under DESTINATION, will fail if target already exists
-    - `symlink`: create symlinks from source files to paths under DESTINATION, will fail if target already exists
-    - `symlink-update`: create symlinks from source files to paths under DESTINATION, will overwrite the target if `stime_ms` for the source reqres is newer than the same value for the target
+    - `rename`: rename source files under `DESTINATION`, will fail if target already exists (default)
+    - `hardlink`: create hardlinks from source files to paths under `DESTINATION`, will fail if target already exists
+    - `symlink`: create symlinks from source files to paths under `DESTINATION`, will fail if target already exists
+    - `symlink-update`: create symlinks from source files to paths under `DESTINATION`, will overwrite the target if `stime_ms` for the source reqres is newer than the same value for the target
   - `--batch-number INT`
   : batch at most this many `--action`s together (default: `1024`), making this larger improves performance at the cost of increased memory consumption, setting it to zero will force all `--action`s to be applied immediately
   - `--lazy`
@@ -316,9 +316,9 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
       - `num`: number of times an output path like this was seen; this value gets incremened for each new WRR file generating the same path with `num` set to `0` and when the file at the path generated with the current value of `num` already exists; i.e. adding this parameter to your `--output` format will ensure all generated file names will be unique
       - all expressions of `wrrarms get --expr`, which see
   - `-t DESTINATION, --to DESTINATION`
-  : target directory, when unset each source PATH must be a directory which will be treated as its own DESTINATION
+  : target directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`
   - `--stdin0`
-  : read zero-terminated PATHs from stdin, these will be processed after PATHs specified as command-line arguments, requires specified `--to`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments, requires specified `--to`
 
 - error handling:
   - `--errors {fail,skip,ignore}`

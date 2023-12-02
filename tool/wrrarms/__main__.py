@@ -566,14 +566,14 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default=["response.body|es"], help=_("the expression to compute, can be specified multiple times, see `{__package__} get --expr` for more info; (default: `response.body|es`)"))
     add_terminator(cmd)
 
-    cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of PATHs (default: `%(default)s`)"))
+    cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of `PATH`s (default: `%(default)s`)"))
     cmd.add_argument("command", metavar="COMMAND", type=str, help=_("command to spawn"))
     cmd.add_argument("args", metavar="ARG", nargs="*", type=str, help=_("additional arguments to give to the COMMAND"))
     cmd.add_argument("paths", metavar="PATH", nargs="+", type=str, help=_("input WRR file paths to be mapped into new temporary files"))
     cmd.set_defaults(func=cmd_run)
 
     def add_stdin0(cmd : _t.Any) -> None:
-        cmd.add_argument("--stdin0", action="store_true", help=_("read zero-terminated PATHs from stdin, these will be processed after PATHs specified as command-line arguments, requires specified `--to`"))
+        cmd.add_argument("--stdin0", action="store_true", help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments, requires specified `--to`"))
 
     # find
     cmd = subparsers.add_parser("find", help=_("print paths of WRR files matching specified criteria"),
@@ -612,10 +612,10 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
     cmd.set_defaults(terminator = None)
 
     cmd.add_argument("-a", "--action", choices=["rename", "hardlink", "symlink", "symlink-update"], default="rename", help=_("""organize how:
-- `rename`: rename source files under DESTINATION, will fail if target already exists (default)
-- `hardlink`: create hardlinks from source files to paths under DESTINATION, will fail if target already exists
-- `symlink`: create symlinks from source files to paths under DESTINATION, will fail if target already exists
-- `symlink-update`: create symlinks from source files to paths under DESTINATION, will overwrite the target if `stime_ms` for the source reqres is newer than the same value for the target
+- `rename`: rename source files under `DESTINATION`, will fail if target already exists (default)
+- `hardlink`: create hardlinks from source files to paths under `DESTINATION`, will fail if target already exists
+- `symlink`: create symlinks from source files to paths under `DESTINATION`, will fail if target already exists
+- `symlink-update`: create symlinks from source files to paths under `DESTINATION`, will overwrite the target if `stime_ms` for the source reqres is newer than the same value for the target
 """))
 
     grp = cmd.add_mutually_exclusive_group()
@@ -628,7 +628,7 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
                      "- " + _("available substitutions:") + "\n" + \
                      "  - `num`: " + _("number of times an output path like this was seen; this value gets incremened for each new WRR file generating the same path with `num` set to `0` and when the file at the path generated with the current value of `num` already exists; i.e. adding this parameter to your `--output` format will ensure all generated file names will be unique") + "\n" + \
                      "  - " + _(f"all expressions of `{__package__} get --expr`, which see"))
-    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("target directory, when unset each source PATH must be a directory which will be treated as its own DESTINATION"))
+    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("target directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`"))
 
     add_stdin0(cmd)
     add_paths(cmd)
