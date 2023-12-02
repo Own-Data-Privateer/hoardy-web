@@ -65,10 +65,12 @@ def cmd_pprint(cargs : _t.Any) -> None:
     for _ in wrr_map_paths(emit, cargs.paths, cargs.errors):
         pass
 
-def get_bytes(expr : str, path : str) -> bytes:
+def load_wrr(path : str) -> ReqresExpr:
     abs_path = _os.path.abspath(_os.path.expanduser(path))
     reqres = wrr_loadf(abs_path)
-    rrexpr = ReqresExpr(reqres, abs_path)
+    return ReqresExpr(reqres, abs_path)
+
+def get_bytes(expr : str, rrexpr : ReqresExpr) -> bytes:
     value = rrexpr.eval(expr)
 
     if value is None or isinstance(value, (bool, int, float)):
@@ -84,8 +86,14 @@ def get_bytes(expr : str, path : str) -> bytes:
         raise Failure("don't know how to print an expression of type `%s`", type(value).__name__)
 
 def cmd_get(cargs : _t.Any) -> None:
-    data = get_bytes(cargs.expr, cargs.path)
-    stdout.write_bytes(data)
+    if len(cargs.exprs) == 0:
+        cargs.exprs = ["response.body|es"]
+
+    rrexpr = load_wrr(cargs.path)
+    for expr in cargs.exprs:
+        data = get_bytes(expr, rrexpr)
+        stdout.write_bytes(data)
+        stdout.write_bytes(cargs.terminator)
 
 def cmd_run(cargs : _t.Any) -> None:
     if cargs.num_args < 1:
@@ -101,14 +109,17 @@ def cmd_run(cargs : _t.Any) -> None:
     tmp_paths = []
     try:
         for path in paths:
-            data = get_bytes(cargs.expr, path)
+            rrexpr = load_wrr(path)
 
             # TODO: extension guessing
             fileno, tmp_path = _tempfile.mkstemp(prefix = "wrrarms_run_", suffix = ".tmp")
             tmp_paths.append(tmp_path)
 
             with TIOWrappedWriter(_os.fdopen(fileno, "wb")) as f:
-                f.write_bytes(data)
+                for expr in cargs.exprs:
+                    data = get_bytes(expr, rrexpr)
+                    f.write_bytes(data)
+                    f.write_bytes(cargs.terminator)
 
         retcode = _subprocess.Popen([cargs.command] + args + tmp_paths).wait()
         _sys.exit(retcode)
@@ -503,6 +514,14 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         grp.add_argument("--abridged", action="store_true", help=_("shorten long strings for brevity (useful when you want to visually scan through batch data dumps) (default)"))
         cmd.set_defaults(abridged = True)
 
+    def add_terminator(cmd : _t.Any) -> None:
+        agrp = cmd.add_argument_group("output")
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument("--not-terminated", dest="terminator", action="store_const", const = b"", help=_("don't terminate output values with anything, just concatenate them (default)"))
+        grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("terminate output values with `\\n` (LF) newline characters"))
+        grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("terminate output values with `\\0` (NUL) bytes"))
+        cmd.set_defaults(terminator = b"")
+
     def add_paths(cmd : _t.Any) -> None:
         cmd.add_argument("paths", metavar="PATH", nargs="*", type=str, help=_("inputs, can be a mix of files and directories (which will be traversed recursively)"))
 
@@ -516,9 +535,10 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd.set_defaults(func=cmd_pprint)
 
     # get
-    cmd = subparsers.add_parser("get", help=_("print an expression computed from a WRR file to stdout"),
-                                description = _(f"""Compute an expression EXPR for a reqres stored at PATH and then print it to stdout."""))
-    cmd.add_argument("-e", "--expr", metavar="EXPR", default = "response.body|es", help=_('an expression to compute (default: `%(default)s`), a state-transformer (pipeline) which starts from value `None` and applies to it a program built from the following:') + "\n" + \
+    cmd = subparsers.add_parser("get", help=_("print expressions computed from a WRR file to stdout"),
+                                description = _(f"""Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout (terminating each value as specified)."""))
+
+    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_('an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially, see also "output" options below; (default: `response.body|es`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:') + "\n" + \
                      "- " + _("constants and functions:") + "\n" + \
                      "".join([f"  - `{name}`: {_(value[0]).replace('%', '%%')}\n" for name, value in linst_atoms.items()]) + \
                      "- " + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:") + "\n" + \
@@ -534,14 +554,18 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
   - `response.complete|false`: this will print `response.complete` or `False`
   - `response.body|eb`: this will print `response.body` or an empty string, if there was no response
 """)
+    add_terminator(cmd)
 
     cmd.add_argument("path", metavar="PATH", type=str, help=_("input WRR file path"))
     cmd.set_defaults(func=cmd_get)
 
     # run
     cmd = subparsers.add_parser("run", help=_("spawn a process on generated temporary files produced from expressions computed on WRR files"),
-                                description = _("""Compute an expression EXPR for each of NUM reqres stored at PATHs, dump the results into into newly created temporary files, spawn a given COMMAND with given arguments ARGs and the resulting temporary file paths appended as the last NUM arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process."""))
-    cmd.add_argument("-e", "--expr", metavar="EXPR", default = "response.body|es", help=_("the expression to compute, see `{__package__} get --expr` for more info  on expression format (default: `%(default)s`)"))
+                                description = _("""Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files (terminating each value as specified), spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process."""))
+
+    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default=["response.body|es"], help=_("the expression to compute, can be specified multiple times, see `{__package__} get --expr` for more info; (default: `response.body|es`)"))
+    add_terminator(cmd)
+
     cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of PATHs (default: `%(default)s`)"))
     cmd.add_argument("command", metavar="COMMAND", type=str, help=_("command to spawn"))
     cmd.add_argument("args", metavar="ARG", nargs="*", type=str, help=_("additional arguments to give to the COMMAND"))
@@ -582,7 +606,7 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
 
     agrp = cmd.add_argument_group("output")
     grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("-n", "--no-output", dest="terminator", action="store_const", const = None, help=_("don't print anything to stdout (default)"))
+    grp.add_argument("--no-output", dest="terminator", action="store_const", const = None, help=_("don't print anything to stdout (default)"))
     grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("output absolute paths of newly produced files terminated with `\\n` (LF) newline characters to stdout"))
     grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of newly produced files terminated with `\\0` (NUL) bytes to stdout"))
     cmd.set_defaults(terminator = None)
@@ -628,7 +652,7 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
 
     agrp = cmd.add_argument_group("`--format=raw` output")
     grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("-n", "--not-terminated", dest="terminator", action="store_const", const = b"", help=_("don't terminate `raw` output values with anything, just concatenate them"))
+    grp.add_argument("--not-terminated", dest="terminator", action="store_const", const = b"", help=_("don't terminate `raw` output values with anything, just concatenate them"))
     grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("terminate `raw` output values with `\\n` (LF) newline characters (default)"))
     grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("terminate `raw` output values with `\\0` (NUL) bytes"))
     cmd.set_defaults(terminator = b"\n")

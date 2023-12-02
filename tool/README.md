@@ -48,7 +48,7 @@ Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a struct
     - `pprint`
     : pretty-print WRR files
     - `get`
-    : print an expression computed from a WRR file to stdout
+    : print expressions computed from a WRR file to stdout
     - `run`
     : spawn a process on generated temporary files produced from expressions computed on WRR files
     - `find`
@@ -87,7 +87,7 @@ Pretty-print given WRR files to stdout.
 
 ### wrrarms get
 
-Compute an expression EXPR for a reqres stored at PATH and then print it to stdout.
+Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout (terminating each value as specified).
 
 - positional arguments:
   - `PATH`
@@ -95,7 +95,7 @@ Compute an expression EXPR for a reqres stored at PATH and then print it to stdo
 
 - options:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute (default: `response.body|es`), a state-transformer (pipeline) which starts from value `None` and applies to it a program built from the following:
+  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially, see also "output" options below; (default: `response.body|es`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
     - constants and functions:
       - `es`: replace `None` value with an empty string `""`
       - `eb`: replace `None` value with an empty byte string `b""`
@@ -195,9 +195,17 @@ Compute an expression EXPR for a reqres stored at PATH and then print it to stdo
       - `response.complete|false`: this will print `response.complete` or `False`
       - `response.body|eb`: this will print `response.body` or an empty string, if there was no response
 
+- output:
+  - `--not-terminated`
+  : don't terminate output values with anything, just concatenate them (default)
+  - `-l, --lf-terminated`
+  : terminate output values with `\n` (LF) newline characters
+  - `-z, --zero-terminated`
+  : terminate output values with `\0` (NUL) bytes
+
 ### wrrarms run
 
-Compute an expression EXPR for each of NUM reqres stored at PATHs, dump the results into into newly created temporary files, spawn a given COMMAND with given arguments ARGs and the resulting temporary file paths appended as the last NUM arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process.
+Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files (terminating each value as specified), spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process.
 
 - positional arguments:
   - `COMMAND`
@@ -209,9 +217,17 @@ Compute an expression EXPR for each of NUM reqres stored at PATHs, dump the resu
 
 - options:
   - `-e EXPR, --expr EXPR`
-  : the expression to compute, see `{__package__} get --expr` for more info  on expression format (default: `response.body|es`)
+  : the expression to compute, can be specified multiple times, see `{__package__} get --expr` for more info; (default: `response.body|es`)
   - `-n NUM, --num-args NUM`
   : number of PATHs (default: `1`)
+
+- output:
+  - `--not-terminated`
+  : don't terminate output values with anything, just concatenate them (default)
+  - `-l, --lf-terminated`
+  : terminate output values with `\n` (LF) newline characters
+  - `-z, --zero-terminated`
+  : terminate output values with `\0` (NUL) bytes
 
 ### wrrarms find
 
@@ -318,7 +334,7 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
 
 - output:
-  - `-n, --no-output`
+  - `--no-output`
   : don't print anything to stdout (default)
   - `-l, --lf-terminated`
   : output absolute paths of newly produced files terminated with `\n` (LF) newline characters to stdout
@@ -361,7 +377,7 @@ Compute given expressions for each of given WRR files, encode them into a reques
   : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
 
 - `--format=raw` output:
-  - `-n, --not-terminated`
+  - `--not-terminated`
   : don't terminate `raw` output values with anything, just concatenate them
   - `-l, --lf-terminated`
   : terminate `raw` output values with `\n` (LF) newline characters (default)
