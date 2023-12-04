@@ -1,6 +1,6 @@
 # What?
 
-`wrrarms` (`pwebarc-wrrarms`) is a tool for displaying and manipulating Private Web Archive Web Request+Response (pwebarc WRR) files produced by [pWebArc browser extension](https://github.com/Own-Data-Privateer/pwebarc/extension/).
+`wrrarms` (`pwebarc-wrrarms`) is a tool for displaying and manipulating [Private Web Archive (pwebarc)](https://github.com/Own-Data-Privateer/pwebarc/) Web Request+Response (WRR) files produced by [pWebArc browser extension](https://github.com/Own-Data-Privateer/pwebarc/extension/).
 
 # Quickstart
 
@@ -23,9 +23,48 @@
   python3 -m wrrarms --help
   ```
 
-## How to use
+## Building a hierarchy of latest versions of all URLs
 
-See the [examples section](#examples) for examples.
+Assuming you keep your WRR dumps in `~/pwebarc/raw` you can generate a `wget`-like file hierarchy of symlinks under `~/pwebarc/latest` pointing to the latest version of each URL in `~/pwebarc/raw` with
+
+``` {.bash}
+wrrarms organize --action symlink-update --output hupq --to ~/pwebarc/latest --and "status|== 200C" ~/pwebarc/raw
+```
+
+or, using a bit better format:
+
+``` {.bash}
+wrrarms organize --action symlink-update --output hupnq --to ~/pwebarc/latest --and "status|== 200C" ~/pwebarc/raw
+```
+
+Personally, I prefer the `flat` format as I dislike deep file hierarchies and it allows to see and filter new dumps more easily in `ranger` file browser:
+
+``` {.bash}
+wrrarms organize --action symlink-update --output flat --to ~/pwebarc/latest --and "status|== 200C" ~/pwebarc/raw
+```
+
+If you have a lot of WRR files all of the above commands could be rather slow, so if you want to keep your tree updated in real-time you should use a two-stage `--stdin0` pipeline shown in the [examples section](#examples) below instead.
+
+## Previewing WRR files
+
+See [`wrrarms-xdg-open` script](./scripts/wrrarms-xdg-open) for a way to `xdg-open` `.wrr` files.
+
+See [`wrrarms-w3m` script](./scripts/wrrarms-w3m) for an example of how you can use `wrrarms` and `w3m` to turn your WRR files containing HTML pages into readable plain-text.
+There is also [`wrrarms-pandoc` script](./scripts/wrrarms-pandoc) that does the same via `pandoc`.
+
+See the [scripts sub-directory](./scripts) for more examples.
+
+# TODO
+
+- Rendering into static website mirrors a-la `wget -k`.
+
+  Currently, the extension archives everything except WebSockets data but `wrrarms` + `pandoc` only work well for dumps of mostly plain text websites (which is the main use case I use this whole thing for: scrape a website and then mass-convert everything to PDFs via some `pandoc` magic, then index those with `recoll`).
+
+- Converter from `mitmproxy` dumps, HAR, WARC, and PCAP files into WRR.
+- Converter from WRR to WARC.
+- Data deduplication.
+- Non-dumb server with time+URL index and replay, i.e. a local [Wayback Machine](https://web.archive.org/).
+- Full text indexing and search.
 
 # Usage
 
