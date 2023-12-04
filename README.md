@@ -32,19 +32,25 @@ And, obviously, you wouldn't want it to archive you banking app's output.
 
 ## <span id="quickstart-with-python"/>On a system with Python installed
 
-- Download [the dumb archiving server script](./dumb_server/pwebarc_dumb_dump_server.py) (aka `pwebarc_dumb_dump_server.py`) and run it, it has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python and is very simple. It will start saving data into `pwebarc-dump` directory wherever you run it from.
-- On Firefox/Tor Browser/etc: [Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Installing from source on Firefox/Tor Browser](#build-firefox).
+- Download [the dumb archiving server `pwebarc_dumb_dump_server.py` script](./dumb_server/pwebarc_dumb_dump_server.py) and run it, it has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python and is very simple.
+  It will start saving data into `pwebarc-dump` directory wherever you run it from.
 
+  Alternatively, install via `pip install pwebarc-dumb-dump-server` and run as `pwebarc-dumb-dump-server`.
+  See [there](./dumb_server/) for more info.
+- On Firefox/Tor Browser/etc: [Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Installing from source on Firefox/Tor Browser](#build-firefox).
 - On Chromium/Chrome/etc (experimental): See [Installing on Chromium/Chrome](#install-chromium) or [Installing from source on Chromium/Chrome](#build-chromium).
 
-Congratulations, you are now collecting your network traffic.
-
-Next, you should read the extension's ["Help" page](./extension/page/help.org).
-It has lots of useful details about how it works and quirks of different browsers.
-If you open it by clicking the "Help" button in the extension's UI, then hovering over or clicking on links in there will highlight relevant settings.
+Congratulations, you are now collecting and archiving your network traffic.
+If you want to collect everything and don't have time to figure out how to use the rest of this suite of tools right this moment, you can stop here, if you are successfully archiving your data (the extension will tell you if you are), the rest of this can wait.
 
 It took me about 6 months before I had to refer back to previously archived data for the first time when I started using `mitmproxy` to sporadically collect my HTTP traffic in 2017.
 So, I recommend you start collecting immediately and figure out how to use the rest of this suite later.
+
+- Next, you should read the extension's ["Help" page](./extension/page/help.org).
+  It has lots of useful details about how it works and quirks of different browsers.
+  If you open it by clicking the "Help" button in the extension's UI, then hovering over or clicking on links in there will highlight relevant settings.
+
+- Next, you should install and learn to use [`pwebarc-wrrarms` tool](./tool/) which allows you to view and manage files produced by the extension and the archiving server.
 
 ## On a system with no Python installed
 
@@ -67,17 +73,25 @@ So, I recommend you start collecting immediately and figure out how to use the r
 # Parts and pieces
 
 - Required:
-    - The [browser extension](./extension/) that collects all HTTP requests and responses your browser fetches and sends them to the archiving server.
-    - The [dumb archiving server](./dumb_server/) that simply dumps everything it gets to disk one file per HTTP request+response.
+    - The [`pWebArc` browser extension](./extension/) that collects all HTTP requests and responses your browser fetches and sends them to the archiving server.
+    - The [`pwebarc-dumb-dump-server` dumb archiving server](./dumb_server/) that simply dumps everything it gets to disk one file per HTTP request+response.
+- Optional:
+    - The [`pwebarc-wrrarms` tool](./tool/) that allows you to display, search, organize, and manipulate archive files.
 - Recommended:
     - [A patch for Firefox](./firefox/) to allow the above extension to properly collect request POST data. This is not required, but could be useful if you want to archive POST requests properly.
       See "Quirks and Bugs" section of extension's ["Help" page](./extension/page/help.org) for more info.
-- WIP:
-    - A tool to display, search, manipulate, and deduplicate archive files.
-    - A set of tools to convert mitmproxy, WARC, HAR, and PCAP files into the internal format used by `pwebarc` and from the internal format to at least WARC.
-    - (eventually) A non-dumb server with data deduplication, timelines, full text search, and etc.
 
-# <span id="alternatives"/>But you could do X instead
+## Project Status
+
+- [`pWebArc` browser extension](./extension/) is stable and fairly well-tested in Firefox and Tor Browser (for me and the users I know of), it also appears to be stable in Chromium (with my own intermittent use there).
+  Normal HTTP request+responses get archived really well (I learned lots about nefarious things some of the websites I visit do in the background) but it lacks the ability to archive WebSockets data, which would be nice to have, but WebExtension API provides no API for doing that, unfortunately.
+
+- [`pwebarc-dumb-dump-server` dumb archiving server](./dumb_server/) is stable.
+
+- [`pwebarc-wrrarms` tool](./tool/) is in beta, it does about 70% of the stuff I want it to do ATM.
+  See [the TODO list](./tool/#todo) for more info.
+
+# <span id="alternatives"/>Alternatives, aka "But you could do X instead"
 
 ## But you could use [WebScrapBook](https://github.com/danny0838/webscrapbook) instead
 
