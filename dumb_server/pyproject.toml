@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "pwebarc-dumb-dump-server"
-version = "1.5"
+version = "1.5.5"
 authors = [{ name = "Jan Malakhovski", email = "oxij@oxij.org" }]
 description = "A very simple archiving server for pWebArc extension of Private Web Archive (pwebarc) project"
 readme = "README.md"

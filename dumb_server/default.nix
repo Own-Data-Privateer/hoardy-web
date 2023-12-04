@@ -7,7 +7,7 @@ with pkgs;
 
 python3Packages.buildPythonApplication rec {
   pname = "pwebarc-dumb-dump-server";
-  version = "1.5";
+  version = "1.5.5";
   format = "pyproject";
 
   inherit (source) src unpackPhase;
