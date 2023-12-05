@@ -34,30 +34,39 @@ from kisstdlib.logging import *
 from .wrr import *
 from .output import *
 
-def is_filtered_out(rrexpr : ReqresExpr, cargs : _t.Any) -> bool:
-    def eval_it(expr : str) -> bool:
-        ev = rrexpr.eval(expr)
+def compile_filters(cargs : _t.Any) -> None:
+    cargs.alls = list(map(lambda expr: (expr, linst_compile(expr, linst_atom_or_env)), cargs.alls))
+    cargs.anys = list(map(lambda expr: (expr, linst_compile(expr, linst_atom_or_env)), cargs.anys))
+
+def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr) -> bool:
+    def eval_it(expr : str, func : LinstFunc) -> bool:
+        ev = func(rrexpr.get_value, None)
         if not isinstance(ev, bool):
-            raise CatastrophicFailure("expression `%s` does not evaluate to `bool`, got `%s` instead", expr, repr(ev))
+            e = CatastrophicFailure(_("while evaluating `%s`: expected a value of type `bool`, got `%s`"), expr, repr(ev))
+            if rrexpr.fs_path is not None:
+                e.elaborate(_("while processing `%s`"), rrexpr.fs_path)
+            raise e
         return ev
 
+    for data in cargs.alls:
+        if not eval_it(*data):
+            return False
+
+    for data in cargs.anys:
+        if eval_it(*data):
+            return True
+
     if len(cargs.anys) > 0:
-        res = False
+        return False
     else:
-        res = True
-
-    for expr in cargs.anys:
-        res = res or eval_it(expr)
-
-    for expr in cargs.alls:
-        res = res and eval_it(expr)
-
-    return not res
+        return True
 
 def cmd_pprint(cargs : _t.Any) -> None:
+    compile_filters(cargs)
+
     def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
         rrexpr = ReqresExpr(reqres, abs_path)
-        if is_filtered_out(rrexpr, cargs): return
+        if not filters_allow(cargs, rrexpr): return
 
         wrr_pprint(stdout, reqres, abs_path, cargs.abridged)
         stdout.flush()
@@ -136,11 +145,12 @@ def slurp_stdin0(cargs : _t.Any) -> None:
     cargs.paths += paths
 
 def cmd_find(cargs : _t.Any) -> None:
+    compile_filters(cargs)
     slurp_stdin0(cargs)
 
     def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
         rrexpr = ReqresExpr(reqres, abs_path)
-        if is_filtered_out(rrexpr, cargs): return
+        if not filters_allow(cargs, rrexpr): return
         stdout.write_bytes(_os.fsencode(abs_path) + cargs.terminator)
         stdout.flush()
 
@@ -236,7 +246,7 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
 
     def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
         rrexpr = ReqresExpr(reqres, abs_path)
-        if is_filtered_out(rrexpr, cargs): return
+        if not filters_allow(cargs, rrexpr): return
 
         rrexpr.items["num"] = 0
         ogprefix = _os.path.join(destination, cargs.output % rrexpr)
@@ -323,6 +333,7 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
     return emit, perform_updates
 
 def cmd_organize(cargs : _t.Any) -> None:
+    compile_filters(cargs)
     if cargs.output in output_aliases:
         cargs.output = output_aliases[cargs.output]
 
@@ -369,11 +380,12 @@ def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
     return stream
 
 def cmd_stream(cargs : _t.Any) -> None:
+    compile_filters(cargs)
     stream = get_StreamEncoder(cargs)
 
     def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
         rrexpr = ReqresExpr(reqres, abs_path)
-        if is_filtered_out(rrexpr, cargs): return
+        if not filters_allow(cargs, rrexpr): return
 
         values : list[_t.Any] = []
         for expr in cargs.exprs:

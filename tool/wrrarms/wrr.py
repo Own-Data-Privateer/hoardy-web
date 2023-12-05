@@ -174,7 +174,7 @@ class ReqresExpr:
         self.items[prefix + "minute"] = dt.tm_min
         self.items[prefix + "second"] = dt.tm_sec
 
-    def _get_value(self, name : str) -> _t.Any:
+    def get_value(self, name : str) -> _t.Any:
         if name.startswith("."):
             name = name[1:]
 
@@ -286,17 +286,11 @@ class ReqresExpr:
         return self.items[name]
 
     def __getattr__(self, name : str) -> _t.Any:
-        return self._get_value(name)
-
-    def _get_atom(self, name : str) -> LinstAtom:
-        try:
-            return linst_atoms[name][1]
-        except KeyError:
-            return linst_getenv(name)
+        return self.get_value(name)
 
     def eval(self, expr : str) -> _t.Any:
-        ce = linst_compile(expr, self._get_atom)
-        return ce(self._get_value, None)
+        ce = linst_compile(expr, linst_atom_or_env)
+        return ce(self.get_value, None)
 
     def __getitem__(self, expr : str) -> _t.Any:
         # this is used in `format_string % self` expressions

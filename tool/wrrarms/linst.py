@@ -208,3 +208,9 @@ linst_atoms : dict[str, tuple[str, LinstAtom]] = {
     "replace": ("replace all occurences of the first argument in the current value with the second argument, casts arguments to the same type as the current value",
           linst_apply2(str, str, lambda v, arg1, arg2: v.replace(linst_cast_val(v, arg1), linst_cast_val(v, arg2)))),
 }
+
+def linst_atom_or_env(name : str) -> LinstAtom:
+    try:
+        return linst_atoms[name][1]
+    except KeyError:
+        return linst_getenv(name)
