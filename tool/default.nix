@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> {}
 , lib ? pkgs.lib
-, kisstdlib ? import ../../kisstdlib { inherit pkgs; }
+, kisstdlib ? import ../vendor/kisstdlib { inherit pkgs; }
 , source ? import ../source.nix { inherit pkgs; }
 , debug ? false
 }:
