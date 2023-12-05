@@ -1,5 +1,7 @@
 # Copyright (c) 2023 Jan Malakhovski <oxij@oxij.org>
 #
+# This file is a part of pwebarc project.
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -12,8 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
-# This file is part of pwebarc project.
 
 import cbor2 as _cbor2
 import dataclasses as _dc
