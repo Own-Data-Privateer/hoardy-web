@@ -42,9 +42,9 @@ def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr) -> bool:
     def eval_it(expr : str, func : LinstFunc) -> bool:
         ev = func(rrexpr.get_value, None)
         if not isinstance(ev, bool):
-            e = CatastrophicFailure(_("while evaluating `%s`: expected a value of type `bool`, got `%s`"), expr, repr(ev))
+            e = CatastrophicFailure(_("while evaluating %s: expected a value of type `bool`, got `%s`"), expr, repr(ev))
             if rrexpr.fs_path is not None:
-                e.elaborate(_("while processing `%s`"), rrexpr.fs_path)
+                e.elaborate(_("while processing %s"), rrexpr.fs_path)
             raise e
         return ev
 
@@ -92,7 +92,7 @@ def get_bytes(expr : str, rrexpr : ReqresExpr) -> bytes:
     elif isinstance(value, bytes):
         return value
     else:
-        raise Failure("don't know how to print an expression of type `%s`", type(value).__name__)
+        raise Failure(_("don't know how to print an expression of type `%s`"), type(value).__name__)
 
 def cmd_get(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
@@ -106,9 +106,9 @@ def cmd_get(cargs : _t.Any) -> None:
 
 def cmd_run(cargs : _t.Any) -> None:
     if cargs.num_args < 1:
-        raise Failure("must have at least one PATH")
+        raise Failure(_("`run` sub-command requires at least one PATH"))
     elif cargs.num_args - 1 > len(cargs.args):
-        raise Failure("not enough arguments to satisfy `--num-args`")
+        raise Failure(_("not enough arguments to satisfy `--num-args`"))
 
     # move (num_args - 1) arguments from args to paths
     ntail = len(cargs.args) + 1 - cargs.num_args
@@ -141,7 +141,7 @@ def slurp_stdin0(cargs : _t.Any) -> None:
     paths = stdin.read_all_bytes().split(b"\0")
     last = paths.pop()
     if last != b"":
-        raise Failure("`--stdin0` input format error")
+        raise Failure(_("`--stdin0` input format error"))
     cargs.paths += paths
 
 def cmd_find(cargs : _t.Any) -> None:
@@ -213,7 +213,9 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
         assert False
 
     if cargs.dry_run:
-        action_desc = _("dry-run: (not)") + " " + action_desc
+        action_desc = _(f"dry-run: (not) {action_desc}")
+    else:
+        action_desc = _(action_desc)
 
     seen_count_state : dict[str, int] = {}
     def seen_count(value : str) -> int:
@@ -342,26 +344,26 @@ def cmd_organize(cargs : _t.Any) -> None:
         slurp_stdin0(cargs)
 
         emit, finish = make_organize(cargs, cargs.destination)
-        for _ in wrr_map_paths(emit, cargs.paths, cargs.errors, follow_symlinks=False):
+        for _e in wrr_map_paths(emit, cargs.paths, cargs.errors, follow_symlinks=False):
             pass
         finish()
     else:
         # each path is its own destination
         if cargs.stdin0:
-            raise Failure("`--stdin0` but no `--to` is specified")
+            raise Failure(_("`--stdin0` but no `--to` is specified"))
 
         for path in cargs.paths:
             try:
                 fstat = _os.stat(_os.path.expanduser(path))
             except FileNotFoundError:
-                raise Failure("%s does not exist", path)
-            else:
-                if cargs.destination is None and not _stat.S_ISDIR(fstat.st_mode):
-                    raise Failure("%s is not a directory but no `--to` is specified", path)
+                raise Failure(_("%s does not exist"), path)
+
+            if not _stat.S_ISDIR(fstat.st_mode):
+                raise Failure(_("%s is not a directory but no `--to` is specified"), path)
 
         for path in cargs.paths:
             emit, finish = make_organize(cargs, path)
-            for _ in wrr_map_paths(emit, [path], cargs.errors, follow_symlinks=False):
+            for _e in wrr_map_paths(emit, [path], cargs.errors, follow_symlinks=False):
                 pass
             finish()
 
@@ -692,10 +694,10 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
     try:
         cargs.func(cargs)
     except KeyboardInterrupt:
-        stderr.write_str_ln("Interrupted!")
+        stderr.write_str_ln(_("Interrupted!"))
         errorcnt.errors += 1
     except CatastrophicFailure as exc:
-        stderr.write_str_ln("error: " + str(exc))
+        stderr.write_str_ln(_("error") + ": " + str(exc))
         errorcnt.errors += 1
     except Exception as exc:
         _traceback.print_exception(type(exc), exc, exc.__traceback__, 100, stderr)
