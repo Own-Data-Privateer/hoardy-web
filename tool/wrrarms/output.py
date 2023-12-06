@@ -61,13 +61,13 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
     req_complete = "incomplete"
     if req.complete:
         req_complete = "complete"
-    fobj.write_str_ln(f"request {req_complete} {str(len(req.headers.value))} headers {str(len(req.body))} bytes")
+    fobj.write_str_ln(f"request {req_complete} {str(len(req.headers))} headers {str(len(req.body))} bytes")
 
     if res is not None:
         res_complete = "incomplete"
         if res.complete:
             res_complete = "complete"
-        fobj.write_str_ln(f"response {res_complete} {str(len(res.headers.value))} headers {str(len(res.body))} bytes")
+        fobj.write_str_ln(f"response {res_complete} {str(len(res.headers))} headers {str(len(res.body))} bytes")
     else:
         fobj.write_str_ln("response none")
 
@@ -163,7 +163,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
         fobj.write_bytes_ln(data)
 
     def dump_headers(headers : Headers, indent : str = "") -> None:
-        for name, value in headers.value:
+        for name, value in headers:
             fobj.write_str(indent + name + ": ")
             fobj.write_bytes_ln(value)
 

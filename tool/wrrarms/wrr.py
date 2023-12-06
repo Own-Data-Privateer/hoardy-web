@@ -33,28 +33,19 @@ from kisstdlib.path import *
 from .type import *
 from .linst import *
 
-HeadersArray = list[tuple[str, bytes]]
-class Headers(WrappedValue[HeadersArray]):
-    @classmethod
-    def __instancecheck__(cls, value : _t.Any) -> bool:
-        return HeadersArray.__instancecheck__(value)
+Headers = list[tuple[str, bytes]]
 
 @_dc.dataclass
-class Request(CheckedDataClass):
+class Request:
     started_at : EpochMsec
     method : str
     url : str
     headers : Headers
     complete : bool
-    body : bytes
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        self.started_at = EpochMsec(_t.cast(int, self.started_at))
-        self.headers = Headers(_t.cast(HeadersArray, self.headers))
+    body : bytes | str
 
 @_dc.dataclass
-class Response(CheckedDataClass):
+class Response:
     started_at : EpochMsec
     code : int
     reason : str
@@ -62,13 +53,8 @@ class Response(CheckedDataClass):
     complete : bool
     body : bytes | str
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        self.started_at = EpochMsec(_t.cast(int, self.started_at))
-        self.headers = Headers(_t.cast(HeadersArray, self.headers))
-
 @_dc.dataclass
-class Reqres(CheckedDataClass):
+class Reqres:
     version : int
     source : str
     protocol : str
@@ -76,10 +62,6 @@ class Reqres(CheckedDataClass):
     response : _t.Optional[Response]
     finished_at : EpochMsec
     extra : dict[str, _t.Any]
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        self.finished_at = EpochMsec(self.finished_at) # type: ignore
 
 Reqres_fields = {
     "version": "WEBREQRES format version; int",
@@ -301,6 +283,35 @@ class ReqresExpr:
 
 class ParsingError(Failure): pass
 
+def _t_bool(x : _t.Any) -> bool:
+    if isinstance(x, bool): return x
+    raise TypeError("wrong type: want %s, got %s", bool, type(x))
+
+def _t_bytes(x : _t.Any) -> bytes:
+    if isinstance(x, bytes): return x
+    raise TypeError("wrong type: want %s, got %s", bytes, type(x))
+
+def _t_str(x : _t.Any) -> str:
+    if isinstance(x, str): return x
+    raise TypeError("wrong type: want %s, got %s", str, type(x))
+
+def _t_bytes_or_str(x : _t.Any) -> bytes | str:
+    if isinstance(x, bytes): return x
+    if isinstance(x, str): return x
+    raise TypeError("wrong type: want %s or %s, got %s", bytes, str, type(x))
+
+def _t_int(x : _t.Any) -> int:
+    if isinstance(x, int): return x
+    raise TypeError("wrong type: want %s, got %s", int, type(x))
+
+def _t_epoch(x : _t.Any) -> EpochMsec:
+    return EpochMsec(_t_int(x))
+
+def _t_headers(x : _t.Any) -> Headers:
+    if Headers.__instancecheck__(x):
+        return _t.cast(Headers, x)
+    raise TypeError("wrong type: want %s, got %s", Headers, type(x))
+
 def wrr_load(fobj : _io.BufferedReader) -> Reqres:
     head = fobj.peek(2)[:2]
     if head == b"\037\213":
@@ -316,13 +327,15 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
 
     if data[0] == "WEBREQRES/1":
         _, source, protocol, request_, response_, finished_at, extra = data
-        request = Request(*request_)
+        rq_started_at, rq_method, rq_url, rq_headers, rq_complete, rq_body = request_
+        request = Request(_t_epoch(rq_started_at), _t_str(rq_method), _t_str(rq_url), _t_headers(rq_headers), _t_bool(rq_complete), _t_bytes_or_str(rq_body))
         if response_ is None:
             response = None
         else:
-            response = Response(*response_)
+            rs_started_at, rs_code, rs_reason, rs_headers, rs_complete, rs_body = response_
+            response = Response(_t_epoch(rs_started_at), _t_int(rs_code), _t_str(rs_reason), _t_headers(rs_headers), _t_bool(rs_complete), _t_bytes_or_str(rs_body))
 
-        return Reqres(1, source, protocol, request, response, finished_at, extra)
+        return Reqres(1, source, protocol, request, response, _t_epoch(finished_at), extra)
     else:
         raise ParsingError("can't parse CBOR data: unknown format %s", data[0])
 
@@ -330,37 +343,41 @@ def wrr_loadf(path : str | bytes) -> Reqres:
     with open(path, "rb") as f:
         return wrr_load(f)
 
-def wrr_dump(fobj : _io.BufferedWriter, reqres : Reqres, compress : bool = True) -> None:
+def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
     req = reqres.request
-    request = req.started_at, req.method, req.url, req.headers.value, req.complete, req.body
+    request = req.started_at.value, req.method, req.url, req.headers, req.complete, req.body
     del req
 
     if reqres.response is None:
         response = None
     else:
         res = reqres.response
-        response = res.started_at, res.code, res.reason, res.headers.value, res.complete, res.body
+        response = res.started_at.value, res.code, res.reason, res.headers, res.complete, res.body
         del res
 
-    structure = ["WEBREQRES/1", reqres.source, reqres.protocol, request, response, reqres.finished_at, reqres.extra]
+    structure = ["WEBREQRES/1", reqres.source, reqres.protocol, request, response, reqres.finished_at.value, reqres.extra]
+
+    data : bytes = _cbor2.dumps(structure)
 
     if not compress:
-        _cbor2.dump(fobj, structure)
-        return
-
-    data = _cbor2.dumps(structure)
+        return data
 
     # gzip it, if it gzips
     buf = _io.BytesIO()
     with _gzip.GzipFile(fileobj=buf, filename="", mtime=0, mode="wb", compresslevel=9) as gz:
         gz.write(data)
     compressed_data = buf.getvalue()
-    del buf
 
     if len(compressed_data) < len(data):
         data = compressed_data
+
+    del buf
     del compressed_data
 
+    return data
+
+def wrr_dump(fobj : _io.BufferedWriter, reqres : Reqres, compress : bool = True) -> None:
+    data = wrr_dumps(reqres, compress)
     fobj.write(data)
 
 MapElem = _t.TypeVar("MapElem")

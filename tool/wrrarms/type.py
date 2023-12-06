@@ -19,17 +19,6 @@ import time as _time
 import typing as _t
 from kisstdlib.exceptions import *
 
-class CheckedDataClass:
-    def __post_init__(self) -> None:
-        """__instancecheck__ all fields after __init__"""
-        dcf = self.__class__.__dataclass_fields__ # type: ignore
-        for k in dcf:
-            field = dcf[k]
-            v = getattr(self, k)
-            typ = field.type
-            if not typ.__instancecheck__(v):
-                raise TypeError("wrong type while constructing %s: field %s wants %s got %s", type(self), k, typ, type(v))
-
 WrappedValueType = _t.TypeVar("WrappedValueType")
 class WrappedValue(_t.Generic[WrappedValueType]):
     def __init__(self, value : WrappedValueType) -> None:
@@ -39,10 +28,6 @@ class WrappedValue(_t.Generic[WrappedValueType]):
         return "<%s %s>" % (self.__class__.__name__, repr(self.value))
 
 class EpochMsec(WrappedValue[int]):
-    @classmethod
-    def __instancecheck__(cls, value : _t.Any) -> bool:
-        return int.__instancecheck__(value)
-
     def format(self, fmt : str = "%Y-%m-%d %H:%M:%S") -> str:
         return _time.strftime(fmt, _time.localtime(self.value // 1000)) + "." + format(self.value % 1000, "03")
 
