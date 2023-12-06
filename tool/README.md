@@ -85,19 +85,19 @@ Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a struct
   : show help messages formatted in Markdown
 
 - subcommands:
-  - `{pprint,get,run,find,organize,stream}`
+  - `{pprint,get,run,stream,find,organize}`
     - `pprint`
-    : pretty-print WRR files
+    : pretty-print given WRR files
     - `get`
-    : print expressions computed from a WRR file to stdout
+    : print values produced by computing given expressions on a given WRR file
     - `run`
-    : spawn a process on generated temporary files produced from expressions computed on WRR files
+    : spawn a process with generated temporary files produced by given expressions computed on given WRR files as arguments
+    - `stream`
+    : produce a stream of structured lists containing values produced by computing given expressions on given WRR files, a generalized `wrrarms get`
     - `find`
     : print paths of WRR files matching specified criteria
     - `organize`
-    : rename/hardlink/symlink WRR files based on their metadata
-    - `stream`
-    : produce a stream structured lists containing expressions computed from specified WRR files to stdout, a generalized `wrrarms get`
+    : programmatically rename/hardlink/symlink WRR files based on their contents
 
 ### wrrarms pprint
 
@@ -112,6 +112,8 @@ Pretty-print given WRR files to stdout.
   : print all data in full
   - `--abridged`
   : shorten long strings for brevity (useful when you want to visually scan through batch data dumps) (default)
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -122,13 +124,13 @@ Pretty-print given WRR files to stdout.
 
 - filters:
   - `--or EXPR`
-  : only work on reqres which match any of these expressions...
+  : only print reqres which match any of these expressions...
   - `--and EXPR`
   : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
 
 ### wrrarms get
 
-Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout (terminating each value as specified).
+Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified.
 
 - positional arguments:
   - `PATH`
@@ -246,7 +248,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
 
 ### wrrarms run
 
-Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files (terminating each value as specified), spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process.
+Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files terminating each value as specified, spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process.
 
 - positional arguments:
   - `COMMAND`
@@ -270,17 +272,29 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   - `-z, --zero-terminated`
   : terminate output values with `\0` (NUL) bytes
 
-### wrrarms find
+### wrrarms stream
 
-Print paths of WRR files matching specified criteria.
+Compute given expressions for each of given WRR files, encode them into a requested format, and print the result to stdout.
 
 - positional arguments:
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - options:
+  - `-u, --unabridged`
+  : print all data in full
+  - `--abridged`
+  : shorten long strings for brevity (useful when you want to visually scan through batch data dumps) (default)
+  - `--format {py,cbor,json,raw}`
+  : generate output in:
+    - py: Pythonic Object Representation aka `repr` (default)
+    - cbor: CBOR (RFC8949)
+    - json: JavaScript Object Notation aka JSON (binary data can't be represented, UNICODE replacement characters will be used)
+    - raw: concatenate raw values (termination is controlled by `*-terminated` options)
+  - `-e EXPR, --expr EXPR`
+  : an expression to compute, see `wrrarms get --expr` for more info on expression format, can be specified multiple times (default: `[]`); to dump all the fields of a reqres, specify "`.`"
   - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments, requires specified `--to`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -291,7 +305,40 @@ Print paths of WRR files matching specified criteria.
 
 - filters:
   - `--or EXPR`
-  : only work on reqres which match any of these expressions...
+  : only print reqres which match any of these expressions...
+  - `--and EXPR`
+  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+
+- `--format=raw` output:
+  - `--not-terminated`
+  : don't terminate `raw` output values with anything, just concatenate them
+  - `-l, --lf-terminated`
+  : terminate `raw` output values with `\n` (LF) newline characters (default)
+  - `-z, --zero-terminated`
+  : terminate `raw` output values with `\0` (NUL) bytes
+
+### wrrarms find
+
+Print paths of WRR files matching specified criteria.
+
+- positional arguments:
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
+
+- options:
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+
+- error handling:
+  - `--errors {fail,skip,ignore}`
+  : when an error occurs:
+    - `fail`: report failure and stop the execution (default)
+    - `skip`: report failure but skip the reqres that produced it from the output and continue
+    - `ignore`: `skip`, but don't report the failure
+
+- filters:
+  - `--or EXPR`
+  : only output paths to reqres which match any of these expressions...
   - `--and EXPR`
   : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
 
@@ -303,7 +350,7 @@ Print paths of WRR files matching specified criteria.
 
 ### wrrarms organize
 
-Rename/hardlink/symlink given WRR files to `DESTINATION` based on their metadata.
+Parse given WRR files into their respective reqres and then rename/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
 
 Operations that could lead to accidental data loss are not permitted.
 E.g. `wrrarms organize --action rename` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
@@ -327,8 +374,10 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   : batch at most this many `--action`s together (default: `1024`), making this larger improves performance at the cost of increased memory consumption, setting it to zero will force all `--action`s to be applied immediately
   - `--lazy`
   : sets `--batch-number` to positive infinity; most useful in combination with `--action symlink-update` in which case it will force `wrrarms` to compute the desired file system state first and then perform disk writes in a single batch
+  - `-t DESTINATION, --to DESTINATION`
+  : target directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`
   - `-o FORMAT, --output FORMAT`
-  : format describing the generated output path, an alias name or a custom pythonic %-substitution string:
+  : format describing generated output paths, an alias name or a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
       - `default`: `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr` (default)
       - `short`: `%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d.wrr`
@@ -356,10 +405,8 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
     - available substitutions:
       - `num`: number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique
       - all expressions of `wrrarms get --expr`, which see
-  - `-t DESTINATION, --to DESTINATION`
-  : target directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`
   - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments, requires specified `--to`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -381,49 +428,6 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   : output absolute paths of newly produced files terminated with `\n` (LF) newline characters to stdout
   - `-z, --zero-terminated`
   : output absolute paths of newly produced files terminated with `\0` (NUL) bytes to stdout
-
-### wrrarms stream
-
-Compute given expressions for each of given WRR files, encode them into a requested format, and print the result to stdout.
-
-- positional arguments:
-  - `PATH`
-  : inputs, can be a mix of files and directories (which will be traversed recursively)
-
-- options:
-  - `-u, --unabridged`
-  : print all data in full
-  - `--abridged`
-  : shorten long strings for brevity (useful when you want to visually scan through batch data dumps) (default)
-  - `--format {py,cbor,json,raw}`
-  : generate output in:
-    - py: Pythonic Object Representation aka `repr` (default)
-    - cbor: CBOR (RFC8949)
-    - json: JavaScript Object Notation aka JSON (binary data can't be represented, UNICODE replacement characters will be used)
-    - raw: concatenate raw values (termination is controlled by `*-terminated` options)
-  - `-e EXPR, --expr EXPR`
-  : an expression to compute, see `wrrarms get --expr` for more info on expression format, can be specified multiple times (default: `[]`); to dump all the fields of a reqres, specify "`.`"
-
-- error handling:
-  - `--errors {fail,skip,ignore}`
-  : when an error occurs:
-    - `fail`: report failure and stop the execution (default)
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
-
-- filters:
-  - `--or EXPR`
-  : only work on reqres which match any of these expressions...
-  - `--and EXPR`
-  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
-
-- `--format=raw` output:
-  - `--not-terminated`
-  : don't terminate `raw` output values with anything, just concatenate them
-  - `-l, --lf-terminated`
-  : terminate `raw` output values with `\n` (LF) newline characters (default)
-  - `-z, --zero-terminated`
-  : terminate `raw` output values with `\0` (NUL) bytes
 
 ## Examples
 
@@ -550,7 +554,7 @@ Compute given expressions for each of given WRR files, encode them into a reques
   wrrarms stream --format=raw --zero-terminated -ue request.url ../dumb_server/pwebarc-dump | sort -z | uniq -z | xargs -0 -n2 echo
   ```
 
-## Handling binary data
+### How to handle binary data
 
 Trying to use response bodies produced by `wrrarms stream --format=json` is likely to result garbled data as JSON can't represent raw sequences of bytes, thus binary data will have to be encoded into UNICODE using replacement characters:
 

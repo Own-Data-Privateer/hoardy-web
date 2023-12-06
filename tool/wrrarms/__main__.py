@@ -61,21 +61,24 @@ def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr) -> bool:
     else:
         return True
 
-def cmd_pprint(cargs : _t.Any) -> None:
-    compile_filters(cargs)
+def elaborate_paths(cargs : _t.Any) -> None:
+    for i in range(0, len(cargs.paths)):
+        cargs.paths[i] = _os.path.expanduser(cargs.paths[i])
 
-    def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
-        rrexpr = ReqresExpr(reqres, abs_path)
-        if not filters_allow(cargs, rrexpr): return
+def elaborate_output(cargs : _t.Any) -> None:
+    if cargs.output in output_aliases:
+        cargs.output = output_aliases[cargs.output]
 
-        wrr_pprint(stdout, reqres, abs_path, cargs.abridged)
-        stdout.flush()
-
-    for _ in wrr_map_paths(emit, cargs.paths, cargs.errors):
-        pass
+def slurp_stdin0(cargs : _t.Any) -> None:
+    if not cargs.stdin0: return
+    paths = stdin.read_all_bytes().split(b"\0")
+    last = paths.pop()
+    if last != b"":
+        raise Failure(_("`--stdin0` input format error"))
+    cargs.paths += paths
 
 def load_wrr(path : str) -> ReqresExpr:
-    abs_path = _os.path.abspath(_os.path.expanduser(path))
+    abs_path = _os.path.abspath(path)
     reqres = wrr_loadf(abs_path)
     return ReqresExpr(reqres, abs_path)
 
@@ -94,11 +97,26 @@ def get_bytes(expr : str, rrexpr : ReqresExpr) -> bytes:
     else:
         raise Failure(_("don't know how to print an expression of type `%s`"), type(value).__name__)
 
+def cmd_pprint(cargs : _t.Any) -> None:
+    compile_filters(cargs)
+    elaborate_paths(cargs)
+    slurp_stdin0(cargs)
+
+    def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
+        rrexpr = ReqresExpr(reqres, abs_path)
+        if not filters_allow(cargs, rrexpr): return
+
+        wrr_pprint(stdout, reqres, abs_path, cargs.abridged)
+        stdout.flush()
+
+    for _ in wrr_map_paths(emit, cargs.paths, cargs.errors):
+        pass
+
 def cmd_get(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = ["response.body|es"]
 
-    rrexpr = load_wrr(cargs.path)
+    rrexpr = load_wrr(_os.path.expanduser(cargs.path))
     for expr in cargs.exprs:
         data = get_bytes(expr, rrexpr)
         stdout.write_bytes(data)
@@ -113,11 +131,13 @@ def cmd_run(cargs : _t.Any) -> None:
     # move (num_args - 1) arguments from args to paths
     ntail = len(cargs.args) + 1 - cargs.num_args
     args = cargs.args[:ntail]
-    paths = cargs.args[ntail:] + cargs.paths
+    cargs.paths = cargs.args[ntail:] + cargs.paths
+
+    elaborate_paths(cargs)
 
     tmp_paths = []
     try:
-        for path in paths:
+        for path in cargs.paths:
             rrexpr = load_wrr(path)
 
             # TODO: extension guessing
@@ -136,16 +156,43 @@ def cmd_run(cargs : _t.Any) -> None:
         for path in tmp_paths:
             _os.unlink(path)
 
-def slurp_stdin0(cargs : _t.Any) -> None:
-    if not cargs.stdin0: return
-    paths = stdin.read_all_bytes().split(b"\0")
-    last = paths.pop()
-    if last != b"":
-        raise Failure(_("`--stdin0` input format error"))
-    cargs.paths += paths
+def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
+    stream : StreamEncoder
+    if cargs.format == "py":
+        stream = PyStreamEncoder(stdout, cargs.abridged)
+    elif cargs.format == "cbor":
+        stream = CBORStreamEncoder(stdout, cargs.abridged)
+    elif cargs.format == "json":
+        stream = JSONStreamEncoder(stdout, cargs.abridged)
+    elif cargs.format == "raw":
+        stream = RawStreamEncoder(stdout, cargs.abridged, cargs.terminator)
+    else:
+        assert False
+    return stream
+
+def cmd_stream(cargs : _t.Any) -> None:
+    compile_filters(cargs)
+    elaborate_paths(cargs)
+    slurp_stdin0(cargs)
+    stream = get_StreamEncoder(cargs)
+
+    def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
+        rrexpr = ReqresExpr(reqres, abs_path)
+        if not filters_allow(cargs, rrexpr): return
+
+        values : list[_t.Any] = []
+        for expr in cargs.exprs:
+            values.append(rrexpr.eval(expr))
+        stream.emit(abs_path, cargs.exprs, values)
+
+    stream.start()
+    for _ in wrr_map_paths(emit, cargs.paths, cargs.errors):
+        pass
+    stream.finish()
 
 def cmd_find(cargs : _t.Any) -> None:
     compile_filters(cargs)
+    elaborate_paths(cargs)
     slurp_stdin0(cargs)
 
     def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
@@ -336,22 +383,18 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
 
 def cmd_organize(cargs : _t.Any) -> None:
     compile_filters(cargs)
-    if cargs.output in output_aliases:
-        cargs.output = output_aliases[cargs.output]
+    elaborate_output(cargs)
+    elaborate_paths(cargs)
+    slurp_stdin0(cargs)
 
     if cargs.destination is not None:
         # destination is set explicitly
-        slurp_stdin0(cargs)
-
         emit, finish = make_organize(cargs, cargs.destination)
         for _e in wrr_map_paths(emit, cargs.paths, cargs.errors, follow_symlinks=False):
             pass
         finish()
     else:
         # each path is its own destination
-        if cargs.stdin0:
-            raise Failure(_("`--stdin0` but no `--to` is specified"))
-
         for path in cargs.paths:
             try:
                 fstat = _os.stat(_os.path.expanduser(path))
@@ -366,38 +409,6 @@ def cmd_organize(cargs : _t.Any) -> None:
             for _e in wrr_map_paths(emit, [path], cargs.errors, follow_symlinks=False):
                 pass
             finish()
-
-def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
-    stream : StreamEncoder
-    if cargs.format == "py":
-        stream = PyStreamEncoder(stdout, cargs.abridged)
-    elif cargs.format == "cbor":
-        stream = CBORStreamEncoder(stdout, cargs.abridged)
-    elif cargs.format == "json":
-        stream = JSONStreamEncoder(stdout, cargs.abridged)
-    elif cargs.format == "raw":
-        stream = RawStreamEncoder(stdout, cargs.abridged, cargs.terminator)
-    else:
-        assert False
-    return stream
-
-def cmd_stream(cargs : _t.Any) -> None:
-    compile_filters(cargs)
-    stream = get_StreamEncoder(cargs)
-
-    def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
-        rrexpr = ReqresExpr(reqres, abs_path)
-        if not filters_allow(cargs, rrexpr): return
-
-        values : list[_t.Any] = []
-        for expr in cargs.exprs:
-            values.append(rrexpr.eval(expr))
-        stream.emit(abs_path, cargs.exprs, values)
-
-    stream.start()
-    for _ in wrr_map_paths(emit, cargs.paths, cargs.errors):
-        pass
-    stream.finish()
 
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_text(_("# Examples"))
@@ -479,7 +490,7 @@ done > changes""")
     fmt.add_code(f"{__package__} stream --format=raw --zero-terminated -ue request.url ../dumb_server/pwebarc-dump | sort -z | uniq -z | xargs -0 -n2 echo")
     fmt.end_section()
 
-    fmt.add_text(_("# Handling binary data"))
+    fmt.add_text(_("## How to handle binary data"))
 
     fmt.add_text(_(f"Trying to use response bodies produced by `{__package__} stream --format=json` is likely to result garbled data as JSON can't represent raw sequences of bytes, thus binary data will have to be encoded into UNICODE using replacement characters:"))
     fmt.add_code(f"{__package__} stream --format=json -ue . ../dumb_server/pwebarc-dump/path/to/file.wrr | jq .")
@@ -515,10 +526,10 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 - `skip`: report failure but skip the reqres that produced it from the output and continue
 - `ignore`: `skip`, but don't report the failure"""))
 
-    def add_filters(cmd : _t.Any) -> None:
+    def add_filters(cmd : _t.Any, do_what : str) -> None:
         grp = cmd.add_argument_group("filters")
         grp.add_argument("--or", dest="anys", metavar="EXPR", action="append", type=str, default = [],
-                         help=_(f"only work on reqres which match any of these expressions..."))
+                         help=_(f"only {do_what} reqres which match any of these expressions..."))
         grp.add_argument("--and", dest="alls", metavar="EXPR", action="append", type=str, default = [],
                          help=_(f"... and all of these expressions, both can be specified multiple times, both use the same expression format as `{__package__} get --expr`, which see"))
 
@@ -537,20 +548,22 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         cmd.set_defaults(terminator = b"")
 
     def add_paths(cmd : _t.Any) -> None:
+        cmd.add_argument("--stdin0", action="store_true", help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments"))
+
         cmd.add_argument("paths", metavar="PATH", nargs="*", type=str, help=_("inputs, can be a mix of files and directories (which will be traversed recursively)"))
 
     # pprint
-    cmd = subparsers.add_parser("pprint", help=_("pretty-print WRR files"),
+    cmd = subparsers.add_parser("pprint", help=_("pretty-print given WRR files"),
                                 description = _("""Pretty-print given WRR files to stdout."""))
     add_errors(cmd)
-    add_filters(cmd)
+    add_filters(cmd, "print")
     add_abridged(cmd)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_pprint)
 
     # get
-    cmd = subparsers.add_parser("get", help=_("print expressions computed from a WRR file to stdout"),
-                                description = _(f"""Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout (terminating each value as specified)."""))
+    cmd = subparsers.add_parser("get", help=_("print values produced by computing given expressions on a given WRR file"),
+                                description = _(f"""Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified."""))
 
     cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_('an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially, see also "output" options below; (default: `response.body|es`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:') + "\n" + \
                      "- " + _("constants and functions:") + "\n" + \
@@ -574,8 +587,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd.set_defaults(func=cmd_get)
 
     # run
-    cmd = subparsers.add_parser("run", help=_("spawn a process on generated temporary files produced from expressions computed on WRR files"),
-                                description = _("""Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files (terminating each value as specified), spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process."""))
+    cmd = subparsers.add_parser("run", help=_("spawn a process with generated temporary files produced by given expressions computed on given WRR files as arguments"),
+                                description = _("""Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files terminating each value as specified, spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process."""))
 
     cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default=["response.body|es"], help=_("the expression to compute, can be specified multiple times, see `{__package__} get --expr` for more info; (default: `response.body|es`)"))
     add_terminator(cmd)
@@ -586,14 +599,37 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd.add_argument("paths", metavar="PATH", nargs="+", type=str, help=_("input WRR file paths to be mapped into new temporary files"))
     cmd.set_defaults(func=cmd_run)
 
-    def add_stdin0(cmd : _t.Any) -> None:
-        cmd.add_argument("--stdin0", action="store_true", help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments, requires specified `--to`"))
+    # stream
+    cmd = subparsers.add_parser("stream", help=_(f"produce a stream of structured lists containing values produced by computing given expressions on given WRR files, a generalized `{__package__} get`"),
+                                description = _("""Compute given expressions for each of given WRR files, encode them into a requested format, and print the result to stdout."""))
+    add_errors(cmd)
+    add_filters(cmd, "print")
+    add_abridged(cmd)
+
+    cmd.add_argument("--format", choices=["py", "cbor", "json", "raw"], default="py", help=_("""generate output in:
+- py: Pythonic Object Representation aka `repr` (default)
+- cbor: CBOR (RFC8949)
+- json: JavaScript Object Notation aka JSON (binary data can't be represented, UNICODE replacement characters will be used)
+- raw: concatenate raw values (termination is controlled by `*-terminated` options)
+"""))
+
+    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute, see `{__package__} get --expr` for more info on expression format, can be specified multiple times (default: `%(default)s`); to dump all the fields of a reqres, specify "`.`"'))
+
+    agrp = cmd.add_argument_group("`--format=raw` output")
+    grp = agrp.add_mutually_exclusive_group()
+    grp.add_argument("--not-terminated", dest="terminator", action="store_const", const = b"", help=_("don't terminate `raw` output values with anything, just concatenate them"))
+    grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("terminate `raw` output values with `\\n` (LF) newline characters (default)"))
+    grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("terminate `raw` output values with `\\0` (NUL) bytes"))
+    cmd.set_defaults(terminator = b"\n")
+
+    add_paths(cmd)
+    cmd.set_defaults(func=cmd_stream)
 
     # find
     cmd = subparsers.add_parser("find", help=_("print paths of WRR files matching specified criteria"),
                                 description = _(f"""Print paths of WRR files matching specified criteria."""))
     add_errors(cmd)
-    add_filters(cmd)
+    add_filters(cmd, "output paths to")
 
     agrp = cmd.add_argument_group("output")
     grp = agrp.add_mutually_exclusive_group()
@@ -601,18 +637,17 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of matching WRR files terminated with `\\0` (NUL) bytes to stdout"))
     cmd.set_defaults(terminator = b"\n")
 
-    add_stdin0(cmd)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_find)
 
     # organize
-    cmd = subparsers.add_parser("organize", help=_("rename/hardlink/symlink WRR files based on their metadata"),
-                                description = _(f"""Rename/hardlink/symlink given WRR files to `DESTINATION` based on their metadata.
+    cmd = subparsers.add_parser("organize", help=_("programmatically rename/hardlink/symlink WRR files based on their contents"),
+                                description = _(f"""Parse given WRR files into their respective reqres and then rename/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
 
 Operations that could lead to accidental data loss are not permitted.
 E.g. `{__package__} organize --action rename` will not overwrite any files, which is why the default `--output` contains `%(num)d`."""))
     add_errors(cmd)
-    add_filters(cmd)
+    add_filters(cmd, "work on")
 
     grp = cmd.add_mutually_exclusive_group()
     grp.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
@@ -636,43 +671,16 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
     grp.add_argument("--batch-number", metavar = "INT", dest="batch", type=int, default=1024, help=_("batch at most this many `--action`s together (default: `%(default)s`), making this larger improves performance at the cost of increased memory consumption, setting it to zero will force all `--action`s to be applied immediately"))
     grp.add_argument("--lazy", action="store_true", help=_(f"sets `--batch-number` to positive infinity; most useful in combination with `--action symlink-update` in which case it will force `{__package__}` to compute the desired file system state first and then perform disk writes in a single batch"))
 
-    cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_("format describing the generated output path, an alias name or a custom pythonic %%-substitution string:") + "\n" + \
+    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("target directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`"))
+    cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_("format describing generated output paths, an alias name or a custom pythonic %%-substitution string:") + "\n" + \
                      "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
                      "".join([f"  - `{name}`: `{value.replace('%', '%%')}`" + (" (default)" if name == "default" else "") + "\n" for name, value in output_aliases.items()]) + \
                      "- " + _("available substitutions:") + "\n" + \
                      "  - `num`: " + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique") + "\n" + \
                      "  - " + _(f"all expressions of `{__package__} get --expr`, which see"))
-    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("target directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`"))
 
-    add_stdin0(cmd)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_organize)
-
-    # stream
-    cmd = subparsers.add_parser("stream", help=_(f"produce a stream structured lists containing expressions computed from specified WRR files to stdout, a generalized `{__package__} get`"),
-                                description = _("""Compute given expressions for each of given WRR files, encode them into a requested format, and print the result to stdout."""))
-    add_errors(cmd)
-    add_filters(cmd)
-    add_abridged(cmd)
-
-    cmd.add_argument("--format", choices=["py", "cbor", "json", "raw"], default="py", help=_("""generate output in:
-- py: Pythonic Object Representation aka `repr` (default)
-- cbor: CBOR (RFC8949)
-- json: JavaScript Object Notation aka JSON (binary data can't be represented, UNICODE replacement characters will be used)
-- raw: concatenate raw values (termination is controlled by `*-terminated` options)
-"""))
-
-    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute, see `{__package__} get --expr` for more info on expression format, can be specified multiple times (default: `%(default)s`); to dump all the fields of a reqres, specify "`.`"'))
-
-    agrp = cmd.add_argument_group("`--format=raw` output")
-    grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--not-terminated", dest="terminator", action="store_const", const = b"", help=_("don't terminate `raw` output values with anything, just concatenate them"))
-    grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("terminate `raw` output values with `\\n` (LF) newline characters (default)"))
-    grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("terminate `raw` output values with `\\0` (NUL) bytes"))
-    cmd.set_defaults(terminator = b"\n")
-
-    add_paths(cmd)
-    cmd.set_defaults(func=cmd_stream)
 
     cargs = parser.parse_args(_sys.argv[1:])
 
