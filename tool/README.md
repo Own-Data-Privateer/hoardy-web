@@ -170,23 +170,23 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `version`: WEBREQRES format version; int
       - `source`: `+`-separated list of applications that produced this reqres; str
       - `protocol`: protocol (e.g. `"HTTP/1.0"`, `"HTTP/2.0"`); str
-      - `request.started_at`: request start time in milliseconds since 1970-01-01 00:00; EpochMsec
+      - `request.started_at`: request start time in seconds since 1970-01-01 00:00; Epoch
       - `request.method`: request HTTP method (`"GET"`, `"POST"`, etc); str
       - `request.url`: request URL, including the fragment/hash part; str
       - `request.headers`: request headers; list[tuple[str, bytes]]
       - `request.complete`: is request body complete?; bool
       - `request.body`: request body; bytes
-      - `response.started_at`: response start time in milliseconds since 1970-01-01 00:00; EpochMsec
+      - `response.started_at`: response start time in seconds since 1970-01-01 00:00; Epoch
       - `response.code`: HTTP response code (like `200`, `404`, etc); int
       - `response.reason`: HTTP response reason (like `"OK"`, `"Not Found"`, etc); usually empty for Chromium and filled for Firefox; str
       - `response.headers`: response headers; list[tuple[str, bytes]]
       - `response.complete`: is response body complete?; bool
       - `response.body`: response body; Firefox gives raw bytes, Chromium gives UTF-8 encoded strings; bytes | str
-      - `finished_at`: request completion time in milliseconds since 1970-01-01 00:00; EpochMsec
+      - `finished_at`: request completion time in seconds since 1970-01-01 00:00; Epoch
     - derived attributes:
       - `fs_path`: file system path for the WRR file containing this reqres; str
-      - `qtime_ms`: aliast for `request.started_at`; mnemonic: "reQuest TIME"; int
-      - `qtime`: `qtime_ms` rounded down to seconds (UNIX epoch); int
+      - `qtime`: aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; decimal float
+      - `qtime_ms`: `qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int
       - `qtime_msq`: three least significant digits of `qtime_ms`; int
       - `qyear`: year number of `gmtime(qtime)` (UTC year number of `qtime`); int
       - `qmonth`: month number of `gmtime(qtime)`; int
@@ -194,8 +194,8 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `qhour`: hour of `gmtime(qtime)` in 24h format; int
       - `qminute`: minute of `gmtime(qtime)`; int
       - `qsecond`: second of `gmtime(qtime)`; int
-      - `stime_ms`: `response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; int
-      - `stime`: `stime_ms` rounded down to seconds (UNIX epoch); int
+      - `stime`: `response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; seconds since UNIX epoch; decimal float
+      - `stime_ms`: `stime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch, int
       - `stime_msq`: three least significant digits of `stime_msq`; int
       - `syear`: similar to `syear`, but for `stime`; int
       - `smonth`: similar to `smonth`, but for `stime`; int
@@ -203,8 +203,8 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `shour`: similar to `shour`, but for `stime`; int
       - `sminute`: similar to `sminute`, but for `stime`; int
       - `ssecond`: similar to `ssecond`, but for `stime`; int
-      - `ftime_ms`: aliast for `finished_at`; int
-      - `ftime`: `ftime_ms` rounded down to seconds (UNIX epoch); int
+      - `ftime`: aliast for `finished_at`; seconds since UNIX epoch; decimal float
+      - `ftime_ms`: `ftime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int
       - `ftime_msq`: three least significant digits of `ftime_msq`; int
       - `fyear`: similar to `syear`, but for `ftime`; int
       - `fmonth`: similar to `smonth`, but for `ftime`; int

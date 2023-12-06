@@ -71,7 +71,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
     else:
         fobj.write_str_ln("response none")
 
-    fobj.write_str_ln(f"clock {fmt_msec_interval(req.started_at, reqres.finished_at)}")
+    fobj.write_str_ln(f"clock {fmt_epoch_interval(req.started_at, reqres.finished_at)}")
 
     if len(reqres.extra) > 0:
         for k, v in reqres.extra.items():
@@ -259,9 +259,9 @@ class PyStreamEncoder(StreamEncoder):
 
     @staticmethod
     def encode_py(enc : PyReprEncoder, obj : _t.Any) -> None:
-        if isinstance(obj, EpochMsec):
-            enc.lexeme(str(int(obj)))
-            enc.comment(str(obj))
+        if isinstance(obj, Epoch):
+            enc.lexeme(str(obj))
+            enc.comment(obj.format())
         else:
             enc.encode(plainify(obj))
 
@@ -352,8 +352,8 @@ class RawStreamEncoder(StreamEncoder):
 
     @staticmethod
     def encode_raw(enc : TIOEncoder, obj : _t.Any) -> None:
-        if isinstance(obj, EpochMsec):
-            enc.write_str(str(int(obj)))
+        if isinstance(obj, Epoch):
+            enc.write_str(str(obj))
         else:
             raise Failure("can't raw-encode a value of type `%s`", type(obj).__name__)
 

@@ -85,10 +85,8 @@ def load_wrr(path : str) -> ReqresExpr:
 def get_bytes(expr : str, rrexpr : ReqresExpr) -> bytes:
     value = rrexpr.eval(expr)
 
-    if value is None or isinstance(value, (bool, int, float)):
+    if value is None or isinstance(value, (bool, int, float, Epoch)):
         value = str(value)
-    elif isinstance(value, EpochMsec):
-        value = str(int(value))
 
     if isinstance(value, str):
         return value.encode(_sys.getdefaultencoding())

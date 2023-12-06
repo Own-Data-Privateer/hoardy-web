@@ -15,33 +15,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import decimal as _dec
 import time as _time
 import typing as _t
+
 from kisstdlib.exceptions import *
 
-WrappedValueType = _t.TypeVar("WrappedValueType")
-class WrappedValue(_t.Generic[WrappedValueType]):
-    def __init__(self, value : WrappedValueType) -> None:
-        self.value = value
-
-    def __repr__(self) -> str:
-        return "<%s %s>" % (self.__class__.__name__, repr(self.value))
-
-class EpochMsec(WrappedValue[int]):
+class Epoch(_dec.Decimal):
     def format(self, fmt : str = "%Y-%m-%d %H:%M:%S") -> str:
-        return _time.strftime(fmt, _time.localtime(self.value // 1000)) + "." + format(self.value % 1000, "03")
-
-    def __str__(self) -> str:
-        return self.format()
+        return _time.strftime(fmt, _time.localtime(int(self))) + "." + format(int(self * 1000) % 1000, "03")
 
     def __repr__(self) -> str:
-        return "<EpochMsec %s>" % (self.format(),)
+        return "<Epoch %s>" % (self.format(),)
 
-    def __int__(self) -> int:
-        return self.value
-
-def fmt_msec_diff(from_msec : EpochMsec, to_msec : EpochMsec) -> str:
-    value = to_msec.value - from_msec.value
+def fmt_epoch_diff(from_epoch : Epoch, to_epoch : Epoch) -> str:
+    value = int((to_epoch - from_epoch) * 1000)
     hours = value // 3600000
     value = value % 3600000
     minutes = value // 60000
@@ -50,8 +38,8 @@ def fmt_msec_diff(from_msec : EpochMsec, to_msec : EpochMsec) -> str:
     value = value % 1000
     return str(hours) + ":" + format(minutes, "02") + ":" + format(seconds, "02") + "." + format(value, "03")
 
-def fmt_msec_interval(from_msec : EpochMsec, to_msec : EpochMsec) -> str:
-    return f"[{str(from_msec)}]--[{str(to_msec)}] => {fmt_msec_diff(from_msec, to_msec)}"
+def fmt_epoch_interval(from_epoch : Epoch, to_epoch : Epoch) -> str:
+    return f"[{str(from_epoch)}]--[{str(to_epoch)}] => {fmt_epoch_diff(from_epoch, to_epoch)}"
 
 def rec_get(obj : _t.Any, field : list[str]) -> _t.Any:
     if len(field) == 0:
@@ -66,8 +54,8 @@ def rec_get(obj : _t.Any, field : list[str]) -> _t.Any:
         raise Failure("object of type `%s` does not have an attribute named `%s'", type(obj).__name__, this)
 
 def plainify(obj : _t.Any) -> _t.Any:
-    if isinstance(obj, WrappedValue):
-        return obj.value
+    if isinstance(obj, Epoch):
+        return float(obj)
     elif hasattr(obj, "__dataclass_fields__"):
         res = dict()
         for k in obj.__dataclass_fields__:
