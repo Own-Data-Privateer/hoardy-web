@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import errno as _errno
+import io as _io
 import logging as _logging
 import os as _os
 import stat as _stat
@@ -87,6 +89,48 @@ def load_wrr(path : str) -> ReqresExpr:
     reqres = wrr_loadf(abs_path)
     return ReqresExpr(reqres, abs_path)
 
+LoadElem = _t.TypeVar("LoadElem")
+def load_map_orderly(load : _t.Callable[[_io.BufferedReader], LoadElem],
+                     func : _t.Callable[[LoadElem, _t.AnyStr, _t.AnyStr], None],
+                     dir_or_file_path : _t.AnyStr,
+                     errors : str = "fail",
+                     follow_symlinks : bool = True) -> None:
+    for path in walk_orderly(dir_or_file_path,
+                             include_directories = False,
+                             follow_symlinks = follow_symlinks,
+                             handle_error = None if errors == "fail" else _logging.error):
+        if (isinstance(path, str) and path.endswith(".part")) or \
+           (isinstance(path, bytes) and path.endswith(b".part")):
+            continue
+        try:
+            try:
+                abs_path = _os.path.abspath(path)
+                if not follow_symlinks and _os.path.islink(abs_path):
+                    raise Failure(_("not following a symlink %s"), abs_path)
+                fobj = open(abs_path, "rb")
+            except OSError as exc:
+                raise Failure(_("failed to open %s"), abs_path)
+
+            try:
+                data = load(fobj)
+                func(data, abs_path, path)
+            finally:
+                fobj.close()
+        except Failure as exc:
+            if errors == "ignore":
+                continue
+            exc.elaborate("while processing %s", path)
+            if errors != "fail":
+                _logging.error("%s", str(exc))
+                continue
+            raise exc
+
+def map_wrr_paths(func : _t.Callable[[Reqres, _t.AnyStr, _t.AnyStr], None],
+                  paths : _t.Iterable[_t.AnyStr],
+                  *args : _t.Any, **kwargs : _t.Any) -> None:
+    for path in paths:
+        load_map_orderly(wrr_load, func, path, *args, **kwargs)
+
 def get_bytes(expr : str, rrexpr : ReqresExpr) -> bytes:
     value = rrexpr.eval(expr)
 
@@ -105,15 +149,14 @@ def cmd_pprint(cargs : _t.Any) -> None:
     elaborate_paths(cargs)
     slurp_stdin0(cargs)
 
-    def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
-        rrexpr = ReqresExpr(reqres, abs_path)
+    def emit(reqres : Reqres, abs_in_path : str, rel_in_path : str) -> None:
+        rrexpr = ReqresExpr(reqres, abs_in_path)
         if not filters_allow(cargs, rrexpr): return
 
-        wrr_pprint(stdout, reqres, abs_path, cargs.abridged)
+        wrr_pprint(stdout, reqres, abs_in_path, cargs.abridged)
         stdout.flush()
 
-    for _ in wrr_map_paths(emit, cargs.paths, cargs.errors):
-        pass
+    map_wrr_paths(emit, cargs.paths, cargs.errors)
 
 def cmd_get(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
@@ -179,18 +222,17 @@ def cmd_stream(cargs : _t.Any) -> None:
     slurp_stdin0(cargs)
     stream = get_StreamEncoder(cargs)
 
-    def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
-        rrexpr = ReqresExpr(reqres, abs_path)
+    def emit(reqres : Reqres, abs_in_path : str, rel_in_path : str) -> None:
+        rrexpr = ReqresExpr(reqres, abs_in_path)
         if not filters_allow(cargs, rrexpr): return
 
         values : list[_t.Any] = []
         for expr in cargs.exprs:
             values.append(rrexpr.eval(expr))
-        stream.emit(abs_path, cargs.exprs, values)
+        stream.emit(abs_in_path, cargs.exprs, values)
 
     stream.start()
-    for _ in wrr_map_paths(emit, cargs.paths, cargs.errors):
-        pass
+    map_wrr_paths(emit, cargs.paths, cargs.errors)
     stream.finish()
 
 def cmd_find(cargs : _t.Any) -> None:
@@ -198,14 +240,13 @@ def cmd_find(cargs : _t.Any) -> None:
     elaborate_paths(cargs)
     slurp_stdin0(cargs)
 
-    def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
-        rrexpr = ReqresExpr(reqres, abs_path)
+    def emit(reqres : Reqres, abs_in_path : str, rel_in_path : str) -> None:
+        rrexpr = ReqresExpr(reqres, abs_in_path)
         if not filters_allow(cargs, rrexpr): return
-        stdout.write_bytes(_os.fsencode(abs_path) + cargs.terminator)
+        stdout.write_bytes(_os.fsencode(abs_in_path) + cargs.terminator)
         stdout.flush()
 
-    for _ in wrr_map_paths(emit, cargs.paths, cargs.errors):
-        pass
+    map_wrr_paths(emit, cargs.paths, cargs.errors)
 
 output_aliases = {
     "default":  "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr",
@@ -242,26 +283,12 @@ output_aliases = {
 not_allowed = _("; this is not allowed to prevent accidental data loss")
 variance_help = _("; your `--output` format fails to provide enough variance (did your forget to place a `%%(num)d` substitution in there?)") + not_allowed
 
-def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqres, str, str], None],
-                                                              _t.Callable[[], None]]:
-    destination = _os.path.expanduser(destination)
-
-    action_func : _t.Any
-    if cargs.action == "rename":
-        action_desc = "renaming"
-        action_func = _os.rename
-    elif cargs.action == "hardlink":
-        action_desc = "hardlinking"
-        action_func = _os.link
-    elif cargs.action == "symlink":
-        action_desc = "symlinking"
-        action_func = _os.symlink
-    elif cargs.action == "symlink-update":
-        action_desc = "updating symlink"
-        action_func = _os.symlink
-    else:
-        assert False
-
+def make_mut_emit(cargs : _t.Any,
+                  destination : str,
+                  action : str,
+                  action_desc : str,
+                  action_func : _t.Callable[[_t.Any, str, str], None]) -> tuple[_t.Callable[[Reqres, str, str], None],
+                                                                                _t.Callable[[], None]]:
     if cargs.dry_run:
         action_desc = _(f"dry-run: (not) {action_desc}")
     else:
@@ -280,25 +307,27 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
             return count
 
     file_mtimes_ms : dict[str, int] = {}
-    intent_log : dict[str, tuple[int, bool, str]] = {}
+    intent_log : dict[str, tuple[int, bool, str, _t.Any]] = {}
     def perform_updates() -> None:
         for abs_out_path in list(intent_log.keys()):
-            _, need_to_unlink, abs_path = intent_log.pop(abs_out_path)
+            _, need_to_unlink, abs_in_path, data = intent_log.pop(abs_out_path)
 
             if need_to_unlink:
                 _os.unlink(abs_out_path)
             else:
                 dirname = _os.path.dirname(abs_out_path)
                 _os.makedirs(dirname, exist_ok = True)
-            action_func(abs_path, abs_out_path)
 
-            if cargs.terminator is not None:
-                stdout.write_bytes(_os.fsencode(abs_out_path) + cargs.terminator)
-                stdout.flush()
+            action_func(data, abs_in_path, abs_out_path)
 
-    def emit(reqres : Reqres, abs_path : str, rel_path : str) -> None:
-        rrexpr = ReqresExpr(reqres, abs_path)
+    def emit(reqres : Reqres, abs_in_path : str, rel_in_path : str) -> None:
+        rrexpr = ReqresExpr(reqres, abs_in_path)
         if not filters_allow(cargs, rrexpr): return
+
+        if action == "import":
+            data = wrr_dumps(reqres)
+        else:
+            data = None
 
         rrexpr.items["num"] = 0
         ogprefix = _os.path.join(destination, cargs.output_format % rrexpr)
@@ -308,23 +337,32 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
             rrexpr.items["num"] = seen_count(ogprefix)
             rel_out_path = _os.path.join(destination, cargs.output_format % rrexpr)
             abs_out_path = _os.path.abspath(rel_out_path)
-            if abs_path == abs_out_path:
+
+            if action != "import" and abs_in_path == abs_out_path:
                 # trying to rename, hardlink, or symlink to itself
                 return
 
             if abs_out_path in intent_log:
                 # we have this path waiting in intent_log
-                prev_modified_ms, prev_need_to_unlink, prev_abs_path = intent_log[abs_out_path]
-                if cargs.action != "symlink-update":
-                    if _os.path.samefile(abs_path, prev_abs_path):
+                prev_modified_ms, prev_need_to_unlink, prev_abs_in_path, prev_data = intent_log[abs_out_path]
+                if action == "import":
+                    if data == prev_data:
+                        # batched data and this are the same
+                        return
+                elif action == "symlink-update":
+                    if prev_modified_ms >= rrexpr.stime_ms:
+                        # batched source in newer
+                        return
+                else:
+                    if _os.path.samefile(abs_in_path, prev_abs_in_path):
                         # batched source and this are the same file
                         return
-                    raise Failure(_(f"trying to {cargs.action} `%s` to `%s` which is already batched to be taken from `%s`") +
-                                  variance_help, rel_path, rel_out_path, prev_abs_path)
 
-                if prev_modified_ms >= rrexpr.stime_ms:
-                    # batched source in newer
-                    return
+                    if prev_rel_out_path == rel_out_path:
+                        raise Failure(_(f"trying to {action} `%s` to `%s` which is already batched to be taken from `%s`") +
+                                      variance_help, rel_in_path, rel_out_path, prev_abs_in_path)
+                    prev_rel_out_path = rel_out_path
+                    continue
 
                 need_to_unlink = prev_need_to_unlink
                 break
@@ -333,56 +371,105 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
                 out_stat = _os.lstat(abs_out_path)
             except FileNotFoundError:
                 break
+            except OSError as exc:
+                if exc.errno == _errno.ENAMETOOLONG:
+                    raise Failure(_(f"target file system rejects generated filename as too long: %s"), abs_out_path)
+                raise
 
-            if _stat.S_ISLNK(out_stat.st_mode):
-                # check that symlink target exists
-                try:
-                    out_stat_target = _os.stat(abs_out_path)
-                except FileNotFoundError:
+            if action == "import":
+                # TODO: do more efficiently
+                with open(abs_out_path, "rb") as f:
+                    disk_data = f.read()
+
+                if data == disk_data:
+                    # same data on disk
+                    return
+            elif action == "symlink" or action == "symlink-update":
+                if _stat.S_ISLNK(out_stat.st_mode):
+                    # check that symlink target exists
+                    try:
+                        out_stat_target = _os.stat(abs_out_path)
+                    except FileNotFoundError:
+                        need_to_unlink = True
+                        break
+
+                    dest_path = _os.path.realpath(abs_out_path)
+                    if abs_in_path == dest_path:
+                        # target already points to source
+                        return
+                elif action == "symlink-update":
+                    raise Failure(_(f"trying to {action} `%s` to `%s` which already exists and is not a symlink") +
+                                  not_allowed, rel_in_path, rel_out_path)
+
+                if action == "symlink-update":
+                    # cache stime_ms for better performance
+                    try:
+                        file_modified_ms = file_mtimes_ms[abs_out_path]
+                    except KeyError:
+                        file_modified_ms = ReqresExpr(wrr_loadf(abs_out_path), abs_out_path).stime_ms
+                        file_mtimes_ms[abs_out_path] = file_modified_ms
+
+                    if file_modified_ms >= rrexpr.stime_ms:
+                        # target is newer
+                        return
+
                     need_to_unlink = True
                     break
-
-            if _os.path.samefile(abs_path, abs_out_path):
-                # target already points to source
-                return
-
-            if cargs.action == "symlink-update":
-                if not _stat.S_ISLNK(out_stat.st_mode):
-                    raise Failure(_(f"trying to {cargs.action} `%s` to `%s` which already exists and is not a symlink") +
-                                  not_allowed, rel_path, rel_out_path)
-
-                # cache stime_ms for performance
-                try:
-                    file_modified_ms = file_mtimes_ms[abs_out_path]
-                except KeyError:
-                    file_modified_ms = ReqresExpr(wrr_loadf(abs_out_path), abs_out_path).stime_ms
-                    file_mtimes_ms[abs_out_path] = file_modified_ms
-
-                if file_modified_ms >= rrexpr.stime_ms:
-                    # target in newer
+            else:
+                if _os.path.samefile(abs_in_path, abs_out_path):
+                    # target already points to source
                     return
 
-                need_to_unlink = True
-                break
-
             if prev_rel_out_path == rel_out_path:
-                raise Failure(_(f"trying to {cargs.action} `%s` to `%s` which already exists and is not the same file") +
-                              variance_help, rel_path, rel_out_path)
+                raise Failure(_(f"trying to {action} `%s` to `%s` which already exists and is not the same file") +
+                              variance_help, rel_in_path, rel_out_path)
             prev_rel_out_path = rel_out_path
             continue
 
         if not cargs.quiet:
-            stderr.write_str_ln(f"{action_desc}: {rel_path} -> {rel_out_path}")
+            stderr.write_str_ln(f"{action_desc}: {rel_in_path} -> {rel_out_path}")
             stderr.flush()
 
         if cargs.dry_run:
             return
 
-        intent_log[abs_out_path] = (rrexpr.stime_ms, need_to_unlink, abs_path)
+        intent_log[abs_out_path] = (rrexpr.stime_ms, need_to_unlink, abs_in_path, data)
+
         if not cargs.lazy and len(intent_log) >= cargs.batch:
             perform_updates()
 
     return emit, perform_updates
+
+def make_organize_emit(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqres, str, str], None],
+                                                                   _t.Callable[[], None]]:
+    destination = _os.path.expanduser(destination)
+
+    action_op : _t.Any
+    if cargs.action == "rename":
+        action_desc = "renaming"
+        action_op = _os.rename
+    elif cargs.action == "hardlink":
+        action_desc = "hardlinking"
+        action_op = _os.link
+    elif cargs.action == "symlink":
+        action_desc = "symlinking"
+        action_op = _os.symlink
+    elif cargs.action == "symlink-update":
+        action_desc = "updating symlink"
+        action_op = _os.symlink
+    else:
+        assert False
+
+    def action_func(data : _t.Any, abs_in_path : str, abs_out_path : str) -> None:
+        assert data is None
+
+        action_op(abs_in_path, abs_out_path)
+
+        if cargs.terminator is not None:
+            stdout.write_bytes(_os.fsencode(abs_out_path) + cargs.terminator)
+            stdout.flush()
+
+    return make_mut_emit(cargs, destination, cargs.action, action_desc, action_func)
 
 def cmd_organize(cargs : _t.Any) -> None:
     compile_filters(cargs)
@@ -392,9 +479,8 @@ def cmd_organize(cargs : _t.Any) -> None:
 
     if cargs.destination is not None:
         # destination is set explicitly
-        emit, finish = make_organize(cargs, cargs.destination)
-        for _e in wrr_map_paths(emit, cargs.paths, cargs.errors, follow_symlinks=False):
-            pass
+        emit, finish = make_organize_emit(cargs, cargs.destination)
+        map_wrr_paths(emit, cargs.paths, cargs.errors, follow_symlinks=False)
         finish()
     else:
         # each path is its own destination
@@ -408,10 +494,45 @@ def cmd_organize(cargs : _t.Any) -> None:
                 raise Failure(_("%s is not a directory but no `--to` is specified"), path)
 
         for path in cargs.paths:
-            emit, finish = make_organize(cargs, path)
-            for _e in wrr_map_paths(emit, [path], cargs.errors, follow_symlinks=False):
-                pass
+            emit, finish = make_organize_emit(cargs, path)
+            map_wrr_paths(emit, [path], cargs.errors, follow_symlinks=False)
             finish()
+
+def cmd_import(cargs : _t.Any) -> None:
+    compile_filters(cargs)
+    elaborate_output(cargs)
+    elaborate_paths(cargs)
+    slurp_stdin0(cargs)
+
+    if cargs.input == "mitmproxy":
+        from .mitmproxy import load_as_wrrs
+    else:
+        assert False
+
+    def action_func(data : _t.Any, abs_path : str, abs_out_path : str) -> None:
+        assert data is not None
+
+        part = abs_out_path + ".part"
+        with open(part, "xb") as f:
+            f.write(data)
+        _os.rename(part, abs_out_path)
+
+        if cargs.terminator is not None:
+            stdout.write_bytes(_os.fsencode(abs_out_path) + cargs.terminator)
+            stdout.flush()
+
+    emit_one, finish = make_mut_emit(cargs, cargs.destination, "import", "importing", action_func)
+
+    def emit(rr : _t.Iterator[Reqres], abs_path : str, rel_path : str) -> None:
+        n = 0
+        for reqres in rr:
+            pos = "/" + str(n)
+            emit_one(reqres, abs_path + pos, rel_path + pos)
+            n += 1
+
+    for path in cargs.paths:
+        load_map_orderly(load_as_wrrs, emit, path)
+    finish()
 
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_text(_("# Examples"))
@@ -643,6 +764,18 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     add_paths(cmd)
     cmd.set_defaults(func=cmd_find)
 
+    def add_output(cmd : _t.Any) -> None:
+        grp = cmd.add_mutually_exclusive_group()
+        grp.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
+        grp.add_argument("-q", "--quiet", action="store_true", help=_("don't log computed updates to stderr"))
+
+        agrp = cmd.add_argument_group("output")
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument("--no-output", dest="terminator", action="store_const", const = None, help=_("don't print anything to stdout (default)"))
+        grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("output absolute paths of newly produced files terminated with `\\n` (LF) newline characters to stdout"))
+        grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of newly produced files terminated with `\\0` (NUL) bytes to stdout"))
+        cmd.set_defaults(terminator = None)
+
     # organize
     cmd = subparsers.add_parser("organize", help=_("programmatically rename/hardlink/symlink WRR files based on their contents"),
                                 description = _(f"""Parse given WRR files into their respective reqres and then rename/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
@@ -651,17 +784,7 @@ Operations that could lead to accidental data loss are not permitted.
 E.g. `{__package__} organize --action rename` will not overwrite any files, which is why the default `--output` contains `%(num)d`."""))
     add_errors(cmd)
     add_filters(cmd, "work on")
-
-    grp = cmd.add_mutually_exclusive_group()
-    grp.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
-    grp.add_argument("-q", "--quiet", action="store_true", help=_("don't log computed updates to stderr"))
-
-    agrp = cmd.add_argument_group("output")
-    grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--no-output", dest="terminator", action="store_const", const = None, help=_("don't print anything to stdout (default)"))
-    grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("output absolute paths of newly produced files terminated with `\\n` (LF) newline characters to stdout"))
-    grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of newly produced files terminated with `\\0` (NUL) bytes to stdout"))
-    cmd.set_defaults(terminator = None)
+    add_output(cmd)
 
     cmd.add_argument("-a", "--action", choices=["rename", "hardlink", "symlink", "symlink-update"], default="rename", help=_("""organize how:
 - `rename`: rename source files under `DESTINATION`, will fail if target already exists (default)
@@ -684,6 +807,23 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
 
     add_paths(cmd)
     cmd.set_defaults(func=cmd_organize)
+
+    # import
+    supcmd = subparsers.add_parser("import", help=_("convert other archive formats into WRR files"),
+                                   description = _("""Parse data in each `INPUT` `PATH` into reqres and dump them under `DESTINATION` with paths derived from their metadata, similar to `organize`.
+
+Internally, this shares most of the code with `organize`, but unlike `organize` this holds the whole reqres in memory until its written out, which is why `--batch` is always set to `0`.
+"""))
+    supsub = supcmd.add_subparsers(title="file formats")
+
+    cmd = supsub.add_parser("mitmproxy", help=_("convert other archive formats into WRR files"))
+    add_errors(cmd)
+    add_filters(cmd, "import")
+    add_output(cmd)
+    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("target directory"))
+    cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same as `{__package__} organize --output`, which see"""))
+    add_paths(cmd)
+    cmd.set_defaults(func=cmd_import, input = "mitmproxy", batch = 0, lazy = False)
 
     cargs = parser.parse_args(_sys.argv[1:])
 

@@ -3,6 +3,7 @@
 , kisstdlib ? import ../vendor/kisstdlib { inherit pkgs; }
 , source ? import ../source.nix { inherit pkgs; }
 , debug ? false
+, mitmproxySupport ? true
 }:
 
 with pkgs.python3Packages;
@@ -20,7 +21,9 @@ buildPythonApplication (rec {
     cbor2
     kisstdlib
     idna
-  ];
+  ]
+  ++ lib.optional mitmproxySupport mitmproxy;
+
 } // lib.optionalAttrs debug {
   nativeBuildInputs = [
     mypy

@@ -62,7 +62,7 @@ See the [scripts sub-directory](./scripts) for more examples.
 
   Currently, the extension archives everything except WebSockets data but `wrrarms` + `pandoc` only work well for dumps of mostly plain text websites (which is the main use case I use this whole thing for: scrape a website and then mass-convert everything to PDFs via some `pandoc` magic, then index those with `recoll`).
 
-- Converter from `mitmproxy` dumps, HAR, WARC, and PCAP files into WRR.
+- Converter from HAR, WARC, and PCAP files into WRR.
 - Converter from WRR to WARC.
 - Data deduplication.
 - Non-dumb server with time+URL index and replay, i.e. a local [Wayback Machine](https://web.archive.org/).
@@ -85,7 +85,7 @@ Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a struct
   : show help messages formatted in Markdown
 
 - subcommands:
-  - `{pprint,get,run,stream,find,organize}`
+  - `{pprint,get,run,stream,find,organize,import}`
     - `pprint`
     : pretty-print given WRR files
     - `get`
@@ -98,6 +98,8 @@ Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a struct
     : print paths of WRR files matching specified criteria
     - `organize`
     : programmatically rename/hardlink/symlink WRR files based on their contents
+    - `import`
+    : convert other archive formats into WRR files
 
 ### wrrarms pprint
 
@@ -144,6 +146,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `eb`: replace `None` value with an empty byte string `b""`
       - `false`: replace `None` value with `False`
       - `true`: replace `None` value with `True`
+      - `missing`: `True` if the value is `None`
       - `0`: replace `None` value with `0`
       - `1`: replace `None` value with `1`
       - `not`: apply logical `not` to value
@@ -189,6 +192,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `response.complete`: is response body complete?; bool
       - `response.body`: response body; Firefox gives raw bytes, Chromium gives UTF-8 encoded strings; bytes | str
       - `finished_at`: request completion time in seconds since 1970-01-01 00:00; Epoch
+      - `websocket`: a list of WebSocket frames
     - derived attributes:
       - `fs_path`: file system path for the WRR file containing this reqres; str
       - `qtime`: aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; decimal float
@@ -427,6 +431,56 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
 - filters:
   - `--or EXPR`
   : only work on reqres which match any of these expressions...
+  - `--and EXPR`
+  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+
+- output:
+  - `--no-output`
+  : don't print anything to stdout (default)
+  - `-l, --lf-terminated`
+  : output absolute paths of newly produced files terminated with `\n` (LF) newline characters to stdout
+  - `-z, --zero-terminated`
+  : output absolute paths of newly produced files terminated with `\0` (NUL) bytes to stdout
+
+### wrrarms import
+
+Parse data in each `INPUT` `PATH` into reqres and dump them under `DESTINATION` with paths derived from their metadata, similar to `organize`.
+
+Internally, this shares most of the code with `organize`, but unlike `organize` this holds the whole reqres in memory until its written out, which is why `--batch` is always set to `0`.
+
+- file formats:
+  - `{mitmproxy}`
+    - `mitmproxy`
+    : convert other archive formats into WRR files
+
+### wrrarms import mitmproxy
+
+- positional arguments:
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
+
+- options:
+  - `--dry-run`
+  : perform a trial run without actually performing any changes
+  - `-q, --quiet`
+  : don't log computed updates to stderr
+  - `-t DESTINATION, --to DESTINATION`
+  : target directory
+  - `-o FORMAT, --output FORMAT`
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same as `wrrarms organize --output`, which see
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+
+- error handling:
+  - `--errors {fail,skip,ignore}`
+  : when an error occurs:
+    - `fail`: report failure and stop the execution (default)
+    - `skip`: report failure but skip the reqres that produced it from the output and continue
+    - `ignore`: `skip`, but don't report the failure
+
+- filters:
+  - `--or EXPR`
+  : only import reqres which match any of these expressions...
   - `--and EXPR`
   : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
 

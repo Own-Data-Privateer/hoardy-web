@@ -163,6 +163,8 @@ linst_atoms : dict[str, tuple[str, LinstAtom]] = {
           linst_const(False)),
     "true": ('replace `None` value with `True`',
           linst_const(True)),
+    "missing": ('`True` if the value is `None`',
+          linst_apply0(lambda v: True if v is None else False)),
     "0": ('replace `None` value with `0`',
           linst_const(0)),
     "1": ('replace `None` value with `1`',

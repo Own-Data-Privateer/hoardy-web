@@ -56,6 +56,13 @@ class Response:
     body : bytes | str
 
 @_dc.dataclass
+class WebSocketFrame:
+    sent_at : Epoch
+    from_client : bool
+    opcode : int
+    content : bytes
+
+@_dc.dataclass
 class Reqres:
     version : int
     source : str
@@ -64,6 +71,7 @@ class Reqres:
     response : _t.Optional[Response]
     finished_at : Epoch
     extra : dict[str, _t.Any]
+    websocket : _t.Optional[list[WebSocketFrame]]
 
 Reqres_fields = {
     "version": "WEBREQRES format version; int",
@@ -82,6 +90,7 @@ Reqres_fields = {
     "response.complete": "is response body complete?; bool",
     "response.body": "response body; Firefox gives raw bytes, Chromium gives UTF-8 encoded strings; bytes | str",
     "finished_at": "request completion time in seconds since 1970-01-01 00:00; Epoch",
+    "websocket": "a list of WebSocket frames",
 }
 
 Reqres_derived_attrs = {
@@ -480,7 +489,18 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
             rs_started_at, rs_code, rs_reason, rs_headers, rs_complete, rs_body = response_
             response = Response(_t_epoch(rs_started_at), _t_int(rs_code), _t_str(rs_reason), _t_headers(rs_headers), _t_bool(rs_complete), _t_bytes_or_str(rs_body))
 
-        return Reqres(1, source, protocol, request, response, _t_epoch(finished_at), extra)
+        try:
+            wsframes = extra["websocket"]
+        except KeyError:
+            websocket = None
+        else:
+            del extra["websocket"]
+            websocket = []
+            for frame in wsframes:
+                sent_at, from_client, opcode, content = frame
+                websocket.append(WebSocketFrame(_t_epoch(sent_at), _t_bool(from_client), _t_int(opcode), _t_bytes(content)))
+
+        return Reqres(1, source, protocol, request, response, _t_epoch(finished_at), extra, websocket)
     else:
         raise ParsingError("can't parse CBOR data: unknown format %s", data[0])
 
@@ -500,7 +520,15 @@ def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
         response = _f_epoch(res.started_at), res.code, res.reason, res.headers, res.complete, res.body
         del res
 
-    structure = ["WEBREQRES/1", reqres.source, reqres.protocol, request, response, _f_epoch(reqres.finished_at), reqres.extra]
+    extra = reqres.extra
+    if reqres.websocket is not None:
+        extra = extra.copy()
+        wsframes = []
+        for frame in reqres.websocket:
+            wsframes.append([_f_epoch(frame.sent_at), frame.from_client, frame.opcode, frame.content])
+        extra["websocket"] = wsframes
+
+    structure = ["WEBREQRES/1", reqres.source, reqres.protocol, request, response, _f_epoch(reqres.finished_at), extra]
 
     data : bytes = _cbor2.dumps(structure)
 
@@ -524,37 +552,3 @@ def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
 def wrr_dump(fobj : _io.BufferedWriter, reqres : Reqres, compress : bool = True) -> None:
     data = wrr_dumps(reqres, compress)
     fobj.write(data)
-
-MapElem = _t.TypeVar("MapElem")
-def wrr_map_paths(func : _t.Callable[[Reqres, _t.AnyStr, _t.AnyStr], MapElem],
-                  paths : list[_t.AnyStr],
-                  errors : str = "fail",
-                  follow_symlinks : bool = True) -> _t.Iterable[tuple[_t.AnyStr, MapElem]]:
-    for dir_or_file_path in paths:
-        dir_or_file_path = _os.path.expanduser(dir_or_file_path)
-        for path in walk_orderly(dir_or_file_path,
-                                 include_directories = False,
-                                 follow_symlinks = follow_symlinks,
-                                 handle_error = None if errors == "fail" else _logging.error):
-            if (isinstance(path, str) and path.endswith(".part")) or \
-               (isinstance(path, bytes) and path.endswith(b".part")):
-                continue
-            try:
-                try:
-                    abs_path = _os.path.abspath(path)
-                    if not follow_symlinks and _os.path.islink(abs_path):
-                        raise Failure("not following a symlink")
-                    reqres = wrr_loadf(abs_path)
-                except OSError as exc:
-                    raise Failure("failed to open")
-
-                res = func(reqres, abs_path, path)
-                yield abs_path, res
-            except Failure as exc:
-                if errors == "ignore":
-                    continue
-                exc.elaborate("while processing %s", path)
-                if errors != "fail":
-                    _logging.error("%s", str(exc))
-                    continue
-                raise exc
