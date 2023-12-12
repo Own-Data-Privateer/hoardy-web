@@ -33,13 +33,9 @@ Ideally, you would use something smarter than this (when I publish it), but this
 # Usage
 
 ```
-usage: pwebarc_dumb_dump_server.py [-h] [--version] [--host HOST]
-                                   [--port PORT] [--root ROOT]
-                                   [--default-profile NAME]
-                                   [--ignore-profiles] [--no-cbor]
+usage: pwebarc_dumb_dump_server.py [-h] [--version] [--host HOST] [--port PORT] [--root ROOT] [--default-profile NAME] [--ignore-profiles] [--no-cbor]
 
-Simple archiving server for pWebArc. Dumps each request to
-`ROOT/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.
+Simple archiving server for pWebArc. Dumps each request to `ROOT/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.
 
 options:
   -h, --help            show this help message and exit
@@ -48,12 +44,8 @@ options:
   --port PORT           listen on what port (default: 3210)
   --root ROOT           path to dump data into (default: pwebarc-dump)
   --default-profile NAME
-                        default profile to use when no `profile` query
-                        parameter is supplied by the extension (default:
-                        `default`)
-  --ignore-profiles     ignore `profile` query parameter supplied by the
-                        extension and use the value of `--default-profile`
-                        instead
-  --no-cbor             don't load `cbor2` module, disables parsing of input
-                        data
+                        default profile to use when no `profile` query parameter is supplied by the extension (default: `default`)
+  --ignore-profiles     ignore `profile` query parameter supplied by the extension and use the value of `--default-profile` instead
+  --no-cbor             don't load `cbor2` module, disables parsing of input data
+
 ```

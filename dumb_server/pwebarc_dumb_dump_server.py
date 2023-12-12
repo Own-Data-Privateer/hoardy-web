@@ -147,7 +147,10 @@ class HTTPDumpServer(threading.Thread):
 def main():
     global cbor2
 
-    parser = argparse.ArgumentParser(prog=__package__, description="Simple archiving server for pWebArc. Dumps each request to `ROOT/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.")
+    parser = argparse.ArgumentParser(prog=__package__,
+                                     description="Simple archiving server for pWebArc. Dumps each request to `ROOT/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
+                                     add_help = False)
+    parser.add_argument("-h", "--help", action="store_true", help="show this help message and exit")
     parser.add_argument("--version", action="version", version=f"{__package__} {version}")
     parser.add_argument("--host", default="127.0.0.1", type=str, help="listen on what host/IP (default: 127.0.0.1)")
     parser.add_argument("--port", default=3210, type=int, help="listen on what port (default: 3210)")
@@ -157,6 +160,12 @@ def main():
     parser.add_argument("--no-cbor", action="store_true", help="don't load `cbor2` module, disables parsing of input data")
 
     args = parser.parse_args(sys.argv[1:])
+
+    if args.help:
+        if not sys.stdout.isatty():
+            parser.formatter_class = lambda *args, **kwargs: argparse.HelpFormatter(*args, width=1024, **kwargs)
+        print(parser.format_help())
+        sys.exit(0)
 
     if not args.no_cbor:
         try:
