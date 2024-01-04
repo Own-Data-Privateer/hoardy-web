@@ -37,10 +37,11 @@ class HTTPDumpServer(threading.Thread):
        would not interrupt a dump in the middle.
     """
 
-    def __init__(self, host, port, root, default_profile, ignore_profiles, *args, **kwargs):
+    def __init__(self, host, port, root, uncompressed, default_profile, ignore_profiles, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.httpd = make_server(host, port, validator(self.handle_request))
         self.root = os.path.expanduser(root)
+        self.uncompressed = uncompressed
         self.default_profile = default_profile
         self.ignore_profiles = ignore_profiles
         self.prevsec = 0
@@ -99,16 +100,19 @@ class HTTPDumpServer(threading.Thread):
                     print(rparsed[-1500:])
                 del rparsed
 
-            # gzip it, if it gzips
-            buf = io.BytesIO()
-            with gzip.GzipFile(fileobj=buf, filename="", mtime=0, mode="wb", compresslevel=9) as gz:
-                gz.write(data)
-            compressed_data = buf.getvalue()
-            del buf
+            if not self.uncompressed:
+                # gzip it, if it gzips
+                buf = io.BytesIO()
+                with gzip.GzipFile(fileobj=buf, filename="", mtime=0, mode="wb", compresslevel=9) as gz:
+                    gz.write(data)
+                compressed_data = buf.getvalue()
 
-            if len(compressed_data) < len(data):
-                data = compressed_data
-            del compressed_data
+                if len(compressed_data) < len(data):
+                    data = compressed_data
+
+                # free the memory immediately
+                del buf
+                del compressed_data
 
             # write it out to a file in {self.root}/<year>/<month>/<day>/<epoch>_<number>.wrr
 
@@ -155,6 +159,7 @@ def main():
     parser.add_argument("--host", default="127.0.0.1", type=str, help="listen on what host/IP (default: 127.0.0.1)")
     parser.add_argument("--port", default=3210, type=int, help="listen on what port (default: 3210)")
     parser.add_argument("--root", default="pwebarc-dump", type=str, help="path to dump data into (default: pwebarc-dump)")
+    parser.add_argument("--uncompressed", action="store_true", help="dump new archivals to disk without compression; the default is to try to compress each new archive first")
     parser.add_argument("--default-profile", metavar="NAME", default="default", type=str, help="default profile to use when no `profile` query parameter is supplied by the extension (default: `default`)")
     parser.add_argument("--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension and use the value of `--default-profile` instead")
     parser.add_argument("--no-print-cbors", action="store_true", help="don't print parsed representations of newly archived CBORs to stdout even if `cbor2` module is available")
@@ -177,7 +182,7 @@ def main():
             cbor2 = cbor2_
             del cbor2_
 
-    t = HTTPDumpServer(args.host, args.port, args.root, args.default_profile, args.ignore_profiles)
+    t = HTTPDumpServer(args.host, args.port, args.root, args.uncompressed, args.default_profile, args.ignore_profiles)
     t.start()
     try:
         t.join()

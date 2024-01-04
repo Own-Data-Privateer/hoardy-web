@@ -34,7 +34,7 @@ Ideally, you would use something smarter than this (when I publish it), but this
 # Usage
 
 ```
-usage: pwebarc_dumb_dump_server.py [-h] [--version] [--host HOST] [--port PORT] [--root ROOT] [--default-profile NAME] [--ignore-profiles] [--no-print-cbors]
+usage: pwebarc_dumb_dump_server.py [-h] [--version] [--host HOST] [--port PORT] [--root ROOT] [--uncompressed] [--default-profile NAME] [--ignore-profiles] [--no-print-cbors]
 
 Simple archiving server for pWebArc. Dumps each request to `<ROOT>/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.
 
@@ -44,6 +44,7 @@ options:
   --host HOST           listen on what host/IP (default: 127.0.0.1)
   --port PORT           listen on what port (default: 3210)
   --root ROOT           path to dump data into (default: pwebarc-dump)
+  --uncompressed        dump new archivals to disk without compression; the default is to try to compress each new archive first
   --default-profile NAME
                         default profile to use when no `profile` query parameter is supplied by the extension (default: `default`)
   --ignore-profiles     ignore `profile` query parameter supplied by the extension and use the value of `--default-profile` instead
