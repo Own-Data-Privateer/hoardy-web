@@ -148,7 +148,7 @@ def main():
     global cbor2
 
     parser = argparse.ArgumentParser(prog=__package__,
-                                     description="Simple archiving server for pWebArc. Dumps each request to `ROOT/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
+                                     description="Simple archiving server for pWebArc. Dumps each request to `<ROOT>/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
                                      add_help = False)
     parser.add_argument("-h", "--help", action="store_true", help="show this help message and exit")
     parser.add_argument("--version", action="version", version=f"{__package__} {version}")

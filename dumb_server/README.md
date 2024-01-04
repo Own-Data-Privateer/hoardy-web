@@ -36,7 +36,7 @@ Ideally, you would use something smarter than this (when I publish it), but this
 ```
 usage: pwebarc_dumb_dump_server.py [-h] [--version] [--host HOST] [--port PORT] [--root ROOT] [--default-profile NAME] [--ignore-profiles] [--no-cbor]
 
-Simple archiving server for pWebArc. Dumps each request to `ROOT/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.
+Simple archiving server for pWebArc. Dumps each request to `<ROOT>/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.
 
 options:
   -h, --help            show this help message and exit
