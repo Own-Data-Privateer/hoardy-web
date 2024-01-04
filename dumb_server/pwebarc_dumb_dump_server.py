@@ -157,7 +157,7 @@ def main():
     parser.add_argument("--root", default="pwebarc-dump", type=str, help="path to dump data into (default: pwebarc-dump)")
     parser.add_argument("--default-profile", metavar="NAME", default="default", type=str, help="default profile to use when no `profile` query parameter is supplied by the extension (default: `default`)")
     parser.add_argument("--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension and use the value of `--default-profile` instead")
-    parser.add_argument("--no-cbor", action="store_true", help="don't load `cbor2` module, disables parsing of input data")
+    parser.add_argument("--no-print-cbors", action="store_true", help="don't print parsed representations of newly archived CBORs to stdout even if `cbor2` module is available")
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -167,7 +167,7 @@ def main():
         print(parser.format_help())
         sys.exit(0)
 
-    if not args.no_cbor:
+    if not args.no_print_cbors:
         try:
             import cbor2 as cbor2_
         except ImportError:
