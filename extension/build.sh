@@ -9,7 +9,7 @@ fi
 
 timestamp=$(git log --format='%ci' HEAD~1..HEAD)
 version=$(jq -r .version ./manifest-common.json)
-iconTheme=orbitals
+iconTheme=privateer
 
 for target in "$@"; do
     echo "Building $target..."
