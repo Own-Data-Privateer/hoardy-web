@@ -9,6 +9,7 @@ fi
 
 timestamp=$(git log --format='%ci' HEAD~1..HEAD)
 version=$(jq -r .version ./manifest-common.json)
+iconTheme=orbitals
 
 for target in "$@"; do
     echo "Building $target..."
@@ -28,7 +29,7 @@ for target in "$@"; do
     if [[ "$target" != firefox ]]; then
         makeicons() {
             mkdir -p "$DEST/icon/$1"
-            for a in icon/*.svg ; do
+            for a in icon/"$iconTheme"/*.svg ; do
                 n=$(basename "$a")
                 file="$DEST/icon/$1/${n%.svg}.png"
                 if ! [[ -e "$file" ]]; then
@@ -42,7 +43,7 @@ for target in "$@"; do
         #makeicons 96
         makeicons 128
     else
-        install -C -t "$DEST"/icon icon/*.svg
+        install -C -t "$DEST"/icon icon/"$iconTheme"/*.svg
     fi
 
     if [[ "$target" == chromium ]]; then
