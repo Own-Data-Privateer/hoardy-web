@@ -352,7 +352,7 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
       - `hupnq_msn`: `%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s_%(method)s_%(status)s.%(num)d.wrr`
       - `flat`: `%(hostname)s/%(ipath|unquote|replace / __|abbrev 120)s%(oqm)s%(nquery|unquote_plus|replace / __|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.wrr`
     - available substitutions:
-      - `num`: number of times an output path like this was seen; this value gets incremened for each new WRR file generating the same path with `num` set to `0` and when the file at the path generated with the current value of `num` already exists; i.e. adding this parameter to your `--output` format will ensure all generated file names will be unique
+      - `num`: number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique
       - all expressions of `wrrarms get --expr`, which see
   - `-t DESTINATION, --to DESTINATION`
   : target directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`
