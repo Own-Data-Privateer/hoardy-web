@@ -1,61 +1,99 @@
-# What?
+# What is `pwebarc`?
 
-`pwebarc` is a suite of tools implementing a Private Web Archive, basically your own private [Wayback Machine](https://web.archive.org/) that can also archive POST requests, or HTTP-level [WebScrapBook](https://github.com/danny0838/webscrapbook) following "archive everything now, figure out what to do with it later" philosophy.
+Private Passive Web Archive (`pwebarc`, <code>p<sup>2</sup>webarc</code> for the pedantic), is a suite of tools that allows you to passively collect and archive HTTP requests and responses as you browse the web and then organize and manage the collected data.
 
-Basically, [you install the browser extension, run the archiving server](#quickstart), and just browse the web while `pwebarc` archives *everything* your browser fetches from the network (by default, the extension has lots of options controlling what should and should not be archived).
+In other words, `pwebarc` is your own private [Wayback Machine](https://web.archive.org/) --- which, unlike the original Wayback Machine, can also archive POST requests and responses (e.g., answer pages of web search engines, like Google), and most other HTTP-level data --- that collects data *passively*, saving *everything* your browser sees by default (instead of you asking it to save select pages one-by-one).
+
+Or, in other other words, `pwebarc` is a suite of tools implementing HTTP-level [WebScrapBook](https://github.com/danny0838/webscrapbook) following "archive everything now, figure out what to do with it later" philosophy.
+
+How it works: [you install the browser extension/add-on (available for most browsers), run the archiving server (works both on POSIX and Windows)](#quickstart), and just browse the web while `pwebarc` archives *everything* your browser fetches from the network (by default, the extension has lots of options controlling what data from which tabs should and should not be archived).
 Then, some indeterminate time later, [you refer back to your collected data](#why).
 
-This is different from all other similar tools, including the [Wayback Machine](https://web.archive.org/) itself, in that they require you to archive and replay things one-by-one.
+[There are some other alternatives to this](#alternatives) but, as far as I'm aware, `pwebarc` is the simplest and easiest to use if you want to archive all or most of your browsing data.
 
-[There are some other alternatives to this](#alternatives), but AFAIK `pwebarc` is the simplest and easiest to use if you want to archive everything.
+# <span id="why"/>Why does `pwebarc` exists?
 
-# Why?
-
-So, you wake up remembering something interesting, you try to look it up on Google, you fail, eventually you remember the website you seen it at (or a tool like [Promnesia](https://github.com/karlicoss/promnesia) helps you), you go there to look it up… and discovered it offline/gone/a parked domain. Not a problem\! Have no fear\! You go to [Wayback Machine](https://web.archive.org/) and look it up there… and discover they only archived an ancient version of it and the thing you wanted is missing there.
+So, you wake up remembering something interesting, you try to look it up on Google, you fail, eventually you remember the website you seen it at (or a tool like [Promnesia](https://github.com/karlicoss/promnesia) helps you), you go there to look it up… and discover it offline/gone/a parked domain. Not a problem\! Have no fear\! You go to [Wayback Machine](https://web.archive.org/) and look it up there… and discover they only archived an ancient version of it and the thing you wanted is missing there.
 
 Or, say, you read a cool fanfiction on [AO3](https://archiveofourown.org/) years ago, you even wrote down the URL, you go back to it wanting to experience it again… and discover the author made it private.
 
-Or, say, there's a web page/app you use (like a banking app), but it lacks some features you want, and in your browser's Network Monitor you can see it uses JSON RPC or some such to fetch its data, and you want those JSONs for yourself (e.g. to compute statistics and supplement the app output with them), but the app in question has no public API and scraping it with a script is non-trivial (e.g. they do complicated JavaScript+multifactor-based auth, try to detect you are actually using a browser, and they ban you immediately if not).
+Or, say, for accessibility reasons you want to feed some of the web pages your browser loads through a custom script that strips HTML markup in a website-specific way and then pretty-prints the result to your terminal, feeds it into a TTS engine, or a Braille display.
 
-All of these scenarios happen all the time to me. "If it is on the Internet, it is on Internet forever\!" they said. "Everything will have a REST API\!" they said. **They lied\!**
+Or, say, there's a web page/app you use (like a banking app), but it lacks some features you want, and in your browser's Network Monitor you can see it uses JSON RPC or some such to fetch its data, and you want those JSONs for yourself (e.g., to compute statistics and supplement the app output with them), but the app in question has no public API and scraping it with a script is non-trivial (e.g., they do complicated JavaScript+multifactor-based auth, try to detect you are actually using a browser, and they ban you immediately if not).
+
+Or, say, you want to fetch a bunch of pages belonging to two recommendation lists on AO3 or [GoodReads](https://www.goodreads.com/), get all outgoing links for each fetched page, union sets for the pages belonging to the same recommendation list, and then intersect the results to get a shorter list of things you might want to read with higher probability.
+
+Or, more generally, you want to tag web pages referenced from a certain set of other web pages with some tag in your indexing software, and update it automatically each time you visit any of the source pages.
+
+Or, say, you notice that modern web search engines suck in general, because solutions for maintaining a curated public index of useful (non-AI-generated non-SEOized) web pages appears to be technically intractable (any automated ranking system gets eaten alive by SEO, link farms, and AI-generated content; meanwhile, all distributed crowd-sourced solutions appear to become similarly easily exploitable if they are sufficiently privacy-preserving, while centralized crowd-sourced solutions appear to be economically unviable).
+And so you want to carefully collect and curate (manually, by immediately removing useless pages from your archive) you own web browsing data so that you could satisfy your searches locally via pages you visited before instead of asking Google --- which, with a good indexing software like [recoll](https://www.lesbonscomptes.com/recoll/index.html), is much faster, infinitely more private, and produces much higher quality results when you are trying to solve a problem related to something you researched before --- or, at least, start your research by generating some good starting points, instead of the top 10 AI-generated results Google will give you.
+Moreover, since in this scenario you can maintain your own link graph over your web archive data, you can run [Pagerank](https://en.wikipedia.org/wiki/Pagerank) algorithm locally and, if you archived enough data, experience personalized web search with the quality better than that of Google circa year 2005 when SEO did not consume the Internet yet.
+
+Or, say, you want to read or watch something interesting, but you don't know what exactly.
+So, you open the pages for some of your favorite scientific articles on [arxiv.org](https://arxiv.org) and Google Scholar, books on AO3 and GoodReads, anime on [MAL](https://myanimelist.net/) and [anidb](https://anidb.net/), click around the topics, collections, lists, recommendations, public bookmarks, related studios, directors, and seiyuu your favorites are mentioned in and then build a link graph out of it all.
+(If you passively collect your browsing data long enough you probably did this at least once for all your favorites before, more or less, so this you don't actually need to do anything, you already have the data.)
+Then, you parse your [org-mode](https://orgmode.org/) files and extract scores for all the things you ever read or watched, assign those scores to the nodes corresponding to those archived pages, run Pagerank on the undirected graph (Google's Pagerank computes scaled probability of visiting a given page while randomly surfing the web starting from a random page and following the links; you can rapidly generate and update "recommendation scores" by starting from a set of pages you already like and dislike and allowing it to surf and update scores in both directions), list all nodes with scores higher than some constant, filter out nodes of incorrect type (e.g. you want a PDF, not a homepage of its author), filter out the ones that are marked as "DONE", "CANCELED", and etc in your org-mode files, and present the results.
+Ta-da! Cheap but very effective private personalized Bayesian recommendation system.
+
+"If it is on the Internet, it is on Internet forever\!" they said.
+"Everything will have a RESTful API\!" they said.
+"Semantic Web will allow arbitrarily complex queries spanning multiple data sources\!" they said.
+**They lied\!**
 
 Things vanish from the Internet all the time, [Wayback Machine](https://web.archive.org/) is awesome, but
 
 - you need to be online to use it,
 - it has no full text search, even though it was promised for decades now (this is probably a privacy feature by this point),
 - they remove/hide archived data sometimes under political pressure,
-- they only archive the public web and only what can be reached with GET requests.
+- they only archive the public web and only what can be reached with GET requests, and
+- obviously, you wouldn't want it to archive you banking app's output.
 
-And, obviously, you wouldn't want it to archive you banking app's output.
+A lot of useful stuff never got RESTful APIs, those RESTful APIs that exists are frequently buggy, you'll probably have to scrape data from HTMLs anyway.
+
+Semantic Web never took off, and with large AI companies hungrily scraping the web for data and never giving anything in return it probably never will.
+
+But none of the above prevents you from building your own little data paradise.
+`pwebarc` gives you some of the tools to do it.
 
 # Quickstart
 
 ## <span id="quickstart-with-python"/>On a system with Python installed
 
-- Download [the dumb archiving server `pwebarc_dumb_dump_server.py` script](./dumb_server/pwebarc_dumb_dump_server.py) and run it, it has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python and is very simple.
+- Download [the dumb archiving server `pwebarc_dumb_dump_server.py` script](./dumb_server/pwebarc_dumb_dump_server.py) and run it, it has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python.
   It will start saving data into `pwebarc-dump` directory wherever you run it from.
 
   Alternatively, install via `pip install pwebarc-dumb-dump-server` and run as `pwebarc-dumb-dump-server`.
   See [there](./dumb_server/) for more info.
-- On Firefox/Tor Browser/etc: [Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Installing from source on Firefox/Tor Browser](#build-firefox).
-- On Chromium/Chrome/etc (experimental): See [Installing on Chromium/Chrome](#install-chromium) or [Installing from source on Chromium/Chrome](#build-chromium).
+- Install the browser extension/add-on:
+  - On Firefox/Tor Browser/etc: [Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Installing from source on Firefox/Tor Browser](#build-firefox).
+  - On Chromium/Chrome/etc (experimental): See [Installing on Chromium/Chrome](#install-chromium) or [Installing from source on Chromium/Chrome](#build-chromium).
+- Now load any web page in your browser, the extension will report if everything works okay, or tell you where the problem is if something is broken.
 
-Congratulations, you are now collecting and archiving your network traffic.
-If you want to collect everything and don't have time to figure out how to use the rest of this suite of tools right this moment, you can stop here, if you are successfully archiving your data (the extension will tell you if you are), the rest of this can wait.
+Assuming the extension reported success: Congratulations\! You are now collecting and archiving all your web browsing traffic originating from that browser.
+Repeat extension installation for all browsers/browser profiles as needed.
 
-It took me about 6 months before I had to refer back to previously archived data for the first time when I started using `mitmproxy` to sporadically collect my HTTP traffic in 2017.
-So, I recommend you start collecting immediately and figure out how to use the rest of this suite later.
+If you just want to collect everything and don't have time to figure out how to use the rest of this suite of tools right this moment, **you can stop here** and figure out how to use the rest of this suite later.
 
-- Next, you should read the extension's ["Help" page](./extension/page/help.org).
-  It has lots of useful details about how it works and quirks of different browsers.
-  If you open it by clicking the "Help" button in the extension's UI, then hovering over or clicking on links in there will highlight relevant settings.
+(It took me about 6 months before I had to refer back to previously archived data for the first time when I started using `mitmproxy` to sporadically collect my HTTP traffic in 2017.
+So, I recommend you start collecting immediately and be lazy about the rest.
+Also, I learned a lot about nefarious things some of the websites I visit do in the background while doing that, now you are going to learn the same.)
 
-- Next, you should install and learn to use [`pwebarc-wrrarms` tool](./tool/) which allows you to view and manage files produced by the extension and the archiving server.
+Next, you should read the extension's ["Help" page](./extension/page/help.org).
+It has lots of useful details about how it works and quirks of different browsers.
+If you open it by clicking the "Help" button in the extension's UI, then hovering over or clicking on links in there will highlight relevant settings.
+
+As a *best-practice king of thing* it is highly recommended you make separate browser profiles for anonymous and logged-in browsing with separate extension instances pointing to separate archiving server instances dumping data to different directories on disk.
+Set the "anonymous" browser profile to always run in "Private Browsing" mode to prevent login persistence there.
+If you do accidentally login in "anonymous" profile, move those dumps out of the "anonymous" directory immediately ([`pwebarc-wrrarms` tool](./tool/) can help there).
+This way you can easily share dumps from the "anonymous" instance without worrying about leaking your private data or login credentials.
+
+Finally, you should install and learn to use [`pwebarc-wrrarms` tool](./tool/) which allows you to view and manage files produced by the extension and the archiving server.
 
 ## On a system with no Python installed
 
-- On Windows: [Download Python from the official website](https://www.python.org/downloads/windows/).
-- On Linux/etc: Install via package manager.
+- Install Python:
+  - On Windows: [Download Python from the official website](https://www.python.org/downloads/windows/).
+  - On Linux/etc: Install via your package manager. Realistically, who am I kidding, it probably is installed already.
 - Go back to [Quickstart with Python installed](#quickstart-with-python).
 
 ## On a system with [Nix package manager](https://nixos.org/nix/)
@@ -83,13 +121,13 @@ So, I recommend you start collecting immediately and figure out how to use the r
 
 ## Project Status
 
-- [`pWebArc` browser extension](./extension/) is stable and fairly well-tested in Firefox and Tor Browser (for me and the users I know of), it also appears to be stable in Chromium (with my own intermittent use there).
-  Normal HTTP request+responses get archived really well (I learned lots about nefarious things some of the websites I visit do in the background) but it lacks the ability to archive WebSockets data, which would be nice to have, but WebExtension API provides no API for doing that, unfortunately.
+- [`pwebarc-dumb-dump-server` dumb archiving server](./dumb_server/) is stable and well-tested.
 
-- [`pwebarc-dumb-dump-server` dumb archiving server](./dumb_server/) is stable.
+- [`pWebArc` browser extension](./extension/) is stable and well-tested in Firefox and Tor Browser (for me and the users I know of), it also appears to be stable in Chromium, but it is not really tested as much there, I only use Chromium very intermittently.
+  Archival of normal HTTP request+responses works perfectly in Firefox and derived browsers, but it lacks the ability to archive WebSockets data, which would be nice to have, but WebExtension API provides no API for doing that, unfortunately.
 
 - [`pwebarc-wrrarms` tool](./tool/) is in beta, it does about 70% of the stuff I want it to do ATM.
-  See [the TODO list](./tool/#todo) for more info.
+  See [the TODO list there](./tool/#todo) for more info.
 
 # <span id="alternatives"/>Alternatives, aka "But you could do X instead"
 
@@ -127,9 +165,9 @@ And then you still need something like this suite to look into the generated arc
 
 Yes, but
 
-- websites using certificate pinning do not work under it,
-- it is rather painful to setup, needing you to install a custom SSL root certificate, and
-- websites can detect when you use it and fingerprint you for it or force you to solve CAPTCHAs.
+- it is rather painful to setup, requiring you to install a custom SSL root certificate, and
+- websites using certificate pinning will stop working, and
+- some websites detect when you use it and fingerprint you for it or force you to solve CAPTCHAs.
 
 And then you still need something like this suite to look into the generated archives.
 
