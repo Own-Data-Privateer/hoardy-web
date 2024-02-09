@@ -1,6 +1,6 @@
 # What?
 
-`wrrarms` (`pwebarc-wrrarms`) is a tool for displaying and manipulating [Private Web Archive (pwebarc)](https://github.com/Own-Data-Privateer/pwebarc/) Web Request+Response (WRR) files produced by [pWebArc browser extension](https://github.com/Own-Data-Privateer/pwebarc/extension/).
+`wrrarms` (`pwebarc-wrrarms`) is a tool for displaying and manipulating [Private Passive Web Archive (pwebarc)](https://github.com/Own-Data-Privateer/pwebarc/) (also [there](https://oxij.org/software/pwebarc/)) Web Request+Response (WRR) files produced by [pWebArc browser extension](https://github.com/Own-Data-Privateer/pwebarc/tree/master/extension/) (also [there](https://oxij.org/software/pwebarc/tree/master/extension/)).
 
 # Quickstart
 

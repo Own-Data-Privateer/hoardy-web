@@ -1,5 +1,5 @@
 * What?
-=pWebArc= (Private Web Archive) is a browser extension that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the dumb archiving server]]) as you browse the web.
+=pWebArc= (Private Passive Web Archive) is a browser extension that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the dumb archiving server]], also [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][there]]) as you browse the web.
 * Glossary
 - A /reqres/ is a pWebArc-internal object containing information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
 - [[./popup.html#div-stats.inflight][An /in-flight reqres/]] is a reqres of an HTTP request that is still tracked by pWebArc, i.e. it has not finished yet, nor yet failed to finish.
@@ -56,7 +56,7 @@ Evaluation of the =profile=  parameter gets done just before the POST request is
 - When the extension is (re-)loaded, all tabs inherit the values of [[./popup.html#div-config.root.collecting][this]] and [[./popup.html#div-config.root.profile][this]] setting.
 ** On Firefox, Tor Browser, etc
 *** Known browser bugs
-- On Firefox-based browsers, without the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/firefox][patch]], the browser only supplies =formData= to =browser.webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a POST request.
+- On Firefox-based browsers, without the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/firefox/][patch]] (also [[https://oxij.org/software/pwebarc/tree/master/firefox/][there]]), the browser only supplies =formData= to =browser.webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a POST request.
 
   pWebArc will mark such requests as having a "partial request body" and try its best to recover the data from =formData= structure, but if a POST request was uploading files, they won't be recoverable from =formData= (in fact, it is not even possible to tell if there were any files attached there), and so your archived request data will be incomplete even after pWebArc did its best.
 
@@ -116,7 +116,7 @@ This makes things a bit tricky, for instance:
 * Error messages
 - =pWebArc FAILED to archive <N> items in the queue because it can't establish a connection to the archive at <URL>=
 
-  Are you running the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the archiving server script]]?
+  Are you running the [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][the archiving server script]]?
   pWebArc requires an archiving server to actually archive anything.
 - =pWebArc FAILED to archive <N> items in the queue because requests to URL fail with: <STATUS> <REASON>: <RESPONSE>=
 

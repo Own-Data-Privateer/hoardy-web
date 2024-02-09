@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 name = "pwebarc-dumb-dump-server"
 version = "1.5.5"
 authors = [{ name = "Jan Malakhovski", email = "oxij@oxij.org" }]
-description = "A very simple archiving server for pWebArc extension of Private Web Archive (pwebarc) project"
+description = "A very simple archiving server for pWebArc extension of Private Passive Web Archive (pwebarc) project"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 classifiers = [
@@ -35,5 +35,8 @@ dependencies = [
 requires-python = ">=3.7"
 [project.optional-dependencies]
 cbor = ["cbor2"]
+[project.urls]
+"Homepage" = "https://oxij.org/software/pwebarc/"
+"GitHub" = "https://github.com/Own-Data-Privateer/pwebarc"
 [project.scripts]
 pwebarc-dumb-dump-server = "pwebarc_dumb_dump_server:main"
