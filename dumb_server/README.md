@@ -28,6 +28,7 @@ Ideally, you would use something smarter than this (when I publish it), but this
 - Alternatively, install it via Nix
   ``` {.bash}
   nix-env -i -f ./default.nix
+  pwebarc-dumb-dump-server --help
   ```
 
 # Usage

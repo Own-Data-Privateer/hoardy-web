@@ -17,10 +17,12 @@
 - Alternatively, install it via Nix
   ``` {.bash}
   nix-env -i -f ./default.nix
+  wrrarms --help
   ```
 - Alternatively, run without installing:
   ``` {.bash}
-  python3 -m wrrarms --help
+  alias wrrarms="python3 -m wrrarms"
+  wrrarms --help
   ```
 
 ## Building a hierarchy of latest versions of all URLs
