@@ -11,6 +11,12 @@ Then, some indeterminate time later, [you refer back to your collected data](#wh
 
 [There are some other alternatives to this](#alternatives) but, as far as I'm aware, `pwebarc` is the simplest and easiest to use if you want to archive all or most of your browsing data.
 
+# Screenshots
+
+![Screenshot of browser's viewport with extension's popup shown.](https://oxij.org/software/pwebarc/demo/extension-1.5-popup.png)
+
+![Screenshot of extension's help page. The highlighted setting is referenced by the text under the mouse cursor.](https://oxij.org/software/pwebarc/demo/extension-1.5-help-page.png)
+
 # <span id="why"/>Why does `pwebarc` exists?
 
 So, you wake up remembering something interesting, you try to look it up on Google, you fail, eventually you remember the website you seen it at (or a tool like [Promnesia](https://github.com/karlicoss/promnesia) helps you), you go there to look it up… and discover it offline/gone/a parked domain. Not a problem\! Have no fear\! You go to [Wayback Machine](https://web.archive.org/) and look it up there… and discover they only archived an ancient version of it and the thing you wanted is missing there.
