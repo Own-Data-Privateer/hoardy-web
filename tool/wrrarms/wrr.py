@@ -186,10 +186,10 @@ class ReqresExpr:
                 if reqres.response.complete:
                     status += "C"
                 else:
-                    status += "N"
+                    status += "I"
             else:
                 stime = reqres.finished_at
-                status = "NR"
+                status = "N"
             stime_ms = int(stime * 1000)
             self.items["status"] = status
             self.items["stime"] = stime
