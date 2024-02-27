@@ -377,7 +377,7 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   - `-t DESTINATION, --to DESTINATION`
   : target directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`
   - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or a custom pythonic %-substitution string:
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
       - `default`: `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr` (default)
       - `short`: `%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d.wrr`

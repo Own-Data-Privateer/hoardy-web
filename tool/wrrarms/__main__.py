@@ -66,8 +66,13 @@ def elaborate_paths(cargs : _t.Any) -> None:
         cargs.paths[i] = _os.path.expanduser(cargs.paths[i])
 
 def elaborate_output(cargs : _t.Any) -> None:
-    if cargs.output in output_aliases:
-        cargs.output = output_aliases[cargs.output]
+    if cargs.output.startswith("format:"):
+        cargs.output_format = cargs.output[7:]
+    else:
+        try:
+            cargs.output_format = output_aliases[cargs.output]
+        except KeyError:
+            raise CatastrophicFailure(_('unknown `--output` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), cargs.output)
 
 def slurp_stdin0(cargs : _t.Any) -> None:
     if not cargs.stdin0: return
@@ -296,12 +301,12 @@ def make_organize(cargs : _t.Any, destination : str) -> tuple[_t.Callable[[Reqre
         if not filters_allow(cargs, rrexpr): return
 
         rrexpr.items["num"] = 0
-        ogprefix = _os.path.join(destination, cargs.output % rrexpr)
+        ogprefix = _os.path.join(destination, cargs.output_format % rrexpr)
         prev_rel_out_path = None
         need_to_unlink = False
         while True:
             rrexpr.items["num"] = seen_count(ogprefix)
-            rel_out_path = _os.path.join(destination, cargs.output % rrexpr)
+            rel_out_path = _os.path.join(destination, cargs.output_format % rrexpr)
             abs_out_path = _os.path.abspath(rel_out_path)
             if abs_path == abs_out_path:
                 # trying to rename, hardlink, or symlink to itself
@@ -670,7 +675,7 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
     grp.add_argument("--lazy", action="store_true", help=_(f"sets `--batch-number` to positive infinity; most useful in combination with `--action symlink-update` in which case it will force `{__package__}` to compute the desired file system state first and then perform disk writes in a single batch"))
 
     cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("target directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`"))
-    cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_("format describing generated output paths, an alias name or a custom pythonic %%-substitution string:") + "\n" + \
+    cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_("""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""") + "\n" + \
                      "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
                      "".join([f"  - `{name}`: `{value.replace('%', '%%')}`" + (" (default)" if name == "default" else "") + "\n" for name, value in output_aliases.items()]) + \
                      "- " + _("available substitutions:") + "\n" + \
