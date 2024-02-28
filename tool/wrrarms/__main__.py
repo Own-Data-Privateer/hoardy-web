@@ -19,6 +19,7 @@ import errno as _errno
 import io as _io
 import logging as _logging
 import os as _os
+import signal as _signal
 import stat as _stat
 import subprocess as _subprocess
 import sys as _sys
@@ -50,6 +51,23 @@ def error(pattern : str, *args : _t.Any) -> None:
 def die(code : int, pattern : str, *args : _t.Any) -> _t.NoReturn:
     error(pattern, *args)
     _sys.exit(code)
+
+interrupt_msg = "\n" + gettext("Gently finishing up... Press ^C again to forcefully interrupt.")
+want_stop = False
+should_raise = True
+def sig_handler(sig : int, frame : _t.Any) -> None:
+    global want_stop
+    global should_raise
+    want_stop = True
+    if should_raise:
+        raise KeyboardInterrupt()
+    if sig == _signal.SIGINT:
+        issue(interrupt_msg)
+    should_raise = True
+
+def handle_signals() -> None:
+    _signal.signal(_signal.SIGINT, sig_handler)
+    _signal.signal(_signal.SIGTERM, sig_handler)
 
 def compile_filters(cargs : _t.Any) -> None:
     cargs.alls = list(map(lambda expr: (expr, linst_compile(expr, linst_atom_or_env)), cargs.alls))
@@ -114,6 +132,8 @@ def load_map_orderly(load : _t.Callable[[_io.BufferedReader], LoadElem],
                              include_directories = False,
                              follow_symlinks = follow_symlinks,
                              handle_error = None if errors == "fail" else _logging.error):
+        if want_stop: raise KeyboardInterrupt()
+
         if (isinstance(path, str) and path.endswith(".part")) or \
            (isinstance(path, bytes) and path.endswith(b".part")):
             continue
@@ -143,6 +163,8 @@ def load_map_orderly(load : _t.Callable[[_io.BufferedReader], LoadElem],
 def map_wrr_paths(func : _t.Callable[[Reqres, _t.AnyStr, _t.AnyStr], None],
                   paths : _t.Iterable[_t.AnyStr],
                   *args : _t.Any, **kwargs : _t.Any) -> None:
+    global should_raise
+    should_raise = False
     for path in paths:
         load_map_orderly(wrr_load, func, path, *args, **kwargs)
 
@@ -541,9 +563,14 @@ def cmd_import(cargs : _t.Any) -> None:
     def emit(rr : _t.Iterator[Reqres], abs_path : str, rel_path : str) -> None:
         n = 0
         for reqres in rr:
+            if want_stop: raise KeyboardInterrupt()
+
             pos = "/" + str(n)
             emit_one(reqres, abs_path + pos, rel_path + pos)
             n += 1
+
+    global should_raise
+    should_raise = False
 
     for path in cargs.paths:
         load_map_orderly(load_as_wrrs, emit, path)
@@ -865,6 +892,8 @@ Internally, this shares most of the code with `organize`, but unlike `organize` 
     logger = _logging.getLogger()
     logger.addHandler(errorcnt)
     #logger.setLevel(_logging.DEBUG)
+
+    handle_signals()
 
     try:
         cargs.func(cargs)
