@@ -26,7 +26,7 @@ import tempfile as _tempfile
 import traceback as _traceback
 import typing as _t
 
-from gettext import gettext as _, ngettext
+from gettext import gettext, ngettext
 
 from kisstdlib import argparse
 from kisstdlib.exceptions import *
@@ -36,6 +36,21 @@ from kisstdlib.logging import *
 from .wrr import *
 from .output import *
 
+def issue(pattern : str, *args : _t.Any) -> None:
+    message = pattern % args
+    if stderr.fobj.isatty():
+        stderr.write_str_ln("\033[31m" + message + "\033[0m")
+    else:
+        stderr.write_str(message)
+    stderr.flush()
+
+def error(pattern : str, *args : _t.Any) -> None:
+    issue(gettext("error") + ": " + pattern, *args)
+
+def die(code : int, pattern : str, *args : _t.Any) -> _t.NoReturn:
+    error(pattern, *args)
+    _sys.exit(code)
+
 def compile_filters(cargs : _t.Any) -> None:
     cargs.alls = list(map(lambda expr: (expr, linst_compile(expr, linst_atom_or_env)), cargs.alls))
     cargs.anys = list(map(lambda expr: (expr, linst_compile(expr, linst_atom_or_env)), cargs.anys))
@@ -44,9 +59,9 @@ def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr) -> bool:
     def eval_it(expr : str, func : LinstFunc) -> bool:
         ev = func(rrexpr.get_value, None)
         if not isinstance(ev, bool):
-            e = CatastrophicFailure(_("while evaluating %s: expected a value of type `bool`, got `%s`"), expr, repr(ev))
+            e = CatastrophicFailure(gettext("while evaluating `%s`: expected a value of type `bool`, got `%s`"), expr, repr(ev))
             if rrexpr.fs_path is not None:
-                e.elaborate(_("while processing %s"), rrexpr.fs_path)
+                e.elaborate(gettext("while processing `%s`"), rrexpr.fs_path)
             raise e
         return ev
 
@@ -74,14 +89,14 @@ def elaborate_output(cargs : _t.Any) -> None:
         try:
             cargs.output_format = output_aliases[cargs.output]
         except KeyError:
-            raise CatastrophicFailure(_('unknown `--output` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), cargs.output)
+            raise CatastrophicFailure(gettext('unknown `--output` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), cargs.output)
 
 def slurp_stdin0(cargs : _t.Any) -> None:
     if not cargs.stdin0: return
     paths = stdin.read_all_bytes().split(b"\0")
     last = paths.pop()
     if last != b"":
-        raise Failure(_("`--stdin0` input format error"))
+        raise Failure(gettext("`--stdin0` input format error"))
     cargs.paths += paths
 
 def load_wrr(path : str) -> ReqresExpr:
@@ -106,10 +121,10 @@ def load_map_orderly(load : _t.Callable[[_io.BufferedReader], LoadElem],
             try:
                 abs_path = _os.path.abspath(path)
                 if not follow_symlinks and _os.path.islink(abs_path):
-                    raise Failure(_("not following a symlink %s"), abs_path)
+                    raise Failure(gettext("not following a symlink `%s`"), abs_path)
                 fobj = open(abs_path, "rb")
             except OSError as exc:
-                raise Failure(_("failed to open %s"), abs_path)
+                raise Failure(gettext("failed to open `%s`"), path)
 
             try:
                 data = load(fobj)
@@ -119,7 +134,7 @@ def load_map_orderly(load : _t.Callable[[_io.BufferedReader], LoadElem],
         except Failure as exc:
             if errors == "ignore":
                 continue
-            exc.elaborate("while processing %s", path)
+            exc.elaborate(gettext("while processing `%s`"), path)
             if errors != "fail":
                 _logging.error("%s", str(exc))
                 continue
@@ -142,7 +157,7 @@ def get_bytes(expr : str, rrexpr : ReqresExpr) -> bytes:
     elif isinstance(value, bytes):
         return value
     else:
-        raise Failure(_("don't know how to print an expression of type `%s`"), type(value).__name__)
+        raise Failure(gettext("don't know how to print an expression of type `%s`"), type(value).__name__)
 
 def cmd_pprint(cargs : _t.Any) -> None:
     compile_filters(cargs)
@@ -170,9 +185,9 @@ def cmd_get(cargs : _t.Any) -> None:
 
 def cmd_run(cargs : _t.Any) -> None:
     if cargs.num_args < 1:
-        raise Failure(_("`run` sub-command requires at least one PATH"))
+        raise Failure(gettext("`run` sub-command requires at least one PATH"))
     elif cargs.num_args - 1 > len(cargs.args):
-        raise Failure(_("not enough arguments to satisfy `--num-args`"))
+        raise Failure(gettext("not enough arguments to satisfy `--num-args`"))
 
     # move (num_args - 1) arguments from args to paths
     ntail = len(cargs.args) + 1 - cargs.num_args
@@ -280,8 +295,8 @@ output_aliases = {
     "flat":                  "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.wrr",
 }
 
-not_allowed = _("; this is not allowed to prevent accidental data loss")
-variance_help = _("; your `--output` format fails to provide enough variance (did your forget to place a `%%(num)d` substitution in there?)") + not_allowed
+not_allowed = gettext("; this is not allowed to prevent accidental data loss")
+variance_help = gettext("; your `--output` format fails to provide enough variance (did your forget to place a `%%(num)d` substitution in there?)") + not_allowed
 
 def make_mut_emit(cargs : _t.Any,
                   destination : str,
@@ -290,9 +305,9 @@ def make_mut_emit(cargs : _t.Any,
                   action_func : _t.Callable[[_t.Any, str, str], None]) -> tuple[_t.Callable[[Reqres, str, str], None],
                                                                                 _t.Callable[[], None]]:
     if cargs.dry_run:
-        action_desc = _(f"dry-run: (not) {action_desc}")
+        action_desc = gettext(f"dry-run: (not) {action_desc}")
     else:
-        action_desc = _(action_desc)
+        action_desc = gettext(action_desc)
 
     seen_count_state : dict[str, int] = {}
     def seen_count(value : str) -> int:
@@ -359,7 +374,7 @@ def make_mut_emit(cargs : _t.Any,
                         return
 
                     if prev_rel_out_path == rel_out_path:
-                        raise Failure(_(f"trying to {action} `%s` to `%s` which is already batched to be taken from `%s`") +
+                        raise Failure(gettext(f"trying to {action} `%s` to `%s` which is already batched to be taken from `%s`") +
                                       variance_help, rel_in_path, rel_out_path, prev_abs_in_path)
                     prev_rel_out_path = rel_out_path
                     continue
@@ -373,7 +388,7 @@ def make_mut_emit(cargs : _t.Any,
                 break
             except OSError as exc:
                 if exc.errno == _errno.ENAMETOOLONG:
-                    raise Failure(_(f"target file system rejects generated filename as too long: %s"), abs_out_path)
+                    raise Failure(gettext(f"target file system rejects generated filename as too long: `%s`"), abs_out_path)
                 raise
 
             if action == "import":
@@ -398,7 +413,7 @@ def make_mut_emit(cargs : _t.Any,
                         # target already points to source
                         return
                 elif action == "symlink-update":
-                    raise Failure(_(f"trying to {action} `%s` to `%s` which already exists and is not a symlink") +
+                    raise Failure(gettext(f"trying to {action} `%s` to `%s` which already exists and is not a symlink") +
                                   not_allowed, rel_in_path, rel_out_path)
 
                 if action == "symlink-update":
@@ -421,7 +436,7 @@ def make_mut_emit(cargs : _t.Any,
                     return
 
             if prev_rel_out_path == rel_out_path:
-                raise Failure(_(f"trying to {action} `%s` to `%s` which already exists and is not the same file") +
+                raise Failure(gettext(f"trying to {action} `%s` to `%s` which already exists and is not the same file") +
                               variance_help, rel_in_path, rel_out_path)
             prev_rel_out_path = rel_out_path
             continue
@@ -488,10 +503,10 @@ def cmd_organize(cargs : _t.Any) -> None:
             try:
                 fstat = _os.stat(_os.path.expanduser(path))
             except FileNotFoundError:
-                raise Failure(_("%s does not exist"), path)
+                raise Failure(gettext("`%s` does not exist"), path)
 
             if not _stat.S_ISDIR(fstat.st_mode):
-                raise Failure(_("%s is not a directory but no `--to` is specified"), path)
+                raise Failure(gettext("`%s` is not a directory but no `--to` is specified"), path)
 
         for path in cargs.paths:
             emit, finish = make_organize_emit(cargs, path)
@@ -535,6 +550,8 @@ def cmd_import(cargs : _t.Any) -> None:
     finish()
 
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
+    _ = gettext
+
     fmt.add_text(_("# Examples"))
 
     fmt.start_section(_("Pretty-print all reqres in `../dumb_server/pwebarc-dump` using an abridged (for ease of reading and rendering) verbose textual representation"))
@@ -624,8 +641,15 @@ done > changes""")
     fmt.add_code(f"{__package__} stream --format=raw -ue response.body ../dumb_server/pwebarc-dump/path/to/file.wrr | less")
     fmt.add_code(f"{__package__} get ../dumb_server/pwebarc-dump/path/to/file.wrr | less")
 
+class ArgumentParser(argparse.BetterArgumentParser):
+    def error(self, message : str) -> _t.NoReturn:
+        self.print_usage(_sys.stderr)
+        die(2, "%s", message)
+
 def main() -> None:
-    parser = argparse.BetterArgumentParser(
+    _ = gettext
+
+    parser = ArgumentParser(
         prog=__package__,
         description=_("A tool to pretty-print, compute and print values from, search, organize (programmatically rename/move/symlink/hardlink files), (WIP: check, deduplicate, and edit) pWebArc WRR (WEBREQRES, Web REQuest+RESponse) archive files.") + "\n\n" +
 _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing HTTP request+response pair with some additional metadata."),
@@ -845,10 +869,10 @@ Internally, this shares most of the code with `organize`, but unlike `organize` 
     try:
         cargs.func(cargs)
     except KeyboardInterrupt:
-        stderr.write_str_ln(_("Interrupted!"))
+        error("%s", _("Interrupted!"))
         errorcnt.errors += 1
     except CatastrophicFailure as exc:
-        stderr.write_str_ln(_("error") + ": " + str(exc))
+        error("%s", str(exc))
         errorcnt.errors += 1
     except Exception as exc:
         _traceback.print_exception(type(exc), exc, exc.__traceback__, 100, stderr)
