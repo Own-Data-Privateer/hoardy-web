@@ -32,14 +32,6 @@ import urllib.parse as _up
 
 from kisstdlib.exceptions import *
 
-# TODO this move somewhere else
-def abbrev(v : _t.AnyStr, n : int) -> _t.AnyStr:
-    vlen = len(v)
-    if vlen > n:
-        nn = n // 2
-        v = v[:nn] + v[vlen - nn:]
-    return v
-
 LinstFunc = _t.Callable[[_t.Any, _t.Any], _t.Any]
 LinstAtom = tuple[list[type], _t.Callable[..., LinstFunc]]
 
@@ -58,7 +50,7 @@ def _run_pipe(pipe : list[LinstFunc]) -> LinstFunc:
 
 _compile_cache : dict[str, LinstFunc] = {}
 
-def linst_compile(expr : str, get_atom : _t.Callable[[str], LinstAtom] = linst_unknown_atom) -> LinstFunc:
+def linst_compile(expr : str, lookup : _t.Callable[[str], LinstAtom] = linst_unknown_atom) -> LinstFunc:
     try:
         return _compile_cache[expr]
     except KeyError:
@@ -68,7 +60,7 @@ def linst_compile(expr : str, get_atom : _t.Callable[[str], LinstAtom] = linst_u
     for single in expr.split("|"):
         parts = single.strip().split(" ")
         cmd, *args = parts
-        argtypes, func = get_atom(cmd)
+        argtypes, func = lookup(cmd)
 
         atlen = len(argtypes)
         if atlen != len(args):
@@ -154,6 +146,14 @@ def linst_getenv(name : str) -> LinstAtom:
         return envfunc
     return [], args0
 
+# TODO this move somewhere else
+def abbrev(v : _t.AnyStr, n : int) -> _t.AnyStr:
+    vlen = len(v)
+    if vlen > n:
+        nn = n // 2
+        v = v[:nn] + v[vlen - nn:]
+    return v
+
 linst_atoms : dict[str, tuple[str, LinstAtom]] = {
     "es": ('replace `None` value with an empty string `""`',
           linst_const("")),
@@ -181,9 +181,13 @@ linst_atoms : dict[str, tuple[str, LinstAtom]] = {
           linst_apply0(lambda v: linst_cast(int, v))),
     "float": ("cast value to `float` or fail",
           linst_apply0(lambda v: linst_cast(float, v))),
-    "unquote": ("percent-encoding-unquote value",
+    "quote": ("URL-percent-encoding quote value",
+          linst_apply1(str, lambda v, arg: _up.quote(v, arg))),
+    "quote_plus": ("URL-percent-encoding quote value and replace spaces with `+` symbols",
+          linst_apply1(str, lambda v, arg: _up.quote_plus(v, arg))),
+    "unquote": ("URL-percent-encoding unquote value",
           linst_apply0(lambda v: _up.unquote(v))),
-    "unquote_plus": ("percent-encoding-unquote value and replace `+` symbols with spaces",
+    "unquote_plus": ("URL-percent-encoding unquote value and replace `+` symbols with spaces",
           linst_apply0(lambda v: _up.unquote_plus(v))),
     "sha256": ('compute `hex(sha256(value.encode("utf-8"))`',
           linst_apply0(lambda v: _hashlib.sha256(v if isinstance(v, bytes) else v.encode("utf-8")).hexdigest())),
@@ -205,12 +209,18 @@ linst_atoms : dict[str, tuple[str, LinstAtom]] = {
           linst_apply1(int, lambda v, arg: v[len(v) - arg:])),
     "abbrev": ("leave the current value as if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters",
           linst_apply1(int, abbrev)),
+    "abbrev_each": ("`abbrev arg` each element in a value `list`",
+          linst_apply1(int, lambda v, arg: list(map(lambda e: abbrev(e, arg), v)))),
     "replace": ("replace all occurences of the first argument in the current value with the second argument, casts arguments to the same type as the current value",
           linst_apply2(str, str, lambda v, arg1, arg2: v.replace(linst_cast_val(v, arg1), linst_cast_val(v, arg2)))),
 }
 
-def linst_atom_or_env(name : str) -> LinstAtom:
-    try:
-        return linst_atoms[name][1]
-    except KeyError:
-        return linst_getenv(name)
+def linst_custom_or_env(atoms : dict[str, tuple[str, LinstAtom]]) -> _t.Callable[[str], LinstAtom]:
+    def atom_or_env(name : str) -> LinstAtom:
+        try:
+            return atoms[name][1]
+        except KeyError:
+            return linst_getenv(name)
+    return atom_or_env
+
+linst_atom_or_env = linst_custom_or_env(linst_atoms)

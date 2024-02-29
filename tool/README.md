@@ -153,8 +153,10 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `bool`: cast value to `bool` or fail
       - `int`: cast value to `int` or fail
       - `float`: cast value to `float` or fail
-      - `unquote`: percent-encoding-unquote value
-      - `unquote_plus`: percent-encoding-unquote value and replace `+` symbols with spaces
+      - `quote`: URL-percent-encoding quote value
+      - `quote_plus`: URL-percent-encoding quote value and replace spaces with `+` symbols
+      - `unquote`: URL-percent-encoding unquote value
+      - `unquote_plus`: URL-percent-encoding unquote value and replace `+` symbols with spaces
       - `sha256`: compute `hex(sha256(value.encode("utf-8"))`
       - `==`: apply `== arg`, `arg` is cast to the same type as the current value
       - `!=`: apply `!= arg`, similarly
@@ -165,20 +167,24 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `prefix`: take first `arg` characters
       - `suffix`: take last `arg` characters
       - `abbrev`: leave the current value as if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters
+      - `abbrev_each`: `abbrev arg` each element in a value `list`
       - `replace`: replace all occurences of the first argument in the current value with the second argument, casts arguments to the same type as the current value
+      - `pp_to_path`: encode `path_parts` `list` into a POSIX path, quoting as little as needed
+      - `qsl_urlencode`: encode parsed `query` `list` into a URL's query component `str`
+      - `qsl_to_path`: encode `query` `list` into a POSIX path, quoting as little as needed
     - reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:
       - `version`: WEBREQRES format version; int
       - `source`: `+`-separated list of applications that produced this reqres; str
-      - `protocol`: protocol (e.g. `"HTTP/1.0"`, `"HTTP/2.0"`); str
+      - `protocol`: protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str
       - `request.started_at`: request start time in seconds since 1970-01-01 00:00; Epoch
-      - `request.method`: request HTTP method (`"GET"`, `"POST"`, etc); str
+      - `request.method`: request HTTP method; e.g. `"GET"`, `"POST"`, etc; str
       - `request.url`: request URL, including the fragment/hash part; str
       - `request.headers`: request headers; list[tuple[str, bytes]]
       - `request.complete`: is request body complete?; bool
       - `request.body`: request body; bytes
       - `response.started_at`: response start time in seconds since 1970-01-01 00:00; Epoch
-      - `response.code`: HTTP response code (like `200`, `404`, etc); int
-      - `response.reason`: HTTP response reason (like `"OK"`, `"Not Found"`, etc); usually empty for Chromium and filled for Firefox; str
+      - `response.code`: HTTP response code; e.g. `200`, `404`, etc; int
+      - `response.reason`: HTTP response reason; e.g. `"OK"`, `"Not Found"`, etc; usually empty for Chromium and filled for Firefox; str
       - `response.headers`: response headers; list[tuple[str, bytes]]
       - `response.complete`: is response body complete?; bool
       - `response.body`: response body; Firefox gives raw bytes, Chromium gives UTF-8 encoded strings; bytes | str
@@ -214,26 +220,29 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `fsecond`: similar to `ssecond`, but for `ftime`; int
       - `status`: `"NR"` if there was no response, `str(response.code) + "C"` if response was complete, `str(response.code) + "N"` otherwise; str
       - `method`: aliast for `request.method`; str
-      - `full_url`: aliast for `request.url`; str
-      - `net_url`: `request.url` without the fragment/hash part, if any, this is the URL that actually gets sent to the server; str
-      - `scheme`: scheme part of `request.url` (`http`, `https`); str
-      - `netloc`: netloc part of `request.url` (i.e., in the most general case, `<username>:<password>@<hostname>:<port>`)
-      - `hostname`: hostname part of `request.url`
-      - `rhostname`: hostname part of `request.url` with the order of parts reversed, e.g. `"https://www.example.com"` -> `"com.example.www"`
-      - `raw_path`: raw path part of `request.url`, e.g. `"https://www.example.com"` -> `""`, `"https://www.example.com/"` -> `"/"`, `"https://www.example.com/index.html"` -> `"/index.html"`
-      - `path`: `raw_path` without the leading slash, if any, e.g. `"https://www.example.com"` -> `""`, `"https://www.example.com/"` -> `""`, `"https://www.example.com/index.html"` -> `"index.html"`
-      - `ipath`: `path + "index.html"` if `path` is empty or ends with a slash, `path` otherwise
-      - `query`: query part of `request.url` (everything after the `?` character and before the `#` character)
-      - `nquery`: normalized `query` (with empty query parameters removed)
-      - `nquery_url`: `full_url` with normalized `query`; str
+      - `raw_url`: aliast for `request.url`; str
+      - `net_url`: `raw_url` with Punycode UTS46 IDNA encoded hostname, unsafe characters quoted, and without the fragment/hash part; this is the URL that actually gets sent to the server; str
+      - `scheme`: scheme part of `raw_url`; e.g. `http`, `https`, etc; str
+      - `raw_hostname`: hostname part of `raw_url` as it is recorded in the reqres; str
+      - `net_hostname`: hostname part of `raw_url`, encoded as Punycode UTS46 IDNA; this is what actually gets sent to the server; ASCII str
+      - `hostname`: `net_hostname` decoded back into UNICODE; this is the canonical hostname representation for which IDNA-encoding and decoding are bijective; str
+      - `rhostname`: `hostname` with the order of its parts reversed; e.g. `"www.example.org"` -> `"com.example.www"`; str
+      - `port`: port part of `raw_url`; int or None
+      - `netloc`: netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str
+      - `raw_path`: raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str
+      - `path_parts`: component-wise unquoted "/"-split `raw_path` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]; list[str]
+      - `wget_parts`: `path + ["index.html"]` if `raw_path` ends in a slash, `path` otherwise; this is what `wget` does in `wget -mpk`; list[str]
+      - `raw_query`: query part of `raw_url` (i.e. everything after the `?` character and before the `#` character) as it is recorded in the reqres; str
+      - `query_parts`: parsed (and component-wise unquoted) `raw_query`; list[tuple[str, str]]
+      - `query_ne_parts`: `query_parts` with empty query parameters removed; list[tuple[str, str]]
       - `oqm`: optional query mark: `?` character if `query` is non-empty, an empty string otherwise; str
       - `fragment`: fragment (hash) part of the url; str
       - `ofm`: optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str
     - a compound expression built by piping (`|`) the above, for example:
       - `net_url|sha256`
       - `net_url|sha256|prefix 4`
-      - `path|unquote`
-      - `query|unquote_plus|abbrev 128`
+      - `path_parts|pp_to_path`
+      - `query_parts|qsl_to_path|abbrev 128`
       - `response.complete`: this will print the value of `response.complete` or `None`, if there was no response
       - `response.complete|false`: this will print `response.complete` or `False`
       - `response.body|eb`: this will print `response.body` or an empty string, if there was no response
@@ -381,27 +390,27 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
     - available aliases and corresponding %-substitutions:
       - `default`: `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr` (default)
       - `short`: `%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d.wrr`
-      - `surl`: `%(scheme)s/%(netloc)s/%(path)s%(oqm)s%(query)s`
-      - `url`: `%(netloc)s/%(path)s%(oqm)s%(query)s`
-      - `surl_msn`: `%(scheme)s/%(netloc)s/%(path)s%(oqm)s%(query)s_%(method)s_%(status)s.%(num)d.wrr`
-      - `url_msn`: `%(netloc)s/%(path)s%(oqm)s%(query)s_%(method)s_%(status)s.%(num)d.wrr`
-      - `shpq`: `%(scheme)s/%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 120)s.wrr`
-      - `hpq`: `%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 120)s.wrr`
-      - `shpq_msn`: `%(scheme)s/%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
-      - `hpq_msn`: `%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
-      - `shupq`: `%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 120)s.wrr`
-      - `hupq`: `%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 120)s.wrr`
-      - `shupq_msn`: `%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
-      - `hupq_msn`: `%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
-      - `srhupq`: `%(scheme)s/%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s.wrr`
-      - `rhupq`: `%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s.wrr`
-      - `srhupq_msn`: `%(scheme)s/%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
-      - `rhupq_msn`: `%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
-      - `shupnq`: `%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s.wrr`
-      - `hupnq`: `%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s.wrr`
-      - `shupnq_msn`: `%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s_%(method)s_%(status)s.%(num)d.wrr`
-      - `hupnq_msn`: `%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s_%(method)s_%(status)s.%(num)d.wrr`
-      - `flat`: `%(hostname)s/%(ipath|unquote|replace / __|abbrev 120)s%(oqm)s%(nquery|unquote_plus|replace / __|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.wrr`
+      - `surl`: `%(scheme)s/%(netloc)s/%(path_parts|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path)s`
+      - `url`: `%(netloc)s/%(path_parts|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path)s`
+      - `surl_msn`: `%(scheme)s/%(netloc)s/%(path_parts|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path)s_%(method)s_%(status)s.%(num)d.wrr`
+      - `url_msn`: `%(netloc)s/%(path_parts|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path)s_%(method)s_%(status)s.%(num)d.wrr`
+      - `shpq`: `%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr`
+      - `hpq`: `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr`
+      - `shpq_msn`: `%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
+      - `hpq_msn`: `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
+      - `shupq`: `%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr`
+      - `hupq`: `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr`
+      - `shupq_msn`: `%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
+      - `hupq_msn`: `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
+      - `srhupq`: `%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr`
+      - `rhupq`: `%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr`
+      - `srhupq_msn`: `%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
+      - `rhupq_msn`: `%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
+      - `shupnq`: `%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 120)s.wrr`
+      - `hupnq`: `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 120)s.wrr`
+      - `shupnq_msn`: `%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
+      - `hupnq_msn`: `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
+      - `flat`: `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.wrr`
     - available substitutions:
       - `num`: number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique
       - all expressions of `wrrarms get --expr`, which see

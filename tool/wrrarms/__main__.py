@@ -211,32 +211,32 @@ output_aliases = {
     "default":  "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr",
     "short": "%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d.wrr",
 
-    "surl":       "%(scheme)s/%(netloc)s/%(path)s%(oqm)s%(query)s",
-    "url":                   "%(netloc)s/%(path)s%(oqm)s%(query)s",
-    "surl_msn":   "%(scheme)s/%(netloc)s/%(path)s%(oqm)s%(query)s_%(method)s_%(status)s.%(num)d.wrr",
-    "url_msn":               "%(netloc)s/%(path)s%(oqm)s%(query)s_%(method)s_%(status)s.%(num)d.wrr",
+    "surl":       "%(scheme)s/%(netloc)s/%(path_parts|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path)s",
+    "url":                   "%(netloc)s/%(path_parts|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path)s",
+    "surl_msn":   "%(scheme)s/%(netloc)s/%(path_parts|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path)s_%(method)s_%(status)s.%(num)d.wrr",
+    "url_msn":               "%(netloc)s/%(path_parts|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path)s_%(method)s_%(status)s.%(num)d.wrr",
 
-    "shpq":       "%(scheme)s/%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 120)s.wrr",
-    "hpq":                   "%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 120)s.wrr",
-    "shpq_msn":   "%(scheme)s/%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "hpq_msn":               "%(hostname)s/%(ipath|abbrev 120)s%(oqm)s%(query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "shpq":       "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr",
+    "hpq":                   "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr",
+    "shpq_msn":   "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "hpq_msn":               "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
 
-    "shupq":      "%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 120)s.wrr",
-    "hupq":                  "%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 120)s.wrr",
-    "shupq_msn":  "%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "hupq_msn":              "%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "shupq":      "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr",
+    "hupq":                  "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr",
+    "shupq_msn":  "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "hupq_msn":              "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
 
-    "srhupq":     "%(scheme)s/%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s.wrr",
-    "rhupq":                 "%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s.wrr",
-    "srhupq_msn": "%(scheme)s/%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "rhupq_msn":             "%(rhostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(query|unquote_plus|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "srhupq":     "%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr",
+    "rhupq":                 "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 120)s.wrr",
+    "srhupq_msn": "%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "rhupq_msn":             "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
 
-    "shupnq":     "%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s.wrr",
-    "hupnq":                 "%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s.wrr",
-    "shupnq_msn": "%(scheme)s/%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s_%(method)s_%(status)s.%(num)d.wrr",
-    "hupnq_msn":             "%(hostname)s/%(ipath|unquote|abbrev 120)s%(oqm)s%(nquery|unquote_plus|abbrev 120)s_%(method)s_%(status)s.%(num)d.wrr",
+    "shupnq":     "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 120)s.wrr",
+    "hupnq":                 "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 120)s.wrr",
+    "shupnq_msn": "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "hupnq_msn":             "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
 
-    "flat":                  "%(hostname)s/%(ipath|unquote|replace / __|abbrev 120)s%(oqm)s%(nquery|unquote_plus|replace / __|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.wrr",
+    "flat":                  "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.wrr",
 }
 
 not_allowed = _("; this is not allowed to prevent accidental data loss")
@@ -570,7 +570,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 
     cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_('an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially, see also "output" options below; (default: `response.body|es`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:') + "\n" + \
                      "- " + _("constants and functions:") + "\n" + \
-                     "".join([f"  - `{name}`: {_(value[0]).replace('%', '%%')}\n" for name, value in linst_atoms.items()]) + \
+                     "".join([f"  - `{name}`: {_(value[0]).replace('%', '%%')}\n" for name, value in Reqres_atoms.items()]) + \
                      "- " + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:") + "\n" + \
                      "".join([f"  - `{name}`: {_(value).replace('%', '%%')}\n" for name, value in Reqres_fields.items()]) + \
                      "- " + _("derived attributes:") + "\n" + \
@@ -578,8 +578,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                      "- " + _("a compound expression built by piping (`|`) the above, for example:") + """
   - `net_url|sha256`
   - `net_url|sha256|prefix 4`
-  - `path|unquote`
-  - `query|unquote_plus|abbrev 128`
+  - `path_parts|pp_to_path`
+  - `query_parts|qsl_to_path|abbrev 128`
   - `response.complete`: this will print the value of `response.complete` or `None`, if there was no response
   - `response.complete|false`: this will print `response.complete` or `False`
   - `response.body|eb`: this will print `response.body` or an empty string, if there was no response

@@ -19,6 +19,7 @@ buildPythonApplication (rec {
     setuptools
     cbor2
     kisstdlib
+    idna
   ];
 } // lib.optionalAttrs debug {
   nativeBuildInputs = [
@@ -26,6 +27,6 @@ buildPythonApplication (rec {
     pytest
   ];
 
-  preBuild = "find . ; mypy";
+  preBuild = "find . ; mypy; pytest";
   postInstall = "find $out";
 })

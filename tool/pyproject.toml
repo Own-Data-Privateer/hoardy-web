@@ -34,6 +34,7 @@ requires-python = ">=3.10"
 dependencies = [
     "kisstdlib",
     "cbor2",
+    "idna",
 ]
 [project.urls]
 "Homepage" = "https://oxij.org/software/pwebarc/"
