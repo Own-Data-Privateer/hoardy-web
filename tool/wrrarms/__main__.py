@@ -100,6 +100,15 @@ def elaborate_paths(cargs : _t.Any) -> None:
     for i in range(0, len(cargs.paths)):
         cargs.paths[i] = _os.path.expanduser(cargs.paths[i])
 
+def handle_sorting(cargs : _t.Any, default_walk : bool | None = None) -> None:
+    if cargs.walk_paths == "unset":
+        cargs.walk_paths = default_walk
+    if cargs.walk_fs == "unset":
+        cargs.walk_fs = default_walk
+
+    if cargs.walk_paths is not None:
+        cargs.paths.sort(reverse=not cargs.walk_paths)
+
 def elaborate_output(cargs : _t.Any) -> None:
     if cargs.output.startswith("format:"):
         cargs.output_format = cargs.output[7:]
@@ -127,10 +136,12 @@ def load_map_orderly(load : _t.Callable[[_io.BufferedReader], LoadElem],
                      func : _t.Callable[[LoadElem, _t.AnyStr, _t.AnyStr], None],
                      dir_or_file_path : _t.AnyStr,
                      errors : str = "fail",
-                     follow_symlinks : bool = True) -> None:
+                     follow_symlinks : bool = True,
+                     order_by : bool | None = False) -> None:
     for path in walk_orderly(dir_or_file_path,
                              include_directories = False,
                              follow_symlinks = follow_symlinks,
+                             order_by = order_by,
                              handle_error = None if errors == "fail" else _logging.error):
         if want_stop: raise KeyboardInterrupt()
 
@@ -161,7 +172,7 @@ def load_map_orderly(load : _t.Callable[[_io.BufferedReader], LoadElem],
             raise exc
 
 def map_wrr_paths(func : _t.Callable[[Reqres, _t.AnyStr, _t.AnyStr], None],
-                  paths : _t.Iterable[_t.AnyStr],
+                  paths : list[_t.AnyStr],
                   *args : _t.Any, **kwargs : _t.Any) -> None:
     global should_raise
     should_raise = False
@@ -185,6 +196,7 @@ def cmd_pprint(cargs : _t.Any) -> None:
     compile_filters(cargs)
     elaborate_paths(cargs)
     slurp_stdin0(cargs)
+    handle_sorting(cargs)
 
     def emit(reqres : Reqres, abs_in_path : str, rel_in_path : str) -> None:
         rrexpr = ReqresExpr(reqres, abs_in_path)
@@ -193,7 +205,7 @@ def cmd_pprint(cargs : _t.Any) -> None:
         wrr_pprint(stdout, reqres, abs_in_path, cargs.abridged)
         stdout.flush()
 
-    map_wrr_paths(emit, cargs.paths, cargs.errors)
+    map_wrr_paths(emit, cargs.paths, cargs.errors, True, cargs.walk_fs)
 
 def cmd_get(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
@@ -257,6 +269,8 @@ def cmd_stream(cargs : _t.Any) -> None:
     compile_filters(cargs)
     elaborate_paths(cargs)
     slurp_stdin0(cargs)
+    handle_sorting(cargs)
+
     stream = get_StreamEncoder(cargs)
 
     def emit(reqres : Reqres, abs_in_path : str, rel_in_path : str) -> None:
@@ -269,13 +283,14 @@ def cmd_stream(cargs : _t.Any) -> None:
         stream.emit(abs_in_path, cargs.exprs, values)
 
     stream.start()
-    map_wrr_paths(emit, cargs.paths, cargs.errors)
+    map_wrr_paths(emit, cargs.paths, cargs.errors, True, cargs.walk_fs)
     stream.finish()
 
 def cmd_find(cargs : _t.Any) -> None:
     compile_filters(cargs)
     elaborate_paths(cargs)
     slurp_stdin0(cargs)
+    handle_sorting(cargs)
 
     def emit(reqres : Reqres, abs_in_path : str, rel_in_path : str) -> None:
         rrexpr = ReqresExpr(reqres, abs_in_path)
@@ -283,7 +298,7 @@ def cmd_find(cargs : _t.Any) -> None:
         stdout.write_bytes(_os.fsencode(abs_in_path) + cargs.terminator)
         stdout.flush()
 
-    map_wrr_paths(emit, cargs.paths, cargs.errors)
+    map_wrr_paths(emit, cargs.paths, cargs.errors, True, cargs.walk_fs)
 
 output_aliases = {
     "default":  "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr",
@@ -513,11 +528,12 @@ def cmd_organize(cargs : _t.Any) -> None:
     elaborate_output(cargs)
     elaborate_paths(cargs)
     slurp_stdin0(cargs)
+    handle_sorting(cargs, None if cargs.action != "symlink-update" else False)
 
     if cargs.destination is not None:
         # destination is set explicitly
         emit, finish = make_organize_emit(cargs, cargs.destination)
-        map_wrr_paths(emit, cargs.paths, cargs.errors, follow_symlinks=False)
+        map_wrr_paths(emit, cargs.paths, cargs.errors, False, cargs.walk_fs)
         finish()
     else:
         # each path is its own destination
@@ -532,7 +548,7 @@ def cmd_organize(cargs : _t.Any) -> None:
 
         for path in cargs.paths:
             emit, finish = make_organize_emit(cargs, path)
-            map_wrr_paths(emit, [path], cargs.errors, follow_symlinks=False)
+            map_wrr_paths(emit, [path], cargs.errors, False, cargs.walk_fs)
             finish()
 
 def cmd_import(cargs : _t.Any) -> None:
@@ -540,6 +556,7 @@ def cmd_import(cargs : _t.Any) -> None:
     elaborate_output(cargs)
     elaborate_paths(cargs)
     slurp_stdin0(cargs)
+    handle_sorting(cargs)
 
     if cargs.input == "mitmproxy":
         from .mitmproxy import load_as_wrrs
@@ -573,7 +590,7 @@ def cmd_import(cargs : _t.Any) -> None:
     should_raise = False
 
     for path in cargs.paths:
-        load_map_orderly(load_as_wrrs, emit, path)
+        load_map_orderly(load_as_wrrs, emit, path, cargs.errors, True, cargs.walk_fs)
     finish()
 
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
@@ -722,7 +739,27 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("terminate output values with `\\0` (NUL) bytes"))
         cmd.set_defaults(terminator = b"")
 
-    def add_paths(cmd : _t.Any) -> None:
+    def add_paths(cmd : _t.Any, with_symlink_update : bool = False) -> None:
+        if with_symlink_update:
+            def_def = " (default when `--action` IS NOT `symlink-update`)"
+            def_sup = " (default when `--action` IS `symlink-update`)"
+        else:
+            def_def = " (default)"
+            def_sup = ""
+
+        agrp = cmd.add_argument_group("file system path ordering")
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument("--paths-given-order", dest="walk_paths", action="store_const", const = None, help=_("`argv` and `--stdin0` `PATH`s are processed in the order they are given" + def_def))
+        grp.add_argument("--paths-sorted", dest="walk_paths", action="store_const", const = False, help=_("`argv` and `--stdin0` `PATH`s are processed in lexicographic order"))
+        grp.add_argument("--paths-reversed", dest="walk_paths", action="store_const", const = True, help=_("`argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order" + def_sup))
+        cmd.set_defaults(walk_paths = "unset")
+
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument("--walk-fs-order", dest="walk_fs", action="store_const", const = None, help=_("recursive file system walk is done in the order `readdir(2)` gives results"  + def_def))
+        grp.add_argument("--walk-sorted", dest="walk_fs", action="store_const", const = False, help=_("recursive file system walk is done in lexicographic order"))
+        grp.add_argument("--walk-reversed", dest="walk_fs", action="store_const", const = True, help=_("recursive file system walk is done in reverse lexicographic order" + def_sup))
+        cmd.set_defaults(walk_fs = "unset")
+
         cmd.add_argument("--stdin0", action="store_true", help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments"))
 
         cmd.add_argument("paths", metavar="PATH", nargs="*", type=str, help=_("inputs, can be a mix of files and directories (which will be traversed recursively)"))
@@ -856,7 +893,7 @@ E.g. `{__package__} organize --action rename` will not overwrite any files, whic
                      "  - `num`: " + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique") + "\n" + \
                      "  - " + _(f"all expressions of `{__package__} get --expr`, which see"))
 
-    add_paths(cmd)
+    add_paths(cmd, True)
     cmd.set_defaults(func=cmd_organize)
 
     # import

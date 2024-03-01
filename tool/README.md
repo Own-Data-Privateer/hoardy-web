@@ -130,6 +130,20 @@ Pretty-print given WRR files to stdout.
   - `--and EXPR`
   : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
 
+- file system path ordering:
+  - `--paths-given-order`
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  - `--paths-sorted`
+  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
+  - `--paths-reversed`
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
+  - `--walk-fs-order`
+  : recursive file system walk is done in the order `readdir(2)` gives results (default)
+  - `--walk-sorted`
+  : recursive file system walk is done in lexicographic order
+  - `--walk-reversed`
+  : recursive file system walk is done in reverse lexicographic order
+
 ### wrrarms get
 
 Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified.
@@ -330,6 +344,20 @@ Compute given expressions for each of given WRR files, encode them into a reques
   - `-z, --zero-terminated`
   : terminate `raw` output values with `\0` (NUL) bytes
 
+- file system path ordering:
+  - `--paths-given-order`
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  - `--paths-sorted`
+  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
+  - `--paths-reversed`
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
+  - `--walk-fs-order`
+  : recursive file system walk is done in the order `readdir(2)` gives results (default)
+  - `--walk-sorted`
+  : recursive file system walk is done in lexicographic order
+  - `--walk-reversed`
+  : recursive file system walk is done in reverse lexicographic order
+
 ### wrrarms find
 
 Print paths of WRR files matching specified criteria.
@@ -360,6 +388,20 @@ Print paths of WRR files matching specified criteria.
   : output absolute paths of matching WRR files terminated with `\n` (LF) newline characters to stdout (default)
   - `-z, --zero-terminated`
   : output absolute paths of matching WRR files terminated with `\0` (NUL) bytes to stdout
+
+- file system path ordering:
+  - `--paths-given-order`
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  - `--paths-sorted`
+  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
+  - `--paths-reversed`
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
+  - `--walk-fs-order`
+  : recursive file system walk is done in the order `readdir(2)` gives results (default)
+  - `--walk-sorted`
+  : recursive file system walk is done in lexicographic order
+  - `--walk-reversed`
+  : recursive file system walk is done in reverse lexicographic order
 
 ### wrrarms organize
 
@@ -442,6 +484,20 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   - `-z, --zero-terminated`
   : output absolute paths of newly produced files terminated with `\0` (NUL) bytes to stdout
 
+- file system path ordering:
+  - `--paths-given-order`
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default when `--action` IS NOT `symlink-update`)
+  - `--paths-sorted`
+  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
+  - `--paths-reversed`
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order (default when `--action` IS `symlink-update`)
+  - `--walk-fs-order`
+  : recursive file system walk is done in the order `readdir(2)` gives results (default when `--action` IS NOT `symlink-update`)
+  - `--walk-sorted`
+  : recursive file system walk is done in lexicographic order
+  - `--walk-reversed`
+  : recursive file system walk is done in reverse lexicographic order (default when `--action` IS `symlink-update`)
+
 ### wrrarms import
 
 Parse data in each `INPUT` `PATH` into reqres and dump them under `DESTINATION` with paths derived from their metadata, similar to `organize`.
@@ -491,6 +547,20 @@ Internally, this shares most of the code with `organize`, but unlike `organize` 
   : output absolute paths of newly produced files terminated with `\n` (LF) newline characters to stdout
   - `-z, --zero-terminated`
   : output absolute paths of newly produced files terminated with `\0` (NUL) bytes to stdout
+
+- file system path ordering:
+  - `--paths-given-order`
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  - `--paths-sorted`
+  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
+  - `--paths-reversed`
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
+  - `--walk-fs-order`
+  : recursive file system walk is done in the order `readdir(2)` gives results (default)
+  - `--walk-sorted`
+  : recursive file system walk is done in lexicographic order
+  - `--walk-reversed`
+  : recursive file system walk is done in reverse lexicographic order
 
 ## Examples
 
