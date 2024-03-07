@@ -94,7 +94,7 @@ Reqres_fields = {
 }
 
 Reqres_derived_attrs = {
-    "fs_path": "file system path for the WRR file containing this reqres; str",
+    "fs_path": "file system path for the WRR file containing this reqres; str or None",
 
     "qtime": 'aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; decimal float',
     "qtime_ms": "`qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
@@ -201,11 +201,11 @@ class ReqresExpr:
     reqres : Reqres
     items : dict[str, _t.Any]
 
-    def __init__(self, reqres : Reqres, path : str) -> None:
+    def __init__(self, reqres : Reqres, path : str | bytes | None = None) -> None:
         self.reqres = reqres
-        self.items = {
-            "fs_path": path
-        }
+        self.items = {}
+        if path is not None:
+            self.items["fs_path"] = path
 
     def _fill_time(self, prefix : str, ts : Epoch) -> None:
         dt = _time.gmtime(int(ts))
@@ -388,7 +388,7 @@ def trivial_Reqres(url : str) -> Reqres:
 
 def test_ReqresExpr() -> None:
     def mk(url : str) -> ReqresExpr:
-        return ReqresExpr(trivial_Reqres(url), "/homeless-shelter/trivial")
+        return ReqresExpr(trivial_Reqres(url), None)
 
     def check(x : ReqresExpr, name : str, value : _t.Any) -> None:
         if x[name] != value:
@@ -504,9 +504,17 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
     else:
         raise ParsingError("can't parse CBOR data: unknown format %s", data[0])
 
+def wrr_load_expr(fobj : _io.BufferedReader, path : str | bytes) -> ReqresExpr:
+    reqres = wrr_load(fobj)
+    return ReqresExpr(reqres, path)
+
 def wrr_loadf(path : str | bytes) -> Reqres:
     with open(path, "rb") as f:
         return wrr_load(f)
+
+def wrr_loadf_expr(path : str | bytes) -> ReqresExpr:
+    reqres = wrr_loadf(path)
+    return ReqresExpr(reqres, path)
 
 def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
     req = reqres.request

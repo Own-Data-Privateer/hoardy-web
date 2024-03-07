@@ -31,7 +31,7 @@ def _hd(x : _t.Any) -> Headers:
         res.append((k.decode("ascii"), v))
     return Headers(res)
 
-def load_as_wrrs(fobj : _io.BufferedReader) -> _t.Iterator[Reqres]:
+def load_as_wrrs(fobj : _io.BufferedReader, abs_path : _t.AnyStr) -> _t.Iterator[Reqres]:
     stream = mitmproxy.io.FlowReader(fobj).stream()
     for flow in stream:
         if not isinstance(flow, mitmproxy.http.HTTPFlow):
@@ -98,7 +98,7 @@ def load_as_wrrs(fobj : _io.BufferedReader) -> _t.Iterator[Reqres]:
             for msg in ws.messages:
                 if type(msg.content) is bytes:
                     content = msg.content
-                elif type(msg.content) is str: # type: ignore
+                elif type(msg.content) is str:
                     # even though mitmproxy declares content to be `bytes`, reading
                     # dump files produced by old mitmproxy can produce `str`
                     content = msg.content.encode("utf-8") # type: ignore

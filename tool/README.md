@@ -64,7 +64,7 @@ See the [scripts sub-directory](./scripts) for more examples.
 
 - Converter from HAR, WARC, and PCAP files into WRR.
 - Converter from WRR to WARC.
-- Data deduplication.
+- Data de-duplication between different WRR files.
 - Non-dumb server with time+URL index and replay, i.e. a local [Wayback Machine](https://web.archive.org/).
 - Full text indexing and search.
 
@@ -97,7 +97,7 @@ Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a struct
     - `find`
     : print paths of WRR files matching specified criteria
     - `organize`
-    : programmatically rename/hardlink/symlink WRR files based on their contents
+    : programmatically rename/move/hardlink/symlink WRR files based on their contents
     - `import`
     : convert other archive formats into WRR files
 
@@ -208,7 +208,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `finished_at`: request completion time in seconds since 1970-01-01 00:00; Epoch
       - `websocket`: a list of WebSocket frames
     - derived attributes:
-      - `fs_path`: file system path for the WRR file containing this reqres; str
+      - `fs_path`: file system path for the WRR file containing this reqres; str or None
       - `qtime`: aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; decimal float
       - `qtime_ms`: `qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int
       - `qtime_msq`: three least significant digits of `qtime_ms`; int
@@ -405,10 +405,10 @@ Print paths of WRR files matching specified criteria.
 
 ### wrrarms organize
 
-Parse given WRR files into their respective reqres and then rename/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
+Parse given WRR files into their respective reqres and then rename/move/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
 
 Operations that could lead to accidental data loss are not permitted.
-E.g. `wrrarms organize --action rename` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
+E.g. `wrrarms organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
 
 - positional arguments:
   - `PATH`
@@ -419,18 +419,8 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
   : don't log computed updates to stderr
-  - `-a {rename,hardlink,symlink,symlink-update}, --action {rename,hardlink,symlink,symlink-update}`
-  : organize how:
-    - `rename`: rename source files under `DESTINATION`, will fail if target already exists (default)
-    - `hardlink`: create hardlinks from source files to paths under `DESTINATION`, will fail if target already exists
-    - `symlink`: create symlinks from source files to paths under `DESTINATION`, will fail if target already exists
-    - `symlink-update`: create symlinks from source files to paths under `DESTINATION`, will overwrite the target if `stime_ms` for the source reqres is newer than the same value for the target
-  - `--batch-number INT`
-  : batch at most this many `--action`s together (default: `1024`), making this larger improves performance at the cost of increased memory consumption, setting it to zero will force all `--action`s to be applied immediately
-  - `--lazy`
-  : sets `--batch-number` to positive infinity; most useful in combination with `--action symlink-update` in which case it will force `wrrarms` to compute the desired file system state first and then perform disk writes in a single batch
   - `-t DESTINATION, --to DESTINATION`
-  : target directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`
+  : destination directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`
   - `-o FORMAT, --output FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
@@ -484,25 +474,55 @@ E.g. `wrrarms organize --action rename` will not overwrite any files, which is w
   - `-z, --zero-terminated`
   : output absolute paths of newly produced files terminated with `\0` (NUL) bytes to stdout
 
+- action:
+  - `--move`
+  : move source files under `DESTINATION` (default)
+  - `--copy`
+  : copy source files to files under `DESTINATION`
+  - `--hardlink`
+  : create hardlinks from source files to paths under `DESTINATION`
+  - `--symlink`
+  : create symlinks from source files to paths under `DESTINATION`
+
+- updates:
+  - `--keep`
+  : disallow replacements and overwrites for any existing files under `DESTINATION` (default);
+    broken symlinks are allowed to be replaced;
+    if source and target directories are the same then some files can still be renamed into previously non-existing names;
+    all other updates are disallowed
+  - `--latest`
+  : replace files under `DESTINATION` if `stime_ms` for the source reqres is newer than the same value for reqres stored at the destination
+
+- batching and caching:
+  - `--batch-number INT`
+  : batch at most this many IO actions together (default: `1024`), making this larger improves performance at the cost of increased memory consumption, setting it to zero will force all IO actions to be applied immediately
+  - `--cache-number INT`
+  : cache `stat(2)` information about this many files in memory (default: `4096`);
+    making this larger improves performance at the cost of increased memory consumption;
+    setting this to a too small number will likely force {__package__} into repeatedly performing lots of `stat(2)` system calls on the same files;
+    setting this to a value smaller than `--batch-number` will not improve memory consumption very much since batched IO actions also cache information about their own files
+  - `--lazy`
+  : sets `--cache-number` and `--batch-number` to positive infinity; most useful in combination with `--symlink --latest` in which case it will force `wrrarms` to compute the desired file system state first and then perform disk writes in a single batch
+
 - file system path ordering:
   - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default when `--action` IS NOT `symlink-update`)
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default when `--keep`)
   - `--paths-sorted`
   : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
   - `--paths-reversed`
-  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order (default when `--action` IS `symlink-update`)
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order (default when `--latest`)
   - `--walk-fs-order`
-  : recursive file system walk is done in the order `readdir(2)` gives results (default when `--action` IS NOT `symlink-update`)
+  : recursive file system walk is done in the order `readdir(2)` gives results (default when `--keep`)
   - `--walk-sorted`
   : recursive file system walk is done in lexicographic order
   - `--walk-reversed`
-  : recursive file system walk is done in reverse lexicographic order (default when `--action` IS `symlink-update`)
+  : recursive file system walk is done in reverse lexicographic order (default when `--latest`)
 
 ### wrrarms import
 
 Parse data in each `INPUT` `PATH` into reqres and dump them under `DESTINATION` with paths derived from their metadata, similar to `organize`.
 
-Internally, this shares most of the code with `organize`, but unlike `organize` this holds the whole reqres in memory until its written out, which is why `--batch` is always set to `0`.
+Internally, this shares most of the code with `organize`, but unlike `organize` this holds the whole reqres in memory until its written out to disk.
 
 - file formats:
   - `{mitmproxy}`
@@ -521,7 +541,7 @@ Internally, this shares most of the code with `organize`, but unlike `organize` 
   - `-q, --quiet`
   : don't log computed updates to stderr
   - `-t DESTINATION, --to DESTINATION`
-  : target directory
+  : destination directory
   - `-o FORMAT, --output FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same as `wrrarms organize --output`, which see
   - `--stdin0`
@@ -624,14 +644,44 @@ Internally, this shares most of the code with `organize`, but unlike `organize` 
   then, we can reuse `changes` to symlink all new files from `~/pwebarc/raw` to `~/pwebarc/all` using `--output hupq_msn`, which would show most of the URL in the file name:
 
   ```
-  wrrarms organize --stdin0 --action symlink --to ~/pwebarc/all --output hupq_msn < changes
+  wrrarms organize --stdin0 --symlink --to ~/pwebarc/all --output hupq_msn < changes
   ```
 
   and then, we can reuse `changes` again and use them to update `~/pwebarc/latest`, filling it with symlinks pointing to the latest `200 OK` complete reqres from `~/pwebarc/raw`, similar to what `wget -r` would produce (except `wget` would do network requests and produce responce bodies, while this will build a file system tree of symlinks to WRR files in `/pwebarc/raw`):
 
   ```
-  wrrarms organize --stdin0 --action symlink-update --to ~/pwebarc/latest --output hupq --and "status|== 200C" < changes
+  wrrarms organize --stdin0 --symlink --latest --to ~/pwebarc/latest --output hupq --and "status|== 200C" < changes
   ```
+
+- `wrrarms organize --move` is de-duplicating when possible, while `--copy`, `--hardlink`, and `--symlink` are non-duplicating when possible, i.e.:
+  ```
+  wrrarms organize --copy     --to ~/pwebarc/copy1 ~/pwebarc/original
+  wrrarms organize --copy     --to ~/pwebarc/copy2 ~/pwebarc/original
+  wrrarms organize --hardlink --to ~/pwebarc/copy3 ~/pwebarc/original
+
+  # noops
+  wrrarms organize --copy     --to ~/pwebarc/copy1 ~/pwebarc/original
+  wrrarms organize --hardlink --to ~/pwebarc/copy1 ~/pwebarc/original
+  wrrarms organize --copy     --to ~/pwebarc/copy2 ~/pwebarc/original
+  wrrarms organize --hardlink --to ~/pwebarc/copy2 ~/pwebarc/original
+  wrrarms organize --copy     --to ~/pwebarc/copy3 ~/pwebarc/original
+  wrrarms organize --hardlink --to ~/pwebarc/copy3 ~/pwebarc/original
+
+  # de-duplicate
+  wrrarms organize --move --to ~/pwebarc/all ~/pwebarc/original ~/pwebarc/copy1 ~/pwebarc/copy2 ~/pwebarc/copy3
+  ```
+
+  will produce `~/pwebarc/all` which has each duplicated file stored only once. Similarly,
+
+  ```
+  wrrarms organize --symlink --output hupq_msn --to ~/pwebarc/pointers ~/pwebarc/original
+  wrrarms organize --symlink --output shupq_msn --to ~/pwebarc/schemed ~/pwebarc/original
+
+  # noop
+  wrrarms organize --symlink --output hupq_msn --to ~/pwebarc/pointers ~/pwebarc/original ~/pwebarc/schemed
+  ```
+
+  will produce `~/pwebarc/pointers` which has each symlink only once.
 
 ## Advanced examples
 
