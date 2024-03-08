@@ -3,7 +3,7 @@
 
     "name": "pWebArc",
     "version": "1.5",
-    "description": "Private Passive Web Archive: collects and archives dumps of HTTP requests and responses to your own private archiving server as you browse the web. So, a ScrapBook following \"archive everything now, figure out what to do with it later\" philosophy.",
+    "description": "Personal Private Passive Web Archive is a suite of tools to collect, save, mirror, manage archives of (i.e. hoard), and view web pages and whole websites offline.",
 
     "author": "Jan Malakhovski",
     "homepage_url": "https://github.com/Own-Data-Privateer/pwebarc",

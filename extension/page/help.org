@@ -1,5 +1,5 @@
 * What?
-=pWebArc= (Private Passive Web Archive) is a browser extension that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the dumb archiving server]], also [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][there]]) as you browse the web.
+=pWebArc= (Personal Private Passive Web Archive) is a browser extension that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the dumb archiving server]], also [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][there]]) as you browse the web.
 * Glossary
 - A /reqres/ is a pWebArc-internal object containing information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
 - [[./popup.html#div-stats.inflight][An /in-flight reqres/]] is a reqres of an HTTP request that is still tracked by pWebArc, i.e. it has not finished yet, nor yet failed to finish.
@@ -105,7 +105,7 @@ This makes things a bit tricky, for instance:
 
 - If the server supplies the same header multiple times (which happens sometimes) then archived response headers will be incomplete, as Chromium's =Network.responseReceived= debugging API event provides a dictionary of headers, not a list.
 
-- Chromium fails to provide =openerTabId= to tabs created with =chrome.tabs.create= API so in the unlikely case of opening two or more new tabs/windows in rapid succession via pWebArc context menu actions and not giving them time to initialize pWebArc could end up mix up settings between the newly created tabs/windows.
+- Chromium fails to provide =openerTabId= to tabs created with =chrome.tabs.create= API so in the unlikely case of opening two or more new tabs/windows in rapid succession via pWebArc context menu actions and not giving them time to initialize pWebArc could end up mixing up settings between the newly created tabs/windows.
   This bug is impossible to trigger unless your system is very slow or you are clicking things with automation tools like =AutoHotKey= or =xnee=.
 *** Known extension bugs
 - Response data of background requests and requests made by other extensions does not get collected.

@@ -1,13 +1,16 @@
-# What?
+# What is `pwebarc-dumb-dump-server`?
 
-`pwebarc_dumb_dump_server.py`: a very ~~dumb~~ simple archiving server for [Private Passive Web Archive (pwebarc)](https://github.com/Own-Data-Privateer/pwebarc/) (also [there](https://oxij.org/software/pwebarc/)) [pWebArc browser extension](https://github.com/Own-Data-Privateer/pwebarc/tree/master/extension/) (also [there](https://oxij.org/software/pwebarc/tree/master/extension/)).
+`pwebarc_dumb_dump_server.py`: a very ~~dumb~~ simple archiving server for [Personal Private Passive Web Archive (pwebarc)](https://github.com/Own-Data-Privateer/pwebarc/) (also [there](https://oxij.org/software/pwebarc/)) [pWebArc browser extension](https://github.com/Own-Data-Privateer/pwebarc/tree/master/extension/) (also [there](https://oxij.org/software/pwebarc/tree/master/extension/)).
 This thing is less than 200 lines of pure Python that only uses the Python\'s standard library and nothing else.
 You could be running it already.
 
-# Why?
+# Why does `pwebarc-dumb-dump-server` exists?
 
 This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/pwebarc/tree/master/README.md#quickstart) (also [there](https://oxij.org/software/pwebarc/tree/master/README.md#quickstart)).
-Ideally, you would use something smarter than this (when I publish it), but this will work fine as a starting point.
+
+Normally, you would use something smarter than this (when I publish it), but this will work fine as a starting point.
+
+Also, even with the better thing, this is still useful in case you are feeling paranoid and only want to run the minimal viable thing as a daemon.
 
 # Quickstart
 

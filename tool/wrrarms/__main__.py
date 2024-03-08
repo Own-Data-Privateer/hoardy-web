@@ -1001,8 +1001,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd.add_argument("--format", choices=["py", "cbor", "json", "raw"], default="py", help=_("""generate output in:
 - py: Pythonic Object Representation aka `repr` (default)
 - cbor: CBOR (RFC8949)
-- json: JavaScript Object Notation aka JSON (binary data can't be represented, UNICODE replacement characters will be used)
-- raw: concatenate raw values (termination is controlled by `*-terminated` options)
+- json: JavaScript Object Notation aka JSON; **binary data can't be represented, UNICODE replacement characters will be used**
+- raw: concatenate raw values; termination is controlled by `*-terminated` options
 """))
 
     cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute, see `{__package__} get --expr` for more info on expression format, can be specified multiple times (default: `%(default)s`); to dump all the fields of a reqres, specify "`.`"'))
