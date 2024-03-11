@@ -613,6 +613,7 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
                     return self.source, True
 
                 # check if overwriting it would be a noop
+                # TODO more efficiently
                 with open(self.source.abs_path, "rb") as f:
                     disk_data = f.read()
 
@@ -722,7 +723,7 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
     slurp_stdin0(cargs)
     handle_sorting(cargs)
 
-    emit_one, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", DeferredFileWrite)
+    emit_one, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", DeferredFileNoOverwrite)
 
     def emit(abs_in_path : str, rel_in_path : str, in_stat : _os.stat_result, rr : _t.Iterator[Reqres]) -> None:
         dev, ino = in_stat.st_dev, in_stat.st_ino

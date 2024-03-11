@@ -260,6 +260,28 @@ class DeferredIO(_t.Generic[DataSource, _t.AnyStr]):
             -> DataSource | None:
         raise NotImplementedError()
 
+def undeferred_write(data : bytes, dst : _t.AnyStr,
+                     dsync : DeferredSync[_t.AnyStr] | None = None,
+                     do_replace : bool = False) -> None:
+    dirname = _os.path.dirname(dst)
+    try:
+        _os.makedirs(dirname, exist_ok = True)
+    except OSError as exc:
+        handle_ENAMETOOLONG(exc, dirname)
+        raise exc
+
+    def make_dst(dst_part : _t.AnyStr) -> None:
+        with open(dst_part, "xb") as f:
+            f.write(data)
+
+    try:
+        atomic_make_file(make_dst, dst, dsync, do_replace)
+    except FileExistsError as exc:
+        raise Failure(gettext(f"trying to overwrite `%s` which already exists"), exc.filename)
+    except OSError as exc:
+        handle_ENAMETOOLONG(exc, dst)
+        raise exc
+
 @_dc.dataclass
 class SourcedData(_t.Generic[_t.AnyStr]):
     source : _t.AnyStr
@@ -267,6 +289,37 @@ class SourcedData(_t.Generic[_t.AnyStr]):
 
     def anystr(self) -> _t.AnyStr:
         return self.source
+
+@_dc.dataclass
+class DeferredFileNoOverwrite(DeferredIO[SourcedData[_t.AnyStr], _t.AnyStr], _t.Generic[_t.AnyStr]):
+    source : _t.AnyStr
+    data : bytes # file contents
+
+    def format_source(self) -> str | bytes:
+        return self.source
+
+    @staticmethod
+    def defer(abs_out_path : _t.AnyStr, out_source : SourcedData[_t.AnyStr] | None,
+              in_source : SourcedData[_t.AnyStr], rrexpr : ReqresExpr) \
+            -> tuple[_t.Any | None, None, bool]:
+        assert out_source is None
+
+        try:
+            with open(abs_out_path, "rb") as f:
+                eq = fileobj_content_equals(f, in_source.data)
+            return None, None, eq
+        except FileNotFoundError:
+            return DeferredFileNoOverwrite(in_source.source, in_source.data), None, True
+        except OSError as exc:
+            handle_ENAMETOOLONG(exc, abs_out_path)
+            raise exc
+
+    def update_from(self, in_source : SourcedData[_t.AnyStr], rrexpr : ReqresExpr) -> tuple[None, bool]:
+        return None, self.source == in_source.source
+
+    def run(self, abs_out_path : _t.AnyStr, dsync : DeferredSync[_t.AnyStr] | None = None, dry_run : bool = False) -> None:
+        if dry_run: return
+        undeferred_write(self.data, abs_out_path, dsync, False)
 
 @_dc.dataclass
 class DeferredFileWrite(DeferredIO[SourcedData[_t.AnyStr], _t.AnyStr], _t.Generic[_t.AnyStr]):
@@ -283,14 +336,22 @@ class DeferredFileWrite(DeferredIO[SourcedData[_t.AnyStr], _t.AnyStr], _t.Generi
             -> tuple[_t.Any | None, None, bool]:
         assert out_source is None
 
-        if file_content_equals(abs_out_path, in_source.data):
-            # same data on disk, don't even generate an intent
-            return None, None, True
+        try:
+            if file_content_equals(abs_out_path, in_source.data):
+                # same data on disk, don't even generate an intent
+                return None, None, True
+        except OSError as exc:
+            handle_ENAMETOOLONG(exc, abs_out_path)
+            raise exc
 
         return DeferredFileWrite(in_source.source, in_source.data), None, True
 
     def update_from(self, in_source : SourcedData[_t.AnyStr], rrexpr : ReqresExpr) -> tuple[None, bool]:
-        # yes, just replace it and don't cache anything
+        if self.data == in_source.data:
+            # same data
+            return None, True
+
+        # update
         self.source = in_source.source
         self.data = in_source.data
         self.changed = True
@@ -298,32 +359,10 @@ class DeferredFileWrite(DeferredIO[SourcedData[_t.AnyStr], _t.AnyStr], _t.Generi
 
     def run(self, abs_out_path : _t.AnyStr, dsync : DeferredSync[_t.AnyStr] | None = None, dry_run : bool = False) -> None:
         if dry_run:
-            return None
+            return
 
         if self.changed and file_content_equals(abs_out_path, self.data):
             # same data on disk
-            return None
+            return
 
-        dirname = _os.path.dirname(abs_out_path)
-        try:
-            _os.makedirs(dirname, exist_ok = True)
-        except OSError as exc:
-            handle_ENAMETOOLONG(exc, dirname)
-            raise exc
-
-        def make_dst(dst_part : _t.AnyStr) -> None:
-            try:
-                with open(dst_part, "xb") as f:
-                    f.write(self.data)
-            except FileExistsError:
-                raise Failure(gettext(f"trying to overwrite `%s` which already exists"), dst_part)
-
-        try:
-            atomic_make_file(make_dst, abs_out_path, dsync, True)
-        except FileExistsError:
-            raise Failure(gettext(f"trying to overwrite `%s` which already exists"), abs_out_path)
-        except OSError as exc:
-            handle_ENAMETOOLONG(exc, dirname)
-            raise exc
-
-        return None
+        undeferred_write(self.data, abs_out_path, dsync, True)
