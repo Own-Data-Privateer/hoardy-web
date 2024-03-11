@@ -575,13 +575,15 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
                             return OrganizeIntent(in_source, True), in_source, True
                         else:
                             if not symlinking:
-                                raise Failure(gettext(f"`--{action}` is set but `%s` exists and is a symlink; this is not allowed to prevent data loss"), abs_out_path)
+                                raise Failure(gettext(f"`--{action}` is set but `%s` exists and is a symlink") + not_allowed,
+                                              abs_out_path)
 
                             # get symlink target and use it as abs_out_path, thus
                             # (SETSRC) below will re-create the original source
                             abs_out_path = _os.path.realpath(abs_out_path)
                     elif symlinking:
-                        raise Failure(gettext(f"`--{action}` is set but `%s` exists and is not a symlink; this is not allowed to prevent data loss"), abs_out_path)
+                        raise Failure(gettext(f"`--{action}` is set but `%s` exists and is not a symlink") + not_allowed,
+                                      abs_out_path)
                     else:
                         out_stat = out_lstat
 
