@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import collections as _c
 import dataclasses as _dc
 import errno as _errno
 import io as _io
@@ -366,7 +367,7 @@ def make_deferred_emit(cargs : _t.Any,
     # indexed by filesystem paths. This is used both as a queue and as an
     # LRU-cache so that, e.g. repeated updates to the same output file would be
     # computed in memory.
-    deferred_intents : dict[_t.AnyStr, DeferredIO[DataSource, _t.AnyStr]] = {}
+    deferred_intents : _c.OrderedDict[_t.AnyStr, DeferredIO[DataSource, _t.AnyStr]] = _c.OrderedDict()
 
     # Deferred file system updates. This collects references to everything
     # that should be fsynced to disk before proceeding to make flush_updates
@@ -375,7 +376,7 @@ def make_deferred_emit(cargs : _t.Any,
 
     # Source info cache indexed by filesystem paths, this is purely to minimize
     # the number of calls to `stat`.
-    source_cache : dict[_t.AnyStr, DataSource] = {}
+    source_cache : _c.OrderedDict[_t.AnyStr, DataSource] = _c.OrderedDict()
 
     def flush_updates(max_queue : int) -> None:
         """Flush some of the queue."""
@@ -387,7 +388,7 @@ def make_deferred_emit(cargs : _t.Any,
             done_files = []
 
         while len(deferred_intents) > max_queue:
-            abs_out_path, intent = deferred_intents.popitem()
+            abs_out_path, intent = deferred_intents.popitem(False)
 
             if not cargs.quiet:
                 if cargs.dry_run:
@@ -433,7 +434,7 @@ def make_deferred_emit(cargs : _t.Any,
         dsync.finish()
 
         while len(source_cache) > cargs.cache:
-            source_cache.popitem()
+            source_cache.popitem(False)
 
     def finish_updates() -> None:
         """Flush all of the queue."""
