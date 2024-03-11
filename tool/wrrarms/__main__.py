@@ -108,7 +108,7 @@ def handle_sorting(cargs : _t.Any, default_walk : bool | None = None) -> None:
     if cargs.walk_paths == "unset":
         cargs.walk_paths = default_walk
     if cargs.walk_fs == "unset":
-        cargs.walk_fs = default_walk
+        cargs.walk_fs = True
 
     if cargs.walk_paths is not None:
         cargs.paths.sort(reverse=not cargs.walk_paths)
@@ -925,23 +925,23 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 
     def add_paths(cmd : _t.Any, with_update : bool = False) -> None:
         if with_update:
-            def_def = " (default when `--keep`)"
-            def_sup = " (default when `--latest`)"
+            def_def = " " + _("(default when `--keep`)")
+            def_sup = " " + _("(default when `--latest`)")
         else:
-            def_def = " (default)"
+            def_def = " " + _("(default)")
             def_sup = ""
 
         agrp = cmd.add_argument_group("file system path ordering")
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--paths-given-order", dest="walk_paths", action="store_const", const = None, help=_("`argv` and `--stdin0` `PATH`s are processed in the order they are given" + def_def))
+        grp.add_argument("--paths-given-order", dest="walk_paths", action="store_const", const = None, help=_("`argv` and `--stdin0` `PATH`s are processed in the order they are given") + def_def)
         grp.add_argument("--paths-sorted", dest="walk_paths", action="store_const", const = False, help=_("`argv` and `--stdin0` `PATH`s are processed in lexicographic order"))
-        grp.add_argument("--paths-reversed", dest="walk_paths", action="store_const", const = True, help=_("`argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order" + def_sup))
+        grp.add_argument("--paths-reversed", dest="walk_paths", action="store_const", const = True, help=_("`argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order") + def_sup)
         cmd.set_defaults(walk_paths = "unset")
 
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--walk-fs-order", dest="walk_fs", action="store_const", const = None, help=_("recursive file system walk is done in the order `readdir(2)` gives results"  + def_def))
-        grp.add_argument("--walk-sorted", dest="walk_fs", action="store_const", const = False, help=_("recursive file system walk is done in lexicographic order"))
-        grp.add_argument("--walk-reversed", dest="walk_fs", action="store_const", const = True, help=_("recursive file system walk is done in reverse lexicographic order" + def_sup))
+        grp.add_argument("--walk-fs-order", dest="walk_fs", action="store_const", const = None, help=_("recursive file system walk is done in the order `readdir(2)` gives results"))
+        grp.add_argument("--walk-sorted", dest="walk_fs", action="store_const", const = False, help=_("recursive file system walk is done in lexicographic order") + def_def)
+        grp.add_argument("--walk-reversed", dest="walk_fs", action="store_const", const = True, help=_("recursive file system walk is done in reverse lexicographic order") + def_sup)
         cmd.set_defaults(walk_fs = "unset")
 
         cmd.add_argument("--stdin0", action="store_true", help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments"))

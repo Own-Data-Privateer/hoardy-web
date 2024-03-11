@@ -133,9 +133,9 @@ Pretty-print given WRR files to stdout.
   - `--paths-reversed`
   : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
   - `--walk-fs-order`
-  : recursive file system walk is done in the order `readdir(2)` gives results (default)
+  : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order
+  : recursive file system walk is done in lexicographic order (default)
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
@@ -347,9 +347,9 @@ Compute given expressions for each of given WRR files, encode them into a reques
   - `--paths-reversed`
   : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
   - `--walk-fs-order`
-  : recursive file system walk is done in the order `readdir(2)` gives results (default)
+  : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order
+  : recursive file system walk is done in lexicographic order (default)
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
@@ -392,9 +392,9 @@ Print paths of WRR files matching specified criteria.
   - `--paths-reversed`
   : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
   - `--walk-fs-order`
-  : recursive file system walk is done in the order `readdir(2)` gives results (default)
+  : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order
+  : recursive file system walk is done in lexicographic order (default)
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
@@ -507,9 +507,9 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
   - `--paths-reversed`
   : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order (default when `--latest`)
   - `--walk-fs-order`
-  : recursive file system walk is done in the order `readdir(2)` gives results (default when `--keep`)
+  : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order
+  : recursive file system walk is done in lexicographic order (default when `--keep`)
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order (default when `--latest`)
 
@@ -571,9 +571,9 @@ Internally, this shares most of the code with `organize`, but unlike `organize` 
   - `--paths-reversed`
   : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
   - `--walk-fs-order`
-  : recursive file system walk is done in the order `readdir(2)` gives results (default)
+  : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order
+  : recursive file system walk is done in lexicographic order (default)
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
