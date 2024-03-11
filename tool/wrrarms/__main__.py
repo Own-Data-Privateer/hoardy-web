@@ -464,11 +464,15 @@ def make_deferred_emit(cargs : _t.Any,
             else:
                 out_source, permitted = intent.update_from(in_source, rrexpr)
 
+            if intent is not None:
+                deferred_intents[abs_out_path] = intent
+
             if out_source is not None:
                 source_cache[abs_out_path] = out_source
 
             if not permitted:
                 if prev_rel_out_path == rel_out_path:
+                    finish_updates()
                     in_source_desc = in_source.anystr() # type: ignore
                     raise Failure(gettext(f"trying to {action} `%s` to `%s` which already exists") +
                                   variance_help, in_source_desc, rel_out_path)
@@ -483,8 +487,6 @@ def make_deferred_emit(cargs : _t.Any,
                 stdout.write(abs_out_path)
                 stdout.write_bytes(cargs.terminator)
             return
-
-        deferred_intents[abs_out_path] = intent
 
         if not cargs.lazy:
             flush_updates(cargs.batch)
