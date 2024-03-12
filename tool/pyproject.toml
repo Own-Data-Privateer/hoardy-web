@@ -41,5 +41,6 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://oxij.org/software/pwebarc/"
 "GitHub" = "https://github.com/Own-Data-Privateer/pwebarc"
+"Support Development" = "https://oxij.org/#support"
 [project.scripts]
 wrrarms = "wrrarms.__main__:main"
