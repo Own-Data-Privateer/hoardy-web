@@ -340,6 +340,7 @@ output_aliases = {
     "hupnq_msn":             "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
 
     "flat":                  "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.wrr",
+    "flat_n":                "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(query_ne_parts|qsl_to_path|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.%(num)d.wrr",
 }
 
 not_allowed = gettext("; this is not allowed to prevent accidental data loss")
