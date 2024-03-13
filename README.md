@@ -3,36 +3,10 @@
 Personal Private Passive Web Archive (`pwebarc`) is a suite of tools to collect, save, mirror, manage archives of (i.e. hoard), and view web pages and whole websites offline.
 
 In short, `pwebarc`'s main workflow is this: you install an extension/add-on into the browser of your choice (both Firefox- and Chromium-based browsers are supported) and just browse the web while it archives **everything your browser fetches from the network** (by default, the extension has lots of options controlling what data from which tabs should and should not be archived) to your local file system in a way that can be used to reconstruct and replay your browsing session later.
-Then, some indeterminate time later, [you refer back to your collected data](#why).
-See [Quickstart](#quickstart) section for instructions.
 
-Unlike [similar tools](#alternatives), `pwebarc`'s main workflow is to **passively collect and archive HTTP requests and responses directly from your browser** as you browse the web instead of making you to ask some tool or web app to snapshot it for you or forcing you to explicitly snapshot/record separate browsing sessions/tabs, thus
-
-- allowing you to archive any HTTP data, not just the pages available via HTTP `GET` requests (e.g., it can archive answer pages of web search engines fetched via HTTP `POST`, JSON RPC/AJAX data, etc);
-- downloading everything only once, **not** once with your browser and then the second time with a separate tool like [ArchiveBox](https://github.com/ArchiveBox/ArchiveBox);
-- allowing you to trivially archive web pages hidden behind CAPTCHAs, requiring special cookies, multi-factor logins, paywalls, anti-scraping/`curl`/`wget` measures, and etc; after all, the website in question only interacts with your normal web browser, not with a custom web crawler;
-- freeing you from worries of forgetting to archive something because you forgot to press a button somewhere.
-
-In other words, `pwebarc` is your own personal [Wayback Machine](https://web.archive.org/), which also passively archives everything you see and, unlike the original Wayback Machine, can also archive HTTP `POST` requests and responses, and most other HTTP-level data.
-
-Technically, `pwebarc` is most similar to
-
-- [archiveweb.page](https://github.com/webrecorder/archiveweb.page) project, but following "archive everything with as little user input as needed now, figure out what to do with it later" philosophy, and not limited to Chromium;
-- [DiskerNet](https://github.com/dosyago/DownloadNet) project, but with much more tooling and not limited to Chromium.
-
-See [below](#alternatives) for more alternatives and comparisons.
-
-Also, unlike some of the [similar tools](#alternatives), `pwebarc` **DOES NOT**:
-
-- share your archived data with anyone by default;
-- require you to run a database server;
-- require you to store all the things in browser's local storage where they can vanish at any moment;
-- force you to use Chromium (yes, this point deserves repeating, because you can use `pwebarc` with Tor Browser);
-- require you to archive and/or export recorded data explicitly one page/browsing session at a time.
-
-Also, `pwebarc` tries to be very [**KISS** (Keep It Stupid Simple) and **efficient** by design](#technical).
-
-Also, importantly, the author obsessively eats what he cooks: since October 2023 I archive all of my web traffic with `pWebArc` add-on, after adding each new feature to [`wrrarms` CLI tool](./tool/), as a rule, I feed at least the last 5 years of my web browsing into it (at the moment, most of it converted from other formats to `.wrr`, obviously) to see if everything works as expected.
+- See ["Why"](#why) section for why you might want to do this.
+- See ["Features"](#features) section for a longer description of what `pwebarc` does and does not do.
+- See ["Quickstart"](#quickstart) section for setup instructions.
 
 # Screenshots
 
@@ -77,47 +51,61 @@ Well, 25 years later ("RDF Model and Syntax Specification" was published in 1999
 But none of the above prevents you from building your own little local data paradise.
 `pwebarc` gives you some of the tools to do it.
 
-# <span id="technical"/>Technical details
+# <span id="features"/>Features and technical details
 
-`pwebarc` tries very hard to be **KISS** (Keep It Stupid Simple) when possible and is designed to be **efficient**: by default, it saves archived data as compressed files using [the simplest, trivially parsable with many third-party libraries, yet most space-efficient on-disk file format representing separate HTTP requests+responses there currently is (aka `Web Request+Response`, `WRR`)](./doc/data-on-disk.md) and has [`wrrarms` CLI tool](./tool/) to manipulate, import, and export those archives.
+Unlike [similar tools](#alternatives), `pwebarc`'s main workflow is to passively collect and archive HTTP requests and responses directly from your browser as you browse the web instead of making you to ask some tool or web app to snapshot it for you or forcing you to explicitly snapshot/record separate browsing sessions/tabs, thus
 
-For example, you can feed `wrrams` a subset of your archives produced by [`pWebArc` webextension add-on](./extension/) and it will generate a file hierarchy which mirrors those pages on disk (viewing them requires some [scripts](./tool/script/) at the moment, but generation of normal website mirrors a-la `wget -mpk` will be supported soon too), but then you can discover you dislike the result, change some options and re-generate the mirror **without re-downloading anything**.
+- allowing you to archive any HTTP data, not just the pages available via HTTP `GET` requests (e.g., it can archive answer pages of web search engines fetched via HTTP `POST`, JSON RPC/AJAX data, etc);
+- downloading everything only once, **not** once with your browser and then the second time with a separate tool like [ArchiveBox](https://github.com/ArchiveBox/ArchiveBox);
+- allowing you to trivially archive web pages hidden behind CAPTCHAs, requiring special cookies, multi-factor logins, paywalls, anti-scraping/`curl`/`wget` measures, and etc; after all, the website in question only interacts with your normal web browser, not with a custom web crawler;
+- freeing you from worries of forgetting to archive something because you forgot to press a button somewhere.
 
-You can view `pwebarc` as an alternative for [mitmproxy](https://github.com/mitmproxy/mitmproxy) which leaves SSL/TLS layer alone and hooks into target application's runtime instead.
+In other words, `pwebarc` is your own personal [Wayback Machine](https://web.archive.org/) which passively archives everything you see and, unlike the original Wayback Machine, also archives HTTP `POST` requests and responses, and most other HTTP-level data.
+
+Technically, `pwebarc` is most similar to
+
+- [archiveweb.page](https://github.com/webrecorder/archiveweb.page) project, but following "archive everything with as little user input as needed now, figure out what to do with it later" philosophy, and not limited to Chromium;
+- [DiskerNet](https://github.com/dosyago/DownloadNet) project, but with much more tooling and not limited to Chromium.
+
+See [below](#alternatives) for more alternatives and comparisons.
+To highlight, unlike most of its alternatives, `pwebarc` **DOES NOT**:
+
+- share your archived data with anyone by default;
+- require you to run a database server;
+- require you to store all the things in browser's local storage where they can vanish at any moment;
+- require you to download the data you want to archive twice;
+- force you to use Chromium (yes, this point deserves repeating, because you can use `pwebarc` with Tor Browser);
+- require you to archive and/or export recorded data explicitly one page/browsing session at a time.
+
+In general, `pwebarc` is designed to be simple (as in adhering to the Keep It Stupid Simple principle) and efficient (as in running well on ancient hardware):
+
+- [`pWebArc` webextension add-on](./extension/) does almost no actual work, simply generating HTTP request+response dumps, pushing them to the archiving server, and freeing the memory as soon as possible, thus keeping your browsing experience snappy even on ancient hardware (if you ignore the code needed to support Chromium, the leftovers are also pretty small and simple source code-wise);
+- [dumb archiving server](./dumb_server/) simply compresses those dumps and saves them to disk as-is (it is tiny, taking less than 200 lines of code);
+- anything that is remotely computationally expensive is delegated to the [`wrrarms` CLI tool](./tool/);
+- meanwhile, on disk, your dumps get stored using [the simplest, trivially parsable with many third-party libraries, yet most space-efficient on-disk file format representing separate HTTP requests+responses there currently is (aka `Web Request+Response`, `WRR`)](./doc/data-on-disk.md), which is a file format that is both more general and more simple than WARC, much simpler than that `mitmproxy` uses, and much more efficient than HAR.
+
+Currently, the [add-on](./extension/) can collect data from all Firefox- and Chromium-based browsers by hooking into:
+
+- wast `webRequest` API capabilities of Firefox-based browsers (but they give no way to archive WebSockets data ATM, unfortunately);
+- meager `webRequest` API and the wast debugging API capabilities of Chromium-based browsers (archival of WebSockets data appears to be theoretically possible, but it's not implemented ATM); which is rather hacky, produces pretty annoying UI (all [alternatives](#alternatives) that use Chromium-based browsers suffer from exactly the same issue), and will probably stop working at least in Chrome eventually, given how persistently Google pushes for Manifest V3 and WebExtension API restrictions in its quest to tame ad-blockers.
+
+Also, as far as I'm aware, `wrrarms` is a tool that can do more useful stuff to your WRR archives than any other tool can do to any other file format for HTTP dumps with the sole exception of WARC.
+
+For example, you can feed [`wrrarms`](./tool/) a subset of your archives produced by the [add-on](./extension/) and it will generate a file hierarchy which mirrors those pages on disk (viewing them requires some [scripts](./tool/script/) at the moment, but generation of normal website mirrors a-la `wget -mpk` will be supported soon too), but then you can discover you dislike the result, change some options and re-generate the mirror **without re-downloading anything**.
+
+Alternatively, you can programmatically access that data by asking [`wrrarms`](./tool/) to dump WRR files into JSONs or verbose CBORs for you, or you can [just parse WRR files yourself](./doc/data-on-disk.md) with readily-available libraries.
+
+Approaching things this way helps immensely when developing scrapers for uncooperative websites: you just visit them via your web browser as normal, then, possibly years later, use [`wrrarms` CLI tool](./tool/) to organize your archives and conveniently programmatically feed the archived data into your scraper without the need to re-fetch anything.
+
+Given how simple the WRR file format is, in principle, you can modify any HTTP library to generate WRR files, thus allowing you to use [`wrrarms`](./tool/) with data captured by other software.
+
+Which is why, personally, I patch some of the commonly available FLOSS website scrapers to dump the data they fetch as WRR files so that in the future I could write my own better scrapers and indexers and test them on a huge collected database of already collected inputs immediately.
+
+To summarize, you can view `pwebarc` as an alternative for [mitmproxy](https://github.com/mitmproxy/mitmproxy) which leaves SSL/TLS layer alone and hooks into target application's runtime instead.
 In fact, the unpublished and now irrelevant ancestor project of `pwebarc` was a tool to generate website mirrors from `mitmproxy` stream captures.
 But then I got annoyed by all the sites that don't work under `mitmproxy`, did some research into the alternatives, decided there were none I wanted to use, and so I made my own.
 
-Currently, [`pWebArc` webextension add-on](./extension/) can collect data from all Firefox- and Chromium-based browsers by hooking into:
-
-- wast `webRequest` API capabilities of Firefox-based browsers (but they give no way to archive WebSockets data ATM, unfortunately);
-
-- meager `webRequest` API and the wast debugging API capabilities of Chromium-based browsers (archival of WebSockets data appears to be theoretically possible, but it's not implemented ATM); which is rather hacky, produces pretty annoying UI (all [alternatives](#alternatives) that use Chromium-based browsers suffer from exactly the same issue), and will probably stop working at least in Chrome eventually, given how persistently Google pushes for Manifest V3 and WebExtension API restrictions in its quest to tame ad-blockers.
-
-To programmatically access that data, [`wrrarms`](./tool/) can dump WRR files into JSONs or verbose CBORs for you, or you can [just parse WRR files yourself](./doc/data-on-disk.md) with readily-available libraries.
-
-Given how simple the WRR file format is, in principle, you can modify any HTTP library to generate WRR files, thus allowing you to use [`wrrarms`](./tool/) with data captured by other software.
-I do.
-
-# <span id="philosophy"/>Technical philosophy
-
-In general, `pwebarc` is built to follow "**collect and archive all the things as-is now, modify those archives never, convert to other formats and extract values on-demand**" philosophy.
-
-Meaning,
-
-- [`pWebArc` webextension add-on](./extension/) collects data as browser gives it, without any data normalization and conversion (when possible),
-- [dumb archiving server](./dumb_server/) simply saves it all to disk as-is,
-- meanwhile, all data normalization, massaging, post-processing, and extraction of useful values from it is delegated to the [`wrrarms`](./tool/), which also does not overwrite any WRR files, ever.
-
-In combination with [space-efficient on-disk file format](./doc/data-on-disk.md) this helps immensely when developing scrapers for uncooperative websites: you just visit them via your web browser, then use [`wrrarms` CLI tool](./tool/) to organize your archives and conveniently programmatically feed the archived data into your scraper without the need to re-fetch anything.
-
-Also, `pwebarc` expects you to treat your older pre-`pwebarc` archives you want to convert to WRR similarly:
-
-- `wrrarms import` them into a separate directory, but
-- leave your original `mitmproxy` (or whatever) dumps alone (on an external backup drive, if you lack disk space on your machine).
-
-This way, if `wrrarms` has some unexpected bug, or `wrrarms import` adds some new feature, you could always re-import them later without losing anything.
-
-(Personally, I also patch some of the commonly available FLOSS website scrapers to dump the data they fetch as WRR files so that in the future I could write my own better scrapers and indexers and test them on a huge collected database of already collected inputs immediately.)
+I eat what I cook: since October 2023 I archive all of my web traffic with `pWebArc` add-on, after adding each new feature to [`wrrarms` CLI tool](./tool/), as a rule, I feed at least the last 5 years of my web browsing into it (at the moment, most of it converted from other formats to `.wrr`, obviously) to see if everything works as expected.
 
 ## Parts and pieces
 
@@ -140,9 +128,26 @@ This way, if `wrrarms` has some unexpected bug, or `wrrarms import` adds some ne
 
 ### Optional
 
-- [A patch for Firefox](./firefox/) to allow the above extension to properly collect request POST data. This is not required, but could be useful if you want to archive POST requests properly.
+- [A patch for Firefox](./firefox/) to allow the above extension to collect request POST data as-is. This is not required and even without that patch `pWebArc` will collect everything in most cases, but it could be useful if you want to correctly capture POST requests that upload files.
 
   See "Quirks and Bugs" section of extension's ["Help" page](./extension/page/help.org) for more info.
+
+# <span id="philosophy"/>Technical philosophy
+
+In general, `pwebarc` is built to follow "**collect and archive all the things as-is now, modify those archives never, convert to other formats and extract values on-demand**" philosophy.
+
+Meaning,
+
+- [`pWebArc` webextension add-on](./extension/) collects data as browser gives it, without any data normalization and conversion (when possible),
+- [dumb archiving server](./dumb_server/) simply compresses the dumps the add-on pushes at it and saves them all to disk as-is,
+- meanwhile, all data normalization, massaging, post-processing, and extraction of useful values from it is delegated to the [`wrrarms`](./tool/), which also does not overwrite any WRR files, ever.
+
+`pwebarc` expects you to treat your older pre-`pwebarc` archives you want to convert to WRR similarly:
+
+- `wrrarms import` them into a separate directory, but
+- leave your original `mitmproxy` (or whatever) dumps alone (on an external backup drive, if you lack disk space on your machine).
+
+This way, if `wrrarms` has some unexpected bug, or `wrrarms import` adds some new feature, you could always re-import them later without losing anything.
 
 # Quickstart
 
@@ -151,36 +156,51 @@ This way, if `wrrarms` has some unexpected bug, or `wrrarms import` adds some ne
 - Download [the dumb archiving server `pwebarc_dumb_dump_server.py` script](./dumb_server/pwebarc_dumb_dump_server.py) and run it, it has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python.
   It will start saving data into `pwebarc-dump` directory wherever you run it from.
 
-  Alternatively, install via `pip install pwebarc-dumb-dump-server` and run as `pwebarc-dumb-dump-server`.
+  Alternatively, install via
+
+  ``` bash
+  pip install pwebarc-dumb-dump-server
+  ```
+
+  and run as
+
+  ``` bash
+  pwebarc-dumb-dump-server
+  ```
+
   See [there](./dumb_server/) for more info.
 
   (This step will eventually become optional, but not yet.)
 
 - Install the browser extension/add-on:
+
   - On Firefox/Tor Browser/etc: [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Installing from source on Firefox/Tor Browser](./extension/README.md#build-firefox).
   - On Chromium/Chrome/etc: See [Installing on Chromium/Chrome](./extension/README.md#install-chromium) or [Installing from source on Chromium/Chrome](./extension/README.md#build-chromium).
 
 - Now load any web page in your browser, the extension will report if everything works okay, or tell you where the problem is if something is broken.
 
-Assuming the extension reported success: Congratulations\! You are now collecting and archiving all your web browsing traffic originating from that browser.
+### ... and you are done
+
+Assuming the extension reported success: **Congratulations\!** You are now collecting and archiving all your web browsing traffic originating from that browser.
 Repeat extension installation for all browsers/browser profiles as needed.
 
 If you just want to collect everything and don't have time to figure out how to use the rest of this suite of tools right this moment, **you can stop here** and figure out how to use the rest of this suite later.
 
-(It took me about 6 months before I had to refer back to previously archived data for the first time when I started using [mitmproxy](https://github.com/mitmproxy/mitmproxy) to sporadically collect my HTTP traffic in 2017.
+It took me about 6 months before I had to refer back to previously archived data for the first time when I started using [mitmproxy](https://github.com/mitmproxy/mitmproxy) to sporadically collect my HTTP traffic in 2017.
 So, I recommend you start collecting immediately and be lazy about the rest.
-Also, I learned a lot about nefarious things some of the websites I visit do in the background while doing that, now you are going to learn the same.)
+Also, I learned a lot about nefarious things some of the websites I visit do in the background while doing that, now you are going to learn the same.
+
+### Recommended next steps
 
 Next, you should read the extension's ["Help" page](./extension/page/help.org).
 It has lots of useful details about how it works and quirks of different browsers.
 If you open it by clicking the "Help" button in the extension's UI, then hovering over or clicking on links in there will highlight relevant settings.
 
-As a *best-practice king of thing* it is highly recommended you make separate browser profiles for anonymous and logged-in browsing with separate extension instances pointing to separate archiving server instances dumping data to different directories on disk.
-Set the "anonymous" browser profile to always run in "Private Browsing" mode to prevent login persistence there.
-If you do accidentally login in "anonymous" profile, move those dumps out of the "anonymous" directory immediately ([`wrrarms` tool](./tool/) can help there).
-This way you can easily share dumps from the "anonymous" instance without worrying about leaking your private data or login credentials.
+See ["Setup recommendations"](#setup) section for best practices for configuring your system and browsers to be used with `pwebarc`.
 
-Finally, you should install and learn to use [`wrrarms` tool](./tool/) which allows you to view and manage files produced by the extension and the archiving server.
+### How to view archived data
+
+See the docs of the [`wrrarms` tool](./tool/).
 
 ## On a system with no Python installed
 
@@ -193,13 +213,13 @@ Finally, you should install and learn to use [`wrrarms` tool](./tool/) which all
 
 - Install by running
 
-  ```
+  ``` bash
   nix-env -i -f ./default.nix
   ```
 
 - Start [the dumb archiving server](./dumb_server/) by running
 
-  ```
+  ``` bash
   pwebarc-dumb-dump-server
   ```
 
@@ -207,13 +227,13 @@ Finally, you should install and learn to use [`wrrarms` tool](./tool/) which all
 
 - Alternatively, built XPI and Chromium ZIPs can be taken from
 
-  ```
+  ``` bash
   ls ~/.nix-profile/pWebArc*
   ```
 
   see [the extension's README](./extension/#build) for more info on how to install them manually.
 
-# Recommended system setup
+# <span id="setup"/>Setup recommendations
 
 - You can add `pwebarc_dumb_dump_server.py` to Autorun or start it from your `~/.xsession`, `systemd --user`, etc.
 
@@ -224,6 +244,13 @@ Finally, you should install and learn to use [`wrrarms` tool](./tool/) which all
   ```
 
   or similar by default to switch between profiles on browser startup.
+
+- It is highly recommended you make separate browser profiles for anonymous and logged-in browsing with separate extension instances pointing to separate archiving server instances dumping data to different directories on disk.
+
+  Set the "anonymous" browser profile to always run in "Private Browsing" mode to prevent login persistence there.
+  If you do accidentally login in "anonymous" profile, move those dumps out of the "anonymous" directory immediately.
+
+  This way you can easily share dumps from the "anonymous" instance without worrying about leaking your private data or login credentials.
 
 ## Using with Tor Browser
 
