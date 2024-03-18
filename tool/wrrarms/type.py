@@ -39,7 +39,7 @@ def fmt_epoch_diff(from_epoch : Epoch, to_epoch : Epoch) -> str:
     return str(hours) + ":" + format(minutes, "02") + ":" + format(seconds, "02") + "." + format(value, "03")
 
 def fmt_epoch_interval(from_epoch : Epoch, to_epoch : Epoch) -> str:
-    return f"[{str(from_epoch)}]--[{str(to_epoch)}] => {fmt_epoch_diff(from_epoch, to_epoch)}"
+    return f"[{from_epoch.format()}]--[{to_epoch.format()}] => {fmt_epoch_diff(from_epoch, to_epoch)}"
 
 def rec_get(obj : _t.Any, field : list[str]) -> _t.Any:
     if len(field) == 0:
