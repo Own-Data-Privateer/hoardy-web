@@ -17,7 +17,6 @@
 
 import cbor2 as _cbor2
 import dataclasses as _dc
-import decimal as _dec
 import gzip as _gzip
 import hashlib as _hashlib
 import idna as _idna
@@ -28,6 +27,8 @@ import sys as _sys
 import time as _time
 import typing as _t
 import urllib.parse as _up
+
+from decimal import Decimal
 
 from kisstdlib.exceptions import *
 from kisstdlib.path import *
@@ -456,7 +457,7 @@ def _t_int(x : _t.Any) -> int:
     raise TypeError("wrong type: want %s, got %s", int, type(x))
 
 def _t_epoch(x : _t.Any) -> Epoch:
-    return Epoch(_dec.Decimal(_t_int(x)) / 1000)
+    return Epoch(Decimal(_t_int(x)) / 1000)
 
 def _f_epoch(x : Epoch) -> int:
     return int(x * 1000)

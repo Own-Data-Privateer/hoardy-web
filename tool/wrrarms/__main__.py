@@ -534,7 +534,7 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
     class OrganizeSource(_t.Generic[_t.AnyStr]):
         abs_path : _t.AnyStr
         stat_result : _os.stat_result
-        modified_ms : int | None
+        modified : Decimal | None
 
         def anystr(self) -> _t.AnyStr:
             return self.abs_path
@@ -630,25 +630,25 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
             if not allow_updates:
                 return self.source, False
 
-            prev_modified_ms = self.source.modified_ms
-            if prev_modified_ms is None:
+            prev_modified = self.source.modified
+            if prev_modified is None:
                 # mtime was not cached yet, get it
                 if disk_data is None:
-                    prev_modified_ms = wrr_loadf_expr(self.source.abs_path).stime_ms
+                    prev_modified = wrr_loadf_expr(self.source.abs_path).stime
                 else:
                     # reuse disk_data read above
                     bio = _t.cast(_io.BufferedReader, _io.BytesIO(disk_data))
-                    prev_modified_ms = wrr_load_expr(bio, self.source.abs_path).stime_ms
+                    prev_modified = wrr_load_expr(bio, self.source.abs_path).stime
                 # cache the result
-                self.source.modified_ms = prev_modified_ms
+                self.source.modified = prev_modified
 
             del disk_data
 
-            new_modified_ms = in_source.modified_ms
+            new_modified = in_source.modified
             # in_source should be completely loaded just before each emit call
-            assert new_modified_ms is not None
+            assert new_modified is not None
 
-            if prev_modified_ms < new_modified_ms:
+            if prev_modified < new_modified:
                 # update source
                 self.source = in_source
 
@@ -683,7 +683,7 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
     emit_one, finish = make_deferred_emit(cargs, destination, action, actioning, OrganizeIntent)
 
     def emit(abs_in_path : str, rel_in_path : str, in_stat : _os.stat_result, rrexpr : ReqresExpr) -> None:
-        emit_one(OrganizeSource(abs_in_path, in_stat, rrexpr.stime_ms), rrexpr)
+        emit_one(OrganizeSource(abs_in_path, in_stat, rrexpr.stime), rrexpr)
 
     return emit, finish
 
