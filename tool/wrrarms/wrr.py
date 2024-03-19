@@ -132,19 +132,23 @@ Reqres_derived_attrs = {
     "method": "aliast for `request.method`; str",
     "raw_url": "aliast for `request.url`; str",
     "net_url": "`raw_url` with Punycode UTS46 IDNA encoded hostname, unsafe characters quoted, and without the fragment/hash part; this is the URL that actually gets sent to the server; str",
+    "pretty_url": "`raw_url`, but using `hostname`, `mq_path`, and `mq_nquery`; str",
     "scheme": "scheme part of `raw_url`; e.g. `http`, `https`, etc; str",
     "raw_hostname": "hostname part of `raw_url` as it is recorded in the reqres; str",
     "net_hostname": "hostname part of `raw_url`, encoded as Punycode UTS46 IDNA; this is what actually gets sent to the server; ASCII str",
-    "hostname": "`net_hostname` decoded back into UNICODE; this is the canonical hostname representation for which IDNA-encoding and decoding are bijective; str",
+    "hostname": "`net_hostname` decoded back into UNICODE; this is the canonical hostname representation for which IDNA-encoding and decoding are bijective; UNICODE str",
     "rhostname": '`hostname` with the order of its parts reversed; e.g. `"www.example.org"` -> `"com.example.www"`; str',
     "port": 'port part of `raw_url`; int or None',
     "netloc": "netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str",
     "raw_path": 'raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str',
     "path_parts": 'component-wise unquoted "/"-split `raw_path` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]; list[str]',
+    "mq_path": "`path_parts` turned back into a minimally-quoted string; str",
     "wget_parts": '`path + ["index.html"]` if `raw_path` ends in a slash, `path` otherwise; this is what `wget` does in `wget -mpk`; list[str]',
     "raw_query": "query part of `raw_url` (i.e. everything after the `?` character and before the `#` character) as it is recorded in the reqres; str",
     "query_parts": "parsed (and component-wise unquoted) `raw_query`; list[tuple[str, str]]",
     "query_ne_parts": "`query_parts` with empty query parameters removed; list[tuple[str, str]]",
+    "mq_query": "`query_parts` turned back into a minimally-quoted string; str",
+    "mq_nquery": "`query_ne_parts` turned back into a minimally-quoted string; str",
     "oqm": "optional query mark: `?` character if `query` is non-empty, an empty string otherwise; str",
     "fragment": "fragment (hash) part of the url; str",
     "ofm": "optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str",
@@ -269,8 +273,8 @@ class ReqresExpr:
                       "raw_hostname", "net_hostname", "hostname", "rhostname",
                       "port",
                       "netloc",
-                      "raw_path", "path_parts", "wget_parts",
-                      "oqm", "raw_query", "query_parts", "query_neparts",
+                      "raw_path",
+                      "oqm", "raw_query",
                       "ofm", "fragment"]:
             raw_url = reqres.request.url
             self.items["raw_url"] = raw_url
@@ -331,6 +335,17 @@ class ReqresExpr:
             if raw_query == "" and raw_url.endswith("?"):
                 net_url += "?"
             self.items["net_url"] = net_url
+        elif name in ["path_parts", "wget_parts",
+                      "query_parts", "query_neparts",
+                      "mq_path", "mq_query", "mq_nquery",
+                      "pretty_url"]:
+            scheme = self.get_value("scheme")
+            netloc = self.items["netloc"]
+            raw_path = self.get_value("raw_path")
+            raw_query = self.items["raw_query"]
+            oqm = self.items["oqm"]
+            ofm = self.items["ofm"]
+            fragment = self.items["fragment"]
 
             path_parts_insecure = [_up.unquote(e) for e in raw_path.split("/") if e != ""]
 
@@ -350,7 +365,18 @@ class ReqresExpr:
 
             qsl = _up.parse_qsl(raw_query, keep_blank_values=True)
             self.items["query_parts"] = qsl
-            self.items["query_ne_parts"] = [e for e in qsl if e[1] != ""]
+            qsl_ne = [e for e in qsl if e[1] != ""]
+            self.items["query_ne_parts"] = qsl_ne
+
+            mq_path = pp_to_path(path_parts)
+            self.items["mq_path"] = mq_path
+            mq_query = qsl_to_path(qsl)
+            self.items["mq_nquery"] = mq_query
+            mq_nquery = qsl_to_path(qsl_ne)
+            self.items["mq_nquery"] = mq_nquery
+
+            pretty_url = f"{scheme}://{netloc}{mq_path}{oqm}{mq_nquery}{ofm}{fragment}"
+            self.items["pretty_url"] = pretty_url
         elif name == "" or name in Reqres_fields:
             if name == "":
                 field = []
