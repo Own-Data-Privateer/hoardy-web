@@ -286,7 +286,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
 
 - options:
   - `-e EXPR, --expr EXPR`
-  : the expression to compute, can be specified multiple times, see `{__package__} get --expr` for more info; (default: `response.body|es`)
+  : the expression to compute, can be specified multiple times, see `wrrarms get --expr` for more info; (default: `response.body|es`)
   - `-n NUM, --num-args NUM`
   : number of `PATH`s (default: `1`)
 

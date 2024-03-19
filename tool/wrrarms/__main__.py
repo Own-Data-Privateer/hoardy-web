@@ -215,9 +215,10 @@ def cmd_pprint(cargs : _t.Any) -> None:
 
     map_wrr_paths(emit, cargs.paths, order_by=cargs.walk_fs, errors=cargs.errors)
 
+default_get_expr = "response.body|es"
 def cmd_get(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
-        cargs.exprs = ["response.body|es"]
+        cargs.exprs = [default_get_expr]
 
     abs_path = _os.path.abspath(_os.path.expanduser(cargs.path))
     rrexpr = wrr_loadf_expr(abs_path)
@@ -227,6 +228,9 @@ def cmd_get(cargs : _t.Any) -> None:
         stdout.write_bytes(cargs.terminator)
 
 def cmd_run(cargs : _t.Any) -> None:
+    if len(cargs.exprs) == 0:
+        cargs.exprs = [default_get_expr]
+
     if cargs.num_args < 1:
         raise Failure(gettext("`run` sub-command requires at least one PATH"))
     elif cargs.num_args - 1 > len(cargs.args):
@@ -965,7 +969,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd = subparsers.add_parser("get", help=_("print values produced by computing given expressions on a given WRR file"),
                                 description = _(f"""Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified."""))
 
-    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_('an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially, see also "output" options below; (default: `response.body|es`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:') + "\n" + \
+    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially, see also "output" options below; (default: `{default_get_expr}`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:') + "\n" + \
                      "- " + _("constants and functions:") + "\n" + \
                      "".join([f"  - `{name}`: {_(value[0]).replace('%', '%%')}\n" for name, value in Reqres_atoms.items()]) + \
                      "- " + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:") + "\n" + \
@@ -990,7 +994,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd = subparsers.add_parser("run", help=_("spawn a process with generated temporary files produced by given expressions computed on given WRR files as arguments"),
                                 description = _("""Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files terminating each value as specified, spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process."""))
 
-    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default=["response.body|es"], help=_("the expression to compute, can be specified multiple times, see `{__package__} get --expr` for more info; (default: `response.body|es`)"))
+    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default=[], help=_(f"the expression to compute, can be specified multiple times, see `{__package__} get --expr` for more info; (default: `{default_get_expr}`)"))
     add_terminator(cmd)
 
     cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of `PATH`s (default: `%(default)s`)"))
