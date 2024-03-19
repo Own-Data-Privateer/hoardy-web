@@ -309,7 +309,8 @@ def cmd_find(cargs : _t.Any) -> None:
 
     def emit(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
         if not filters_allow(cargs, rrexpr): return
-        stdout.write_bytes(_os.fsencode(abs_in_path) + cargs.terminator)
+        stdout.write(abs_in_path)
+        stdout.write_bytes(cargs.terminator)
         stdout.flush()
 
     map_wrr_paths(emit, cargs.paths, order_by=cargs.walk_fs, errors=cargs.errors)
