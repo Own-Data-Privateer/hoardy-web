@@ -1,10 +1,13 @@
 { pkgs ? import <nixpkgs> {}
 , lib ? pkgs.lib
 , kisstdlib ? import ../vendor/kisstdlib { inherit pkgs; }
+, cbor2 ? import ../vendor/cbor2 { inherit pkgs; }
 , source ? import ../source.nix { inherit pkgs; }
 , debug ? false
 , mitmproxySupport ? true
 }:
+
+let mycbor2 = cbor2; in
 
 with pkgs.python3Packages;
 
@@ -18,7 +21,7 @@ buildPythonApplication (rec {
 
   propagatedBuildInputs = [
     setuptools
-    cbor2
+    mycbor2
     kisstdlib
     idna
   ]

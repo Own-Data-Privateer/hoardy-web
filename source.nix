@@ -19,10 +19,10 @@
   };
 
   unpackPhase = ''
-    find $src
     ${pkgs.git}/bin/git clone $src source
     cp -a $src/extension/private source/extension || true
     patchShebangs source
+    find source | grep -vF 'source/.git/'
   '';
 
 }

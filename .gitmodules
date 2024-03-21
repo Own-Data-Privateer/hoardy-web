@@ -1,3 +1,6 @@
 [submodule "vendor/kisstdlib"]
 	path = vendor/kisstdlib
 	url = https://github.com/oxij/kisstdlib
+[submodule "vendor/cbor2"]
+	path = vendor/cbor2
+	url = https://github.com/oxij/cbor2

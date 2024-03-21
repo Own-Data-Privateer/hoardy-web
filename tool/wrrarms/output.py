@@ -15,8 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import cbor2.decoder as _cbor2dec
-import cbor2.encoder as _cbor2enc
+import cbor2 as _cbor2
 import io as _io
 import json as _json
 import typing as _t
@@ -121,7 +120,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
         if not final:
             try:
                 with _io.BytesIO(data) as fp:
-                    cb = _cbor2dec.CBORDecoder(fp).decode()
+                    cb = _cbor2.CBORDecoder(fp).decode()
                     if len(fp.read()) != 0:
                         # not all of the data was decoded
                         raise Exception("failed to parse")
@@ -209,19 +208,18 @@ class CBORStreamEncoder(StreamEncoder):
     def __init__(self, fobj : TIOWrappedWriter, abridged : bool) -> None:
         super().__init__(fobj, abridged)
 
-        encoders = _cbor2enc.default_encoders.copy()
+        encoders = _cbor2.default_encoders.copy()
         if abridged:
             encoders[bytes] = _t.cast(_t.Any, self.encode_cbor_abridged)
             encoders[str] = _t.cast(_t.Any, self.encode_cbor_abridged)
-        self.encoder = _cbor2enc.CBOREncoder(_io.BytesIO(), default = self.encode_cbor)
-        self.encoder._encoders = encoders
+        self.encoder = _cbor2.CBOREncoder(_io.BytesIO(), encoders = encoders, default = self.encode_cbor)
 
     @staticmethod
-    def encode_cbor(enc : _cbor2enc.CBOREncoder, obj : _t.Any) -> None:
+    def encode_cbor(enc : _cbor2.CBOREncoder, obj : _t.Any) -> None:
         enc.encode(plainify(obj))
 
     @staticmethod
-    def encode_cbor_abridged(enc : _cbor2enc.CBOREncoder, obj : _t.Any) -> None:
+    def encode_cbor_abridged(enc : _cbor2.CBOREncoder, obj : _t.Any) -> None:
         abridged, value = abridge_anystr(obj, 256, False)
         if isinstance(value, bytes):
             enc.encode_bytestring(value)
@@ -237,7 +235,7 @@ class CBORStreamEncoder(StreamEncoder):
     def emit(self, path : str, names : list[str], values : list[_t.Any]) -> None:
         try:
             self.encoder.encode(values)
-            self.fobj.write_bytes(self.encoder.fp.getvalue())
+            self.fobj.write_bytes(self.encoder.fp.getvalue()) # type: ignore
         finally:
             self.encoder.fp = _io.BytesIO()
 
