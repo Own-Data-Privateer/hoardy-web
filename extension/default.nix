@@ -12,7 +12,7 @@ stdenv.mkDerivation rec {
   inherit (source) src unpackPhase;
   sourceRoot = "${src.name}/extension";
 
-  nativeBuildInputs = [ git jq pandoc zip imagemagick vim ];
+  nativeBuildInputs = [ git jq pandoc zip imagemagick vim.xxd ];
 
   buildPhase = ''
     ./build.sh clean firefox chromium
