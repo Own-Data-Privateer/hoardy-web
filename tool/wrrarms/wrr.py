@@ -371,7 +371,7 @@ class ReqresExpr:
             mq_path = pp_to_path(path_parts)
             self.items["mq_path"] = mq_path
             mq_query = qsl_to_path(qsl)
-            self.items["mq_nquery"] = mq_query
+            self.items["mq_query"] = mq_query
             mq_nquery = qsl_to_path(qsl_ne)
             self.items["mq_nquery"] = mq_nquery
 
