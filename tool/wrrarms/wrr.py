@@ -459,7 +459,7 @@ def test_ReqresExpr() -> None:
     check(x, "fragment", "hash")
     check(x, "net_url", f"https://{ehostname}{path_query}")
 
-class ParsingError(Failure): pass
+class WRRParsingError(Failure): pass
 
 def _t_bool(x : _t.Any) -> bool:
     if isinstance(x, bool): return x
@@ -501,10 +501,10 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
     try:
         data = _cbor2.load(fobj)
     except _cbor2.CBORDecodeValueError:
-        raise ParsingError("can't decode CBOR data, not a CBOR file?")
+        raise WRRParsingError("can't decode CBOR data, not a CBOR file?")
 
     if type(data) != list or len(data) == 0:
-        raise ParsingError("can't parse CBOR data: wrong structure")
+        raise WRRParsingError("can't parse CBOR data: wrong structure")
 
     if data[0] == "WEBREQRES/1":
         _, source, protocol, request_, response_, finished_at, extra = data
@@ -529,7 +529,7 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
 
         return Reqres(1, source, protocol, request, response, _t_epoch(finished_at), extra, websocket)
     else:
-        raise ParsingError("can't parse CBOR data: unknown format %s", data[0])
+        raise WRRParsingError("can't parse CBOR data: unknown format %s", data[0])
 
 def wrr_load_expr(fobj : _io.BufferedReader, path : str | bytes) -> ReqresExpr:
     reqres = wrr_load(fobj)
