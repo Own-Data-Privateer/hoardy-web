@@ -743,9 +743,7 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
         for reqres in rr:
             if want_stop: raise KeyboardInterrupt()
 
-            rrexpr = ReqresExpr(reqres, None)
-            rrexpr.items["mitmproxy_fs_path"] = abs_in_path
-            rrexpr.items["mitmproxy_flow_num"] = n
+            rrexpr = ReqresExpr(reqres, abs_in_path, [n])
             emit_one(SourcedData(abs_in_path + f"/{n}", wrr_dumps(rrexpr.reqres)), rrexpr)
             n += 1
 

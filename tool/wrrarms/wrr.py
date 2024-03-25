@@ -95,7 +95,7 @@ Reqres_fields = {
 }
 
 Reqres_derived_attrs = {
-    "fs_path": "file system path for the WRR file containing this reqres; str or None",
+    "fs_path": "file system path for the WRR file containing this reqres; str | bytes | None",
 
     "qtime": 'aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; decimal float',
     "qtime_ms": "`qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
@@ -202,15 +202,32 @@ Reqres_atoms.update({
 
 Reqres_lookup = linst_custom_or_env(Reqres_atoms)
 
+@_dc.dataclass
 class ReqresExpr:
     reqres : Reqres
-    items : dict[str, _t.Any]
+    fs_path : str | bytes | None
+    obj_path : list[int | str | bytes]
+    items : dict[str, _t.Any] = _dc.field(default_factory = dict)
 
-    def __init__(self, reqres : Reqres, path : str | bytes | None = None) -> None:
-        self.reqres = reqres
-        self.items = {}
-        if path is not None:
-            self.items["fs_path"] = path
+    def format_source(self) -> bytes:
+        res = _io.BytesIO()
+        fs_path = self.fs_path
+        if fs_path is None:
+            res.write(_os.fsencode(f"<{id(self)}>"))
+        elif isinstance(fs_path, str):
+            res.write(_os.fsencode(fs_path))
+        else:
+            res.write(fs_path)
+
+        for o in self.obj_path:
+            res.write(b"/")
+            if isinstance(o, int):
+                res.write(_os.fsencode(str(o)))
+            elif isinstance(o, str):
+                res.write(_os.fsencode(o))
+            else:
+                res.write(o)
+        return res.getvalue()
 
     def _fill_time(self, prefix : str, ts : Epoch) -> None:
         dt = _time.gmtime(int(ts))
@@ -229,6 +246,9 @@ class ReqresExpr:
             return self.items[name]
         except KeyError:
             pass
+
+        if name == "fs_path":
+            return self.fs_path
 
         reqres = self.reqres
         if name == "method":
@@ -415,7 +435,7 @@ def trivial_Reqres(url : str) -> Reqres:
 
 def test_ReqresExpr() -> None:
     def mk(url : str) -> ReqresExpr:
-        return ReqresExpr(trivial_Reqres(url), None)
+        return ReqresExpr(trivial_Reqres(url), None, [])
 
     def check(x : ReqresExpr, name : str, value : _t.Any) -> None:
         if x[name] != value:
@@ -533,15 +553,16 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
 
 def wrr_load_expr(fobj : _io.BufferedReader, path : str | bytes) -> ReqresExpr:
     reqres = wrr_load(fobj)
-    return ReqresExpr(reqres, path)
+    res = ReqresExpr(reqres, path, [])
+    return res
 
 def wrr_loadf(path : str | bytes) -> Reqres:
     with open(path, "rb") as f:
         return wrr_load(f)
 
 def wrr_loadf_expr(path : str | bytes) -> ReqresExpr:
-    reqres = wrr_loadf(path)
-    return ReqresExpr(reqres, path)
+    with open(path, "rb") as f:
+        return wrr_load_expr(f, path)
 
 def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
     req = reqres.request

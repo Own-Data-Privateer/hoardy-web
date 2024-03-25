@@ -203,7 +203,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `finished_at`: request completion time in seconds since 1970-01-01 00:00; Epoch
       - `websocket`: a list of WebSocket frames
     - derived attributes:
-      - `fs_path`: file system path for the WRR file containing this reqres; str or None
+      - `fs_path`: file system path for the WRR file containing this reqres; str | bytes | None
       - `qtime`: aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; decimal float
       - `qtime_ms`: `qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int
       - `qtime_msq`: three least significant digits of `qtime_ms`; int
