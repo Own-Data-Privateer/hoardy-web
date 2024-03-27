@@ -418,6 +418,12 @@ flat_n:       königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_4484_200
 not_allowed = gettext("; this is not allowed to prevent accidental data loss")
 variance_help = gettext("; your `--output` format fails to provide enough variance to solve this problem automatically (did your forget to place a `%%(num)d` substitution in there?)") + not_allowed
 
+def str_anystr(x : str | bytes) -> str:
+    if isinstance(x, str):
+        return x
+    else:
+        return _os.fsdecode(x)
+
 def make_deferred_emit(cargs : _t.Any,
                        destination : _t.AnyStr,
                        action : str,
@@ -469,7 +475,8 @@ def make_deferred_emit(cargs : _t.Any,
                 else:
                     ing = gettext(actioning)
 
-                stderr.write_str(f"{ing}: `")
+                stderr.write_str(ing)
+                stderr.write_str(": `")
                 stderr.write(intent.format_source())
                 stderr.write_str("` -> `")
                 stderr.write(abs_out_path)
@@ -477,11 +484,13 @@ def make_deferred_emit(cargs : _t.Any,
                 stderr.flush()
 
             try:
-                out_source = intent.run(abs_out_path, dsync, cargs.dry_run)
+                updated_sources = intent.run(abs_out_path, dsync, cargs.dry_run)
             except Failure as exc:
                 if cargs.errors == "ignore":
                     continue
-                exc.elaborate(gettext(f"while {actioning} `%s` -> `%s`"), intent.format_source(), abs_out_path)
+                exc.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
+                              str_anystr(intent.format_source()),
+                              str_anystr(abs_out_path))
                 if cargs.errors != "fail":
                     _logging.error("%s", str(exc))
                     continue
@@ -491,8 +500,8 @@ def make_deferred_emit(cargs : _t.Any,
             if done_files is not None:
                 done_files.append(abs_out_path)
 
-            if out_source is not None:
-                source_cache[abs_out_path] = out_source
+            if updated_sources is not None:
+                source_cache[abs_out_path] = updated_sources
 
         dsync.sync()
 
@@ -513,43 +522,46 @@ def make_deferred_emit(cargs : _t.Any,
         """Flush all of the queue."""
         flush_updates(0)
 
-    def emit(in_source : DataSource, rrexpr : ReqresExpr) -> None:
+    def emit(new_source : DataSource, rrexpr : ReqresExpr) -> None:
         if not filters_allow(cargs, rrexpr): return
 
         rrexpr.items["num"] = 0
         ogprefix = _os.path.join(destination, cargs.output_format % rrexpr)
         prev_rel_out_path = None
         intent : DeferredIO[DataSource, _t.AnyStr] | None = None
-        out_source : DataSource | None = None
         while True:
             rrexpr.items["num"] = seen_count(ogprefix)
             rel_out_path = _os.path.join(destination, cargs.output_format % rrexpr)
             abs_out_path = _os.path.abspath(rel_out_path)
 
+            old_source : DataSource | None
             try:
-                out_source = source_cache.pop(abs_out_path)
+                old_source = source_cache.pop(abs_out_path)
             except KeyError:
-                out_source = None
+                old_source = None
 
+            updated_source : DataSource | None
             try:
                 intent = deferred_intents.pop(abs_out_path)
             except KeyError:
-                intent, out_source, permitted = deferredIO.defer(abs_out_path, out_source, in_source, rrexpr) # type: ignore
+                intent, updated_source, permitted = deferredIO.defer(abs_out_path, old_source, new_source) # type: ignore
             else:
-                out_source, permitted = intent.update_from(in_source, rrexpr)
+                updated_source, permitted = intent.update_from(new_source)
+            del old_source
 
             if intent is not None:
                 deferred_intents[abs_out_path] = intent
 
-            if out_source is not None:
-                source_cache[abs_out_path] = out_source
+            if updated_source is not None:
+                source_cache[abs_out_path] = updated_source
 
             if not permitted:
                 if prev_rel_out_path == rel_out_path:
-                    finish_updates()
-                    in_source_desc = in_source.anystr() # type: ignore
-                    raise Failure(gettext(f"trying to {action} `%s` to `%s` which already exists") +
-                                  variance_help, in_source_desc, rel_out_path)
+                    exc = Failure(gettext("destination already exists") + variance_help)
+                    exc.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
+                                  str_anystr(new_source.format_source()), # type: ignore
+                                  str_anystr(abs_out_path))
+                    raise exc
                 prev_rel_out_path = rel_out_path
                 continue
 
@@ -606,34 +618,50 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
     class OrganizeSource(_t.Generic[_t.AnyStr]):
         abs_path : _t.AnyStr
         stat_result : _os.stat_result
-        modified : Decimal | None
+        stime_maybe : Epoch | None
 
-        def anystr(self) -> _t.AnyStr:
+        def get_stime(self, data : bytes | None = None) -> Epoch:
+            if self.stime_maybe is not None:
+                return self.stime_maybe
+
+            res : Epoch
+            if data is not None:
+                bio = _t.cast(_io.BufferedReader, _io.BytesIO(data))
+                res = wrr_load_expr(bio, self.abs_path).stime
+            else:
+                res = wrr_loadf_expr(self.abs_path).stime
+            self.stime_maybe = res
+            return res
+
+        def format_source(self) -> _t.AnyStr:
             return self.abs_path
 
     @_dc.dataclass
-    class OrganizeIntent(DeferredIO[OrganizeSource[_t.AnyStr], _t.AnyStr]):
+    class OrganizeIntent(DeferredIO[OrganizeSource[_t.AnyStr], _t.AnyStr], _t.Generic[_t.AnyStr]):
         source : OrganizeSource[_t.AnyStr]
-        replace : bool
+        exists : bool
 
-        def format_source(self) -> str | bytes:
-            return self.source.anystr()
+        def format_source(self) -> _t.AnyStr:
+            return self.source.format_source()
 
         @staticmethod
-        def defer(abs_out_path : _t.AnyStr, out_source: OrganizeSource[_t.AnyStr] | None,
-                  in_source : OrganizeSource[_t.AnyStr], rrexpr : ReqresExpr) \
-                -> tuple[DeferredIO[OrganizeSource[_t.AnyStr], _t.AnyStr] | None, OrganizeSource[_t.AnyStr] | None, bool]:
-            if in_source.abs_path == abs_out_path:
+        def defer(abs_out_path : _t.AnyStr,
+                  old_source: OrganizeSource[_t.AnyStr] | None,
+                  new_source : OrganizeSource[_t.AnyStr]) \
+                -> tuple[DeferredIO[OrganizeSource[_t.AnyStr], _t.AnyStr] | None,
+                         OrganizeSource[_t.AnyStr] | None,
+                         bool]:
+            if new_source.abs_path == abs_out_path:
                 # hot evaluation path: renaming, hardlinking,
                 # symlinking, or etc to itself; skip it
-                return None, out_source, True
+                return None, old_source, True
 
-            if out_source is None:
+            if old_source is None:
                 try:
                     out_lstat = _os.lstat(abs_out_path)
                 except FileNotFoundError:
                     # target does not exists
-                    return OrganizeIntent(in_source, False), in_source, True
+                    return OrganizeIntent(new_source, False), new_source, True
                 except OSError as exc:
                     handle_ENAMETOOLONG(exc, abs_out_path)
                     raise exc
@@ -645,7 +673,7 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
                             out_stat = _os.stat(abs_out_path)
                         except FileNotFoundError:
                             # target is a broken symlink
-                            return OrganizeIntent(in_source, True), in_source, True
+                            return OrganizeIntent(new_source, True), new_source, True
                         else:
                             if not symlinking:
                                 raise Failure(gettext(f"`--{action}` is set but `%s` exists and is a symlink") + not_allowed,
@@ -661,32 +689,31 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
                         out_stat = out_lstat
 
                 # (SETSRC)
-                out_source = OrganizeSource(abs_out_path, out_stat, None)
+                old_source = OrganizeSource(abs_out_path, out_stat, None)
 
-            # re-create an intent for the target as if it was generated from out_source
-            intent = OrganizeIntent(out_source, True)
-            # update it from in_source
-            source, permitted = intent.update_from(in_source, rrexpr)
+            # re-create an intent for the target as if it was generated from old_source
+            intent = OrganizeIntent(old_source, True)
+            # update it from new_source
+            source, permitted = intent.update_from(new_source)
             # check the result
             if moving and permitted:
                 # permitted moves always generate a replace
-                return OrganizeIntent(in_source, True), in_source, True
-            elif not permitted or source is out_source:
-                # operation is not permitted, or the source was unchanged,
-                # generate a noop
+                return OrganizeIntent(new_source, True), new_source, True
+            elif source is old_source:
+                # the source was unchanged, generate a noop
                 return None, source, permitted
             else:
                 return intent, source, permitted
 
-        def update_from(self, in_source : OrganizeSource[_t.AnyStr], rrexpr : ReqresExpr) \
+        def update_from(self, new_source : OrganizeSource[_t.AnyStr]) \
                 -> tuple[OrganizeSource[_t.AnyStr], bool]:
-            if symlinking and self.source.abs_path == in_source.abs_path:
+            if symlinking and self.source.abs_path == new_source.abs_path:
                 # same source file path
                 return self.source, True
 
             disk_data : bytes | None = None
             if check_data:
-                if _os.path.samestat(self.source.stat_result, in_source.stat_result):
+                if _os.path.samestat(self.source.stat_result, new_source.stat_result):
                     # same source file inode
                     return self.source, True
 
@@ -695,34 +722,16 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
                 with open(self.source.abs_path, "rb") as f:
                     disk_data = f.read()
 
-                if file_content_equals(in_source.abs_path, disk_data):
+                if file_content_equals(new_source.abs_path, disk_data):
                     # same data on disk
                     return self.source, True
 
             if not allow_updates:
                 return self.source, False
 
-            prev_modified = self.source.modified
-            if prev_modified is None:
-                # mtime was not cached yet, get it
-                if disk_data is None:
-                    prev_modified = wrr_loadf_expr(self.source.abs_path).stime
-                else:
-                    # reuse disk_data read above
-                    bio = _t.cast(_io.BufferedReader, _io.BytesIO(disk_data))
-                    prev_modified = wrr_load_expr(bio, self.source.abs_path).stime
-                # cache the result
-                self.source.modified = prev_modified
-
-            del disk_data
-
-            new_modified = in_source.modified
-            # in_source should be completely loaded just before each emit call
-            assert new_modified is not None
-
-            if prev_modified < new_modified:
+            if self.source.get_stime(disk_data) < new_source.get_stime():
                 # update source
-                self.source = in_source
+                self.source = new_source
 
             return self.source, True
 
@@ -741,7 +750,7 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
                 raise exc
 
             try:
-                action_op(self.source.abs_path, abs_out_path, dsync, self.replace)
+                action_op(self.source.abs_path, abs_out_path, dsync, self.exists)
             except FileExistsError:
                 raise Failure(gettext(f"`%s` already exists"), abs_out_path)
             except OSError as exc:
@@ -801,7 +810,8 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
     slurp_stdin0(cargs)
     handle_sorting(cargs)
 
-    emit_one, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", DeferredFileNoOverwrite)
+    emit_one : _t.Callable[[SourcedBytes[_t.AnyStr], ReqresExpr], None]
+    emit_one, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", make_DeferredFileWriteIntent(False))
 
     def emit(abs_in_path : str, rel_in_path : str, in_stat : _os.stat_result, rr : _t.Iterator[Reqres]) -> None:
         dev, ino = in_stat.st_dev, in_stat.st_ino
@@ -810,7 +820,7 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
             if want_stop: raise KeyboardInterrupt()
 
             rrexpr = ReqresExpr(reqres, abs_in_path, [n])
-            emit_one(SourcedData(abs_in_path + f"/{n}", wrr_dumps(rrexpr.reqres)), rrexpr)
+            emit_one(SourcedBytes(rrexpr.format_source(), wrr_dumps(rrexpr.reqres)), rrexpr)
             n += 1
 
     from .mitmproxy import load_as_wrrs

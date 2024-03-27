@@ -26,7 +26,7 @@ class Epoch(_dec.Decimal):
         return _time.strftime(fmt, _time.localtime(int(self))) + "." + format(int(self * 1000) % 1000, "03")
 
     def __repr__(self) -> str:
-        return "<Epoch %s>" % (self.format(),)
+        return f"<Epoch {self.format()}>"
 
 def fmt_epoch_diff(from_epoch : Epoch, to_epoch : Epoch) -> str:
     value = int((to_epoch - from_epoch) * 1000)

@@ -26,7 +26,7 @@ import typing as _t
 
 from gettext import gettext, ngettext
 
-from .wrr import *
+from kisstdlib.exceptions import *
 
 def fsync_maybe(fd : int) -> None:
     try:
@@ -244,14 +244,12 @@ class DeferredIO(_t.Generic[DataSource, _t.AnyStr]):
         raise NotImplementedError()
 
     @staticmethod
-    def defer(abs_out_path : _t.AnyStr, out_source : DataSource | None,
-              in_source: DataSource, rrexpr : ReqresExpr) \
+    def defer(abs_out_path : _t.AnyStr, old_source : DataSource | None, new_source: DataSource) \
             -> tuple[_t.Any | None, DataSource | None, bool]:
-            #     ^ this is _t.Self
+            #        ^ this is _t.Self
         raise NotImplementedError()
 
-    def update_from(self, in_source : DataSource, rrexpr : ReqresExpr) \
-            -> tuple[DataSource | None, bool]:
+    def update_from(self, new_source : DataSource) -> tuple[DataSource | None, bool]:
         raise NotImplementedError()
 
     def run(self, abs_out_path : _t.AnyStr,
@@ -283,86 +281,68 @@ def undeferred_write(data : bytes, dst : _t.AnyStr,
         raise exc
 
 @_dc.dataclass
-class SourcedData(_t.Generic[_t.AnyStr]):
+class SourcedBytes(_t.Generic[_t.AnyStr]):
     source : _t.AnyStr
     data : bytes
 
-    def anystr(self) -> _t.AnyStr:
+    def format_source(self) -> _t.AnyStr:
         return self.source
 
-@_dc.dataclass
-class DeferredFileNoOverwrite(DeferredIO[SourcedData[_t.AnyStr], _t.AnyStr], _t.Generic[_t.AnyStr]):
-    source : _t.AnyStr
-    data : bytes # file contents
+def make_DeferredFileWriteIntent(allow_updates : bool) -> type:
+    @_dc.dataclass
+    class DeferredFileWrite(DeferredIO[SourcedBytes[_t.AnyStr], _t.AnyStr], _t.Generic[_t.AnyStr]):
+        source : SourcedBytes[_t.AnyStr]
+        exists : bool
+        updated : bool = _dc.field(default = False)
 
-    def format_source(self) -> str | bytes:
-        return self.source
+        def format_source(self) -> str | bytes:
+            return self.source.format_source()
 
-    @staticmethod
-    def defer(abs_out_path : _t.AnyStr, out_source : SourcedData[_t.AnyStr] | None,
-              in_source : SourcedData[_t.AnyStr], rrexpr : ReqresExpr) \
-            -> tuple[_t.Any | None, None, bool]:
-        assert out_source is None
+        @staticmethod
+        def defer(abs_out_path : _t.AnyStr,
+                  old_source : SourcedBytes[_t.AnyStr] | None,
+                  new_source : SourcedBytes[_t.AnyStr]) \
+                -> tuple[_t.Any | None, SourcedBytes[_t.Any], bool]:
+            if old_source is None:
+                try:
+                    with open(abs_out_path, "rb") as f:
+                        old_source = SourcedBytes(abs_out_path, f.read())
+                except FileNotFoundError:
+                    return DeferredFileWrite(new_source, False), new_source, True
+                except OSError as exc:
+                    handle_ENAMETOOLONG(exc, abs_out_path)
+                    raise exc
 
-        try:
-            with open(abs_out_path, "rb") as f:
-                eq = fileobj_content_equals(f, in_source.data)
-            return None, None, eq
-        except FileNotFoundError:
-            return DeferredFileNoOverwrite(in_source.source, in_source.data), None, True
-        except OSError as exc:
-            handle_ENAMETOOLONG(exc, abs_out_path)
-            raise exc
+            intent = DeferredFileWrite(old_source, True)
+            source, permitted = intent.update_from(new_source)
+            if source is old_source:
+                return None, source, permitted
+            else:
+                return intent, source, permitted
 
-    def update_from(self, in_source : SourcedData[_t.AnyStr], rrexpr : ReqresExpr) -> tuple[None, bool]:
-        return None, self.source == in_source.source
+        def update_from(self, new_source : SourcedBytes[_t.AnyStr]) \
+                -> tuple[SourcedBytes[_t.AnyStr], bool]:
+            if self.source.data == new_source.data:
+                # same data
+                return self.source, True
 
-    def run(self, abs_out_path : _t.AnyStr, dsync : DeferredSync[_t.AnyStr] | None = None, dry_run : bool = False) -> None:
-        if dry_run: return
-        undeferred_write(self.data, abs_out_path, dsync, False)
+            if not allow_updates:
+                return self.source, False
 
-@_dc.dataclass
-class DeferredFileWrite(DeferredIO[SourcedData[_t.AnyStr], _t.AnyStr], _t.Generic[_t.AnyStr]):
-    source : _t.AnyStr
-    data : bytes                                # file contents
-    changed : bool = _dc.field(default = False) # was it updated?
+            # update
+            self.source = new_source
+            self.updated = True
+            return self.source, True
 
-    def format_source(self) -> str | bytes:
-        return self.source
+        def run(self, abs_out_path : _t.AnyStr,
+                dsync : DeferredSync[_t.AnyStr] | None = None,
+                dry_run : bool = False) \
+                -> SourcedBytes[_t.AnyStr] | None:
+            if dry_run or (self.updated and file_content_equals(abs_out_path, self.source.data)):
+                # nothing to do
+                return self.source
 
-    @staticmethod
-    def defer(abs_out_path : _t.AnyStr, out_source : SourcedData[_t.AnyStr] | None,
-              in_source : SourcedData[_t.AnyStr], rrexpr : ReqresExpr) \
-            -> tuple[_t.Any | None, None, bool]:
-        assert out_source is None
+            undeferred_write(self.source.data, abs_out_path, dsync, False)
+            return self.source
 
-        try:
-            if file_content_equals(abs_out_path, in_source.data):
-                # same data on disk, don't even generate an intent
-                return None, None, True
-        except OSError as exc:
-            handle_ENAMETOOLONG(exc, abs_out_path)
-            raise exc
-
-        return DeferredFileWrite(in_source.source, in_source.data), None, True
-
-    def update_from(self, in_source : SourcedData[_t.AnyStr], rrexpr : ReqresExpr) -> tuple[None, bool]:
-        if self.data == in_source.data:
-            # same data
-            return None, True
-
-        # update
-        self.source = in_source.source
-        self.data = in_source.data
-        self.changed = True
-        return None, True
-
-    def run(self, abs_out_path : _t.AnyStr, dsync : DeferredSync[_t.AnyStr] | None = None, dry_run : bool = False) -> None:
-        if dry_run:
-            return
-
-        if self.changed and file_content_equals(abs_out_path, self.data):
-            # same data on disk
-            return
-
-        undeferred_write(self.data, abs_out_path, dsync, True)
+    return DeferredFileWrite
