@@ -1151,7 +1151,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 
     cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of `PATH`s (default: `%(default)s`)"))
     cmd.add_argument("command", metavar="COMMAND", type=str, help=_("command to spawn"))
-    cmd.add_argument("args", metavar="ARG", nargs="*", type=str, help=_("additional arguments to give to the COMMAND"))
+    cmd.add_argument("args", metavar="ARG", nargs="*", type=str, help=_("additional arguments to give to the `COMMAND`"))
     cmd.add_argument("paths", metavar="PATH", nargs="+", type=str, help=_("input WRR file paths to be mapped into new temporary files"))
     cmd.set_defaults(func=cmd_run)
 
@@ -1269,14 +1269,13 @@ all other updates are disallowed"""))
     cmd.set_defaults(func=cmd_organize)
 
     # import
-    supcmd = subparsers.add_parser("import", help=_("convert other archive formats into WRR files"),
-                                   description = _("""Parse data in each `INPUT` `PATH` into reqres and dump them under `DESTINATION` with paths derived from their metadata, similar to `organize`.
-
-Internally, this shares most of the code with `organize`, but unlike `organize` this holds the whole reqres in memory until its written out to disk.
-"""))
+    supcmd = subparsers.add_parser("import", help=_("convert other HTTP archive formats into WRR"),
+                                   description = _(f"""Use specified parser to parse data in each `INPUT` `PATH` into reqres and dump them under `DESTINATION` with paths derived from their metadata.
+In short, this is `{__package__} organize --copy` but for non-WRR `INPUT` files."""))
     supsub = supcmd.add_subparsers(title="file formats")
 
-    cmd = supsub.add_parser("mitmproxy", help=_("convert other archive formats into WRR files"))
+    cmd = supsub.add_parser("mitmproxy", help=_("convert `mitmproxy` stream dumps into WRR files"),
+                            description = _(f"""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and dump them under `DESTINATION` with paths derived from their metadata."""))
     add_errors(cmd)
     add_filters(cmd, "import")
     add_output(cmd)

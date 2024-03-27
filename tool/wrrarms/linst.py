@@ -209,7 +209,7 @@ linst_atoms : dict[str, tuple[str, LinstAtom]] = {
           linst_apply1(int, lambda v, arg: v[:arg])),
     "suffix": ("take last `arg` characters or list elements",
           linst_apply1(int, lambda v, arg: v[len(v) - arg:])),
-    "abbrev": ("leave the current value as if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters",
+    "abbrev": ("leave the current value as-is if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters",
           linst_apply1(int, abbrev)),
     "abbrev_each": ("`abbrev arg` each element in a value `list`",
           linst_apply1(int, lambda v, arg: list(map(lambda e: abbrev(e, arg), v)))),

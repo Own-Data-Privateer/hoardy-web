@@ -94,7 +94,7 @@ Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a struct
     - `organize`
     : programmatically rename/move/hardlink/symlink WRR files based on their contents
     - `import`
-    : convert other archive formats into WRR files
+    : convert other HTTP archive formats into WRR
 
 ### wrrarms pprint
 
@@ -178,7 +178,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `>=`: apply `>= arg`, similarly
       - `prefix`: take first `arg` characters or list elements
       - `suffix`: take last `arg` characters or list elements
-      - `abbrev`: leave the current value as if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters
+      - `abbrev`: leave the current value as-is if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters
       - `abbrev_each`: `abbrev arg` each element in a value `list`
       - `replace`: replace all occurences of the first argument in the current value with the second argument, casts arguments to the same type as the current value
       - `pp_to_path`: encode `path_parts` `list` into a POSIX path, quoting as little as needed
@@ -280,7 +280,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   - `COMMAND`
   : command to spawn
   - `ARG`
-  : additional arguments to give to the COMMAND
+  : additional arguments to give to the `COMMAND`
   - `PATH`
   : input WRR file paths to be mapped into new temporary files
 
@@ -533,16 +533,17 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
 
 ### wrrarms import
 
-Parse data in each `INPUT` `PATH` into reqres and dump them under `DESTINATION` with paths derived from their metadata, similar to `organize`.
-
-Internally, this shares most of the code with `organize`, but unlike `organize` this holds the whole reqres in memory until its written out to disk.
+Use specified parser to parse data in each `INPUT` `PATH` into reqres and dump them under `DESTINATION` with paths derived from their metadata.
+In short, this is `wrrarms organize --copy` but for non-WRR `INPUT` files.
 
 - file formats:
   - `{mitmproxy}`
     - `mitmproxy`
-    : convert other archive formats into WRR files
+    : convert `mitmproxy` stream dumps into WRR files
 
 ### wrrarms import mitmproxy
+
+Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and dump them under `DESTINATION` with paths derived from their metadata.
 
 - positional arguments:
   - `PATH`
