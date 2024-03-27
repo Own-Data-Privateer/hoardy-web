@@ -430,12 +430,20 @@ def make_deferred_emit(cargs : _t.Any,
                        actioning : str,
                        deferredIO : type[DeferredIO[DataSource, _t.AnyStr]]) \
         -> tuple[_t.Callable[[DataSource, ReqresExpr], None], _t.Callable[[], None]]:
-    seen_count_state : dict[_t.AnyStr, int] = {}
+    # current memory consumption
+    @_dc.dataclass
+    class Memory:
+        consumption : int = 0
+    mem = Memory()
+
+    # for each `--output` value, how many times it was seen
+    seen_count_state : _c.OrderedDict[_t.AnyStr, int] = _c.OrderedDict()
     def seen_count(value : _t.AnyStr) -> int:
         try:
             count = seen_count_state[value]
         except KeyError:
             seen_count_state[value] = 0
+            mem.consumption += len(value)
             return 0
         else:
             count += 1
@@ -457,17 +465,30 @@ def make_deferred_emit(cargs : _t.Any,
     # the number of calls to `stat`.
     source_cache : _c.OrderedDict[_t.AnyStr, DataSource] = _c.OrderedDict()
 
-    def flush_updates(max_queue : int) -> None:
+    max_memory_mib = cargs.max_memory * 1024 * 1024
+    def flush_updates(final : bool) -> None:
         """Flush some of the queue."""
-        if len(deferred_intents) <= max_queue and len(source_cache) <= cargs.cache:
+        max_deferred : int = cargs.max_deferred if not final else 0
+        max_memory : int = max_memory_mib if not final else 0
+        max_seen : int = cargs.max_seen
+        max_cached : int = cargs.max_cached
+        max_batched : int = cargs.max_batched
+
+        num_deferred = len(deferred_intents)
+        num_cached = len(source_cache)
+        num_seen = len(seen_count_state)
+        if num_deferred <= max_deferred and \
+           num_cached <= max_cached and \
+           num_seen <= max_seen and \
+           mem.consumption <= max_memory:
             return
 
         done_files : list[_t.AnyStr] | None = None
         if cargs.terminator is not None:
             done_files = []
 
-        while len(deferred_intents) > max_queue:
-            abs_out_path, intent = deferred_intents.popitem(False)
+        def complete_intent(abs_out_path : _t.AnyStr, intent : DeferredIO[DataSource, _t.AnyStr]) -> None:
+            mem.consumption -= intent.approx_size() + len(abs_out_path)
 
             if not cargs.quiet:
                 if cargs.dry_run:
@@ -484,27 +505,67 @@ def make_deferred_emit(cargs : _t.Any,
                 stderr.flush()
 
             try:
-                updated_sources = intent.run(abs_out_path, dsync, cargs.dry_run)
+                updated_source = intent.run(abs_out_path, dsync, cargs.dry_run)
             except Failure as exc:
                 if cargs.errors == "ignore":
-                    continue
+                    return
                 exc.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
                               str_anystr(intent.format_source()),
                               str_anystr(abs_out_path))
                 if cargs.errors != "fail":
                     _logging.error("%s", str(exc))
-                    continue
+                    return
                 # raise CatastrophicFailure so that load_map_orderly wouldn't try handling it
                 raise CatastrophicFailure("%s", str(exc))
 
             if done_files is not None:
                 done_files.append(abs_out_path)
 
-            if updated_sources is not None:
-                source_cache[abs_out_path] = updated_sources
+            if updated_source is not None:
+                try:
+                    old_source = source_cache[abs_out_path]
+                except KeyError: pass
+                else:
+                    mem.consumption -= old_source.approx_size() + len(abs_out_path) # type: ignore
+                source_cache[abs_out_path] = updated_source
+                mem.consumption += updated_source.approx_size() + len(abs_out_path) # type: ignore
 
+        # flush seen_count_state cache
+        while num_seen > 0 and \
+              (num_seen > max_seen or mem.consumption > max_memory):
+            abs_out_path, _ = seen_count_state.popitem(False)
+            num_seen -= 1
+            mem.consumption -= len(abs_out_path)
+
+            # if we are over the `--seen-number` not only we must forget
+            # about older files, we must also run all operations on the paths
+            # we are eliminating so that later deferredIO could pick up newly
+            # created files and number them properly
+            intent = deferred_intents.pop(abs_out_path, None)
+            if intent is None: continue
+            complete_intent(abs_out_path, intent)
+            num_deferred -= 1
+
+        # flush deferred_intents
+        if not final and \
+           num_deferred <= max_deferred + max_batched and \
+           mem.consumption <= max_memory:
+            # we have enough resources to delay some deferredIO, let's do so,
+            # so that when we finally hit our resource limits, we would
+            # execute max_batched or more deferred actions at once
+            # this improves IO performance
+            max_deferred += max_batched
+
+        while num_deferred > 0 and \
+              (num_deferred > max_deferred or mem.consumption > max_memory):
+            abs_out_path, intent = deferred_intents.popitem(False)
+            complete_intent(abs_out_path, intent)
+            num_deferred -= 1
+
+        # fsync
         dsync.sync()
 
+        # report to stdout
         if done_files is not None:
             for abs_out_path in done_files:
                 stdout.write(abs_out_path)
@@ -513,14 +574,20 @@ def make_deferred_emit(cargs : _t.Any,
             stdout.flush()
             fsync_maybe(stdout.fobj.fileno())
 
+        # delete source files when doing --move, etc
         dsync.finish()
 
-        while len(source_cache) > cargs.cache:
-            source_cache.popitem(False)
+        # flush source_cache
+        while num_cached > 0 and \
+              (num_cached > max_cached or mem.consumption > max_memory):
+            abs_out_path, source = source_cache.popitem(False)
+            num_cached -= 1
+            mem.consumption -= source.approx_size() + len(abs_out_path) # type: ignore
 
     def finish_updates() -> None:
         """Flush all of the queue."""
-        flush_updates(0)
+        flush_updates(True)
+        assert mem.consumption == 0
 
     def emit(new_source : DataSource, rrexpr : ReqresExpr) -> None:
         if not filters_allow(cargs, rrexpr): return
@@ -539,6 +606,8 @@ def make_deferred_emit(cargs : _t.Any,
                 old_source = source_cache.pop(abs_out_path)
             except KeyError:
                 old_source = None
+            else:
+                mem.consumption -= old_source.approx_size() + len(abs_out_path) # type: ignore
 
             updated_source : DataSource | None
             try:
@@ -546,14 +615,17 @@ def make_deferred_emit(cargs : _t.Any,
             except KeyError:
                 intent, updated_source, permitted = deferredIO.defer(abs_out_path, old_source, new_source) # type: ignore
             else:
+                mem.consumption -= intent.approx_size() + len(abs_out_path)
                 updated_source, permitted = intent.update_from(new_source)
             del old_source
 
             if intent is not None:
                 deferred_intents[abs_out_path] = intent
+                mem.consumption += intent.approx_size() + len(abs_out_path)
 
             if updated_source is not None:
                 source_cache[abs_out_path] = updated_source
+                mem.consumption += updated_source.approx_size() + len(abs_out_path) # type: ignore
 
             if not permitted:
                 if prev_rel_out_path == rel_out_path:
@@ -572,10 +644,9 @@ def make_deferred_emit(cargs : _t.Any,
             if cargs.terminator is not None:
                 stdout.write(abs_out_path)
                 stdout.write_bytes(cargs.terminator)
-            return
 
         if not cargs.lazy:
-            flush_updates(cargs.batch)
+            flush_updates(False)
 
     return emit, finish_updates
 
@@ -633,6 +704,9 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
             self.stime_maybe = res
             return res
 
+        def approx_size(self) -> int:
+            return 128 + len(self.abs_path)
+
         def format_source(self) -> _t.AnyStr:
             return self.abs_path
 
@@ -643,6 +717,9 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
 
         def format_source(self) -> _t.AnyStr:
             return self.source.format_source()
+
+        def approx_size(self) -> int:
+            return 32 + self.source.approx_size()
 
         @staticmethod
         def defer(abs_out_path : _t.AnyStr,
@@ -1131,6 +1208,26 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of newly produced files terminated with `\\0` (NUL) bytes to stdout"))
         cmd.set_defaults(terminator = None)
 
+    def add_memory(cmd : _t.Any, max_deferred : int = 1024) -> None:
+        agrp = cmd.add_argument_group("caching, deferring, and batching")
+        agrp.add_argument("--seen-number", metavar = "INT", dest="max_seen", type=int, default=16384, help=_(f"""track at most this many distinct generated `--output` values; default: `%(default)s`;
+making this larger improves disk performance at the cost of increased memory consumption;
+setting it to zero will force force `{__package__}` to constantly re-check existence of `--output` files and force `{__package__}` to execute  all IO actions immediately, disregarding `--defer-number` setting"""))
+        agrp.add_argument("--cache-number", metavar = "INT", dest="max_cached", type=int, default=8192, help=_(f"""cache `stat(2)` information about this many files in memory; default: `%(default)s`;
+making this larger improves performance at the cost of increased memory consumption;
+setting this to a too small number will likely force `{__package__}` into repeatedly performing lots of `stat(2)` system calls on the same files;
+setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
+"""))
+        agrp.add_argument("--defer-number", metavar = "INT", dest="max_deferred", type=int, default=max_deferred, help=_("""defer at most this many IO actions; default: `%(default)s`;
+making this larger improves performance at the cost of increased memory consumption;
+setting it to zero will force all IO actions to be applied immediately"""))
+        agrp.add_argument("--batch-number", metavar = "INT", dest="max_batched", type=int, default=128, help=_(f"""queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: %(default)s"""))
+        agrp.add_argument("--max-memory", metavar = "INT", dest="max_memory", type=int, default=1024, help=_("""the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
+making this larger improves performance;
+the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`"""))
+        agrp.add_argument("--lazy", action="store_true", help=_(f"""sets all of the above options to positive infinity;
+most useful when doing `{__package__} organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `{__package__}` needs to keep in memory is small, in which case it will force `{__package__}` to compute the desired file system state first and then perform all disk writes in a single batch"""))
+
     # organize
     cmd = subparsers.add_parser("organize", help=_("programmatically rename/move/hardlink/symlink WRR files based on their contents"),
                                 description = _(f"""Parse given WRR files into their respective reqres and then rename/move/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
@@ -1158,14 +1255,7 @@ all other updates are disallowed"""))
     grp.add_argument("--latest", dest="allow_updates", action="store_const", const=True, help=_("replace files under `DESTINATION` if `stime_ms` for the source reqres is newer than the same value for reqres stored at the destination"))
     cmd.set_defaults(allow_updates = False)
 
-    agrp = cmd.add_argument_group("batching and caching")
-    agrp.add_argument("--batch-number", metavar = "INT", dest="batch", type=int, default=1024, help=_("batch at most this many IO actions together (default: `%(default)s`), making this larger improves performance at the cost of increased memory consumption, setting it to zero will force all IO actions to be applied immediately"))
-    agrp.add_argument("--cache-number", metavar = "INT", dest="cache", type=int, default=4*1024, help=_("""cache `stat(2)` information about this many files in memory (default: `%(default)s`);
-making this larger improves performance at the cost of increased memory consumption;
-setting this to a too small number will likely force {__package__} into repeatedly performing lots of `stat(2)` system calls on the same files;
-setting this to a value smaller than `--batch-number` will not improve memory consumption very much since batched IO actions also cache information about their own files
-"""))
-    agrp.add_argument("--lazy", action="store_true", help=_(f"sets `--cache-number` and `--batch-number` to positive infinity; most useful in combination with `--symlink --latest` in which case it will force `{__package__}` to compute the desired file system state first and then perform disk writes in a single batch"))
+    add_memory(cmd)
 
     cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("destination directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`"))
     cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_("""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""") + "\n" + \
@@ -1190,10 +1280,11 @@ Internally, this shares most of the code with `organize`, but unlike `organize` 
     add_errors(cmd)
     add_filters(cmd, "import")
     add_output(cmd)
+    add_memory(cmd, 0)
     cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("destination directory"))
     cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same as `{__package__} organize --output`, which see"""))
     add_paths(cmd)
-    cmd.set_defaults(func=cmd_import_mitmproxy, batch = 0, cache = 4096, lazy = False)
+    cmd.set_defaults(func=cmd_import_mitmproxy)
 
     cargs = parser.parse_args(_sys.argv[1:])
 

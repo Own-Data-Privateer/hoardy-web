@@ -243,6 +243,9 @@ class DeferredIO(_t.Generic[DataSource, _t.AnyStr]):
     def format_source(self) -> str | bytes:
         raise NotImplementedError()
 
+    def approx_size(self) -> int:
+        raise NotImplementedError()
+
     @staticmethod
     def defer(abs_out_path : _t.AnyStr, old_source : DataSource | None, new_source: DataSource) \
             -> tuple[_t.Any | None, DataSource | None, bool]:
@@ -285,6 +288,9 @@ class SourcedBytes(_t.Generic[_t.AnyStr]):
     source : _t.AnyStr
     data : bytes
 
+    def approx_size(self) -> int:
+        return 64 + len(self.source) + len(self.data)
+
     def format_source(self) -> _t.AnyStr:
         return self.source
 
@@ -297,6 +303,9 @@ def make_DeferredFileWriteIntent(allow_updates : bool) -> type:
 
         def format_source(self) -> str | bytes:
             return self.source.format_source()
+
+        def approx_size(self) -> int:
+            return 32 + self.source.approx_size()
 
         @staticmethod
         def defer(abs_out_path : _t.AnyStr,

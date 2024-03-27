@@ -493,16 +493,29 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
   - `--latest`
   : replace files under `DESTINATION` if `stime_ms` for the source reqres is newer than the same value for reqres stored at the destination
 
-- batching and caching:
-  - `--batch-number INT`
-  : batch at most this many IO actions together (default: `1024`), making this larger improves performance at the cost of increased memory consumption, setting it to zero will force all IO actions to be applied immediately
+- caching, deferring, and batching:
+  - `--seen-number INT`
+  : track at most this many distinct generated `--output` values; default: `16384`;
+    making this larger improves disk performance at the cost of increased memory consumption;
+    setting it to zero will force force `wrrarms` to constantly re-check existence of `--output` files and force `wrrarms` to execute  all IO actions immediately, disregarding `--defer-number` setting
   - `--cache-number INT`
-  : cache `stat(2)` information about this many files in memory (default: `4096`);
+  : cache `stat(2)` information about this many files in memory; default: `8192`;
     making this larger improves performance at the cost of increased memory consumption;
-    setting this to a too small number will likely force {__package__} into repeatedly performing lots of `stat(2)` system calls on the same files;
-    setting this to a value smaller than `--batch-number` will not improve memory consumption very much since batched IO actions also cache information about their own files
+    setting this to a too small number will likely force `wrrarms` into repeatedly performing lots of `stat(2)` system calls on the same files;
+    setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
+  - `--defer-number INT`
+  : defer at most this many IO actions; default: `1024`;
+    making this larger improves performance at the cost of increased memory consumption;
+    setting it to zero will force all IO actions to be applied immediately
+  - `--batch-number INT`
+  : queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: 128
+  - `--max-memory INT`
+  : the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `1024`;
+    making this larger improves performance;
+    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`
   - `--lazy`
-  : sets `--cache-number` and `--batch-number` to positive infinity; most useful in combination with `--symlink --latest` in which case it will force `wrrarms` to compute the desired file system state first and then perform disk writes in a single batch
+  : sets all of the above options to positive infinity;
+    most useful when doing `wrrarms organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `wrrarms` needs to keep in memory is small, in which case it will force `wrrarms` to compute the desired file system state first and then perform all disk writes in a single batch
 
 - file system path ordering:
   - `--paths-given-order`
@@ -567,6 +580,30 @@ Internally, this shares most of the code with `organize`, but unlike `organize` 
   : output absolute paths of newly produced files terminated with `\n` (LF) newline characters to stdout
   - `-z, --zero-terminated`
   : output absolute paths of newly produced files terminated with `\0` (NUL) bytes to stdout
+
+- caching, deferring, and batching:
+  - `--seen-number INT`
+  : track at most this many distinct generated `--output` values; default: `16384`;
+    making this larger improves disk performance at the cost of increased memory consumption;
+    setting it to zero will force force `wrrarms` to constantly re-check existence of `--output` files and force `wrrarms` to execute  all IO actions immediately, disregarding `--defer-number` setting
+  - `--cache-number INT`
+  : cache `stat(2)` information about this many files in memory; default: `8192`;
+    making this larger improves performance at the cost of increased memory consumption;
+    setting this to a too small number will likely force `wrrarms` into repeatedly performing lots of `stat(2)` system calls on the same files;
+    setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
+  - `--defer-number INT`
+  : defer at most this many IO actions; default: `0`;
+    making this larger improves performance at the cost of increased memory consumption;
+    setting it to zero will force all IO actions to be applied immediately
+  - `--batch-number INT`
+  : queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: 128
+  - `--max-memory INT`
+  : the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `1024`;
+    making this larger improves performance;
+    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`
+  - `--lazy`
+  : sets all of the above options to positive infinity;
+    most useful when doing `wrrarms organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `wrrarms` needs to keep in memory is small, in which case it will force `wrrarms` to compute the desired file system state first and then perform all disk writes in a single batch
 
 - file system path ordering:
   - `--paths-given-order`
