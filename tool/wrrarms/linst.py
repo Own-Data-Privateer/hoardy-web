@@ -27,6 +27,7 @@
 """
 
 import hashlib as _hashlib
+import shlex as _shlex
 import typing as _t
 import urllib.parse as _up
 
@@ -58,16 +59,15 @@ def linst_compile(expr : str, lookup : _t.Callable[[str], LinstAtom] = linst_unk
 
     pipe = []
     for single in expr.split("|"):
-        parts = single.strip().split(" ")
-        cmd, *args = parts
+        cmd, *args = _shlex.split(single)
         argtypes, func = lookup(cmd)
+        arglen = len(argtypes)
 
-        atlen = len(argtypes)
-        if atlen != len(args):
-            raise LinstCompileError("wrong number of arguments to atom `%s`: expected %d, got %d", cmd, atlen, len(args))
+        if arglen != len(args):
+            raise LinstCompileError("wrong number of arguments to atom `%s`: expected %d, got %d", cmd, arglen, len(args))
 
         args_ : list[_t.Any] = []
-        for i in range(0, atlen):
+        for i in range(0, arglen):
             if argtypes[i] is None:
                 args_.append(args[i])
             else:
