@@ -165,19 +165,24 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `bool`: cast value to `bool` or fail
       - `int`: cast value to `int` or fail
       - `float`: cast value to `float` or fail
+      - `echo`: replace the value with the given string
       - `quote`: URL-percent-encoding quote value
       - `quote_plus`: URL-percent-encoding quote value and replace spaces with `+` symbols
       - `unquote`: URL-percent-encoding unquote value
       - `unquote_plus`: URL-percent-encoding unquote value and replace `+` symbols with spaces
-      - `sha256`: compute `hex(sha256(value.encode("utf-8"))`
+      - `to_ascii`: encode `str` value into `bytes` with "ascii" codec
+      - `to_utf8`: encode `str` value into `bytes` with "utf-8" codec
+      - `sha256`: replace `bytes` value with its `sha256` hex digest (`hex(sha256(value))`)
       - `==`: apply `== arg`, `arg` is cast to the same type as the current value
       - `!=`: apply `!= arg`, similarly
       - `<`: apply `< arg`, similarly
       - `<=`: apply `<= arg`, similarly
       - `>`: apply `> arg`, similarly
       - `>=`: apply `>= arg`, similarly
-      - `prefix`: take first `arg` characters or list elements
-      - `suffix`: take last `arg` characters or list elements
+      - `add_prefix`: add prefix to the current value
+      - `add_suffix`: add suffix to the current value
+      - `take_prefix`: take first `arg` characters or list elements from the current value
+      - `take_suffix`: take last `arg` characters or list elements  from the current value
       - `abbrev`: leave the current value as-is if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters
       - `abbrev_each`: `abbrev arg` each element in a value `list`
       - `replace`: replace all occurences of the first argument in the current value with the second argument, casts arguments to the same type as the current value
@@ -256,10 +261,10 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `fragment`: fragment (hash) part of the url; str
       - `ofm`: optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str
     - a compound expression built by piping (`|`) the above, for example:
-      - `net_url|sha256`
-      - `net_url|sha256|prefix 4`
-      - `path_parts|prefix 3|pp_to_path`
-      - `query_parts|prefix 3|qsl_to_path|abbrev 128`
+      - `net_url|to_ascii|sha256`
+      - `net_url|to_ascii|sha256|take_prefix 4`
+      - `path_parts|take_prefix 3|pp_to_path`
+      - `query_parts|take_prefix 3|qsl_to_path|abbrev 128`
       - `response.complete`: this will print the value of `response.complete` or `None`, if there was no response
       - `response.complete|false`: this will print `response.complete` or `False`
       - `response.body|eb`: this will print `response.body` or an empty string, if there was no response
@@ -423,7 +428,7 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
   - `-o FORMAT, --output FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
-      - `default`    : `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr` (default)
+      - `default`    : `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr` (default)
       - `short`      : `%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d.wrr`
       - `surl`       : `%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s`
       - `surl_msn`   : `%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d.wrr`
@@ -445,8 +450,8 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
       - `rhupq_msn`  : `%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
       - `rhupnq`     : `%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.wrr`
       - `rhupnq_msn` : `%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr`
-      - `flat`       : `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.wrr`
-      - `flat_n`     : `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.%(num)d.wrr`
+      - `flat`       : `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.wrr`
+      - `flat_n`     : `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d.wrr`
     - available substitutions:
       - `num`: number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique
       - all expressions of `wrrarms get --expr`, which see
@@ -634,7 +639,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
 
 - Get first 4 characters of a hex digest of sha256 hash computed on the URL without the fragment/hash part:
   ```
-  wrrarms get -e "net_url|sha256|prefix 4" ../dumb_server/pwebarc-dump/path/to/file.wrr
+  wrrarms get -e "net_url|to_ascii|sha256|take_prefix 4" ../dumb_server/pwebarc-dump/path/to/file.wrr
   ```
 
 - Pipe response body from a given WRR file to stdout, but less efficiently, by generating a temporary file and giving it to `cat`:

@@ -215,6 +215,17 @@ def cmd_pprint(cargs : _t.Any) -> None:
 
     map_wrr_paths(emit, cargs.paths, order_by=cargs.walk_fs, errors=cargs.errors)
 
+def print_exprs(rrexpr : ReqresExpr, exprs : list[str], separator : bytes, fobj : MinimalIOWriter) -> None:
+    not_first = False
+    for expr in exprs:
+        data = get_bytes(expr, rrexpr)
+
+        if not_first:
+            fobj.write_bytes(separator)
+        not_first = True
+
+        fobj.write_bytes(data)
+
 default_get_expr = "response.body|es"
 def cmd_get(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
@@ -222,12 +233,7 @@ def cmd_get(cargs : _t.Any) -> None:
 
     abs_path = _os.path.abspath(_os.path.expanduser(cargs.path))
     rrexpr = wrr_loadf_expr(abs_path)
-    not_first = False
-    for expr in cargs.exprs:
-        data = get_bytes(expr, rrexpr)
-        if not_first: stdout.write_bytes(cargs.separator)
-        not_first = True
-        stdout.write_bytes(data)
+    print_exprs(rrexpr, cargs.exprs, cargs.separator, stdout)
 
 def cmd_run(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
@@ -250,18 +256,13 @@ def cmd_run(cargs : _t.Any) -> None:
         for path in cargs.paths:
             abs_path = _os.path.abspath(path)
             rrexpr = wrr_loadf_expr(abs_path)
-            not_first = False
 
             # TODO: extension guessing
             fileno, tmp_path = _tempfile.mkstemp(prefix = "wrrarms_run_", suffix = ".tmp")
             tmp_paths.append(tmp_path)
 
             with TIOWrappedWriter(_os.fdopen(fileno, "wb")) as f:
-                for expr in cargs.exprs:
-                    data = get_bytes(expr, rrexpr)
-                    if not_first: stdout.write_bytes(cargs.separator)
-                    not_first = True
-                    f.write_bytes(data)
+                print_exprs(rrexpr, cargs.exprs, cargs.separator, f)
 
         retcode = _subprocess.Popen([cargs.command] + args + tmp_paths).wait()
         _sys.exit(retcode)
@@ -320,7 +321,7 @@ def cmd_find(cargs : _t.Any) -> None:
     map_wrr_paths(emit, cargs.paths, order_by=cargs.walk_fs, errors=cargs.errors)
 
 output_aliases = {
-    "default":  "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr",
+    "default":  "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr",
     "short": "%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d.wrr",
 
     "surl":       "%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s",
@@ -349,8 +350,8 @@ output_aliases = {
     "rhupnq":                "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.wrr",
     "rhupnq_msn":            "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
 
-    "flat":                  "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.wrr",
-    "flat_n":                "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|sha256|prefix 4)s_%(status)s.%(num)d.wrr",
+    "flat":                  "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.wrr",
+    "flat_n":                "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d.wrr",
 }
 
 def test_outputs_aliases() -> None:
@@ -929,7 +930,7 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.end_section()
 
     fmt.start_section(_("Get first 4 characters of a hex digest of sha256 hash computed on the URL without the fragment/hash part"))
-    fmt.add_code(f'{__package__} get -e "net_url|sha256|prefix 4" ../dumb_server/pwebarc-dump/path/to/file.wrr')
+    fmt.add_code(f'{__package__} get -e "net_url|to_ascii|sha256|take_prefix 4" ../dumb_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
     fmt.start_section(_("Pipe response body from a given WRR file to stdout, but less efficiently, by generating a temporary file and giving it to `cat`"))
@@ -1149,10 +1150,10 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                      "- " + _("derived attributes:") + "\n" + \
                      "".join([f"  - `{name}`: {_(value).replace('%', '%%')}\n" for name, value in Reqres_derived_attrs.items()]) + \
                      "- " + _("a compound expression built by piping (`|`) the above, for example:") + """
-  - `net_url|sha256`
-  - `net_url|sha256|prefix 4`
-  - `path_parts|prefix 3|pp_to_path`
-  - `query_parts|prefix 3|qsl_to_path|abbrev 128`
+  - `net_url|to_ascii|sha256`
+  - `net_url|to_ascii|sha256|take_prefix 4`
+  - `path_parts|take_prefix 3|pp_to_path`
+  - `query_parts|take_prefix 3|qsl_to_path|abbrev 128`
   - `response.complete`: this will print the value of `response.complete` or `None`, if there was no response
   - `response.complete|false`: this will print `response.complete` or `False`
   - `response.body|eb`: this will print `response.body` or an empty string, if there was no response
