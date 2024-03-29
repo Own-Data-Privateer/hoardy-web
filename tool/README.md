@@ -265,12 +265,12 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `response.body|eb`: this will print `response.body` or an empty string, if there was no response
 
 - output:
-  - `--not-terminated`
-  : don't terminate output values with anything, just concatenate them (default)
-  - `-l, --lf-terminated`
-  : terminate output values with `\n` (LF) newline characters
-  - `-z, --zero-terminated`
-  : terminate output values with `\0` (NUL) bytes
+  - `--not-separated`
+  : don't separate output values with anything, just concatenate them
+  - `-l, --lf-separated`
+  : separate output values with `\n` (LF) newline characters (default)
+  - `-z, --zero-separated`
+  : separate output values with `\0` (NUL) bytes
 
 ### wrrarms run
 
@@ -291,12 +291,12 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   : number of `PATH`s (default: `1`)
 
 - output:
-  - `--not-terminated`
-  : don't terminate output values with anything, just concatenate them (default)
-  - `-l, --lf-terminated`
-  : terminate output values with `\n` (LF) newline characters
-  - `-z, --zero-terminated`
-  : terminate output values with `\0` (NUL) bytes
+  - `--not-separated`
+  : don't separate output values with anything, just concatenate them
+  - `-l, --lf-separated`
+  : separate output values with `\n` (LF) newline characters (default)
+  - `-z, --zero-separated`
+  : separate output values with `\0` (NUL) bytes
 
 ### wrrarms stream
 
@@ -337,11 +337,11 @@ Compute given expressions for each of given WRR files, encode them into a reques
 
 - `--format=raw` output:
   - `--not-terminated`
-  : don't terminate `raw` output values with anything, just concatenate them
+  : don't terminate `--format=raw` output values with anything, just concatenate them
   - `-l, --lf-terminated`
-  : terminate `raw` output values with `\n` (LF) newline characters (default)
+  : terminate `--format=raw` output values with `\n` (LF) newline characters (default)
   - `-z, --zero-terminated`
-  : terminate `raw` output values with `\0` (NUL) bytes
+  : terminate `--format=raw` output values with `\0` (NUL) bytes
 
 - file system path ordering:
   - `--paths-given-order`
@@ -384,9 +384,9 @@ Print paths of WRR files matching specified criteria.
 
 - output:
   - `-l, --lf-terminated`
-  : output absolute paths of matching WRR files terminated with `\n` (LF) newline characters to stdout (default)
+  : terminate output absolute paths of matching WRR files with `\n` (LF) newline characters (default)
   - `-z, --zero-terminated`
-  : output absolute paths of matching WRR files terminated with `\0` (NUL) bytes to stdout
+  : terminate output absolute paths of matching WRR files with `\0` (NUL) bytes
 
 - file system path ordering:
   - `--paths-given-order`
@@ -468,11 +468,11 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
 
 - output:
   - `--no-output`
-  : don't print anything to stdout (default)
+  : don't print anything (default)
   - `-l, --lf-terminated`
-  : output absolute paths of newly produced files terminated with `\n` (LF) newline characters to stdout
+  : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
   - `-z, --zero-terminated`
-  : output absolute paths of newly produced files terminated with `\0` (NUL) bytes to stdout
+  : terminate output absolute paths of newly produced files with `\0` (NUL) bytes
 
 - action:
   - `--move`
@@ -576,11 +576,11 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
 
 - output:
   - `--no-output`
-  : don't print anything to stdout (default)
+  : don't print anything (default)
   - `-l, --lf-terminated`
-  : output absolute paths of newly produced files terminated with `\n` (LF) newline characters to stdout
+  : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
   - `-z, --zero-terminated`
-  : output absolute paths of newly produced files terminated with `\0` (NUL) bytes to stdout
+  : terminate output absolute paths of newly produced files with `\0` (NUL) bytes
 
 - caching, deferring, and batching:
   - `--seen-number INT`

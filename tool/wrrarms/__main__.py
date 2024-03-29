@@ -222,10 +222,12 @@ def cmd_get(cargs : _t.Any) -> None:
 
     abs_path = _os.path.abspath(_os.path.expanduser(cargs.path))
     rrexpr = wrr_loadf_expr(abs_path)
+    not_first = False
     for expr in cargs.exprs:
         data = get_bytes(expr, rrexpr)
+        if not_first: stdout.write_bytes(cargs.separator)
+        not_first = True
         stdout.write_bytes(data)
-        stdout.write_bytes(cargs.terminator)
 
 def cmd_run(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
@@ -248,6 +250,7 @@ def cmd_run(cargs : _t.Any) -> None:
         for path in cargs.paths:
             abs_path = _os.path.abspath(path)
             rrexpr = wrr_loadf_expr(abs_path)
+            not_first = False
 
             # TODO: extension guessing
             fileno, tmp_path = _tempfile.mkstemp(prefix = "wrrarms_run_", suffix = ".tmp")
@@ -256,8 +259,9 @@ def cmd_run(cargs : _t.Any) -> None:
             with TIOWrappedWriter(_os.fdopen(fileno, "wb")) as f:
                 for expr in cargs.exprs:
                     data = get_bytes(expr, rrexpr)
+                    if not_first: stdout.write_bytes(cargs.separator)
+                    not_first = True
                     f.write_bytes(data)
-                    f.write_bytes(cargs.terminator)
 
         retcode = _subprocess.Popen([cargs.command] + args + tmp_paths).wait()
         _sys.exit(retcode)
@@ -1075,13 +1079,29 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         grp.add_argument("--abridged", action="store_true", help=_("shorten long strings for brevity (useful when you want to visually scan through batch data dumps) (default)"))
         cmd.set_defaults(abridged = True)
 
-    def add_terminator(cmd : _t.Any) -> None:
-        agrp = cmd.add_argument_group("output")
+    def add_termsep(cmd : _t.Any, name : str, what : str = "output", whatval : str = "output values", allow_not : bool = True, allow_none : bool = False) -> None:
+        agrp = cmd.add_argument_group(what)
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--not-terminated", dest="terminator", action="store_const", const = b"", help=_("don't terminate output values with anything, just concatenate them (default)"))
-        grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("terminate output values with `\\n` (LF) newline characters"))
-        grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("terminate output values with `\\0` (NUL) bytes"))
-        cmd.set_defaults(terminator = b"")
+        def_lf = " " + _("(default)")
+        def_val : bytes | None = b"\n"
+        if allow_none:
+            grp.add_argument("--no-output", dest=f"{name}ator", action="store_const", const = None, help=_("don't print anything") + def_lf)
+            def_lf = ""
+            def_val = None
+        if allow_not:
+            grp.add_argument(f"--not-{name}ated", dest=f"{name}ator", action="store_const", const = b"", help=_(f"don't {name}ate {whatval} with anything, just concatenate them"))
+        grp.add_argument("-l", f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const = b"\n", help=_(f"{name}ate {whatval} with `\\n` (LF) newline characters") + def_lf)
+        grp.add_argument("-z", f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const = b"\0", help=_(f"{name}ate {whatval} with `\\0` (NUL) bytes"))
+        if name == "termin":
+            cmd.set_defaults(terminator = def_val)
+        elif name == "separ":
+            cmd.set_defaults(separator = def_val)
+
+    def add_terminator(cmd : _t.Any, *args : _t.Any, **kwargs : _t.Any) -> None:
+        add_termsep(cmd, "termin", *args, **kwargs)
+
+    def add_separator(cmd : _t.Any, *args : _t.Any, **kwargs : _t.Any) -> None:
+        add_termsep(cmd, "separ", *args, **kwargs)
 
     def add_paths(cmd : _t.Any, with_update : bool = False) -> None:
         if with_update:
@@ -1137,7 +1157,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
   - `response.complete|false`: this will print `response.complete` or `False`
   - `response.body|eb`: this will print `response.body` or an empty string, if there was no response
 """)
-    add_terminator(cmd)
+    add_separator(cmd)
 
     cmd.add_argument("path", metavar="PATH", type=str, help=_("input WRR file path"))
     cmd.set_defaults(func=cmd_get)
@@ -1147,7 +1167,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                                 description = _("""Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files terminating each value as specified, spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process."""))
 
     cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default=[], help=_(f"the expression to compute, can be specified multiple times, see `{__package__} get --expr` for more info; (default: `{default_get_expr}`)"))
-    add_terminator(cmd)
+    add_separator(cmd)
 
     cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of `PATH`s (default: `%(default)s`)"))
     cmd.add_argument("command", metavar="COMMAND", type=str, help=_("command to spawn"))
@@ -1161,23 +1181,14 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     add_errors(cmd)
     add_filters(cmd, "print")
     add_abridged(cmd)
-
     cmd.add_argument("--format", choices=["py", "cbor", "json", "raw"], default="py", help=_("""generate output in:
 - py: Pythonic Object Representation aka `repr` (default)
 - cbor: CBOR (RFC8949)
 - json: JavaScript Object Notation aka JSON; **binary data can't be represented, UNICODE replacement characters will be used**
 - raw: concatenate raw values; termination is controlled by `*-terminated` options
 """))
-
     cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute, see `{__package__} get --expr` for more info on expression format, can be specified multiple times (default: `%(default)s`); to dump all the fields of a reqres, specify "`.`"'))
-
-    agrp = cmd.add_argument_group("`--format=raw` output")
-    grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--not-terminated", dest="terminator", action="store_const", const = b"", help=_("don't terminate `raw` output values with anything, just concatenate them"))
-    grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("terminate `raw` output values with `\\n` (LF) newline characters (default)"))
-    grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("terminate `raw` output values with `\\0` (NUL) bytes"))
-    cmd.set_defaults(terminator = b"\n")
-
+    add_terminator(cmd, "`--format=raw` output", "`--format=raw` output values")
     add_paths(cmd)
     cmd.set_defaults(func=cmd_stream)
 
@@ -1186,13 +1197,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                                 description = _(f"""Print paths of WRR files matching specified criteria."""))
     add_errors(cmd)
     add_filters(cmd, "output paths to")
-
-    agrp = cmd.add_argument_group("output")
-    grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("output absolute paths of matching WRR files terminated with `\\n` (LF) newline characters to stdout (default)"))
-    grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of matching WRR files terminated with `\\0` (NUL) bytes to stdout"))
-    cmd.set_defaults(terminator = b"\n")
-
+    add_terminator(cmd, whatval="output absolute paths of matching WRR files", allow_not=False)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_find)
 
@@ -1201,12 +1206,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         grp.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
         grp.add_argument("-q", "--quiet", action="store_true", help=_("don't log computed updates to stderr"))
 
-        agrp = cmd.add_argument_group("output")
-        grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--no-output", dest="terminator", action="store_const", const = None, help=_("don't print anything to stdout (default)"))
-        grp.add_argument("-l", "--lf-terminated", dest="terminator", action="store_const", const = b"\n", help=_("output absolute paths of newly produced files terminated with `\\n` (LF) newline characters to stdout"))
-        grp.add_argument("-z", "--zero-terminated", dest="terminator", action="store_const", const = b"\0", help=_("output absolute paths of newly produced files terminated with `\\0` (NUL) bytes to stdout"))
-        cmd.set_defaults(terminator = None)
+        add_terminator(cmd, whatval="output absolute paths of newly produced files", allow_not=False, allow_none=True)
 
     def add_memory(cmd : _t.Any, max_deferred : int = 1024) -> None:
         agrp = cmd.add_argument_group("caching, deferring, and batching")
