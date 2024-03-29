@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Jan Malakhovski <oxij@oxij.org>
+# Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
 #
 # This file is a part of pwebarc project.
 #
@@ -52,6 +52,9 @@ def _run_pipe(pipe : list[LinstFunc]) -> LinstFunc:
 _compile_cache : dict[str, LinstFunc] = {}
 
 def linst_compile(expr : str, lookup : _t.Callable[[str], LinstAtom] = linst_unknown_atom) -> LinstFunc:
+    if expr == "":
+        return lambda e, v: v
+
     try:
         return _compile_cache[expr]
     except KeyError:
@@ -142,7 +145,7 @@ def linst_apply2(typ1 : _t.Any, typ2 : _t.Any, func : _t.Any) -> LinstAtom:
 def linst_getenv(name : str) -> LinstAtom:
     def args0() -> _t.Callable[..., LinstFunc]:
         def envfunc(env : _t.Any, v : _t.Any) -> _t.Any:
-            return v if v is not None else env(name)
+            return v if v is not None else getattr(env, name)
         return envfunc
     return [], args0
 

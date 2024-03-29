@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Jan Malakhovski <oxij@oxij.org>
+# Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
 #
 # This file is a part of pwebarc project.
 #
@@ -77,9 +77,12 @@ def compile_filters(cargs : _t.Any) -> None:
     cargs.alls = list(map(lambda expr: (expr, linst_compile(expr, linst_atom_or_env)), cargs.alls))
     cargs.anys = list(map(lambda expr: (expr, linst_compile(expr, linst_atom_or_env)), cargs.anys))
 
+def compile_exprs(cargs : _t.Any) -> None:
+    cargs.exprs = list(map(lambda expr: (expr, linst_compile(expr, ReqresExpr_lookup)), cargs.exprs))
+
 def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr) -> bool:
     def eval_it(expr : str, func : LinstFunc) -> bool:
-        ev = func(rrexpr.get_value, None)
+        ev = func(rrexpr, None)
         if not isinstance(ev, bool):
             e = CatastrophicFailure(gettext("while evaluating `%s`: expected a value of type `bool`, got `%s`"), expr, repr(ev))
             if rrexpr.fs_path is not None:
@@ -188,9 +191,7 @@ def map_wrr_paths(emit : _t.Callable[[_t.AnyStr, _t.AnyStr, ReqresExpr], None],
                   *args : _t.Any, **kwargs : _t.Any) -> None:
     map_wrr_paths_extra(lambda x, y, a, z: emit(x, y, z), paths, *args, **kwargs)
 
-def get_bytes(expr : str, rrexpr : ReqresExpr) -> bytes:
-    value = rrexpr.eval(expr)
-
+def get_bytes(value : _t.Any) -> bytes:
     if value is None or isinstance(value, (bool, int, float, Epoch)):
         value = str(value)
 
@@ -215,10 +216,15 @@ def cmd_pprint(cargs : _t.Any) -> None:
 
     map_wrr_paths(emit, cargs.paths, order_by=cargs.walk_fs, errors=cargs.errors)
 
-def print_exprs(rrexpr : ReqresExpr, exprs : list[str], separator : bytes, fobj : MinimalIOWriter) -> None:
+def print_exprs(rrexpr : ReqresExpr, exprs : list[tuple[str, LinstFunc]],
+                separator : bytes, fobj : MinimalIOWriter) -> None:
     not_first = False
-    for expr in exprs:
-        data = get_bytes(expr, rrexpr)
+    for expr, func in exprs:
+        try:
+            data = get_bytes(func(rrexpr, None))
+        except CatastrophicFailure as exc:
+            exc.elaborate(gettext("while evaluating `%s`"), expr)
+            raise exc
 
         if not_first:
             fobj.write_bytes(separator)
@@ -230,6 +236,7 @@ default_get_expr = "response.body|es"
 def cmd_get(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [default_get_expr]
+    compile_exprs(cargs)
 
     abs_path = _os.path.abspath(_os.path.expanduser(cargs.path))
     rrexpr = wrr_loadf_expr(abs_path)
@@ -238,6 +245,7 @@ def cmd_get(cargs : _t.Any) -> None:
 def cmd_run(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [default_get_expr]
+    compile_exprs(cargs)
 
     if cargs.num_args < 1:
         raise Failure(gettext("`run` sub-command requires at least one PATH"))
@@ -285,6 +293,9 @@ def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
     return stream
 
 def cmd_stream(cargs : _t.Any) -> None:
+    if len(cargs.exprs) == 0:
+        cargs.exprs = ["."]
+    compile_exprs(cargs)
     compile_filters(cargs)
     elaborate_paths(cargs)
     slurp_stdin0(cargs)
@@ -296,8 +307,12 @@ def cmd_stream(cargs : _t.Any) -> None:
         if not filters_allow(cargs, rrexpr): return
 
         values : list[_t.Any] = []
-        for expr in cargs.exprs:
-            values.append(rrexpr.eval(expr))
+        for expr, func in cargs.exprs:
+            try:
+                values.append(func(rrexpr, None))
+            except CatastrophicFailure as exc:
+                exc.elaborate(gettext("while evaluating `%s`"), expr)
+                raise exc
         stream.emit(abs_in_path, cargs.exprs, values)
 
     stream.start()
@@ -1138,26 +1153,31 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     add_paths(cmd)
     cmd.set_defaults(func=cmd_pprint)
 
+    def __(value : str, indent : int = 6) -> str:
+        prefix = " " * indent
+        lines = value.split("\n")
+        return f"\n{prefix}".join([_(line) for line in lines])
+
     # get
     cmd = subparsers.add_parser("get", help=_("print values produced by computing given expressions on a given WRR file"),
                                 description = _(f"""Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified."""))
 
-    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially, see also "output" options below; (default: `{default_get_expr}`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:') + "\n" + \
-                     "- " + _("constants and functions:") + "\n" + \
-                     "".join([f"  - `{name}`: {_(value[0]).replace('%', '%%')}\n" for name, value in Reqres_atoms.items()]) + \
-                     "- " + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:") + "\n" + \
-                     "".join([f"  - `{name}`: {_(value).replace('%', '%%')}\n" for name, value in Reqres_fields.items()]) + \
-                     "- " + _("derived attributes:") + "\n" + \
-                     "".join([f"  - `{name}`: {_(value).replace('%', '%%')}\n" for name, value in Reqres_derived_attrs.items()]) + \
-                     "- " + _("a compound expression built by piping (`|`) the above, for example:") + """
-  - `net_url|to_ascii|sha256`
-  - `net_url|to_ascii|sha256|take_prefix 4`
-  - `path_parts|take_prefix 3|pp_to_path`
-  - `query_parts|take_prefix 3|qsl_to_path|abbrev 128`
-  - `response.complete`: this will print the value of `response.complete` or `None`, if there was no response
-  - `response.complete|false`: this will print `response.complete` or `False`
-  - `response.body|eb`: this will print `response.body` or an empty string, if there was no response
-""")
+    agrp = cmd.add_argument_group("expression evaluation")
+    agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "output" options below; (default: `{default_get_expr}`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following') + ":\n" + \
+        "- " + _("constants and functions:") + "\n" + \
+        "".join([f"  - `{name}`: {__(value[0]).replace('%', '%%')}\n" for name, value in ReqresExpr_atoms.items()]) + \
+        "- " + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:") + "\n" + \
+        "".join([f"  - `{name}`: {__(value).replace('%', '%%')}\n" for name, value in Reqres_fields.items()]) + \
+        "- " + _("derived attributes:") + "\n" + \
+        "".join([f"  - `{name}`: {__(value).replace('%', '%%')}\n" for name, value in Reqres_derived_attrs.items()]) + \
+        "- " + _("a compound expression built by piping (`|`) the above, for example") + __(f""":
+- `response.body|eb` (the default) will print raw `response.body` or an empty byte string, if there was no response;
+- `response.complete` will print the value of `response.complete` or `None`, if there was no response;
+- `response.complete|false` will print `response.complete` or `False`;
+- `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
+- `net_url|to_ascii|sha256|take_prefix 4` will print the first 4 characters of the above;
+- `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
+- `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""", 2))
     add_separator(cmd)
 
     cmd.add_argument("path", metavar="PATH", type=str, help=_("input WRR file path"))
@@ -1167,7 +1187,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd = subparsers.add_parser("run", help=_("spawn a process with generated temporary files produced by given expressions computed on given WRR files as arguments"),
                                 description = _("""Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files terminating each value as specified, spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process."""))
 
-    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default=[], help=_(f"the expression to compute, can be specified multiple times, see `{__package__} get --expr` for more info; (default: `{default_get_expr}`)"))
+    agrp = cmd.add_argument_group("expression evaluation")
+    agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f"see `{__package__} get`"))
     add_separator(cmd)
 
     cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of `PATH`s (default: `%(default)s`)"))
@@ -1188,7 +1209,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 - json: JavaScript Object Notation aka JSON; **binary data can't be represented, UNICODE replacement characters will be used**
 - raw: concatenate raw values; termination is controlled by `*-terminated` options
 """))
-    cmd.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute, see `{__package__} get --expr` for more info on expression format, can be specified multiple times (default: `%(default)s`); to dump all the fields of a reqres, specify "`.`"'))
+    agrp = cmd.add_argument_group("expression evaluation")
+    agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute, see `{__package__} get --expr` for more info on expression format; can be specified multiple times; the default is `.` which will dump the whole reqres structure'))
     add_terminator(cmd, "`--format=raw` output", "`--format=raw` output values")
     add_paths(cmd)
     cmd.set_defaults(func=cmd_stream)

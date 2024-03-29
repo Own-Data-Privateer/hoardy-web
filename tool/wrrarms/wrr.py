@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Jan Malakhovski <oxij@oxij.org>
+# Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
 #
 # This file is a part of pwebarc project.
 #
@@ -154,7 +154,7 @@ Reqres_derived_attrs = {
     "ofm": "optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str",
 }
 
-_time_attrs = set(["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"])
+_time_attrs = frozenset(["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"])
 
 _miniquoters : dict[str, dict[str, str]] = {}
 
@@ -189,18 +189,6 @@ def qsl_to_path(query : list[tuple[str, str]]) -> str:
         else:
             l.append(k + "=" + v)
     return "&".join(l)
-
-Reqres_atoms = linst_atoms.copy()
-Reqres_atoms.update({
-    "pp_to_path": ("encode `path_parts` `list` into a POSIX path, quoting as little as needed",
-        linst_apply0(lambda v: pp_to_path(v))),
-    "qsl_urlencode": ("encode parsed `query` `list` into a URL's query component `str`",
-        linst_apply0(lambda v: _up.urlencode(v))),
-    "qsl_to_path": ("encode `query` `list` into a POSIX path, quoting as little as needed",
-        linst_apply0(lambda v: qsl_to_path(v))),
-})
-
-Reqres_lookup = linst_custom_or_env(Reqres_atoms)
 
 @_dc.dataclass
 class ReqresExpr:
@@ -410,18 +398,24 @@ class ReqresExpr:
             self.items[name] = res
         else:
             raise CatastrophicFailure("don't know how to derive `%s`", name)
-        return self.items[name]
+
+        try:
+            return self.items[name]
+        except KeyError:
+            assert False
 
     def __getattr__(self, name : str) -> _t.Any:
         return self.get_value(name)
 
-    def eval(self, expr : str) -> _t.Any:
-        ce = linst_compile(expr, Reqres_lookup)
-        return ce(self.get_value, None)
-
     def __getitem__(self, expr : str) -> _t.Any:
         # this is used in `format_string % self` expressions
-        res = self.eval(expr)
+        try:
+            return self.items[expr]
+        except KeyError:
+            pass
+
+        func = linst_compile(expr, ReqresExpr_lookup)
+        res = func(self, None)
         if res is None:
             raise Failure("expression `%s` evaluated to `None`", expr)
         return res
@@ -478,6 +472,18 @@ def test_ReqresExpr() -> None:
     check(x, "query_parts", [("empty", ""), ("not", "abit=/?&weird")])
     check(x, "fragment", "hash")
     check(x, "net_url", f"https://{ehostname}{path_query}")
+
+ReqresExpr_atoms = linst_atoms.copy()
+ReqresExpr_atoms.update({
+    "pp_to_path": ("encode `path_parts` `list` into a POSIX path, quoting as little as needed",
+        linst_apply0(lambda v: pp_to_path(v))),
+    "qsl_urlencode": ("encode parsed `query` `list` into a URL's query component `str`",
+        linst_apply0(lambda v: _up.urlencode(v))),
+    "qsl_to_path": ("encode `query` `list` into a POSIX path, quoting as little as needed",
+        linst_apply0(lambda v: qsl_to_path(v))),
+})
+
+ReqresExpr_lookup = linst_custom_or_env(ReqresExpr_atoms)
 
 class WRRParsingError(Failure): pass
 

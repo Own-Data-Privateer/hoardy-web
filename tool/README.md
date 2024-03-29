@@ -147,9 +147,9 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   - `PATH`
   : input WRR file path
 
-- options:
+- expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially, see also "output" options below; (default: `response.body|es`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
+  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "output" options below; (default: `response.body|es`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
     - constants and functions:
       - `es`: replace `None` value with an empty string `""`
       - `eb`: replace `None` value with an empty byte string `b""`
@@ -261,13 +261,13 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `fragment`: fragment (hash) part of the url; str
       - `ofm`: optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str
     - a compound expression built by piping (`|`) the above, for example:
-      - `net_url|to_ascii|sha256`
-      - `net_url|to_ascii|sha256|take_prefix 4`
-      - `path_parts|take_prefix 3|pp_to_path`
-      - `query_parts|take_prefix 3|qsl_to_path|abbrev 128`
-      - `response.complete`: this will print the value of `response.complete` or `None`, if there was no response
-      - `response.complete|false`: this will print `response.complete` or `False`
-      - `response.body|eb`: this will print `response.body` or an empty string, if there was no response
+      - `response.body|eb` (the default) will print raw `response.body` or an empty byte string, if there was no response;
+      - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
+      - `response.complete|false` will print `response.complete` or `False`;
+      - `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
+      - `net_url|to_ascii|sha256|take_prefix 4` will print the first 4 characters of the above;
+      - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
+      - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;
 
 - output:
   - `--not-separated`
@@ -290,10 +290,12 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   : input WRR file paths to be mapped into new temporary files
 
 - options:
-  - `-e EXPR, --expr EXPR`
-  : the expression to compute, can be specified multiple times, see `wrrarms get --expr` for more info; (default: `response.body|es`)
   - `-n NUM, --num-args NUM`
   : number of `PATH`s (default: `1`)
+
+- expression evaluation:
+  - `-e EXPR, --expr EXPR`
+  : see `wrrarms get`
 
 - output:
   - `--not-separated`
@@ -322,8 +324,6 @@ Compute given expressions for each of given WRR files, encode them into a reques
     - cbor: CBOR (RFC8949)
     - json: JavaScript Object Notation aka JSON; **binary data can't be represented, UNICODE replacement characters will be used**
     - raw: concatenate raw values; termination is controlled by `*-terminated` options
-  - `-e EXPR, --expr EXPR`
-  : an expression to compute, see `wrrarms get --expr` for more info on expression format, can be specified multiple times (default: `[]`); to dump all the fields of a reqres, specify "`.`"
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
@@ -339,6 +339,10 @@ Compute given expressions for each of given WRR files, encode them into a reques
   : only print reqres which match any of these expressions...
   - `--and EXPR`
   : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+
+- expression evaluation:
+  - `-e EXPR, --expr EXPR`
+  : an expression to compute, see `wrrarms get --expr` for more info on expression format; can be specified multiple times; the default is `.` which will dump the whole reqres structure
 
 - `--format=raw` output:
   - `--not-terminated`
