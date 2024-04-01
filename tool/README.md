@@ -125,6 +125,12 @@ Pretty-print given WRR files to stdout.
   - `--and EXPR`
   : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
 
+- MIME type sniffing:
+  - `--naive`
+  : populate "potentially" lists like `wrrarms (get|run|export) --expr '(request|response).body|eb|scrub \2 defaults'` does; default
+  - `--paranoid`
+  : populate "potentially" lists in the output using paranoid MIME type sniffing like `wrrarms (get|run|export) --expr '(request|response).body|eb|scrub \2 +paranoid'` does; this exists to answer "Hey! Why did it censor out my data?!" questions
+
 - file system path ordering:
   - `--paths-given-order`
   : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
@@ -149,7 +155,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "output" options below; (default: `response.body|es`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
+  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "output" options below; (default: `response.body|eb`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
     - constants and functions:
       - `es`: replace `None` value with an empty string `""`
       - `eb`: replace `None` value with an empty byte string `b""`
@@ -189,6 +195,21 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `pp_to_path`: encode `path_parts` `list` into a POSIX path, quoting as little as needed
       - `qsl_urlencode`: encode parsed `query` `list` into a URL's query component `str`
       - `qsl_to_path`: encode `query` `list` into a POSIX path, quoting as little as needed
+      - `scrub`: scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on `--remap-*` command line options, the MIME type of the value itself, and the scrubbing options described below; this fuction takes two arguments:
+            - the first must be either of `request|response`, it controls which HTTP headers `scrub` should inspect to help it detect the MIME type;
+            - the second is either `defaults` or ","-separated string of `(+|-)(paranoid|unknown|jumps|actions|srcs|all_refs|scripts|iframes|styles|iepragmas|prefetches|tracking|dyndoc|all_dyns|verbose|whitespace|optional_tags|indent|pretty|debug)` tokens which control the scrubbing behaviour:
+              - `+paranoid` will assume the server is lying in its `Content-Type` and `X-Content-Type-Options` HTTP headers, sniff the contents of `(request|response).body` to determine what it actually contains regardless of what the server said, and then use the most paranoid interpretation of both the HTTP headers and the sniffed possible MIME types to decide what should be kept and what sholuld be removed by the options below; i.e., this will make `-unknown`, `-scripts`, and `-styles` options below to censor out more things, in particular, at the moment, most plain text files will get censored out as potential JavaScript; the default is `-paranoid`;
+              - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which will keep data of unknown content types as-is;
+              - `(+|-)(jumps|actions|srcs)` control which kinds of references to other documents should be remapped or censored out (respectively); i.e. it controls whether jump-links (HTML `a href`, `area href`, and similar), action-links (HTML `a ping`, `form action`, and similar), and/or resource references (HTML `img src`, `iframe src`, CSS `url` references, and similar) should be remapped using the specified `--remap-*` option (which see) or censored out similarly to how `--remap-void` will do it; the default is `+jumps,-actions,-srcs` which will produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
+              - `(+|-)all_refs` is equivalent to enabling or disabling all of the above options simultaneously;
+              - `(+|-)(scripts|iframes|styles|iepragmas|prefetches|tracking)` control which things should be kept or censored out w.r.t. to HTML, CSS, and JavaScript, i.e. it controls whether JavaScript (both separate files and HTML tags and attributes), `<iframe>` HTML tags, CSS (both separate files and HTML tags and attributes; why? because CSS is Turing-complete), HTML Internet-Explorer pragmas, HTML content prefetch `link` tags, and other tracking HTML tags and attributes (like `a ping` attributes), should be respectively kept in or censored out from the input; the default is `-scripts,-iframes,-styles,-iepragmas,-prefetches,-tracking` which ensures the result will not produce any prefetch and tracking requests when loaded in a web browser, and that the whole result is simple data, not a program in some Turing-complete language, thus making it safe to feed the result to other tools too smart for their own users' good;
+              - `(+|-)all_dyns` is equivalent to enabling or disabling all of the above (`scripts|...`) options simultaneously;
+              - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead; the default is `-verbose`;
+              - `(+|-)whitespace` controls whether HTML renderer should keep the original HTML whitespace as-is or collapse it away (respectively); the default is `-whitespace`;
+              - `(+|-)optional_tags` controls whether HTML renderer should put optional HTML tags into the output or skip them (respectively); the default is `+optional_tags` (because many tools fail to parse minimized HTML properly);
+              - `(+|-)indent` controls whether HTML renderer should indent HTML elements (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent`;
+              - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics; `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied; neither is the default;
+              - `+debug` is an alias for `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it will indent `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging custom mutations; `-debug` is noop, which is the default;
     - reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:
       - `version`: WEBREQRES format version; int
       - `source`: `+`-separated list of applications that produced this reqres; str
@@ -261,13 +282,20 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `fragment`: fragment (hash) part of the url; str
       - `ofm`: optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str
     - a compound expression built by piping (`|`) the above, for example:
-      - `response.body|eb` (the default) will print raw `response.body` or an empty byte string, if there was no response;
+      - `response.body|eb` (the default for `get`) will print raw `response.body` or an empty byte string, if there was no response;
+      - `response.body|eb|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all action and resource reference URLs;
       - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
       - `response.complete|false` will print `response.complete` or `False`;
       - `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
       - `net_url|to_ascii|sha256|take_prefix 4` will print the first 4 characters of the above;
       - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
       - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;
+
+- URL remapping, used by `scrub` `--expr` atom:
+  - `--remap-id`
+  : remap all URLs with an identity function; i.e. don't remap anything (default)
+  - `--remap-void`
+  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; the result will be self-contained
 
 - output:
   - `--not-separated`
@@ -296,6 +324,12 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
   : see `wrrarms get`
+
+- URL remapping, used by `scrub` `--expr` atom:
+  - `--remap-id`
+  : remap all URLs with an identity function; i.e. don't remap anything (default)
+  - `--remap-void`
+  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; the result will be self-contained
 
 - output:
   - `--not-separated`
@@ -343,6 +377,12 @@ Compute given expressions for each of given WRR files, encode them into a reques
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
   : an expression to compute, see `wrrarms get --expr` for more info on expression format; can be specified multiple times; the default is `.` which will dump the whole reqres structure
+
+- URL remapping, used by `scrub` `--expr` atom:
+  - `--remap-id`
+  : remap all URLs with an identity function; i.e. don't remap anything (default)
+  - `--remap-void`
+  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; the result will be self-contained
 
 - `--format=raw` output:
   - `--not-terminated`
@@ -636,9 +676,14 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   wrrarms pprint ../dumb_server/pwebarc-dump
   ```
 
-- Pipe response body from a given WRR file to stdout:
+- Pipe response body scrubbed of dynamic content (see `wrrarms get` documentation above) from a given WRR file to stdout:
   ```
   wrrarms get ../dumb_server/pwebarc-dump/path/to/file.wrr
+  ```
+
+- Pipe raw response body from a given WRR file to stdout:
+  ```
+  wrrarms get -e "response.body|eb" ../dumb_server/pwebarc-dump/path/to/file.wrr
   ```
 
 - Get first 4 characters of a hex digest of sha256 hash computed on the URL without the fragment/hash part:

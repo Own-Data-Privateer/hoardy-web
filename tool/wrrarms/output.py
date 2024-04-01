@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Jan Malakhovski <oxij@oxij.org>
+# Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
 #
 # This file is a part of pwebarc project.
 #
@@ -23,8 +23,9 @@ import typing as _t
 from kisstdlib.exceptions import *
 from kisstdlib.io import *
 
-from .wrr import *
 from .type import *
+from .wrr import *
+from .mime import *
 
 def abridge_anystr(value : _t.AnyStr, length : int, ln : bool) -> tuple[bool, _t.AnyStr]:
     hlength = length // 2
@@ -36,7 +37,7 @@ def abridge_anystr(value : _t.AnyStr, length : int, ln : bool) -> tuple[bool, _t
     else:
         return False, value
 
-def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abridge : bool) -> None:
+def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abridge : bool, paranoid : bool) -> None:
     req = reqres.request
     res = reqres.response
 
@@ -78,46 +79,28 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
             fobj.write_bytes(pyrepr_dumps(v, starting_indent = 2, width = 80, default = PyStreamEncoder.encode_py).lstrip())
         fobj.write_str_ln("")
 
-    def dump_data(data : str | bytes, complete : str) -> None:
-        def encode(value : str) -> bytes:
-            return value.encode(fobj.encoding)
+    def dump_data(rr : Request | Response, complete : str) -> None:
+        data = rr.body
+        essence, mime, charset, _ = rr.discern_content_type(paranoid)
 
-        final = False
-        raw = False
-        if isinstance(data, str):
-            if data.find("\0") != -1:
-                guess = "binary"
-            else:
-                guess = f"text encoding={fobj.encoding}"
-                raw = True
-            data = encode(data)
-        elif isinstance(data, bytes):
-            guess = "binary"
-        else:
-            assert False
-
-        if data.startswith(b"\x89PNG"):
-            guess = "image/png"
-            final, raw = True, False
-        elif data.startswith(b"\xff\xd8\xff\xe0\x00\x10JFIF"):
-            guess = "image/jpeg"
-            final, raw = True, False
-        elif data.startswith(b"RIFF") and data[8:12] == b"WEBP":
-            guess = "image/webp"
-            final, raw = True, False
-
-        if not final:
+        unfinished = True
+        if "json" in essence or "unknown" in essence:
             try:
-                js = _json.loads(data.decode(fobj.encoding, errors = "replace"))
+                if isinstance(data, bytes):
+                    data = data.decode(charset or fobj.encoding)
+                js = _json.loads(data)
+            except UnicodeDecodeError:
+                pass
             except _json.decoder.JSONDecodeError:
                 pass
             else:
-                guess = f"json"
-                jsdump = _json.dumps(js, ensure_ascii = False, indent = 2)
-                data = encode(jsdump)
-                final, raw = True, True
+                essence = set(["json", "text"])
+                mime = "application/json"
+                charset = charset or fobj.encoding
+                data = _json.dumps(js, ensure_ascii = False, indent = 2).encode(fobj.encoding)
+                unfinished = False
 
-        if not final:
+        if unfinished and ("cbor" in essence or "unknown" in essence) and isinstance(data, bytes):
             try:
                 with _io.BytesIO(data) as fp:
                     cb = _cbor2.CBORDecoder(fp).decode()
@@ -128,38 +111,31 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
             except Exception:
                 pass
             else:
-                guess = "cbor"
+                essence = set(["cbor"])
+                mime = "application/cbor"
+                charset = None
                 data = cbordump
-                final, raw = True, True
+                unfinished = False
 
-        if not final and guess.startswith("text"):
-            data_strip = data.strip()
-            if data_strip.startswith(b"<svg ") and data_strip.endswith(b"</svg>"):
-                guess = "image/svg+xml"
-                final, raw = True, True
-
-        if not final and guess.startswith("text"):
-            if data.find(b"<html") != -1:
-                guess += "/html"
-                if data.find(b"</html>") == -1:
-                    guess += " incomplete=true"
-                final, raw = True, True
-
-        status = ""
-        if raw:
-            status += ", raw"
+        if "text" not in essence:
+            if isinstance(data, bytes):
+                data = repr(data)[2:-1].encode(fobj.encoding)
+            else:
+                data = repr(data)[1:-1].encode(fobj.encoding)
+            status = ", quoted"
         else:
-            data = encode(repr(data)[2:-1])
-            status += ", quoted"
+            status = ", raw"
 
         abridged = abridge
         if abridge:
-            abridged, data = abridge_anystr(data, 1024, True)
+            abridged, data = abridge_anystr(data, 1024, True) # type: ignore
         if abridged:
             status += ", abridged"
 
-        fobj.write_str_ln(f"({complete}, {len(data)} bytes, {guess}{status}):")
-        fobj.write_bytes_ln(data)
+        what = ", ".join(essence)
+        fobj.write_str_ln(f"({complete}, {len(data)} bytes, {mime}, potentially [{what}]{status}):")
+        fobj.write(data)
+        fobj.write_str_ln("")
 
     def dump_headers(headers : Headers, indent : str = "") -> None:
         for name, value in headers:
@@ -175,18 +151,19 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
 
     if len(req.body) > 0:
         fobj.write_str("\nRequest body ")
-        dump_data(req.body, req_complete)
+        dump_data(req, req_complete)
     else:
         fobj.write_str_ln("\nEmpty request body")
 
     if res is not None:
         if len(res.body) > 0:
             fobj.write_str("\nResponse body ")
-            dump_data(res.body, res_complete)
+            dump_data(res, res_complete)
         else:
             fobj.write_str_ln("\nEmpty response body")
 
     fobj.write_str_ln("")
+    fobj.flush()
 
 StreamEncoderElem = _t.TypeVar("StreamEncoderElem")
 class StreamEncoder:

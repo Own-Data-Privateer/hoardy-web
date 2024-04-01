@@ -35,11 +35,53 @@ from kisstdlib.path import *
 
 from .type import *
 from .linst import *
+from .mime import *
+from .html import *
 
 Headers = list[tuple[str, bytes]]
 
+def get_raw_headers(headers : Headers, name : str) -> list[bytes]:
+    return [v for k, v in headers if k.lower() == name]
+
+def get_raw_header(headers : Headers, name : str, default : bytes | None = None) -> bytes | None:
+    res = get_raw_headers(headers, name)
+    if len(res) == 0:
+        return default
+    else:
+        return res[-1]
+
+def get_header(headers : Headers, name : str, default : str | None = None) -> str | None:
+    res = get_raw_header(headers, name)
+    if res is None:
+        return default
+    else:
+        return res.decode("ascii")
+
+class RRCommon:
+    _ct : DiscernContentType | None = None
+    _pct : DiscernContentType | None = None
+
+    def get_header(self, name : str, default : str | None = None) -> str | None:
+        return get_header(self.headers, name, default) # type: ignore
+
+    def discern_content_type(self, paranoid : bool) -> DiscernContentType:
+        """do mime.discern_content_type on this, and cache the result"""
+        if paranoid and self._ct is not None:
+            return self._ct
+        elif not paranoid and self._pct is not None:
+            return self._pct
+
+        ct, sniff = self.get_content_type() # type: ignore
+        res = discern_content_type(ct, sniff, paranoid, self.body) # type: ignore
+
+        if paranoid:
+            self._ct = res
+        else:
+            self._pct = res
+        return res
+
 @_dc.dataclass
-class Request:
+class Request(RRCommon):
     started_at : Epoch
     method : str
     url : str
@@ -47,14 +89,29 @@ class Request:
     complete : bool
     body : bytes | str
 
+    def get_content_type(self) -> tuple[str, bool]:
+        ct = self.get_header("content-type", "application/x-www-form-urlencoded")
+        assert ct is not None
+        return ct, False
+
 @_dc.dataclass
-class Response:
+class Response(RRCommon):
     started_at : Epoch
     code : int
     reason : str
     headers : Headers
     complete : bool
     body : bytes | str
+
+    def get_content_type(self) -> tuple[str, bool]:
+        ct = self.get_header("content-type", "application/octet-stream")
+        assert ct is not None
+        ct_opts = self.get_header("x-content-type-options", "")
+        if ct_opts == "nosniff" or ct_opts == "no-sniff":
+            sniff = False
+        else:
+            sniff = True
+        return ct, sniff
 
 @_dc.dataclass
 class WebSocketFrame:
@@ -423,7 +480,7 @@ class ReqresExpr:
 def trivial_Reqres(url : str) -> Reqres:
     return Reqres(1, "wrrarms-test/1", "HTTP/1.1",
                   Request(Epoch(0), "GET", url, [], True, b""),
-                  Response(Epoch(1000), 200, "OK", [], True, b""),
+                  Response(Epoch(1000), 200, "OK", [("Content-Type", b"text/html")], True, b""),
                   Epoch(2000),
                   {}, None)
 
@@ -435,7 +492,7 @@ def test_ReqresExpr() -> None:
         if x[name] != value:
             print(value)
             print(x[name])
-            raise CatastrophicFailure("while evaluating %s of %s, got %s, expected %s", name, x.reqres.request.url, value, x[name])
+            raise CatastrophicFailure("while evaluating %s of %s, got %s, expected %s", name, x.reqres.request.url, x[name], value)
 
     unmodified = [
         "http://example.org",
@@ -451,9 +508,10 @@ def test_ReqresExpr() -> None:
 
     url = "https://example.org//first/./skipped/../second/?query=this"
     x = mk(url)
+    path_components = ["first", "second"]
     check(x, "net_url", url)
-    check(x, "path_parts", ["first", "second"])
-    check(x, "wget_parts", ["first", "second", "index.html"])
+    check(x, "path_parts", path_components)
+    check(x, "wget_parts", path_components + ["index.html"])
     check(x, "query_parts", [("query", "this")])
 
     x = mk("https://Königsgäßchen.example.org/испытание/../")
@@ -466,12 +524,102 @@ def test_ReqresExpr() -> None:
     check(x, "hostname", hostname)
     ehostname = "xn--hck7aa9d8fj9i.xn--88j1aw.example.org"
     check(x, "net_hostname", ehostname)
-    query_components = ["how/do?you&like", "these", "componentsですか?"]
-    check(x, "path_parts", query_components)
-    check(x, "wget_parts", query_components)
+    path_components = ["how/do?you&like", "these", "componentsですか?"]
+    check(x, "path_parts", path_components)
+    check(x, "wget_parts", path_components)
     check(x, "query_parts", [("empty", ""), ("not", "abit=/?&weird")])
     check(x, "fragment", "hash")
     check(x, "net_url", f"https://{ehostname}{path_query}")
+
+def check_request_response(cmd : str, part : str) -> bool:
+    if part not in ["request", "response"]:
+        raise CatastrophicFailure("`%s`: unexpected argument, expected `request` or `response`, got `%s`", cmd, part)
+    return part == "request"
+
+def check_rrexpr(cmd : str, rrexpr : _t.Any) -> ReqresExpr:
+    if not isinstance(rrexpr, ReqresExpr):
+        typ = type(rrexpr)
+        raise CatastrophicFailure("`%s`: expecting `ReqresExpr` value as the command environment, got `%s`", cmd, typ.__name__)
+    return rrexpr
+
+def linst_scrub() -> LinstAtom:
+    def func(part : str, optstr : str) -> _t.Callable[..., LinstFunc]:
+        rere = check_request_response("scrub", part)
+
+        paranoid = False
+        scrub_opts = ScrubOpts()
+        if optstr != "defaults":
+            for opt in optstr.split(","):
+                if not opt.startswith("+") and not opt.startswith("-"):
+                    raise CatastrophicFailure("unknown `scrub` option `%s`", opt)
+
+                oname = opt[1:]
+                value = opt.startswith("+")
+                if oname == "paranoid":
+                    paranoid = value
+                elif oname == "pretty":
+                    scrub_opts.verbose = True
+                    scrub_opts.whitespace = not value
+                    scrub_opts.indent = value
+                elif oname == "debug" and value == True:
+                    scrub_opts.verbose = True
+                    scrub_opts.whitespace = False
+                    scrub_opts.indent = True
+                    scrub_opts.debug = True
+                elif oname in ScrubOpts.__dataclass_fields__:
+                    setattr(scrub_opts, oname, value)
+                elif oname == "all_refs":
+                    for oname in ScrubReferenceOpts:
+                        setattr(scrub_opts, oname, value)
+                elif oname == "all_dyns":
+                    for oname in ScrubDynamicOpts:
+                        setattr(scrub_opts, oname, value)
+                else:
+                    raise CatastrophicFailure("unknown `scrub` option %s", opt)
+
+        scrubber = make_scrubber(scrub_opts)
+
+        def envfunc(rrexpr : _t.Any, v : _t.Any) -> _t.Any:
+            rrexpr = check_rrexpr("scrub", rrexpr)
+
+            reqres : Reqres = rrexpr.reqres
+            request = reqres.request
+
+            rere_obj : Request | Response
+            if rere:
+                rere_obj = request
+            else:
+                if reqres.response is None:
+                    return ""
+                rere_obj = reqres.response
+
+            if len(rere_obj.body) == 0:
+                return rere_obj.body
+
+            essence, mime, charset, _ = rere_obj.discern_content_type(paranoid)
+
+            censor = []
+            if not scrub_opts.scripts and "javascript" in essence:
+                censor.append("JavaScript")
+            if not scrub_opts.styles and "css" in essence:
+                censor.append("CSS")
+            if (not scrub_opts.scripts or not scrub_opts.styles) and "dyndoc" in essence:
+                # PDF, PostScript, EPub
+                censor.append("Dynamic Document")
+            if not scrub_opts.unknown and "unknown" in essence:
+                censor.append("Unknown Data")
+            if len(censor) > 0:
+                what = ", or ".join(censor)
+                return f"/* wrrarms censored out {what} blob ({mime}) from here */\n" if scrub_opts.verbose else b""
+
+            if "html" not in essence:
+                # no scrubbing needed
+                return rere_obj.body
+
+            remap_url = rrexpr.items.get("remap_url", None)
+            return scrub_html(scrubber, rrexpr.net_url, remap_url, rere_obj.body, likely_encoding = charset)
+        return envfunc
+    return [str, str], func
 
 ReqresExpr_atoms = linst_atoms.copy()
 ReqresExpr_atoms.update({
@@ -481,6 +629,22 @@ ReqresExpr_atoms.update({
         linst_apply0(lambda v: _up.urlencode(v))),
     "qsl_to_path": ("encode `query` `list` into a POSIX path, quoting as little as needed",
         linst_apply0(lambda v: qsl_to_path(v))),
+    "scrub": ("""scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on `--remap-*` command line options, the MIME type of the value itself, and the scrubbing options described below; this fuction takes two arguments:
+  - the first must be either of `request|response`, it controls which HTTP headers `scrub` should inspect to help it detect the MIME type;
+  - the second is either `defaults` or ","-separated string of `(+|-)(paranoid|unknown|jumps|actions|srcs|all_refs|scripts|iframes|styles|iepragmas|prefetches|tracking|dyndoc|all_dyns|verbose|whitespace|optional_tags|indent|pretty|debug)` tokens which control the scrubbing behaviour:
+    - `+paranoid` will assume the server is lying in its `Content-Type` and `X-Content-Type-Options` HTTP headers, sniff the contents of `(request|response).body` to determine what it actually contains regardless of what the server said, and then use the most paranoid interpretation of both the HTTP headers and the sniffed possible MIME types to decide what should be kept and what sholuld be removed by the options below; i.e., this will make `-unknown`, `-scripts`, and `-styles` options below to censor out more things, in particular, at the moment, most plain text files will get censored out as potential JavaScript; the default is `-paranoid`;
+    - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which will keep data of unknown content types as-is;
+    - `(+|-)(jumps|actions|srcs)` control which kinds of references to other documents should be remapped or censored out (respectively); i.e. it controls whether jump-links (HTML `a href`, `area href`, and similar), action-links (HTML `a ping`, `form action`, and similar), and/or resource references (HTML `img src`, `iframe src`, CSS `url` references, and similar) should be remapped using the specified `--remap-*` option (which see) or censored out similarly to how `--remap-void` will do it; the default is `+jumps,-actions,-srcs` which will produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
+    - `(+|-)all_refs` is equivalent to enabling or disabling all of the above options simultaneously;
+    - `(+|-)(scripts|iframes|styles|iepragmas|prefetches|tracking)` control which things should be kept or censored out w.r.t. to HTML, CSS, and JavaScript, i.e. it controls whether JavaScript (both separate files and HTML tags and attributes), `<iframe>` HTML tags, CSS (both separate files and HTML tags and attributes; why? because CSS is Turing-complete), HTML Internet-Explorer pragmas, HTML content prefetch `link` tags, and other tracking HTML tags and attributes (like `a ping` attributes), should be respectively kept in or censored out from the input; the default is `-scripts,-iframes,-styles,-iepragmas,-prefetches,-tracking` which ensures the result will not produce any prefetch and tracking requests when loaded in a web browser, and that the whole result is simple data, not a program in some Turing-complete language, thus making it safe to feed the result to other tools too smart for their own users' good;
+    - `(+|-)all_dyns` is equivalent to enabling or disabling all of the above (`scripts|...`) options simultaneously;
+    - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead; the default is `-verbose`;
+    - `(+|-)whitespace` controls whether HTML renderer should keep the original HTML whitespace as-is or collapse it away (respectively); the default is `-whitespace`;
+    - `(+|-)optional_tags` controls whether HTML renderer should put optional HTML tags into the output or skip them (respectively); the default is `+optional_tags` (because many tools fail to parse minimized HTML properly);
+    - `(+|-)indent` controls whether HTML renderer should indent HTML elements (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent`;
+    - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics; `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied; neither is the default;
+    - `+debug` is an alias for `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it will indent `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging custom mutations; `-debug` is noop, which is the default;""",
+        linst_scrub()),
 })
 
 ReqresExpr_lookup = linst_custom_or_env(ReqresExpr_atoms)

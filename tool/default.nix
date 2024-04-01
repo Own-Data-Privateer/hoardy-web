@@ -24,6 +24,7 @@ buildPythonApplication (rec {
     mycbor2
     kisstdlib
     idna
+    html5lib
   ]
   ++ lib.optional mitmproxySupport mitmproxy;
 

@@ -80,6 +80,13 @@ def compile_filters(cargs : _t.Any) -> None:
 def compile_exprs(cargs : _t.Any) -> None:
     cargs.exprs = list(map(lambda expr: (expr, linst_compile(expr, ReqresExpr_lookup)), cargs.exprs))
 
+    if cargs.remap_urls == "id":
+        cargs.remap_url_func = remap_url_id
+    elif cargs.remap_urls == "void":
+        cargs.remap_url_func = remap_url_into_void
+    else:
+        assert False
+
 def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr) -> bool:
     def eval_it(expr : str, func : LinstFunc) -> bool:
         ev = func(rrexpr, None)
@@ -211,7 +218,7 @@ def cmd_pprint(cargs : _t.Any) -> None:
     def emit(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
         if not filters_allow(cargs, rrexpr): return
 
-        wrr_pprint(stdout, rrexpr.reqres, abs_in_path, cargs.abridged)
+        wrr_pprint(stdout, rrexpr.reqres, abs_in_path, cargs.abridged, cargs.paranoid)
         stdout.flush()
 
     map_wrr_paths(emit, cargs.paths, order_by=cargs.walk_fs, errors=cargs.errors)
@@ -232,7 +239,7 @@ def print_exprs(rrexpr : ReqresExpr, exprs : list[tuple[str, LinstFunc]],
 
         fobj.write_bytes(data)
 
-default_get_expr = "response.body|es"
+default_get_expr = "response.body|eb"
 def cmd_get(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [default_get_expr]
@@ -240,6 +247,8 @@ def cmd_get(cargs : _t.Any) -> None:
 
     abs_path = _os.path.abspath(_os.path.expanduser(cargs.path))
     rrexpr = wrr_loadf_expr(abs_path)
+    rrexpr.items["remap_url"] = cargs.remap_url_func
+
     print_exprs(rrexpr, cargs.exprs, cargs.separator, stdout)
 
 def cmd_run(cargs : _t.Any) -> None:
@@ -264,6 +273,7 @@ def cmd_run(cargs : _t.Any) -> None:
         for path in cargs.paths:
             abs_path = _os.path.abspath(path)
             rrexpr = wrr_loadf_expr(abs_path)
+            rrexpr.items["remap_url"] = cargs.remap_url_func
 
             # TODO: extension guessing
             fileno, tmp_path = _tempfile.mkstemp(prefix = "wrrarms_run_", suffix = ".tmp")
@@ -940,8 +950,12 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f"{__package__} pprint ../dumb_server/pwebarc-dump")
     fmt.end_section()
 
-    fmt.start_section(_("Pipe response body from a given WRR file to stdout"))
-    fmt.add_code(f"{__package__} get ../dumb_server/pwebarc-dump/path/to/file.wrr")
+    fmt.start_section(_(f"Pipe response body scrubbed of dynamic content (see `{__package__} get` documentation above) from a given WRR file to stdout"))
+    fmt.add_code(f'{__package__} get ../dumb_server/pwebarc-dump/path/to/file.wrr')
+    fmt.end_section()
+
+    fmt.start_section(_("Pipe raw response body from a given WRR file to stdout"))
+    fmt.add_code(f'{__package__} get -e "response.body|eb" ../dumb_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
     fmt.start_section(_("Get first 4 characters of a hex digest of sha256 hash computed on the URL without the fragment/hash part"))
@@ -1089,6 +1103,14 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         grp.add_argument("--and", dest="alls", metavar="EXPR", action="append", type=str, default = [],
                          help=_(f"... and all of these expressions, both can be specified multiple times, both use the same expression format as `{__package__} get --expr`, which see"))
 
+    def add_remap(cmd : _t.Any, kind : str = "get") -> None:
+        def_id = " " + _("(default)")
+        agrp = cmd.add_argument_group("URL remapping, used by `scrub` `--expr` atom")
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument("--remap-id", dest="remap_urls", action="store_const", const="id", help=_("remap all URLs with an identity function; i.e. don't remap anything") + def_id)
+        grp.add_argument("--remap-void", dest="remap_urls", action="store_const", const="void", help=_("remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; the result will be self-contained"))
+        cmd.set_defaults(remap_urls = "id")
+
     def add_abridged(cmd : _t.Any) -> None:
         grp = cmd.add_mutually_exclusive_group()
         grp.add_argument("-u", "--unabridged", dest="abridged", action="store_false", help=_("print all data in full"))
@@ -1150,6 +1172,11 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     add_errors(cmd)
     add_filters(cmd, "print")
     add_abridged(cmd)
+    agrp = cmd.add_argument_group("MIME type sniffing")
+    grp = agrp.add_mutually_exclusive_group()
+    grp.add_argument("--naive", dest="paranoid", action="store_const", const=False, help=_(f"""populate "potentially" lists like `{__package__} (get|run|export) --expr '(request|response).body|eb|scrub \\2 defaults'` does; default"""))
+    grp.add_argument("--paranoid", dest="paranoid", action="store_const", const=True, help=_(f"""populate "potentially" lists in the output using paranoid MIME type sniffing like `{__package__} (get|run|export) --expr '(request|response).body|eb|scrub \\2 +paranoid'` does; this exists to answer "Hey! Why did it censor out my data?!" questions"""))
+    grp.set_defaults(paranoid = False)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_pprint)
 
@@ -1171,13 +1198,15 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         "- " + _("derived attributes:") + "\n" + \
         "".join([f"  - `{name}`: {__(value).replace('%', '%%')}\n" for name, value in Reqres_derived_attrs.items()]) + \
         "- " + _("a compound expression built by piping (`|`) the above, for example") + __(f""":
-- `response.body|eb` (the default) will print raw `response.body` or an empty byte string, if there was no response;
+- `{default_get_expr}` (the default for `get`) will print raw `response.body` or an empty byte string, if there was no response;
+- `{default_get_expr}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all action and resource reference URLs;
 - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
 - `response.complete|false` will print `response.complete` or `False`;
 - `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
 - `net_url|to_ascii|sha256|take_prefix 4` will print the first 4 characters of the above;
 - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
 - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""", 2))
+    add_remap(cmd)
     add_separator(cmd)
 
     cmd.add_argument("path", metavar="PATH", type=str, help=_("input WRR file path"))
@@ -1189,6 +1218,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 
     agrp = cmd.add_argument_group("expression evaluation")
     agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f"see `{__package__} get`"))
+    add_remap(cmd)
     add_separator(cmd)
 
     cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of `PATH`s (default: `%(default)s`)"))
@@ -1211,6 +1241,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 """))
     agrp = cmd.add_argument_group("expression evaluation")
     agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute, see `{__package__} get --expr` for more info on expression format; can be specified multiple times; the default is `.` which will dump the whole reqres structure'))
+    add_remap(cmd)
     add_terminator(cmd, "`--format=raw` output", "`--format=raw` output values")
     add_paths(cmd)
     cmd.set_defaults(func=cmd_stream)
