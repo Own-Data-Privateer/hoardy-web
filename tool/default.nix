@@ -28,6 +28,11 @@ buildPythonApplication (rec {
   ]
   ++ lib.optional mitmproxySupport mitmproxy;
 
+  postInstall = ''
+    patchShebangs script
+    install -m 755 -t $out/bin script/wrrarms-*
+  '';
+
 } // lib.optionalAttrs debug {
   nativeBuildInputs = [
     mypy
@@ -35,5 +40,5 @@ buildPythonApplication (rec {
   ];
 
   preBuild = "find . ; mypy; pytest";
-  postInstall = "find $out";
+  postFixup = "find $out";
 })

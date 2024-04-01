@@ -1,9 +1,6 @@
 #!/bin/sh -e
 # purpose: generate a plain text preview of a WRR file via `w3m`
 
-wrrarms get -l -e "net_url" -e "nquery_url|unquote_plus" -- "$1" | sed '
-1 s/^/# url: /
-2 s/^/# normalized: /
-'
+wrrarms get -l -e "net_url|add_prefix '# url: '" -e "pretty_url|add_prefix '# normalized: '" -- "$1"
 echo
 wrrarms run -- w3m -T text/html -dump "$1"
