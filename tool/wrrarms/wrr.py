@@ -38,6 +38,207 @@ from .linst import *
 from .mime import *
 from .html import *
 
+_miniquoters : dict[str, dict[str, str]] = {}
+
+def miniquote(x : str, blacklist : str) -> str:
+    """Like `urllib.parse.quote`, with a blacklist instead of whitelist."""
+    miniquoter : dict[str, str]
+    try:
+        miniquoter = _miniquoters[blacklist]
+    except KeyError:
+        # build a dictionary from characters to their quotes
+        miniquoter = {}
+        for b in range(0, 32):
+            miniquoter[chr(b)] = "%{:02X}".format(b)
+        for c in "%" + blacklist:
+            miniquoter[c] = "%{:02X}".format(ord(c))
+        _miniquoters[blacklist] = miniquoter
+
+    return "".join([miniquoter.get(c, c) for c in x])
+
+def pp_to_path(parts : list[str]) -> str:
+    """Turn URL path components list into a minimally-quoted path."""
+    return "/".join([miniquote(e, "/?") for e in parts])
+
+def qsl_to_path(query : list[tuple[str, str]]) -> str:
+    """Turn URL query components list into a minimally-quoted path."""
+    l = []
+    for k, v in query:
+        k = miniquote(k, "/&=")
+        v = miniquote(v, "/&")
+        if v == "":
+            l.append(k)
+        else:
+            l.append(k + "=" + v)
+    return "&".join(l)
+
+@_dc.dataclass
+class ParsedURL:
+    raw_url : str
+    scheme : str
+    user : str
+    password : str
+    brackets : bool
+    raw_hostname : str
+    net_hostname : str
+    hostname : str
+    opm : str
+    port : str
+    raw_path : str
+    oqm : str
+    raw_query : str
+    ofm : str
+    fragment : str
+
+    @property
+    def net_auth(self) -> str:
+        if self.user != "":
+            if self.password != "":
+                return f"{self.user}:{self.password}@"
+            else:
+                return f"{self.user}@"
+        else:
+            return ""
+
+    @property
+    def rhostname(self) -> str:
+        hparts = self.hostname.split(".")
+        hparts.reverse()
+        return ".".join(hparts)
+
+    @property
+    def netloc(self) -> str:
+        hn = self.hostname
+        if self.brackets: hn = "[" + hn + "]"
+        return "".join([self.net_auth, hn, self.opm, self.port])
+
+    @property
+    def net_netloc(self) -> str:
+        hn = self.net_hostname
+        if self.brackets: hn = "[" + hn + "]"
+        return "".join([self.net_auth, hn, self.opm, self.port])
+
+    @property
+    def net_url(self) -> str:
+        if self.raw_hostname:
+            nl = self.net_netloc
+            if nl != "": nl = "//" + nl
+            return _up.quote(f"{self.scheme}:{nl}{self.raw_path}{self.oqm}{self.raw_query}", safe="%/:=&?~#+!$,;'@()*[]|")
+        else:
+            return _up.quote(f"{self.scheme}:{self.raw_path}{self.oqm}{self.raw_query}", safe="%/:=&?~#+!$,;'@()*[]|")
+
+    @property
+    def full_url(self) -> str:
+        return f"{self.net_url}{self.ofm}{self.fragment}"
+
+    @property
+    def path_parts(self) -> list[str]:
+        path_parts_insecure = [_up.unquote(e) for e in self.raw_path.split("/") if e != ""]
+
+        # remove dots and securely interpret double dots
+        path_parts : list[str] = []
+        for e in path_parts_insecure:
+            if e == ".":
+                continue
+            elif e == "..":
+                if len(path_parts) > 0:
+                    path_parts.pop()
+                continue
+            path_parts.append(e)
+        return path_parts
+
+    @property
+    def wget_parts(self) -> list[str]:
+        path_parts = self.path_parts
+        return path_parts + ["index.html"] if self.raw_path.endswith("/") else path_parts
+
+    @property
+    def query_parts(self) -> list[tuple[str, str]]:
+        return _up.parse_qsl(self.raw_query, keep_blank_values=True)
+
+    @property
+    def query_ne_parts(self) -> list[tuple[str, str]]:
+        return [e for e in self.query_parts if e[1] != ""]
+
+    @property
+    def mq_path(self) -> str:
+        return pp_to_path(self.path_parts)
+
+    @property
+    def mq_query(self) -> str:
+        return qsl_to_path(self.query_parts)
+
+    @property
+    def mq_nquery(self) -> str:
+        return qsl_to_path(self.query_ne_parts)
+
+    @property
+    def pretty_url(self) -> str:
+        if self.raw_hostname:
+            nl = self.netloc
+            if nl != "": nl = "//" + nl
+            return f"{self.scheme}:{nl}/{self.mq_path}{self.oqm}{self.mq_query}{self.ofm}{self.fragment}"
+        else:
+            return f"{self.scheme}:{self.mq_path}{self.oqm}{self.mq_query}{self.ofm}{self.fragment}"
+
+    @property
+    def pretty_nurl(self) -> str:
+        if self.raw_hostname:
+            nl = self.netloc
+            if nl != "": nl = "//" + nl
+            return f"{self.scheme}:{nl}/{self.mq_path}{self.oqm}{self.mq_nquery}{self.ofm}{self.fragment}"
+        else:
+            return f"{self.scheme}:{self.mq_path}{self.oqm}{self.mq_nquery}{self.ofm}{self.fragment}"
+
+class URLParsingError(ValueError): pass
+
+def parse_url(url : str) -> ParsedURL:
+    try:
+        scheme, netloc, path, query, fragment = _up.urlsplit(url)
+    except Exception:
+        raise URLParsingError(url)
+
+    userinfo, has_user, hostinfo = netloc.rpartition("@")
+    if has_user:
+        user , _, password = userinfo.partition(":")
+        user = _up.quote(_up.unquote(user), safe="")
+        password = _up.quote(_up.unquote(password), safe="")
+    else:
+        user = ""
+        password = ""
+    if hostinfo.startswith("["):
+        brackets = True
+        raw_hostname, has_endbracket, port = hostinfo[1:].partition("]")
+        if not has_endbracket or port != "" and not port.startswith(":"):
+            raise URLParsingError(url)
+        opm = ":"
+        port = port[1:]
+    else:
+        brackets = False
+        raw_hostname, opm, port = hostinfo.partition(":")
+
+    if raw_hostname == "":
+        net_hostname = hostname = ""
+    else:
+        # Fix common issues by rewriting hostnames like browsers do
+        ehostname = _up.unquote(raw_hostname).replace("_", "-")
+        try:
+            # Yes, this is a bit weird. `_idna.encode` and `_idna.decode` are not bijective.
+            # So we turn raw_hostname into unicode str first, then encode it with uts46 enabled...
+            net_hostname = _idna.encode(_idna.decode(ehostname, uts46=True), uts46=True).decode("ascii")
+            # ..., and then decode it again to get the canonical unicode hostname for which
+            # encoding and decoding will be bijective
+            hostname = _idna.decode(net_hostname)
+        except _idna.IDNAError:
+            raise URLParsingError(url)
+
+    oqm = "?" if query != "" or (query == "" and url.endswith("?")) else ""
+    ofm = "#" if fragment != "" or (fragment == "" and url.endswith("#")) else ""
+    return ParsedURL(url, scheme, user, password,
+                     brackets, raw_hostname, net_hostname, hostname,
+                     opm, port,
+                     path, oqm, query, ofm, fragment)
+
 Headers = list[tuple[str, bytes]]
 
 def get_raw_headers(headers : Headers, name : str) -> list[bytes]:
@@ -84,7 +285,7 @@ class RRCommon:
 class Request(RRCommon):
     started_at : Epoch
     method : str
-    url : str
+    url : ParsedURL
     headers : Headers
     complete : bool
     body : bytes | str
@@ -130,6 +331,8 @@ class Reqres:
     finished_at : Epoch
     extra : dict[str, _t.Any]
     websocket : _t.Optional[list[WebSocketFrame]]
+
+Reqres_url_schemes = frozenset(["http", "https", "ws", "wss"])
 
 Reqres_fields = {
     "version": "WEBREQRES format version; int",
@@ -188,14 +391,18 @@ Reqres_derived_attrs = {
 
     "method": "aliast for `request.method`; str",
     "raw_url": "aliast for `request.url`; str",
+}
+
+Reqres_url_attrs = {
     "net_url": "`raw_url` with Punycode UTS46 IDNA encoded hostname, unsafe characters quoted, and without the fragment/hash part; this is the URL that actually gets sent to the server; str",
-    "pretty_url": "`raw_url`, but using `hostname`, `mq_path`, and `mq_nquery`; str",
+    "pretty_url": "`raw_url`, but using `hostname`, `mq_path`, and `mq_query`; str",
+    "pretty_nurl": "`raw_url`, but using `hostname`, `mq_path`, and `mq_nquery`; str",
     "scheme": "scheme part of `raw_url`; e.g. `http`, `https`, etc; str",
     "raw_hostname": "hostname part of `raw_url` as it is recorded in the reqres; str",
     "net_hostname": "hostname part of `raw_url`, encoded as Punycode UTS46 IDNA; this is what actually gets sent to the server; ASCII str",
     "hostname": "`net_hostname` decoded back into UNICODE; this is the canonical hostname representation for which IDNA-encoding and decoding are bijective; UNICODE str",
     "rhostname": '`hostname` with the order of its parts reversed; e.g. `"www.example.org"` -> `"com.example.www"`; str',
-    "port": 'port part of `raw_url`; int or None',
+    "port": 'port part of `raw_url`; str',
     "netloc": "netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str",
     "raw_path": 'raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str',
     "path_parts": 'component-wise unquoted "/"-split `raw_path` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]; list[str]',
@@ -210,42 +417,9 @@ Reqres_derived_attrs = {
     "fragment": "fragment (hash) part of the url; str",
     "ofm": "optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str",
 }
+Reqres_derived_attrs.update(Reqres_url_attrs)
 
 _time_attrs = frozenset(["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"])
-
-_miniquoters : dict[str, dict[str, str]] = {}
-
-def miniquote(x : str, blacklist : str) -> str:
-    """Like `urllib.parse.quote`, with a blacklist instead of whitelist."""
-    miniquoter : dict[str, str]
-    try:
-        miniquoter = _miniquoters[blacklist]
-    except KeyError:
-        # build a dictionary from characters to their quotes
-        miniquoter = {}
-        for b in range(0, 32):
-            miniquoter[chr(b)] = "%{:02X}".format(b)
-        for c in "%" + blacklist:
-            miniquoter[c] = "%{:02X}".format(ord(c))
-        _miniquoters[blacklist] = miniquoter
-
-    return "".join([miniquoter.get(c, c) for c in x])
-
-def pp_to_path(parts : list[str]) -> str:
-    """Turn URL path components list into a minimally-quoted path."""
-    return "/".join([miniquote(e, "/?") for e in parts])
-
-def qsl_to_path(query : list[tuple[str, str]]) -> str:
-    """Turn URL query components list into a minimally-quoted path."""
-    l = []
-    for k, v in query:
-        k = miniquote(k, "/&=")
-        v = miniquote(v, "/&")
-        if v == "":
-            l.append(k)
-        else:
-            l.append(k + "=" + v)
-    return "&".join(l)
 
 @_dc.dataclass
 class ReqresExpr:
@@ -298,6 +472,8 @@ class ReqresExpr:
         reqres = self.reqres
         if name == "method":
             self.items[name] = reqres.request.method
+        elif name == "raw_url" or name == "request.url":
+            self.items[name] = reqres.request.url.raw_url
         elif (name.startswith("q") and \
               name[1:] in _time_attrs):
             qtime = reqres.request.started_at
@@ -333,115 +509,8 @@ class ReqresExpr:
             self.items["ftime_ms"] = ftime_ms
             self.items["ftime_msq"] = ftime_ms % 1000
             self._fill_time("f", ftime)
-        elif name in ["raw_url", "net_url",
-                      "scheme",
-                      "raw_hostname", "net_hostname", "hostname", "rhostname",
-                      "port",
-                      "netloc",
-                      "raw_path",
-                      "oqm", "raw_query",
-                      "ofm", "fragment"]:
-            raw_url = reqres.request.url
-            self.items["raw_url"] = raw_url
-            purl = _up.urlsplit(raw_url)
-
-            scheme = purl.scheme
-            self.items["scheme"] = scheme
-            raw_hostname = purl.hostname
-            assert raw_hostname is not None
-            self.items["raw_hostname"] = raw_hostname
-            port = purl.port
-            self.items["port"] = port
-            raw_path = purl.path
-            self.items["raw_path"] = raw_path
-
-            raw_query = purl.query
-            oqm = "?" if raw_query != "" else ""
-            self.items["oqm"] = oqm
-            self.items["raw_query"] = raw_query
-
-            fragment = purl.fragment
-            ofm = "#" if fragment != "" else ""
-            self.items["ofm"] = ofm
-            self.items["fragment"] = fragment
-
-            # Yes, this is a bit weird. `_idna.encode` and `_idna.decode` are not bijective.
-            # So we turn raw_hostname into unicode str first, then encode it with uts46 enabled...
-            net_hostname = _idna.encode(_idna.decode(raw_hostname), uts46=True).decode("ascii")
-            self.items["net_hostname"] = net_hostname
-            # ..., and then decode it again to get the canonical unicode hostname for which
-            # encoding and decoding will be bijective
-            hostname = _idna.decode(net_hostname)
-            self.items["hostname"] = hostname
-
-            hparts = hostname.split(".")
-            hparts.reverse()
-            hostname_rev = ".".join(hparts)
-            self.items["rhostname"] = hostname_rev
-
-            netport = ""
-            if port is not None:
-                netport = f":{str(port)}"
-
-            user = _up.quote(_up.unquote(purl.username or ""), safe="")
-            if user != "":
-                passwd = _up.quote(_up.unquote(purl.password or ""), safe="")
-                if passwd != "":
-                    netauth = f"{user}:{passwd}@"
-                else:
-                    netauth = f"{user}@"
-            else:
-                netauth = ""
-            netloc = "".join([netauth, hostname, netport])
-            self.items["netloc"] = netloc
-
-            net_netloc = "".join([netauth, net_hostname, netport])
-            net_url = _up.quote(f"{scheme}://{net_netloc}{raw_path}{oqm}{raw_query}", safe="%/:=&?~#+!$,;'@()*[]|")
-            if raw_query == "" and raw_url.endswith("?"):
-                net_url += "?"
-            self.items["net_url"] = net_url
-        elif name in ["path_parts", "wget_parts",
-                      "query_parts", "query_neparts",
-                      "mq_path", "mq_query", "mq_nquery",
-                      "pretty_url"]:
-            scheme = self.get_value("scheme")
-            netloc = self.items["netloc"]
-            raw_path = self.get_value("raw_path")
-            raw_query = self.items["raw_query"]
-            oqm = self.items["oqm"]
-            ofm = self.items["ofm"]
-            fragment = self.items["fragment"]
-
-            path_parts_insecure = [_up.unquote(e) for e in raw_path.split("/") if e != ""]
-
-            # remove dots and securely interpret double dots
-            path_parts : list[str] = []
-            for e in path_parts_insecure:
-                if e == ".":
-                    continue
-                elif e == "..":
-                    if len(path_parts) > 0:
-                        path_parts.pop()
-                    continue
-                path_parts.append(e)
-
-            self.items["path_parts"] = path_parts
-            self.items["wget_parts"] = path_parts + ["index.html"] if raw_path.endswith("/") else path_parts
-
-            qsl = _up.parse_qsl(raw_query, keep_blank_values=True)
-            self.items["query_parts"] = qsl
-            qsl_ne = [e for e in qsl if e[1] != ""]
-            self.items["query_ne_parts"] = qsl_ne
-
-            mq_path = pp_to_path(path_parts)
-            self.items["mq_path"] = mq_path
-            mq_query = qsl_to_path(qsl)
-            self.items["mq_query"] = mq_query
-            mq_nquery = qsl_to_path(qsl_ne)
-            self.items["mq_nquery"] = mq_nquery
-
-            pretty_url = f"{scheme}://{netloc}{mq_path}{oqm}{mq_nquery}{ofm}{fragment}"
-            self.items["pretty_url"] = pretty_url
+        elif name in Reqres_url_attrs:
+            self.items[name] = getattr(reqres.request.url, name)
         elif name == "" or name in Reqres_fields:
             if name == "":
                 field = []
@@ -477,7 +546,7 @@ class ReqresExpr:
             raise Failure("expression `%s` evaluated to `None`", expr)
         return res
 
-def trivial_Reqres(url : str) -> Reqres:
+def trivial_Reqres(url : ParsedURL) -> Reqres:
     return Reqres(1, "wrrarms-test/1", "HTTP/1.1",
                   Request(Epoch(0), "GET", url, [], True, b""),
                   Response(Epoch(1000), 200, "OK", [("Content-Type", b"text/html")], True, b""),
@@ -486,7 +555,7 @@ def trivial_Reqres(url : str) -> Reqres:
 
 def test_ReqresExpr() -> None:
     def mk(url : str) -> ReqresExpr:
-        return ReqresExpr(trivial_Reqres(url), None, [])
+        return ReqresExpr(trivial_Reqres(parse_url(url)), None, [])
 
     def check(x : ReqresExpr, name : str, value : _t.Any) -> None:
         if x[name] != value:
@@ -519,15 +588,16 @@ def test_ReqresExpr() -> None:
     check(x, "net_url", "https://xn--knigsgchen-b4a3dun.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/../")
 
     hostname = "ジャジェメント.ですの.example.org"
+    ehostname = "xn--hck7aa9d8fj9i.xn--88j1aw.example.org"
     path_query="/how%2Fdo%3Fyou%26like/these/components%E3%81%A7%E3%81%99%E3%81%8B%3F?empty&not=abit=%2F%3F%26weird"
+    path_components = ["how/do?you&like", "these", "componentsですか?"]
+    query_components = [("empty", ""), ("not", "abit=/?&weird")]
     x = mk(f"https://{hostname}{path_query}#hash")
     check(x, "hostname", hostname)
-    ehostname = "xn--hck7aa9d8fj9i.xn--88j1aw.example.org"
     check(x, "net_hostname", ehostname)
-    path_components = ["how/do?you&like", "these", "componentsですか?"]
     check(x, "path_parts", path_components)
     check(x, "wget_parts", path_components)
-    check(x, "query_parts", [("empty", ""), ("not", "abit=/?&weird")])
+    check(x, "query_parts", query_components)
     check(x, "fragment", "hash")
     check(x, "net_url", f"https://{ehostname}{path_query}")
 
@@ -699,7 +769,10 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
     if data[0] == "WEBREQRES/1":
         _, source, protocol, request_, response_, finished_at, extra = data
         rq_started_at, rq_method, rq_url, rq_headers, rq_complete, rq_body = request_
-        request = Request(_t_epoch(rq_started_at), _t_str(rq_method), _t_str(rq_url), _t_headers(rq_headers), _t_bool(rq_complete), _t_bytes_or_str(rq_body))
+        purl = parse_url(_t_str(rq_url))
+        if purl.scheme not in Reqres_url_schemes:
+            raise WRRParsingError("unsupported URL scheme `%s`", purl.scheme)
+        request = Request(_t_epoch(rq_started_at), _t_str(rq_method), purl, _t_headers(rq_headers), _t_bool(rq_complete), _t_bytes_or_str(rq_body))
         if response_ is None:
             response = None
         else:
@@ -736,7 +809,7 @@ def wrr_loadf_expr(path : str | bytes) -> ReqresExpr:
 
 def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
     req = reqres.request
-    request = _f_epoch(req.started_at), req.method, req.url, req.headers, req.complete, req.body
+    request = _f_epoch(req.started_at), req.method, req.url.raw_url, req.headers, req.complete, req.body
     del req
 
     if reqres.response is None:

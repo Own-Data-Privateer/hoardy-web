@@ -1,6 +1,9 @@
 #!/bin/sh -e
 # purpose: generate a plain text preview of a WRR file via `w3m`
 
-wrrarms get -l -e "net_url|add_prefix '# url: '" -e "pretty_url|add_prefix '# normalized: '" -- "$1"
+wrrarms get -l \
+        -e "net_url|add_prefix '# url: '" \
+        -e "pretty_url|add_prefix '# pretty: '" \
+        -e "pretty_nurl|add_prefix '# normalized: '" -- "$1"
 echo
 wrrarms run -- w3m -T text/html -dump "$1"

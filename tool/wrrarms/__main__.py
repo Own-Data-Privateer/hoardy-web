@@ -381,7 +381,7 @@ output_aliases = {
 
 def test_outputs_aliases() -> None:
     def mk(url : str) -> ReqresExpr:
-        return ReqresExpr(trivial_Reqres(url), None, [])
+        return ReqresExpr(trivial_Reqres(parse_url(url)), None, [])
 
     urls = [
         "http://ジャジェメント.ですの.example.org/is/",

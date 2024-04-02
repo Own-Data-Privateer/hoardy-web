@@ -61,7 +61,7 @@ def load_as_wrrs(fobj : _io.BufferedReader, abs_path : _t.AnyStr) -> _t.Iterator
             maybeport = ":" + str(rq.port)
         url = f"{rq.scheme}://{rq.host}{maybeport}{rq.path}"
 
-        request = Request(Epoch(rq.timestamp_start), rq.method.upper(), url, _hd(rq.headers), rq_complete, rq_body)
+        request = Request(Epoch(rq.timestamp_start), rq.method.upper(), parse_url(url), _hd(rq.headers), rq_complete, rq_body)
 
         rs = flow.response
         if rs is not None:

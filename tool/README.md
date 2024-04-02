@@ -261,13 +261,14 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `method`: aliast for `request.method`; str
       - `raw_url`: aliast for `request.url`; str
       - `net_url`: `raw_url` with Punycode UTS46 IDNA encoded hostname, unsafe characters quoted, and without the fragment/hash part; this is the URL that actually gets sent to the server; str
-      - `pretty_url`: `raw_url`, but using `hostname`, `mq_path`, and `mq_nquery`; str
+      - `pretty_url`: `raw_url`, but using `hostname`, `mq_path`, and `mq_query`; str
+      - `pretty_nurl`: `raw_url`, but using `hostname`, `mq_path`, and `mq_nquery`; str
       - `scheme`: scheme part of `raw_url`; e.g. `http`, `https`, etc; str
       - `raw_hostname`: hostname part of `raw_url` as it is recorded in the reqres; str
       - `net_hostname`: hostname part of `raw_url`, encoded as Punycode UTS46 IDNA; this is what actually gets sent to the server; ASCII str
       - `hostname`: `net_hostname` decoded back into UNICODE; this is the canonical hostname representation for which IDNA-encoding and decoding are bijective; UNICODE str
       - `rhostname`: `hostname` with the order of its parts reversed; e.g. `"www.example.org"` -> `"com.example.www"`; str
-      - `port`: port part of `raw_url`; int or None
+      - `port`: port part of `raw_url`; str
       - `netloc`: netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str
       - `raw_path`: raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str
       - `path_parts`: component-wise unquoted "/"-split `raw_path` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]; list[str]
