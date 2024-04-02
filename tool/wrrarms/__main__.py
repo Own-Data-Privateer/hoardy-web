@@ -346,37 +346,37 @@ def cmd_find(cargs : _t.Any) -> None:
     map_wrr_paths(emit, cargs.paths, order_by=cargs.walk_fs, errors=cargs.errors)
 
 output_aliases = {
-    "default":  "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s.%(num)d.wrr",
-    "short": "%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d.wrr",
+    "default":    "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s.%(num)d",
+    "short":      "%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d",
 
     "surl":       "%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s",
-    "surl_msn":   "%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d.wrr",
+    "surl_msn":   "%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d",
 
-    "shupq":      "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.wrr",
-    "shupq_msn":  "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "shupnq":     "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.wrr",
-    "shupnq_msn": "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "shupq":      "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s",
+    "shupq_msn":  "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d",
+    "shupnq":     "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s",
+    "shupnq_msn": "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d",
 
-    "srhupq":     "%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.wrr",
-    "srhupq_msn": "%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "srhupnq":    "%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.wrr",
-    "srhupnq_msn":"%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "srhupq":     "%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s",
+    "srhupq_msn": "%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d",
+    "srhupnq":    "%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s",
+    "srhupnq_msn":"%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d",
 
-    "url":                   "%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s",
-    "url_msn":               "%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d.wrr",
+    "url":        "%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s",
+    "url_msn":    "%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d",
 
-    "hupq":                  "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.wrr",
-    "hupq_msn":              "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "hupnq":                 "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.wrr",
-    "hupnq_msn":             "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "hupq":       "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s",
+    "hupq_msn":   "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d",
+    "hupnq":      "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s",
+    "hupnq_msn":  "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d",
 
-    "rhupq":                 "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.wrr",
-    "rhupq_msn":             "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
-    "rhupnq":                "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.wrr",
-    "rhupnq_msn":            "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d.wrr",
+    "rhupq":      "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s",
+    "rhupq_msn":  "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d",
+    "rhupnq":     "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s",
+    "rhupnq_msn": "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d",
 
-    "flat":                  "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.wrr",
-    "flat_n":                "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d.wrr",
+    "flat":       "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s",
+    "flat_n":     "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d",
 }
 
 def test_outputs_aliases() -> None:
@@ -396,54 +396,54 @@ def test_outputs_aliases() -> None:
             res += "\n" + name + ":" + " " * (12 - len(name)) + " " + output_aliases[name] % x
 
     assert res == """
-default:      1970/01/01/001640000_0_GET_24bd_200C_ジャジェメント.ですの.example.org.0.wrr
-short:        1970/01/01/1000000_0.0.wrr
+default:      1970/01/01/001640000_0_GET_24bd_200C_ジャジェメント.ですの.example.org.0
+short:        1970/01/01/1000000_0.0
 surl:         http/ジャジェメント.ですの.example.org/is
-surl_msn:     http/ジャジェメント.ですの.example.org/is_GET_200C.0.wrr
-shupq:        http/ジャジェメント.ですの.example.org/is/index.html.wrr
-shupq_msn:    http/ジャジェメント.ですの.example.org/is/index.html_GET_200C.0.wrr
-shupnq:       http/ジャジェメント.ですの.example.org/is/index.html.wrr
-shupnq_msn:   http/ジャジェメント.ですの.example.org/is/index.html_GET_200C.0.wrr
-srhupq:       http/org.example.ですの.ジャジェメント/is/index.html.wrr
-srhupq_msn:   http/org.example.ですの.ジャジェメント/is/index.html_GET_200C.0.wrr
-srhupnq:      http/org.example.ですの.ジャジェメント/is/index.html.wrr
-srhupnq_msn:  http/org.example.ですの.ジャジェメント/is/index.html_GET_200C.0.wrr
+surl_msn:     http/ジャジェメント.ですの.example.org/is_GET_200C.0
+shupq:        http/ジャジェメント.ですの.example.org/is/index.html
+shupq_msn:    http/ジャジェメント.ですの.example.org/is/index.html_GET_200C.0
+shupnq:       http/ジャジェメント.ですの.example.org/is/index.html
+shupnq_msn:   http/ジャジェメント.ですの.example.org/is/index.html_GET_200C.0
+srhupq:       http/org.example.ですの.ジャジェメント/is/index.html
+srhupq_msn:   http/org.example.ですの.ジャジェメント/is/index.html_GET_200C.0
+srhupnq:      http/org.example.ですの.ジャジェメント/is/index.html
+srhupnq_msn:  http/org.example.ですの.ジャジェメント/is/index.html_GET_200C.0
 url:          ジャジェメント.ですの.example.org/is
-url_msn:      ジャジェメント.ですの.example.org/is_GET_200C.0.wrr
-hupq:         ジャジェメント.ですの.example.org/is/index.html.wrr
-hupq_msn:     ジャジェメント.ですの.example.org/is/index.html_GET_200C.0.wrr
-hupnq:        ジャジェメント.ですの.example.org/is/index.html.wrr
-hupnq_msn:    ジャジェメント.ですの.example.org/is/index.html_GET_200C.0.wrr
-rhupq:        org.example.ですの.ジャジェメント/is/index.html.wrr
-rhupq_msn:    org.example.ですの.ジャジェメント/is/index.html_GET_200C.0.wrr
-rhupnq:       org.example.ですの.ジャジェメント/is/index.html.wrr
-rhupnq_msn:   org.example.ですの.ジャジェメント/is/index.html_GET_200C.0.wrr
-flat:         ジャジェメント.ですの.example.org/is__index.html_GET_24bd_200C.wrr
-flat_n:       ジャジェメント.ですの.example.org/is__index.html_GET_24bd_200C.0.wrr
-default:      1970/01/01/001640000_0_GET_4484_200C_königsgäßchen.example.org.0.wrr
-short:        1970/01/01/1000000_0.0.wrr
+url_msn:      ジャジェメント.ですの.example.org/is_GET_200C.0
+hupq:         ジャジェメント.ですの.example.org/is/index.html
+hupq_msn:     ジャジェメント.ですの.example.org/is/index.html_GET_200C.0
+hupnq:        ジャジェメント.ですの.example.org/is/index.html
+hupnq_msn:    ジャジェメント.ですの.example.org/is/index.html_GET_200C.0
+rhupq:        org.example.ですの.ジャジェメント/is/index.html
+rhupq_msn:    org.example.ですの.ジャジェメント/is/index.html_GET_200C.0
+rhupnq:       org.example.ですの.ジャジェメント/is/index.html
+rhupnq_msn:   org.example.ですの.ジャジェメント/is/index.html_GET_200C.0
+flat:         ジャジェメント.ですの.example.org/is__index.html_GET_24bd_200C
+flat_n:       ジャジェメント.ですの.example.org/is__index.html_GET_24bd_200C.0
+default:      1970/01/01/001640000_0_GET_4484_200C_königsgäßchen.example.org.0
+short:        1970/01/01/1000000_0.0
 surl:         https/königsgäßchen.example.org/?arg1=1&arg2&arg3&arg3=3
-surl_msn:     https/königsgäßchen.example.org/?arg1=1&arg2&arg3&arg3=3_GET_200C.0.wrr
-shupq:        https/königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3.wrr
-shupq_msn:    https/königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0.wrr
-shupnq:       https/königsgäßchen.example.org/index.html?arg1=1&arg3=3.wrr
-shupnq_msn:   https/königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_200C.0.wrr
-srhupq:       https/org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3.wrr
-srhupq_msn:   https/org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0.wrr
-srhupnq:      https/org.example.königsgäßchen/index.html?arg1=1&arg3=3.wrr
-srhupnq_msn:  https/org.example.königsgäßchen/index.html?arg1=1&arg3=3_GET_200C.0.wrr
+surl_msn:     https/königsgäßchen.example.org/?arg1=1&arg2&arg3&arg3=3_GET_200C.0
+shupq:        https/königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3
+shupq_msn:    https/königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0
+shupnq:       https/königsgäßchen.example.org/index.html?arg1=1&arg3=3
+shupnq_msn:   https/königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_200C.0
+srhupq:       https/org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3
+srhupq_msn:   https/org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0
+srhupnq:      https/org.example.königsgäßchen/index.html?arg1=1&arg3=3
+srhupnq_msn:  https/org.example.königsgäßchen/index.html?arg1=1&arg3=3_GET_200C.0
 url:          königsgäßchen.example.org/?arg1=1&arg2&arg3&arg3=3
-url_msn:      königsgäßchen.example.org/?arg1=1&arg2&arg3&arg3=3_GET_200C.0.wrr
-hupq:         königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3.wrr
-hupq_msn:     königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0.wrr
-hupnq:        königsgäßchen.example.org/index.html?arg1=1&arg3=3.wrr
-hupnq_msn:    königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_200C.0.wrr
-rhupq:        org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3.wrr
-rhupq_msn:    org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0.wrr
-rhupnq:       org.example.königsgäßchen/index.html?arg1=1&arg3=3.wrr
-rhupnq_msn:   org.example.königsgäßchen/index.html?arg1=1&arg3=3_GET_200C.0.wrr
-flat:         königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_4484_200C.wrr
-flat_n:       königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_4484_200C.0.wrr"""
+url_msn:      königsgäßchen.example.org/?arg1=1&arg2&arg3&arg3=3_GET_200C.0
+hupq:         königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3
+hupq_msn:     königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0
+hupnq:        königsgäßchen.example.org/index.html?arg1=1&arg3=3
+hupnq_msn:    königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_200C.0
+rhupq:        org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3
+rhupq_msn:    org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0
+rhupnq:       org.example.königsgäßchen/index.html?arg1=1&arg3=3
+rhupnq_msn:   org.example.königsgäßchen/index.html?arg1=1&arg3=3_GET_200C.0
+flat:         königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_4484_200C
+flat_n:       königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_4484_200C.0"""
 
 not_allowed = gettext("; this is not allowed to prevent accidental data loss")
 variance_help = gettext("; your `--output` format fails to provide enough variance to solve this problem automatically (did your forget to place a `%%(num)d` substitution in there?)") + not_allowed
@@ -460,6 +460,8 @@ def make_deferred_emit(cargs : _t.Any,
                        actioning : str,
                        deferredIO : type[DeferredIO[DataSource, _t.AnyStr]]) \
         -> tuple[_t.Callable[[DataSource, ReqresExpr], None], _t.Callable[[], None]]:
+    output_format = cargs.output_format + ".wrr"
+
     # current memory consumption
     @_dc.dataclass
     class Memory:
@@ -623,12 +625,15 @@ def make_deferred_emit(cargs : _t.Any,
         if not filters_allow(cargs, rrexpr): return
 
         rrexpr.items["num"] = 0
-        ogprefix = _os.path.join(destination, cargs.output_format % rrexpr)
+        ogprefix = _os.path.join(destination, output_format % rrexpr)
         prev_rel_out_path = None
         intent : DeferredIO[DataSource, _t.AnyStr] | None = None
         while True:
             rrexpr.items["num"] = seen_count(ogprefix)
-            rel_out_path = _os.path.join(destination, cargs.output_format % rrexpr)
+            if isinstance(destination, str):
+                rel_out_path = _os.path.join(destination, output_format % rrexpr)
+            else:
+                rel_out_path = _os.path.join(destination, _os.fsencode(output_format % rrexpr))
             abs_out_path = _os.path.abspath(rel_out_path)
 
             old_source : DataSource | None
