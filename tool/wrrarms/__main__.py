@@ -110,19 +110,6 @@ def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr) -> bool:
     else:
         return True
 
-def elaborate_paths(cargs : _t.Any) -> None:
-    for i in range(0, len(cargs.paths)):
-        cargs.paths[i] = _os.path.expanduser(cargs.paths[i])
-
-def handle_sorting(cargs : _t.Any, default_walk : bool | None = None) -> None:
-    if cargs.walk_paths == "unset":
-        cargs.walk_paths = default_walk
-    if cargs.walk_fs == "unset":
-        cargs.walk_fs = True
-
-    if cargs.walk_paths is not None:
-        cargs.paths.sort(reverse=not cargs.walk_paths)
-
 def elaborate_output(cargs : _t.Any) -> None:
     if cargs.dry_run:
         cargs.terminator = None
@@ -135,13 +122,22 @@ def elaborate_output(cargs : _t.Any) -> None:
         except KeyError:
             raise CatastrophicFailure(gettext('unknown `--output` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), cargs.output)
 
-def slurp_stdin0(cargs : _t.Any) -> None:
-    if not cargs.stdin0: return
-    paths = stdin.read_all_bytes().split(b"\0")
-    last = paths.pop()
-    if last != b"":
-        raise Failure(gettext("`--stdin0` input format error"))
-    cargs.paths += paths
+def elaborate_paths(cargs : _t.Any) -> None:
+    for i in range(0, len(cargs.paths)):
+        cargs.paths[i] = _os.path.expanduser(cargs.paths[i])
+
+def handle_paths(cargs : _t.Any, append_stdin0 : bool = True) -> None:
+    if append_stdin0 and cargs.stdin0:
+        paths = stdin.read_all_bytes().split(b"\0")
+        last = paths.pop()
+        if last != b"":
+            raise Failure(gettext("`--stdin0` input format error"))
+        cargs.paths += paths
+
+    elaborate_paths(cargs)
+
+    if cargs.walk_paths is not None:
+        cargs.paths.sort(reverse=not cargs.walk_paths)
 
 LoadElem = _t.TypeVar("LoadElem")
 def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], LoadElem],
@@ -211,9 +207,7 @@ def get_bytes(value : _t.Any) -> bytes:
 
 def cmd_pprint(cargs : _t.Any) -> None:
     compile_filters(cargs)
-    elaborate_paths(cargs)
-    slurp_stdin0(cargs)
-    handle_sorting(cargs)
+    handle_paths(cargs)
 
     def emit(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
         if not filters_allow(cargs, rrexpr): return
@@ -307,9 +301,7 @@ def cmd_stream(cargs : _t.Any) -> None:
         cargs.exprs = ["."]
     compile_exprs(cargs)
     compile_filters(cargs)
-    elaborate_paths(cargs)
-    slurp_stdin0(cargs)
-    handle_sorting(cargs)
+    handle_paths(cargs)
 
     stream = get_StreamEncoder(cargs)
 
@@ -333,9 +325,7 @@ def cmd_stream(cargs : _t.Any) -> None:
 
 def cmd_find(cargs : _t.Any) -> None:
     compile_filters(cargs)
-    elaborate_paths(cargs)
-    slurp_stdin0(cargs)
-    handle_sorting(cargs)
+    handle_paths(cargs)
 
     def emit(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
         if not filters_allow(cargs, rrexpr): return
@@ -895,11 +885,14 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
     return emit, finish
 
 def cmd_organize(cargs : _t.Any) -> None:
+    if cargs.walk_paths == "unset":
+        cargs.walk_paths = None if not cargs.allow_updates else False
+    if cargs.walk_fs == "unset":
+        cargs.walk_fs = True if not cargs.allow_updates else False
+
     compile_filters(cargs)
     elaborate_output(cargs)
-    elaborate_paths(cargs)
-    slurp_stdin0(cargs)
-    handle_sorting(cargs, None if not cargs.allow_updates else False)
+    handle_paths(cargs)
 
     if cargs.destination is not None:
         # destination is set explicitly
@@ -932,9 +925,7 @@ def cmd_organize(cargs : _t.Any) -> None:
 def cmd_import_mitmproxy(cargs : _t.Any) -> None:
     compile_filters(cargs)
     elaborate_output(cargs)
-    elaborate_paths(cargs)
-    slurp_stdin0(cargs)
-    handle_sorting(cargs)
+    handle_paths(cargs)
 
     emit_one : _t.Callable[[SourcedBytes[_t.AnyStr], ReqresExpr], None]
     emit_one, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", make_DeferredFileWriteIntent(False))
@@ -1160,26 +1151,34 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     def add_separator(cmd : _t.Any, *args : _t.Any, **kwargs : _t.Any) -> None:
         add_termsep(cmd, "separ", *args, **kwargs)
 
-    def add_paths(cmd : _t.Any, with_update : bool = False) -> None:
-        if with_update:
-            def_def = " " + _("(default when `--keep`)")
-            def_sup = " " + _("(default when `--latest`)")
-        else:
+    def add_paths(cmd : _t.Any, kind : str = "default") -> None:
+        def_paths : bool | str | None
+        def_walk : bool | str | None
+        if kind == "default":
             def_def = " " + _("(default)")
             def_sup = ""
+            def_paths = None
+            def_walk = True
+        elif kind == "organize":
+            def_def = " " + _("(default when `--keep`)")
+            def_sup = " " + _("(default when `--latest`)")
+            def_paths = "unset"
+            def_walk = "unset"
+        else:
+            assert False
 
         agrp = cmd.add_argument_group("file system path ordering")
         grp = agrp.add_mutually_exclusive_group()
         grp.add_argument("--paths-given-order", dest="walk_paths", action="store_const", const = None, help=_("`argv` and `--stdin0` `PATH`s are processed in the order they are given") + def_def)
-        grp.add_argument("--paths-sorted", dest="walk_paths", action="store_const", const = False, help=_("`argv` and `--stdin0` `PATH`s are processed in lexicographic order"))
-        grp.add_argument("--paths-reversed", dest="walk_paths", action="store_const", const = True, help=_("`argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order") + def_sup)
-        cmd.set_defaults(walk_paths = "unset")
+        grp.add_argument("--paths-sorted", dest="walk_paths", action="store_const", const = True, help=_("`argv` and `--stdin0` `PATH`s are processed in lexicographic order"))
+        grp.add_argument("--paths-reversed", dest="walk_paths", action="store_const", const = False, help=_("`argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order") + def_sup)
+        cmd.set_defaults(walk_paths = def_paths)
 
         grp = agrp.add_mutually_exclusive_group()
         grp.add_argument("--walk-fs-order", dest="walk_fs", action="store_const", const = None, help=_("recursive file system walk is done in the order `readdir(2)` gives results"))
-        grp.add_argument("--walk-sorted", dest="walk_fs", action="store_const", const = False, help=_("recursive file system walk is done in lexicographic order") + def_def)
-        grp.add_argument("--walk-reversed", dest="walk_fs", action="store_const", const = True, help=_("recursive file system walk is done in reverse lexicographic order") + def_sup)
-        cmd.set_defaults(walk_fs = "unset")
+        grp.add_argument("--walk-sorted", dest="walk_fs", action="store_const", const = True, help=_("recursive file system walk is done in lexicographic order") + def_def)
+        grp.add_argument("--walk-reversed", dest="walk_fs", action="store_const", const = False, help=_("recursive file system walk is done in reverse lexicographic order") + def_sup)
+        cmd.set_defaults(walk_fs = def_walk)
 
         cmd.add_argument("--stdin0", action="store_true", help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments"))
 
@@ -1338,7 +1337,7 @@ all other updates are disallowed"""))
                      "  - `num`: " + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique") + "\n" + \
                      "  - " + _(f"all expressions of `{__package__} get --expr`, which see"))
 
-    add_paths(cmd, True)
+    add_paths(cmd, "organize")
     cmd.set_defaults(func=cmd_organize)
 
     # import
