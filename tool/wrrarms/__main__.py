@@ -344,31 +344,42 @@ output_aliases = {
     "surl":       "%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s",
     "surl_msn":   "%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d",
 
-    "shupq":      "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s",
-    "shupq_msn":  "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d",
-    "shupnq":     "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s",
-    "shupnq_msn": "%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d",
+    "shupq":      "%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s",
+    "shupq_msn":  "%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s",
+    "shupnq":     "%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s",
+    "shupnq_msn": "%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s",
+    "shupnq_mhs": "%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s",
+    "shupnq_mhsn":"%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s",
 
-    "srhupq":     "%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s",
-    "srhupq_msn": "%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d",
-    "srhupnq":    "%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s",
-    "srhupnq_msn":"%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d",
+    "srhupq":     "%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s",
+    "srhupq_msn": "%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s",
+    "srhupnq":    "%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s",
+    "srhupnq_msn":"%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s",
+    "srhupnq_mhs":"%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s",
+    "srhupnq_mhsn":"%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s",
 
     "url":        "%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s",
     "url_msn":    "%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d",
 
-    "hupq":       "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s",
-    "hupq_msn":   "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d",
-    "hupnq":      "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s",
-    "hupnq_msn":  "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d",
+    "hupq":       "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s",
+    "hupq_msn":   "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s",
+    "hupnq":      "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s",
+    "hupnq_msn":  "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s",
+    "hupnq_mhs":  "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s",
+    "hupnq_mhsn": "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s",
 
-    "rhupq":      "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s",
-    "rhupq_msn":  "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d",
-    "rhupnq":     "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s",
-    "rhupnq_msn": "%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d",
+    "rhupq":      "%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s",
+    "rhupq_msn":  "%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s",
+    "rhupnq":     "%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s",
+    "rhupnq_msn": "%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s",
+    "rhupnq_mhs": "%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s",
+    "rhupnq_mhsn":"%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s",
 
-    "flat":       "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s",
-    "flat_n":     "%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d",
+    "flat":       "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s%(filepath_ext)s",
+    "flat_ms":    "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s%(filepath_ext)s",
+    "flat_msn":   "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s",
+    "flat_mhs":   "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s",
+    "flat_mhsn":  "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s",
 }
 
 def test_outputs_aliases() -> None:
@@ -387,55 +398,80 @@ def test_outputs_aliases() -> None:
         for name in output_aliases:
             res += "\n" + name + ":" + " " * (12 - len(name)) + " " + output_aliases[name] % x
 
-    assert res == """
+    print(res)
+
+    assert res + "\n" == """
 default:      1970/01/01/001640000_0_GET_24bd_200C_ジャジェメント.ですの.example.org.0
 short:        1970/01/01/1000000_0.0
 surl:         http/ジャジェメント.ですの.example.org/is
 surl_msn:     http/ジャジェメント.ですの.example.org/is_GET_200C.0
-shupq:        http/ジャジェメント.ですの.example.org/is/index.html
-shupq_msn:    http/ジャジェメント.ですの.example.org/is/index.html_GET_200C.0
-shupnq:       http/ジャジェメント.ですの.example.org/is/index.html
-shupnq_msn:   http/ジャジェメント.ですの.example.org/is/index.html_GET_200C.0
-srhupq:       http/org.example.ですの.ジャジェメント/is/index.html
-srhupq_msn:   http/org.example.ですの.ジャジェメント/is/index.html_GET_200C.0
-srhupnq:      http/org.example.ですの.ジャジェメント/is/index.html
-srhupnq_msn:  http/org.example.ですの.ジャジェメント/is/index.html_GET_200C.0
+shupq:        http/ジャジェメント.ですの.example.org/is/index.htm
+shupq_msn:    http/ジャジェメント.ですの.example.org/is/index_GET_200C.0.htm
+shupnq:       http/ジャジェメント.ですの.example.org/is/index.htm
+shupnq_msn:   http/ジャジェメント.ですの.example.org/is/index_GET_200C.0.htm
+shupnq_mhs:   http/ジャジェメント.ですの.example.org/is/index_GET_24bd_200C.htm
+shupnq_mhsn:  http/ジャジェメント.ですの.example.org/is/index_GET_24bd_200C.0.htm
+srhupq:       http/org.example.ですの.ジャジェメント/is/index.htm
+srhupq_msn:   http/org.example.ですの.ジャジェメント/is/index_GET_200C.0.htm
+srhupnq:      http/org.example.ですの.ジャジェメント/is/index.htm
+srhupnq_msn:  http/org.example.ですの.ジャジェメント/is/index_GET_200C.0.htm
+srhupnq_mhs:  http/org.example.ですの.ジャジェメント/is/index_GET_24bd_200C.htm
+srhupnq_mhsn: http/org.example.ですの.ジャジェメント/is/index_GET_24bd_200C.0.htm
 url:          ジャジェメント.ですの.example.org/is
 url_msn:      ジャジェメント.ですの.example.org/is_GET_200C.0
-hupq:         ジャジェメント.ですの.example.org/is/index.html
-hupq_msn:     ジャジェメント.ですの.example.org/is/index.html_GET_200C.0
-hupnq:        ジャジェメント.ですの.example.org/is/index.html
-hupnq_msn:    ジャジェメント.ですの.example.org/is/index.html_GET_200C.0
-rhupq:        org.example.ですの.ジャジェメント/is/index.html
-rhupq_msn:    org.example.ですの.ジャジェメント/is/index.html_GET_200C.0
-rhupnq:       org.example.ですの.ジャジェメント/is/index.html
-rhupnq_msn:   org.example.ですの.ジャジェメント/is/index.html_GET_200C.0
-flat:         ジャジェメント.ですの.example.org/is__index.html_GET_24bd_200C
-flat_n:       ジャジェメント.ですの.example.org/is__index.html_GET_24bd_200C.0
+hupq:         ジャジェメント.ですの.example.org/is/index.htm
+hupq_msn:     ジャジェメント.ですの.example.org/is/index_GET_200C.0.htm
+hupnq:        ジャジェメント.ですの.example.org/is/index.htm
+hupnq_msn:    ジャジェメント.ですの.example.org/is/index_GET_200C.0.htm
+hupnq_mhs:    ジャジェメント.ですの.example.org/is/index_GET_24bd_200C.htm
+hupnq_mhsn:   ジャジェメント.ですの.example.org/is/index_GET_24bd_200C.0.htm
+rhupq:        org.example.ですの.ジャジェメント/is/index.htm
+rhupq_msn:    org.example.ですの.ジャジェメント/is/index_GET_200C.0.htm
+rhupnq:       org.example.ですの.ジャジェメント/is/index.htm
+rhupnq_msn:   org.example.ですの.ジャジェメント/is/index_GET_200C.0.htm
+rhupnq_mhs:   org.example.ですの.ジャジェメント/is/index_GET_24bd_200C.htm
+rhupnq_mhsn:  org.example.ですの.ジャジェメント/is/index_GET_24bd_200C.0.htm
+flat:         ジャジェメント.ですの.example.org/is__index.htm
+flat_ms:      ジャジェメント.ですの.example.org/is__index_GET_200C.htm
+flat_msn:     ジャジェメント.ですの.example.org/is__index_GET_200C.0.htm
+flat_mhs:     ジャジェメント.ですの.example.org/is__index_GET_24bd_200C.htm
+flat_mhsn:    ジャジェメント.ですの.example.org/is__index_GET_24bd_200C.0.htm
 default:      1970/01/01/001640000_0_GET_4484_200C_königsgäßchen.example.org.0
 short:        1970/01/01/1000000_0.0
 surl:         https/königsgäßchen.example.org/?arg1=1&arg2&arg3&arg3=3
 surl_msn:     https/königsgäßchen.example.org/?arg1=1&arg2&arg3&arg3=3_GET_200C.0
-shupq:        https/königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3
-shupq_msn:    https/königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0
-shupnq:       https/königsgäßchen.example.org/index.html?arg1=1&arg3=3
-shupnq_msn:   https/königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_200C.0
-srhupq:       https/org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3
-srhupq_msn:   https/org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0
-srhupnq:      https/org.example.königsgäßchen/index.html?arg1=1&arg3=3
-srhupnq_msn:  https/org.example.königsgäßchen/index.html?arg1=1&arg3=3_GET_200C.0
+shupq:        https/königsgäßchen.example.org/index?arg1=1&arg2&arg3&arg3=3.htm
+shupq_msn:    https/königsgäßchen.example.org/index?arg1=1&arg2&arg3&arg3=3_GET_200C.0.htm
+shupnq:       https/königsgäßchen.example.org/index?arg1=1&arg3=3.htm
+shupnq_msn:   https/königsgäßchen.example.org/index?arg1=1&arg3=3_GET_200C.0.htm
+shupnq_mhs:   https/königsgäßchen.example.org/index?arg1=1&arg3=3_GET_4484_200C.htm
+shupnq_mhsn:  https/königsgäßchen.example.org/index?arg1=1&arg3=3_GET_4484_200C.0.htm
+srhupq:       https/org.example.königsgäßchen/index?arg1=1&arg2&arg3&arg3=3.htm
+srhupq_msn:   https/org.example.königsgäßchen/index?arg1=1&arg2&arg3&arg3=3_GET_200C.0.htm
+srhupnq:      https/org.example.königsgäßchen/index?arg1=1&arg3=3.htm
+srhupnq_msn:  https/org.example.königsgäßchen/index?arg1=1&arg3=3_GET_200C.0.htm
+srhupnq_mhs:  https/org.example.königsgäßchen/index?arg1=1&arg3=3_GET_4484_200C.htm
+srhupnq_mhsn: https/org.example.königsgäßchen/index?arg1=1&arg3=3_GET_4484_200C.0.htm
 url:          königsgäßchen.example.org/?arg1=1&arg2&arg3&arg3=3
 url_msn:      königsgäßchen.example.org/?arg1=1&arg2&arg3&arg3=3_GET_200C.0
-hupq:         königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3
-hupq_msn:     königsgäßchen.example.org/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0
-hupnq:        königsgäßchen.example.org/index.html?arg1=1&arg3=3
-hupnq_msn:    königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_200C.0
-rhupq:        org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3
-rhupq_msn:    org.example.königsgäßchen/index.html?arg1=1&arg2&arg3&arg3=3_GET_200C.0
-rhupnq:       org.example.königsgäßchen/index.html?arg1=1&arg3=3
-rhupnq_msn:   org.example.königsgäßchen/index.html?arg1=1&arg3=3_GET_200C.0
-flat:         königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_4484_200C
-flat_n:       königsgäßchen.example.org/index.html?arg1=1&arg3=3_GET_4484_200C.0"""
+hupq:         königsgäßchen.example.org/index?arg1=1&arg2&arg3&arg3=3.htm
+hupq_msn:     königsgäßchen.example.org/index?arg1=1&arg2&arg3&arg3=3_GET_200C.0.htm
+hupnq:        königsgäßchen.example.org/index?arg1=1&arg3=3.htm
+hupnq_msn:    königsgäßchen.example.org/index?arg1=1&arg3=3_GET_200C.0.htm
+hupnq_mhs:    königsgäßchen.example.org/index?arg1=1&arg3=3_GET_4484_200C.htm
+hupnq_mhsn:   königsgäßchen.example.org/index?arg1=1&arg3=3_GET_4484_200C.0.htm
+rhupq:        org.example.königsgäßchen/index?arg1=1&arg2&arg3&arg3=3.htm
+rhupq_msn:    org.example.königsgäßchen/index?arg1=1&arg2&arg3&arg3=3_GET_200C.0.htm
+rhupnq:       org.example.königsgäßchen/index?arg1=1&arg3=3.htm
+rhupnq_msn:   org.example.königsgäßchen/index?arg1=1&arg3=3_GET_200C.0.htm
+rhupnq_mhs:   org.example.königsgäßchen/index?arg1=1&arg3=3_GET_4484_200C.htm
+rhupnq_mhsn:  org.example.königsgäßchen/index?arg1=1&arg3=3_GET_4484_200C.0.htm
+flat:         königsgäßchen.example.org/index?arg1=1&arg3=3.htm
+flat_ms:      königsgäßchen.example.org/index?arg1=1&arg3=3_GET_200C.htm
+flat_msn:     königsgäßchen.example.org/index?arg1=1&arg3=3_GET_200C.0.htm
+flat_mhs:     königsgäßchen.example.org/index?arg1=1&arg3=3_GET_4484_200C.htm
+flat_mhsn:    königsgäßchen.example.org/index?arg1=1&arg3=3_GET_4484_200C.0.htm
+"""
 
 not_allowed = gettext("; this is not allowed to prevent accidental data loss")
 variance_help = gettext("; your `--output` format fails to provide enough variance to solve this problem automatically (did your forget to place a `%%(num)d` substitution in there?)") + not_allowed
@@ -953,6 +989,160 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
     finally:
         finish()
 
+default_export_expr = "response.body|eb|scrub response +all_refs,-actions"
+def cmd_export_mirror(cargs : _t.Any) -> None:
+    expr_func = linst_compile(cargs.expr, ReqresExpr_lookup)
+    compile_filters(cargs)
+    elaborate_output(cargs)
+    handle_paths(cargs)
+
+    always_fallback = cargs.remap_urls in ["id", "void"]
+    remap_url_fallback : _t.Callable[[Epoch, str, int, ParsedURL], str]
+    if cargs.remap_urls in ["id", "open"]:
+        remap_url_fallback = lambda st, ap, kind, purl: remap_url_id(kind, purl.raw_url)
+    elif cargs.remap_urls in ["void", "closed"]:
+        remap_url_fallback = lambda st, ap, kind, purl: remap_url_into_void(kind, purl.raw_url)
+    elif cargs.remap_urls == "all":
+        def remap_url_fallback(stime : Epoch, document_path : str, kind : int, purl : ParsedURL) -> str:
+            trrexpr = ReqresExpr(trivial_Reqres(purl, stime, stime, stime), None, [])
+            trrexpr.items["num"] = 0
+            rel_out_path : str = _os.path.join(destination, cargs.output_format % trrexpr)
+            abs_out_path = _os.path.abspath(rel_out_path)
+            return _os.path.relpath(abs_out_path, document_path)
+    else:
+        assert False
+
+    def remap_url_func_maker(queue : list[str], enqueue : bool, stime : Epoch, document_path : str) -> _t.Callable[[int, str], str]:
+        def remap_url_func(kind : int, url : str) -> str:
+            try:
+                purl = parse_url(url)
+            except URLParsingError:
+                issue("malformed URL `%s`", url)
+                return remap_url_into_void(kind, url)
+
+            if purl.scheme not in Reqres_url_schemes:
+                issue("not remapping `%s`", url)
+                return url
+
+            net_url = purl.net_url
+            try:
+                _, _, abs_out_path = index[net_url]
+            except KeyError:
+                abs_out_path = None
+
+            if abs_out_path is not None and net_url not in visited:
+                visited.add(net_url)
+                # queue this if we are not over max_depth or this is a resource
+                if enqueue or kind == 2:
+                    queue.append(net_url)
+                    if stdout.isatty:
+                        stdout.write_bytes(b"\033[33m")
+                    stdout.write_str_ln(gettext("queued %s (%s)") % (purl.pretty_url, net_url))
+                    if stdout.isatty:
+                        stdout.write_bytes(b"\033[0m")
+                    stdout.flush()
+
+            if abs_out_path is None or always_fallback:
+                return remap_url_fallback(stime, document_path, kind, purl)
+
+            return _os.path.relpath(abs_out_path, document_path)
+        return remap_url_func
+
+    destination = _os.path.expanduser(cargs.destination)
+
+    mem = Memory()
+    seen_counter : SeenCounter[str] = SeenCounter(mem)
+
+    # net_url -> (stime, src_path, dst_path)
+    index : dict[str, tuple[Epoch, str, str]] = dict()
+    # indexed by net_url
+    visited : set[str] = set()
+    queue : list[str] = []
+    current_depth : int = 0
+    max_depth : int = cargs.depth
+
+    queue_all = len(cargs.roots) == 0
+    def collect(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
+        reqres = rrexpr.reqres
+        response = reqres.response
+        if reqres.request.method != "GET" or \
+           response is None or \
+           response.code != 200:
+            return
+
+        if not filters_allow(cargs, rrexpr): return
+
+        net_url = rrexpr.net_url
+        stime = rrexpr.stime
+        try:
+            prev_stime, _, abs_out_path = index[net_url]
+        except KeyError:
+            prev_stime = None
+
+            rrexpr.items["num"] = 0
+            ogprefix = _os.path.join(destination, cargs.output_format % rrexpr)
+            rrexpr.items["num"] = seen_counter.count(ogprefix)
+            rel_out_path = _os.path.join(destination, cargs.output_format % rrexpr)
+            abs_out_path = _os.path.abspath(rel_out_path)
+
+        if prev_stime is None or prev_stime < stime:
+            # update
+            index[net_url] = stime, abs_in_path, abs_out_path
+
+        if queue_all and net_url not in visited:
+            visited.add(net_url)
+            queue.append(net_url)
+
+    map_wrr_paths(collect, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
+
+    for url in cargs.roots:
+        net_url = parse_url(url).net_url
+        if net_url not in index:
+            raise CatastrophicFailure(gettext("`--root` `%s` was not found among candidates loaded from given input `PATH`s"), url)
+        if net_url not in visited:
+            visited.add(net_url)
+            queue.append(net_url)
+
+    n = 0
+    index_total = len(index)
+    prev_total = 0
+
+    while len(queue) > 0:
+        if want_stop: raise KeyboardInterrupt()
+
+        prev_total += len(queue)
+
+        prev_queue = queue
+        queue = []
+
+        current_depth += 1
+        enqueue = current_depth <= max_depth
+
+        for net_url in prev_queue:
+            if want_stop: raise KeyboardInterrupt()
+
+            n += 1
+            n_total = prev_total + len(queue)
+            stime, abs_in_path, abs_out_path = index[net_url]
+
+            if stdout.isatty:
+                stdout.write_bytes(b"\033[32m")
+            stdout.write_str_ln(gettext("exporting %d of %d (%.2f%%, %.2f%% of %d indexed)") % (n, n_total, 100 * n / n_total, 100 * n / index_total, index_total))
+            if stdout.isatty:
+                stdout.write_bytes(b"\033[0m")
+            stdout.write_str_ln(gettext("URL %s\nsrc %s\ndst %s") % (net_url, abs_in_path, abs_out_path))
+            stdout.flush()
+
+            rrexpr = wrr_loadf_expr(abs_in_path)
+            rrexpr.items["remap_url"] = remap_url_func_maker(queue, enqueue, stime, _os.path.dirname(abs_out_path))
+
+            try:
+                data = get_bytes(expr_func(rrexpr, None))
+                undeferred_write(data, abs_out_path, None, True)
+            except Exception:
+                error(gettext("while processing `%s`"), abs_in_path)
+                raise
+
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     _ = gettext
 
@@ -1085,7 +1275,7 @@ def main() -> None:
 
     parser = ArgumentParser(
         prog=__package__,
-        description=_("A tool to pretty-print, compute and print values from, search, organize (programmatically rename/move/symlink/hardlink files), (WIP: check, deduplicate, and edit) pWebArc WRR (WEBREQRES, Web REQuest+RESponse) archive files.") + "\n\n" +
+        description=_("A tool to pretty-print, compute and print values from, search, organize (programmatically rename/move/symlink/hardlink files), import, export, (WIP: check, deduplicate, and edit) pWebArc WRR (WEBREQRES, Web REQuest+RESponse) archive files.") + "\n\n" +
 _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing HTTP request+response pair with some additional metadata."),
         additional_sections = [add_doc],
         allow_abbrev = False,
@@ -1116,12 +1306,25 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                          help=_(f"... and all of these expressions, both can be specified multiple times, both use the same expression format as `{__package__} get --expr`, which see"))
 
     def add_remap(cmd : _t.Any, kind : str = "get") -> None:
-        def_id = " " + _("(default)")
+        def_def = " " + _("(default)")
+        if kind == "get":
+            def_id = def_def
+            def_all = ""
+        elif kind == "export":
+            def_id = ""
+            def_all = def_def
         agrp = cmd.add_argument_group("URL remapping, used by `scrub` `--expr` atom")
         grp = agrp.add_mutually_exclusive_group()
         grp.add_argument("--remap-id", dest="remap_urls", action="store_const", const="id", help=_("remap all URLs with an identity function; i.e. don't remap anything") + def_id)
         grp.add_argument("--remap-void", dest="remap_urls", action="store_const", const="void", help=_("remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; the result will be self-contained"))
-        cmd.set_defaults(remap_urls = "id")
+        if kind == "export":
+            grp.add_argument("--remap-open", "-k", "--convert-links", dest="remap_urls", action="store_const", const="open", help=_("point all available URLs present in input `PATH`s to their corresponding output paths, remap all unavailable URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`"))
+            grp.add_argument("--remap-closed", dest="remap_urls", action="store_const", const="closed", help=_("remap all available URLs like `--remap-open` does, remap all unavailable URLs like `--remap-void` does; the result will be self-contained"))
+            grp.add_argument("--remap-all", dest="remap_urls", action="store_const", const="all", help=_(f"remap all available URLs like `--remap-open` does, point each unavailable URL to a path produced by the current `--output` format for a trivial `GET <URL> -> 200 OK` reqres; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this allows `{__package__} export` to be used incrementally; the result will be self-contained") + def_all)
+        if kind == "get":
+            cmd.set_defaults(remap_urls = "id")
+        else:
+            cmd.set_defaults(remap_urls = "all")
 
     def add_abridged(cmd : _t.Any) -> None:
         grp = cmd.add_mutually_exclusive_group()
@@ -1220,6 +1423,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         "- " + _("a compound expression built by piping (`|`) the above, for example") + __(f""":
 - `{default_get_expr}` (the default for `get`) will print raw `response.body` or an empty byte string, if there was no response;
 - `{default_get_expr}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all action and resource reference URLs;
+- `{default_export_expr}` (the default for `export`) will remap all `href` jump-links and `src` resource references to local files while still censoring out all action URLs (since those don't make sense for a static mirror);
 - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
 - `response.complete|false` will print `response.complete` or `False`;
 - `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
@@ -1358,6 +1562,29 @@ In short, this is `{__package__} organize --copy` but for non-WRR `INPUT` files.
     cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same as `{__package__} organize --output`, which see"""))
     add_paths(cmd)
     cmd.set_defaults(func=cmd_import_mitmproxy)
+
+    # export
+    supcmd = subparsers.add_parser("export", help=_(f"convert WRR archives into other formats"),
+                                   description = _(f"""Parse given WRR files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata."""))
+    supsub = supcmd.add_subparsers(title="file formats")
+
+    cmd = supsub.add_parser("mirror", help=_("convert given WRR files into a local website mirror stored in interlinked plain files"),
+                            description = _(f"""Parse given WRR files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
+In short, this is a combination of `{__package__} organize --copy` followed by in-place `{__package__} get`.
+In other words, this generates static offline website mirrors, producing results similar to those of `wget -mpk`."""))
+    add_errors(cmd)
+    add_filters(cmd, "export")
+    add_output(cmd)
+    agrp = cmd.add_argument_group("expression evaluation")
+    agrp.add_argument("-e", "--expr", dest="expr", metavar="EXPR", type=str, default = default_export_expr, help=_(f"an expression to export, see `{__package__} get --expr` for more info on expression format (default: `%(default)s`)"))
+    add_remap(cmd, "export")
+    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("target directory"))
+    cmd.add_argument("-o", "--output", metavar="FORMAT", default="hupq", type=str, help=_(f"format describing generated output paths, an alias name or a custom pythonic %%-substitution string; same as `{__package__} organize --output`, which see"))
+    agrp = cmd.add_argument_group("export targets (default: `net_url`s of all input `PATH`s)")
+    agrp.add_argument("-r", "--root", dest="roots", metavar="URL", action="append", type=str, default = [], help=_(f"recursion root; a URL which will be used as a root for recursive export; can be specified multiple times; if none are specified, then all URLs available from `PATH`s are treated as roots"))
+    agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `%(default)s`, which means "documents and their resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
+    add_paths(cmd)
+    cmd.set_defaults(func=cmd_export_mirror)
 
     cargs = parser.parse_args(_sys.argv[1:])
 

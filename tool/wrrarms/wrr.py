@@ -147,10 +147,23 @@ class ParsedURL:
             path_parts.append(e)
         return path_parts
 
-    @property
-    def wget_parts(self) -> list[str]:
+    def filepath_parts_ext(self, default : str, extensions : list[str]) -> tuple[list[str], str]:
         path_parts = self.path_parts
-        return path_parts + ["index.html"] if self.raw_path.endswith("/") else path_parts
+        if len(path_parts) == 0 or self.raw_path.endswith("/"):
+            return path_parts + [default], extensions[0] if len(extensions) > 0 else ".data"
+
+        last = path_parts[-1].lower()
+        last_name, last_ext = _os.path.splitext(last)
+        if last_ext == "":
+            return path_parts + [default], extensions[0] if len(extensions) > 0 else ".data"
+        elif last_ext in extensions:
+            return path_parts[:-1] + [last_name], last_ext
+        elif len(extensions) > 0:
+            return path_parts[:-1] + [last], extensions[0]
+        elif last_ext == ".data":
+            return path_parts[:-1] + [last_name], ".data"
+        else:
+            return path_parts[:-1] + [last], ".data"
 
     @property
     def query_parts(self) -> list[tuple[str, str]]:
@@ -405,9 +418,10 @@ Reqres_url_attrs = {
     "port": 'port part of `raw_url`; str',
     "netloc": "netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str",
     "raw_path": 'raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str',
-    "path_parts": 'component-wise unquoted "/"-split `raw_path` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]; list[str]',
+    "path_parts": 'component-wise unquoted "/"-split `raw_path` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]',
     "mq_path": "`path_parts` turned back into a minimally-quoted string; str",
-    "wget_parts": '`path + ["index.html"]` if `raw_path` ends in a slash, `path` otherwise; this is what `wget` does in `wget -mpk`; list[str]',
+    "filepath_parts": '`path_parts` transformed into components usable as an exportable file name; i.e. `path_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` MIME type; extension will be stored separately in `filepath_ext`; e.g. for HTML documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a JSON MIME type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
+    "filepath_ext": 'extension of the last component of `filepath_parts` for recognized MIME types, `".data"` otherwise; str',
     "raw_query": "query part of `raw_url` (i.e. everything after the `?` character and before the `#` character) as it is recorded in the reqres; str",
     "query_parts": "parsed (and component-wise unquoted) `raw_query`; list[tuple[str, str]]",
     "query_ne_parts": "`query_parts` with empty query parameters removed; list[tuple[str, str]]",
@@ -509,6 +523,14 @@ class ReqresExpr:
             self.items["ftime_ms"] = ftime_ms
             self.items["ftime_msq"] = ftime_ms % 1000
             self._fill_time("f", ftime)
+        elif name == "filepath_parts" or name == "filepath_ext":
+            if reqres.response is not None:
+                _, _, _, extensions = reqres.response.discern_content_type(True)
+            else:
+                extensions = []
+            parts, ext = reqres.request.url.filepath_parts_ext("index", extensions)
+            self.items["filepath_parts"] = parts
+            self.items["filepath_ext"] = ext
         elif name in Reqres_url_attrs:
             self.items[name] = getattr(reqres.request.url, name)
         elif name == "" or name in Reqres_fields:
@@ -546,16 +568,20 @@ class ReqresExpr:
             raise Failure("expression `%s` evaluated to `None`", expr)
         return res
 
-def trivial_Reqres(url : ParsedURL) -> Reqres:
+def trivial_Reqres(url : ParsedURL,
+                   qtime : Epoch = Epoch(0),
+                   stime : Epoch = Epoch(1000),
+                   ftime : Epoch = Epoch(2000),
+                   content_type : bytes = b"text/html") -> Reqres:
     return Reqres(1, "wrrarms-test/1", "HTTP/1.1",
-                  Request(Epoch(0), "GET", url, [], True, b""),
-                  Response(Epoch(1000), 200, "OK", [("Content-Type", b"text/html")], True, b""),
-                  Epoch(2000),
+                  Request(qtime, "GET", url, [], True, b""),
+                  Response(stime, 200, "OK", [("Content-Type", content_type)], True, b""),
+                  ftime,
                   {}, None)
 
 def test_ReqresExpr() -> None:
-    def mk(url : str) -> ReqresExpr:
-        return ReqresExpr(trivial_Reqres(parse_url(url)), None, [])
+    def mk(url : str, ct : bytes = b"text/html") -> ReqresExpr:
+        return ReqresExpr(trivial_Reqres(parse_url(url), content_type=ct), None, [])
 
     def check(x : ReqresExpr, name : str, value : _t.Any) -> None:
         if x[name] != value:
@@ -575,12 +601,32 @@ def test_ReqresExpr() -> None:
         x = mk(url)
         check(x, "net_url", url)
 
+    def check_fp(url : str, ext : str, *parts : str) -> None:
+        x = mk(url)
+        check(x, "filepath_ext", ext)
+        check(x, "filepath_parts", list(parts))
+
+    def check_fpx(url : str, ct : bytes, ext : str, *parts : str) -> None:
+        x = mk(url, ct)
+        check(x, "filepath_ext", ext)
+        check(x, "filepath_parts", list(parts))
+
+    check_fp("https://example.org/", ".htm", "index")
+    check_fp("https://example.org/index.html", ".html", "index")
+    check_fp("https://example.org/test", ".htm", "test", "index")
+    check_fp("https://example.org/test/", ".htm", "test", "index")
+    check_fp("https://example.org/test/index.html", ".html", "test", "index")
+
+    check_fp("https://example.org/test.data", ".htm", "test.data")
+    check_fpx("https://example.org/test.data", b"applications/octet-stream", ".data", "test")
+
     url = "https://example.org//first/./skipped/../second/?query=this"
     x = mk(url)
     path_components = ["first", "second"]
     check(x, "net_url", url)
     check(x, "path_parts", path_components)
-    check(x, "wget_parts", path_components + ["index.html"])
+    check(x, "filepath_parts", path_components + ["index"])
+    check(x, "filepath_ext", ".htm")
     check(x, "query_parts", [("query", "this")])
 
     x = mk("https://Königsgäßchen.example.org/испытание/../")
@@ -596,7 +642,8 @@ def test_ReqresExpr() -> None:
     check(x, "hostname", hostname)
     check(x, "net_hostname", ehostname)
     check(x, "path_parts", path_components)
-    check(x, "wget_parts", path_components)
+    check(x, "filepath_parts", path_components + ["index"])
+    check(x, "filepath_ext", ".htm")
     check(x, "query_parts", query_components)
     check(x, "fragment", "hash")
     check(x, "net_url", f"https://{ehostname}{path_query}")

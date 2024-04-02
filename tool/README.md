@@ -1,73 +1,100 @@
 # What?
 
-`wrrarms` (`pwebarc-wrrarms`) is a tool for displaying and manipulating [Personal Private Passive Web Archive (pwebarc)](https://github.com/Own-Data-Privateer/pwebarc/) (also [there](https://oxij.org/software/pwebarc/)) Web Request+Response (WRR) files produced by [pWebArc browser extension](https://github.com/Own-Data-Privateer/pwebarc/tree/master/extension/) (also [there](https://oxij.org/software/pwebarc/tree/master/extension/)).
+`wrrarms` (`pwebarc-wrrarms`) is a tool for displaying, programmatically manipulating, organizing, importing, and exporting [Personal Private Passive Web Archive (pwebarc)](https://github.com/Own-Data-Privateer/pwebarc/) (also [there](https://oxij.org/software/pwebarc/)) Web Request+Response (WRR) files produced by [pWebArc browser extension](https://github.com/Own-Data-Privateer/pwebarc/tree/master/extension/) (also [there](https://oxij.org/software/pwebarc/tree/master/extension/)).
 
 # Quickstart
 
 ## Installation
 
 - Install with:
-  ``` {.bash}
+  ```bash
   pip install pwebarc-wrrarms
   ```
   and run as
-  ``` {.bash}
+  ```bash
   wrrarms --help
   ```
 - Alternatively, install it via Nix
-  ``` {.bash}
+  ```bash
   nix-env -i -f ./default.nix
   wrrarms --help
   ```
 - Alternatively, run without installing:
-  ``` {.bash}
+  ```bash
   alias wrrarms="python3 -m wrrarms"
   wrrarms --help
   ```
 
-## How to build a hierarchy of latest versions of all URLs
+## How to build a file system tree of latest versions of all hoarded URLs
 
-Assuming you keep your WRR dumps in `~/pwebarc/raw` you can generate a `wget`-like file hierarchy of symlinks under `~/pwebarc/latest` pointing to the latest version of each URL in `~/pwebarc/raw` with
+Assuming you keep your WRR dumps in `~/pwebarc/raw` you can generate a hierarchy of symlinks for each URL pointing from under `~/pwebarc/latest` to the most recent WRR file in `~/pwebarc/raw` via:
 
-``` {.bash}
-wrrarms organize --action symlink-update --output hupq --to ~/pwebarc/latest --and "status|== 200C" ~/pwebarc/raw
+```bash
+wrrarms organize --symlink --latest --output hupq --to ~/pwebarc/latest --and "status|== 200C" ~/pwebarc/raw
 ```
 
-or, using a bit better format:
+Personally, I prefer `flat_mhs` (see the documentation of the `--output` below) format as I dislike deep file hierarchies, using it also simplifies filtering in my `ranger` file browser, so I do this:
 
-``` {.bash}
-wrrarms organize --action symlink-update --output hupnq --to ~/pwebarc/latest --and "status|== 200C" ~/pwebarc/raw
+```bash
+wrrarms organize --symlink --latest --output flat_mhs --to ~/pwebarc/latest --and "status|== 200C" ~/pwebarc/raw
 ```
 
-Personally, I prefer the `flat` format as I dislike deep file hierarchies and it allows to see and filter new dumps more easily in `ranger` file browser:
+These commands rescan the whole of `~/pwebarc/raw` and so take a while to complete.
+If you have a lot of WRR files and you want to keep your symlink tree updated in real-time you can use a two-stage `--stdin0` pipeline shown in the [examples section](#examples) below.
 
-``` {.bash}
-wrrarms organize --action symlink-update --output flat --to ~/pwebarc/latest --and "status|== 200C" ~/pwebarc/raw
+## <span id="mirror"/>How to generate a local offline website mirror like `wget -mpk`
+
+If you want to render your WRR files into a local offline website mirror containing interlinked HTML files and their resources a-la `wget -mpk` (`wget --mirror --page-requisites --convert-links`), run one of the above `--symlink --latest` command, and then do something like this:
+
+```bash
+wrrarms export mirror --to ~/pwebarc/mirror1 ~/pwebarc/latest/archiveofourown.org
 ```
 
-If you have a lot of WRR files all of the above commands could be rather slow, so if you want to keep your tree updated in real-time you should use a two-stage `--stdin0` pipeline shown in the [examples section](#examples) below instead.
+on completion `~/pwebarc/mirror1` will contain a bunch of interlinked minimized HTML files, their resources, and any other files they link to.
+By default, *all* the links in exported HTML files will be remapped to local files (even if source WRR files for those would-be exported files are missing in `~/pwebarc/latest/archiveofourown.org`), and those HTML files will also be stripped of all JavaScript, CSS, and other stuff of various levels of evil (see documentation for the `scrub` function below).
 
-## How do I open WRR files with `xdg-open`? How do I generate previews for them?
+On the plus side, the result will be completely self-contained and safe to view with a dumb unconfigured browser.
 
-See [`script` sub-directory](./script/README.md) for examples.
+If you are unhappy with this behaviour and, for instance, want to keep the CSS and produce human-readable HTML, run the following instead:
+
+```bash
+wrrarms export mirror -e 'response.body|eb|scrub response +all_refs,-actions,+styles,+pretty' --to ~/pwebarc/mirror2 ~/pwebarc/latest/archiveofourown.org
+```
+
+Note, however, that CSS resource filtering and remapping is not implemented yet.
+
+If you also want to keep links that point to not yet hoarded Internet URLs to still point those URLs in the exported files instead of them pointing to non-existent local files, similarly to what `wget -mpk` does, run:
+
+```bash
+wrrarms export mirror -e 'response.body|eb|scrub response +all_refs,-actions,+styles,+pretty' --remap-open --to ~/pwebarc/mirror3 ~/pwebarc/latest/archiveofourown.org
+```
+
+Finally, if you want a mirror made of raw files without any content censorship or link conversions, run:
+
+```bash
+wrrarms export mirror -e 'response.body|eb' --to ~/pwebarc/mirror-raw ~/pwebarc/latest/archiveofourown.org
+```
+
+The later command will render your mirror pretty quick, but the other above-mentioned commands will call the `scrub` function, and that will be pretty slow (as in avg ~5Mb, ~3 files per second on my 2013-era laptop), mostly because `html5lib` that `wrrarms` uses for paranoid HTML parsing and filtering is fairly slow.
+
+## How to generate previews for WRR files, listen to them via TTS, open them with `xdg-open`, etc
+
+See [`script` sub-directory](./script/README.md) for examples that show how to use `pandoc` and/or `w3m` to turn WRR files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
 
 # <span id="todo"/>What is left TODO
 
-- Rendering into static website mirrors a-la `wget -k`.
-
-  Currently, the extension archives everything except WebSockets data but `wrrarms` + `pandoc` only work well for dumps of mostly plain text websites (which is the main use case I use this whole thing for: scrape a website and then mass-convert everything to PDFs via some `pandoc` magic, then index those with `recoll`).
-
-- Converter from HAR, WARC, and PCAP files into WRR.
-- Converter from WRR to WARC.
+- Converters from HAR and WARC to WRR.
 - Data de-duplication between different WRR files.
 - Non-dumb server with time+URL index and replay, i.e. a local [Wayback Machine](https://web.archive.org/).
 - Full text indexing and search.
+- Converter from WRR to WARC.
+- Converter from PCAP ito WRR.
 
 # Usage
 
 ## wrrarms
 
-A tool to pretty-print, compute and print values from, search, organize (programmatically rename/move/symlink/hardlink files), (WIP: check, deduplicate, and edit) pWebArc WRR (WEBREQRES, Web REQuest+RESponse) archive files.
+A tool to pretty-print, compute and print values from, search, organize (programmatically rename/move/symlink/hardlink files), import, export, (WIP: check, deduplicate, and edit) pWebArc WRR (WEBREQRES, Web REQuest+RESponse) archive files.
 
 Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing HTTP request+response pair with some additional metadata.
 
@@ -80,7 +107,7 @@ Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a struct
   : show help messages formatted in Markdown
 
 - subcommands:
-  - `{pprint,get,run,stream,find,organize,import}`
+  - `{pprint,get,run,stream,find,organize,import,export}`
     - `pprint`
     : pretty-print given WRR files
     - `get`
@@ -95,6 +122,8 @@ Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a struct
     : programmatically rename/move/hardlink/symlink WRR files based on their contents
     - `import`
     : convert other HTTP archive formats into WRR
+    - `export`
+    : convert WRR archives into other formats
 
 ### wrrarms pprint
 
@@ -271,9 +300,10 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `port`: port part of `raw_url`; str
       - `netloc`: netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str
       - `raw_path`: raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str
-      - `path_parts`: component-wise unquoted "/"-split `raw_path` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]; list[str]
+      - `path_parts`: component-wise unquoted "/"-split `raw_path` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]
       - `mq_path`: `path_parts` turned back into a minimally-quoted string; str
-      - `wget_parts`: `path + ["index.html"]` if `raw_path` ends in a slash, `path` otherwise; this is what `wget` does in `wget -mpk`; list[str]
+      - `filepath_parts`: `path_parts` transformed into components usable as an exportable file name; i.e. `path_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` MIME type; extension will be stored separately in `filepath_ext`; e.g. for HTML documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a JSON MIME type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]
+      - `filepath_ext`: extension of the last component of `filepath_parts` for recognized MIME types, `".data"` otherwise; str
       - `raw_query`: query part of `raw_url` (i.e. everything after the `?` character and before the `#` character) as it is recorded in the reqres; str
       - `query_parts`: parsed (and component-wise unquoted) `raw_query`; list[tuple[str, str]]
       - `query_ne_parts`: `query_parts` with empty query parameters removed; list[tuple[str, str]]
@@ -285,6 +315,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
     - a compound expression built by piping (`|`) the above, for example:
       - `response.body|eb` (the default for `get`) will print raw `response.body` or an empty byte string, if there was no response;
       - `response.body|eb|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all action and resource reference URLs;
+      - `response.body|eb|scrub response +all_refs,-actions` (the default for `export`) will remap all `href` jump-links and `src` resource references to local files while still censoring out all action URLs (since those don't make sense for a static mirror);
       - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
       - `response.complete|false` will print `response.complete` or `False`;
       - `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
@@ -477,26 +508,37 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
       - `short`      : `%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d`
       - `surl`       : `%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s`
       - `surl_msn`   : `%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d`
-      - `shupq`      : `%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s`
-      - `shupq_msn`  : `%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d`
-      - `shupnq`     : `%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s`
-      - `shupnq_msn` : `%(scheme)s/%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d`
-      - `srhupq`     : `%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s`
-      - `srhupq_msn` : `%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d`
-      - `srhupnq`    : `%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s`
-      - `srhupnq_msn`: `%(scheme)s/%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d`
+      - `shupq`      : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s`
+      - `shupq_msn`  : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `shupnq`     : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`
+      - `shupnq_msn` : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `shupnq_mhs` : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
+      - `shupnq_mhsn`: `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `srhupq`     : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s`
+      - `srhupq_msn` : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `srhupnq`    : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`
+      - `srhupnq_msn`: `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `srhupnq_mhs`: `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
+      - `srhupnq_mhsn`: `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s`
       - `url`        : `%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s`
       - `url_msn`    : `%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d`
-      - `hupq`       : `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s`
-      - `hupq_msn`   : `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d`
-      - `hupnq`      : `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s`
-      - `hupnq_msn`  : `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d`
-      - `rhupq`      : `%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s`
-      - `rhupq_msn`  : `%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d`
-      - `rhupnq`     : `%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s`
-      - `rhupnq_msn` : `%(rhostname)s/%(wget_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d`
-      - `flat`       : `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s`
-      - `flat_n`     : `%(hostname)s/%(wget_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d`
+      - `hupq`       : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s`
+      - `hupq_msn`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `hupnq`      : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`
+      - `hupnq_msn`  : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `hupnq_mhs`  : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
+      - `hupnq_mhsn` : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `rhupq`      : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s`
+      - `rhupq_msn`  : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `rhupnq`     : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`
+      - `rhupnq_msn` : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `rhupnq_mhs` : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
+      - `rhupnq_mhsn`: `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `flat`       : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s%(filepath_ext)s`
+      - `flat_ms`    : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s%(filepath_ext)s`
+      - `flat_msn`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
+      - `flat_mhs`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
+      - `flat_mhsn`  : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s`
     - available substitutions:
       - `num`: number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique
       - all expressions of `wrrarms get --expr`, which see
@@ -655,6 +697,94 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `--lazy`
   : sets all of the above options to positive infinity;
     most useful when doing `wrrarms organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `wrrarms` needs to keep in memory is small, in which case it will force `wrrarms` to compute the desired file system state first and then perform all disk writes in a single batch
+
+- file system path ordering:
+  - `--paths-given-order`
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  - `--paths-sorted`
+  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
+  - `--paths-reversed`
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
+  - `--walk-fs-order`
+  : recursive file system walk is done in the order `readdir(2)` gives results
+  - `--walk-sorted`
+  : recursive file system walk is done in lexicographic order (default)
+  - `--walk-reversed`
+  : recursive file system walk is done in reverse lexicographic order
+
+### wrrarms export
+
+Parse given WRR files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata.
+
+- file formats:
+  - `{mirror}`
+    - `mirror`
+    : convert given WRR files into a local website mirror stored in interlinked plain files
+
+### wrrarms export mirror
+
+Parse given WRR files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
+In short, this is a combination of `wrrarms organize --copy` followed by in-place `wrrarms get`.
+In other words, this generates static offline website mirrors, producing results similar to those of `wget -mpk`.
+
+- positional arguments:
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
+
+- options:
+  - `--dry-run`
+  : perform a trial run without actually performing any changes
+  - `-q, --quiet`
+  : don't log computed updates to stderr
+  - `-t DESTINATION, --to DESTINATION`
+  : target directory
+  - `-o FORMAT, --output FORMAT`
+  : format describing generated output paths, an alias name or a custom pythonic %-substitution string; same as `wrrarms organize --output`, which see
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+
+- error handling:
+  - `--errors {fail,skip,ignore}`
+  : when an error occurs:
+    - `fail`: report failure and stop the execution (default)
+    - `skip`: report failure but skip the reqres that produced it from the output and continue
+    - `ignore`: `skip`, but don't report the failure
+
+- filters:
+  - `--or EXPR`
+  : only export reqres which match any of these expressions...
+  - `--and EXPR`
+  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+
+- output:
+  - `--no-output`
+  : don't print anything (default)
+  - `-l, --lf-terminated`
+  : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
+  - `-z, --zero-terminated`
+  : terminate output absolute paths of newly produced files with `\0` (NUL) bytes
+
+- expression evaluation:
+  - `-e EXPR, --expr EXPR`
+  : an expression to export, see `wrrarms get --expr` for more info on expression format (default: `response.body|eb|scrub response +all_refs,-actions`)
+
+- URL remapping, used by `scrub` `--expr` atom:
+  - `--remap-id`
+  : remap all URLs with an identity function; i.e. don't remap anything
+  - `--remap-void`
+  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; the result will be self-contained
+  - `--remap-open, -k, --convert-links`
+  : point all available URLs present in input `PATH`s to their corresponding output paths, remap all unavailable URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`
+  - `--remap-closed`
+  : remap all available URLs like `--remap-open` does, remap all unavailable URLs like `--remap-void` does; the result will be self-contained
+  - `--remap-all`
+  : remap all available URLs like `--remap-open` does, point each unavailable URL to a path produced by the current `--output` format for a trivial `GET <URL> -> 200 OK` reqres; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this allows `wrrarms export` to be used incrementally; the result will be self-contained (default)
+
+- export targets (default: `net_url`s of all input `PATH`s):
+  - `-r URL, --root URL`
+  : recursion root; a URL which will be used as a root for recursive export; can be specified multiple times; if none are specified, then all URLs available from `PATH`s are treated as roots
+  - `-d DEPTH, --depth DEPTH`
+  : maximum recursion depth level; the default is `0`, which means "documents and their resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
 
 - file system path ordering:
   - `--paths-given-order`

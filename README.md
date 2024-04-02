@@ -91,7 +91,9 @@ Currently, the [add-on](./extension/) can collect data from all Firefox- and Chr
 
 Also, as far as I'm aware, `wrrarms` is a tool that can do more useful stuff to your WRR archives than any other tool can do to any other file format for HTTP dumps with the sole exception of WARC.
 
-For example, you can feed [`wrrarms`](./tool/) a subset of your archives produced by the [add-on](./extension/) and it will generate a file hierarchy which mirrors those pages on disk (viewing them requires some [scripts](./tool/script/) at the moment, but generation of normal website mirrors a-la `wget -mpk` will be supported soon too), but then you can discover you dislike the result, change some options and re-generate the mirror **without re-downloading anything**.
+For example, you can feed [`wrrarms`](./tool/) a subset of your archives produced by the [add-on](./extension/) and it will [generate a static offline website mirror a-la `wget -mpk`](./tool/#mirror), but then you can discover you dislike the result, change some options and re-generate the mirror **without re-downloading anything**.
+Or, alternatively, you can use `wrrarms` to simply maintain a tree of symlinks pointing to latest WRR file for each URL and then view them --- by using `w3m`, `pandoc`, or any other HTML reader you want --- via some [scripts](./tool/script/).
+(Or, when that gets implemented, use a Wayback Machine-like Web UI for replay.)
 
 Alternatively, you can programmatically access that data by asking [`wrrarms`](./tool/) to dump WRR files into JSONs or verbose CBORs for you, or you can [just parse WRR files yourself](./doc/data-on-disk.md) with readily-available libraries.
 
@@ -103,6 +105,12 @@ Which is why, personally, I patch some of the commonly available FLOSS website s
 
 To summarize, you can view `pwebarc` as an alternative for [mitmproxy](https://github.com/mitmproxy/mitmproxy) which leaves SSL/TLS layer alone and hooks into target application's runtime instead.
 In fact, the unpublished and now irrelevant ancestor project of `pwebarc` was a tool to generate website mirrors from `mitmproxy` stream captures.
+(Running
+```bash
+wrrarms import mitmproxy --to ~/pwebarc/mitmproxy mitmproxy.dump*
+wrrarms export mirror --to ~/pwebarc/mirror ~/pwebarc/mitmproxy
+```
+can do this now, see [there](./tool/#mirror) for more info.)
 But then I got annoyed by all the sites that don't work under `mitmproxy`, did some research into the alternatives, decided there were none I wanted to use, and so I made my own.
 
 I eat what I cook: since October 2023 I archive all of my web traffic with `pWebArc` add-on, after adding each new feature to [`wrrarms` CLI tool](./tool/), as a rule, I feed at least the last 5 years of my web browsing into it (at the moment, most of it converted from other formats to `.wrr`, obviously) to see if everything works as expected.
@@ -123,7 +131,7 @@ I eat what I cook: since October 2023 I archive all of my web traffic with `pWeb
 
 - The [`wrrarms` tool](./tool/) that allows you to display, search, organize, and manipulate archive files.
 
-  `wrrarms` tool is beta software, it does about 50% of the stuff I want it to do ATM.
+  `wrrarms` tool is beta software, it does about 70% of the stuff I want it to do ATM.
   See [the TODO list there](./tool/#todo) for more info.
 
 ### Optional
@@ -140,7 +148,7 @@ Meaning,
 
 - [`pWebArc` webextension add-on](./extension/) collects data as browser gives it, without any data normalization and conversion (when possible),
 - [dumb archiving server](./dumb_server/) simply compresses the dumps the add-on pushes at it and saves them all to disk as-is,
-- meanwhile, all data normalization, massaging, post-processing, and extraction of useful values from it is delegated to the [`wrrarms`](./tool/), which also does not overwrite any WRR files, ever.
+- meanwhile, all data normalization, massaging, post-processing, and extraction of useful values is delegated to the [`wrrarms`](./tool/), which also does not overwrite any WRR files, ever.
 
 `pwebarc` expects you to treat your older pre-`pwebarc` archives you want to convert to WRR similarly:
 
