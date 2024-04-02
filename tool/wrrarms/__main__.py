@@ -454,6 +454,36 @@ def str_anystr(x : str | bytes) -> str:
     else:
         return _os.fsdecode(x)
 
+@_dc.dataclass
+class Memory:
+    consumption : int = 0
+
+@_dc.dataclass
+class SeenCounter(_t.Generic[_t.AnyStr]):
+    mem : Memory
+    state : _c.OrderedDict[_t.AnyStr, int] = _dc.field(default_factory=_c.OrderedDict)
+
+    def __len__(self) -> int:
+        return len(self.state)
+
+    def count(self, value : _t.AnyStr) -> int:
+        try:
+            count = self.state[value]
+        except KeyError:
+            self.state[value] = 0
+            self.mem.consumption += len(value)
+            return 0
+        else:
+            count += 1
+            self.state[value] = count
+            return count
+
+    def pop(self) -> tuple[_t.AnyStr, int]:
+        res = self.state.popitem(False)
+        abs_out_path, _ = res
+        self.mem.consumption -= len(abs_out_path)
+        return res
+
 def make_deferred_emit(cargs : _t.Any,
                        destination : _t.AnyStr,
                        action : str,
@@ -463,24 +493,9 @@ def make_deferred_emit(cargs : _t.Any,
     output_format = cargs.output_format + ".wrr"
 
     # current memory consumption
-    @_dc.dataclass
-    class Memory:
-        consumption : int = 0
     mem = Memory()
-
     # for each `--output` value, how many times it was seen
-    seen_count_state : _c.OrderedDict[_t.AnyStr, int] = _c.OrderedDict()
-    def seen_count(value : _t.AnyStr) -> int:
-        try:
-            count = seen_count_state[value]
-        except KeyError:
-            seen_count_state[value] = 0
-            mem.consumption += len(value)
-            return 0
-        else:
-            count += 1
-            seen_count_state[value] = count
-            return count
+    seen_counter : SeenCounter[_t.AnyStr] = SeenCounter(mem)
 
     # Deferred IO operations (aka "intents") that are yet to be executed,
     # indexed by filesystem paths. This is used both as a queue and as an
@@ -508,7 +523,7 @@ def make_deferred_emit(cargs : _t.Any,
 
         num_deferred = len(deferred_intents)
         num_cached = len(source_cache)
-        num_seen = len(seen_count_state)
+        num_seen = len(seen_counter)
         if num_deferred <= max_deferred and \
            num_cached <= max_cached and \
            num_seen <= max_seen and \
@@ -562,12 +577,11 @@ def make_deferred_emit(cargs : _t.Any,
                 source_cache[abs_out_path] = updated_source
                 mem.consumption += updated_source.approx_size() + len(abs_out_path) # type: ignore
 
-        # flush seen_count_state cache
+        # flush seen cache
         while num_seen > 0 and \
               (num_seen > max_seen or mem.consumption > max_memory):
-            abs_out_path, _ = seen_count_state.popitem(False)
+            abs_out_path, _ = seen_counter.pop()
             num_seen -= 1
-            mem.consumption -= len(abs_out_path)
 
             # if we are over the `--seen-number` not only we must forget
             # about older files, we must also run all operations on the paths
@@ -629,7 +643,7 @@ def make_deferred_emit(cargs : _t.Any,
         prev_rel_out_path = None
         intent : DeferredIO[DataSource, _t.AnyStr] | None = None
         while True:
-            rrexpr.items["num"] = seen_count(ogprefix)
+            rrexpr.items["num"] = seen_counter.count(ogprefix)
             if isinstance(destination, str):
                 rel_out_path = _os.path.join(destination, output_format % rrexpr)
             else:
