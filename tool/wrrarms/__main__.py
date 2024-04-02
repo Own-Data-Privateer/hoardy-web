@@ -35,6 +35,7 @@ from gettext import gettext, ngettext
 from kisstdlib import argparse
 from kisstdlib.exceptions import *
 from kisstdlib.io import *
+from kisstdlib.io.stdio import *
 from kisstdlib.logging import *
 
 from .wrr import *
@@ -43,7 +44,7 @@ from .io import *
 
 def issue(pattern : str, *args : _t.Any) -> None:
     message = pattern % args
-    if stderr.fobj.isatty():
+    if stderr.isatty:
         stderr.write_str_ln("\033[31m" + message + "\033[0m")
     else:
         stderr.write_str(message)
@@ -143,12 +144,13 @@ LoadElem = _t.TypeVar("LoadElem")
 def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], LoadElem],
                      emit_func : _t.Callable[[_t.AnyStr, _t.AnyStr, _os.stat_result, LoadElem], None],
                      dir_or_file_path : _t.AnyStr,
+                     *,
                      follow_symlinks : bool = True,
-                     order_by : bool | None = False,
+                     ordering : bool | None = False,
                      errors : str = "fail") -> None:
     for path in walk_orderly(dir_or_file_path,
                              include_directories = False,
-                             order_by = order_by,
+                             ordering = ordering,
                              follow_symlinks = follow_symlinks,
                              handle_error = None if errors == "fail" else _logging.error):
         if want_stop: raise KeyboardInterrupt()
@@ -183,16 +185,16 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], Lo
 
 def map_wrr_paths_extra(emit : _t.Callable[[_t.AnyStr, _t.AnyStr, _os.stat_result, ReqresExpr], None],
                         paths : list[_t.AnyStr],
-                        *args : _t.Any, **kwargs : _t.Any) -> None:
+                        **kwargs : _t.Any) -> None:
     global should_raise
     should_raise = False
     for path in paths:
-        load_map_orderly(wrr_load_expr, emit, path, *args, **kwargs)
+        load_map_orderly(wrr_load_expr, emit, path, **kwargs)
 
 def map_wrr_paths(emit : _t.Callable[[_t.AnyStr, _t.AnyStr, ReqresExpr], None],
                   paths : list[_t.AnyStr],
-                  *args : _t.Any, **kwargs : _t.Any) -> None:
-    map_wrr_paths_extra(lambda x, y, a, z: emit(x, y, z), paths, *args, **kwargs)
+                  **kwargs : _t.Any) -> None:
+    map_wrr_paths_extra(lambda x, y, a, z: emit(x, y, z), paths, **kwargs)
 
 def get_bytes(value : _t.Any) -> bytes:
     if value is None or isinstance(value, (bool, int, float, Epoch)):
@@ -215,7 +217,7 @@ def cmd_pprint(cargs : _t.Any) -> None:
         wrr_pprint(stdout, rrexpr.reqres, abs_in_path, cargs.abridged, cargs.paranoid)
         stdout.flush()
 
-    map_wrr_paths(emit, cargs.paths, order_by=cargs.walk_fs, errors=cargs.errors)
+    map_wrr_paths(emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
 
 def print_exprs(rrexpr : ReqresExpr, exprs : list[tuple[str, LinstFunc]],
                 separator : bytes, fobj : MinimalIOWriter) -> None:
@@ -319,7 +321,7 @@ def cmd_stream(cargs : _t.Any) -> None:
 
     stream.start()
     try:
-        map_wrr_paths(emit, cargs.paths, order_by=cargs.walk_fs, errors=cargs.errors)
+        map_wrr_paths(emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
     finally:
         stream.finish()
 
@@ -333,7 +335,7 @@ def cmd_find(cargs : _t.Any) -> None:
         stdout.write_bytes(cargs.terminator)
         stdout.flush()
 
-    map_wrr_paths(emit, cargs.paths, order_by=cargs.walk_fs, errors=cargs.errors)
+    map_wrr_paths(emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
 
 output_aliases = {
     "default":    "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s.%(num)d",
@@ -898,7 +900,7 @@ def cmd_organize(cargs : _t.Any) -> None:
         # destination is set explicitly
         emit, finish = make_organize_emit(cargs, cargs.destination, cargs.allow_updates)
         try:
-            map_wrr_paths_extra(emit, cargs.paths, order_by=cargs.walk_fs, errors=cargs.errors)
+            map_wrr_paths_extra(emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
         finally:
             finish()
     else:
@@ -918,7 +920,7 @@ def cmd_organize(cargs : _t.Any) -> None:
         for path in cargs.paths:
             emit, finish = make_organize_emit(cargs, path, False)
             try:
-                map_wrr_paths_extra(emit, [path], order_by=cargs.walk_fs, errors=cargs.errors)
+                map_wrr_paths_extra(emit, [path], ordering=cargs.walk_fs, errors=cargs.errors)
             finally:
                 finish()
 
@@ -947,7 +949,7 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
 
     try:
         for path in cargs.paths:
-            load_map_orderly(load_as_wrrs, emit, path, order_by=cargs.walk_fs, errors=cargs.errors)
+            load_map_orderly(load_as_wrrs, emit, path, ordering=cargs.walk_fs, errors=cargs.errors)
     finally:
         finish()
 

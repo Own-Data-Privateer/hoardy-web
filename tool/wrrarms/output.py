@@ -22,6 +22,7 @@ import typing as _t
 
 from kisstdlib.exceptions import *
 from kisstdlib.io import *
+from kisstdlib.io.stdio import *
 
 from .type import *
 from .wrr import *
