@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 packages = ["wrrarms"]
 [project]
 name = "pwebarc-wrrarms"
-version = "0.9.0"
+version = "0.11.0"
 authors = [{ name = "Jan Malakhovski", email = "oxij@oxij.org" }]
 description = "A tool for displaying and manipulating Web Request+Response (WRR) files of Private Passive Web Archive (pwebarc) project"
 readme = "README.md"
