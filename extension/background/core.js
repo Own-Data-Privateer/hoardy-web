@@ -15,8 +15,12 @@ let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
 // default config
 let configVersion = 2;
 let config = {
-    debugging: false,
-    dumping: false,
+    // debugging options
+    ephemeral: false, // stop the config from being saved to disk
+    debugging: false, // verbose debugging logs
+    dumping: false, // dump dumps to console
+
+    // log settings
     history: 1000,
 
     // are we collecting new data?
@@ -1608,17 +1612,20 @@ function handleMessage(request, sender, sendResponse) {
         if (useDebugger)
             syncDebuggersState();
 
-        // save config in 2s to give the user some time to change more settings
-        let eConfig = assignRec({ version: configVersion }, config);
+        if (!config.ephemeral) {
+            // save config after a little pause to give the user time to
+            // change some more settings
+            let eConfig = assignRec({ version: configVersion }, config);
 
-        if (saveConfigTID !== null)
-            clearTimeout(saveConfigTID);
+            if (saveConfigTID !== null)
+                clearTimeout(saveConfigTID);
 
-        saveConfigTID = setTimeout(() => {
-            saveConfigTID = null;
-            console.log("saving config", eConfig);
-            browser.storage.local.set({ config: eConfig }).catch(logError);
-        }, 500);
+            saveConfigTID = setTimeout(() => {
+                saveConfigTID = null;
+                console.log("saving config", eConfig);
+                browser.storage.local.set({ config: eConfig }).catch(logError);
+            }, 500);
+        }
 
         broadcast(["updateConfig"]);
         sendResponse(null);

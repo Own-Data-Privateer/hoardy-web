@@ -261,6 +261,7 @@ input[type="button"], .help-btn {
     </div>
     <div id="debugging-options">
       <h2>Debugging</h2>
+      <ui id="config.ephemeral" type="boolean" data-help="Make all changes to settings in this popup ephemeral from this point on. Restarting the browser or reloading the extension will reset config to the last state when this setting was off.">Ephemeral settings</ui>
       <ui id="config.debugging" type="boolean" data-help="Dump lots of data into extension&#039;s debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (SLOW!)</ui>
       <ui id="config.dumping" type="boolean" data-help="Dumps raw CBOR outputs to extension&#039;s debugging log. Does nothing when the previous option is not enabled. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Dump raw CBORs into the log</ui>
     </div>
