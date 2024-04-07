@@ -916,7 +916,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
     making this larger improves performance at the cost of increased memory consumption;
     setting it to zero will force all IO actions to be applied immediately
   - `--batch-number INT`
-  : queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: 128
+  : queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: 1024
   - `--max-memory INT`
   : the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `1024`;
     making this larger improves performance;

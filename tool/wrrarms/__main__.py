@@ -1767,7 +1767,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 
         add_terminator(cmd, whatval="output absolute paths of newly produced files", allow_not=False, allow_none=True)
 
-    def add_memory(cmd : _t.Any, max_deferred : int = 1024) -> None:
+    def add_memory(cmd : _t.Any, max_deferred : int = 1024, max_batch : int = 128) -> None:
         agrp = cmd.add_argument_group("caching, deferring, and batching")
         agrp.add_argument("--seen-number", metavar = "INT", dest="max_seen", type=int, default=16384, help=_(f"""track at most this many distinct generated `--output` values; default: `%(default)s`;
 making this larger improves disk performance at the cost of increased memory consumption;
@@ -1780,7 +1780,7 @@ setting this to a value smaller than `--defer-number` will not improve memory co
         agrp.add_argument("--defer-number", metavar = "INT", dest="max_deferred", type=int, default=max_deferred, help=_("""defer at most this many IO actions; default: `%(default)s`;
 making this larger improves performance at the cost of increased memory consumption;
 setting it to zero will force all IO actions to be applied immediately"""))
-        agrp.add_argument("--batch-number", metavar = "INT", dest="max_batched", type=int, default=128, help=_(f"""queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: %(default)s"""))
+        agrp.add_argument("--batch-number", metavar = "INT", dest="max_batched", type=int, default=max_batch, help=_(f"""queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: %(default)s"""))
         agrp.add_argument("--max-memory", metavar = "INT", dest="max_memory", type=int, default=1024, help=_("""the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
 making this larger improves performance;
 the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`"""))
@@ -1838,7 +1838,7 @@ In short, this is `{__package__} organize --copy` but for non-WRR `INPUT` files.
     add_errors(cmd)
     add_filters(cmd, "import")
     add_output(cmd)
-    add_memory(cmd, 0)
+    add_memory(cmd, 0, 1024)
     cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("destination directory"))
     cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same as `{__package__} organize --output`, which see"""))
     add_paths(cmd)
