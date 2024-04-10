@@ -1433,12 +1433,12 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f"{__package__} pprint ../dumb_server/pwebarc-dump")
     fmt.end_section()
 
-    fmt.start_section(_(f"Pipe response body scrubbed of dynamic content (see `{__package__} get` documentation above) from a given WRR file to stdout"))
+    fmt.start_section(_("Pipe raw response body from a given WRR file to stdout"))
     fmt.add_code(f'{__package__} get ../dumb_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
-    fmt.start_section(_("Pipe raw response body from a given WRR file to stdout"))
-    fmt.add_code(f'{__package__} get -e "response.body|eb" ../dumb_server/pwebarc-dump/path/to/file.wrr')
+    fmt.start_section(_(f"Pipe response body scrubbed of dynamic content from a given WRR file to stdout"))
+    fmt.add_code(f'{__package__} get -e "response.body|eb|scrub response defaults" ../dumb_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
     fmt.start_section(_("Get first 4 characters of a hex digest of sha256 hash computed on the URL without the fragment/hash part"))
@@ -1597,11 +1597,11 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         agrp = cmd.add_argument_group("URL remapping, used by `scrub` `--expr` atom")
         grp = agrp.add_mutually_exclusive_group()
         grp.add_argument("--remap-id", dest="remap_urls", action="store_const", const="id", help=_("remap all URLs with an identity function; i.e. don't remap anything") + def_id)
-        grp.add_argument("--remap-void", dest="remap_urls", action="store_const", const="void", help=_("remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; the result will be self-contained"))
+        grp.add_argument("--remap-void", dest="remap_urls", action="store_const", const="void", help=_("remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained"))
         if kind == "export":
-            grp.add_argument("--remap-open", "-k", "--convert-links", dest="remap_urls", action="store_const", const="open", help=_("point all available URLs present in input `PATH`s to their corresponding output paths, remap all unavailable URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`"))
-            grp.add_argument("--remap-closed", dest="remap_urls", action="store_const", const="closed", help=_("remap all available URLs like `--remap-open` does, remap all unavailable URLs like `--remap-void` does; the result will be self-contained"))
-            grp.add_argument("--remap-all", dest="remap_urls", action="store_const", const="all", help=_(f"remap all available URLs like `--remap-open` does, point each unavailable URL to a path produced by the current `--output` format for a trivial `GET <URL> -> 200 OK` reqres; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this allows `{__package__} export` to be used incrementally; the result will be self-contained") + def_all)
+            grp.add_argument("--remap-open", "-k", "--convert-links", dest="remap_urls", action="store_const", const="open", help=_("point all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding output paths, remap all other URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`"))
+            grp.add_argument("--remap-closed", dest="remap_urls", action="store_const", const="closed", help=_("remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained"))
+            grp.add_argument("--remap-all", dest="remap_urls", action="store_const", const="all", help=_(f"remap all reachable URLs like `--remap-open` does, point other URLs to paths produced by the current `--output` format for a corresponding trivial `GET <URL> -> 200 OK` reqres; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this allows `{__package__} export` to be used incrementally; `export`ed `mirror`s will be self-contained") + def_all)
         if kind == "get":
             cmd.set_defaults(remap_urls = "id")
         else:
@@ -1863,7 +1863,7 @@ In other words, this generates static offline website mirrors, producing results
     cmd.add_argument("-o", "--output", metavar="FORMAT", default="hupq", type=str, help=_(f"format describing generated output paths, an alias name or a custom pythonic %%-substitution string; same as `{__package__} organize --output`, which see"))
     agrp = cmd.add_argument_group("export targets (default: `net_url`s of all input `PATH`s)")
     agrp.add_argument("-r", "--root", dest="roots", metavar="URL", action="append", type=str, default = [], help=_(f"recursion root; a URL which will be used as a root for recursive export; can be specified multiple times; if none are specified, then all URLs available from `PATH`s are treated as roots"))
-    agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `%(default)s`, which means "documents and their resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
+    agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `%(default)s`, which means "`--root` documents and their resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
     add_paths(cmd)
     cmd.set_defaults(func=cmd_export_mirror)
 

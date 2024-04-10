@@ -44,13 +44,14 @@ If you have a lot of WRR files and you want to keep your symlink tree updated in
 
 ## <span id="mirror"/>How to generate a local offline website mirror like `wget -mpk`
 
-If you want to render your WRR files into a local offline website mirror containing interlinked HTML files and their resources a-la `wget -mpk` (`wget --mirror --page-requisites --convert-links`), run one of the above `--symlink --latest` command, and then do something like this:
+If you want to render your WRR files into a local offline website mirror containing interlinked HTML files and their resources a-la `wget -mpk` (`wget --mirror --page-requisites --convert-links`), run one of the above `--symlink --latest` commands, and then do something like this:
 
 ```bash
 wrrarms export mirror --to ~/pwebarc/mirror1 ~/pwebarc/latest/archiveofourown.org
 ```
 
-on completion `~/pwebarc/mirror1` will contain a bunch of interlinked minimized HTML files, their resources, and any other files they link to.
+on completion `~/pwebarc/mirror1` will contain a bunch of interlinked minimized HTML files, their resources, and everything else available from WRR files living under `~/pwebarc/latest/archiveofourown.org`.
+
 By default, *all* the links in exported HTML files will be remapped to local files (even if source WRR files for those would-be exported files are missing in `~/pwebarc/latest/archiveofourown.org`), and those HTML files will also be stripped of all JavaScript, CSS, and other stuff of various levels of evil (see documentation for the `scrub` function below).
 
 On the plus side, the result will be completely self-contained and safe to view with a dumb unconfigured browser.
@@ -63,7 +64,7 @@ wrrarms export mirror -e 'response.body|eb|scrub response +all_refs,-actions,+st
 
 Note, however, that CSS resource filtering and remapping is not implemented yet.
 
-If you also want to keep links that point to not yet hoarded Internet URLs to still point those URLs in the exported files instead of them pointing to non-existent local files, similarly to what `wget -mpk` does, run:
+If you also want to keep links that point to not yet hoarded Internet URLs to still point those URLs in the exported files instead of them pointing to non-existent local files, similarly to what `wget -mpk` does, run `wrrarms export mirror` with `--remap-open`, e.g.:
 
 ```bash
 wrrarms export mirror -e 'response.body|eb|scrub response +all_refs,-actions,+styles,+pretty' --remap-open --to ~/pwebarc/mirror3 ~/pwebarc/latest/archiveofourown.org
@@ -75,7 +76,45 @@ Finally, if you want a mirror made of raw files without any content censorship o
 wrrarms export mirror -e 'response.body|eb' --to ~/pwebarc/mirror-raw ~/pwebarc/latest/archiveofourown.org
 ```
 
-The later command will render your mirror pretty quick, but the other above-mentioned commands will call the `scrub` function, and that will be pretty slow (as in avg ~5Mb, ~3 files per second on my 2013-era laptop), mostly because `html5lib` that `wrrarms` uses for paranoid HTML parsing and filtering is fairly slow.
+The later command will render your mirror pretty quickly, but the other above-mentioned commands will call the `scrub` function, and that will be pretty slow (as in avg ~5Mb, ~3 files per second on my 2013-era laptop), mostly because `html5lib` that `wrrarms` uses for paranoid HTML parsing and filtering is fairly slow.
+
+### Using `--root` and `--depth`
+
+As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of WRR files into `wrrarms`'s memory but then `export mirror` only select URLs (and all resources needed to properly render those pages) by running something like:
+
+```
+wrrarms export mirror --to ~/pwebarc/mirror4 \
+  --root 'https://archiveofourown.org/works/3733123?view_adult=true&view_full_work=true' \
+  --root 'https://archiveofourown.org/works/30186441?view_adult=true&view_full_work=true' \
+  ~/pwebarc/raw/*/2023
+```
+
+(`wrrarms` loads (indexes) WRR files pretty fast, so if you are running from an SSD, you can totally feed it years of WRR files and then only export a couple of URLs, and it will take a couple of seconds to finish anyway.)
+
+There is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root`s and then `export mirror` all those URLs (and their resources) too.
+
+When using `--root` options, `--remap-open` works exactly like `wget`'s `--convert-links` in that it will only remap the URLs that are going to be exported and will keep the rest as-is.
+Similarly, `--remap-closed` will consider only the URLs reachable from the `--root`s in no more that `--depth` jumps as available.
+
+## <span id="mitmproxy-mirror"/>How to generate local offline website mirrors like `wget -mpk` from you old `mitmproxy` stream dumps
+
+Assuming `mitmproxy.001.dump`, `mitmproxy.002.dump`, etc are files that were produced by running something like
+
+```bash
+mitmdump -w +mitmproxy.001.dump
+```
+
+at some point, you can generate website mirrors from them by first importing them all to WRR
+
+```bash
+wrrarms import mitmproxy --to ~/pwebarc/mitmproxy mitmproxy.*.dump
+```
+
+and then `export mirror` like above, e.g. to generate mirrors for all URLs:
+
+```bash
+wrrarms export mirror --to ~/pwebarc/mirror ~/pwebarc/mitmproxy
+```
 
 ## How to generate previews for WRR files, listen to them via TTS, open them with `xdg-open`, etc
 
@@ -327,7 +366,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   - `--remap-id`
   : remap all URLs with an identity function; i.e. don't remap anything (default)
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; the result will be self-contained
+  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
 - output:
   - `--not-separated`
@@ -361,7 +400,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   - `--remap-id`
   : remap all URLs with an identity function; i.e. don't remap anything (default)
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; the result will be self-contained
+  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
 - output:
   - `--not-separated`
@@ -414,7 +453,7 @@ Compute given expressions for each of given WRR files, encode them into a reques
   - `--remap-id`
   : remap all URLs with an identity function; i.e. don't remap anything (default)
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; the result will be self-contained
+  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
 - `--format=raw` output:
   - `--not-terminated`
@@ -999,19 +1038,19 @@ In other words, this generates static offline website mirrors, producing results
   - `--remap-id`
   : remap all URLs with an identity function; i.e. don't remap anything
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; the result will be self-contained
+  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
   - `--remap-open, -k, --convert-links`
-  : point all available URLs present in input `PATH`s to their corresponding output paths, remap all unavailable URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`
+  : point all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding output paths, remap all other URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`
   - `--remap-closed`
-  : remap all available URLs like `--remap-open` does, remap all unavailable URLs like `--remap-void` does; the result will be self-contained
+  : remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained
   - `--remap-all`
-  : remap all available URLs like `--remap-open` does, point each unavailable URL to a path produced by the current `--output` format for a trivial `GET <URL> -> 200 OK` reqres; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this allows `wrrarms export` to be used incrementally; the result will be self-contained (default)
+  : remap all reachable URLs like `--remap-open` does, point other URLs to paths produced by the current `--output` format for a corresponding trivial `GET <URL> -> 200 OK` reqres; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this allows `wrrarms export` to be used incrementally; `export`ed `mirror`s will be self-contained (default)
 
 - export targets (default: `net_url`s of all input `PATH`s):
   - `-r URL, --root URL`
   : recursion root; a URL which will be used as a root for recursive export; can be specified multiple times; if none are specified, then all URLs available from `PATH`s are treated as roots
   - `-d DEPTH, --depth DEPTH`
-  : maximum recursion depth level; the default is `0`, which means "documents and their resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
+  : maximum recursion depth level; the default is `0`, which means "`--root` documents and their resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
 
 - file system path ordering:
   - `--paths-given-order`
@@ -1034,14 +1073,14 @@ In other words, this generates static offline website mirrors, producing results
   wrrarms pprint ../dumb_server/pwebarc-dump
   ```
 
-- Pipe response body scrubbed of dynamic content (see `wrrarms get` documentation above) from a given WRR file to stdout:
+- Pipe raw response body from a given WRR file to stdout:
   ```
   wrrarms get ../dumb_server/pwebarc-dump/path/to/file.wrr
   ```
 
-- Pipe raw response body from a given WRR file to stdout:
+- Pipe response body scrubbed of dynamic content from a given WRR file to stdout:
   ```
-  wrrarms get -e "response.body|eb" ../dumb_server/pwebarc-dump/path/to/file.wrr
+  wrrarms get -e "response.body|eb|scrub response defaults" ../dumb_server/pwebarc-dump/path/to/file.wrr
   ```
 
 - Get first 4 characters of a hex digest of sha256 hash computed on the URL without the fragment/hash part:

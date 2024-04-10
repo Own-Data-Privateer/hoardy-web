@@ -105,12 +105,7 @@ Which is why, personally, I patch some of the commonly available FLOSS website s
 
 To summarize, you can view `pwebarc` as an alternative for [mitmproxy](https://github.com/mitmproxy/mitmproxy) which leaves SSL/TLS layer alone and hooks into target application's runtime instead.
 In fact, the unpublished and now irrelevant ancestor project of `pwebarc` was a tool to generate website mirrors from `mitmproxy` stream captures.
-(Running
-```bash
-wrrarms import mitmproxy --to ~/pwebarc/mitmproxy mitmproxy.dump*
-wrrarms export mirror --to ~/pwebarc/mirror ~/pwebarc/mitmproxy
-```
-can do this now, see [there](./tool/#mirror) for more info.)
+([`wrrarms` can do that too.](./tool/#mitmproxy-mirror))
 But then I got annoyed by all the sites that don't work under `mitmproxy`, did some research into the alternatives, decided there were none I wanted to use, and so I made my own.
 
 I eat what I cook: since October 2023 I archive all of my web traffic with `pWebArc` add-on, after adding each new feature to [`wrrarms` CLI tool](./tool/), as a rule, I feed at least the last 5 years of my web browsing into it (at the moment, most of it converted from other formats to `.wrr`, obviously) to see if everything works as expected.
