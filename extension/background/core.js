@@ -394,8 +394,8 @@ function processArchiving() {
             browser.notifications.clear("archivingOK");
             // notify about it being fixed
             browser.notifications.create(`archiving-${archiveURL}`, {
-                title: "pWebArc is working OK",
-                message: `with the archive at\n${archiveURL}`,
+                title: "pWebArc: WORKING",
+                message: `Now archiving reqres via ${archiveURL}`,
                 iconUrl: browser.runtime.getURL(iconPath("archiving", 128)),
                 type: "basic",
             });
@@ -412,18 +412,18 @@ function processArchiving() {
         req.setRequestHeader("Content-Type", "application/cbor");
         req.onabort = (event) => {
             //console.log("archiving aborted", event);
-            broken(`request to \n${archiveURL}\n was aborted`);
+            broken(`a request to \n${archiveURL}\n was aborted by the browser`);
         }
         req.onerror = (event) => {
             //console.log("archiving error", event);
-            broken(`it can't establish a connection to the archive at\n${archiveURL}`);
+            broken(`pWebArc can't establish a connection to the archive at\n${archiveURL}`);
         }
         req.onload = (event) => {
             //console.log("archiving loaded", event);
             if (req.status == 200)
                 allok();
             else
-                broken(`requests to\n${archiveURL}\nfail with:\n${req.status} ${req.statusText}: ${req.responseText}`);
+                broken(`a request to\n${archiveURL}\nfailed with:\n${req.status} ${req.statusText}: ${req.responseText}`);
         };
         req.send(archivable.data);
     } else if (reqresArchivingFailed.size > 0) {
@@ -460,8 +460,8 @@ function processArchiving() {
             browser.notifications.clear("archivingOK");
             for (let [archiveURL, failed] of reqresArchivingFailed.entries()) {
                 browser.notifications.create(`archiving-${archiveURL}`, {
-                    title: "pWebArc FAILED",
-                    message: `to archive ${failed.queue.length} items in the queue because ${failed.reason}`,
+                    title: "pWebArc: FAILED",
+                    message: `Failed to archive ${failed.queue.length} items in the queue because ${failed.reason}`,
                     iconUrl: browser.runtime.getURL(iconPath("error", 128)),
                     type: "basic",
                 });
@@ -474,9 +474,12 @@ function processArchiving() {
 
         if (reqresNotifyEmpty && !reqresNotifiedEmpty) {
             reqresNotifiedEmpty = true;
+            for (let archiveURL of reqresArchivingFailed.keys()) {
+                browser.notifications.clear(`archiving-${archiveURL}`);
+            }
             browser.notifications.create("archivingOK", {
-                title: "pWebArc is working OK",
-                message: "successfully archived everything!\n\nNew archivals won't be reported unless something breaks.",
+                title: "pWebArc: OK",
+                message: "Archiving appears to work OK!\nThis message won't be repeated unless something breaks.",
                 iconUrl: browser.runtime.getURL(iconPath("idle", 128)),
                 type: "basic",
             });
