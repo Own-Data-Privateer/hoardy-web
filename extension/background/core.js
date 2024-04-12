@@ -1298,7 +1298,7 @@ function handleMessage(request, sender, sendResponse) {
         broadcast(request[1]);
         break;
     default:
-        console.log("what?", request);
+        console.error("what?", request);
         throw new Error("what request?");
     }
 }

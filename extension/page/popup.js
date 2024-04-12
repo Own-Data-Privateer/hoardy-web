@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     }
 
     // replace recordTabId with this
-    let recordUpdateTabId = catchAllAsync (async (event) => {
+    let recordUpdateTabId = catchAllAsync(async (event) => {
         recordTabId(event);
         await updateTabConfig();
     });
@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
 
     // open connection to the background script and listen for updates
     let port = browser.runtime.connect();
-    port.onMessage.addListener(catchAllAsync (async (update) => {
+    port.onMessage.addListener(catchAllAsync(async (update) => {
         let [what, data] = update;
         if (what == "updateStats")
             await updateStats(data);

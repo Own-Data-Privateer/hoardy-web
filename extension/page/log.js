@@ -52,7 +52,7 @@ function resetLogTo(log) {
     tbody.parentElement.replaceChild(newtbody, tbody);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", catchAll(() => {
     buttonToMessage("clearLog");
 
     // add help tooltips
@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // open connection to the background script
     let port = browser.runtime.connect();
 
-    port.onMessage.addListener((update) => {
+    port.onMessage.addListener(catchAll((update) => {
         let [what, data] = update;
         if (what == "newReqres") {
             // add new rows on log status message
@@ -70,9 +70,9 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (what == "setLog")
             // reset when core says so
             resetLogTo(data);
-    });
+    }));
 
     // meanwhile, get the whole log, render it, and replace the whole
     // page with it
     browser.runtime.sendMessage(["getLog"]).then(resetLogTo);
-});
+}));
