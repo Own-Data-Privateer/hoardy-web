@@ -110,6 +110,28 @@ But then I got annoyed by all the sites that don't work under `mitmproxy`, did s
 
 I eat what I cook: since October 2023 I archive all of my web traffic with `pWebArc` add-on, after adding each new feature to [`wrrarms` CLI tool](./tool/), as a rule, I feed at least the last 5 years of my web browsing into it (at the moment, most of it converted from other formats to `.wrr`, obviously) to see if everything works as expected.
 
+## <span id="todo"/>What is left TODO?
+
+### `pWebArc` extension
+
+- Improve UI:
+  - Better add-on popup layout.
+  - Display in-flight requests.
+  - Implement more tab states, display per-tab collection errors.
+- Delayed reqres archival: allow to archive or discard pages after they are were fetched.
+- Serverless archival into browser's local storage: for easier bootstrap and to allow using Tor Browser securely with its default config.
+
+### `wrrarms` tool
+
+- URL remapping in and `scrub`bing of CSS files.
+- Non-dumb HTTP server with time+URL index and replay, i.e. a local HTTP UI a-la [Wayback Machine](https://web.archive.org/).
+  (Because re-generating local mirrors all the time can get a bit annoying.)
+- Converters from HAR and WARC to WRR.
+- Data de-duplication between WRR files and bundle-packing of related WRR files.
+- Converter from WRR to WARC.
+- Converter from PCAP ito WRR.
+- (maybe) Full text indexing and search.
+
 ## Parts and pieces
 
 ### Required
@@ -127,7 +149,7 @@ I eat what I cook: since October 2023 I archive all of my web traffic with `pWeb
 - The [`wrrarms` tool](./tool/) that allows you to display, search, organize, and manipulate archive files.
 
   `wrrarms` tool is beta software, it does about 70% of the stuff I want it to do ATM.
-  See [the TODO list there](./tool/#todo) for more info.
+  See [the TODO list](#todo) for more info.
 
 ### Optional
 

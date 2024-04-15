@@ -120,15 +120,6 @@ wrrarms export mirror --to ~/pwebarc/mirror ~/pwebarc/mitmproxy
 
 See [`script` sub-directory](./script/README.md) for examples that show how to use `pandoc` and/or `w3m` to turn WRR files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
 
-# <span id="todo"/>What is left TODO
-
-- Converters from HAR and WARC to WRR.
-- Data de-duplication between different WRR files.
-- Non-dumb server with time+URL index and replay, i.e. a local [Wayback Machine](https://web.archive.org/).
-- Full text indexing and search.
-- Converter from WRR to WARC.
-- Converter from PCAP ito WRR.
-
 # Usage
 
 ## wrrarms
