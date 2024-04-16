@@ -24,9 +24,10 @@ classifiers = [
 ]
 keywords = [
     "HTTP", "HTTPS",
-    "web", "archive", "download",
+    "WWW", "web", "browser",
+    "site", "website",
+    "download", "archive", "mirror",
     "wayback", "wayback machine",
-    "download",
 ]
 dependencies = [
     'importlib-metadata; python_version<"3.8"',

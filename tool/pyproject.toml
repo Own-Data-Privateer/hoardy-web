@@ -27,7 +27,9 @@ classifiers = [
 ]
 keywords = [
     "HTTP", "HTTPS",
-    "web", "archive", "download",
+    "WWW", "web", "browser",
+    "site", "website",
+    "download", "archive", "mirror",
     "wayback", "wayback machine",
 ]
 requires-python = ">=3.10"
