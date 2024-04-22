@@ -38,13 +38,15 @@ let config = {
 
     // are we collecting new data?
     collecting: true,
-    archivePartialRequest: true,
-    archiveNoResponse: false,
-    archiveIncompleteResponse: false,
 
     // are we archiving? or temporarily paused
     archiving: true,
     archiveURLBase: "http://127.0.0.1:3210/pwebarc/dump",
+
+    // collection options
+    archivePartialRequest: true,
+    archiveNoResponse: false,
+    archiveIncompleteResponse: false,
 
     root: {
         collecting: true,
@@ -123,7 +125,7 @@ function cleanupTabs() {
         usedTabs.add(v.tabId);
     for (let v of reqresDone)
         usedTabs.add(v.tabId);
-    for (let v of reqresArchiving)
+    for (let [v, _x] of reqresArchiving)
         usedTabs.add(v.tabId);
     for (let [k, f] of reqresArchivingFailed.entries())
         for(let v of f.queue)
@@ -134,6 +136,7 @@ function cleanupTabs() {
         if(!usedTabs.has(tabId)) {
             console.log("removing config of tab", tabId);
             tabConfig.delete(tabId);
+            tabInfo.delete(tabId);
             tabsToDelete.delete(tabId);
         }
     }
@@ -158,8 +161,9 @@ let reqresInFlight = new Map();
 let reqresFinishingUp = [];
 // completely finished requests
 let reqresDone = [];
-// total number of failed requests
-let reqresFailedTotal = 0;
+// total number of taken and discarded requests
+let reqresTakenTotal = 0;
+let reqresDiscardedTotal = 0;
 // requests in the process of being archived
 let reqresArchiving = [];
 // total number requests archived
@@ -167,16 +171,33 @@ let reqresArchivedTotal = 0;
 // failed requests, indexed by archiveURL
 let reqresArchivingFailed = new Map();
 
-function clearStats() {
-    reqresFailedTotal = 0;
-    reqresArchivedTotal = 0;
-}
-
 // request log
 let reqresLog = [];
 
-function clearLog() {
-    reqresLog = [];
+function getInFlightLog() {
+    let res = [];
+    for (let v of reqresDone) {
+        res.push(shallowCopyOfReqres(v));
+    }
+    for (let [k, v] of reqresInFlight.entries()) {
+        res.push(shallowCopyOfReqres(v));
+    }
+    return res;
+}
+
+// reqresArchivedTotal and reqresDiscardedTotal, but per-tab
+let tabInfo = new Map();
+
+function getTabInfo(tabId) {
+    let res = tabInfo.get(tabId);
+    if (res === undefined) {
+        res = {
+            takenTotal: 0,
+            discardedTotal: 0,
+        };
+        tabInfo.set(tabId, res);
+    }
+    return res;
 }
 
 // should we notify the user when the queues get empty? this flag is here so
@@ -193,51 +214,116 @@ let saveConfigTID = null;
 
 // produce stats of all the queues
 function getStats() {
-    let fails = 0;
+    let unarchived = 0;
     for (let [archiveURL, f] of reqresArchivingFailed.entries()) {
-        fails += f.queue.length;
+        unarchived += f.queue.length;
     }
 
     return {
         version: manifest.version,
-        archived: reqresArchivedTotal,
-        queued: reqresArchiving.length + reqresDone.length,
-        inflight: Math.max(reqresInFlight.size, debugReqresInFlight.size) +
+        taken: reqresTakenTotal,
+        discarded: reqresDiscardedTotal,
+        queued: reqresArchiving.length,
+        inflight: reqresDone.length +
+            Math.max(reqresInFlight.size, debugReqresInFlight.size) +
             Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length),
-        failedToArchive: fails,
-        failedToFetch: reqresFailedTotal,
+        archived: reqresArchivedTotal,
+        unarchived,
     };
+}
+
+// produce stats of all the queues
+function getTabStats(tabId) {
+    let info = getTabInfo(tabId);
+
+    let inflight = 0;
+    let inflight_debug = 0;
+    for (let [k, v] of reqresInFlight.entries())
+        if (v.tabId == tabId)
+            inflight += 1;
+    for (let [k, v] of debugReqresInFlight.entries())
+        if (v.tabId == tabId)
+            inflight_debug += 1;
+
+    let finishingup = 0;
+    let finishingup_debug = 0;
+    for (let v of reqresFinishingUp)
+        if (v.tabId == tabId)
+            finishingup += 1;
+    for (let v of debugReqresFinishingUp)
+        if (v.tabId == tabId)
+            finishingup_debug += 1;
+
+    let done = 0;
+    for (let v of reqresDone)
+        if (v.tabId == tabId)
+            done += 1;
+
+    return {
+        taken: info.takenTotal,
+        discarded: info.discardedTotal,
+        inflight: done +
+            Math.max(inflight, inflight_debug) +
+            Math.max(finishingup, finishingup_debug),
+    };
+}
+
+function forgetHistory(tabId) {
+    if (tabId === undefined) {
+        reqresLog = [];
+        reqresTakenTotal = 0;
+        reqresDiscardedTotal = 0;
+    } else {
+        let res = [];
+        for (let shallow of reqresLog) {
+            if (shallow.tabId != tabId)
+                res.push(shallow);
+        }
+        reqresLog = res;
+
+        let info = getTabInfo(tabId);
+        reqresTakenTotal -= info.takenTotal;
+        reqresDiscardedTotal -= info.discardedTotal;
+        info.takenTotal = 0;
+        info.discardedTotal = 0;
+    }
+    broadcast(["resetLog", reqresLog]);
+    updateDisplay(true, false);
 }
 
 function updateDisplay(statsChanged, tabChanged) {
     let stats = getStats();
-    let todo = stats.queued + stats.failedToArchive;
-    let total = stats.inflight + todo;
+    let total = stats.inflight + stats.queued + stats.unarchived;
 
     let newIcon;
-    let state;
-    if (stats.failedToArchive > 0) {
+    if (stats.unarchived > 0)
         newIcon = "error";
-        state = `have ${todo} reqres to archive, failed to archive ${stats.failedToArchive} reqres`;
-        if (!config.archiving)
-            state += ", not archiving";
-    } else if (stats.queued > 0) {
+    else if (stats.queued > 0)
         newIcon = "archiving";
-        state = `have ${todo} reqres to archive`;
-        if (!config.archiving)
-            state += ", not archiving";
-    } else if (stats.inflight > 0) {
+    else if (stats.inflight > 0)
         newIcon = "tracking";
-        state = `still tracking ${stats.inflight} reqres`;
-        if (!config.archiving)
-            state += ", not archiving";
-    } else if (!config.collecting) {
+    else if (!config.collecting)
         newIcon = "off";
-        state = "off";
-    } else {
+    else
         newIcon = "idle";
-        state = "all good, all queues empty";
-    }
+
+    let chunks = [];
+    if (stats.unarchived > 0)
+        chunks.push(`failed to archive ${stats.unarchived} reqres`);
+    if (stats.queued > 0)
+        chunks.push(`have ${stats.queued} reqres more to archive`);
+    if (stats.inflight > 0)
+        chunks.push(`still tracking ${stats.inflight} reqres`);
+    if (!config.archiving)
+        chunks.push("not archiving");
+    if (!config.collecting)
+        chunks.push("off");
+
+    let state;
+    if (chunks.length == 0)
+        state = "idle";
+    else
+        state = chunks.join(", ");
 
     let newTitle = `pWebArc: ${state}`;
     let newBadge = "";
@@ -258,7 +344,8 @@ function updateDisplay(statsChanged, tabChanged) {
             await browser.browserAction.setBadgeText({ text: newBadge }).catch(logError);
 
             for (let tab of tabs) {
-                let tabcfg = getTabConfig(tab.id);
+                let tabId = tab.id;
+                let tabcfg = getTabConfig(tabId);
 
                 let icon = newIcon;
                 let title = newTitle;
@@ -270,7 +357,6 @@ function updateDisplay(statsChanged, tabChanged) {
                 if (useDebugger) {
                     // Chromium does not support per-window browserActions, so
                     // we have to update per-tab, this is inefficient
-                    let tabId = tab.id;
                     await browser.browserAction.setIcon({ tabId, path: mkIcons(icon) }).catch(logError);
                     await browser.browserAction.setTitle({ tabId, title }).catch(logError);
                 } else {
@@ -355,8 +441,13 @@ function processArchiving() {
 
     if (reqresArchiving.length > 0) {
         let archivable = reqresArchiving.shift();
-        let reqres = archivable.reqres;
-        let options = getTabConfig(reqres.tabId, reqres.fromExtension);
+        let [shallow, dump] = archivable;
+
+        // we ignore and recompute shallow.profile here because the user could
+        // have changed some settings while archiving was disabled
+        let options = getTabConfig(shallow.tabId, shallow.fromExtension);
+        shallow.profile = options.profile;
+
         let archiveURL = config.archiveURLBase + "?profile=" + encodeURIComponent(options.profile);
 
         let failed = reqresArchivingFailed.get(archiveURL);
@@ -371,40 +462,42 @@ function processArchiving() {
         function broken(reason) {
             let failed = markArchiveAsFailed(archiveURL, Date.now(), reason);
             failed.queue.push(archivable);
+
             reqresNotifyEmpty = true;
             reqresNotifiedEmpty = false; // force another archivingOK notification later
+
+            broadcast(["newUnarchived", [shallow]]);
             updateDisplay(true, false);
+
             setTimeout(processArchiving, 1);
         }
 
         function allok() {
-            reqres.archivedToProfile = options.profile;
-
             let previouslyBroken = retryFailedArchive(archiveURL);
+
             reqresArchivedTotal += 1;
             reqresNotifyEmpty = true;
+
+            broadcast(["newArchived", [shallow]]);
             updateDisplay(true, false);
 
-            if (!previouslyBroken) {
-                setTimeout(processArchiving, 1);
-                return;
+            if (previouslyBroken) {
+                // clear all-ok notification
+                browser.notifications.clear("archivingOK");
+                // notify about it being fixed
+                browser.notifications.create(`archiving-${archiveURL}`, {
+                    title: "pWebArc: WORKING",
+                    message: `Now archiving reqres via ${archiveURL}`,
+                    iconUrl: browser.runtime.getURL(iconPath("archiving", 128)),
+                    type: "basic",
+                });
             }
-
-            // clear all-ok notification
-            browser.notifications.clear("archivingOK");
-            // notify about it being fixed
-            browser.notifications.create(`archiving-${archiveURL}`, {
-                title: "pWebArc: WORKING",
-                message: `Now archiving reqres via ${archiveURL}`,
-                iconUrl: browser.runtime.getURL(iconPath("archiving", 128)),
-                type: "basic",
-            });
 
             setTimeout(processArchiving, 1);
         }
 
         if (config.debugging)
-            console.log("trying to archive", reqres);
+            console.log("trying to archive", shallow);
 
         const req = new XMLHttpRequest();
         req.open("POST", archiveURL, true);
@@ -425,7 +518,7 @@ function processArchiving() {
             else
                 broken(`a request to\n${archiveURL}\nfailed with:\n${req.status} ${req.statusText}: ${req.responseText}`);
         };
-        req.send(archivable.data);
+        req.send(dump);
     } else if (reqresArchivingFailed.size > 0) {
         // (noteCleanupArchiving): cleanup empty reqresArchivingFailed
         // entries; usually, this does nothing, but it is needed in case the
@@ -615,10 +708,28 @@ function renderReqres(reqres) {
         allowUndefined: false,
     });
 
-    return {
-        reqres,
-        data: encoder.result(),
+    return encoder.result()
+}
+
+function processFinishedReqres(take, shallow, dump, do_broadcast) {
+    shallow.taken = take;
+    reqresLog.push(shallow);
+    while (reqresLog.length > config.history)
+        reqresLog.shift();
+
+    let info = getTabInfo(shallow.tabId);
+
+    if (take) {
+        reqresTakenTotal += 1;
+        info.takenTotal += 1;
+        reqresArchiving.push([shallow, dump]);
+    } else {
+        reqresDiscardedTotal += 1;
+        info.discardedTotal += 1;
     }
+
+    if (do_broadcast !== false)
+        broadcast(["newLog", [shallow]]);
 }
 
 function processDone() {
@@ -658,9 +769,6 @@ function processDone() {
             // requestBody recovered from formData
             archiving = config.archivePartialRequest;
 
-        reqres.archiving = archiving;
-        reqres.state = state;
-
         let lineProtocol;
         let lineReason;
         if (reqres.statusLine !== undefined) {
@@ -687,8 +795,11 @@ function processDone() {
                 reqres.reason = "";
         }
 
+        let options = getTabConfig(reqres.tabId, reqres.fromExtension);
+
+        // dump it to console when debugging
         if (config.debugging)
-            console.log(archiving ? "QUEUED" : "DISCARDED", reqres.requestId,
+            console.log(archiving ? "TAKEN" : "DISCARDED", reqres.requestId,
                         "state", state,
                         reqres.protocol, reqres.method, reqres.url,
                         "tabId", reqres.tabId,
@@ -696,33 +807,25 @@ function processDone() {
                         "res", reqres.responseComplete,
                         "result", reqres.statusCode, reqres.reason, reqres.statusLine,
                         "errors", reqres.errors,
+                        "profile", options.profile,
                         reqres);
 
+        let shallow = shallowCopyOfReqres(reqres);
+        shallow.state = state;
+        shallow.profile = options.profile;
+
         if (archiving) {
-            let archivable = renderReqres(reqres);
-            reqresArchiving.push(archivable);
+            let dump = renderReqres(reqres);
+
+            processFinishedReqres(true, shallow, dump);
 
             if (config.dumping) {
                 let dec = new TextDecoder("utf-8", { fatal: false });
                 console.log("dump:")
-                console.log(dec.decode(archivable.data));
+                console.log(dec.decode(dump));
             }
         } else
-            reqresFailedTotal += 1;
-
-        if (!config.debugging) {
-            // free some memory
-            delete reqres["requestHeaders"];
-            delete reqres["requestBody"];
-            delete reqres["responseHeaders"];
-            delete reqres["responseBody"];
-        }
-
-        // log it
-        reqresLog.push(reqres);
-        broadcast(["newReqres", reqres]);
-        while (reqresLog.length > config.history)
-            reqresLog.shift();
+            processFinishedReqres(false, shallow, undefined);
     }
 
     updateDisplay(true, false);
@@ -732,10 +835,13 @@ function processDone() {
         setTimeout(processArchiving, 1);
 }
 
-function forceFinishRequests() {
-    forceEmitAll();
+function stopAllInFlight(tabId) {
+    for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
+        if (tabId === undefined || reqres.tabId == tabId)
+            emitRequest(requestId, reqres, "webRequest::pWebArc::EMIT_FORCED_BY_USER", true);
+    }
     if (useDebugger)
-        forceEmitAllDebug();
+        forceEmitAllDebug(tabId);
     forceFinishingUp();
     setTimeout(processDone, 1);
 }
@@ -800,12 +906,6 @@ let processFinishingUp = processFinishingUpSimple;
 if (useDebugger)
     processFinishingUp = processFinishingUpDebug;
 
-function forceEmitAll() {
-    for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
-        emitRequest(requestId, reqres, "webRequest::pWebArc::EMIT_FORCED_BY_USER", true);
-    }
-}
-
 function importantError(error) {
     if (useDebugger && (error === "webRequest::net::ERR_ABORTED"
                      || error === "debugger::net::ERR_ABORTED"))
@@ -822,7 +922,6 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
     reqresInFlight.delete(requestId);
 
     reqres.emitTimeStamp = Date.now();
-    reqres.requestId = requestId;
 
     if (reqres.formData !== undefined) {
         // recover requestBody from formData
@@ -882,6 +981,37 @@ function logRequest(rtype, e) {
         console.log("webRequest", e.requestId, rtype, e.timeStamp, e.tabId, e.method, e.url, e.statusCode, e.statusLine, e);
 }
 
+// reqres
+
+function shallowCopyOfReqres(reqres) {
+    return {
+        requestId: reqres.requestId,
+        tabId: reqres.tabId,
+        fromExtension: reqres.fromExtension,
+
+        protocol: reqres.protocol,
+
+        method: reqres.method,
+        url: reqres.url,
+
+        documentUrl: reqres.documentUrl,
+        originUrl: reqres.originUrl,
+        errors: Array.from(reqres.errors),
+
+        requestTimeStamp: reqres.requestTimeStamp,
+        requestComplete: reqres.requestComplete,
+
+        responseTimeStamp: reqres.responseTimeStamp,
+        statusLine: reqres.statusLine,
+        statusCode: reqres.statusCode,
+        reason: reqres.reason,
+        fromCache: reqres.fromCache,
+        responseComplete: reqres.responseComplete,
+
+        emitTimeStamp: reqres.emitTimeStamp,
+    };
+}
+
 // handlers
 
 function handleBeforeRequest(e) {
@@ -932,7 +1062,9 @@ function handleBeforeRequest(e) {
 
     logRequest("before request", e);
 
+    let requestId = e.requestId;
     let reqres = {
+        requestId: requestId,
         tabId: e.tabId,
         fromExtension,
 
@@ -977,8 +1109,6 @@ function handleBeforeRequest(e) {
         }
     }
 
-    let requestId = e.requestId;
-
     if (!useDebugger) {
         // Firefox
         let filter = browser.webRequest.filterResponseData(requestId);
@@ -1014,6 +1144,7 @@ function handleBeforeRequest(e) {
     }
 
     reqresInFlight.set(requestId, reqres);
+    broadcast(["newInFlight", [shallowCopyOfReqres(reqres)]]);
     updateDisplay(true, false);
 }
 
@@ -1032,40 +1163,19 @@ function handleSendHeaders(e) {
     reqres.requestHeaders = e.requestHeaders;
 }
 
-function emptyCopyOfReqres(reqres) {
-    return {
-        tabId: reqres.tabId,
-
-        protocol: reqres.protocol,
-
-        method: reqres.method,
-        url: reqres.url,
-
-        documentUrl: reqres.documentUrl,
-        originUrl: reqres.originUrl,
-        errors: Array.from(reqres.errors),
-
-        requestTimeStamp: reqres.requestTimeStamp,
-        requestComplete: reqres.requestComplete,
-        requestBody: reqres.requestBody,
-        formData: reqres.formData,
-
-        requestHeaders: reqres.requestHeaders,
-
-        responseTimeStamp: reqres.responseTimeStamp,
-        statusLine: reqres.statusLine,
-        statusCode: reqres.statusCode,
-        reason: reqres.reason,
-        responseHeaders: reqres.responseHeaders,
-        fromCache: reqres.fromCache,
-
-        responseComplete: true,
-        responseBody: new ChunkedBuffer(),
-
-        emitTimeStamp: reqres.emitTimeStamp,
-
-        // note we do not copy the filter
-    };
+function completedCopyOfReqres(reqres) {
+    let res = shallowCopyOfReqres(reqres);
+    // copy what shallowCopyOfReqres does not
+    res.requestHeaders = reqres.requestHeaders;
+    res.requestBody = reqres.requestBody;
+    res.formData = reqres.formData;
+    res.responseHeaders = reqres.responseHeaders;
+    // set responseBody to an empty buffer
+    res.responseBody = new ChunkedBuffer();
+    // and mark as complete, as the name implies
+    res.responseComplete = true;
+    // alno note that we ignore the filter here
+    return res;
 }
 
 function handleHeadersRecieved(e) {
@@ -1080,7 +1190,7 @@ function handleHeadersRecieved(e) {
         // 304 response.
 
         // So, we emit a completed copy of this with an empty response body
-        let creqres = emptyCopyOfReqres(reqres);
+        let creqres = completedCopyOfReqres(reqres);
         emitRequest(e.requestId, creqres);
 
         // and continue with the old one (not vice versa, because the filter
@@ -1115,7 +1225,7 @@ function handleAuthRequired(e) {
     logRequest("auth required", e);
 
     // similarly to above
-    let creqres = emptyCopyOfReqres(reqres);
+    let creqres = completedCopyOfReqres(reqres);
     emitRequest(e.requestId, creqres);
 
     // after this it will goto back to handleBeforeSendHeaders, so
@@ -1272,30 +1382,31 @@ function handleMessage(request, sender, sendResponse) {
         if (useDebugger)
             // Chromium does not provide `browser.menus.onShown` event
             updateMenu(request[1]);
-        updateDisplay(false, true);
         if (useDebugger)
             syncDebuggersState();
-        broadcast(["updateTabConfig", request[1]]);
+        broadcast(["updateTabConfig", request[1], request[2]]);
+        updateDisplay(false, true);
         break;
     case "retryAllFailedArchives":
         retryAllFailedArchivesIn(100);
         break;
-    case "forceFinishRequests":
-        forceFinishRequests();
-        break;
     case "getStats":
         sendResponse(getStats());
         break;
-    case "clearStats":
-        clearStats();
-        updateDisplay(true, false);
-        break;
-    case "clearLog":
-        clearLog();
-        broadcast(["setLog", []]);
+    case "getTabStats":
+        sendResponse(getTabStats(request[1]));
         break;
     case "getLog":
         sendResponse(reqresLog);
+        break;
+    case "forgetHistory":
+        forgetHistory(request[1]);
+        break;
+    case "getInFlightLog":
+        sendResponse(getInFlightLog());
+        break;
+    case "stopAllInFlight":
+        stopAllInFlight(request[1]);
         break;
     case "broadcast":
         broadcast(request[1]);
@@ -1395,22 +1506,28 @@ function initMenus() {
 
 async function handleCommand(command) {
     let tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    let updated_tabconfig = false;
     if (command === "toggle-tabconfig-tracking") {
         for (let tab of tabs) {
             let tabcfg = getTabConfig(tab.id);
             tabcfg.collecting = !tabcfg.collecting;
             tabcfg.children.collecting = tabcfg.collecting;
+            updated_tabconfig = true;
         }
     } else if (command === "toggle-tabconfig-children-tracking") {
         for (let tab of tabs) {
             let tabcfg = getTabConfig(tab.id);
             tabcfg.children.collecting = !tabcfg.children.collecting;
+            updated_tabconfig = true;
         }
-    } else
+    } else {
+        console.error(`unknown command ${command}`);
         return;
+    }
     updateDisplay(false, true);
-    for (let tab of tabs) {
-        broadcast(["updateTabConfig", tab.id]);
+    if (updated_tabconfig) {
+        for (let tab of tabs)
+            broadcast(["updateTabConfig", tab.id]);
     }
 }
 

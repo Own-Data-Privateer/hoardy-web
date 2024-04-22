@@ -9,7 +9,7 @@
 function showAll() {
     document.getElementById("show").style.display = "none";
     for (let node of document.getElementsByName("more")) {
-        node.style.display = "block";
+        node.style.removeProperty("display");
     }
 }
 
@@ -38,14 +38,18 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     makeUI(document.body);
     addHelp(document.body, true);
 
-    buttonToAction("log", () => window.open(browser.runtime.getURL("/page/log.html"), "_blank"));
-    buttonToMessage("clearStats");
     buttonToAction("help", () => {
         window.open(browser.runtime.getURL("/page/help.html"), "_blank");
         window.close();
     });
+    buttonToMessage("forgetHistory");
+    buttonToAction("state", () => window.open(browser.runtime.getURL("/page/state.html"), "_blank"));
     buttonToMessage("retryAllFailedArchives");
-    buttonToMessage("forceFinishRequests");
+    buttonToMessage("stopAllInFlight");
+
+    buttonToAction("forgetTabHistory", () => browser.runtime.sendMessage(["forgetHistory", tabId]));
+    buttonToAction("tabState", () => window.open(browser.runtime.getURL(`/page/state.html?tab=${tabId}`), "_blank"));
+    buttonToAction("stopTabInFlight", () => browser.runtime.sendMessage(["stopAllInFlight", tabId]));
     buttonToAction("show", () => showAll());
 
     // when #hash is specified (used in the ./help.org), we don't
@@ -68,6 +72,12 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
         setUI("stats", stats);
     }
 
+    async function updateTabStats(tabstats) {
+        if (tabstats === undefined)
+            tabstats = await browser.runtime.sendMessage(["getTabStats", tabId]);
+        setUI("tabstats", tabstats);
+    }
+
     let dependNodes = document.getElementsByName("depends");
     async function updateConfig() {
         let config = await browser.runtime.sendMessage(["getConfig"]);
@@ -84,8 +94,9 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
         }
     }
 
-    async function updateTabConfig() {
-        let tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
+    async function updateTabConfig(tabconfig) {
+        if (tabconfig === undefined)
+            tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
         setUI("tabconfig", tabconfig, (newtabconfig, path) => {
             if (path == "tabconfig.collecting")
                 newtabconfig.children.collecting = newtabconfig.collecting;
@@ -96,6 +107,7 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     // replace recordTabId with this
     let recordUpdateTabId = catchAllAsync(async (event) => {
         recordTabId(event);
+        await updateTabStats();
         await updateTabConfig();
     });
     browser.tabs.onActivated.removeListener(recordTabId);
@@ -105,12 +117,13 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     let port = browser.runtime.connect();
     port.onMessage.addListener(catchAllAsync(async (update) => {
         let [what, data] = update;
-        if (what == "updateStats")
+        if (what == "updateStats") {
             await updateStats(data);
-        else if (what == "updateConfig")
+            await updateTabStats();
+        } else if (what == "updateConfig")
             await updateConfig();
         else if (what == "updateTabConfig" && data == tabId)
-            await updateTabConfig();
+            await updateTabConfig(update[2]);
         else if (what == "highlight") {
             showAll();
             highlightNode(data);
@@ -118,6 +131,7 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     }));
 
     await updateStats();
+    await updateTabStats();
     await updateConfig();
     await updateTabConfig();
 

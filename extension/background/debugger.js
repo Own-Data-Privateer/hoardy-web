@@ -263,9 +263,10 @@ function emitDebugRequest(requestId, dreqres, noResponse, error, dontFinishUp) {
     }
 }
 
-function forceEmitAllDebug() {
+function forceEmitAllDebug(tabId) {
     for (let [requestId, dreqres] of Array.from(debugReqresInFlight.entries())) {
-        emitDebugRequest(requestId, dreqres, false, "debugger::pWebArc::EMIT_FORCED_BY_USER", true);
+        if (tabId === undefined || tabId === dreqres.tabId)
+            emitDebugRequest(requestId, dreqres, false, "debugger::pWebArc::EMIT_FORCED_BY_USER", true);
     }
 }
 

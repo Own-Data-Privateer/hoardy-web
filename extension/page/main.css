@@ -79,10 +79,12 @@ div.ui label {
 }
 
 div.ui label,
+div.ui label input[type="number"],
 div.ui label input[type="text"] {
     flex: 1 0 auto;
 }
 
+div.ui label input[type="number"],
 div.ui label input[type="text"] {
     margin-left: 1ch;
 }

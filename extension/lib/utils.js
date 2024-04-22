@@ -150,7 +150,7 @@ function setUI(prefix, value, update) {
 
     let el = document.getElementById(prefix);
     if (el === null) return;
-    //console.log("setting UI", prefix, el, value);
+    //console.log("setting UI", prefix, typ, el, value);
 
     if (typ == "boolean" && el.tagName == "INPUT" && el.type == "checkbox") {
         el.checked = value;
@@ -158,11 +158,17 @@ function setUI(prefix, value, update) {
             el.onchange = () => {
                 update(el.checked, prefix);
             };
-    } else if (typ == "string" && el.tagName == "INPUT" && el.type == "text") {
+    } else if (typ == "number" && el.tagName == "INPUT" && el.type == "number" ||
+               typ == "string" && el.tagName == "INPUT" && el.type == "text") {
         el.value  = value;
         if (update !== undefined)
             el.onchange = () => {
-                update(el.value, prefix);
+                let nvalue = el.value;
+                if (typ == "number")
+                    nvalue = Number(nvalue).valueOf();
+                else if (typ == "string")
+                    nvalue = String(nvalue).valueOf();
+                update(nvalue, prefix);
             };
     } else
         el.innerText = value;
@@ -199,12 +205,17 @@ function makeUI(node) {
         lbl.innerHTML = sep + node.innerHTML;
         lbl.prepend(ne);
         res.appendChild(lbl);
-    } else if (typ == "string") {
+    } else if (typ == "number" || typ == "string") {
         let ne = document.createElement("input");
         ne.id = id;
         ne.name = id;
-        ne.type = "text";
-        ne.value = "";
+        if (typ == "number") {
+            ne.type = "number";
+            ne.value = 0;
+        } else {
+            ne.type = "text";
+            ne.value = "";
+        }
 
         let lbl = document.createElement("label");
         lbl.innerHTML = node.innerHTML + sep;
