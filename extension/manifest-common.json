@@ -22,13 +22,25 @@
             "suggested_key": {
                 "default": "Alt+C"
             },
-            "description": "Toggle tracking in this tab"
+            "description": "Toggle tracking in the current tab"
         },
         "toggle-tabconfig-children-tracking": {
             "suggested_key": {
                 "default": "Alt+Shift+C"
             },
-            "description": "Toggle tracking in this tab's children"
+            "description": "Toggle tracking in current tab's newly opened children"
+        },
+        "take-all-inlimbo-tab": {
+            "suggested_key": {
+                "default": "Alt+A"
+            },
+            "description": "From limbo, queue for archival all reqres related to the current tab"
+        },
+        "discard-all-inlimbo-tab": {
+            "suggested_key": {
+                "default": "Alt+Shift+D"
+            },
+            "description": "From limbo, discard all reqres related to the current tab"
         }
     }
 }

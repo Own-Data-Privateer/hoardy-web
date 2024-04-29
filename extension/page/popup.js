@@ -45,10 +45,14 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     buttonToMessage("forgetHistory");
     buttonToAction("state", () => window.open(browser.runtime.getURL("/page/state.html"), "_blank"));
     buttonToMessage("retryAllFailedArchives");
+    buttonToAction("takeAllInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, null]));
+    buttonToAction("discardAllInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, null]));
     buttonToMessage("stopAllInFlight");
 
     buttonToAction("forgetTabHistory", () => browser.runtime.sendMessage(["forgetHistory", tabId]));
     buttonToAction("tabState", () => window.open(browser.runtime.getURL(`/page/state.html?tab=${tabId}`), "_blank"));
+    buttonToAction("takeTabInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, null, tabId]));
+    buttonToAction("discardTabInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, null, tabId]));
     buttonToAction("stopTabInFlight", () => browser.runtime.sendMessage(["stopAllInFlight", tabId]));
     buttonToAction("show", () => showAll());
 
@@ -81,7 +85,7 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     let dependNodes = document.getElementsByName("depends");
     async function updateConfig() {
         let config = await browser.runtime.sendMessage(["getConfig"]);
-        setUI("config", config, (newconfig) => {
+        setUI("config", config, (newconfig, path) => {
             browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
         });
 
@@ -100,6 +104,8 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
         setUI("tabconfig", tabconfig, (newtabconfig, path) => {
             if (path == "tabconfig.collecting")
                 newtabconfig.children.collecting = newtabconfig.collecting;
+            if (path == "tabconfig.limbo")
+                newtabconfig.children.limbo = newtabconfig.limbo;
             browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]);
         });
     }

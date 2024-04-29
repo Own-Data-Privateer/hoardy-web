@@ -81,6 +81,10 @@ function resetFinished(log) {
     resetLog("finished", log);
 }
 
+function resetInLimbo(log) {
+    resetLog("inlimbo", log);
+}
+
 function resetInFlight(log) {
     resetLog("inflight", log);
 }
@@ -109,6 +113,10 @@ document.addEventListener("DOMContentLoaded", catchAll(() => {
     }
 
     buttonToAction("forgetHistory", () => browser.runtime.sendMessage(["forgetHistory", tabId]));
+    buttonToAction("takeOneInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, 1, tabId]));
+    buttonToAction("discardOneInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, 1, tabId]));
+    buttonToAction("takeAllInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, null, tabId]));
+    buttonToAction("discardAllInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, null, tabId]));
     buttonToAction("stopAllInFlight", () => browser.runtime.sendMessage(["stopAllInFlight", tabId]));
 
     // add help tooltips
@@ -122,10 +130,15 @@ document.addEventListener("DOMContentLoaded", catchAll(() => {
         if (what == "resetLog") {
             resetFinished(data);
             return;
+        } else if (what == "resetInLimboLog") {
+            resetInLimbo(data);
+            return;
         // incrementally add new rows
         } else if (what == "newInFlight") {
             appendLog(document.getElementById("inflight"), data);
             return;
+        } else if (what == "newLimbo") {
+            appendLog(document.getElementById("inlimbo"), data);
         } else if (what == "newLog") {
             appendLog(document.getElementById("finished"), data);
         } else
@@ -137,5 +150,6 @@ document.addEventListener("DOMContentLoaded", catchAll(() => {
     // meanwhile, get the whole log, render it, and replace the whole
     // page with it
     browser.runtime.sendMessage(["getLog"]).then(resetFinished);
+    browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);
     browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
 }));

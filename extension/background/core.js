@@ -50,16 +50,19 @@ let config = {
 
     root: {
         collecting: true,
+        limbo: false,
         profile: "default",
     },
 
     extension: {
         collecting: false,
+        limbo: false,
         profile: "extension",
     },
 
     background: {
         collecting: true,
+        limbo: false,
         profile: "background",
     },
 };
@@ -125,6 +128,8 @@ function cleanupTabs() {
         usedTabs.add(v.tabId);
     for (let v of reqresDone)
         usedTabs.add(v.tabId);
+    for (let [v, _x] of reqresLimbo)
+        usedTabs.add(v.tabId);
     for (let [v, _x] of reqresArchiving)
         usedTabs.add(v.tabId);
     for (let [k, f] of reqresArchivingFailed.entries())
@@ -161,6 +166,8 @@ let reqresInFlight = new Map();
 let reqresFinishingUp = [];
 // completely finished requests
 let reqresDone = [];
+// requests in limbo, waiting to be either discarded or queued for archival
+let reqresLimbo = [];
 // total number of taken and discarded requests
 let reqresTakenTotal = 0;
 let reqresDiscardedTotal = 0;
@@ -181,6 +188,14 @@ function getInFlightLog() {
     }
     for (let [k, v] of reqresInFlight.entries()) {
         res.push(shallowCopyOfReqres(v));
+    }
+    return res;
+}
+
+function getInLimboLog() {
+    let res = [];
+    for (let [v, _x] of reqresLimbo) {
+        res.push(v);
     }
     return res;
 }
@@ -224,6 +239,7 @@ function getStats() {
         taken: reqresTakenTotal,
         discarded: reqresDiscardedTotal,
         queued: reqresArchiving.length,
+        inlimbo: reqresLimbo.length,
         inflight: reqresDone.length +
             Math.max(reqresInFlight.size, debugReqresInFlight.size) +
             Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length),
@@ -259,12 +275,18 @@ function getTabStats(tabId) {
         if (v.tabId == tabId)
             done += 1;
 
+    let inlimbo = 0;
+    for (let [v, _x] of reqresLimbo)
+        if (v.tabId == tabId)
+            inlimbo += 1;
+
     return {
         taken: info.takenTotal,
         discarded: info.discardedTotal,
         inflight: done +
             Math.max(inflight, inflight_debug) +
             Math.max(finishingup, finishingup_debug),
+        inlimbo,
     };
 }
 
@@ -293,11 +315,13 @@ function forgetHistory(tabId) {
 
 function updateDisplay(statsChanged, tabChanged) {
     let stats = getStats();
-    let total = stats.inflight + stats.queued + stats.unarchived;
+    let total = stats.inflight + stats.inlimbo + stats.queued + stats.unarchived;
 
     let newIcon;
     if (stats.unarchived > 0)
         newIcon = "error";
+    else if (stats.inlimbo > 0)
+        newIcon = "archiving";
     else if (stats.queued > 0)
         newIcon = "archiving";
     else if (stats.inflight > 0)
@@ -310,6 +334,8 @@ function updateDisplay(statsChanged, tabChanged) {
     let chunks = [];
     if (stats.unarchived > 0)
         chunks.push(`failed to archive ${stats.unarchived} reqres`);
+    if (stats.inlimbo > 0)
+        chunks.push(`have ${stats.inlimbo} reqres in limbo`);
     if (stats.queued > 0)
         chunks.push(`have ${stats.queued} reqres more to archive`);
     if (stats.inflight > 0)
@@ -732,6 +758,42 @@ function processFinishedReqres(take, shallow, dump, do_broadcast) {
         broadcast(["newLog", [shallow]]);
 }
 
+function popInLimbo(take, num, tabId) {
+    if (reqresLimbo.length == 0)
+        return;
+
+    let popped = [];
+    let skipped = [];
+    let limboLog = [];
+    for (let el of reqresLimbo) {
+        let [shallow, dump] = el;
+
+        if (num !== null && popped.length >= num) {
+            skipped.push(el);
+            limboLog.push(shallow);
+            continue;
+        }
+
+        if (tabId === undefined || shallow.tabId == tabId) {
+            shallow.taken = take;
+            popped.push(shallow);
+            processFinishedReqres(take, shallow, dump, false);
+        } else {
+            skipped.push(el);
+            limboLog.push(shallow);
+        }
+    }
+
+    if (popped.length > 0) {
+        reqresLimbo = skipped;
+        broadcast(["newLog", popped]);
+        broadcast(["resetInLimboLog", limboLog]);
+        updateDisplay(true, false);
+    }
+
+    setTimeout(processArchiving, 1);
+}
+
 function processDone() {
     if (reqresDone.length > 0) {
         let reqres = reqresDone.shift()
@@ -817,7 +879,11 @@ function processDone() {
         if (archiving) {
             let dump = renderReqres(reqres);
 
-            processFinishedReqres(true, shallow, dump);
+            if (options.limbo) {
+                reqresLimbo.push([shallow, dump]);
+                broadcast(["newLimbo", [shallow]]);
+            } else
+                processFinishedReqres(true, shallow, dump);
 
             if (config.dumping) {
                 let dec = new TextDecoder("utf-8", { fatal: false });
@@ -1408,6 +1474,12 @@ function handleMessage(request, sender, sendResponse) {
     case "stopAllInFlight":
         stopAllInFlight(request[1]);
         break;
+    case "getInLimboLog":
+        sendResponse(getInLimboLog());
+        break;
+    case "popInLimbo":
+        popInLimbo(request[1], request[2], request[3]);
+        break;
     case "broadcast":
         broadcast(request[1]);
         break;
@@ -1520,6 +1592,12 @@ async function handleCommand(command) {
             tabcfg.children.collecting = !tabcfg.children.collecting;
             updated_tabconfig = true;
         }
+    } else if (command === "take-all-inlimbo-tab") {
+        for (let tab of tabs)
+            popInLimbo(true, null, tab.id);
+    } else if (command === "discard-all-inlimbo-tab") {
+        for (let tab of tabs)
+            popInLimbo(false, null, tab.id);
     } else {
         console.error(`unknown command ${command}`);
         return;

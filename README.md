@@ -117,7 +117,6 @@ I eat what I cook: since October 2023 I archive all of my web traffic with `pWeb
 - Improve UI:
   - Slightly better add-on popup layout.
   - Implement more tab states, display per-tab collection errors.
-- Delayed reqres archival: allow to archive or discard pages after they are were fetched.
 - Serverless archival into browser's local storage: for easier bootstrap and to allow using Tor Browser securely with its default config.
 
 ### `wrrarms` tool
