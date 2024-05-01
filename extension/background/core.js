@@ -828,20 +828,9 @@ function processDone() {
     if (reqresDone.length > 0) {
         let reqres = reqresDone.shift()
 
-        if (reqres.statusCode === 200 && reqres.fromCache && reqres.responseHeaders !== undefined) {
-            let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
-            if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
-                // Under Firefox, filterResponseData for cached images receives no
-                // response data.
-                if (config.debugging)
-                    console.log("fake complete reqres", reqres);
-                // Let's mark all such things as incomplete.
-                reqres.responseComplete = false;
-            }
-        }
+        let state = undefined;
+        let archiving = undefined;
 
-        let state = "complete";
-        let archiving = true;
         if (reqres.requestHeaders === undefined) {
             // it failed somewhere before handleSendHeaders
             state = "canceled";
@@ -852,10 +841,30 @@ function processDone() {
             archiving = config.archiveNoResponse;
             // filter.onstop might have set it to true
             reqres.responseComplete = false;
-        } else if (!reqres.responseComplete) {
-            state = "incomplete";
-            archiving = config.archiveIncompleteResponse;
         }
+
+        if (reqres.statusCode === 200 && reqres.fromCache && reqres.responseHeaders !== undefined) {
+            let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
+            if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
+                // Under Firefox, filterResponseData for cached images receives no
+                // response data.
+                // Let's mark all such things as incomplete with a special status.
+                state = "incomplete-fc";
+                reqres.responseComplete = false;
+            }
+        }
+
+        if (!reqres.responseComplete) {
+            if (state === undefined)
+                state = "incomplete";
+            if (archiving === undefined)
+                archiving = config.archiveIncompleteResponse;
+        }
+
+        if (state === undefined)
+            state = "complete";
+        if (archiving === undefined)
+            archiving = true;
 
         if (archiving && !reqres.requestComplete)
             // requestBody recovered from formData
