@@ -485,5 +485,5 @@ function processFinishingUpDebug() {
     }
 
     updateDisplay(true, false);
-    setTimeout(processDone, 1);
+    scheduleEndgame();
 }

@@ -223,6 +223,8 @@ let reqresNotifyEmpty = false;
 let reqresNotifiedEmpty = false;
 
 // timeout ID
+let finishingUpTID = null;
+let endgameTID = null;
 let reqresNotifyTID = null;
 let reqresRetryTID = null;
 let saveConfigTID = null;
@@ -400,6 +402,34 @@ function updateDisplay(statsChanged, tabChanged) {
         broadcast(["updateStats", stats]);
 }
 
+// schedule processFinishingUp
+function scheduleFinishingUp() {
+    if (finishingUpTID !== null)
+        clearTimeout(finishingUpTID);
+
+    finishingUpTID = setTimeout(() => {
+        finishingUpTID = null;
+        processFinishingUp();
+    }, 1);
+}
+
+// schedule processArchiving and processDone
+function scheduleEndgame() {
+    if (endgameTID !== null)
+        clearTimeout(endgameTID);
+
+    if (reqresArchiving.length > 0)
+        endgameTID = setTimeout(() => {
+            endgameTID = null;
+            processArchiving();
+        }, 1);
+    else if (reqresDone.length > 0)
+        endgameTID = setTimeout(() => {
+            endgameTID = null;
+            processDone();
+        }, 1);
+}
+
 // mark this archiveURL as failing
 function markArchiveAsFailed(archiveURL, when, reason) {
     let v = reqresArchivingFailed.get(archiveURL);
@@ -455,7 +485,7 @@ function retryAllFailedArchivesIn(msec) {
         reqresRetryTID = null;
         retryAllFailedArchives();
         updateDisplay(true, false);
-        setTimeout(processArchiving, 1);
+        scheduleEndgame();
     }, msec);
 }
 
@@ -481,7 +511,7 @@ function processArchiving() {
             // this archiveURL is marked broken, and we just had a failure there, fail this reqres immediately
             failed.queue.push(archivable);
             updateDisplay(true, false);
-            setTimeout(processArchiving, 1);
+            scheduleEndgame();
             return;
         }
 
@@ -495,7 +525,7 @@ function processArchiving() {
             broadcast(["newUnarchived", [shallow]]);
             updateDisplay(true, false);
 
-            setTimeout(processArchiving, 1);
+            scheduleEndgame();
         }
 
         function allok() {
@@ -519,7 +549,7 @@ function processArchiving() {
                 });
             }
 
-            setTimeout(processArchiving, 1);
+            scheduleEndgame();
         }
 
         if (config.debugging)
@@ -559,7 +589,7 @@ function processArchiving() {
 
         if (reqresArchivingFailed.size == 0) {
             // nothing else to do in this branch, try again
-            setTimeout(processArchiving, 1);
+            scheduleEndgame();
             return;
         }
 
@@ -791,7 +821,7 @@ function popInLimbo(take, num, tabId) {
         updateDisplay(true, false);
     }
 
-    setTimeout(processArchiving, 1);
+    scheduleEndgame();
 }
 
 function processDone() {
@@ -895,10 +925,7 @@ function processDone() {
     }
 
     updateDisplay(true, false);
-    if (reqresDone.length > 0)
-        setTimeout(processDone, 10);
-    else
-        setTimeout(processArchiving, 1);
+    scheduleEndgame();
 }
 
 function stopAllInFlight(tabId) {
@@ -909,7 +936,7 @@ function stopAllInFlight(tabId) {
     if (useDebugger)
         forceEmitAllDebug(tabId);
     forceFinishingUp();
-    setTimeout(processDone, 1);
+    scheduleEndgame();
 }
 
 // flush reqresFinishingUp into the reqresDone, interrupting filters
@@ -965,7 +992,7 @@ function processFinishingUpSimple() {
     }
 
     updateDisplay(true, false);
-    setTimeout(processDone, 1);
+    scheduleEndgame();
 }
 
 let processFinishingUp = processFinishingUpSimple;
@@ -1193,7 +1220,7 @@ function handleBeforeRequest(e) {
                 console.log("filterResponseData", requestId, "finished");
             reqres.responseComplete = true;
             filter.disconnect();
-            setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
+            scheduleFinishingUp(); // in case we were waiting for this filter
         };
         filter.onerror = (event) => {
             if (filter.error !== "Invalid request ID") {
@@ -1203,7 +1230,7 @@ function handleBeforeRequest(e) {
                     console.error("filterResponseData", requestId, "error", error);
                 reqres.errors.push(error);
             }
-            setTimeout(processFinishingUp, 1); // in case we were waiting for this filter
+            scheduleFinishingUp(); // in case we were waiting for this filter
         };
 
         reqres.filter = filter;
