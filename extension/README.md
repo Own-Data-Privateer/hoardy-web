@@ -11,9 +11,9 @@ See [higher-level README](../README.md) if the above makes little sense, or if y
 
 # Screenshots
 
-![Screenshot of browser's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/pwebarc/extension-1.5-popup.png)
+![Screenshot of browser's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.7.0-popup.png)
 
-![Screenshot of extension's help page. The highlighted setting is referenced by the text under the mouse cursor.](https://oxij.org/asset/demo/software/pwebarc/extension-1.5-help-page.png)
+![Screenshot of extension's help page. The highlighted setting is referenced by the text under the mouse cursor.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.7.0-help-page.png)
 
 # Installation
 
