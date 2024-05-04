@@ -17,7 +17,6 @@
 
 import dataclasses as _dc
 import errno as _errno
-import fcntl as _fcntl
 import io as _io
 import os as _os
 import shutil as _shutil
@@ -27,6 +26,9 @@ import typing as _t
 from gettext import gettext, ngettext
 
 from kisstdlib.exceptions import *
+
+if _sys.platform != "win32":
+    import fcntl as _fcntl
 
 def fsync_maybe(fd : int) -> None:
     try:
