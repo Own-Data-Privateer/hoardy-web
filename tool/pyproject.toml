@@ -37,6 +37,7 @@ dependencies = [
     "kisstdlib",
     "cbor2",
     "idna",
+    "html5lib",
 ]
 [project.urls]
 "Homepage" = "https://oxij.org/software/pwebarc/"
