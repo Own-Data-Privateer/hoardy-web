@@ -20,7 +20,7 @@ for target in "$@"; do
 
     echo "  Building help page..."
 
-    pandoc -f org -t html --template=page/help.template --metadata pagetitle=help page/help.org > page/help.html
+    pandoc -f org -t html --wrap=none --template=page/help.template --metadata pagetitle=help page/help.org > page/help.html
 
     echo "  Preparing icons..."
 
