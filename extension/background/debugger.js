@@ -1,7 +1,7 @@
 /*
  * Debugger-assisted request collection (for Chromium-based browsers).
  *
- * Copyright (c) 2023 Jan Malakhovski <oxij@oxij.org>
+ * Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
  *
  * This file can be distributed under the terms of the GNU GPL, version 3 or later.
  */
