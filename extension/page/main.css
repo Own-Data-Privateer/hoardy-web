@@ -127,3 +127,10 @@ div.help {
         background-color: #ffaa00;
     }
 }
+
+/* pointer to the target */
+.pointer {
+    color: #aa6600;
+    background-color: #ffffff;
+    text-decoration: dotted underline;
+}

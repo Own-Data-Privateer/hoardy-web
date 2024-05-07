@@ -243,7 +243,7 @@ function highlightNode(id) {
     let el = document.getElementById(id);
     if (el !== null) {
         el.classList.add("target");
-        el.scrollIntoView();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
         targetNode = el;
     }
 }
