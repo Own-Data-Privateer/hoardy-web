@@ -858,9 +858,10 @@ function processDone() {
                 archiving = config.archiveIncompleteResponse;
                 // filter.onstop will have set it to true
                 reqres.responseComplete = false;
-            }
-        }
-
+            } else
+                state = "complete_fc";
+        } else if (reqres.fromCache)
+            state = "complete_fc";
 
         if (archiving && !reqres.requestComplete)
             // requestBody recovered from formData
