@@ -138,12 +138,13 @@ function cleanupTabs() {
 
     // delete configs of unused tabs
     for (let tabId of Array.from(tabsToDelete.keys())) {
-        if(!usedTabs.has(tabId)) {
-            console.log("removing config of tab", tabId);
-            tabConfig.delete(tabId);
-            tabInfo.delete(tabId);
-            tabsToDelete.delete(tabId);
-        }
+        if(usedTabs.has(tabId))
+            continue;
+
+        console.log("removing config of tab", tabId);
+        tabConfig.delete(tabId);
+        tabInfo.delete(tabId);
+        tabsToDelete.delete(tabId);
     }
 }
 
@@ -828,8 +829,9 @@ function processDone() {
     if (reqresDone.length > 0) {
         let reqres = reqresDone.shift()
 
-        let state = undefined;
-        let archiving = undefined;
+        let state = "complete";
+        let good = true;
+        let archiving = true;
 
         if (reqres.requestHeaders === undefined) {
             // it failed somewhere before handleSendHeaders
@@ -841,30 +843,24 @@ function processDone() {
             archiving = config.archiveNoResponse;
             // filter.onstop might have set it to true
             reqres.responseComplete = false;
-        }
-
-        if (reqres.statusCode === 200 && reqres.fromCache && reqres.responseHeaders !== undefined) {
+        } else if (!reqres.responseComplete) {
+            state = "incomplete";
+            archiving = config.archiveIncompleteResponse;
+        } else if (reqres.statusCode === 200 && reqres.fromCache && reqres.responseHeaders !== undefined) {
             let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
             if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
-                // Under Firefox, filterResponseData for cached images receives no
-                // response data.
-                // Let's mark all such things as incomplete with a special status.
+                // Under Firefox, filterResponseData filters will get empty response data for some
+                // cached objects. We use a special state for these, as this is not really an error,
+                // and reloading the page will not help in archiving that data, as those requests
+                // will be answered from cache again. (But reloading the page with cache disabled
+                // with Control+F5 will.)
                 state = "incomplete-fc";
+                archiving = config.archiveIncompleteResponse;
+                // filter.onstop will have set it to true
                 reqres.responseComplete = false;
             }
         }
 
-        if (!reqres.responseComplete) {
-            if (state === undefined)
-                state = "incomplete";
-            if (archiving === undefined)
-                archiving = config.archiveIncompleteResponse;
-        }
-
-        if (state === undefined)
-            state = "complete";
-        if (archiving === undefined)
-            archiving = true;
 
         if (archiving && !reqres.requestComplete)
             // requestBody recovered from formData
@@ -985,16 +981,16 @@ function processFinishingUpSimple() {
             }
 
             let fs = reqres.filter.status;
-            if (fs !== "disconnected" && fs !== "closed" && fs !== "failed") {
-                // the filter of this reqres is not finished yet
-                // try again later
-                notFinished.push(reqres);
+            if (fs == "disconnected" || fs == "closed" || fs == "failed") {
+                // the filter is done, remove it
+                delete reqres["filter"];
+                reqresDone.push(reqres);
                 continue;
             }
 
-            // the filter is done, remove it
-            delete reqres["filter"];
-            reqresDone.push(reqres);
+            // the filter of this reqres is not finished yet
+            // try again later
+            notFinished.push(reqres);
         }
 
         reqresFinishingUp = notFinished;
