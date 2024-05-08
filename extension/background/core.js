@@ -839,7 +839,7 @@ function processDone() {
             archiving = false;
         } else if (reqres.responseTimeStamp === undefined) {
             // no response after sending headers
-            state = "noresponse";
+            state = "no_response";
             archiving = config.archiveNoResponse;
             // filter.onstop might have set it to true
             reqres.responseComplete = false;
@@ -854,7 +854,7 @@ function processDone() {
                 // and reloading the page will not help in archiving that data, as those requests
                 // will be answered from cache again. (But reloading the page with cache disabled
                 // with Control+F5 will.)
-                state = "incomplete-fc";
+                state = "incomplete_fc";
                 archiving = config.archiveIncompleteResponse;
                 // filter.onstop will have set it to true
                 reqres.responseComplete = false;

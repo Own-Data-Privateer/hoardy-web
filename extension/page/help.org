@@ -32,9 +32,9 @@ Also, note that pWebArc provides
 In-flight reqres can finish in one of the following states (this is the "State" column in the [[./state.html][Logs]]):
 
 - =canceled=: request was canceled before it was sent (usually by another extension like uBlock Origin);
-- =noresponse=: request was sent, but then it was canceled before getting a response, or the connection was rejected, or network timeout was reached;
+- =no_response=: request was sent, but then it was canceled before getting a response, or the connection was rejected, or network timeout was reached;
 - =incomplete=: request was sent, response headers were received, but downloading of the response's body was interrupted;
-- =incomplete-fc=: on Firefox: the browser loaded the response data of this reqres directly from cache and did not give it to the extension; this is a separate state, because usually this means this URL was successfully archived before (if it was not, reload the page with Control+F5);
+- =incomplete_fc=: on Firefox: the browser loaded the response data of this reqres directly from cache and did not give it to the extension; this is a separate state, because usually this means this URL was successfully archived before (if it was not, reload the page with Control+F5);
 - =complete=: request was completed successfully.
 ** Step 3: Decide what to do with it
 Then, depending on the [[./popup.html#archive-options]["Archive reqres with" settings]], the reqres in question will either be taken for archival or discarded (displayed as green and red colors respectively in the [[./state.html][Logs]]).
