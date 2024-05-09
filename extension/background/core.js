@@ -146,11 +146,13 @@ function cleanupTabs() {
         tabInfo.delete(tabId);
         tabsToDelete.delete(tabId);
     }
+
+    return false;
 }
 
 function processRemoveTab(tabId) {
     tabsToDelete.add(tabId);
-    cleanupTabs();
+    updateDisplay(cleanupTabs(), true);
 }
 
 // browserAction state
@@ -589,8 +591,7 @@ function processArchiving() {
                 reqresArchivingFailed.delete(archiveURL);
         }
 
-        updateDisplay(false, false);
-        cleanupTabs();
+        updateDisplay(cleanupTabs(), false);
 
         if (reqresArchivingFailed.size == 0) {
             // nothing else to do in this branch, try again
@@ -623,8 +624,7 @@ function processArchiving() {
         }, 1000);
     } else { // if all queues are empty
         cancelRetryAll();
-        updateDisplay(false, false);
-        cleanupTabs();
+        updateDisplay(cleanupTabs(), false);
 
         if (reqresNotifyEmpty && !reqresNotifiedEmpty) {
             reqresNotifiedEmpty = true;
@@ -821,6 +821,7 @@ function popInLimbo(take, num, tabId) {
 
     if (popped.length > 0) {
         reqresLimbo = skipped;
+        cleanupTabs();
         broadcast(["newLog", popped]);
         broadcast(["resetInLimboLog", limboLog]);
         updateDisplay(true, false);
