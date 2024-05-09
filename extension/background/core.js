@@ -126,7 +126,7 @@ function cleanupTabs() {
         usedTabs.add(v.tabId);
     for (let v of debugReqresFinishingUp)
         usedTabs.add(v.tabId);
-    for (let v of reqresDone)
+    for (let v of reqresAlmostDone)
         usedTabs.add(v.tabId);
     for (let [v, _x] of reqresLimbo)
         usedTabs.add(v.tabId);
@@ -166,7 +166,7 @@ let reqresInFlight = new Map();
 // requests that are "completed" by the browser, but might have an unfinished filterResponseData filter
 let reqresFinishingUp = [];
 // completely finished requests
-let reqresDone = [];
+let reqresAlmostDone = [];
 // requests in limbo, waiting to be either discarded or queued for archival
 let reqresLimbo = [];
 // total number of taken and discarded requests
@@ -184,7 +184,7 @@ let reqresLog = [];
 
 function getInFlightLog() {
     let res = [];
-    for (let v of reqresDone) {
+    for (let v of reqresAlmostDone) {
         res.push(shallowCopyOfReqres(v));
     }
     for (let [k, v] of reqresInFlight.entries()) {
@@ -232,21 +232,26 @@ let saveConfigTID = null;
 
 // produce stats of all the queues
 function getStats() {
-    let unarchived = 0;
+    let archive_failed = 0;
     for (let [archiveURL, f] of reqresArchivingFailed.entries()) {
-        unarchived += f.queue.length;
+        archive_failed += f.queue.length;
     }
+
+    let in_flight = reqresAlmostDone.length +
+        Math.max(reqresInFlight.size, debugReqresInFlight.size) +
+        Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length);
+
+    let unarchived = in_flight + reqresLimbo.length + reqresArchiving.length + archive_failed;
 
     return {
         version: manifest.version,
         taken: reqresTakenTotal,
         discarded: reqresDiscardedTotal,
         queued: reqresArchiving.length,
-        inlimbo: reqresLimbo.length,
-        inflight: reqresDone.length +
-            Math.max(reqresInFlight.size, debugReqresInFlight.size) +
-            Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length),
-        archived: reqresArchivedTotal,
+        in_limbo: reqresLimbo.length,
+        in_flight,
+        archive_ok: reqresArchivedTotal,
+        archive_failed,
         unarchived,
     };
 }
@@ -255,41 +260,41 @@ function getStats() {
 function getTabStats(tabId) {
     let info = getTabInfo(tabId);
 
-    let inflight = 0;
-    let inflight_debug = 0;
+    let in_flight = 0;
+    let in_flight_debug = 0;
     for (let [k, v] of reqresInFlight.entries())
         if (v.tabId == tabId)
-            inflight += 1;
+            in_flight += 1;
     for (let [k, v] of debugReqresInFlight.entries())
         if (v.tabId == tabId)
-            inflight_debug += 1;
+            in_flight_debug += 1;
 
-    let finishingup = 0;
-    let finishingup_debug = 0;
+    let finishing_up = 0;
+    let finishing_up_debug = 0;
     for (let v of reqresFinishingUp)
         if (v.tabId == tabId)
-            finishingup += 1;
+            finishing_up += 1;
     for (let v of debugReqresFinishingUp)
         if (v.tabId == tabId)
-            finishingup_debug += 1;
+            finishing_up_debug += 1;
 
-    let done = 0;
-    for (let v of reqresDone)
+    let almost_done = 0;
+    for (let v of reqresAlmostDone)
         if (v.tabId == tabId)
-            done += 1;
+            almost_done += 1;
 
-    let inlimbo = 0;
+    let in_limbo = 0;
     for (let [v, _x] of reqresLimbo)
         if (v.tabId == tabId)
-            inlimbo += 1;
+            in_limbo += 1;
 
     return {
         taken: info.takenTotal,
         discarded: info.discardedTotal,
-        inflight: done +
-            Math.max(inflight, inflight_debug) +
-            Math.max(finishingup, finishingup_debug),
-        inlimbo,
+        in_limbo,
+        in_flight: almost_done +
+            Math.max(in_flight, in_flight_debug) +
+            Math.max(finishing_up, finishing_up_debug),
     };
 }
 
@@ -318,16 +323,15 @@ function forgetHistory(tabId) {
 
 function updateDisplay(statsChanged, tabChanged) {
     let stats = getStats();
-    let total = stats.inflight + stats.inlimbo + stats.queued + stats.unarchived;
 
     let newIcon;
-    if (stats.unarchived > 0)
+    if (stats.archive_failed > 0)
         newIcon = "error";
-    else if (stats.inlimbo > 0)
+    else if (stats.in_limbo > 0)
         newIcon = "archiving";
     else if (stats.queued > 0)
         newIcon = "archiving";
-    else if (stats.inflight > 0)
+    else if (stats.in_flight > 0)
         newIcon = "tracking";
     else if (!config.collecting)
         newIcon = "off";
@@ -335,14 +339,14 @@ function updateDisplay(statsChanged, tabChanged) {
         newIcon = "idle";
 
     let chunks = [];
-    if (stats.unarchived > 0)
-        chunks.push(`failed to archive ${stats.unarchived} reqres`);
-    if (stats.inlimbo > 0)
-        chunks.push(`have ${stats.inlimbo} reqres in limbo`);
+    if (stats.archive_failed > 0)
+        chunks.push(`failed to archive ${stats.archive_failed} reqres`);
+    if (stats.in_limbo > 0)
+        chunks.push(`have ${stats.in_limbo} reqres in limbo`);
     if (stats.queued > 0)
         chunks.push(`have ${stats.queued} reqres more to archive`);
-    if (stats.inflight > 0)
-        chunks.push(`still tracking ${stats.inflight} reqres`);
+    if (stats.in_flight > 0)
+        chunks.push(`still tracking ${stats.in_flight} reqres`);
     if (!config.archiving)
         chunks.push("not archiving");
     if (!config.collecting)
@@ -356,8 +360,8 @@ function updateDisplay(statsChanged, tabChanged) {
 
     let newTitle = `pWebArc: ${state}`;
     let newBadge = "";
-    if (total > 0)
-        newBadge = total.toString();
+    if (stats.unarchived > 0)
+        newBadge = stats.unarchived.toString();
 
     if (tabChanged || oldIcon !== newIcon || oldTitle != newTitle || oldBadge !== newBadge) {
         if (config.debugging)
@@ -414,20 +418,20 @@ function scheduleFinishingUp() {
     }, 1);
 }
 
-// schedule processArchiving and processDone
+// schedule processArchiving and processAlmostDone
 function scheduleEndgame() {
     if (endgameTID !== null)
         clearTimeout(endgameTID);
 
-    if (reqresArchiving.length > 0 || reqresDone.length == 0)
+    if (reqresArchiving.length > 0 || reqresAlmostDone.length == 0)
         endgameTID = setTimeout(() => {
             endgameTID = null;
             processArchiving();
         }, 1);
-    else if (reqresDone.length > 0)
+    else if (reqresAlmostDone.length > 0)
         endgameTID = setTimeout(() => {
             endgameTID = null;
-            processDone();
+            processAlmostDone();
         }, 1);
 }
 
@@ -523,7 +527,7 @@ function processArchiving() {
             reqresNotifyEmpty = true;
             reqresNotifiedEmpty = false; // force another archivingOK notification later
 
-            broadcast(["newUnarchived", [shallow]]);
+            broadcast(["newFailed", [shallow]]);
             updateDisplay(true, false);
 
             scheduleEndgame();
@@ -825,9 +829,9 @@ function popInLimbo(take, num, tabId) {
     scheduleEndgame();
 }
 
-function processDone() {
-    if (reqresDone.length > 0) {
-        let reqres = reqresDone.shift()
+function processAlmostDone() {
+    if (reqresAlmostDone.length > 0) {
+        let reqres = reqresAlmostDone.shift()
 
         let state = "complete";
         let good = true;
@@ -945,7 +949,7 @@ function stopAllInFlight(tabId) {
     scheduleEndgame();
 }
 
-// flush reqresFinishingUp into the reqresDone, interrupting filters
+// flush reqresFinishingUp into the reqresAlmostDone, interrupting filters
 function forceFinishingUpSimple() {
     for (let reqres of reqresFinishingUp) {
         // disconnect the filter, if not disconnected already
@@ -958,7 +962,7 @@ function forceFinishingUpSimple() {
             delete reqres["filter"];
         }
 
-        reqresDone.push(reqres);
+        reqresAlmostDone.push(reqres);
     }
 
     reqresFinishingUp = [];
@@ -977,7 +981,7 @@ function processFinishingUpSimple() {
         for (let reqres of reqresFinishingUp) {
             if (reqres.filter === undefined) {
                 // this reqres finished even before having a filter
-                reqresDone.push(reqres);
+                reqresAlmostDone.push(reqres);
                 continue;
             }
 
@@ -985,7 +989,7 @@ function processFinishingUpSimple() {
             if (fs == "disconnected" || fs == "closed" || fs == "failed") {
                 // the filter is done, remove it
                 delete reqres["filter"];
-                reqresDone.push(reqres);
+                reqresAlmostDone.push(reqres);
                 continue;
             }
 

@@ -82,11 +82,11 @@ function resetFinished(log) {
 }
 
 function resetInLimbo(log) {
-    resetLog("inlimbo", log);
+    resetLog("in_limbo", log);
 }
 
 function resetInFlight(log) {
-    resetLog("inflight", log);
+    resetLog("in_flight", log);
 }
 
 document.addEventListener("DOMContentLoaded", catchAll(() => {
@@ -135,10 +135,10 @@ document.addEventListener("DOMContentLoaded", catchAll(() => {
             return;
         // incrementally add new rows
         } else if (what == "newInFlight") {
-            appendLog(document.getElementById("inflight"), data);
+            appendLog(document.getElementById("in_flight"), data);
             return;
         } else if (what == "newLimbo") {
-            appendLog(document.getElementById("inlimbo"), data);
+            appendLog(document.getElementById("in_limbo"), data);
         } else if (what == "newLog") {
             appendLog(document.getElementById("finished"), data);
         } else
