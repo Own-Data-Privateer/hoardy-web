@@ -43,13 +43,15 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
         window.close();
     });
     buttonToMessage("forgetHistory");
+    buttonToMessage("forgetProblematic");
     buttonToAction("state", () => window.open(browser.runtime.getURL("/page/state.html"), "_blank"));
     buttonToMessage("retryAllFailedArchives");
     buttonToAction("takeAllInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, null]));
     buttonToAction("discardAllInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, null]));
     buttonToMessage("stopAllInFlight");
 
-    buttonToAction("forgetTabHistory", () => browser.runtime.sendMessage(["forgetHistory", tabId]));
+    buttonToAction("forgetTabHistory",   () => browser.runtime.sendMessage(["forgetHistory", tabId]));
+    buttonToAction("forgetTabProblematic", () => browser.runtime.sendMessage(["forgetProblematic", tabId]));
     buttonToAction("tabState", () => window.open(browser.runtime.getURL(`/page/state.html?tab=${tabId}`), "_blank"));
     buttonToAction("takeTabInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, null, tabId]));
     buttonToAction("discardTabInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, null, tabId]));

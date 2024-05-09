@@ -27,6 +27,12 @@ td.long {
       <span data-help="Stop tracking progress of all in-flight requests displayed above and either queue them for archival or discard them, depending on their completion and &quot;Archive reqres with&quot; options in the settings popup."><input type="button" id="stopAllInFlight" value="Stop tracking all" /></span>
     </div>
 
+    <h1>Problematic</h1>
+    <table><tbody id="problematic"></tbody></table>
+    <div>
+      <span data-help="Forget all reqres above."><input type="button" id="forgetProblematic" value="Forget all" /></span>
+    </div>
+
     <h1>In limbo</h1>
     <div>
       <span data-help="Queue the first reqres below for archival."><input type="button" id="takeOneInLimbo" value="Archive the first one" /></span>

@@ -24,6 +24,10 @@ h2 {
     margin-top: 2px;
 }
 
+code {
+    margin: 0 0.5em;
+}
+
 .right {
     margin-left: auto;
 }
@@ -114,6 +118,13 @@ input[type="button"], .help {
             <span id="stats.in_limbo">0</span> reqres
           </span>
         </div>
+        <div id="div-stats.problematic" data-help="Number of finished problematic reqres in all tabs.">
+          <span>Problematic</span>
+          <span class="right">
+            <span data-help="Forget about all problematic reqres."><input type="button" id="forgetProblematic" value="🧹" /></span>
+            <span id="stats.problematic">0</span> reqres
+          </span>
+        </div>
         <div id="div-stats.in_flight" data-help="Number of tracked reqres that have not finished yet.">
           <span>In flight</span>
           <span class="right">
@@ -153,6 +164,13 @@ input[type="button"], .help {
               <span data-help="For reqres of this tab, queue all reqres in limbo for archival."><input type="button" id="takeTabInLimbo" value="✔️" /></span>
               <span data-help="For reqres of this tab, discard all reqres in limbo."><input type="button" id="discardTabInLimbo" value="✖️" /></span>
               <span id="tabstats.in_limbo">0</span> reqres
+            </span>
+          </div>
+          <div id="div-tabstats.problematic" data-help="Number of finished problematic reqres in this tab.">
+            <span>Problematic</span>
+            <span class="right">
+              <span data-help="Forget about all problematic reqres in this tab."><input type="button" id="forgetTabProblematic" value="🧹" /></span>
+              <span id="tabstats.problematic">0</span> reqres
             </span>
           </div>
           <div id="div-tabstats.in_flight" data-help="Number of in-flight reqres tracked in this tab.">
@@ -196,6 +214,13 @@ input[type="button"], .help {
         <ui id="config.background.limbo" type="boolean" data-help="Put newly finished reqres originating from browser's background tasks (excluding those originating from extensions) into limbo until you queue them for archival or discard them manually.">Put newly finished reqres in limbo</ui>
         <ui id="config.background.profile" type="string" data-help="Use this server-side profile when archiving reqres originating from browser's background tasks (excluding those originating from extensions).">Profile</ui>
         <h1>Options</h1>
+        <div id="problematic-options">
+          <h2>Mark reqres as problematic when they finish</h2>
+          <ui id="config.markProblematicCanceled" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `canceled` state. Disabled by default because `canceled` state usually means the HTTP request in question was blocked by another extension like &quot;uBlock Origin&quot;. See Help page for details.">... in <code>canceled</code> state</ui>
+          <ui id="config.markProblematicNoResponse" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `no_response` state. Enabled by default. See Help page for details.">... in <code>no_response</code> state</ui>
+          <ui id="config.markProblematicIncomplete" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `incomplete` state. Enabled by default. See Help page for details.">... in <code>incomplete</code> state</ui>
+          <ui id="config.markProblematicIncompleteFC" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `incomplete_fc` state. Disabled by default because `incomplete_fc` means the document was loaded from cache, which usually means one of the previously taken reqres had this response data archived already. See Help page for details.">... in <code>incomplete_fc</code> state</ui>
+        </div>
         <div id="archive-options">
           <h2>Archive reqres with</h2>
           <ui id="config.archivePartialRequest" type="boolean" data-help="Queue a reqres for archival even when its request body is incomplete. You probably want to keep this enabled. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">... partial POST form data</ui>

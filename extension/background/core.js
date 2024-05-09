@@ -43,6 +43,12 @@ let config = {
     archiving: true,
     archiveURLBase: "http://127.0.0.1:3210/pwebarc/dump",
 
+    // problematic options
+    markProblematicCanceled: false,
+    markProblematicNoResponse: true,
+    markProblematicIncomplete: true,
+    markProblematicIncompleteFC: false,
+
     // collection options
     archivePartialRequest: true,
     archiveNoResponse: false,
@@ -115,7 +121,16 @@ function processNewTab(tabId, openerTabId) {
     return tabcfg;
 }
 
+// frees unused `tabConfig` and `tabInfo` structures, returns `true` if
+// cleanup changed stats (which can happens when a deleted tab has problematic
+// reqres)
 function cleanupTabs() {
+    // forget problematic reqres in closed tabs
+    let numProblematicBefore = reqresProblematicLog.length;
+    reqresProblematicLog = reqresProblematicLog.filter((e) => !tabsToDelete.has(e.tabId));
+
+    // TODO similar reqresLimbo cleanup goes here
+
     // collect all tabs referenced in not yet archived requests
     let usedTabs = new Set();
     for (let [k, v] of reqresInFlight.entries())
@@ -147,7 +162,7 @@ function cleanupTabs() {
         tabsToDelete.delete(tabId);
     }
 
-    return false;
+    return reqresProblematicLog.length != numProblematicBefore;
 }
 
 function processRemoveTab(tabId) {
@@ -171,7 +186,7 @@ let reqresFinishingUp = [];
 let reqresAlmostDone = [];
 // requests in limbo, waiting to be either discarded or queued for archival
 let reqresLimbo = [];
-// total number of taken and discarded requests
+// total numbers of taken and discarded reqres
 let reqresTakenTotal = 0;
 let reqresDiscardedTotal = 0;
 // requests in the process of being archived
@@ -183,6 +198,8 @@ let reqresArchivingFailed = new Map();
 
 // request log
 let reqresLog = [];
+// log of problematic reqres
+let reqresProblematicLog = [];
 
 function getInFlightLog() {
     let res = [];
@@ -212,6 +229,7 @@ function getTabInfo(tabId) {
         res = {
             takenTotal: 0,
             discardedTotal: 0,
+            problematicTotal: 0,
         };
         tabInfo.set(tabId, res);
     }
@@ -250,6 +268,7 @@ function getStats() {
         taken: reqresTakenTotal,
         discarded: reqresDiscardedTotal,
         queued: reqresArchiving.length,
+        problematic: reqresProblematicLog.length,
         in_limbo: reqresLimbo.length,
         in_flight,
         archive_ok: reqresArchivedTotal,
@@ -293,6 +312,7 @@ function getTabStats(tabId) {
     return {
         taken: info.takenTotal,
         discarded: info.discardedTotal,
+        problematic: info.problematicTotal,
         in_limbo,
         in_flight: almost_done +
             Math.max(in_flight, in_flight_debug) +
@@ -306,13 +326,7 @@ function forgetHistory(tabId) {
         reqresTakenTotal = 0;
         reqresDiscardedTotal = 0;
     } else {
-        let res = [];
-        for (let shallow of reqresLog) {
-            if (shallow.tabId != tabId)
-                res.push(shallow);
-        }
-        reqresLog = res;
-
+        reqresLog = reqresLog.filter((e) => e.tabId != tabId);
         let info = getTabInfo(tabId);
         reqresTakenTotal -= info.takenTotal;
         reqresDiscardedTotal -= info.discardedTotal;
@@ -320,14 +334,30 @@ function forgetHistory(tabId) {
         info.discardedTotal = 0;
     }
     broadcast(["resetLog", reqresLog]);
-    updateDisplay(true, false);
+    updateDisplay(true, false, tabId);
 }
 
-function updateDisplay(statsChanged, tabChanged) {
+function forgetProblematic(tabId) {
+    if (tabId === undefined) {
+        reqresProblematicLog = [];
+        for (let info of tabInfo.values())
+            info.problematicTotal = 0;
+    } else {
+        reqresProblematicLog = reqresProblematicLog.filter((e) => e.tabId != tabId);
+        let info = getTabInfo(tabId);
+        info.problematicTotal = 0;
+    }
+    broadcast(["resetProblematicLog", reqresProblematicLog]);
+    updateDisplay(true, false, tabId);
+}
+
+function updateDisplay(statsChanged, switchedTab, updatedTabId) {
     let stats = getStats();
 
     let newIcon;
     if (stats.archive_failed > 0)
+        newIcon = "error";
+    else if (stats.problematic > 0)
         newIcon = "error";
     else if (stats.in_limbo > 0)
         newIcon = "archiving";
@@ -354,55 +384,69 @@ function updateDisplay(statsChanged, tabChanged) {
     if (!config.collecting)
         chunks.push("off");
 
-    let state;
-    if (chunks.length == 0)
-        state = "idle";
-    else
-        state = chunks.join(", ");
+    let newTitle = "pWebArc: idle";
+    if (chunks.length != 0)
+        newTitle = "pWebArc: " + chunks.join(", ");
 
-    let newTitle = `pWebArc: ${state}`;
     let newBadge = "";
     if (stats.unarchived > 0)
         newBadge = stats.unarchived.toString();
+    if (stats.problematic > 0) {
+        newBadge += "!";
+        newTitle += `, ${stats.problematic} problematic reqres`
+    }
 
-    if (tabChanged || oldIcon !== newIcon || oldTitle != newTitle || oldBadge !== newBadge) {
-        if (config.debugging)
-            console.log("new badge", newIcon, newBadge);
-
+    let changed = switchedTab;
+    if (oldIcon !== newIcon || oldTitle != newTitle || oldBadge !== newBadge) {
+        changed = true;
         oldIcon = newIcon;
         oldTitle = newTitle;
         oldBadge = newBadge;
+        if (config.debugging)
+            console.log("updated browserAction", oldIcon, oldTitle, oldBadge);
+    }
 
+    if (changed || updatedTabId !== undefined) {
         async function updateBrowserAction() {
-            let tabs = await browser.tabs.query({ active: true }).catch(logError);
+            let tabs = await browser.tabs.query({ active: true });
 
-            await browser.browserAction.setBadgeText({ text: newBadge }).catch(logError);
+            await browser.browserAction.setBadgeText({ text: newBadge });
 
             for (let tab of tabs) {
                 let tabId = tab.id;
+
+                // skip updates for unchanged tabs, when specified
+                if (!changed && updatedTabId !== undefined && updatedTabId != tabId)
+                    continue;
+
                 let tabcfg = getTabConfig(tabId);
+                let tabinfo = getTabInfo(tabId);
 
                 let icon = newIcon;
                 let title = newTitle;
-                if (newIcon == "idle" && !tabcfg.collecting) {
-                    icon = "off";
+
+                if (tabinfo.problematicTotal > 0)
+                    title += `, ${tabinfo.problematicTotal} problematic reqres in this tab`;
+
+                if (!tabcfg.collecting) {
+                    if (icon == "idle")
+                        icon = "off";
                     title += ", disabled in this tab";
                 }
 
                 if (useDebugger) {
-                    // Chromium does not support per-window browserActions, so
-                    // we have to update per-tab, this is inefficient
-                    await browser.browserAction.setIcon({ tabId, path: mkIcons(icon) }).catch(logError);
-                    await browser.browserAction.setTitle({ tabId, title }).catch(logError);
+                    // Chromium does not support per-window browserActions, so we have to update them per-tab.
+                    await browser.browserAction.setIcon({ tabId, path: mkIcons(icon) });
+                    await browser.browserAction.setTitle({ tabId, title });
                 } else {
                     let windowId = tab.windowId;
-                    await browser.browserAction.setIcon({ windowId, path: mkIcons(icon) }).catch(logError);
-                    await browser.browserAction.setTitle({ windowId, title }).catch(logError);
+                    await browser.browserAction.setIcon({ windowId, path: mkIcons(icon) });
+                    await browser.browserAction.setTitle({ windowId, title });
                 }
             }
         }
 
-        updateBrowserAction();
+        updateBrowserAction().catch(logError);
     }
 
     if (statsChanged)
@@ -831,25 +875,34 @@ function popInLimbo(take, num, tabId) {
 }
 
 function processAlmostDone() {
+    let updatedTabId = undefined;
+
     if (reqresAlmostDone.length > 0) {
         let reqres = reqresAlmostDone.shift()
+        updatedTabId = reqres.tabId;
+
+        let options = getTabConfig(reqres.tabId, reqres.fromExtension);
+        let info = getTabInfo(reqres.tabId);
 
         let state = "complete";
-        let good = true;
+        let problematic = false;
         let archiving = true;
 
         if (reqres.requestHeaders === undefined) {
             // it failed somewhere before handleSendHeaders
             state = "canceled";
+            problematic = config.markProblematicCanceled;
             archiving = false;
         } else if (reqres.responseTimeStamp === undefined) {
             // no response after sending headers
             state = "no_response";
+            problematic = config.markProblematicNoResponse;
             archiving = config.archiveNoResponse;
             // filter.onstop might have set it to true
             reqres.responseComplete = false;
         } else if (!reqres.responseComplete) {
             state = "incomplete";
+            problematic = config.markProblematicIncomplete;
             archiving = config.archiveIncompleteResponse;
         } else if (reqres.statusCode === 200 && reqres.fromCache && reqres.responseHeaders !== undefined) {
             let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
@@ -860,6 +913,7 @@ function processAlmostDone() {
                 // will be answered from cache again. (But reloading the page with cache disabled
                 // with Control+F5 will.)
                 state = "incomplete_fc";
+                problematic = config.markProblematicIncompleteFC;
                 archiving = config.archiveIncompleteResponse;
                 // filter.onstop will have set it to true
                 reqres.responseComplete = false;
@@ -898,8 +952,6 @@ function processAlmostDone() {
                 reqres.reason = "";
         }
 
-        let options = getTabConfig(reqres.tabId, reqres.fromExtension);
-
         // dump it to console when debugging
         if (config.debugging)
             console.log(archiving ? "TAKEN" : "DISCARDED", reqres.requestId,
@@ -916,6 +968,13 @@ function processAlmostDone() {
         let shallow = shallowCopyOfReqres(reqres);
         shallow.state = state;
         shallow.profile = options.profile;
+        shallow.problematic = problematic;
+
+        if (problematic) {
+            reqresProblematicLog.push(shallow);
+            info.problematicTotal += 1;
+            broadcast(["newProblematic", [shallow]]);
+        }
 
         if (archiving) {
             let dump = renderReqres(reqres);
@@ -935,7 +994,7 @@ function processAlmostDone() {
             processFinishedReqres(false, shallow, undefined);
     }
 
-    updateDisplay(true, false);
+    updateDisplay(true, false, updatedTabId);
     scheduleEndgame();
 }
 
@@ -1505,6 +1564,12 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "forgetHistory":
         forgetHistory(request[1]);
+        break;
+    case "getProblematicLog":
+        sendResponse(reqresProblematicLog);
+        break;
+    case "forgetProblematic":
+        forgetProblematic(request[1]);
         break;
     case "getInFlightLog":
         sendResponse(getInFlightLog());

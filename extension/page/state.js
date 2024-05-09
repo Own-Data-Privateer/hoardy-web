@@ -42,7 +42,7 @@ function newReqres(reqres) {
     if (reqres.state === undefined)
         mtr("tracking");
     else
-        mtr(reqres.state);
+        mtr((reqres.problematic ? "P!" : "") + reqres.state);
 
     mtr(fdate(reqres.requestTimeStamp));
     mtr(reqres.method);
@@ -81,6 +81,10 @@ function resetFinished(log) {
     resetLog("finished", log);
 }
 
+function resetProblematic(log) {
+    resetLog("problematic", log);
+}
+
 function resetInLimbo(log) {
     resetLog("in_limbo", log);
 }
@@ -113,6 +117,7 @@ document.addEventListener("DOMContentLoaded", catchAll(() => {
     }
 
     buttonToAction("forgetHistory", () => browser.runtime.sendMessage(["forgetHistory", tabId]));
+    buttonToAction("forgetProblematic", () => browser.runtime.sendMessage(["forgetProblematic", tabId]));
     buttonToAction("takeOneInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, 1, tabId]));
     buttonToAction("discardOneInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, 1, tabId]));
     buttonToAction("takeAllInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, null, tabId]));
@@ -130,12 +135,18 @@ document.addEventListener("DOMContentLoaded", catchAll(() => {
         if (what == "resetLog") {
             resetFinished(data);
             return;
+        } else if (what == "resetProblematicLog") {
+            resetProblematic(data);
+            return;
         } else if (what == "resetInLimboLog") {
             resetInLimbo(data);
             return;
         // incrementally add new rows
         } else if (what == "newInFlight") {
             appendLog(document.getElementById("in_flight"), data);
+            return;
+        } else if (what == "newProblematic") {
+            appendLog(document.getElementById("problematic"), data);
             return;
         } else if (what == "newLimbo") {
             appendLog(document.getElementById("in_limbo"), data);
@@ -150,6 +161,7 @@ document.addEventListener("DOMContentLoaded", catchAll(() => {
     // meanwhile, get the whole log, render it, and replace the whole
     // page with it
     browser.runtime.sendMessage(["getLog"]).then(resetFinished);
+    browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic);
     browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);
     browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
 }));
