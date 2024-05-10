@@ -102,7 +102,7 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
 
     async function updateTabConfig(tabconfig) {
         if (tabconfig === undefined)
-            tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
+            tabconfig = await browser.runtime.sendMessage(["getOriginConfig", tabId]);
         setUI("tabconfig", tabconfig, (newtabconfig, path) => {
             if (path == "tabconfig.collecting")
                 newtabconfig.children.collecting = newtabconfig.collecting;

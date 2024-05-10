@@ -75,7 +75,7 @@ let config = {
 
 // per-tab config
 let tabConfig = new Map();
-let tabsToDelete = new Set();
+let openTabs = new Set();
 let negateConfigFor = new Set();
 let negateOpenerTabIds = [];
 
@@ -85,7 +85,7 @@ function prefillChildren(data) {
     }, data);
 }
 
-function getTabConfig(tabId, fromExtension) {
+function getOriginConfig(tabId, fromExtension) {
     if (fromExtension)
         return prefillChildren(config.extension);
     if (tabId === undefined) // root tab
@@ -102,6 +102,8 @@ function getTabConfig(tabId, fromExtension) {
 }
 
 function processNewTab(tabId, openerTabId) {
+    openTabs.add(tabId);
+
     if (useDebugger && openerTabId === undefined && negateOpenerTabIds.length > 0) {
         // On Chromium, `browser.tabs.create` with `openerTabId` specified
         // does not pass it into `openerTabId` variable here (it's a bug), so
@@ -109,7 +111,7 @@ function processNewTab(tabId, openerTabId) {
         openerTabId = negateOpenerTabIds.shift();
     }
 
-    let openercfg = getTabConfig(openerTabId);
+    let openercfg = getOriginConfig(openerTabId);
     let children = openercfg.children;
     if (openerTabId !== undefined && negateConfigFor.delete(openerTabId)) {
         // Negate children.collecting when `openerTabId` is in `negateConfigFor`.
@@ -121,13 +123,13 @@ function processNewTab(tabId, openerTabId) {
     return tabcfg;
 }
 
-// frees unused `tabConfig` and `tabInfo` structures, returns `true` if
+// frees unused `tabConfig` and `tabState` structures, returns `true` if
 // cleanup changed stats (which can happens when a deleted tab has problematic
 // reqres)
 function cleanupTabs() {
     // forget problematic reqres in closed tabs
     let numProblematicBefore = reqresProblematicLog.length;
-    reqresProblematicLog = reqresProblematicLog.filter((e) => !tabsToDelete.has(e.tabId));
+    reqresProblematicLog = reqresProblematicLog.filter((e) => openTabs.has(e.tabId));
 
     // TODO similar reqresLimbo cleanup goes here
 
@@ -151,22 +153,28 @@ function cleanupTabs() {
         for(let v of f.queue)
             usedTabs.add(v.tabId);
 
-    // delete configs of unused tabs
-    for (let tabId of Array.from(tabsToDelete.keys())) {
-        if(usedTabs.has(tabId))
+    // delete configs of closed and unused tabs
+    for (let tabId of Array.from(tabConfig.keys())) {
+        if(openTabs.has(tabId) || usedTabs.has(tabId))
             continue;
-
         console.log("removing config of tab", tabId);
         tabConfig.delete(tabId);
-        tabInfo.delete(tabId);
-        tabsToDelete.delete(tabId);
+        tabState.delete(tabId);
+    }
+
+    // delete any stale leftovers from tabState
+    for (let tabId of Array.from(tabState.keys())) {
+        if(openTabs.has(tabId) || usedTabs.has(tabId))
+            continue;
+        console.warn("removing stale tab state", tabId);
+        tabState.delete(tabId);
     }
 
     return reqresProblematicLog.length != numProblematicBefore;
 }
 
 function processRemoveTab(tabId) {
-    tabsToDelete.add(tabId);
+    openTabs.delete(tabId);
     updateDisplay(cleanupTabs(), true);
 }
 
@@ -220,18 +228,25 @@ function getInLimboLog() {
     return res;
 }
 
-// reqresArchivedTotal and reqresDiscardedTotal, but per-tab
-let tabInfo = new Map();
+// per-source reqresArchivedTotal, reqresDiscardedTotal, etc
+let sourceStatsDefault = {
+    takenTotal: 0,
+    discardedTotal: 0,
+    problematicTotal: 0,
+};
+// NB: not tracking extensions separately here, unlike with configs
+let backgroundStats = assignRec({}, sourceStatsDefault);
+// per-tab state
+let tabState = new Map();
 
-function getTabInfo(tabId) {
-    let res = tabInfo.get(tabId);
+function getOriginStats(tabId, fromExtension) {
+    if (fromExtension || tabId === undefined || tabId == -1)
+        return backgroundStats;
+
+    let res = tabState.get(tabId);
     if (res === undefined) {
-        res = {
-            takenTotal: 0,
-            discardedTotal: 0,
-            problematicTotal: 0,
-        };
-        tabInfo.set(tabId, res);
+        res = assignRec({}, sourceStatsDefault);
+        tabState.set(tabId, res);
     }
     return res;
 }
@@ -250,7 +265,8 @@ let reqresNotifyTID = null;
 let reqresRetryTID = null;
 let saveConfigTID = null;
 
-// produce stats of all the queues
+// Compute total sizes of all queues and similar.
+// Used in the UI.
 function getStats() {
     let archive_failed = 0;
     for (let [archiveURL, f] of reqresArchivingFailed.entries()) {
@@ -277,9 +293,24 @@ function getStats() {
     };
 }
 
-// produce stats of all the queues
+// Produce a value similar to that of `getStats`, but for a single tab.
+// Used in the UI.
 function getTabStats(tabId) {
-    let info = getTabInfo(tabId);
+    let info = undefined;
+    if (tabId === undefined || tabId == -1) {
+        tabId = -1;
+        info = backgroundStats;
+    } else
+        info = tabState.get(tabId);
+
+    if (info === undefined)
+        return {
+            taken: 0,
+            discarded: 0,
+            problematic: 0,
+            in_limbo: 0,
+            in_flight: 0,
+        };
 
     let in_flight = 0;
     let in_flight_debug = 0;
@@ -327,7 +358,7 @@ function forgetHistory(tabId) {
         reqresDiscardedTotal = 0;
     } else {
         reqresLog = reqresLog.filter((e) => e.tabId != tabId);
-        let info = getTabInfo(tabId);
+        let info = getOriginStats(tabId);
         reqresTakenTotal -= info.takenTotal;
         reqresDiscardedTotal -= info.discardedTotal;
         info.takenTotal = 0;
@@ -340,11 +371,12 @@ function forgetHistory(tabId) {
 function forgetProblematic(tabId) {
     if (tabId === undefined) {
         reqresProblematicLog = [];
-        for (let info of tabInfo.values())
+        backgroundStats.problematicTotal = 0;
+        for (let info of tabState.values())
             info.problematicTotal = 0;
     } else {
         reqresProblematicLog = reqresProblematicLog.filter((e) => e.tabId != tabId);
-        let info = getTabInfo(tabId);
+        let info = getOriginStats(tabId);
         info.problematicTotal = 0;
     }
     broadcast(["resetProblematicLog", reqresProblematicLog]);
@@ -419,14 +451,14 @@ function updateDisplay(statsChanged, switchedTab, updatedTabId) {
                 if (!changed && updatedTabId !== undefined && updatedTabId != tabId)
                     continue;
 
-                let tabcfg = getTabConfig(tabId);
-                let tabinfo = getTabInfo(tabId);
+                let tabcfg = getOriginConfig(tabId);
 
                 let icon = newIcon;
                 let title = newTitle;
 
-                if (tabinfo.problematicTotal > 0)
-                    title += `, ${tabinfo.problematicTotal} problematic reqres in this tab`;
+                let info = tabState.get(tabId);
+                if (info !== undefined && info.problematicTotal > 0)
+                    title += `, ${info.problematicTotal} problematic reqres in this tab`;
 
                 if (!tabcfg.collecting) {
                     if (icon == "idle")
@@ -552,7 +584,7 @@ function processArchiving() {
 
         // we ignore and recompute shallow.profile here because the user could
         // have changed some settings while archiving was disabled
-        let options = getTabConfig(shallow.tabId, shallow.fromExtension);
+        let options = getOriginConfig(shallow.tabId, shallow.fromExtension);
         shallow.profile = options.profile;
 
         let archiveURL = config.archiveURLBase + "?profile=" + encodeURIComponent(options.profile);
@@ -822,7 +854,7 @@ function processFinishedReqres(take, shallow, dump, do_broadcast) {
     while (reqresLog.length > config.history)
         reqresLog.shift();
 
-    let info = getTabInfo(shallow.tabId);
+    let info = getOriginStats(shallow.tabId, shallow.fromExtension);
 
     if (take) {
         reqresTakenTotal += 1;
@@ -881,8 +913,8 @@ function processAlmostDone() {
         let reqres = reqresAlmostDone.shift()
         updatedTabId = reqres.tabId;
 
-        let options = getTabConfig(reqres.tabId, reqres.fromExtension);
-        let info = getTabInfo(reqres.tabId);
+        let options = getOriginConfig(reqres.tabId, reqres.fromExtension);
+        let info = getOriginStats(reqres.tabId, reqres.fromExtension);
 
         let state = "complete";
         let problematic = false;
@@ -1211,7 +1243,7 @@ function handleBeforeRequest(e) {
     }
 
     // ignore this request if archiving is disabled for this tab or extension
-    let options = getTabConfig(e.tabId, fromExtension);
+    let options = getOriginConfig(e.tabId, fromExtension);
     if (!options.collecting) return;
 
     // on Chromium, cancel all network requests from tabs that are not
@@ -1537,8 +1569,8 @@ function handleMessage(request, sender, sendResponse) {
 
         broadcast(["updateConfig"]);
         break;
-    case "getTabConfig":
-        sendResponse(getTabConfig(request[1]));
+    case "getOriginConfig":
+        sendResponse(getOriginConfig(request[1]));
         break;
     case "setTabConfig":
         tabConfig.set(request[1], request[2]);
@@ -1607,7 +1639,7 @@ let menuIcons = {
 let menuOldState = true;
 
 function updateMenu(tabId) {
-    let cfg = getTabConfig(tabId);
+    let cfg = getOriginConfig(tabId);
     let newState = !cfg.children.collecting;
 
     if (menuOldState === newState) return;
@@ -1684,14 +1716,14 @@ async function handleCommand(command) {
     let updated_tabconfig = false;
     if (command === "toggle-tabconfig-tracking") {
         for (let tab of tabs) {
-            let tabcfg = getTabConfig(tab.id);
+            let tabcfg = getOriginConfig(tab.id);
             tabcfg.collecting = !tabcfg.collecting;
             tabcfg.children.collecting = tabcfg.collecting;
             updated_tabconfig = true;
         }
     } else if (command === "toggle-tabconfig-children-tracking") {
         for (let tab of tabs) {
-            let tabcfg = getTabConfig(tab.id);
+            let tabcfg = getOriginConfig(tab.id);
             tabcfg.children.collecting = !tabcfg.children.collecting;
             updated_tabconfig = true;
         }
@@ -1766,10 +1798,11 @@ async function init(storage) {
     if (useDebugger)
         browser.tabs.onUpdated.addListener(catchAll(handleTabUpdatedChromium));
 
+    // record it all currently open tabs, compute and cache their configs
     let tabs = await browser.tabs.query({});
-    // compute and cache configs for all open tabs
     for (let tab of tabs) {
-        getTabConfig(tab.id);
+        openTabs.add(tab.id);
+        getOriginConfig(tab.id);
     }
 
     browser.runtime.onMessage.addListener(catchAll(handleMessage));

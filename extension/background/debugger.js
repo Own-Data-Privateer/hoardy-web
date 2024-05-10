@@ -59,7 +59,7 @@ async function syncDebuggersState(tabs) {
         }
 
         let attached = tabsDebugging.has(tab.id);
-        let tabcfg = getTabConfig(tab.id);
+        let tabcfg = getOriginConfig(tab.id);
         let wantAttached = hasInFlight
             || config.collecting && tabcfg.collecting
                && (url == "about:blank" || url.startsWith("http://") || url.startsWith("https://"));
