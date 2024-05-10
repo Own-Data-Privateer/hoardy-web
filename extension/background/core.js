@@ -1725,35 +1725,51 @@ function initMenus() {
 
 async function handleCommand(command) {
     let tabs = await browser.tabs.query({ active: true, currentWindow: true });
-    let updated_tabconfig = false;
-    if (command === "toggle-tabconfig-tracking") {
-        for (let tab of tabs) {
-            let tabcfg = getOriginConfig(tab.id);
-            tabcfg.collecting = !tabcfg.collecting;
-            tabcfg.children.collecting = tabcfg.collecting;
-            updated_tabconfig = true;
-        }
-    } else if (command === "toggle-tabconfig-children-tracking") {
-        for (let tab of tabs) {
-            let tabcfg = getOriginConfig(tab.id);
-            tabcfg.children.collecting = !tabcfg.children.collecting;
-            updated_tabconfig = true;
-        }
-    } else if (command === "take-all-inlimbo-tab") {
-        for (let tab of tabs)
-            popInLimbo(true, null, tab.id);
-    } else if (command === "discard-all-inlimbo-tab") {
-        for (let tab of tabs)
-            popInLimbo(false, null, tab.id);
-    } else {
+
+    let tabId = undefined;
+    for (let tab of tabs) {
+        tabId = tab.id;
+    }
+
+    if (tabId === undefined)
+        return;
+
+    let tabcfg = undefined;
+    switch (command) {
+    case "toggle-tabconfig-tracking":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.collecting = !tabcfg.collecting;
+        tabcfg.children.collecting = tabcfg.collecting;
+        break;
+    case "toggle-tabconfig-children-tracking":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.children.collecting = !tabcfg.children.collecting;
+        break;
+    case "toggle-tabconfig-limbo":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.limbo = !tabcfg.limbo;
+        tabcfg.children.limbo = tabcfg.limbo;
+        break;
+    case "toggle-tabconfig-children-limbo":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.children.limbo = !tabcfg.children.limbo;
+        break;
+    case "show-tab-state":
+        showState(`?tab=${tabId}#m-finished`, tabId);
+        return;
+    case "collect-all-tab-inlimbo":
+        popInLimbo(true, null, tabId);
+        return;
+    case "discard-all-tab-inlimbo":
+        popInLimbo(false, null, tabId);
+        return;
+    default:
         console.error(`unknown command ${command}`);
         return;
     }
+
     updateDisplay(false, true);
-    if (updated_tabconfig) {
-        for (let tab of tabs)
-            broadcast(["updateTabConfig", tab.id]);
-    }
+    broadcast(["updateTabConfig", tabId]);
 }
 
 async function init(storage) {
