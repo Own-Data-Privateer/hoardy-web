@@ -454,16 +454,24 @@ function updateDisplay(statsChanged, switchedTab, updatedTabId) {
 
                 let icon = newIcon;
                 let title = newTitle;
+                let tchunks = [];
 
                 let info = tabState.get(tabId);
                 if (info !== undefined && info.problematicTotal > 0)
-                    title += `, ${info.problematicTotal} problematic reqres in this tab`;
+                    tchunks.push(`${info.problematicTotal} problematic reqres`);
 
                 if (!tabcfg.collecting) {
                     if (icon == "idle")
                         icon = "off";
-                    title += ", disabled in this tab";
+                    tchunks.push("disabled");
+                } else if (tabcfg.limbo) {
+                    if (icon == "idle")
+                        icon = "archiving";
+                    tchunks.push("limbo mode");
                 }
+
+                if (tchunks.length != 0)
+                    title += "; this tab: " + tchunks.join(", ");
 
                 if (useDebugger) {
                     // Chromium does not support per-window browserActions, so we have to update them per-tab.
