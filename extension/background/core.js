@@ -233,6 +233,7 @@ let sourceStatsDefault = {
     takenTotal: 0,
     discardedTotal: 0,
     problematicTotal: 0,
+    inLimboTotal: 0,
 };
 // NB: not tracking extensions separately here, unlike with configs
 let backgroundStats = assignRec({}, sourceStatsDefault);
@@ -335,16 +336,11 @@ function getTabStats(tabId) {
         if (v.tabId == tabId)
             almost_done += 1;
 
-    let in_limbo = 0;
-    for (let [v, _x] of reqresLimbo)
-        if (v.tabId == tabId)
-            in_limbo += 1;
-
     return {
         taken: info.takenTotal,
         discarded: info.discardedTotal,
         problematic: info.problematicTotal,
-        in_limbo,
+        in_limbo: info.inLimboTotal,
         in_flight: almost_done +
             Math.max(in_flight, in_flight_debug) +
             Math.max(finishing_up, finishing_up_debug),
@@ -356,6 +352,9 @@ function forgetHistory(tabId) {
         reqresLog = [];
         reqresTakenTotal = 0;
         reqresDiscardedTotal = 0;
+        backgroundStats.inLimboTotal = 0;
+        for (let info of tabState.values())
+            info.inLimboTotal = 0;
     } else {
         reqresLog = reqresLog.filter((e) => e.tabId != tabId);
         let info = getOriginStats(tabId);
@@ -897,6 +896,10 @@ function popInLimbo(take, num, tabId) {
 
     if (popped.length > 0) {
         reqresLimbo = skipped;
+        if (tabId !== undefined) {
+            let info = getOriginStats(tabId);
+            info.inLimboTotal -= popped.length;
+        }
         cleanupTabs();
         broadcast(["newLog", popped]);
         broadcast(["resetInLimboLog", limboLog]);
@@ -1013,6 +1016,7 @@ function processAlmostDone() {
 
             if (options.limbo) {
                 reqresLimbo.push([shallow, dump]);
+                info.inLimboTotal += 1;
                 broadcast(["newLimbo", [shallow]]);
             } else
                 processFinishedReqres(true, shallow, dump);
