@@ -400,7 +400,7 @@ Reqres_derived_attrs = {
     "fminute": "similar to `sminute`, but for `ftime`; int",
     "fsecond": "similar to `ssecond`, but for `ftime`; int",
 
-    "status": '`"NR"` if there was no response, `str(response.code) + "C"` if response was complete, `str(response.code) + "N"` otherwise; str',
+    "status": '`"I"` or  `"C"` depending on the value of `request.complete` (`false` or `true`, respectively) followed by either `"N"`, whene `response == None`, or `str(response.code)` followed by `"I"` or  `"C"` depending on the value of `response.complete`; str',
 
     "method": "aliast for `request.method`; str",
     "raw_url": "aliast for `request.url`; str",
@@ -499,16 +499,20 @@ class ReqresExpr:
         elif (name.startswith("s") and \
               name[1:] in _time_attrs) or \
               name == "status":
+            if reqres.request.complete:
+                status = "C"
+            else:
+                status = "I"
             if reqres.response is not None:
                 stime = reqres.response.started_at
-                status = str(reqres.response.code)
+                status += str(reqres.response.code)
                 if reqres.response.complete:
                     status += "C"
                 else:
                     status += "I"
             else:
                 stime = reqres.finished_at
-                status = "N"
+                status += "N"
             stime_ms = int(stime * 1000)
             self.items["status"] = status
             self.items["stime"] = stime

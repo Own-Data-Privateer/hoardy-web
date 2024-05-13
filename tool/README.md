@@ -30,13 +30,13 @@
 Assuming you keep your WRR dumps in `~/pwebarc/raw` you can generate a hierarchy of symlinks for each URL pointing from under `~/pwebarc/latest` to the most recent WRR file in `~/pwebarc/raw` via:
 
 ```bash
-wrrarms organize --symlink --latest --output hupq --to ~/pwebarc/latest --and "status|== 200C" ~/pwebarc/raw
+wrrarms organize --symlink --latest --output hupq --to ~/pwebarc/latest --and "status|~= .200C" ~/pwebarc/raw
 ```
 
 Personally, I prefer `flat_mhs` (see the documentation of the `--output` below) format as I dislike deep file hierarchies, using it also simplifies filtering in my `ranger` file browser, so I do this:
 
 ```bash
-wrrarms organize --symlink --latest --output flat_mhs --to ~/pwebarc/latest --and "status|== 200C" ~/pwebarc/raw
+wrrarms organize --symlink --latest --output flat_mhs --to ~/pwebarc/latest --and "status|~= .200C" ~/pwebarc/raw
 ```
 
 These commands rescan the whole of `~/pwebarc/raw` and so take a while to complete.
@@ -317,7 +317,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `fhour`: similar to `shour`, but for `ftime`; int
       - `fminute`: similar to `sminute`, but for `ftime`; int
       - `fsecond`: similar to `ssecond`, but for `ftime`; int
-      - `status`: `"NR"` if there was no response, `str(response.code) + "C"` if response was complete, `str(response.code) + "N"` otherwise; str
+      - `status`: `"I"` or  `"C"` depending on the value of `request.complete` (`false` or `true`, respectively) followed by either `"N"`, whene `response == None`, or `str(response.code)` followed by `"I"` or  `"C"` depending on the value of `response.complete`; str
       - `method`: aliast for `request.method`; str
       - `raw_url`: aliast for `request.url`; str
       - `net_url`: `raw_url` with Punycode UTS46 IDNA encoded hostname, unsafe characters quoted, and without the fragment/hash part; this is the URL that actually gets sent to the server; str
@@ -536,14 +536,14 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
       - `default`     : `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s.%(num)d` (default)
-            - `https://example.org` -> `1970/01/01/001640000_0_GET_50d7_200C_example.org.0`
-            - `https://example.org/` -> `1970/01/01/001640000_0_GET_8198_200C_example.org.0`
-            - `https://example.org/index.html` -> `1970/01/01/001640000_0_GET_f0dc_200C_example.org.0`
-            - `https://example.org/media` -> `1970/01/01/001640000_0_GET_086d_200C_example.org.0`
-            - `https://example.org/media/` -> `1970/01/01/001640000_0_GET_3fbb_200C_example.org.0`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `1970/01/01/001640000_0_GET_5658_200C_example.org.0`
-            - `https://königsgäßchen.example.org/index.html` -> `1970/01/01/001640000_0_GET_4f11_200C_königsgäßchen.example.org.0`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `1970/01/01/001640000_0_GET_c4ae_200C_ジャジェメント.ですの.example.org.0`
+            - `https://example.org` -> `1970/01/01/001640000_0_GET_50d7_C200C_example.org.0`
+            - `https://example.org/` -> `1970/01/01/001640000_0_GET_8198_C200C_example.org.0`
+            - `https://example.org/index.html` -> `1970/01/01/001640000_0_GET_f0dc_C200C_example.org.0`
+            - `https://example.org/media` -> `1970/01/01/001640000_0_GET_086d_C200C_example.org.0`
+            - `https://example.org/media/` -> `1970/01/01/001640000_0_GET_3fbb_C200C_example.org.0`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `1970/01/01/001640000_0_GET_5658_C200C_example.org.0`
+            - `https://königsgäßchen.example.org/index.html` -> `1970/01/01/001640000_0_GET_4f11_C200C_königsgäßchen.example.org.0`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `1970/01/01/001640000_0_GET_c4ae_C200C_ジャジェメント.ですの.example.org.0`
       - `short`       : `%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d`
             - `https://example.org`, `https://example.org/`, `https://example.org/index.html`, `https://example.org/media`, `https://example.org/media/`, `https://example.org/view?one=1&two=2&three=&three=3#fragment`, `https://königsgäßchen.example.org/index.html`, `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `1970/01/01/1000000_0.0`
       - `surl`        : `%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s`
@@ -554,12 +554,12 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is`
       - `surl_msn`    : `%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d`
-            - `https://example.org`, `https://example.org/` -> `https/example.org/_GET_200C.0`
-            - `https://example.org/index.html` -> `https/example.org/index.html_GET_200C.0`
-            - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media_GET_200C.0`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view?one=1&two=2&three&three=3_GET_200C.0`
-            - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.html_GET_200C.0`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is_GET_200C.0`
+            - `https://example.org`, `https://example.org/` -> `https/example.org/_GET_C200C.0`
+            - `https://example.org/index.html` -> `https/example.org/index.html_GET_C200C.0`
+            - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media_GET_C200C.0`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view?one=1&two=2&three&three=3_GET_C200C.0`
+            - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.html_GET_C200C.0`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is_GET_C200C.0`
       - `shupq`       : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/example.org/index.htm`
             - `https://example.org/index.html` -> `https/example.org/index.html`
@@ -568,12 +568,12 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.htm`
       - `shupq_msn`   : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org`, `https://example.org/` -> `https/example.org/index_GET_200C.0.htm`
-            - `https://example.org/index.html` -> `https/example.org/index_GET_200C.0.html`
-            - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media/index_GET_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three&three=3_GET_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index_GET_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index_GET_200C.0.htm`
+            - `https://example.org`, `https://example.org/` -> `https/example.org/index_GET_C200C.0.htm`
+            - `https://example.org/index.html` -> `https/example.org/index_GET_C200C.0.html`
+            - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media/index_GET_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three&three=3_GET_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index_GET_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index_GET_C200C.0.htm`
       - `shupnq`      : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/example.org/index.htm`
             - `https://example.org/index.html` -> `https/example.org/index.html`
@@ -582,30 +582,30 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.htm`
       - `shupnq_msn`  : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org`, `https://example.org/` -> `https/example.org/index_GET_200C.0.htm`
-            - `https://example.org/index.html` -> `https/example.org/index_GET_200C.0.html`
-            - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media/index_GET_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=3_GET_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index_GET_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index_GET_200C.0.htm`
+            - `https://example.org`, `https://example.org/` -> `https/example.org/index_GET_C200C.0.htm`
+            - `https://example.org/index.html` -> `https/example.org/index_GET_C200C.0.html`
+            - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media/index_GET_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=3_GET_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index_GET_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index_GET_C200C.0.htm`
       - `shupnq_mhs`  : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
-            - `https://example.org` -> `https/example.org/index_GET_50d7_200C.htm`
-            - `https://example.org/` -> `https/example.org/index_GET_8198_200C.htm`
-            - `https://example.org/index.html` -> `https/example.org/index_GET_f0dc_200C.html`
-            - `https://example.org/media` -> `https/example.org/media/index_GET_086d_200C.htm`
-            - `https://example.org/media/` -> `https/example.org/media/index_GET_3fbb_200C.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=3_GET_5658_200C.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index_GET_4f11_200C.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index_GET_c4ae_200C.htm`
+            - `https://example.org` -> `https/example.org/index_GET_50d7_C200C.htm`
+            - `https://example.org/` -> `https/example.org/index_GET_8198_C200C.htm`
+            - `https://example.org/index.html` -> `https/example.org/index_GET_f0dc_C200C.html`
+            - `https://example.org/media` -> `https/example.org/media/index_GET_086d_C200C.htm`
+            - `https://example.org/media/` -> `https/example.org/media/index_GET_3fbb_C200C.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=3_GET_5658_C200C.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index_GET_4f11_C200C.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index_GET_c4ae_C200C.htm`
       - `shupnq_mhsn` : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org` -> `https/example.org/index_GET_50d7_200C.0.htm`
-            - `https://example.org/` -> `https/example.org/index_GET_8198_200C.0.htm`
-            - `https://example.org/index.html` -> `https/example.org/index_GET_f0dc_200C.0.html`
-            - `https://example.org/media` -> `https/example.org/media/index_GET_086d_200C.0.htm`
-            - `https://example.org/media/` -> `https/example.org/media/index_GET_3fbb_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=3_GET_5658_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index_GET_4f11_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index_GET_c4ae_200C.0.htm`
+            - `https://example.org` -> `https/example.org/index_GET_50d7_C200C.0.htm`
+            - `https://example.org/` -> `https/example.org/index_GET_8198_C200C.0.htm`
+            - `https://example.org/index.html` -> `https/example.org/index_GET_f0dc_C200C.0.html`
+            - `https://example.org/media` -> `https/example.org/media/index_GET_086d_C200C.0.htm`
+            - `https://example.org/media/` -> `https/example.org/media/index_GET_3fbb_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=3_GET_5658_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index_GET_4f11_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index_GET_c4ae_C200C.0.htm`
       - `srhupq`      : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/org.example/index.htm`
             - `https://example.org/index.html` -> `https/org.example/index.html`
@@ -614,12 +614,12 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.htm`
       - `srhupq_msn`  : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org`, `https://example.org/` -> `https/org.example/index_GET_200C.0.htm`
-            - `https://example.org/index.html` -> `https/org.example/index_GET_200C.0.html`
-            - `https://example.org/media`, `https://example.org/media/` -> `https/org.example/media/index_GET_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three&three=3_GET_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index_GET_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index_GET_200C.0.htm`
+            - `https://example.org`, `https://example.org/` -> `https/org.example/index_GET_C200C.0.htm`
+            - `https://example.org/index.html` -> `https/org.example/index_GET_C200C.0.html`
+            - `https://example.org/media`, `https://example.org/media/` -> `https/org.example/media/index_GET_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three&three=3_GET_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index_GET_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index_GET_C200C.0.htm`
       - `srhupnq`     : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/org.example/index.htm`
             - `https://example.org/index.html` -> `https/org.example/index.html`
@@ -628,30 +628,30 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.htm`
       - `srhupnq_msn` : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org`, `https://example.org/` -> `https/org.example/index_GET_200C.0.htm`
-            - `https://example.org/index.html` -> `https/org.example/index_GET_200C.0.html`
-            - `https://example.org/media`, `https://example.org/media/` -> `https/org.example/media/index_GET_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=3_GET_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index_GET_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index_GET_200C.0.htm`
+            - `https://example.org`, `https://example.org/` -> `https/org.example/index_GET_C200C.0.htm`
+            - `https://example.org/index.html` -> `https/org.example/index_GET_C200C.0.html`
+            - `https://example.org/media`, `https://example.org/media/` -> `https/org.example/media/index_GET_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=3_GET_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index_GET_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index_GET_C200C.0.htm`
       - `srhupnq_mhs` : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
-            - `https://example.org` -> `https/org.example/index_GET_50d7_200C.htm`
-            - `https://example.org/` -> `https/org.example/index_GET_8198_200C.htm`
-            - `https://example.org/index.html` -> `https/org.example/index_GET_f0dc_200C.html`
-            - `https://example.org/media` -> `https/org.example/media/index_GET_086d_200C.htm`
-            - `https://example.org/media/` -> `https/org.example/media/index_GET_3fbb_200C.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=3_GET_5658_200C.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index_GET_4f11_200C.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index_GET_c4ae_200C.htm`
+            - `https://example.org` -> `https/org.example/index_GET_50d7_C200C.htm`
+            - `https://example.org/` -> `https/org.example/index_GET_8198_C200C.htm`
+            - `https://example.org/index.html` -> `https/org.example/index_GET_f0dc_C200C.html`
+            - `https://example.org/media` -> `https/org.example/media/index_GET_086d_C200C.htm`
+            - `https://example.org/media/` -> `https/org.example/media/index_GET_3fbb_C200C.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=3_GET_5658_C200C.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index_GET_4f11_C200C.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index_GET_c4ae_C200C.htm`
       - `srhupnq_mhsn`: `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org` -> `https/org.example/index_GET_50d7_200C.0.htm`
-            - `https://example.org/` -> `https/org.example/index_GET_8198_200C.0.htm`
-            - `https://example.org/index.html` -> `https/org.example/index_GET_f0dc_200C.0.html`
-            - `https://example.org/media` -> `https/org.example/media/index_GET_086d_200C.0.htm`
-            - `https://example.org/media/` -> `https/org.example/media/index_GET_3fbb_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=3_GET_5658_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index_GET_4f11_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index_GET_c4ae_200C.0.htm`
+            - `https://example.org` -> `https/org.example/index_GET_50d7_C200C.0.htm`
+            - `https://example.org/` -> `https/org.example/index_GET_8198_C200C.0.htm`
+            - `https://example.org/index.html` -> `https/org.example/index_GET_f0dc_C200C.0.html`
+            - `https://example.org/media` -> `https/org.example/media/index_GET_086d_C200C.0.htm`
+            - `https://example.org/media/` -> `https/org.example/media/index_GET_3fbb_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=3_GET_5658_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index_GET_4f11_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index_GET_c4ae_C200C.0.htm`
       - `url`         : `%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s`
             - `https://example.org`, `https://example.org/` -> `example.org/`
             - `https://example.org/index.html` -> `example.org/index.html`
@@ -660,12 +660,12 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is`
       - `url_msn`     : `%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d`
-            - `https://example.org`, `https://example.org/` -> `example.org/_GET_200C.0`
-            - `https://example.org/index.html` -> `example.org/index.html_GET_200C.0`
-            - `https://example.org/media`, `https://example.org/media/` -> `example.org/media_GET_200C.0`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view?one=1&two=2&three&three=3_GET_200C.0`
-            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html_GET_200C.0`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is_GET_200C.0`
+            - `https://example.org`, `https://example.org/` -> `example.org/_GET_C200C.0`
+            - `https://example.org/index.html` -> `example.org/index.html_GET_C200C.0`
+            - `https://example.org/media`, `https://example.org/media/` -> `example.org/media_GET_C200C.0`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view?one=1&two=2&three&three=3_GET_C200C.0`
+            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html_GET_C200C.0`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is_GET_C200C.0`
       - `hupq`        : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.htm`
             - `https://example.org/index.html` -> `example.org/index.html`
@@ -674,12 +674,12 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.htm`
       - `hupq_msn`    : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org`, `https://example.org/` -> `example.org/index_GET_200C.0.htm`
-            - `https://example.org/index.html` -> `example.org/index_GET_200C.0.html`
-            - `https://example.org/media`, `https://example.org/media/` -> `example.org/media/index_GET_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three&three=3_GET_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index_GET_200C.0.htm`
+            - `https://example.org`, `https://example.org/` -> `example.org/index_GET_C200C.0.htm`
+            - `https://example.org/index.html` -> `example.org/index_GET_C200C.0.html`
+            - `https://example.org/media`, `https://example.org/media/` -> `example.org/media/index_GET_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three&three=3_GET_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index_GET_C200C.0.htm`
       - `hupnq`       : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.htm`
             - `https://example.org/index.html` -> `example.org/index.html`
@@ -688,30 +688,30 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.htm`
       - `hupnq_msn`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org`, `https://example.org/` -> `example.org/index_GET_200C.0.htm`
-            - `https://example.org/index.html` -> `example.org/index_GET_200C.0.html`
-            - `https://example.org/media`, `https://example.org/media/` -> `example.org/media/index_GET_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=3_GET_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index_GET_200C.0.htm`
+            - `https://example.org`, `https://example.org/` -> `example.org/index_GET_C200C.0.htm`
+            - `https://example.org/index.html` -> `example.org/index_GET_C200C.0.html`
+            - `https://example.org/media`, `https://example.org/media/` -> `example.org/media/index_GET_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=3_GET_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index_GET_C200C.0.htm`
       - `hupnq_mhs`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
-            - `https://example.org` -> `example.org/index_GET_50d7_200C.htm`
-            - `https://example.org/` -> `example.org/index_GET_8198_200C.htm`
-            - `https://example.org/index.html` -> `example.org/index_GET_f0dc_200C.html`
-            - `https://example.org/media` -> `example.org/media/index_GET_086d_200C.htm`
-            - `https://example.org/media/` -> `example.org/media/index_GET_3fbb_200C.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=3_GET_5658_200C.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_4f11_200C.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index_GET_c4ae_200C.htm`
+            - `https://example.org` -> `example.org/index_GET_50d7_C200C.htm`
+            - `https://example.org/` -> `example.org/index_GET_8198_C200C.htm`
+            - `https://example.org/index.html` -> `example.org/index_GET_f0dc_C200C.html`
+            - `https://example.org/media` -> `example.org/media/index_GET_086d_C200C.htm`
+            - `https://example.org/media/` -> `example.org/media/index_GET_3fbb_C200C.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=3_GET_5658_C200C.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_4f11_C200C.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index_GET_c4ae_C200C.htm`
       - `hupnq_mhsn`  : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org` -> `example.org/index_GET_50d7_200C.0.htm`
-            - `https://example.org/` -> `example.org/index_GET_8198_200C.0.htm`
-            - `https://example.org/index.html` -> `example.org/index_GET_f0dc_200C.0.html`
-            - `https://example.org/media` -> `example.org/media/index_GET_086d_200C.0.htm`
-            - `https://example.org/media/` -> `example.org/media/index_GET_3fbb_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=3_GET_5658_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_4f11_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index_GET_c4ae_200C.0.htm`
+            - `https://example.org` -> `example.org/index_GET_50d7_C200C.0.htm`
+            - `https://example.org/` -> `example.org/index_GET_8198_C200C.0.htm`
+            - `https://example.org/index.html` -> `example.org/index_GET_f0dc_C200C.0.html`
+            - `https://example.org/media` -> `example.org/media/index_GET_086d_C200C.0.htm`
+            - `https://example.org/media/` -> `example.org/media/index_GET_3fbb_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=3_GET_5658_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_4f11_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index_GET_c4ae_C200C.0.htm`
       - `rhupq`       : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `org.example/index.htm`
             - `https://example.org/index.html` -> `org.example/index.html`
@@ -720,12 +720,12 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.htm`
       - `rhupq_msn`   : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org`, `https://example.org/` -> `org.example/index_GET_200C.0.htm`
-            - `https://example.org/index.html` -> `org.example/index_GET_200C.0.html`
-            - `https://example.org/media`, `https://example.org/media/` -> `org.example/media/index_GET_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three&three=3_GET_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index_GET_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index_GET_200C.0.htm`
+            - `https://example.org`, `https://example.org/` -> `org.example/index_GET_C200C.0.htm`
+            - `https://example.org/index.html` -> `org.example/index_GET_C200C.0.html`
+            - `https://example.org/media`, `https://example.org/media/` -> `org.example/media/index_GET_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three&three=3_GET_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index_GET_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index_GET_C200C.0.htm`
       - `rhupnq`      : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `org.example/index.htm`
             - `https://example.org/index.html` -> `org.example/index.html`
@@ -734,30 +734,30 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.htm`
       - `rhupnq_msn`  : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org`, `https://example.org/` -> `org.example/index_GET_200C.0.htm`
-            - `https://example.org/index.html` -> `org.example/index_GET_200C.0.html`
-            - `https://example.org/media`, `https://example.org/media/` -> `org.example/media/index_GET_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=3_GET_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index_GET_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index_GET_200C.0.htm`
+            - `https://example.org`, `https://example.org/` -> `org.example/index_GET_C200C.0.htm`
+            - `https://example.org/index.html` -> `org.example/index_GET_C200C.0.html`
+            - `https://example.org/media`, `https://example.org/media/` -> `org.example/media/index_GET_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=3_GET_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index_GET_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index_GET_C200C.0.htm`
       - `rhupnq_mhs`  : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
-            - `https://example.org` -> `org.example/index_GET_50d7_200C.htm`
-            - `https://example.org/` -> `org.example/index_GET_8198_200C.htm`
-            - `https://example.org/index.html` -> `org.example/index_GET_f0dc_200C.html`
-            - `https://example.org/media` -> `org.example/media/index_GET_086d_200C.htm`
-            - `https://example.org/media/` -> `org.example/media/index_GET_3fbb_200C.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=3_GET_5658_200C.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index_GET_4f11_200C.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index_GET_c4ae_200C.htm`
+            - `https://example.org` -> `org.example/index_GET_50d7_C200C.htm`
+            - `https://example.org/` -> `org.example/index_GET_8198_C200C.htm`
+            - `https://example.org/index.html` -> `org.example/index_GET_f0dc_C200C.html`
+            - `https://example.org/media` -> `org.example/media/index_GET_086d_C200C.htm`
+            - `https://example.org/media/` -> `org.example/media/index_GET_3fbb_C200C.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=3_GET_5658_C200C.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index_GET_4f11_C200C.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index_GET_c4ae_C200C.htm`
       - `rhupnq_mhsn` : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org` -> `org.example/index_GET_50d7_200C.0.htm`
-            - `https://example.org/` -> `org.example/index_GET_8198_200C.0.htm`
-            - `https://example.org/index.html` -> `org.example/index_GET_f0dc_200C.0.html`
-            - `https://example.org/media` -> `org.example/media/index_GET_086d_200C.0.htm`
-            - `https://example.org/media/` -> `org.example/media/index_GET_3fbb_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=3_GET_5658_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index_GET_4f11_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index_GET_c4ae_200C.0.htm`
+            - `https://example.org` -> `org.example/index_GET_50d7_C200C.0.htm`
+            - `https://example.org/` -> `org.example/index_GET_8198_C200C.0.htm`
+            - `https://example.org/index.html` -> `org.example/index_GET_f0dc_C200C.0.html`
+            - `https://example.org/media` -> `org.example/media/index_GET_086d_C200C.0.htm`
+            - `https://example.org/media/` -> `org.example/media/index_GET_3fbb_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=3_GET_5658_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index_GET_4f11_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index_GET_c4ae_C200C.0.htm`
       - `flat`        : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.htm`
             - `https://example.org/index.html` -> `example.org/index.html`
@@ -766,37 +766,37 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index.htm`
       - `flat_ms`     : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s%(filepath_ext)s`
-            - `https://example.org`, `https://example.org/` -> `example.org/index_GET_200C.htm`
-            - `https://example.org/index.html` -> `example.org/index_GET_200C.html`
-            - `https://example.org/media`, `https://example.org/media/` -> `example.org/media__index_GET_200C.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3_GET_200C.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_200C.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index_GET_200C.htm`
+            - `https://example.org`, `https://example.org/` -> `example.org/index_GET_C200C.htm`
+            - `https://example.org/index.html` -> `example.org/index_GET_C200C.html`
+            - `https://example.org/media`, `https://example.org/media/` -> `example.org/media__index_GET_C200C.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3_GET_C200C.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_C200C.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index_GET_C200C.htm`
       - `flat_msn`    : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org`, `https://example.org/` -> `example.org/index_GET_200C.0.htm`
-            - `https://example.org/index.html` -> `example.org/index_GET_200C.0.html`
-            - `https://example.org/media`, `https://example.org/media/` -> `example.org/media__index_GET_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3_GET_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index_GET_200C.0.htm`
+            - `https://example.org`, `https://example.org/` -> `example.org/index_GET_C200C.0.htm`
+            - `https://example.org/index.html` -> `example.org/index_GET_C200C.0.html`
+            - `https://example.org/media`, `https://example.org/media/` -> `example.org/media__index_GET_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3_GET_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index_GET_C200C.0.htm`
       - `flat_mhs`    : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
-            - `https://example.org` -> `example.org/index_GET_50d7_200C.htm`
-            - `https://example.org/` -> `example.org/index_GET_8198_200C.htm`
-            - `https://example.org/index.html` -> `example.org/index_GET_f0dc_200C.html`
-            - `https://example.org/media` -> `example.org/media__index_GET_086d_200C.htm`
-            - `https://example.org/media/` -> `example.org/media__index_GET_3fbb_200C.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3_GET_5658_200C.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_4f11_200C.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index_GET_c4ae_200C.htm`
+            - `https://example.org` -> `example.org/index_GET_50d7_C200C.htm`
+            - `https://example.org/` -> `example.org/index_GET_8198_C200C.htm`
+            - `https://example.org/index.html` -> `example.org/index_GET_f0dc_C200C.html`
+            - `https://example.org/media` -> `example.org/media__index_GET_086d_C200C.htm`
+            - `https://example.org/media/` -> `example.org/media__index_GET_3fbb_C200C.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3_GET_5658_C200C.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_4f11_C200C.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index_GET_c4ae_C200C.htm`
       - `flat_mhsn`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s`
-            - `https://example.org` -> `example.org/index_GET_50d7_200C.0.htm`
-            - `https://example.org/` -> `example.org/index_GET_8198_200C.0.htm`
-            - `https://example.org/index.html` -> `example.org/index_GET_f0dc_200C.0.html`
-            - `https://example.org/media` -> `example.org/media__index_GET_086d_200C.0.htm`
-            - `https://example.org/media/` -> `example.org/media__index_GET_3fbb_200C.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3_GET_5658_200C.0.htm`
-            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_4f11_200C.0.html`
-            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index_GET_c4ae_200C.0.htm`
+            - `https://example.org` -> `example.org/index_GET_50d7_C200C.0.htm`
+            - `https://example.org/` -> `example.org/index_GET_8198_C200C.0.htm`
+            - `https://example.org/index.html` -> `example.org/index_GET_f0dc_C200C.0.html`
+            - `https://example.org/media` -> `example.org/media__index_GET_086d_C200C.0.htm`
+            - `https://example.org/media/` -> `example.org/media__index_GET_3fbb_C200C.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3_GET_5658_C200C.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_4f11_C200C.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index_GET_c4ae_C200C.0.htm`
     - available substitutions:
       - `num`: number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique
       - all expressions of `wrrarms get --expr`, which see
@@ -1101,7 +1101,7 @@ In other words, this generates static offline website mirrors, producing results
 
 - List paths of all WRR files from `../dumb_server/pwebarc-dump` that contain only complete `200 OK` responses with bodies larger than 1K:
   ```
-  wrrarms find --and "status|== 200C" --and "response.body|len|> 1024" ../dumb_server/pwebarc-dump
+  wrrarms find --and "status|~= .200C" --and "response.body|len|> 1024" ../dumb_server/pwebarc-dump
   ```
 
 - Rename all WRR files in `../dumb_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `wrrarms organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic):
@@ -1131,7 +1131,7 @@ In other words, this generates static offline website mirrors, producing results
   and then, we can reuse `changes` again and use them to update `~/pwebarc/latest`, filling it with symlinks pointing to the latest `200 OK` complete reqres from `~/pwebarc/raw`, similar to what `wget -r` would produce (except `wget` would do network requests and produce responce bodies, while this will build a file system tree of symlinks to WRR files in `/pwebarc/raw`):
 
   ```
-  wrrarms organize --stdin0 --symlink --latest --to ~/pwebarc/latest --output hupq --and "status|== 200C" < changes
+  wrrarms organize --stdin0 --symlink --latest --to ~/pwebarc/latest --output hupq --and "status|~= .200C" < changes
   ```
 
 - `wrrarms organize --move` is de-duplicating when possible, while `--copy`, `--hardlink`, and `--symlink` are non-duplicating when possible, i.e.:
