@@ -27,6 +27,7 @@
 """
 
 import hashlib as _hashlib
+import re as _re
 import shlex as _shlex
 import typing as _t
 import urllib.parse as _up
@@ -157,6 +158,15 @@ def abbrev(v : _t.AnyStr, n : int) -> _t.AnyStr:
         v = v[:nn] + v[vlen - nn:]
     return v
 
+def linst_re_match(arg : _t.Any) -> _t.Callable[..., LinstFunc]:
+    rec = _re.compile(arg)
+    def envfunc(env : _t.Any, v : _t.Any) -> _t.Any:
+        m = rec.match(v)
+        if m:
+            return True
+        return False
+    return envfunc
+
 linst_atoms : dict[str, tuple[str, LinstAtom]] = {
     "es": ('replace `None` value with an empty string `""`',
           linst_const("")),
@@ -202,6 +212,8 @@ linst_atoms : dict[str, tuple[str, LinstAtom]] = {
           linst_apply0(lambda v: v.encode("utf-8"))),
     "sha256": ('replace `bytes` value with its `sha256` hex digest (`hex(sha256(value))`)',
           linst_apply0(lambda v: _hashlib.sha256(v).hexdigest())),
+    "~=": ("check if the current value matches the regular exprission `arg`",
+          ([str], linst_re_match)),
     "==": ("apply `== arg`, `arg` is cast to the same type as the current value",
           linst_apply1(None, lambda v, arg: v == linst_cast_val(v, arg))),
     "!=": ("apply `!= arg`, similarly",

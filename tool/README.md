@@ -238,6 +238,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `to_ascii`: encode `str` value into `bytes` with "ascii" codec
       - `to_utf8`: encode `str` value into `bytes` with "utf-8" codec
       - `sha256`: replace `bytes` value with its `sha256` hex digest (`hex(sha256(value))`)
+      - `~=`: check if the current value matches the regular exprission `arg`
       - `==`: apply `== arg`, `arg` is cast to the same type as the current value
       - `!=`: apply `!= arg`, similarly
       - `<`: apply `< arg`, similarly
