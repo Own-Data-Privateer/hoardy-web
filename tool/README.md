@@ -1022,6 +1022,20 @@ In other words, this generates static offline website mirrors, producing results
   - `-z, --zero-terminated`
   : terminate output absolute paths of newly produced files with `\0` (NUL) bytes
 
+- updates:
+  - `--no-overwrites`
+  : disallow overwrites of any existing `--output` files under `DESTINATION` (default);
+    repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
+    however, trying to overwrite existing `--output` files under `DESTINATION` with any new data will produce errors;
+    this allows reusing the `DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
+  - `--partial`
+  : skip exporting of targets which have a corresponding `--output` file under `DESTINATION`;
+    using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
+    on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
+  - `--overwrite-dangerously`
+  : export all targets and permit overwriting of old `--output` files under `DESTINATION`;
+    DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
+
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
   : an expression to export, see `wrrarms get --expr` for more info on expression format (default: `response.body|eb|scrub response +all_refs,-actions`)

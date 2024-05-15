@@ -1331,6 +1331,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
     destination = _os.path.expanduser(cargs.destination)
 
+    allow_updates = cargs.allow_updates == True
+    skip_existing = cargs.allow_updates == "partial"
+
     mem = Memory()
     seen_counter : SeenCounter[str] = SeenCounter(mem)
 
@@ -1405,6 +1408,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             n += 1
             n_total = prev_total + len(queue)
             stime, abs_in_path, abs_out_path = index[net_url]
+            exists = _os.path.exists(abs_out_path)
 
             if stdout.isatty:
                 stdout.write_bytes(b"\033[32m")
@@ -1414,12 +1418,24 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             stdout.write_str_ln(gettext("URL %s\nsrc %s\ndst %s") % (net_url, abs_in_path, abs_out_path))
             stdout.flush()
 
+            if skip_existing and exists:
+                if stdout.isatty:
+                    stdout.write_bytes(b"\033[31m")
+                stdout.write_str_ln(gettext("skipped! (destination exists, `--partial` is set)"))
+                if stdout.isatty:
+                    stdout.write_bytes(b"\033[0m")
+                stdout.flush()
+                continue
+
             rrexpr = wrr_loadf_expr(abs_in_path)
             rrexpr.items["remap_url"] = remap_url_func_maker(queue, enqueue, stime, _os.path.dirname(abs_out_path))
 
             try:
                 data = get_bytes(expr_func(rrexpr, None))
-                undeferred_write(data, abs_out_path, None, True)
+                if exists and file_content_equals(abs_out_path, data):
+                    # this is a noop overwrite, skip it
+                    continue
+                undeferred_write(data, abs_out_path, None, allow_updates)
             except Exception:
                 error(gettext("while processing `%s`"), abs_in_path)
                 raise
@@ -1856,9 +1872,25 @@ In other words, this generates static offline website mirrors, producing results
     add_errors(cmd)
     add_filters(cmd, "export")
     add_output(cmd)
+
+    agrp = cmd.add_argument_group("updates")
+    grp = agrp.add_mutually_exclusive_group()
+    grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=_("""disallow overwrites of any existing `--output` files under `DESTINATION` (default);
+repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
+however, trying to overwrite existing `--output` files under `DESTINATION` with any new data will produce errors;
+this allows reusing the `DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts"""))
+    grp.add_argument("--partial", dest="allow_updates", action="store_const", const="partial", help=_("""skip exporting of targets which have a corresponding `--output` file under `DESTINATION`;
+using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
+on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`"""))
+    grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("""export all targets and permit overwriting of old `--output` files under `DESTINATION`;
+DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this"""))
+    cmd.set_defaults(allow_updates = False)
+
     agrp = cmd.add_argument_group("expression evaluation")
     agrp.add_argument("-e", "--expr", dest="expr", metavar="EXPR", type=str, default = default_export_expr, help=_(f"an expression to export, see `{__package__} get --expr` for more info on expression format (default: `%(default)s`)"))
+
     add_remap(cmd, "export")
+
     cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("target directory"))
     cmd.add_argument("-o", "--output", metavar="FORMAT", default="hupq", type=str, help=_(f"format describing generated output paths, an alias name or a custom pythonic %%-substitution string; same as `{__package__} organize --output`, which see"))
     agrp = cmd.add_argument_group("export targets (default: `net_url`s of all input `PATH`s)")
