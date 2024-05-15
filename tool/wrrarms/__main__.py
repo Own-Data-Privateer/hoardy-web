@@ -1823,11 +1823,15 @@ E.g. `{__package__} organize --move` will not overwrite any files, which is why 
 
     agrp = cmd.add_argument_group("updates")
     grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--keep", dest="allow_updates", action="store_const", const=False, help=_("""disallow replacements and overwrites for any existing files under `DESTINATION` (default);
-broken symlinks are allowed to be replaced;
-if source and target directories are the same then some files can still be renamed into previously non-existing names;
-all other updates are disallowed"""))
-    grp.add_argument("--latest", dest="allow_updates", action="store_const", const=True, help=_("replace files under `DESTINATION` if `stime_ms` for the source reqres is newer than the same value for reqres stored at the destination"))
+    grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=_("""disallow overwrites and replacements of any existing `--output` files under `DESTINATION` (default);
+each source `PATH` file will be `--move`d, `--copy`ed, `--hardlink`ed, or `--symlink`ed to a non-existing `--output` file under `DESTINATION`;
+operations producing the same `--output` file will be allowed and reduced to noops;
+broken symlinks will be considered to be non-existent files and will be allowed to be replaced;
+when source and target directories are the same, files can still be renamed into previously non-existing `--output` names;
+all other updates will produce errors"""))
+    grp.add_argument("--latest", dest="allow_updates", action="store_const", const=True, help=_("""replace files under `DESTINATION` with their latest version;
+this is only allowed in combination with `--symlink` at the moment;
+for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file"""))
     cmd.set_defaults(allow_updates = False)
 
     add_memory(cmd)
