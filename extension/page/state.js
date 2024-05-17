@@ -80,13 +80,16 @@ function newReqres(reqres) {
 
     mtr(state
         + (reqres.net_state !== undefined ? " " + reqres.net_state : "")
+        + (reqres.redirectUrl !== undefined ? " redirected" : "")
         + (reqres.problematic === true ? " problematic!" : "")
        );
 
     mtr(fdate(reqres.requestTimeStamp));
     mtr(reqres.protocol);
     mtr(reqres.method);
-    mtr(reqres.url).className = "long";
+    mtr(reqres.url
+        + (reqres.redirectUrl !== undefined ? " -> " + reqres.redirectUrl : "")
+       ).className = "long";
 
     mtr(fdate(reqres.responseTimeStamp));
     mtr(reqres.reason).className = "long";
@@ -133,11 +136,11 @@ document.addEventListener("DOMContentLoaded", catchAll(() => {
 <tr>
   <th><span data-help="Source of this reqres: &quot;ext&quot; for reqres produced by extensions, &quot;bg&quot; for reqres produced by background tasks, &quot;tab #N&quot; for reqres produced by the tab with id \`N\`. For tabs the label is a button which switches currently active tab to the tab in question.">Src</span></th>
   <th><span data-help="The \`.status\` this reqres will have in wrrarms: &quot;I&quot; or &quot;C&quot; character (for &quot;Incomplete&quot; and &quot;Complete&quot; respectively) representing the value of \`.request.complete\` flag followed by either &quot;N&quot; (for &quot;No response&quot;) or an HTTP status code (integer, e.g. &quot;200&quot;), followed by &quot;I&quot; or &quot;C&quot; representing the value of \`.response.complete\` flag.">WRR</span></th>
-  <th><span data-help="The current reqres \`state\` followed by \`the final networking state\`, followed by &quot;problematic!&quot; when this reqres was marked as problematic (see the Help page for more info).">pWA</span></th>
+  <th><span data-help="The current reqres \`state\` followed by \`the final networking state\`, followed by &quot;redirected&quot; when this reqres is a redirect, followed by &quot;problematic!&quot; when this reqres was marked as problematic (see the Help page for more info).">pWA</span></th>
   <th><span data-help="Timestamp of when the first byte of HTTP request headers was sent.">Request at</span></th>
   <th><span data-help="Protocol/version.">P</span></th>
   <th><span data-help="Protocol method.">M</span></th>
-  <th>URL</th>
+  <th><span data-help="Request URL, followed by &quot; -> &quot; and a redirect URL when this reqres is a redirect.">URL</span></th>
 
   <th><span data-help="Timestamp of when the first byte of HTTP response headers was received.">Response at</span></th>
   <th><span data-help="HTTP protocol response reason, if any. Note that the HTTP response code is displayed as a part of the &quot;WRR&quot; field.">Reason</span></th>

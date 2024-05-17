@@ -1221,6 +1221,8 @@ function shallowCopyOfReqres(reqres) {
         fromCache: reqres.fromCache,
         responseComplete: reqres.responseComplete,
 
+        redirectUrl: reqres.redirectUrl,
+
         emitTimeStamp: reqres.emitTimeStamp,
     };
 }
@@ -1427,7 +1429,18 @@ function handleBeforeRedirect(e) {
     if (reqres === undefined) return;
 
     logRequest("before redirect", e);
+
+    if (reqres.responseTimeStamp === undefined) {
+        // this happens when a request gets redirected right after
+        // handleBeforeRequest by another extension
+        reqres.responseTimeStamp = e.timeStamp;
+        reqres.statusCode = e.statusCode;
+        reqres.statusLine = e.statusLine;
+        reqres.responseHeaders = e.responseHeaders;
+        reqres.fromCache = e.fromCache;
+    }
     reqres.responseComplete = true;
+    reqres.redirectUrl = e.redirectUrl;
     emitRequest(e.requestId, reqres);
 
     // after this it will go back to handleBeforeRequest, so we don't need to
@@ -1828,7 +1841,7 @@ async function init(storage) {
     browser.webRequest.onBeforeSendHeaders.addListener(catchAll(handleBeforeSendHeaders), {urls: ["<all_urls>"]});
     browser.webRequest.onSendHeaders.addListener(catchAll(handleSendHeaders), {urls: ["<all_urls>"]}, ["requestHeaders"]);
     browser.webRequest.onHeadersReceived.addListener(catchAll(handleHeadersRecieved), {urls: ["<all_urls>"]}, ["responseHeaders"]);
-    browser.webRequest.onBeforeRedirect.addListener(catchAll(handleBeforeRedirect), {urls: ["<all_urls>"]});
+    browser.webRequest.onBeforeRedirect.addListener(catchAll(handleBeforeRedirect), {urls: ["<all_urls>"]}, ["responseHeaders"]);
     browser.webRequest.onAuthRequired.addListener(catchAll(handleAuthRequired), {urls: ["<all_urls>"]});
     browser.webRequest.onCompleted.addListener(catchAll(handleCompleted), {urls: ["<all_urls>"]});
     browser.webRequest.onErrorOccurred.addListener(catchAll(handleErrorOccurred), {urls: ["<all_urls>"]});
