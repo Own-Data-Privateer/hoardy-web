@@ -76,19 +76,19 @@ function handleDebugEvent(debuggee, method, params) {
     switch (method) {
     case "Network.requestWillBeSent":
         params.tabId = debuggee.tabId;
-        handleDebugRequestWillBeSent(params, false);
+        handleDebugRequestWillBeSent(true, params);
         break;
     case "Network.requestWillBeSentExtraInfo":
         params.tabId = debuggee.tabId;
-        handleDebugRequestWillBeSent(params, true);
+        handleDebugRequestWillBeSent(false, params);
         break;
     case "Network.responseReceived":
         params.tabId = debuggee.tabId;
-        handleDebugResponseRecieved(params, false);
+        handleDebugResponseRecieved(true, params);
         break;
     case "Network.responseReceivedExtraInfo":
         params.tabId = debuggee.tabId;
-        handleDebugResponseRecieved(params, true);
+        handleDebugResponseRecieved(false, params);
         break;
     case "Network.loadingFinished":
         params.tabId = debuggee.tabId;
@@ -132,18 +132,18 @@ let debugReqresInFlight = new Map();
 // similarly to reqresFinishingUp
 let debugReqresFinishingUp = [];
 
-function logDebugRequest(rtype, extra, e) {
+function logDebugRequest(rtype, nonExtra, e) {
     if (config.debugging) {
         let url;
         if (e.request !== undefined)
             url = e.request.url;
-        console.log("debug.Network.request " + rtype, extra, e.tabId, e.requestId, url, e);
+        console.log("debug.Network.request " + rtype, nonExtra, e.tabId, e.requestId, url, e);
     }
 }
 
 // handlers
 
-function handleDebugRequestWillBeSent(e, extra) {
+function handleDebugRequestWillBeSent(nonExtra, e) {
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
 
@@ -156,11 +156,11 @@ function handleDebugRequestWillBeSent(e, extra) {
         debugReqresInFlight.set(e.requestId, dreqres)
     }
 
-    logDebugRequest("request will be sent", extra, e);
+    logDebugRequest("request will be sent", nonExtra, e);
 
     dreqres.tabId = e.tabId;
 
-    if (!extra) {
+    if (nonExtra) {
         dreqres.requestTimeStamp = e.wallTime * 1000;
         dreqres.method = e.request.method;
         dreqres.url = e.request.url;
@@ -174,13 +174,13 @@ function handleDebugRequestWillBeSent(e, extra) {
     }
 }
 
-function handleDebugResponseRecieved(e, extra) {
+function handleDebugResponseRecieved(nonExtra, e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
-    logDebugRequest("responce recieved", extra, e);
+    logDebugRequest("responce recieved", nonExtra, e);
 
-    if (!extra) {
+    if (nonExtra) {
         dreqres.responseTimeStamp = e.response.responseTime;
         dreqres.protocol = e.response.protocol.toUpperCase();
         if (dreqres.protocol == "H3" || dreqres.protocol == "H3C")
@@ -196,11 +196,11 @@ function handleDebugResponseRecieved(e, extra) {
         dreqres.statusCodeExtra = e.statusCode;
         dreqres.responseHeadersExtra = e.headers;
         if (e.statusCode == 301) {
-            // if this is a 301 Redirect request, emit it immediately, because
-            // there would be neither !extra, nor handleDebugCompleted event
+            // If this is a redirect request, emit it immediately, because
+            // there would be neither nonExtra, nor handleDebugCompleted event
             // for it
             dreqres.statusCode = e.statusCode;
-            emitDebugRequest(e.requestId, dreqres, true);
+            emitDebugRequest(e.requestId, dreqres, false);
         }
         // can't do the same for 304 Not Modified, because it needs to
         // accumulate both extra and non-extra data first to match to
@@ -215,7 +215,7 @@ function handleDebugCompleted(e) {
 
     logDebugRequest("completed", false, e);
 
-    emitDebugRequest(e.requestId, dreqres, false);
+    emitDebugRequest(e.requestId, dreqres, true);
 }
 
 function handleDebugErrorOccuried(e) {
@@ -224,10 +224,10 @@ function handleDebugErrorOccuried(e) {
 
     logDebugRequest("error", false, e);
 
-    emitDebugRequest(e.requestId, dreqres, false, "debugger::" + e.errorText);
+    emitDebugRequest(e.requestId, dreqres, true, "debugger::" + e.errorText);
 }
 
-function emitDebugRequest(requestId, dreqres, noResponse, error, dontFinishUp) {
+function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp) {
     debugReqresInFlight.delete(requestId)
 
     // ignore data and file URLs
@@ -242,7 +242,7 @@ function emitDebugRequest(requestId, dreqres, noResponse, error, dontFinishUp) {
         dreqres.error = error;
     }
 
-    if (!noResponse) {
+    if (withResponse === true) {
         browser.debugger.sendCommand({ tabId: dreqres.tabId }, "Network.getResponseBody", { requestId }).then((res) => {
             if (res.base64Encoded)
                 dreqres.responseBody = unBase64(res.body);
@@ -256,7 +256,7 @@ function emitDebugRequest(requestId, dreqres, noResponse, error, dontFinishUp) {
         });
         return;
     } else {
-        dreqres.responseComplete = true;
+        dreqres.responseComplete = error === undefined;
         debugReqresFinishingUp.push(dreqres);
         if (!dontFinishUp)
             processFinishingUpDebug();
@@ -282,7 +282,7 @@ function debugHeadersMatchScore(dreqres, reqres) {
     let matching = [];
     let unmatching = [];
 
-    function count(headers, dheaders) {
+    function match(headers, dheaders) {
         for (let [k, v] of Object.entries(dheaders)) {
             let name = k.toLowerCase();
             let found = false;
@@ -301,18 +301,17 @@ function debugHeadersMatchScore(dreqres, reqres) {
             else if (foundWrong)
                 unmatching.push(name);
         }
-        return matching;
     }
 
     if (dreqres.requestHeadersExtra !== undefined)
-        count(reqres.requestHeaders, dreqres.requestHeadersExtra);
+        match(reqres.requestHeaders, dreqres.requestHeadersExtra);
     else if (dreqres.requestHeaders !== undefined)
-        count(reqres.requestHeaders, dreqres.requestHeaders);
+        match(reqres.requestHeaders, dreqres.requestHeaders);
 
     if (dreqres.responseHeadersExtra !== undefined)
-        count(reqres.responseHeaders, dreqres.responseHeadersExtra);
+        match(reqres.responseHeaders, dreqres.responseHeadersExtra);
     else if (dreqres.responseHeaders !== undefined)
-        count(reqres.responseHeaders, dreqres.responseHeaders);
+        match(reqres.responseHeaders, dreqres.responseHeaders);
 
     let score = matching.length - unmatching.length * 1000;
     if (config.debugging)
