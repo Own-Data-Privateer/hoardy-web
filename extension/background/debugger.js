@@ -425,13 +425,15 @@ function processFinishingUpDebug() {
         let notFinished = [];
 
         for (let dreqres of debugReqresFinishingUp) {
+            let nurl = normalizeURL(dreqres.url);
+
             let matching = [];
             let notMatching = [];
             for (let reqres of reqresFinishingUp) {
                 if (dreqres.tabId == reqres.tabId
+                    && dreqres.statusCode === reqres.statusCode
                     && dreqres.method == reqres.method
-                    && dreqres.url == reqres.url
-                    && dreqres.statusCode === reqres.statusCode)
+                    && nurl == normalizeURL(reqres.url))
                     matching.push(reqres);
                 else
                     notMatching.push(reqres);
@@ -448,6 +450,7 @@ function processFinishingUpDebug() {
                     if (nscore > score || nscore == score && ndiff < diff) {
                         notMatching.push(closest);
                         closest = next;
+                        score = nscore;
                         diff = ndiff;
                     }
                     else
