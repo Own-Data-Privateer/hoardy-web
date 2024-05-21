@@ -1755,7 +1755,7 @@ async function handleCommand(command) {
         tabcfg.children.limbo = !tabcfg.children.limbo;
         break;
     case "show-tab-state":
-        showState(`?tab=${tabId}#m-finished`, tabId);
+        browser.tabs.create({ url: browser.runtime.getURL(`/page/state.html?tab=${tabId}#m-finished`), openerTabId: tabId });
         return;
     case "collect-all-tab-inlimbo":
         popInLimbo(true, null, tabId);
