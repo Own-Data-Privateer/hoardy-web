@@ -1581,6 +1581,7 @@ function handleMessage(request, sender, sendResponse) {
         }, 500);
 
         broadcast(["updateConfig"]);
+        sendResponse(null);
         break;
     case "getOriginConfig":
         sendResponse(getOriginConfig(request[1]));
@@ -1594,9 +1595,11 @@ function handleMessage(request, sender, sendResponse) {
             syncDebuggersState();
         broadcast(["updateTabConfig", request[1], request[2]]);
         updateDisplay(false, true);
+        sendResponse(null);
         break;
     case "retryAllFailedArchives":
         retryAllFailedArchivesIn(100);
+        sendResponse(null);
         break;
     case "getStats":
         sendResponse(getStats());
@@ -1609,27 +1612,32 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "forgetHistory":
         forgetHistory(request[1]);
+        sendResponse(null);
         break;
     case "getProblematicLog":
         sendResponse(reqresProblematicLog);
         break;
     case "forgetProblematic":
         forgetProblematic(request[1]);
+        sendResponse(null);
         break;
     case "getInFlightLog":
         sendResponse(getInFlightLog());
         break;
     case "stopAllInFlight":
         stopAllInFlight(request[1]);
+        sendResponse(null);
         break;
     case "getInLimboLog":
         sendResponse(getInLimboLog());
         break;
     case "popInLimbo":
         popInLimbo(request[1], request[2], request[3]);
+        sendResponse(null);
         break;
     case "broadcast":
         broadcast(request[1]);
+        sendResponse(null);
         break;
     default:
         console.error("what?", request);
