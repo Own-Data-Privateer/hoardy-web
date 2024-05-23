@@ -395,24 +395,22 @@ function emitDone(closest, dreqres) {
     if (dreqres.statusCodeExtra !== undefined && dreqres.statusCodeExtra == 304) {
         // handle 304 Not Modified cached result by submitting this request twice,
         // first time with 304 code and with no response body
-        let creqres = emptyCopyOfReqres(closest);
+        let creqres = completedCopyOfReqres(closest);
         creqres.statusCode = 304;
-        creqres.responseBody = "";
-        creqres.responseComplete = true;
-        reqresDone.push(creqres);
+        reqresAlmostDone.push(creqres);
         // and then, again, normally
     }
 
     closest.responseBody = dreqres.responseBody;
     closest.responseComplete = dreqres.responseComplete;
-    reqresDone.push(closest);
+    reqresAlmostDone.push(closest);
 }
 
 function processFinishingUpDebug() {
     if (debugReqresFinishingUp.length > 0 && reqresFinishingUp.length > 0) {
         // match elements from debugReqresFinishingUp to elements from
         // reqresFinishingUp, attach the former to the best-matching latter,
-        // and then push the latter to reqresDone
+        // and then push the latter to reqresAlmostDone
         let notFinished = [];
 
         for (let dreqres of debugReqresFinishingUp) {
