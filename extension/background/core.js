@@ -1051,6 +1051,7 @@ function stopAllInFlight(tabId) {
     if (useDebugger)
         forceEmitAllDebug(tabId);
     forceFinishingUp();
+    updateDisplay(true, false);
     scheduleEndgame();
 }
 
@@ -1071,7 +1072,6 @@ function forceFinishingUpSimple() {
     }
 
     reqresFinishingUp = [];
-    updateDisplay(true, false);
 }
 
 let forceFinishingUp = forceFinishingUpSimple;

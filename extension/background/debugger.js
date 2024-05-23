@@ -276,7 +276,6 @@ function forceFinishingUpDebug() {
     // and drop the rest
     reqresFinishingUp = [];
     debugReqresFinishingUp = [];
-    updateDisplay(true, false);
 }
 
 function debugHeadersMatchScore(dreqres, reqres) {
