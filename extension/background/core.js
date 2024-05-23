@@ -508,7 +508,8 @@ function scheduleEndgame() {
     if (endgameTID !== null)
         clearTimeout(endgameTID);
 
-    if (reqresArchiving.length > 0 || reqresAlmostDone.length == 0)
+    if (config.archiving && reqresArchiving.length > 0
+        || reqresAlmostDone.length == 0)
         endgameTID = setTimeout(() => {
             endgameTID = null;
             processArchiving();
