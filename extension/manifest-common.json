@@ -18,6 +18,12 @@
     },
 
     "commands": {
+        "show-tab-state": {
+            "suggested_key": {
+                "default": "Alt+I"
+            },
+            "description": "For the current tab, show the internal state and the log of recently collected and discarded reqres"
+        },
         "toggle-tabconfig-tracking": {
             "suggested_key": {
                 "default": "Alt+C"
@@ -37,27 +43,12 @@
             "description": "For the current tab, toggle limbo mode and reset it for the tab's new children"
         },
         "toggle-tabconfig-children-limbo": {
-            "suggested_key": {
-                "default": "Alt+Shift+L"
-            },
             "description": "For current tab's new children, toggle limbo mode"
         },
-        "show-tab-state": {
-            "suggested_key": {
-                "default": "Alt+I"
-            },
-            "description": "For the current tab, show the internal state and the log of recently collected and discarded reqres"
-        },
         "collect-all-tab-inlimbo": {
-            "suggested_key": {
-                "default": "Alt+Shift+A"
-            },
             "description": "For the current tab, collect all reqres in limbo"
         },
         "discard-all-tab-inlimbo": {
-            "suggested_key": {
-                "default": "Alt+Shift+D"
-            },
             "description": "For the current tab, discard all reqres in limbo"
         }
     }

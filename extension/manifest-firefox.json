@@ -28,5 +28,23 @@
             "id": "pwebarc@oxij.org",
             "strict_min_version": "68.0"
         }
+    },
+
+    "commands": {
+        "toggle-tabconfig-children-limbo": {
+            "suggested_key": {
+                "default": "Alt+Shift+L"
+            }
+        },
+        "collect-all-tab-inlimbo": {
+            "suggested_key": {
+                "default": "Alt+Shift+A"
+            }
+        },
+        "discard-all-tab-inlimbo": {
+            "suggested_key": {
+                "default": "Alt+Shift+D"
+            }
+        }
     }
 }
