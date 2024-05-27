@@ -124,5 +124,7 @@ browser.nameVersion = parseUA();
 
 let manifest = browser.runtime.getManifest();
 let permissions = new Set(manifest.permissions);
+// are SVG icons supported?
+let useSVGIcons = browser.nameVersion.startsWith("Firefox/");
 let useDebugger = permissions.has("debugger");
 let useBlocking = permissions.has("webRequestBlocking");

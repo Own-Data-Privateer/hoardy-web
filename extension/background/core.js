@@ -9,25 +9,8 @@
 
 "use strict";
 
-let svgIcons = browser.nameVersion.startsWith("Firefox/");
-
-let selfURL = browser.runtime.getURL("/"); // for filtering out our own requests
-
 // for archiving
 let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
-
-function iconPath(name, size) {
-    if (svgIcons)
-        return `/icon/${name}.svg`;
-    else
-        return `/icon/${size}/${name}.png`;
-}
-
-function mkIcons(what) {
-    return {
-        128: iconPath(what, 128),
-    };
-}
 
 // default config
 let configVersion = 2;
@@ -635,7 +618,7 @@ function processArchiving() {
                 browser.notifications.create(`archiving-${archiveURL}`, {
                     title: "pWebArc: WORKING",
                     message: `Now archiving reqres via ${archiveURL}`,
-                    iconUrl: browser.runtime.getURL(iconPath("archiving", 128)),
+                    iconUrl: iconURL("archiving", 128),
                     type: "basic",
                 });
             }
@@ -701,7 +684,7 @@ function processArchiving() {
                 browser.notifications.create(`archiving-${archiveURL}`, {
                     title: "pWebArc: FAILED",
                     message: `Failed to archive ${failed.queue.length} items in the queue because ${failed.reason}`,
-                    iconUrl: browser.runtime.getURL(iconPath("error", 128)),
+                    iconUrl: iconURL("error", 128),
                     type: "basic",
                 });
             }
@@ -718,7 +701,7 @@ function processArchiving() {
             browser.notifications.create("archivingOK", {
                 title: "pWebArc: OK",
                 message: "Archiving appears to work OK!\nThis message won't be repeated unless something breaks.",
-                iconUrl: browser.runtime.getURL(iconPath("idle", 128)),
+                iconUrl: iconURL("idle", 128),
                 type: "basic",
             });
         }
