@@ -209,6 +209,11 @@ function makeUI(node) {
 
     let res = document.createElement("div");
     res.id = "div-" + id;
+    // copy other attributes
+    for (let attr of node.attributes) {
+        if (attr.name == "id") continue;
+        res.setAttribute(attr.name, node.getAttribute(attr.name))
+    }
     res.classList.add("ui");
     res.classList.add(typ);
 
@@ -242,11 +247,6 @@ function makeUI(node) {
         lbl.innerHTML = node.innerHTML + sep;
         lbl.appendChild(ne);
         res.appendChild(lbl);
-    }
-
-    for (let attr of node.attributes) {
-        if (attr.name == "id") continue;
-        res.setAttribute(attr.name, node.getAttribute(attr.name))
     }
 
     node.parentElement.replaceChild(res, node);
