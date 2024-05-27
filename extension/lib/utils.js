@@ -179,10 +179,10 @@ function setUI(prefix, value, update) {
             el.onchange = () => {
                 update(el.checked, prefix);
             };
-    } else if (typ == "number" && el.tagName == "INPUT" && el.type == "number" ||
-               typ == "string" && el.tagName == "INPUT" && el.type == "text") {
+    } else if ((typ == "number" || typ == "string") && el.tagName == "INPUT"
+               && (el.type == "number" || el.type == "text" || el.type == "button")) {
         el.value  = value;
-        if (update !== undefined)
+        if (update !== undefined && el.type != "button")
             el.onchange = () => {
                 let nvalue = el.value;
                 if (typ == "number")
