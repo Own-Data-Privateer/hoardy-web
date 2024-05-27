@@ -1023,18 +1023,15 @@ function processAlmostDone() {
         if (archiving) {
             let dump = renderReqres(reqres);
 
+            if (config.dumping)
+                dumpToConsole(dump);
+
             if (options.limbo) {
                 reqresLimbo.push([shallow, dump]);
                 info.inLimboTotal += 1;
                 broadcast(["newLimbo", [shallow]]);
             } else
                 processFinishedReqres(true, shallow, dump);
-
-            if (config.dumping) {
-                let dec = new TextDecoder("utf-8", { fatal: false });
-                console.log("dump:")
-                console.log(dec.decode(dump));
-            }
         } else
             processFinishedReqres(false, shallow, undefined);
     }

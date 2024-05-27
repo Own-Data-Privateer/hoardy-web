@@ -95,6 +95,18 @@ function unBase64(data) {
     return Uint8Array.from(atob(data), (x) => x.codePointAt(0));
 }
 
+// dump Uint8Array into a String, replacing unprintable characters
+function binaryToText(dump) {
+    let dec = new TextDecoder("utf-8", { fatal: false });
+    return dec.decode(dump);
+}
+
+// dump Uint8Array to console.log
+function dumpToConsole(dump) {
+    console.log("dump:");
+    console.log(binaryToText(dump));
+}
+
 // remove #.* from the end of the URL
 function removeURLHash(url) {
     if (url === undefined) return url;
