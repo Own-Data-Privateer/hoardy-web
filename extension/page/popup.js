@@ -39,12 +39,12 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     addHelp(document.body, true);
 
     buttonToAction("help", () => {
-        window.open(browser.runtime.getURL("/page/help.html"), "_blank");
+        showHelp("", "", tabId);
         window.close();
     });
     buttonToMessage("forgetHistory");
     buttonToMessage("forgetProblematic");
-    buttonToAction("state", () => window.open(browser.runtime.getURL("/page/state.html"), "_blank"));
+    buttonToAction("state", () => showState("", "", tabId));
     buttonToMessage("retryAllFailedArchives");
     buttonToAction("takeAllInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, null]));
     buttonToAction("discardAllInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, null]));
@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
 
     buttonToAction("forgetTabHistory",   () => browser.runtime.sendMessage(["forgetHistory", tabId]));
     buttonToAction("forgetTabProblematic", () => browser.runtime.sendMessage(["forgetProblematic", tabId]));
-    buttonToAction("tabState", () => window.open(browser.runtime.getURL(`/page/state.html?tab=${tabId}`), "_blank"));
+    buttonToAction("tabState", () => showState(`?tab=${tabId}`, "", tabId));
     buttonToAction("takeTabInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, null, tabId]));
     buttonToAction("discardTabInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, null, tabId]));
     buttonToAction("stopTabInFlight", () => browser.runtime.sendMessage(["stopAllInFlight", tabId]));

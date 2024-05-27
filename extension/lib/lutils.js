@@ -25,3 +25,11 @@ function mkIcons(what) {
         128: iconPath(what, 128),
     };
 }
+
+function showHelp(suffix, id, tabId) {
+    return showInternalPageAtNode("/page/help.html" + suffix, id, tabId);
+}
+
+function showState(suffix, id, tabId) {
+    return showInternalPageAtNode("/page/state.html" + suffix, id, tabId);
+}

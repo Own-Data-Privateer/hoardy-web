@@ -151,7 +151,39 @@ function buttonToAction(id, action) {
 
 // make a DOM node with a given id emit a `browser.runtime.sendMessage` with the same id
 function buttonToMessage(id) {
-    buttonToAction(id, () => browser.runtime.sendMessage([id]));
+    buttonToAction(id, catchAllAsync(() => browser.runtime.sendMessage([id])));
+}
+
+// activate a tab with a given document URL if exists, or open new if not
+async function openOrActivateTab(target, createProperties, currentWindow) {
+    if (currentWindow === undefined)
+        currentWindow = true;
+
+    let tabs = await browser.tabs.query({ currentWindow });
+    let targetNoHash = removeURLHash(target);
+    for (let tab of tabs) {
+        if (removeURLHash(tab.url) == targetNoHash) {
+            // activate that tab instead
+            await browser.tabs.update(tab.id, { active: true });
+            return tab;
+        }
+    }
+
+    // open new tab
+    let res = await browser.tabs.create(assignRec({ url: target }, createProperties || {}));
+    return res;
+}
+
+async function showInternalPageAtNode(url, id, tabId, scrollIntoViewOptions) {
+    let rurl = browser.runtime.getURL(url + (id ? "#" + id : ""));
+    let tab;
+    try {
+        tab = await openOrActivateTab(rurl, { openerTabId: tabId });
+    } catch (e) {
+        // in case tabId points to a dead tab
+        tab = await openOrActivateTab(rurl);
+    }
+    return tab;
 }
 
 // set values of DOM elements from a given object

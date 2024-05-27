@@ -1725,6 +1725,9 @@ async function handleCommand(command) {
 
     let tabcfg = undefined;
     switch (command) {
+    case "show-tab-state":
+        showState(`?tab=${tabId}`, "", tabId);
+        return;
     case "toggle-tabconfig-tracking":
         tabcfg = getOriginConfig(tabId);
         tabcfg.collecting = !tabcfg.collecting;
@@ -1743,9 +1746,6 @@ async function handleCommand(command) {
         tabcfg = getOriginConfig(tabId);
         tabcfg.children.limbo = !tabcfg.children.limbo;
         break;
-    case "show-tab-state":
-        browser.tabs.create({ url: browser.runtime.getURL(`/page/state.html?tab=${tabId}#m-finished`), openerTabId: tabId });
-        return;
     case "collect-all-tab-inlimbo":
         popInLimbo(true, null, tabId);
         return;
@@ -1762,7 +1762,7 @@ async function handleCommand(command) {
 }
 
 async function init(storage) {
-    let showHelp = false;
+    let do_showHelp = false;
     if (storage.config !== undefined) {
         let oldConfig = storage.config;
         function rename(from, to) {
@@ -1776,7 +1776,7 @@ async function init(storage) {
 
         // show help when config version changes
         if (version !== configVersion)
-            showHelp = true;
+            do_showHelp = true;
 
         if (version == 1) {
             console.log("Using old config version " + version);
@@ -1792,7 +1792,7 @@ async function init(storage) {
 
         config = updateFromRec(config, oldConfig);
     } else
-        showHelp = true;
+        do_showHelp = true;
 
     if (useBlocking)
         browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), {urls: ["<all_urls>"]}, ["blocking", "requestBody"]);
@@ -1837,10 +1837,8 @@ async function init(storage) {
     console.log("runtime options are", { useSVGIcons, useBlocking, useDebugger });
     console.log("config is", config);
 
-    if (showHelp)
-        await browser.tabs.create({
-            url: browser.runtime.getURL("/page/help.html"),
-        });
+    if (do_showHelp)
+        showHelp();
 }
 
 browser.storage.local.get(null).then(init, (error) => init({}));
