@@ -26,6 +26,31 @@ function mkIcons(what) {
     };
 }
 
+let stateURL = browser.runtime.getURL("/page/state.html");
+
+// return ?tab= parameter when the URL is the state page
+function getStateTabId(purl) {
+    if (purl.origin + purl.pathname == stateURL) {
+        let params = new URLSearchParams(purl.search);
+        let tabId = params.get("tab");
+        if (tabId !== null)
+            return Number(tabId).valueOf();
+    }
+    return undefined;
+}
+
+function getStateTabIdOrTabId(tab) {
+    let url = tab.url;
+    if (useDebugger && tab.pendingUrl !== undefined && tab.pendingUrl !== "")
+        url = tab.pendingUrl;
+    if (url !== undefined) {
+        let tabId = getStateTabId(new URL(url));
+        if (tabId !== undefined)
+            return tabId;
+    }
+    return tab.id;
+}
+
 function showHelp(suffix, id, tabId) {
     return showInternalPageAtNode("/page/help.html" + suffix, id, tabId);
 }

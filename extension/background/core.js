@@ -427,7 +427,7 @@ function updateDisplay(statsChanged, switchedTab, updatedTabId) {
             await browser.browserAction.setBadgeText({ text: newBadge });
 
             for (let tab of tabs) {
-                let tabId = tab.id;
+                let tabId = getStateTabIdOrTabId(tab);
 
                 // skip updates for unchanged tabs, when specified
                 if (!changed && updatedTabId !== undefined && updatedTabId != tabId)
@@ -458,8 +458,8 @@ function updateDisplay(statsChanged, switchedTab, updatedTabId) {
 
                 if (useDebugger) {
                     // Chromium does not support per-window browserActions, so we have to update them per-tab.
-                    await browser.browserAction.setIcon({ tabId, path: mkIcons(icon) });
-                    await browser.browserAction.setTitle({ tabId, title });
+                    await browser.browserAction.setIcon({ tabId: tab.id, path: mkIcons(icon) });
+                    await browser.browserAction.setTitle({ tabId: tab.id, title });
                 } else {
                     let windowId = tab.windowId;
                     await browser.browserAction.setIcon({ windowId, path: mkIcons(icon) });
@@ -1713,13 +1713,12 @@ function initMenus() {
 }
 
 async function handleCommand(command) {
-    let tabs = await browser.tabs.query({ active: true, currentWindow: true });
-
     let tabId = undefined;
+    let tabs = await browser.tabs.query({ active: true, currentWindow: true });
     for (let tab of tabs) {
-        tabId = tab.id;
+        tabId = getStateTabIdOrTabId(tab);
+        break;
     }
-
     if (tabId === undefined)
         return;
 

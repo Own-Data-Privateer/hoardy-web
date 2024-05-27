@@ -21,18 +21,23 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     let tabs = await browser.tabs.query({ active: true, currentWindow: true });
     for (let tab of tabs) {
         windowId = tab.windowId;
-        tabId = tab.id;
+        tabId = getStateTabIdOrTabId(tab);
+        break;
     }
 
     if (tabId === undefined || windowId === undefined)
         throw new Error("failed to get tabId or windowId");
 
     // start recording tabId changes
-    let recordTabId = catchAll((event) => {
-        if (event.windowId == windowId)
-            tabId = event.tabId;
-    });
-    browser.tabs.onActivated.addListener(recordTabId);
+    async function recordTabId(event) {
+        if (event.windowId !== windowId)
+            return;
+
+        let tab = await browser.tabs.get(event.tabId);
+        tabId = getStateTabIdOrTabId(tab);
+    }
+    let recordTabIdFunc = catchAllAsync(recordTabId);
+    browser.tabs.onActivated.addListener(recordTabIdFunc);
 
     // generate UI
     makeUI(document.body);
@@ -113,13 +118,13 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     }
 
     // replace recordTabId with this
-    let recordUpdateTabId = catchAllAsync(async (event) => {
-        recordTabId(event);
+    async function recordUpdateTabId (event) {
+        await recordTabId(event);
         await updateTabStats();
         await updateTabConfig();
-    });
-    browser.tabs.onActivated.removeListener(recordTabId);
-    browser.tabs.onActivated.addListener(recordUpdateTabId);
+    }
+    browser.tabs.onActivated.removeListener(recordTabIdFunc);
+    browser.tabs.onActivated.addListener(catchAllAsync(recordUpdateTabId));
 
     // open connection to the background script and listen for updates
     let port = browser.runtime.connect();

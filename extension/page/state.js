@@ -12,14 +12,9 @@ function fdate(epoch) {
     return new Date(epoch).toISOString();
 }
 
-let params = new URLSearchParams(document.location.search);
-let tabId = params.get("tab");
-if (tabId === null)
-    tabId = undefined;
-else {
-    tabId = Number(tabId).valueOf();
+let tabId = getStateTabId(document.location);
+if (tabId !== undefined)
     document.title = `pWebArc: tab ${tabId}: Internal State`;
-}
 
 function newReqres(reqres) {
     let tr = document.createElement("tr");
