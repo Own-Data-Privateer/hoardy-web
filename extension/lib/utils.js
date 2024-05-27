@@ -141,6 +141,11 @@ function escapeHTML(text) {
 // attach function to `onclick` of DOM node with a given id
 function buttonToAction(id, action) {
     let el = document.getElementById(id);
+    if (el === null) {
+        console.error(`failed to attach an action to button id "${id}"`);
+        console.trace();
+        return;
+    }
     el.onclick = action;
 }
 
