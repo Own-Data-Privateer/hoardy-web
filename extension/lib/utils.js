@@ -129,6 +129,15 @@ function normalizeURL(url) {
     return canonicalizeURL(removeURLHash(url));
 }
 
+function escapeHTML(text) {
+    return text
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
 // attach function to `onclick` of DOM node with a given id
 function buttonToAction(id, action) {
     let el = document.getElementById(id);
@@ -273,10 +282,17 @@ function hideHelp() {
     helpNodes = null;
 }
 
+function helpMarkupToHTML(text) {
+    return escapeHTML(text)
+        .replaceAll("\n", "<br />")
+        .replaceAll(/`([^`]+)`/g, "<code>$1</code>")
+    ;
+}
+
 // given a DOM node, add help tooltips to all its children with data-help attribute
 function addHelp(node, attachHide) {
     for (let child of node.childNodes) {
-        if (child.nodeName === "#text") continue;
+        if (child.nodeName === "#text" || child.nodeName === "#comment") continue;
         addHelp(child);
     }
 
@@ -286,17 +302,19 @@ function addHelp(node, attachHide) {
     let help = node.getAttribute("data-help");
     if (help === null) return;
     node.removeAttribute("data-help");
+    node.setAttribute("data-orig-help", help);
+    node.setAttribute("title", help);
+    node.classList.add("help-root");
 
     let helpDiv = document.createElement("div");
-    helpDiv.classList.add("help");
+    helpDiv.classList.add("help-tip");
     helpDiv.style.display = "none";
-    helpDiv.innerText = help;
+    helpDiv.innerHTML = helpMarkupToHTML(help);
     helpDiv.onclick = hideHelp;
 
     let helpMark = document.createElement("input");
     helpMark.type = "checkbox";
-    helpMark.classList.add("help");
-    helpMark.setAttribute("data-help", help);
+    helpMark.classList.add("help-btn");
 
     helpMark.onchange = () => {
         hideHelp();

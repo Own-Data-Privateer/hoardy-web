@@ -50,7 +50,7 @@ input[type="text"] {
     border: 1px solid var(--text-border-color);
 }
 
-input[type="checkbox"].help {
+input[type="checkbox"].help-btn {
     appearance: unset;
     padding: 0;
     margin: 0;
@@ -63,13 +63,13 @@ input[type="checkbox"].help {
     box-sizing: border-box;
 }
 
-input[type="checkbox"].help:after {
+input[type="checkbox"].help-btn:after {
     content: "?";
     margin-left: calc(8px - 0.5ch);
     color: #fffffa;
 }
 
-input[type="checkbox"].help:checked {
+input[type="checkbox"].help-btn:checked {
     background: #666666;
 }
 
@@ -93,7 +93,7 @@ div.ui label input[type="checkbox"] {
     margin-right: 1ch;
 }
 
-div.help {
+div.help-tip {
     position: absolute;
     z-index: 20;
 
