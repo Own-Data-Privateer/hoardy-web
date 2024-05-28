@@ -864,7 +864,7 @@ function processFinishedReqres(info, collect, shallow, dump, do_broadcast) {
         reqresLog.shift();
 
     if (do_broadcast !== false)
-        broadcast(["newLog", [shallow]]);
+        broadcast(["newLog", [shallow], true]);
 }
 
 function popInLimbo(collect, num, tabId) {
@@ -901,8 +901,7 @@ function popInLimbo(collect, num, tabId) {
         if (tabId !== undefined)
             info.inLimboTotal -= popped.length;
         cleanupTabs();
-        broadcast(["newLog", popped]);
-        broadcast(["resetInLimboLog", limboLog]);
+        broadcast(["newLog", popped, false]);
         updateDisplay(true, false);
     }
 
@@ -1004,7 +1003,7 @@ function processAlmostDone() {
                         reqres);
 
         let shallow = shallowCopyOfReqres(reqres);
-        shallow.final_state = state;
+        shallow.net_state = state;
         shallow.profile = options.profile;
         shallow.problematic = problematic;
         shallow.picked = collect;
@@ -1012,7 +1011,6 @@ function processAlmostDone() {
         if (problematic) {
             reqresProblematicLog.push(shallow);
             info.problematicTotal += 1;
-            broadcast(["newProblematic", [shallow]]);
         }
 
         if (collect) {

@@ -9,25 +9,40 @@
 function fdate(epoch) {
     if (epoch === undefined)
         return "undefined";
-    return new Date(epoch).toISOString();
+    let str = new Date(epoch).toISOString();
+    let pos = str.indexOf(".");
+    if (pos != -1)
+        str = str.substr(0, pos);
+    return str.replace("T", " ");
 }
 
 let tabId = getStateTabId(document.location);
 if (tabId !== undefined)
     document.title = `pWebArc: tab ${tabId}: Internal State`;
 
+function switchToDataTabId() {
+    let dataTabId = Number(this.getAttribute("data-tabid"));
+    browser.tabs.update(dataTabId, { active: true }).catch(logError);
+}
+
 function newReqres(reqres) {
     let tr = document.createElement("tr");
 
+    let state = "in_flight";
     let color = "#ffffaa";
-    if (reqres.collected === true)
+    if (reqres.collected === true) {
+        state = "collected";
         color = "#aaffaa";
-    else if (reqres.collected === false)
+    } else if (reqres.collected === false) {
+        state = "discarded";
         color = "#ffaaaa";
-    else if (reqres.picked === true)
+    } else if (reqres.picked === true) {
+        state = "in_limbo";
         color = "#eeffee";
-    else if (reqres.picked === false)
+    } else if (reqres.picked === false) {
+        state = "in_limbo";
         color = "#ffeeee";
+    }
     tr.setAttribute("style", `background-color: ${color}`);
 
     function mtr(data) {
@@ -37,25 +52,44 @@ function newReqres(reqres) {
         return td;
     }
 
-    if (reqres.state === undefined)
-        mtr("tracking");
-    else
-        mtr((reqres.problematic ? "P!" : "") + reqres.state);
+    function mbtn(data) {
+        let btn = document.createElement("input");
+        btn.type = "button";
+        btn.value = data;
+
+        let td = document.createElement("td");
+        td.appendChild(btn);
+        tr.appendChild(td);
+        return btn;
+    }
+
+    if (reqres.fromExtension)
+        mtr("ext");
+    else if (reqres.tabId == -1)
+        mtr("bg");
+    else {
+        let btn = mbtn(`tab #${reqres.tabId}`);
+        btn.setAttribute("data-tabid", reqres.tabId.toString());
+        btn.onclick = switchToDataTabId.bind(btn);
+    }
+
+    mtr((reqres.requestComplete ? "C" : "I")
+        + (reqres.responseTimeStamp === undefined ? "N"
+           : (reqres.statusCode.toString()
+              + (reqres.responseComplete ? "C" : "I"))));
+
+    mtr(state
+        + (reqres.net_state !== undefined ? " " + reqres.net_state : "")
+        + (reqres.problematic === true ? " problematic!" : "")
+       );
 
     mtr(fdate(reqres.requestTimeStamp));
+    mtr(reqres.protocol);
     mtr(reqres.method);
     mtr(reqres.url).className = "long";
-    if (reqres.fromExtension)
-        mtr("extension");
-    else
-        mtr(`tab ${reqres.tabId}`);
-    mtr(reqres.requestComplete);
 
     mtr(fdate(reqres.responseTimeStamp));
-    mtr(reqres.statusCode);
-    mtr(reqres.reason);
-    mtr(reqres.responseComplete);
-    mtr(reqres.protocol);
+    mtr(reqres.reason).className = "long";
 
     return tr;
 }
@@ -97,30 +131,31 @@ document.addEventListener("DOMContentLoaded", catchAll(() => {
         let thead = document.createElement("thead");
         thead.innerHTML = `
 <tr>
-  <th>State</th>
-  <th>Request started</th>
-  <th>Method</th>
+  <th><span data-help="Source of this reqres: &quot;ext&quot; for reqres produced by extensions, &quot;bg&quot; for reqres produced by background tasks, &quot;tab #N&quot; for reqres produced by the tab with id \`N\`. For tabs the label is a button which switches currently active tab to the tab in question.">Src</span></th>
+  <th><span data-help="The \`.status\` this reqres will have in wrrarms: &quot;I&quot; or &quot;C&quot; character (for &quot;Incomplete&quot; and &quot;Complete&quot; respectively) representing the value of \`.request.complete\` flag followed by either &quot;N&quot; (for &quot;No response&quot;) or an HTTP status code (integer, e.g. &quot;200&quot;), followed by &quot;I&quot; or &quot;C&quot; representing the value of \`.response.complete\` flag.">WRR</span></th>
+  <th><span data-help="The current reqres \`state\` followed by \`the final networking state\`, followed by &quot;problematic!&quot; when this reqres was marked as problematic (see the Help page for more info).">pWA</span></th>
+  <th><span data-help="Timestamp of when the first byte of HTTP request headers was sent.">Request at</span></th>
+  <th><span data-help="Protocol/version.">P</span></th>
+  <th><span data-help="Protocol method.">M</span></th>
   <th>URL</th>
-  <th>Origin</th>
-  <th><span title="Request body complete">Req</span></th>
 
-  <th>Response started</th>
-  <th>Code</th>
-  <th>Reason</th>
-  <th><span title="Response body complete">Res</span></th>
-  <th>Protocol</th>
+  <th><span data-help="Timestamp of when the first byte of HTTP response headers was received.">Response at</span></th>
+  <th><span data-help="HTTP protocol response reason, if any. Note that the HTTP response code is displayed as a part of the &quot;WRR&quot; field.">Reason</span></th>
 </tr>
 `;
         el.insertBefore(thead, el.firstChild);
+        let tfoot = document.createElement("tfoot");
+        tfoot.innerHTML = thead.innerHTML;
+        el.appendChild(tfoot);
     }
 
-    buttonToAction("forgetHistory", () => browser.runtime.sendMessage(["forgetHistory", tabId]));
-    buttonToAction("forgetProblematic", () => browser.runtime.sendMessage(["forgetProblematic", tabId]));
-    buttonToAction("takeOneInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, 1, tabId]));
-    buttonToAction("discardOneInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, 1, tabId]));
-    buttonToAction("takeAllInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, null, tabId]));
-    buttonToAction("discardAllInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, null, tabId]));
-    buttonToAction("stopAllInFlight", () => browser.runtime.sendMessage(["stopAllInFlight", tabId]));
+    buttonToAction("forgetHistory", catchAllAsync(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
+    buttonToAction("forgetProblematic", catchAllAsync(() => browser.runtime.sendMessage(["forgetProblematic", tabId])));
+    buttonToAction("discardOneInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, 1, tabId])));
+    buttonToAction("discardAllInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
+    buttonToAction("collectOneInLimbo",   catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, 1, tabId])));
+    buttonToAction("collectAllInLimbo",   catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
+    buttonToAction("stopAllInFlight", catchAllAsync(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
 
     // add help tooltips
     addHelp(document.body, true);
@@ -130,36 +165,51 @@ document.addEventListener("DOMContentLoaded", catchAll(() => {
 
     port.onMessage.addListener(catchAll((update) => {
         let [what, data] = update;
-        if (what == "resetLog") {
+        switch(what) {
+        case "resetLog":
             resetFinished(data);
-            return;
-        } else if (what == "resetProblematicLog") {
+            break;
+        case "resetProblematicLog":
             resetProblematic(data);
-            return;
-        } else if (what == "resetInLimboLog") {
+            break;
+        case "resetInLimboLog":
             resetInLimbo(data);
-            return;
+            break;
         // incrementally add new rows
-        } else if (what == "newInFlight") {
+        case "newInFlight":
             appendLog(document.getElementById("in_flight"), data);
-            return;
-        } else if (what == "newProblematic") {
-            appendLog(document.getElementById("problematic"), data);
-            return;
-        } else if (what == "newLimbo") {
+            break;
+        case "newLimbo":
             appendLog(document.getElementById("in_limbo"), data);
-        } else if (what == "newLog") {
+            appendLog(document.getElementById("problematic"), data, (r) => r.problematic);
+            browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);
+            break;
+        case "newLog":
             appendLog(document.getElementById("finished"), data);
-        } else
-            return;
-        // reset in-flight
-        browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
+            if (update[2]) // it's fresh from in-flight
+                appendLog(document.getElementById("problematic"), data, (r) => r.problematic);
+            else {
+                // it comes from limbo
+                browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo).catch(logError);
+                browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic).catch(logError);
+            }
+            browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);
+            break;
+        }
     }));
 
     // meanwhile, get the whole log, render it, and replace the whole
     // page with it
-    browser.runtime.sendMessage(["getLog"]).then(resetFinished);
-    browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic);
-    browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);
-    browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
+    async function init() {
+        await browser.runtime.sendMessage(["getLog"]).then(resetFinished);
+        await browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic);
+        await browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);
+        await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
+
+        // force re-scroll
+        let focused = document.getElementById(document.location.hash.substr(1));
+        if (focused)
+            focused.scrollIntoView({ block: "center" });
+    }
+    init().catch(logError);
 }));

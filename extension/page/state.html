@@ -6,6 +6,25 @@
     <link rel="shortcut icon" type="image/svg" href="../icon/main.svg">
     <link rel="stylesheet" href="main.css">
     <style>
+h1 {
+    font-size: 200%;
+    margin: 0;
+    margin-top: 5px;
+    display: flex;
+}
+
+#help {
+    margin-left: 1em;
+}
+
+div .help-root, span .help-root {
+    display: inline-block;
+}
+
+.help-tip {
+    max-width: 40em;
+}
+
 table, th, td {
     border: 1px solid black;
 }
@@ -21,34 +40,41 @@ td.long {
     </style>
   </head>
   <body>
-    <h1>In flight</h1>
+    <h1>In flight
+      <span data-help="Open the help page."><input type="button" id="help" value="Help" /></span>
+      <span class="right">
+        <span data-help="Stop tracking progress of all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup."><input type="button" id="stopAllInFlight" value="Stop tracking all" /></span>
+      </span>
+    </h1>
     <table><tbody id="in_flight"></tbody></table>
-    <div>
-      <span data-help="Stop tracking progress of all in-flight requests displayed above and either queue them for archival or discard them, depending on their completion and &quot;Archive reqres with&quot; options in the settings popup."><input type="button" id="stopAllInFlight" value="Stop tracking all" /></span>
-    </div>
 
-    <h1>Problematic</h1>
+    <h1>Problematic
+      <span class="right">
+        <span data-help="Forget all reqres below."><input type="button" id="forgetProblematic" value="Forget all" /></span>
+      </span>
+    </h1>
     <table><tbody id="problematic"></tbody></table>
-    <div>
-      <span data-help="Forget all reqres above."><input type="button" id="forgetProblematic" value="Forget all" /></span>
-    </div>
 
-    <h1>In limbo</h1>
+    <h1>In limbo
+      <span class="right">
+        <span data-help="Discard the first reqres below."><input type="button" id="discardOneInLimbo" value="Discard the first one" /></span>
+        <span data-help="Discard all reqres below."><input type="button" id="discardAllInLimbo" value="Discard all" /></span>
+      </span>
+    </h1>
     <div>
-      <span data-help="Queue the first reqres below for archival."><input type="button" id="takeOneInLimbo" value="Archive the first one" /></span>
-      <span data-help="Discard the first reqres below."><input type="button" id="discardOneInLimbo" value="Discard the first one" /></span>
+      <span data-help="Collect the first reqres below."><input type="button" id="collectOneInLimbo" value="Collect the first one" /></span>
+      <span data-help="Collect all reqres below."><input type="button" id="collectAllInLimbo" value="Collect all" /></span>
     </div>
     <table><tbody id="in_limbo"></tbody></table>
-    <div>
-      <span data-help="Queue all reqres above for archival."><input type="button" id="takeAllInLimbo" value="Archive all" /></span>
-      <span data-help="Discard all reqres above."><input type="button" id="discardAllInLimbo" value="Discard all" /></span>
-    </div>
 
-    <h1>Recently finished</h1>
+    <h1>Recent history
+      <span class="right">
+        <span data-help="Forget about all the requests below."><input type="button" id="forgetHistory" value="Forget all" /></span>
+      </span>
+    </h1>
     <table><tbody id="finished"></tbody></table>
-    <div>
-      <span data-help="Forget about all the requests above (and subtract them from &quot;Collected&quot; and &quot;Discarded&quot; stats)."><input type="button" id="forgetHistory" value="Forget all" /></span>
-    </div>
+    <!-- This anchor goes here, because we usually want to see the tail of the log. -->
+    <span id="end" />
 
     <script src="../lib/compat.js"></script>
     <script src="../lib/utils.js"></script>
