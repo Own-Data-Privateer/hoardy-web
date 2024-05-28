@@ -11,6 +11,23 @@ body {
     font: 14px sans-serif;
 }
 
+.float-right {
+    float: right;
+}
+
+.left {
+    margin-right: auto;
+}
+
+.center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.right {
+    margin-left: auto;
+}
+
 input[type="checkbox"].toggle {
     appearance: none;
     padding: 0;
@@ -104,7 +121,13 @@ div.help-tip {
     color: black;
     font: 12px sans-serif;
     padding: 4px;
+    text-align: left;
     white-space: pre-line;
+}
+
+/* right-most help-tip sticks to the edge */
+.right *:nth-last-child(1) .help-tip {
+    right: 0;
 }
 
 /* can't use :target because some nodes are procedurally generated */

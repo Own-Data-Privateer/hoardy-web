@@ -40,28 +40,31 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     browser.tabs.onActivated.addListener(recordTabIdFunc);
 
     // generate UI
-    makeUI(document.body);
-    addHelp(document.body, true);
+    let body = document.body;
+    makeUI(body);
+    addHelp(body, true);
 
-    buttonToAction("help", () => {
-        showHelp("", "", tabId);
+    buttonToAction("help", catchAllAsync(async () => {
+        await showHelp("", "", tabId);
         window.close();
-    });
+    }));
+
+    buttonToAction("showState", catchAllAsync(() => showState("", "", tabId)));
+    buttonToAction("showTabState", catchAllAsync(() => showState(`?tab=${tabId}`, "", tabId)));
+
     buttonToMessage("forgetHistory");
     buttonToMessage("forgetProblematic");
-    buttonToAction("state", () => showState("", "", tabId));
     buttonToMessage("retryAllFailedArchives");
-    buttonToAction("takeAllInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, null]));
-    buttonToAction("discardAllInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, null]));
+    buttonToAction("collectAllInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, null])));
+    buttonToAction("discardAllInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, null])));
     buttonToMessage("stopAllInFlight");
 
-    buttonToAction("forgetTabHistory",   () => browser.runtime.sendMessage(["forgetHistory", tabId]));
-    buttonToAction("forgetTabProblematic", () => browser.runtime.sendMessage(["forgetProblematic", tabId]));
-    buttonToAction("tabState", () => showState(`?tab=${tabId}`, "", tabId));
-    buttonToAction("takeTabInLimbo",    () => browser.runtime.sendMessage(["popInLimbo", true, null, tabId]));
-    buttonToAction("discardTabInLimbo", () => browser.runtime.sendMessage(["popInLimbo", false, null, tabId]));
-    buttonToAction("stopTabInFlight", () => browser.runtime.sendMessage(["stopAllInFlight", tabId]));
-    buttonToAction("show", () => showAll());
+    buttonToAction("forgetTabHistory",     catchAllAsync(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
+    buttonToAction("forgetTabProblematic", catchAllAsync(() => browser.runtime.sendMessage(["forgetProblematic", tabId])));
+    buttonToAction("collectTabInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
+    buttonToAction("discardTabInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
+    buttonToAction("stopTabInFlight", catchAllAsync(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
+    buttonToAction("show", catchAll(showAll));
 
     // when #hash is specified (used in the ./help.org), we don't
     // want anything hidden and we want to point user to the
@@ -89,20 +92,17 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
         setUI("tabstats", tabstats);
     }
 
-    let dependNodes = document.getElementsByName("depends");
     async function updateConfig() {
         let config = await browser.runtime.sendMessage(["getConfig"]);
         setUI("config", config, (newconfig, path) => {
             browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
         });
 
-        for (let depends of dependNodes) {
-            depends.classList.remove("disabled-archiving", "disabled-collecting")
-            if (!config.archiving)
-                depends.classList.add("disabled-archiving");
-            if (!config.collecting)
-                depends.classList.add("disabled-collecting");
-        }
+        body.classList.remove("disabled-archiving", "disabled-collecting")
+        if (!config.archiving)
+            body.classList.add("disabled-archiving");
+        if (!config.collecting)
+            body.classList.add("disabled-collecting");
     }
 
     async function updateTabConfig(tabconfig) {
@@ -149,7 +149,7 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     await updateTabConfig();
 
     // show UI
-    document.body.style.display = "block";
+    body.style.display = "block";
 }), (error) => {
     let body = document.createElement("body");
     body.innerHTML = "<p>Extension failed to initialize. Go to (on Firefox-based browser) <pre>about:debugging#/runtime/this-firefox</pre> or (on Chromium-based browser) <pre>chrome://extensions/</pre> click inspect \"pWebArc\", select \"Console\" and see the log there for more details.</p>"

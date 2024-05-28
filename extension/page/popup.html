@@ -28,10 +28,6 @@ code {
     margin: 0 0.5em;
 }
 
-.right {
-    margin-left: auto;
-}
-
 .version {
     font-size: 60%;
     color: rgb(107,107,116);
@@ -39,8 +35,21 @@ code {
 }
 
 .stats > div {
-    margin-left: 1em;
     display: flex;
+}
+
+.stats > div > span:nth-child(1) {
+    margin-left: 1em;
+}
+
+.stats > div > span:nth-child(2) {
+    padding-left: 1em;
+    margin: 0 1em 0 auto;
+}
+
+.stats > div > span:nth-child(3) {
+    min-width: 5em;
+    text-align: right;
 }
 
 #help {
@@ -62,12 +71,12 @@ input[type="button"], .help-btn {
     margin: 5px;
 }
 
-.disabled-archiving {
+.disabled-archiving .da {
     --text-background: var(--uncheckbox-background);
     --text-border-color: var(--uncheckbox-border-color);
 }
 
-.disabled-collecting {
+.disabled-collecting .dc {
     --checkbox-background: var(--uncheckbox-background);
     --checkbox-border-color: var(--uncheckbox-border-color);
 }
@@ -79,160 +88,174 @@ input[type="button"], .help-btn {
       <span class="version">v<span id="stats.version">?</span></span>
       <span data-help="Open the help page."><input type="button" id="help" value="Help" /></span>
       <span class="right">
-        <span name="more">
-          <span data-help="Flush the log of finished requests and zero out &quot;Collected&quot; and &quot;Discarded&quot; stats."><input type="button" id="forgetHistory" value="Flush" /></span>
-        </span>
-        <span data-help="Open the request log and internal state page."><input type="button" id="state" value="📜" /></span>
+        <span data-help="Forget history."><input type="button" id="forgetHistory" value="🧹" /></span>
+        <span data-help="Show the internal state and history."><input type="button" id="showState" value="📜" /></span>
       </span>
     </h1>
     <div class="stats">
-      <div id="div-stats.archive_ok" data-help="Number of reqres (HTTP requests+responses) successfully archived to the server.">
-        <span>Archived</span>
-        <span class="right"><span id="stats.archive_ok">0</span> reqres</span>
-      </div>
-      <div id="div-stats.archive_failed" data-help="Number of reqres that failed to be archived to the server.">
-        <span>Failed to archive</span>
-        <span class="right">
+      <div id="div-stats.archived" data-help="The numbers of reqres that were: successfully archived to the server (+still in the archiving queue) / failed to be archived to the server.">
+        <span>Archived/Failed</span>
+        <span>
           <span data-help="Retry archiving reqres that failed to archive. I.e., move all failed to archive reqres to the archiving queue. This action will be performed automatically every 60 seconds when archiving is enabled."><input type="button" id="retryAllFailedArchives" value="♻" /></span>
-          <span id="stats.archive_failed">0</span> reqres
+        </span>
+        <span>
+          <span id="stats.archive_ok">0</span>
+          (+<span id="stats.in_queue">0</span>)
+          /
+          <span id="stats.archive_failed">0</span>
         </span>
       </div>
-      <div id="div-stats.in_queue" data-help="Number of finished reqres waiting to be archived.">
-        <span>In queue</span>
-        <span class="right"><span id="stats.in_queue">0</span> reqres</span>
+      <div id="div-stats.collected" data-help="The numbers of finished reqres that were collected for archival / discarded from memory.">
+        <span>Collected/Discarded</span>
+        <span>
+        </span>
+        <span>
+          <span id="stats.collected">0</span>
+          /
+          <span id="stats.discarded">0</span>
+        </span>
       </div>
-      <div id="div-stats.collected" data-help="Number of finished reqres that satisfied the archiving conditions and thus were collected for archival.">
-        <span>Collected</span>
-        <span class="right"><span id="stats.collected">0</span> reqres</span>
-      </div>
-      <div id="div-stats.discarded" data-help="Number of finished reqres that failed to satisfy the archiving conditions and thus were discarded.">
-        <span>Discarded</span>
-        <span class="right"><span id="stats.discarded">0</span> reqres</span>
-      </div>
-      <div id="div-stats.in_limbo" data-help="Number of finished reqres in limbo.">
+      <div id="div-stats.in_limbo" data-help="The number of finished reqres in limbo.">
         <span>In limbo</span>
-        <span class="right">
-          <span data-help="Queue all reqres in limbo for archival."><input type="button" id="takeAllInLimbo" value="✔️" /></span>
+        <span>
+          <span data-help="Collect all reqres in limbo."><input type="button" id="collectAllInLimbo" value="✔️" /></span>
           <span data-help="Discard all reqres in limbo."><input type="button" id="discardAllInLimbo" value="✖️" /></span>
-          <span id="stats.in_limbo">0</span> reqres
+        </span>
+        <span id="stats.in_limbo">0</span>
+      </div>
+      <div id="div-stats.picked" data-help="The number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
+        <span>Picked/Dropped</span>
+        <span>
+        </span>
+        <span>
+          <span id="stats.picked">0</span>
+          /
+          <span id="stats.dropped">0</span>
         </span>
       </div>
-      <div id="div-stats.problematic" data-help="Number of finished problematic reqres in all tabs.">
+      <div id="div-stats.problematic" data-help="The number of reqres that satisfied &quot;Mark reqres as problematic when they finish&quot; conditions (at the moment they `finished`).">
         <span>Problematic</span>
-        <span class="right">
+        <span>
           <span data-help="Forget about all problematic reqres."><input type="button" id="forgetProblematic" value="🧹" /></span>
-          <span id="stats.problematic">0</span> reqres
         </span>
+        <span id="stats.problematic">0</span>
       </div>
-      <div id="div-stats.in_flight" data-help="Number of tracked reqres that have not finished yet.">
+      <div id="div-stats.in_flight" data-help="The number of reqres that have not finished yet.">
         <span>In flight</span>
-        <span class="right">
-          <span data-help="Stop tracking progress of all in-flight requests and either queue them for archival or fail them, depending on completion and &quot;Archive reqres with&quot; options."><input type="button" id="stopAllInFlight" value="⏹" /></span>
-          <span id="stats.in_flight">0</span> reqres
+        <span>
+          <span data-help="Stop tracking progress of all in-flight reqres and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options."><input type="button" id="stopAllInFlight" value="⏹" /></span>
         </span>
+        <span id="stats.in_flight">0</span>
       </div>
     </div>
-    <ui id="config.collecting" type="boolean" data-help="Also known as &quot;Enable this add-on&quot;. Generate a new reqres and start tracking its progress when the browser makes a new HTTP request. Disabling this option will stop pWebArc from recording any new data.">Track newly generated requests</ui>
 
     <div name="more">
-    <ui id="config.archiving" type="boolean" data-help="Archive already collected reqres (&quot;queued for archival&quot; in the stats) by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that the archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
-    <ui id="config.archiveURLBase" type="string" data-help="URL of the server we are archiving to.">Archive to</ui>
+    <ui id="config.collecting" type="boolean" data-help="Also known as &quot;Enable this add-on&quot;. Generate a new reqres and start tracking its progress when the browser makes a new HTTP request. Disabling this option will stop pWebArc from recording any new data. Already tracked reqres will still get tracked until they finish.">Track newly generated requests</ui>
+    <ui id="config.archiving" type="boolean" data-help="Archive collected reqres by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that the archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
+    <ui id="config.archiveURLBase" type="string" class="da" data-help="URL of the server we are archiving to.">to URL</ui>
     </div>
 
     <h1>This tab
       <span class="right">
-        <span name="more">
-          <span data-help="Forget about all the finished requests produced by this tab (and subtract them from &quot;Collected&quot; and &quot;Discarded&quot; stats)."><input type="button" id="forgetTabHistory" value="Flush" /></span>
-        </span>
-        <span data-help="Open the request log and internal state page narrowed to this tab's data."><input type="button" id="tabState" value="📜" /></span>
+        <span data-help="For reqres of this tab, forget history."><input type="button" id="forgetTabHistory" value="🧹" /></span>
+        <span data-help="For reqres of this tab, show the internal state and history."><input type="button" id="showTabState" value="📜" /></span>
       </span>
     </h1>
     <div class="stats">
-      <div id="div-tabstats.collected" data-help="Number of finished reqres of this tab that satisfied the archiving conditions and thus were collected for archival.">
-        <span>Collected</span>
-        <span class="right"><span id="tabstats.collected">0</span> reqres</span>
+      <div id="div-tabstats.collected" data-help="For this tab, the numbers of finished reqres that were collected for archival / discarded from memory.">
+        <span>Collected/Discarded</span>
+        <span>
+        </span>
+        <span>
+          <span id="tabstats.collected">0</span>
+          /
+          <span id="tabstats.discarded">0</span>
+        </span>
       </div>
-      <div id="div-tabstats.discarded" data-help="Number of finished reqres of this tab that failed to satisfy the archiving conditions and thus were discarded.">
-        <span>Discarded</span>
-        <span class="right"><span id="tabstats.discarded">0</span> reqres</span>
-      </div>
-      <div id="div-tabstats.in_limbo" data-help="Number of in-limbo finished reqres generated by this tab.">
+      <div id="div-tabstats.in_limbo" data-help="For this tab, the number of finished reqres in limbo.">
         <span>In limbo</span>
-        <span class="right">
-          <span data-help="For reqres of this tab, queue all reqres in limbo for archival."><input type="button" id="takeTabInLimbo" value="✔️" /></span>
+        <span>
+          <span data-help="For reqres of this tab, collect all reqres in limbo."><input type="button" id="collectTabInLimbo" value="✔️" /></span>
           <span data-help="For reqres of this tab, discard all reqres in limbo."><input type="button" id="discardTabInLimbo" value="✖️" /></span>
-          <span id="tabstats.in_limbo">0</span> reqres
+        </span>
+        <span id="tabstats.in_limbo">0</span>
+      </div>
+      <div id="div-tabstats.picked" data-help="For this tab, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
+        <span>Picked/Dropped</span>
+        <span>
+        </span>
+        <span>
+          <span id="tabstats.picked">0</span>
+          /
+          <span id="tabstats.dropped">0</span>
         </span>
       </div>
-      <div id="div-tabstats.problematic" data-help="Number of finished problematic reqres in this tab.">
+      <div id="div-tabstats.problematic" data-help="For this tab, the number of reqres that satisfied &quot;Mark reqres as problematic when they finish&quot; conditions (at the moment they `finished`).">
         <span>Problematic</span>
-        <span class="right">
-          <span data-help="Forget about all problematic reqres in this tab."><input type="button" id="forgetTabProblematic" value="🧹" /></span>
-          <span id="tabstats.problematic">0</span> reqres
+        <span>
+          <span data-help="For reqres of this tab, forget about all problematic reqres."><input type="button" id="forgetTabProblematic" value="🧹" /></span>
         </span>
+        <span id="tabstats.problematic">0</span>
       </div>
-      <div id="div-tabstats.in_flight" data-help="Number of in-flight reqres tracked in this tab.">
+      <div id="div-tabstats.in_flight" data-help="For this tab, the number of in-flight reqres that have not finished yet.">
         <span>In flight</span>
-        <span class="right">
-          <span data-help="For reqres of this tab, stop tracking progress of all in-flight requests and either queue them for archival or fail them, depending on completion and &quot;Archive reqres with&quot; options."><input type="button" id="stopTabInFlight" value="⏹" /></span>
-          <span id="tabstats.in_flight">0</span> reqres
+        <span>
+          <span data-help="For reqres of this tab, stop tracking progress of all in-flight requests and either collect them for archival or fail them, depending on completion and &quot;Pick reqres for archival when they finish&quot; options."><input type="button" id="stopTabInFlight" value="⏹" /></span>
         </span>
+        <span id="tabstats.in_flight">0</span>
       </div>
     </div>
-    <ui id="tabconfig.collecting" type="boolean" data-help="Track new reqres originating from this tab.">Track new reqres generated by this tab</ui>
-    <ui id="tabconfig.limbo" type="boolean" data-help="Put newly finished reqres originating from this tab into limbo until you queue them for archival or discard them manually.">Put newly finished reqres in limbo</ui>
+    <ui id="tabconfig.collecting" class="dc" type="boolean" data-help="Track new reqres originating from this tab.">Track new reqres</ui>
+    <ui id="tabconfig.limbo" type="boolean" data-help="For this tab, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
 
     <div name="more">
-    <ui id="tabconfig.profile" type="string" data-help="Use this server-side profile when archiving reqres originating from this tab.">Profile</ui>
+    <ui id="tabconfig.profile" class="da" type="string" data-help="Use this server-side profile when archiving reqres originating from this tab.">Profile</ui>
     </div>
 
-    <h1>This tab's new children</h1>
-    <ui id="tabconfig.children.collecting" type="boolean" data-help="Enable &quot;Track new reqres generated by this tab&quot; option in new tabs spawned from this tab (middle mouse click, context menu actions).">Enable tracking in new children tabs</ui>
-    <ui id="tabconfig.children.limbo" type="boolean" data-help="Enable &quot;Put newly finished reqres in limbo&quot; option in new tabs spawned from this tab (middle mouse click, context menu actions).">Enable limbo in new children tabs</ui>
+    <h1>This tab&#039;s new children</h1>
+    <ui id="tabconfig.children.collecting" class="dc" type="boolean" data-help="Enable &quot;Track new reqres&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Track new reqres&quot;</ui>
+    <ui id="tabconfig.children.limbo" type="boolean" data-help="Enable &quot;Pick into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Pick into limbo&quot;</ui>
 
     <div name="more">
-    <ui id="tabconfig.children.profile" type="string" data-help="Use this server-side profile when archiving reqres originating from new tabs opened from this tab (middle mouse click, context menu actions).">Profile</ui>
+    <ui id="tabconfig.children.profile" class="da" type="string" data-help="Use this server-side profile when archiving reqres originating from new tabs opened from this tab (middle mouse click, context menu actions).">Profile</ui>
     </div>
 
     <h1>New root tabs</h1>
-    <ui id="config.root.collecting" type="boolean" data-help="Enable &quot;Track new reqres generated by this tab&quot; option in new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable tracking in new root tabs</ui>
-    <ui id="config.root.limbo" type="boolean" data-help="Enable &quot;Put newly finished reqres in limbo&quot; option in new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable limbo in new root tabs</ui>
+    <ui id="config.root.collecting" class="dc" type="boolean" data-help="Enable &quot;Track new reqres&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Track new reqres&quot;</ui>
+    <ui id="config.root.limbo" type="boolean" data-help="Enable &quot;Pick into limbo&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Pick into limbo&quot;</ui>
 
     <div name="more">
-    <ui id="config.root.profile" type="string" data-help="Use this server-side profile when archiving reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Profile</ui>
+    <ui id="config.root.profile" class="da" type="string" data-help="Use this server-side profile when archiving reqres originating from new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Profile</ui>
+    <h1>Background tasks</h1>
+    <ui id="config.background.collecting" class="dc" type="boolean" data-help="Track new reqres originating from browser&#039;s background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this as browsers do link pre-fetching in background, and disabling this will miss that data.">Track new reqres</ui>
+    <ui id="config.background.limbo" type="boolean" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
+    <ui id="config.background.profile" class="da" type="string" data-help="Use this server-side profile when archiving reqres originating from browser&#039;s background tasks (excluding those originating from extensions).">Profile</ui>
+    <h1>Extensions</h1>
+    <ui id="config.extension.collecting" class="dc" type="boolean" data-help="Track new reqres originating from browser extensions.">Track new reqres</ui>
+    <ui id="config.extension.limbo" type="boolean" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
+    <ui id="config.extension.profile" class="da" type="string" data-help="Use this server-side profile when archiving reqres originating from browser extensions.">Profile</ui>
+    <h1>Options</h1>
+    <div id="pick-options">
+      <h2>Pick reqres for archival when they finish</h2>
+      <ui id="config.archivePartialRequest" type="boolean" data-help="Pick a finished reqres for archival even when its request body is incomplete. Enabled by default, and you probably want to keep this enabled. See the &quot;Quirks and Bugs&quot; section of the Help page for details.">... with partial POST form data</ui>
+      <ui id="config.archiveNoResponse" type="boolean" data-help="Pick a finished reqres for archival even when it got no response (i.e. the request in question was interrupted before request headers were received, this usually means a networking issue). Disabled by default because such archived reqres carry no information except that the browser tried to do a request at specified time.">... in <code>no_response</code> state</ui>
+      <ui id="config.archiveIncompleteResponse" type="boolean" data-help="Pick a finished reqres for archival even when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Disabled by default because simply reloading the page and not dealing with partial files is usually a better option.">... in <code>incomplete</code> or <code>incomplete_fc</code> state</ui>
+    </div>
+    <div id="problematic-options">
+      <h2>Mark reqres as problematic when they finish</h2>
+      <ui id="config.markProblematicCanceled" type="boolean" data-help="Mark a newly finished reqres as problematic when it was canceled before it was even sent (this usually means the HTTP request in question was blocked by another extension like &quot;uBlock Origin&quot;). Disabled by default.">... in <code>canceled</code> state</ui>
+      <ui id="config.markProblematicNoResponse" type="boolean" data-help="Mark a newly finished reqres as problematic when it got no response (i.e. the request in question was interrupted before request headers were received; this usually means a networking issue). Enabled by default.">... in <code>no_response</code> state</ui>
+      <ui id="config.markProblematicIncomplete" type="boolean" data-help="Mark a newly finished reqres as problematic when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Enabled by default.">... in <code>incomplete</code> state</ui>
+      <ui id="config.markProblematicIncompleteFC" type="boolean" data-help="Mark a newly finished reqres as problematic when it was loaded from browser's cache but its response data was not given to the extension (this only happens on Firefox-based browsers). Disabled by default because this usually means that one of the previously collected reqres had this response data archived already, if had not, you can reload the page with browser's cache disabled via `Contrlol+F5`.">... in <code>incomplete_fc</code> state</ui>
+    </div>
+    <div id="debugging-options">
+      <h2>Debugging</h2>
+      <ui id="config.debugging" type="boolean" data-help="Dump lots of data into extension&#039;s debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (SLOW!)</ui>
+      <ui id="config.dumping" type="boolean" data-help="Dumps raw CBOR outputs to extension&#039;s debugging log. Does nothing when the previous option is not enabled. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Dump raw CBORs into the log</ui>
+    </div>
     </div>
 
     <input type="button" id="show" value="Show all" />
-
-    <div name="more">
-    <h1>Originating from extensions</h1>
-    <ui id="config.extension.collecting" type="boolean" data-help="Track new reqres originating from other browser extensions.">Track new reqres generated by them</ui>
-    <ui id="config.extension.limbo" type="boolean" data-help="Put newly finished reqres originating from other browser extensions into limbo until you queue them for archival or discard them manually.">Put newly finished reqres in limbo</ui>
-    <ui id="config.extension.profile" type="string" data-help="Use this server-side profile when archiving reqres originating from other browser extensions.">Profile</ui>
-    <h1>Other background tasks</h1>
-    <ui id="config.background.collecting" type="boolean" data-help="Track new reqres originating from browser's background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this, as browsers do link pre-fetching in background, and disabling this will miss that data.">Track new reqres generated by them</ui>
-    <ui id="config.background.limbo" type="boolean" data-help="Put newly finished reqres originating from browser's background tasks (excluding those originating from extensions) into limbo until you queue them for archival or discard them manually.">Put newly finished reqres in limbo</ui>
-    <ui id="config.background.profile" type="string" data-help="Use this server-side profile when archiving reqres originating from browser's background tasks (excluding those originating from extensions).">Profile</ui>
-    <h1>Options</h1>
-    <div id="problematic-options">
-      <h2>Mark reqres as problematic when they finish</h2>
-      <ui id="config.markProblematicCanceled" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `canceled` state. Disabled by default because `canceled` state usually means the HTTP request in question was blocked by another extension like &quot;uBlock Origin&quot;. See Help page for details.">... in <code>canceled</code> state</ui>
-      <ui id="config.markProblematicNoResponse" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `no_response` state. Enabled by default. See Help page for details.">... in <code>no_response</code> state</ui>
-      <ui id="config.markProblematicIncomplete" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `incomplete` state. Enabled by default. See Help page for details.">... in <code>incomplete</code> state</ui>
-      <ui id="config.markProblematicIncompleteFC" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `incomplete_fc` state. Disabled by default because `incomplete_fc` means the document was loaded from cache, which usually means one of the previously collected reqres had this response data archived already. See Help page for details.">... in <code>incomplete_fc</code> state</ui>
-    </div>
-    <div id="archive-options">
-      <h2>Archive reqres with</h2>
-      <ui id="config.archivePartialRequest" type="boolean" data-help="Queue a reqres for archival even when its request body is incomplete. You probably want to keep this enabled. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">... partial POST form data</ui>
-      <ui id="config.archiveNoResponse" type="boolean" data-help="Queue a reqres for archival even when there was no response, i.e. request was interrupted before request headers were received (this usually means a networking issue). Disabled by default because such archived reqress carry no information except that the browser tried to do a request at specified time.">... no responses</ui>
-      <ui id="config.archiveIncompleteResponse" type="boolean" data-help="Queue a reqres for archival even when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Disabled by default because simply reloading the page and not dealing with partial files is usually a better option.">... incomplete response bodies</ui>
-    </div>
-    <div id="misc-options">
-      <h2>Misc</h2>
-      <ui id="config.debugging" type="boolean" data-help="Dump lots of data into extension's debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (SLOW!)</ui>
-      <ui id="config.dumping" type="boolean" data-help="Dumps raw CBOR outputs to extension's debugging log. Does nothing when the previous option is not enabled. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Dump raw CBORs into the log</ui>
-    </div>
-    </div>
 
     <script src="../lib/compat.js"></script>
     <script src="../lib/utils.js"></script>
