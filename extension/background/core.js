@@ -130,9 +130,9 @@ function cleanupTabs() {
         usedTabs.add(v.tabId);
     for (let [v, _x] of reqresLimbo)
         usedTabs.add(v.tabId);
-    for (let [v, _x] of reqresArchiving)
+    for (let [v, _x] of reqresQueue)
         usedTabs.add(v.tabId);
-    for (let [k, f] of reqresArchivingFailed.entries())
+    for (let [k, f] of reqresFailed.entries())
         for(let v of f.queue)
             usedTabs.add(v.tabId);
 
@@ -181,11 +181,11 @@ let reqresLimbo = [];
 let reqresTakenTotal = 0;
 let reqresDiscardedTotal = 0;
 // requests in the process of being archived
-let reqresArchiving = [];
+let reqresQueue = [];
 // total number requests archived
 let reqresArchivedTotal = 0;
 // failed requests, indexed by archiveURL
-let reqresArchivingFailed = new Map();
+let reqresFailed = new Map();
 
 // request log
 let reqresLog = [];
@@ -253,7 +253,7 @@ let saveConfigTID = null;
 // Used in the UI.
 function getStats() {
     let archive_failed = 0;
-    for (let [archiveURL, f] of reqresArchivingFailed.entries()) {
+    for (let [archiveURL, f] of reqresFailed.entries()) {
         archive_failed += f.queue.length;
     }
 
@@ -261,13 +261,13 @@ function getStats() {
         Math.max(reqresInFlight.size, debugReqresInFlight.size) +
         Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length);
 
-    let unarchived = in_flight + reqresLimbo.length + reqresArchiving.length + archive_failed;
+    let unarchived = in_flight + reqresLimbo.length + reqresQueue.length + archive_failed;
 
     return {
         version: manifest.version,
         taken: reqresTakenTotal,
         discarded: reqresDiscardedTotal,
-        queued: reqresArchiving.length,
+        in_queue: reqresQueue.length,
         problematic: reqresProblematicLog.length,
         in_limbo: reqresLimbo.length,
         in_flight,
@@ -375,7 +375,7 @@ function updateDisplay(statsChanged, switchedTab, updatedTabId) {
         newIcon = "error";
     else if (stats.in_limbo > 0)
         newIcon = "archiving";
-    else if (stats.queued > 0)
+    else if (stats.in_queue > 0)
         newIcon = "archiving";
     else if (stats.in_flight > 0)
         newIcon = "tracking";
@@ -389,8 +389,8 @@ function updateDisplay(statsChanged, switchedTab, updatedTabId) {
         chunks.push(`failed to archive ${stats.archive_failed} reqres`);
     if (stats.in_limbo > 0)
         chunks.push(`have ${stats.in_limbo} reqres in limbo`);
-    if (stats.queued > 0)
-        chunks.push(`have ${stats.queued} reqres more to archive`);
+    if (stats.in_queue > 0)
+        chunks.push(`have ${stats.in_queue} reqres more to archive`);
     if (stats.in_flight > 0)
         chunks.push(`still tracking ${stats.in_flight} reqres`);
     if (!config.archiving)
@@ -491,7 +491,7 @@ function scheduleEndgame() {
     if (endgameTID !== null)
         clearTimeout(endgameTID);
 
-    if (config.archiving && reqresArchiving.length > 0
+    if (config.archiving && reqresQueue.length > 0
         || reqresAlmostDone.length == 0)
         endgameTID = setTimeout(() => {
             endgameTID = null;
@@ -506,14 +506,14 @@ function scheduleEndgame() {
 
 // mark this archiveURL as failing
 function markArchiveAsFailed(archiveURL, when, reason) {
-    let v = reqresArchivingFailed.get(archiveURL);
+    let v = reqresFailed.get(archiveURL);
     if (v === undefined) {
         v = {
             when,
             reason,
             queue: [],
         };
-        reqresArchivingFailed.set(archiveURL, v);
+        reqresFailed.set(archiveURL, v);
     } else {
         v.when = when;
         v.reason = reason;
@@ -523,25 +523,25 @@ function markArchiveAsFailed(archiveURL, when, reason) {
 }
 
 function retryFailedArchive(archiveURL) {
-    let failed = reqresArchivingFailed.get(archiveURL);
+    let failed = reqresFailed.get(archiveURL);
     if (failed === undefined)
         return false;
-    reqresArchivingFailed.delete(archiveURL);
+    reqresFailed.delete(archiveURL);
     for (let e of failed.queue) {
-        reqresArchiving.push(e);
+        reqresQueue.push(e);
     }
     return true;
 }
 
 function retryAllFailedArchives() {
-    // we don't just delete items from reqresArchivingFailed here, because
+    // we don't just delete items from reqresFailed here, because
     // allok depends on knowing this archiveURL was broken before; they will
     // be cleaned up in allok via retryFailedArchive, and then the rest
-    // will be cleaned up after reqresArchiving gets empty again in
+    // will be cleaned up after reqresQueue gets empty again in
     // (noteCleanupArchiving)
-    for (let [archiveURL, failed] of reqresArchivingFailed.entries()) {
+    for (let [archiveURL, failed] of reqresFailed.entries()) {
         for (let e of failed.queue) {
-            reqresArchiving.push(e);
+            reqresQueue.push(e);
         }
         failed.queue = [];
     }
@@ -569,8 +569,8 @@ function processArchiving() {
         return;
     }
 
-    if (reqresArchiving.length > 0) {
-        let archivable = reqresArchiving.shift();
+    if (reqresQueue.length > 0) {
+        let archivable = reqresQueue.shift();
         let [shallow, dump] = archivable;
 
         // we ignore and recompute shallow.profile here because the user could
@@ -580,7 +580,7 @@ function processArchiving() {
 
         let archiveURL = config.archiveURLBase + "?profile=" + encodeURIComponent(options.profile);
 
-        let failed = reqresArchivingFailed.get(archiveURL);
+        let failed = reqresFailed.get(archiveURL);
         if (failed !== undefined && (Date.now() - failed.when) < 1000) {
             // this archiveURL is marked broken, and we just had a failure there, fail this reqres immediately
             failed.queue.push(archivable);
@@ -649,18 +649,18 @@ function processArchiving() {
                 broken(`a request to\n${archiveURL}\nfailed with:\n${req.status} ${req.statusText}: ${req.responseText}`);
         };
         req.send(dump);
-    } else if (reqresArchivingFailed.size > 0) {
-        // (noteCleanupArchiving): cleanup empty reqresArchivingFailed
+    } else if (reqresFailed.size > 0) {
+        // (noteCleanupArchiving): cleanup empty reqresFailed
         // entries; usually, this does nothing, but it is needed in case the
         // user changed settings, making some of the archiveURLs obsolete
-        for (let [archiveURL, failed] of Array.from(reqresArchivingFailed.entries())) {
+        for (let [archiveURL, failed] of Array.from(reqresFailed.entries())) {
             if (failed.queue.length == 0)
-                reqresArchivingFailed.delete(archiveURL);
+                reqresFailed.delete(archiveURL);
         }
 
         updateDisplay(cleanupTabs(), false);
 
-        if (reqresArchivingFailed.size == 0) {
+        if (reqresFailed.size == 0) {
             // nothing else to do in this branch, try again
             scheduleEndgame();
             return;
@@ -675,12 +675,12 @@ function processArchiving() {
 
         reqresNotifyTID = setTimeout(() => {
             reqresNotifyTID = null;
-            if (reqresArchivingFailed.size === 0)
+            if (reqresFailed.size === 0)
                 // failed elements were cleared while we slept, nothing to do
                 return;
 
             browser.notifications.clear("archivingOK");
-            for (let [archiveURL, failed] of reqresArchivingFailed.entries()) {
+            for (let [archiveURL, failed] of reqresFailed.entries()) {
                 browser.notifications.create(`archiving-${archiveURL}`, {
                     title: "pWebArc: FAILED",
                     message: `Failed to archive ${failed.queue.length} items in the queue because ${failed.reason}`,
@@ -695,7 +695,7 @@ function processArchiving() {
 
         if (reqresNotifyEmpty && !reqresNotifiedEmpty) {
             reqresNotifiedEmpty = true;
-            for (let archiveURL of reqresArchivingFailed.keys()) {
+            for (let archiveURL of reqresFailed.keys()) {
                 browser.notifications.clear(`archiving-${archiveURL}`);
             }
             browser.notifications.create("archivingOK", {
@@ -850,7 +850,7 @@ function processFinishedReqres(take, shallow, dump, do_broadcast) {
     if (take) {
         reqresTakenTotal += 1;
         info.takenTotal += 1;
-        reqresArchiving.push([shallow, dump]);
+        reqresQueue.push([shallow, dump]);
     } else {
         reqresDiscardedTotal += 1;
         info.discardedTotal += 1;
@@ -1437,7 +1437,7 @@ function handleErrorOccurred(e) {
 }
 
 function handleNotificationClicked(notificationId) {
-    if (reqresArchivingFailed.size === 0) return;
+    if (reqresFailed.size === 0) return;
 
     browser.tabs.create({
         url: browser.runtime.getURL("/page/help.html#errors"),
@@ -1536,7 +1536,7 @@ function handleMessage(request, sender, sendResponse) {
 
                 // clear all notifications
                 browser.notifications.clear("archivingOK");
-                for (let archiveURL of reqresArchivingFailed.keys()) {
+                for (let archiveURL of reqresFailed.keys()) {
                     browser.notifications.clear(`archiving-${archiveURL}`);
                 }
             } else {
