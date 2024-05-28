@@ -1,5 +1,31 @@
 * What?
 =pWebArc= (Personal Private Passive Web Archive) is a browser extension that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the dumb archiving server]], also [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][there]]) as you browse the web.
+** State Diagram
+Reqres change their internal states according to the following state diagram (which is explained below):
+
+#+BEGIN_SRC
+(start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
+   |                           |                              |             |
+   |                           v                              v             v
+   |                     (no_response)                   (incomplete)   (complete)
+   |                           |                              |             |
+   |                           \                              |             |
+   |\---> (canceled) -----\     \                             |             |
+   |                       \     \                            \             |
+   |                        \     \                            \            v
+   |\-> (incomplete_fc) ----->----->---------------------------->-----> (finished)
+   |                        /                                            /  |
+   |                       /                                      /-----/   |
+   \--> (complete_fc) ----/        /--------------- (picked) <---/          v
+                                   |                   |                (dropped)
+                                   v                   v                 /  |
+       (archived) <- (sIO) <- (collected) <------- (in_limbo) <---------/   |
+                       |           ^                   |                    |
+                       |           |                   |                    |
+                /------/           \-----\             \--> (discarded) <---/
+                |                        |
+                \-> (failed to archive) -/
+#+END_SRC
 * Glossary
 - A /reqres/ is a pWebArc-internal object containing information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
 - [[./popup.html#div-stats.in_flight][An /in-flight reqres/]] is a reqres of an HTTP request that is still tracked by pWebArc, i.e. it has not finished yet, nor yet failed to finish.
