@@ -128,6 +128,8 @@ function cleanupTabs() {
         usedTabs.add(v.tabId);
     for (let v of reqresAlmostDone)
         usedTabs.add(v.tabId);
+    for (let v of reqresProblematicLog)
+        usedTabs.add(v.tabId);
     for (let [v, _x] of reqresLimbo)
         usedTabs.add(v.tabId);
     for (let [v, _x] of reqresQueue)
@@ -175,10 +177,13 @@ let reqresInFlight = new Map();
 let reqresFinishingUp = [];
 // completely finished requests
 let reqresAlmostDone = [];
-// requests in limbo, waiting to be either discarded or queued for archival
+// total numbers of picked and dropped reqres
+let reqresPickedTotal = 0;
+let reqresDroppedTotal = 0;
+// requests in limbo, waiting to be either dropped or queued for archival
 let reqresLimbo = [];
-// total numbers of taken and discarded reqres
-let reqresTakenTotal = 0;
+// total numbers of collected and discarded reqres
+let reqresCollectedTotal = 0;
 let reqresDiscardedTotal = 0;
 // requests in the process of being archived
 let reqresQueue = [];
@@ -211,25 +216,24 @@ function getInLimboLog() {
     return res;
 }
 
-// per-source reqresArchivedTotal, reqresDiscardedTotal, etc
-let sourceStatsDefault = {
-    takenTotal: 0,
-    discardedTotal: 0,
-    problematicTotal: 0,
-    inLimboTotal: 0,
-};
-// NB: not tracking extensions separately here, unlike with configs
-let backgroundStats = assignRec({}, sourceStatsDefault);
 // per-tab state
 let tabState = new Map();
 
 function getOriginStats(tabId, fromExtension) {
-    if (fromExtension || tabId === undefined || tabId == -1)
-        return backgroundStats;
+    // NB: not tracking extensions separately here, unlike with configs
+    if (fromExtension || tabId === undefined)
+        tabId = -1;
 
     let res = tabState.get(tabId);
     if (res === undefined) {
-        res = assignRec({}, sourceStatsDefault);
+        res = {
+            problematicTotal: 0,
+            pickedTotal: 0,
+            droppedTotal: 0,
+            inLimboTotal: 0,
+            collectedTotal: 0,
+            discardedTotal: 0,
+        };
         tabState.set(tabId, res);
     }
     return res;
@@ -265,12 +269,14 @@ function getStats() {
 
     return {
         version: manifest.version,
-        taken: reqresTakenTotal,
-        discarded: reqresDiscardedTotal,
-        in_queue: reqresQueue.length,
-        problematic: reqresProblematicLog.length,
-        in_limbo: reqresLimbo.length,
         in_flight,
+        problematic: reqresProblematicLog.length,
+        picked: reqresPickedTotal,
+        dropped: reqresDroppedTotal,
+        in_limbo: reqresLimbo.length,
+        in_queue: reqresQueue.length,
+        collected: reqresCollectedTotal,
+        discarded: reqresDiscardedTotal,
         archive_ok: reqresArchivedTotal,
         archive_failed,
         unarchived,
@@ -280,20 +286,20 @@ function getStats() {
 // Produce a value similar to that of `getStats`, but for a single tab.
 // Used in the UI.
 function getTabStats(tabId) {
-    let info = undefined;
-    if (tabId === undefined || tabId == -1) {
+    if (tabId === undefined)
         tabId = -1;
-        info = backgroundStats;
-    } else
-        info = tabState.get(tabId);
+
+    let info = tabState.get(tabId);
 
     if (info === undefined)
         return {
-            taken: 0,
-            discarded: 0,
-            problematic: 0,
-            in_limbo: 0,
             in_flight: 0,
+            problematic: 0,
+            picked: 0,
+            dropped: 0,
+            in_limbo: 0,
+            collected: 0,
+            discarded: 0,
         };
 
     let in_flight = 0;
@@ -320,30 +326,33 @@ function getTabStats(tabId) {
             almost_done += 1;
 
     return {
-        taken: info.takenTotal,
-        discarded: info.discardedTotal,
-        problematic: info.problematicTotal,
-        in_limbo: info.inLimboTotal,
         in_flight: almost_done +
             Math.max(in_flight, in_flight_debug) +
             Math.max(finishing_up, finishing_up_debug),
+        problematic: info.problematicTotal,
+        picked: info.pickedTotal,
+        dropped: info.droppedTotal,
+        in_limbo: info.inLimboTotal,
+        collected: info.collectedTotal,
+        discarded: info.discardedTotal,
     };
 }
 
 function forgetHistory(tabId) {
     if (tabId === undefined) {
         reqresLog = [];
-        reqresTakenTotal = 0;
+        reqresCollectedTotal = 0;
         reqresDiscardedTotal = 0;
-        backgroundStats.inLimboTotal = 0;
-        for (let info of tabState.values())
-            info.inLimboTotal = 0;
+        for (let info of tabState.values()) {
+            info.collectedTotal = 0;
+            info.discardedTotal = 0;
+        }
     } else {
         reqresLog = reqresLog.filter((e) => e.tabId != tabId);
         let info = getOriginStats(tabId);
-        reqresTakenTotal -= info.takenTotal;
+        reqresCollectedTotal -= info.collectedTotal;
         reqresDiscardedTotal -= info.discardedTotal;
-        info.takenTotal = 0;
+        info.collectedTotal = 0;
         info.discardedTotal = 0;
     }
     broadcast(["resetLog", reqresLog]);
@@ -353,7 +362,6 @@ function forgetHistory(tabId) {
 function forgetProblematic(tabId) {
     if (tabId === undefined) {
         reqresProblematicLog = [];
-        backgroundStats.problematicTotal = 0;
         for (let info of tabState.values())
             info.problematicTotal = 0;
     } else {
@@ -839,30 +847,33 @@ function renderReqres(reqres) {
     return encoder.result()
 }
 
-function processFinishedReqres(take, shallow, dump, do_broadcast) {
-    shallow.taken = take;
-    reqresLog.push(shallow);
-    while (reqresLog.length > config.history)
-        reqresLog.shift();
+function processFinishedReqres(info, collect, shallow, dump, do_broadcast) {
+    shallow.collected = collect;
 
-    let info = getOriginStats(shallow.tabId, shallow.fromExtension);
-
-    if (take) {
-        reqresTakenTotal += 1;
-        info.takenTotal += 1;
+    if (collect) {
         reqresQueue.push([shallow, dump]);
+        reqresCollectedTotal += 1;
+        info.collectedTotal += 1;
     } else {
         reqresDiscardedTotal += 1;
         info.discardedTotal += 1;
     }
 
+    reqresLog.push(shallow);
+    while (reqresLog.length > config.history)
+        reqresLog.shift();
+
     if (do_broadcast !== false)
         broadcast(["newLog", [shallow]]);
 }
 
-function popInLimbo(take, num, tabId) {
+function popInLimbo(collect, num, tabId) {
     if (reqresLimbo.length == 0)
         return;
+
+    let info = undefined;
+    if (tabId !== undefined)
+        info = getOriginStats(tabId);
 
     let popped = [];
     let skipped = [];
@@ -877,9 +888,8 @@ function popInLimbo(take, num, tabId) {
         }
 
         if (tabId === undefined || shallow.tabId == tabId) {
-            shallow.taken = take;
+            processFinishedReqres(info, collect, shallow, dump, false);
             popped.push(shallow);
-            processFinishedReqres(take, shallow, dump, false);
         } else {
             skipped.push(el);
             limboLog.push(shallow);
@@ -888,10 +898,8 @@ function popInLimbo(take, num, tabId) {
 
     if (popped.length > 0) {
         reqresLimbo = skipped;
-        if (tabId !== undefined) {
-            let info = getOriginStats(tabId);
+        if (tabId !== undefined)
             info.inLimboTotal -= popped.length;
-        }
         cleanupTabs();
         broadcast(["newLog", popped]);
         broadcast(["resetInLimboLog", limboLog]);
@@ -906,31 +914,34 @@ function processAlmostDone() {
 
     if (reqresAlmostDone.length > 0) {
         let reqres = reqresAlmostDone.shift()
+        if (reqres.tabId === undefined)
+            reqres.tabId = -1;
+
         updatedTabId = reqres.tabId;
 
-        let options = getOriginConfig(reqres.tabId, reqres.fromExtension);
-        let info = getOriginStats(reqres.tabId, reqres.fromExtension);
+        let options = getOriginConfig(updatedTabId, reqres.fromExtension);
+        let info = getOriginStats(updatedTabId, reqres.fromExtension);
 
         let state = "complete";
         let problematic = false;
-        let archiving = true;
+        let collect = true;
 
         if (reqres.requestHeaders === undefined) {
             // it failed somewhere before handleSendHeaders
             state = "canceled";
             problematic = config.markProblematicCanceled;
-            archiving = false;
+            collect = false;
         } else if (reqres.responseTimeStamp === undefined) {
             // no response after sending headers
             state = "no_response";
             problematic = config.markProblematicNoResponse;
-            archiving = config.archiveNoResponse;
+            collect = config.archiveNoResponse;
             // filter.onstop might have set it to true
             reqres.responseComplete = false;
         } else if (!reqres.responseComplete) {
             state = "incomplete";
             problematic = config.markProblematicIncomplete;
-            archiving = config.archiveIncompleteResponse;
+            collect = config.archiveIncompleteResponse;
         } else if (reqres.statusCode === 200 && reqres.fromCache && reqres.responseHeaders !== undefined) {
             let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
             if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
@@ -941,7 +952,7 @@ function processAlmostDone() {
                 // with Control+F5 will.)
                 state = "incomplete_fc";
                 problematic = config.markProblematicIncompleteFC;
-                archiving = config.archiveIncompleteResponse;
+                collect = config.archiveIncompleteResponse;
                 // filter.onstop will have set it to true
                 reqres.responseComplete = false;
             } else
@@ -949,9 +960,9 @@ function processAlmostDone() {
         } else if (reqres.fromCache)
             state = "complete_fc";
 
-        if (archiving && !reqres.requestComplete)
+        if (collect && !reqres.requestComplete)
             // requestBody recovered from formData
-            archiving = config.archivePartialRequest;
+            collect = config.archivePartialRequest;
 
         let lineProtocol;
         let lineReason;
@@ -981,10 +992,10 @@ function processAlmostDone() {
 
         // dump it to console when debugging
         if (config.debugging)
-            console.log(archiving ? "TAKEN" : "DISCARDED", reqres.requestId,
+            console.log(collect ? "PICKED" : "DROPPED", reqres.requestId,
                         "state", state,
                         reqres.protocol, reqres.method, reqres.url,
-                        "tabId", reqres.tabId,
+                        "tabId", updatedTabId,
                         "req", reqres.requestComplete,
                         "res", reqres.responseComplete,
                         "result", reqres.statusCode, reqres.reason, reqres.statusLine,
@@ -993,9 +1004,10 @@ function processAlmostDone() {
                         reqres);
 
         let shallow = shallowCopyOfReqres(reqres);
-        shallow.state = state;
+        shallow.final_state = state;
         shallow.profile = options.profile;
         shallow.problematic = problematic;
+        shallow.picked = collect;
 
         if (problematic) {
             reqresProblematicLog.push(shallow);
@@ -1003,7 +1015,15 @@ function processAlmostDone() {
             broadcast(["newProblematic", [shallow]]);
         }
 
-        if (archiving) {
+        if (collect) {
+            reqresPickedTotal += 1;
+            info.pickedTotal += 1;
+        } else {
+            reqresDroppedTotal += 1;
+            info.droppedTotal += 1;
+        }
+
+        if (collect) {
             let dump = renderReqres(reqres);
 
             if (config.dumping)
@@ -1014,9 +1034,9 @@ function processAlmostDone() {
                 info.inLimboTotal += 1;
                 broadcast(["newLimbo", [shallow]]);
             } else
-                processFinishedReqres(true, shallow, dump);
+                processFinishedReqres(info, true, shallow, dump);
         } else
-            processFinishedReqres(false, shallow, undefined);
+            processFinishedReqres(info, false, shallow, undefined);
     }
 
     updateDisplay(true, false, updatedTabId);

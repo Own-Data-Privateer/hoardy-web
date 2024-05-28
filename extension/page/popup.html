@@ -81,7 +81,7 @@ input[type="button"], .help-btn {
         <span data-help="Open the help page."><input type="button" id="help" value="Help" /></span>
         <span class="right">
           <span name="more">
-            <span data-help="Flush the log of finished requests and zero out &quot;Taken&quot; and &quot;Discarded&quot; stats."><input type="button" id="forgetHistory" value="Flush" /></span>
+            <span data-help="Flush the log of finished requests and zero out &quot;Collected&quot; and &quot;Discarded&quot; stats."><input type="button" id="forgetHistory" value="Flush" /></span>
           </span>
           <span data-help="Open the request log and internal state page."><input type="button" id="state" value="📜" /></span>
         </span>
@@ -102,9 +102,9 @@ input[type="button"], .help-btn {
           <span>In queue</span>
           <span class="right"><span id="stats.in_queue">0</span> reqres</span>
         </div>
-        <div id="div-stats.taken" data-help="Number of finished reqres that satisfied the archiving conditions and thus were taken for archival.">
-          <span>Taken</span>
-          <span class="right"><span id="stats.taken">0</span> reqres</span>
+        <div id="div-stats.collected" data-help="Number of finished reqres that satisfied the archiving conditions and thus were collected for archival.">
+          <span>Collected</span>
+          <span class="right"><span id="stats.collected">0</span> reqres</span>
         </div>
         <div id="div-stats.discarded" data-help="Number of finished reqres that failed to satisfy the archiving conditions and thus were discarded.">
           <span>Discarded</span>
@@ -144,15 +144,15 @@ input[type="button"], .help-btn {
         <h1>This tab
           <span class="right">
             <span name="more">
-              <span data-help="Forget about all the finished requests produced by this tab (and subtract them from &quot;Taken&quot; and &quot;Discarded&quot; stats)."><input type="button" id="forgetTabHistory" value="Flush" /></span>
+              <span data-help="Forget about all the finished requests produced by this tab (and subtract them from &quot;Collected&quot; and &quot;Discarded&quot; stats)."><input type="button" id="forgetTabHistory" value="Flush" /></span>
             </span>
             <span data-help="Open the request log and internal state page narrowed to this tab's data."><input type="button" id="tabState" value="📜" /></span>
           </span>
         </h1>
         <div class="stats">
-          <div id="div-tabstats.taken" data-help="Number of finished reqres of this tab that satisfied the archiving conditions and thus were taken for archival.">
-            <span>Taken</span>
-            <span class="right"><span id="tabstats.taken">0</span> reqres</span>
+          <div id="div-tabstats.collected" data-help="Number of finished reqres of this tab that satisfied the archiving conditions and thus were collected for archival.">
+            <span>Collected</span>
+            <span class="right"><span id="tabstats.collected">0</span> reqres</span>
           </div>
           <div id="div-tabstats.discarded" data-help="Number of finished reqres of this tab that failed to satisfy the archiving conditions and thus were discarded.">
             <span>Discarded</span>
@@ -219,7 +219,7 @@ input[type="button"], .help-btn {
           <ui id="config.markProblematicCanceled" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `canceled` state. Disabled by default because `canceled` state usually means the HTTP request in question was blocked by another extension like &quot;uBlock Origin&quot;. See Help page for details.">... in <code>canceled</code> state</ui>
           <ui id="config.markProblematicNoResponse" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `no_response` state. Enabled by default. See Help page for details.">... in <code>no_response</code> state</ui>
           <ui id="config.markProblematicIncomplete" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `incomplete` state. Enabled by default. See Help page for details.">... in <code>incomplete</code> state</ui>
-          <ui id="config.markProblematicIncompleteFC" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `incomplete_fc` state. Disabled by default because `incomplete_fc` means the document was loaded from cache, which usually means one of the previously taken reqres had this response data archived already. See Help page for details.">... in <code>incomplete_fc</code> state</ui>
+          <ui id="config.markProblematicIncompleteFC" type="boolean" data-help="Mark newly finished reqres as problematic if they finish in `incomplete_fc` state. Disabled by default because `incomplete_fc` means the document was loaded from cache, which usually means one of the previously collected reqres had this response data archived already. See Help page for details.">... in <code>incomplete_fc</code> state</ui>
         </div>
         <div id="archive-options">
           <h2>Archive reqres with</h2>

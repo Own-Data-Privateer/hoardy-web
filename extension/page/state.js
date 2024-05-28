@@ -20,11 +20,14 @@ function newReqres(reqres) {
     let tr = document.createElement("tr");
 
     let color = "#ffffaa";
-    if (reqres.taken === true)
+    if (reqres.collected === true)
         color = "#aaffaa";
-    else if (reqres.taken === false)
+    else if (reqres.collected === false)
         color = "#ffaaaa";
-
+    else if (reqres.picked === true)
+        color = "#eeffee";
+    else if (reqres.picked === false)
+        color = "#ffeeee";
     tr.setAttribute("style", `background-color: ${color}`);
 
     function mtr(data) {
