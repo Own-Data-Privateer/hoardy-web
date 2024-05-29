@@ -1233,14 +1233,9 @@ function handleBeforeRequest(e) {
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
 
-    // ignore data and file URLs
-    if (e.url.startsWith("data:") // Firefox and Chromium
-        || e.url.startsWith("file:")) // only Chromium, Firefox does not emit those
-        return;
-
-    // ignore requests to extension pages
-    if (e.url.startsWith("moz-extension://") // Firefox
-        || e.url.startsWith("chrome-extension://")) // Chromium
+    // ignore data, file, end extension URLs
+    // NB: file: URL only happen on Chromium, Firefox does not emit those
+    if (isBoringURL(e.url))
         return;
 
     let initiator;
@@ -1257,8 +1252,7 @@ function handleBeforeRequest(e) {
             return;
 
         // request originates from another extension
-        if (initiator.startsWith("moz-extension://") // Firefox
-            || initiator.startsWith("chrome-extension://")) // Chromium
+        if (isExtensionURL(initiator))
             fromExtension = true;
     }
 

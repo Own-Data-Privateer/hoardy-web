@@ -238,8 +238,11 @@ function handleDebugErrorOccuried(e) {
 function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp) {
     debugReqresInFlight.delete(requestId)
 
-    // ignore data and file URLs
-    if (dreqres.url.startsWith("data:") || dreqres.url.startsWith("file:")) return;
+    // ignore data, file, end extension URLs
+    if (isBoringURL(dreqres.url))
+        return;
+    // NB: We do this here, instead of any other place because Chromium
+    // generates debug events in different orders for different request types.
 
     dreqres.emitTimeStamp = Date.now();
     dreqres.requestId = requestId;

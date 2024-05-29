@@ -129,6 +129,23 @@ function normalizeURL(url) {
     return canonicalizeURL(removeURLHash(url));
 }
 
+function isLocalURL(url) {
+    if (url.startsWith("data:") || url.startsWith("file:"))
+        return true;
+    return false;
+}
+
+function isExtensionURL(url) {
+    if (url.startsWith("moz-extension://") // Firefox
+        || url.startsWith("chrome-extension://")) // Chromium
+        return true;
+    return false;
+}
+
+function isBoringURL(url) {
+    return isLocalURL(url) || isExtensionURL(url);
+}
+
 function escapeHTML(text) {
     return text
         .replaceAll("&", "&amp;")
