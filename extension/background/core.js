@@ -1041,21 +1041,56 @@ function processAlmostDone() {
     scheduleEndgame();
 }
 
-function stopAllInFlight(tabId) {
+function forceEmitInFlightWebRequest(tabId) {
     for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
         if (tabId === undefined || reqres.tabId == tabId)
             emitRequest(requestId, reqres, "webRequest::pWebArc::EMIT_FORCED_BY_USER", true);
     }
-    if (useDebugger)
-        forceEmitAllDebug(tabId);
-    forceFinishingUp();
+}
+
+// wait up for reqres filters to finish
+function processFinishingUpWebRequest(forcing) {
+    let notFinished = [];
+
+    for (let reqres of reqresFinishingUp) {
+        if (reqres.filter === undefined) {
+            // this reqres finished even before having a filter
+            reqresAlmostDone.push(reqres);
+            continue;
+        }
+
+        let fs = reqres.filter.status;
+        if (fs == "disconnected" || fs == "closed" || fs == "failed") {
+            // the filter is done, remove it
+            delete reqres["filter"];
+            reqresAlmostDone.push(reqres);
+            continue;
+        }
+
+        // the filter of this reqres is not finished yet
+        // try again later
+        notFinished.push(reqres);
+    }
+
+    reqresFinishingUp = notFinished;
+
+    if (forcing)
+        return;
+
     updateDisplay(true, false);
     scheduleEndgame();
 }
 
+let processFinishingUp = processFinishingUpWebRequest;
+if (useDebugger)
+    processFinishingUp = processMatchFinishingUpWebRequestDebug;
+
 // flush reqresFinishingUp into the reqresAlmostDone, interrupting filters
-function forceFinishingUpSimple() {
+function forceFinishingUpWebRequest(predicate) {
     for (let reqres of reqresFinishingUp) {
+        if (predicate !== undefined && !predicate(reqres))
+            continue;
+
         // disconnect the filter, if not disconnected already
         if (reqres.filter !== undefined) {
             try {
@@ -1066,51 +1101,27 @@ function forceFinishingUpSimple() {
             delete reqres["filter"];
         }
 
+        if (config.debugging)
+            console.log("STUCK webRequest", reqres);
+
         reqresAlmostDone.push(reqres);
     }
 
     reqresFinishingUp = [];
 }
 
-let forceFinishingUp = forceFinishingUpSimple;
-if (useDebugger)
-    forceFinishingUp = forceFinishingUpDebug;
-
-// wait up for reqres filters to finish
-function processFinishingUpSimple() {
-    if (reqresFinishingUp.length > 0) {
-        let notFinished = [];
-
-        for (let reqres of reqresFinishingUp) {
-            if (reqres.filter === undefined) {
-                // this reqres finished even before having a filter
-                reqresAlmostDone.push(reqres);
-                continue;
-            }
-
-            let fs = reqres.filter.status;
-            if (fs == "disconnected" || fs == "closed" || fs == "failed") {
-                // the filter is done, remove it
-                delete reqres["filter"];
-                reqresAlmostDone.push(reqres);
-                continue;
-            }
-
-            // the filter of this reqres is not finished yet
-            // try again later
-            notFinished.push(reqres);
-        }
-
-        reqresFinishingUp = notFinished;
+function stopAllInFlight(tabId) {
+    processFinishingUp(true);
+    forceEmitInFlightWebRequest(tabId);
+    if (useDebugger) {
+        forceEmitInFlightDebug(tabId);
+        processMatchFinishingUpWebRequestDebug(true);
+        forceFinishingUpDebug((r) => tabId == undefined || r.tabId == tabId);
     }
-
+    forceFinishingUpWebRequest((r) => tabId == undefined || r.tabId == tabId);
     updateDisplay(true, false);
     scheduleEndgame();
 }
-
-let processFinishingUp = processFinishingUpSimple;
-if (useDebugger)
-    processFinishingUp = processFinishingUpDebug;
 
 function importantError(error) {
     if (useDebugger && (error === "webRequest::net::ERR_ABORTED"

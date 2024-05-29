@@ -147,6 +147,8 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
 
+    logDebugRequest("request will be sent", nonExtra, e);
+
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) {
         dreqres = {
@@ -156,8 +158,6 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         };
         debugReqresInFlight.set(e.requestId, dreqres)
     }
-
-    logDebugRequest("request will be sent", nonExtra, e);
 
     dreqres.tabId = e.tabId;
 
@@ -205,8 +205,7 @@ function handleDebugResponseRecieved(nonExtra, e) {
         }
         // can't do the same for 304 Not Modified, because it needs to
         // accumulate both extra and non-extra data first to match to
-        // reqresFinishingUp requests, and it does get handleDebugCompleted,
-        // so that gets done in processFinishingUp
+        // reqresFinishingUp requests, and it does get handleDebugCompleted
     }
 }
 
@@ -263,29 +262,32 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
         }, () => {}).finally(() => {
             debugReqresFinishingUp.push(dreqres);
             if (!dontFinishUp)
-                processFinishingUpDebug();
+                processMatchFinishingUpWebRequestDebug();
         });
         return;
     } else {
         dreqres.responseComplete = error === undefined;
         debugReqresFinishingUp.push(dreqres);
         if (!dontFinishUp)
-            processFinishingUpDebug();
+            processMatchFinishingUpWebRequestDebug();
     }
 }
 
-function forceEmitAllDebug(tabId) {
+function forceEmitInFlightDebug(tabId) {
     for (let [requestId, dreqres] of Array.from(debugReqresInFlight.entries())) {
         if (tabId === undefined || tabId === dreqres.tabId)
             emitDebugRequest(requestId, dreqres, false, "debugger::pWebArc::EMIT_FORCED_BY_USER", true);
     }
 }
 
-function forceFinishingUpDebug() {
-    // match what can be matched
-    processFinishingUpDebug();
-    // and drop the rest
-    reqresFinishingUp = [];
+function forceFinishingUpDebug(predicate) {
+    // Emit these by making up fake webRequest counterparts for them
+    for (let dreqres of debugReqresFinishingUp) {
+        if (config.debugging)
+            console.log("STUCK debug.Network.request", dreqres);
+
+        emitDone(undefined, dreqres);
+    }
     debugReqresFinishingUp = [];
 }
 
@@ -417,7 +419,7 @@ function emitDone(closest, dreqres) {
     reqresAlmostDone.push(closest);
 }
 
-function processFinishingUpDebug() {
+function processMatchFinishingUpWebRequestDebug(forcing) {
     if (debugReqresFinishingUp.length > 0 && reqresFinishingUp.length > 0) {
         // match elements from debugReqresFinishingUp to elements from
         // reqresFinishingUp, attach the former to the best-matching latter,
@@ -470,31 +472,33 @@ function processFinishingUpDebug() {
         debugReqresFinishingUp = notFinished;
     }
 
-    if (debugReqresFinishingUp.length > 0
-        && reqresFinishingUp.length === 0 && reqresInFlight.size === 0) {
-        // This means Chromium generated some debug events without generating
-        // WebRequest events. This actually happens sometimes when loading a
-        // tab in background. Chromium has a surprising number of bugs...
-        //
-        // Anyway, we can't do anything about it, except emit these by making
-        // up fake WebRequest counterparts for them.
+    if(!forcing && reqresInFlight.size === 0 && debugReqresInFlight.size === 0) {
+        // NB: It is totally possible for a reqres to finish and get emitted
+        // from reqresInFlight while the corresponding dreqres didn't even
+        // start.
 
-        for (let dreqres of debugReqresFinishingUp) {
-            if (config.debugging)
-                console.log("STUCK", dreqres);
+        // So, forcefully emitting `reqresFinishingUp` at this point is likely
+        // to lose data.
 
-            emitDone(undefined, dreqres);
-        }
-
-        debugReqresFinishingUp = [];
+        // However, `debugReqresFinishingUp` are safe to emit.
+        if (debugReqresFinishingUp.length > 0)
+            // This means Chromium generated some debug events without
+            // generating the corresponding webRequest events. This actually
+            // happens sometimes when loading a tab in background. Chromium
+            // has a surprising number of bugs...
+            forceFinishingUpDebug();
     }
 
     if (config.debugging) {
-        if (debugReqresFinishingUp.length + reqresFinishingUp.length == 0)
-            console.log("matched everything");
-        else
-            console.log("still unmatched", reqresInFlight.size, debugReqresFinishingUp, reqresFinishingUp);
+        if (debugReqresInFlight.size > 0 || reqresInFlight.size > 0)
+            console.log("still in-flight", debugReqresInFlight, reqresInFlight);
+
+        if (debugReqresFinishingUp.length > 0 || reqresFinishingUp.length > 0)
+            console.log("still unmatched", debugReqresFinishingUp, reqresFinishingUp);
     }
+
+    if (forcing)
+        return;
 
     updateDisplay(true, false);
     scheduleEndgame();
