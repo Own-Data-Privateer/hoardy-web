@@ -152,6 +152,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         dreqres = {
             responseComplete: false,
             responseBody: "",
+            sent: true,
         };
         debugReqresInFlight.set(e.requestId, dreqres)
     }
@@ -195,7 +196,7 @@ function handleDebugResponseRecieved(nonExtra, e) {
             dreqres.responseTimeStamp = Date.now();
         dreqres.statusCodeExtra = e.statusCode;
         dreqres.responseHeadersExtra = e.headers;
-        if (e.statusCode == 301) {
+        if (redirectStatusCodes.has(e.statusCode)) {
             // If this is a redirect request, emit it immediately, because
             // there would be neither nonExtra, nor handleDebugCompleted event
             // for it
@@ -224,7 +225,14 @@ function handleDebugErrorOccuried(e) {
 
     logDebugRequest("error", false, e);
 
-    emitDebugRequest(e.requestId, dreqres, true, "debugger::" + e.errorText);
+    if (e.canceled === true) {
+        dreqres.sent = false;
+        emitDebugRequest(e.requestId, dreqres, false, "debugger::net::ERR_CANCELED");
+    } else if (e.blockedReason !== undefined && e.blockedReason !== "") {
+        dreqres.sent = false;
+        emitDebugRequest(e.requestId, dreqres, false, "debugger::net::ERR_BLOCKED::" + e.blockedReason);
+    } else
+        emitDebugRequest(e.requestId, dreqres, true, "debugger::" + e.errorText);
 }
 
 function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp) {
@@ -356,6 +364,8 @@ function emitDone(closest, dreqres) {
             requestComplete: true,
             requestBody: new ChunkedBuffer(),
 
+            sent: dreqres.sent,
+
             responseTimeStamp: dreqres.responseTimeStamp,
             statusCode: dreqres.statusCode,
             responseHeaders: [],
@@ -477,7 +487,7 @@ function processFinishingUpDebug() {
         if (debugReqresFinishingUp.length + reqresFinishingUp.length == 0)
             console.log("matched everything");
         else
-            console.log("still unmatched", debugReqresFinishingUp, reqresFinishingUp);
+            console.log("still unmatched", reqresInFlight.size, debugReqresFinishingUp, reqresFinishingUp);
     }
 
     updateDisplay(true, false);

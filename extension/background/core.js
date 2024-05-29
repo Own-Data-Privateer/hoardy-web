@@ -813,7 +813,7 @@ function renderReqres(reqres) {
         rest.fake = true;
 
     let response = null;
-    if (reqres.responseTimeStamp !== undefined) {
+    if (reqres.sent && reqres.responseTimeStamp !== undefined) {
         response = [
             reqres.responseTimeStamp,
             reqres.statusCode,
@@ -925,7 +925,7 @@ function processAlmostDone() {
         let problematic = false;
         let collect = true;
 
-        if (reqres.requestHeaders === undefined) {
+        if (!reqres.sent) {
             // it failed somewhere before handleSendHeaders
             state = "canceled";
             problematic = config.markProblematicCanceled;
@@ -1114,11 +1114,16 @@ if (useDebugger)
 
 function importantError(error) {
     if (useDebugger && (error === "webRequest::net::ERR_ABORTED"
-                     || error === "debugger::net::ERR_ABORTED"))
+                     || error === "webRequest::net::ERR_BLOCKED_BY_CLIENT"
+                     || error === "debugger::net::ERR_ABORTED"
+                     || error === "debugger::net::ERR_CANCELED"
+                     || error === "debugger::pWebArc::EMIT_FORCED_BY_USER"
+                     || error.startsWith("debugger::net::ERR_BLOCKED::")))
         // Chromium
         return false;
     else if (!useDebugger && (error === "webRequest::NS_ERROR_ABORT"
-                              || "filterResponseData::Channel redirected"))
+                           || error === "webRequest::pWebArc::EMIT_FORCED_BY_USER"
+                           || error === "filterResponseData::Channel redirected"))
         // Firefox
         return false;
     return true;
@@ -1207,6 +1212,8 @@ function shallowCopyOfReqres(reqres) {
         requestTimeStamp: reqres.requestTimeStamp,
         requestComplete: reqres.requestComplete,
 
+        sent: reqres.sent,
+
         responseTimeStamp: reqres.responseTimeStamp,
         statusLine: reqres.statusLine,
         statusCode: reqres.statusCode,
@@ -1282,6 +1289,8 @@ function handleBeforeRequest(e) {
         requestTimeStamp: e.timeStamp,
         requestComplete: true,
         requestBody: new ChunkedBuffer(),
+
+        sent: false,
 
         fromCache: false,
         responseComplete: false,
@@ -1366,6 +1375,7 @@ function handleSendHeaders(e) {
     if (reqres === undefined) return;
 
     logRequest("send headers", e);
+    reqres.sent = true;
     reqres.requestHeaders = e.requestHeaders;
 }
 

@@ -74,7 +74,7 @@ function newReqres(reqres) {
     }
 
     mtr((reqres.requestComplete ? "C" : "I")
-        + (reqres.responseTimeStamp === undefined ? "N"
+        + (!reqres.sent || reqres.responseTimeStamp === undefined ? "N"
            : (reqres.statusCode.toString()
               + (reqres.responseComplete ? "C" : "I"))));
 

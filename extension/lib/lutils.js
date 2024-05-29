@@ -6,6 +6,8 @@
  * This file can be distributed under the terms of the GNU GPL, version 3 or later.
  */
 
+let redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
+
 // for filtering out our own requests, pages, etc
 let selfURL = browser.runtime.getURL("/");
 
