@@ -8,6 +8,14 @@
 
 "use strict";
 
+// delayed cleanup hook
+let debugFinishingUpTID = null;
+
+function cancelDebugFinishingUp() {
+    if (debugFinishingUpTID !== null)
+        clearTimeout(debugFinishingUpTID);
+}
+
 async function initDebugger(tabs) {
     browser.debugger.onDetach.addListener(handleDebugDetach);
     browser.debugger.onEvent.addListener(handleDebugEvent);
@@ -73,6 +81,8 @@ async function syncDebuggersState(tabs) {
 }
 
 function handleDebugEvent(debuggee, method, params) {
+    cancelDebugFinishingUp();
+
     switch (method) {
     case "Network.requestWillBeSent":
         params.tabId = debuggee.tabId;
@@ -275,7 +285,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
 
 function forceEmitInFlightDebug(tabId) {
     for (let [requestId, dreqres] of Array.from(debugReqresInFlight.entries())) {
-        if (tabId === undefined || tabId === dreqres.tabId)
+        if (tabId === undefined || dreqres.tabId === tabId)
             emitDebugRequest(requestId, dreqres, false, "debugger::pWebArc::EMIT_FORCED_BY_USER", true);
     }
 }
@@ -472,6 +482,8 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
         debugReqresFinishingUp = notFinished;
     }
 
+    cancelDebugFinishingUp();
+
     if(!forcing && reqresInFlight.size === 0 && debugReqresInFlight.size === 0) {
         // NB: It is totally possible for a reqres to finish and get emitted
         // from reqresInFlight while the corresponding dreqres didn't even
@@ -487,6 +499,26 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             // happens sometimes when loading a tab in background. Chromium
             // has a surprising number of bugs...
             forceFinishingUpDebug();
+
+        if (reqresFinishingUp.length > 0)
+            // This means Chromium generated some webRequests but did not
+            // generate corresponding debug events. This happens all the time
+            // as described in the NB above, but those webRequests will get
+            // their debug events generated later. However, when a webRequest
+            // is an in-browser redirect (like when uBlock Origin redirecting
+            // a Google Analytics .js URL to its own version) no debug events
+            // will be emmited for it. So, to get these out of in-flight
+            // state, we run following `forceFinishingUpWebRequest` limited to
+            // the unsent requests only (and delayed for 10s because of the NB
+            // above, it should not really make a difference, but we pause
+            // just in case Chromium decides to emit some of those debug
+            // events after all).
+            debugFinishingUpTID = setTimeout(() => {
+                debugFinishingUpTID = null;
+                forceFinishingUpWebRequest((r) => !r.sent);
+                updateDisplay(true, false);
+                scheduleEndgame();
+            }, 10000);
     }
 
     if (config.debugging) {
