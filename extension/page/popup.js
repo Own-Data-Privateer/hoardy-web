@@ -113,6 +113,8 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
                 newtabconfig.children.collecting = newtabconfig.collecting;
             if (path == "tabconfig.limbo")
                 newtabconfig.children.limbo = newtabconfig.limbo;
+            if (path == "tabconfig.negLimbo")
+                newtabconfig.children.negLimbo = newtabconfig.negLimbo;
             browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]);
         });
     }

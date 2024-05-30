@@ -87,6 +87,9 @@ Similarly, /dropped reqres/ proceed to being =discarded= from memory.
 :END:
 
 However, for /picked reqres/, when [[./popup.html#div-tabconfig.limbo]["Put newly finished reqres in limbo" setting]] is enabled in the currently active tab (or [[./popup.html#div-tabconfig.children.limbo][via]] [[./popup.html#div-config.root.limbo][the]] [[./popup.html#div-config.background.limbo][respective]] [[./popup.html#div-config.extension.limbo][settings]] for other reqres sources), the reqres in question will be put into limbo until you /collect/ it or /discard/ it manually by pressing the [[./popup.html#div-tabstats.in_limbo][appropriate buttons]] (or [[./popup.html#div-stats.in_limbo][global buttons]], if you want to do it for all tabs and sources at once).
+
+Similarly, for /dropped reqres/, when [[./popup.html#div-tabconfig.negLimbo]["Put newly finished reqres in negLimbo" setting]] is enabled in the currently active tab (or [[./popup.html#div-tabconfig.children.negLimbo][via]] [[./popup.html#div-config.root.negLimbo][the]] [[./popup.html#div-config.background.negLimbo][respective]] [[./popup.html#div-config.extension.negLimbo][settings]] for other reqres sources), the reqres in question will be similarly put into limbo.
+Mainly, this exists for debugging.
 *** Glossary
 On its own line:
 
@@ -150,7 +153,7 @@ Notably, pWebArc provides:
   This is not an issue under normal conditions, as limbo is disabled by default and archiving a reqres takes milliseconds, meaning that the queue will stay empty almost all of the time.
   But this is technically a bug that might get fixed later.
 
-- When the extension is (re-)loaded, all tabs inherit the values of [[./popup.html#div-config.root.collecting][this]], [[./popup.html#div-config.root.limbo][this]], and [[./popup.html#div-config.root.profile][this]] setting.
+- When the extension is (re-)loaded, all tabs inherit the values of [[./popup.html#div-config.root.collecting][this]], [[./popup.html#div-config.root.limbo][this]], [[./popup.html#div-config.root.negLimbo][this]], and [[./popup.html#div-config.root.profile][this]] setting.
 ** On Firefox, Tor Browser, etc
 *** Known browser bugs
 - On Firefox-based browsers, without the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/firefox/][patch]] (also [[https://oxij.org/software/pwebarc/tree/master/firefox/][there]]), the browser only supplies =formData= to =browser.webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a POST request.

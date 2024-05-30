@@ -42,18 +42,21 @@ let config = {
     root: {
         collecting: true,
         limbo: false,
+        negLimbo: false,
         profile: "default",
     },
 
     extension: {
         collecting: false,
         limbo: false,
+        negLimbo: false,
         profile: "extension",
     },
 
     background: {
         collecting: true,
         limbo: false,
+        negLimbo: false,
         profile: "background",
     },
 };
@@ -457,10 +460,14 @@ function updateDisplay(statsChanged, switchedTab, updatedTabId) {
                     if (icon == "idle")
                         icon = "off";
                     tchunks.push("disabled");
-                } else if (tabcfg.limbo) {
+                } else if (tabcfg.limbo || tabcfg.negLimbo) {
                     if (icon == "idle")
                         icon = "archiving";
-                    tchunks.push("limbo mode");
+
+                    if (tabcfg.limbo)
+                        tchunks.push("+limbo");
+                    if (tabcfg.negLimbo)
+                        tchunks.push("-limbo");
                 }
 
                 if (tchunks.length != 0)
@@ -1028,13 +1035,13 @@ function processAlmostDone() {
             info.droppedTotal += 1;
         }
 
-        if (collect) {
+        if (collect || options.negLimbo) {
             let dump = renderReqres(reqres);
 
             if (config.dumping)
                 dumpToConsole(dump);
 
-            if (options.limbo) {
+            if (collect && options.limbo || !collect && options.negLimbo) {
                 reqresLimbo.push([shallow, dump]);
                 info.inLimboTotal += 1;
                 broadcast(["newLimbo", [shallow]]);

@@ -209,6 +209,7 @@ input[type="button"], .help-btn {
     <ui id="tabconfig.limbo" type="boolean" data-help="For this tab, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
 
     <div name="more">
+    <ui id="tabconfig.negLimbo" type="boolean" data-help="For this tab, put newly `finished` reqres that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
     <ui id="tabconfig.profile" class="da" type="string" data-help="Use this server-side profile when archiving reqres originating from this tab.">Profile</ui>
     </div>
 
@@ -217,6 +218,7 @@ input[type="button"], .help-btn {
     <ui id="tabconfig.children.limbo" type="boolean" data-help="Enable &quot;Pick into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Pick into limbo&quot;</ui>
 
     <div name="more">
+    <ui id="tabconfig.children.negLimbo" type="boolean" data-help="Enable &quot;Drop into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Drop into limbo&quot;</ui>
     <ui id="tabconfig.children.profile" class="da" type="string" data-help="Use this server-side profile when archiving reqres originating from new tabs opened from this tab (middle mouse click, context menu actions).">Profile</ui>
     </div>
 
@@ -225,14 +227,17 @@ input[type="button"], .help-btn {
     <ui id="config.root.limbo" type="boolean" data-help="Enable &quot;Pick into limbo&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Pick into limbo&quot;</ui>
 
     <div name="more">
+    <ui id="config.root.negLimbo" type="boolean" data-help="Enable &quot;Drop into limbo&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Drop into limbo&quot;</ui>
     <ui id="config.root.profile" class="da" type="string" data-help="Use this server-side profile when archiving reqres originating from new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Profile</ui>
     <h1>Background tasks</h1>
     <ui id="config.background.collecting" class="dc" type="boolean" data-help="Track new reqres originating from browser&#039;s background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this as browsers do link pre-fetching in background, and disabling this will miss that data.">Track new reqres</ui>
     <ui id="config.background.limbo" type="boolean" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
+    <ui id="config.background.negLimbo" type="boolean" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
     <ui id="config.background.profile" class="da" type="string" data-help="Use this server-side profile when archiving reqres originating from browser&#039;s background tasks (excluding those originating from extensions).">Profile</ui>
     <h1>Extensions</h1>
     <ui id="config.extension.collecting" class="dc" type="boolean" data-help="Track new reqres originating from browser extensions.">Track new reqres</ui>
     <ui id="config.extension.limbo" type="boolean" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
+    <ui id="config.extension.negLimbo" type="boolean" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
     <ui id="config.extension.profile" class="da" type="string" data-help="Use this server-side profile when archiving reqres originating from browser extensions.">Profile</ui>
     <h1>Options</h1>
     <div id="pick-options">
