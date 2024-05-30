@@ -34,6 +34,7 @@ let config = {
 
     // collection options
     archivePartialRequest: true,
+    archiveCanceled: false,
     archiveNoResponse: false,
     archiveIncompleteResponse: false,
 
@@ -737,6 +738,9 @@ function getHeaderValue(headers, name) {
 
 // encode browser's Headers structure into an Array of [string, Uint8Array] pairs
 function encodeHeaders(headers) {
+    if (headers === undefined)
+        return [];
+
     let result = [];
     for (let i = 0; i < headers.length; ++i) {
         let header = headers[i];
@@ -929,7 +933,7 @@ function processAlmostDone() {
             // it failed somewhere before handleSendHeaders
             state = "canceled";
             problematic = config.markProblematicCanceled;
-            collect = false;
+            collect = config.archiveCanceled;
         } else if (reqres.responseTimeStamp === undefined) {
             // no response after sending headers
             state = "no_response";
