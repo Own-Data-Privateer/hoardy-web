@@ -244,6 +244,7 @@ input[type="button"], .help-btn {
     </div>
     <div id="problematic-options">
       <h2>Mark reqres as problematic when they finish</h2>
+      <ui id="config.markProblematicPartialRequest" type="boolean" data-help="Marke a newly finished reqres as problematic when its request body is incomplete. Enabled by default. See the &quot;Quirks and Bugs&quot; section of the Help page for details.">... with partial POST form data</ui>
       <ui id="config.markProblematicCanceled" type="boolean" data-help="Mark a newly finished reqres as problematic when it was canceled before it was even sent (this usually means the HTTP request in question was blocked by another extension like &quot;uBlock Origin&quot;). Disabled by default.">... in <code>canceled</code> state</ui>
       <ui id="config.markProblematicNoResponse" type="boolean" data-help="Mark a newly finished reqres as problematic when it got no response (i.e. the request in question was interrupted before request headers were received; this usually means a networking issue). Enabled by default.">... in <code>no_response</code> state</ui>
       <ui id="config.markProblematicIncomplete" type="boolean" data-help="Mark a newly finished reqres as problematic when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Enabled by default.">... in <code>incomplete</code> state</ui>

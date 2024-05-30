@@ -27,6 +27,7 @@ let config = {
     archiveURLBase: "http://127.0.0.1:3210/pwebarc/dump",
 
     // problematic options
+    markProblematicPartialRequest: false,
     markProblematicCanceled: false,
     markProblematicNoResponse: true,
     markProblematicIncomplete: true,
@@ -963,9 +964,11 @@ function processAlmostDone() {
         } else if (reqres.fromCache)
             state = "complete_fc";
 
-        if (collect && !reqres.requestComplete)
+        if (!reqres.requestComplete) {
             // requestBody recovered from formData
-            collect = config.archivePartialRequest;
+            problematic = problematic || config.markProblematicPartialRequest;
+            collect = collect && config.archivePartialRequest;
+        }
 
         let lineProtocol;
         let lineReason;
