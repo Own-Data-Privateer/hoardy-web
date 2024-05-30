@@ -53,6 +53,10 @@ function getStateTabIdOrTabId(tab) {
     return tab.id;
 }
 
+function showChangelog(suffix, id, tabId) {
+    return showInternalPageAtNode("/page/changelog.html" + suffix, id, tabId);
+}
+
 function showHelp(suffix, id, tabId) {
     return showInternalPageAtNode("/page/help.html" + suffix, id, tabId);
 }

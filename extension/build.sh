@@ -18,9 +18,13 @@ for target in "$@"; do
     DEST="dist/$NAME"
     mkdir -p "$DEST"
 
-    echo "  Building help page..."
+    echo "  Building the help page..."
 
     pandoc -f org -t html --wrap=none --template=page/help.template --metadata pagetitle=help page/help.org > page/help.html
+
+    echo "  Building the changelog page..."
+
+    pandoc -f markdown -t html --wrap=none --template=page/changelog.template --metadata pagetitle=changelog ../CHANGELOG.md > page/changelog.html
 
     echo "  Preparing icons..."
 

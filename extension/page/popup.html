@@ -28,10 +28,14 @@ code {
     margin: 0 0.5em;
 }
 
-.version {
-    font-size: 60%;
-    color: rgb(107,107,116);
+#version {
+    margin-left: 0.5em;
+    font-size: 70%;
     vertical-align: top;
+}
+
+#help {
+    margin-left: 0.5em;
 }
 
 .stats > div {
@@ -50,10 +54,6 @@ code {
 .stats > div > span:nth-child(3) {
     min-width: 5em;
     text-align: right;
-}
-
-#help {
-    margin-left: 1em;
 }
 
 .help-tip {
@@ -85,7 +85,7 @@ input[type="button"], .help-btn {
   <body style="display: none">
     <h1>
       Globally
-      <span class="version">v<span id="stats.version">?</span></span>
+      <span data-help="Open the changelog page."><input type="button" id="version" value="v?" /></span>
       <span data-help="Open the help page."><input type="button" id="help" value="Help" /></span>
       <span class="right">
         <span data-help="Forget history."><input type="button" id="forgetHistory" value="🧹" /></span>

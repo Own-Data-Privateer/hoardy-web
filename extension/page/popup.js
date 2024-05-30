@@ -44,10 +44,20 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     makeUI(body);
     addHelp(body, true);
 
-    buttonToAction("help", catchAllAsync(async () => {
-        await showHelp("", "", tabId);
+    async function resetAndOpen(reset, open) {
+        // reset given config setting
+        await browser.runtime.sendMessage(["setConfig", reset]);
+        // and then open this
+        await open("", "", tabId);
         window.close();
-    }));
+    }
+
+    let versionButton = document.getElementById("version");
+    versionButton.value = "v" + manifest.version;
+    versionButton.onclick = catchAllAsync(() => resetAndOpen({ seenChangelog: true }, showChangelog));
+
+    let helpButton = document.getElementById("help");
+    helpButton.onclick = catchAllAsync(() => resetAndOpen({ seenHelp: true }, showHelp));
 
     buttonToAction("showState", catchAllAsync(() => showState("", "", tabId)));
     buttonToAction("showTabState", catchAllAsync(() => showState(`?tab=${tabId}`, "", tabId)));
