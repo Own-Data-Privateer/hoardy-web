@@ -98,6 +98,8 @@ Displayed on the [[./popup.html#div-stats.collected][Collected/Discarded reqres]
 - [[./popup.html#stats.discarded][A /discarded reqres/]] is a reqres that was (either automatically or manually) sent to the =discarded=.
 *** Logging
 On entering =collected= or =discarded= state, metadata of each reqres is copied into the [[./popup.html#showState][recent reqres history log]] (which can be narrowed to the currently active tab with [[./popup.html#showTabState][this button]]) and is kept there until you ask pWebArc to forget history via [[./popup.html#forgetHistory][this button]] (or [[./popup.html#forgetTabHistory][this one]], to only forget the history of the currently active tab).
+
+Otherwise, when the size of the log reaches [[./popup.html#div-config.history][this many elements]], the older elements of the log start being elided automatically.
 ** Step 4: Archival
 When [[./popup.html#div-config.archiving]["Archive collected reqres" toggle/checkbox]] is enabled, pWebArc will pop the =queued= reqres from its archival queue one by one, serialize them into CBOR-formatted dumps, and then push those dumps to the archiving server at [[./popup.html#div-config.archiveURLBase]["Archive to" URL setting]] by turning each reqres into a POST HTTP request with the dump of the reqres as request body (which is denoted by =sIO= state on the diagram).
 It will also specify =profile= query parameter to the POST request using the appropriate "Profile" setting, e.g.

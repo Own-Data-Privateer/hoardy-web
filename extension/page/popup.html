@@ -250,6 +250,10 @@ input[type="button"], .help-btn {
       <ui id="config.markProblematicIncomplete" type="boolean" data-help="Mark a newly finished reqres as problematic when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Enabled by default.">... in <code>incomplete</code> state</ui>
       <ui id="config.markProblematicIncompleteFC" type="boolean" data-help="Mark a newly finished reqres as problematic when it was loaded from browser's cache but its response data was not given to the extension (this only happens on Firefox-based browsers). Disabled by default because this usually means that one of the previously collected reqres had this response data archived already, if had not, you can reload the page with browser's cache disabled via `Contrlol+F5`.">... in <code>incomplete_fc</code> state</ui>
     </div>
+    <div id="history-options">
+      <h2>History</h2>
+      <ui id="config.history" type="number" data-help="Remember at most this many collected and discarded reqres in the log.">Maximum size</ui>
+    </div>
     <div id="debugging-options">
       <h2>Debugging</h2>
       <ui id="config.debugging" type="boolean" data-help="Dump lots of data into extension&#039;s debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (SLOW!)</ui>
