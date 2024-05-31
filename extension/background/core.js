@@ -183,7 +183,6 @@ function processRemoveTab(tabId) {
 }
 
 // browserAction state
-let oldIcon = null;
 let oldTitle = null;
 let oldBadge = null;
 
@@ -308,8 +307,6 @@ function getStats() {
         Math.max(reqresInFlight.size, debugReqresInFlight.size) +
         Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length);
 
-    let unarchived = in_flight + reqresLimbo.length + reqresQueue.length + archive_failed;
-
     return {
         in_flight,
         problematic: reqresProblematic.length,
@@ -321,7 +318,9 @@ function getStats() {
         discarded: globalStats.discardedTotal,
         archive_ok: reqresArchivedTotal,
         archive_failed,
-        unarchived,
+        issues: in_flight
+            + reqresLimbo.length + reqresQueue.length
+            + reqresProblematic.length + archive_failed,
     };
 }
 
@@ -395,118 +394,124 @@ function unmarkProblematic(tabId) {
     updateDisplay(true, false, tabId);
 }
 
-function updateDisplay(statsChanged, switchedTab, updatedTabId) {
+async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
     let stats = getStats();
 
-    let newIcon;
-    if (stats.archive_failed > 0)
-        newIcon = "error";
-    else if (stats.problematic > 0)
-        newIcon = "error";
-    else if (stats.in_limbo > 0)
-        newIcon = "archiving";
-    else if (stats.in_queue > 0)
-        newIcon = "archiving";
-    else if (stats.in_flight > 0)
-        newIcon = "tracking";
-    else if (!config.collecting)
-        newIcon = "off";
-    else
-        newIcon = "idle";
+    if (statsChanged)
+        broadcast(["updateStats", stats]);
 
+    let newBadge = "";
     let chunks = [];
-    if (stats.archive_failed > 0)
-        chunks.push(`failed to archive ${stats.archive_failed} reqres`);
-    if (stats.in_limbo > 0)
-        chunks.push(`have ${stats.in_limbo} reqres in limbo`);
-    if (stats.in_queue > 0)
-        chunks.push(`have ${stats.in_queue} reqres more to archive`);
-    if (stats.in_flight > 0)
-        chunks.push(`still tracking ${stats.in_flight} reqres`);
-    if (!config.archiving)
-        chunks.push("not archiving");
     if (!config.collecting)
         chunks.push("off");
+    if (!config.archiving)
+        chunks.push("not archiving");
+    if (stats.archive_failed > 0) {
+        newBadge += "A";
+        chunks.push(`failed to archive ${stats.archive_failed} reqres`);
+    }
+    if (stats.problematic > 0) {
+        newBadge += "P";
+        chunks.push(`${stats.problematic} problematic reqres`);
+    }
+    if (stats.in_queue > 0) {
+        newBadge += "Q";
+        chunks.push(`${stats.in_queue} reqres in queue`);
+    }
+    if (stats.in_limbo > 0) {
+        newBadge += "L";
+        chunks.push(`${stats.in_limbo} reqres in limbo`);
+    }
+    if (stats.in_flight > 0) {
+        newBadge += "T";
+        chunks.push(`still tracking ${stats.in_flight} in-flight reqres`);
+    }
+
+    if (stats.issues> 0)
+        newBadge = stats.issues.toString() + newBadge;
 
     let newTitle = "pWebArc: idle";
     if (chunks.length != 0)
         newTitle = "pWebArc: " + chunks.join(", ");
 
-    let newBadge = "";
-    if (stats.unarchived > 0)
-        newBadge = stats.unarchived.toString();
-    if (stats.problematic > 0) {
-        newBadge += "!";
-        newTitle += `, ${stats.problematic} problematic reqres`
-    }
-
     let changed = switchedTab;
-    if (oldIcon !== newIcon || oldTitle != newTitle || oldBadge !== newBadge) {
-        changed = true;
-        oldIcon = newIcon;
+    if (oldTitle != newTitle || oldBadge !== newBadge) {
+        if (config.debugging)
+            console.log(`updated browserAction: badge "${newBadge}", title "${newTitle}"`);
+
         oldTitle = newTitle;
         oldBadge = newBadge;
+        changed = true;
+
+        await browser.browserAction.setBadgeText({ text: newBadge });
+    }
+
+    if (!changed && updatedTabId === undefined)
+        return;
+
+    let tabs = await browser.tabs.query({ active: true });
+    for (let tab of tabs) {
+        let tabId = getStateTabIdOrTabId(tab);
+
+        // skip updates for unchanged tabs, when specified
+        if (!changed && updatedTabId !== undefined && updatedTabId != tabId)
+            continue;
+
+        let tabcfg = tabConfig.get(tabId);
+        if (tabcfg === undefined)
+            tabcfg = config.root;
+        let tabstats = getTabStats(tabId);
+
+        let icon;
+        if (config.archiving && stats.in_queue > 0)
+            icon = "archiving";
+        else if (stats.archive_failed > 0)
+            icon = "error";
+        else if (tabstats.in_flight > 0)
+            icon = "tracking";
+        else if (tabstats.problematic > 0)
+            icon = "error";
+        else if (!config.collecting || !tabcfg.collecting)
+            icon = "off";
+        else if (tabcfg.limbo || tabcfg.negLimbo)
+            icon = "limbo";
+        else
+            icon = "idle";
+
+        let tchunks = [];
+        if (!tabcfg.collecting)
+            tchunks.push("off");
+        if (tabstats.problematic > 0)
+            tchunks.push(`${tabstats.problematic} problematic reqres`);
+        if (tabstats.in_limbo > 0)
+            tchunks.push(`${tabstats.in_limbo} reqres in limbo`);
+        if (tabstats.in_flight > 0)
+            tchunks.push(`still tracking ${tabstats.in_flight} in-flight reqres`);
+
+        if (tabcfg.limbo && tabcfg.negLimbo)
+            tchunks.push("picking and dropping into limbo");
+        else if (tabcfg.limbo)
+            tchunks.push("picking into limbo");
+        else if (tabcfg.negLimbo)
+            tchunks.push("dropping into limbo");
+
+        let title = newTitle;
+        if (tchunks.length != 0)
+            title += "; this tab: " + tchunks.join(", ");
+
         if (config.debugging)
-            console.log("updated browserAction", oldIcon, oldTitle, oldBadge);
-    }
+            console.log(`updated browserAction: tabId ${tab.id}: icon "${icon}", title "${title}"`);
 
-    if (changed || updatedTabId !== undefined) {
-        async function updateBrowserAction() {
-            let tabs = await browser.tabs.query({ active: true });
-
-            await browser.browserAction.setBadgeText({ text: newBadge });
-
-            for (let tab of tabs) {
-                let tabId = getStateTabIdOrTabId(tab);
-
-                // skip updates for unchanged tabs, when specified
-                if (!changed && updatedTabId !== undefined && updatedTabId != tabId)
-                    continue;
-
-                let tabcfg = getOriginConfig(tabId);
-
-                let icon = newIcon;
-                let title = newTitle;
-                let tchunks = [];
-
-                let info = tabState.get(tabId);
-                if (info !== undefined && info.problematicTotal > 0)
-                    tchunks.push(`${info.problematicTotal} problematic reqres`);
-
-                if (!tabcfg.collecting) {
-                    if (icon == "idle")
-                        icon = "off";
-                    tchunks.push("disabled");
-                } else if (tabcfg.limbo || tabcfg.negLimbo) {
-                    if (icon == "idle")
-                        icon = "archiving";
-
-                    if (tabcfg.limbo)
-                        tchunks.push("+limbo");
-                    if (tabcfg.negLimbo)
-                        tchunks.push("-limbo");
-                }
-
-                if (tchunks.length != 0)
-                    title += "; this tab: " + tchunks.join(", ");
-
-                if (useDebugger) {
-                    // Chromium does not support per-window browserActions, so we have to update them per-tab.
-                    await browser.browserAction.setIcon({ tabId: tab.id, path: mkIcons(icon) });
-                    await browser.browserAction.setTitle({ tabId: tab.id, title });
-                } else {
-                    let windowId = tab.windowId;
-                    await browser.browserAction.setIcon({ windowId, path: mkIcons(icon) });
-                    await browser.browserAction.setTitle({ windowId, title });
-                }
-            }
+        if (useDebugger) {
+            // Chromium does not support per-window browserActions, so we have to update them per-tab.
+            await browser.browserAction.setIcon({ tabId: tab.id, path: mkIcons(icon) }).catch(logError);
+            await browser.browserAction.setTitle({ tabId: tab.id, title }).catch(logError);
+        } else {
+            let windowId = tab.windowId;
+            await browser.browserAction.setIcon({ windowId, path: mkIcons(icon) }).catch(logError);
+            await browser.browserAction.setTitle({ windowId, title }).catch(logError);
         }
-
-        updateBrowserAction().catch(logError);
     }
-
-    if (statsChanged)
-        broadcast(["updateStats", stats]);
 }
 
 // schedule processFinishingUp
