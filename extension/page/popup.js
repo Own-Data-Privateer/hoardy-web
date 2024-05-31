@@ -13,7 +13,7 @@ function showAll() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
+async function popupMain() {
     // get current windowId and tabId of the active tab
     let windowId;
     let tabId;
@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     browser.tabs.onActivated.addListener(recordTabIdFunc);
 
     // generate UI
-    let body = document.body;
+    let body = document.getElementById("body");
     makeUI(body);
     addHelp(body, true);
 
@@ -160,9 +160,7 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     await updateTabConfig();
 
     // show UI
-    body.style.display = "block";
-}), (error) => {
-    let body = document.createElement("body");
-    body.innerHTML = "<p>Extension failed to initialize. Go to (on Firefox-based browser) <pre>about:debugging#/runtime/this-firefox</pre> or (on Chromium-based browser) <pre>chrome://extensions/</pre> click inspect \"pWebArc\", select \"Console\" and see the log there for more details.</p>"
-    document.body = body;
-});
+    setPageLoaded();
+}
+
+document.addEventListener("DOMContentLoaded", () => popupMain().catch(setPageError), setPageError);

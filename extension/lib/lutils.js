@@ -64,3 +64,14 @@ function showHelp(suffix, id, tabId) {
 function showState(suffix, id, tabId) {
     return showInternalPageAtNode("/page/state.html" + suffix, id, tabId);
 }
+
+function setPageLoaded() {
+    document.getElementById("body_loading").style.display = "none";
+    document.getElementById("body").style.display = "block";
+}
+
+function setPageError(error) {
+    logError(error);
+    document.getElementById("body_loading").style.display = "none";
+    document.getElementById("body_error").style.display = "block";
+}

@@ -40,6 +40,17 @@ td.long {
     </style>
   </head>
   <body>
+    <div id="body_loading">
+      <p>Loading...</p>
+    </div>
+    <div id="body_error" style="display: none">
+      <p>This page failed to initialize. To see more details:</p>
+      <ul>
+        <li>On Firefox-based browser: go to <code>about:debugging#/runtime/this-firefox</code>, click &quot;Inspect&quot; button on &quot;pWebArc&quot;, select &quot;Console&quot;</li>
+        <li>On Chromium-based browser: go to <code>chrome://extensions/</code>, click &quot;Inspect views&quot; link on &quot;pWebArc&quot;, select &quot;Console&quot;</li>
+      </ul>
+    </div>
+    <div id="body" style="display: none">
     <h1>In flight
       <span data-help="Open the help page."><input type="button" id="help" value="Help" /></span>
       <span class="right">
@@ -75,6 +86,7 @@ td.long {
     <table><tbody id="finished"></tbody></table>
     <!-- This anchor goes here, because we usually want to see the tail of the log. -->
     <span id="end" />
+    </div>
 
     <script src="../lib/compat.js"></script>
     <script src="../lib/utils.js"></script>

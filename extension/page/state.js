@@ -128,7 +128,7 @@ function resetInFlight(log) {
     resetLog("in_flight", log);
 }
 
-document.addEventListener("DOMContentLoaded", catchAll(() => {
+async function stateMain() {
     // create UI
     for (let el of document.getElementsByTagName("table")) {
         let thead = document.createElement("thead");
@@ -203,16 +203,18 @@ document.addEventListener("DOMContentLoaded", catchAll(() => {
 
     // meanwhile, get the whole log, render it, and replace the whole
     // page with it
-    async function init() {
-        await browser.runtime.sendMessage(["getLog"]).then(resetFinished);
-        await browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic);
-        await browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);
-        await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
+    await browser.runtime.sendMessage(["getLog"]).then(resetFinished);
+    await browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic);
+    await browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);
+    await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
 
-        // force re-scroll
-        let focused = document.getElementById(document.location.hash.substr(1));
-        if (focused)
-            focused.scrollIntoView({ block: "center" });
-    }
-    init().catch(logError);
-}));
+    // show UI
+    setPageLoaded();
+
+    // force re-scroll
+    let focused = document.getElementById(document.location.hash.substr(1));
+    if (focused)
+        focused.scrollIntoView({ block: "center" });
+}
+
+document.addEventListener("DOMContentLoaded", () => stateMain().catch(setPageError), setPageError);

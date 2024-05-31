@@ -82,7 +82,18 @@ input[type="button"], .help-btn {
 }
     </style>
   </head>
-  <body style="display: none">
+  <body>
+    <div id="body_loading">
+      <p>Loading...</p>
+    </div>
+    <div id="body_error" style="display: none">
+      <p>This page failed to initialize. To see more details:</p>
+      <ul>
+        <li>On Firefox-based browser: go to <code>about:debugging#/runtime/this-firefox</code>, click &quot;Inspect&quot; button on &quot;pWebArc&quot;, select &quot;Console&quot;</li>
+        <li>On Chromium-based browser: go to <code>chrome://extensions/</code>, click &quot;Inspect views&quot; link on &quot;pWebArc&quot;, select &quot;Console&quot;</li>
+      </ul>
+    </div>
+    <div id="body" style="display: none">
     <h1>
       Globally
       <span data-help="Open the changelog page."><input type="button" id="version" value="v?" /></span>
@@ -269,6 +280,7 @@ input[type="button"], .help-btn {
     </div>
 
     <input type="button" id="show" value="Show all" />
+    </div>
 
     <script src="../lib/compat.js"></script>
     <script src="../lib/utils.js"></script>
