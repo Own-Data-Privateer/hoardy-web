@@ -1,10 +1,35 @@
 :root {
-    --uncheckbox-background: rgba(207,207,216,.33);
-    --uncheckbox-border-color: rgb(207,207,216);
-    --checkbox-background: #0250bb;
-    --checkbox-border-color: #053e94;
+    --untoggle-background: #cfcfd855;
+    --untoggle-border-color: #cfcfd8;
+    --untoggle-background-good: #94f89455;
+    --untoggle-border-color-good: #cfd8cf;
+    --untoggle-background-bad: #f8949455;
+    --untoggle-border-color-bad: #d8cfcf;
+    --toggle-dot-color: #ffffff;
+    --toggle-dot-outline-color: #000000;
+    --toggle-background: #f8f850;
+    --toggle-border-color: #f49405;
+    --toggle-background-good: #02bb50;
+    --toggle-border-color-good: #05943e;
+    --toggle-background-bad: #fb3230;
+    --toggle-border-color-bad: #94023e;
     --text-background: inherit;
     --text-border-color: black;
+    --help-btn-background: #aaaaaa;
+    --help-btn-border-color : #bbbbbb;
+    --help-btn: #fafafa;
+    --help-btn-background-checked: #666666;
+    --help-btn-checked: #ffffff;
+    --help-tip-background:  #fffffa;
+    --help-tip-border-color: #aaaaaa;
+    --help-tip-text: #000000;
+    --target-background: #ffaa00;
+    --target-background-2: #ffaa0080;
+    --target-border-color: var(--target-background);
+    --target-pointer: #ee8800;
+    --attention-background: #e02020;
+    --attention-background-2: #ffffff00;
+    --attention-border-color: var(--attention-background);
 }
 
 body {
@@ -35,36 +60,55 @@ input[type="checkbox"].toggle {
     height: 16px;
     width: 26px;
     border-radius: 8px;
-    background: var(--uncheckbox-background);
-    border: 1px solid var(--uncheckbox-border-color);
+    background: var(--untoggle-background);
+    border: 1px solid var(--untoggle-border-color);
     box-sizing: border-box;
 }
 
 input[type="checkbox"].toggle::before {
     display: block;
     content: "";
-    background: #fff;
+    background: var(--toggle-dot-color);
     height: 10px;
     width: 10px;
     margin: 2px;
     border-radius: 5px;
-    outline: 1px solid black;
+    outline: 1px solid var(--toggle-dot-outline-color);
     transition: transform 500ms;
     transform: translate(0, calc(50% - 10px / 2));
 }
 
 input[type="checkbox"].toggle:checked {
-    background: var(--checkbox-background);
-    border-color: var(--checkbox-border-color);
+    background: var(--toggle-background);
+    border-color: var(--toggle-border-color);
 }
 
 input[type="checkbox"].toggle:checked::before {
     transform: translate(10px, calc(50% - 10px / 2));
 }
 
-input[type="text"] {
+.prefer-off input[type="checkbox"].toggle {
+    --untoggle-background: var(--untoggle-background-good);
+    --untoggle-border-color: var(--untoggle-border-color-good);
+    --toggle-background: var(--toggle-background-bad);
+    --toggle-border-color: var(--toggle-border-color-bad);
+}
+
+.prefer-on input[type="checkbox"].toggle {
+    --untoggle-background: var(--untoggle-background-bad);
+    --untoggle-border-color: var(--untoggle-border-color-bad);
+    --toggle-background: var(--toggle-background-good);
+    --toggle-border-color: var(--toggle-border-color-good);
+}
+
+input[type="text"],
+input[type="number"] {
     background: var(--text-background);
     border: 1px solid var(--text-border-color);
+}
+
+.help-root {
+    white-space: nowrap;
 }
 
 input[type="checkbox"].help-btn {
@@ -75,19 +119,23 @@ input[type="checkbox"].help-btn {
     height: 16px;
     width: 16px;
     border-radius: 16px;
-    background: #aaaaaa;
-    border: 1px solid #bbbbbb;
+    background: var(--help-btn-background);
+    border: 1px solid var(--help-btn-border-color);
     box-sizing: border-box;
 }
 
 input[type="checkbox"].help-btn:after {
     content: "?";
     margin-left: calc(8px - 0.5ch);
-    color: #fffffa;
+    color: var(--help-btn);
 }
 
 input[type="checkbox"].help-btn:checked {
-    background: #666666;
+    background: var(--help-btn-background-checked);
+}
+
+input[type="checkbox"].help-btn:checked:after {
+    color: var(--help-btn-checked);
 }
 
 div.ui,
@@ -103,22 +151,22 @@ div.ui label input[type="text"] {
 
 div.ui label input[type="number"],
 div.ui label input[type="text"] {
-    margin-left: 1ch;
+    margin: auto 0 auto 1ch;
 }
 
 div.ui label input[type="checkbox"] {
-    margin-right: 1ch;
+    margin: auto 1ch auto 0;
 }
 
 div.help-tip {
     position: absolute;
     z-index: 20;
 
-    background-color: #fffffa;
+    background-color: var(--help-tip-background);
     border-radius: 3px;
-    border: 1px solid gray;
-    box-shadow: 1px 1px 3px gray;
-    color: black;
+    border: 1px solid var(--help-tip-border-color);
+    box-shadow: 1px 1px 3px var(--help-tip-border-color);
+    color: var(--help-tip-text);
     font: 12px sans-serif;
     padding: 4px;
     text-align: left;
@@ -130,9 +178,12 @@ div.help-tip {
     right: 0;
 }
 
-/* can't use :target because some nodes are procedurally generated */
+/* HTML node highlighter, can't use :target because some nodes are
+   procedurally generated */
 .target {
-    background-color: #ffaa00;
+    border: 1px solid var(--target-border-color);
+    border-radius: 5px;
+    background-color: var(--target-background);
     animation-name: highlight;
     animation-duration: 2s;
     animation-timing-function: linear;
@@ -141,25 +192,43 @@ div.help-tip {
 
 @keyframes highlight {
     from {
-        background-color: #ffaa00;
+        background-color: var(--target-background);
     }
     50% {
-        background-color: #ffffff;
+        background-color: var(--target-background-2);
     }
     to {
-        background-color: #ffaa00;
+        background-color: var(--target-background);
     }
 }
 
-/* pointer to the target */
+/* pointer to the .target in the docs */
 .pointer {
-    color: #aa6600;
-    background-color: #ffffff;
+    color: var(--target-pointer);
     text-decoration: dotted underline;
 }
 
 /* similar .target, but for things needing user's attention at some
    later point in time */
 .attention {
-    border-style: 2px solid red;
+    border: 5px solid var(--attention-border-color);
+    border-radius: 5px;
+    background-color: var(--attention-background);
+    color: var(--attention-color);
+    animation-name: attention;
+    animation-duration: 5s;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}
+
+@keyframes attention {
+    from {
+        background-color: var(--attention-background);
+    }
+    50% {
+        background-color: var(--attention-background-2);
+    }
+    to {
+        background-color: var(--attention-background);
+    }
 }
