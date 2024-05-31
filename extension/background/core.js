@@ -256,22 +256,23 @@ function scheduleSaveGlobalStats() {
 
 // per-source globalStats.pickedTotal, globalStats.droppedTotal, etc
 let tabState = new Map();
+let defaultTabState = {
+    problematicTotal: 0,
+    pickedTotal: 0,
+    droppedTotal: 0,
+    inLimboTotal: 0,
+    collectedTotal: 0,
+    discardedTotal: 0,
+};
 
-function getOriginStats(tabId, fromExtension) {
+function getOriginState(tabId, fromExtension) {
     // NB: not tracking extensions separately here, unlike with configs
     if (fromExtension || tabId === undefined)
         tabId = -1;
 
     let res = tabState.get(tabId);
     if (res === undefined) {
-        res = {
-            problematicTotal: 0,
-            pickedTotal: 0,
-            droppedTotal: 0,
-            inLimboTotal: 0,
-            collectedTotal: 0,
-            discardedTotal: 0,
-        };
+        res = assignRec({}, defaultTabState);
         tabState.set(tabId, res);
     }
     return res;
@@ -328,17 +329,8 @@ function getTabStats(tabId) {
         tabId = -1;
 
     let info = tabState.get(tabId);
-
     if (info === undefined)
-        return {
-            in_flight: 0,
-            problematic: 0,
-            picked: 0,
-            dropped: 0,
-            in_limbo: 0,
-            collected: 0,
-            discarded: 0,
-        };
+        info = defaultTabState;
 
     let in_flight = 0;
     let in_flight_debug = 0;
@@ -915,7 +907,7 @@ function popInLimbo(collect, num, tabId) {
 
     let info = undefined;
     if (tabId !== undefined)
-        info = getOriginStats(tabId);
+        info = getOriginState(tabId);
 
     let popped = [];
     let skipped = [];
@@ -961,7 +953,7 @@ function processAlmostDone() {
         updatedTabId = reqres.tabId;
 
         let options = getOriginConfig(updatedTabId, reqres.fromExtension);
-        let info = getOriginStats(updatedTabId, reqres.fromExtension);
+        let info = getOriginState(updatedTabId, reqres.fromExtension);
 
         let state = "complete";
         let problematic = false;
