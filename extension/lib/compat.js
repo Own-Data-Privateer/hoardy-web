@@ -23,6 +23,14 @@ function parseUA() {
     return result;
 }
 
+function makePromiseAPIConst(data) {
+    return () => {
+        return new Promise((resolve, reject) => {
+            resolve(data);
+        });
+    };
+}
+
 function makePromiseAPI0(old, nthis) {
     return () => {
         return new Promise((resolve, reject) => {
@@ -89,6 +97,10 @@ function makeFirefoxish(browser) {
     browser.browserAction.setBadgeText = makePromiseAPI(browser.browserAction.setBadgeText);
     browser.browserAction.setIcon = makePromiseAPI(browser.browserAction.setIcon);
     browser.browserAction.setTitle = makePromiseAPI(browser.browserAction.setTitle);
+    browser.browserAction.setBadgeTextColor = makePromiseAPIConst(undefined);
+    // TODO on V3 do this instead:
+    //browser.browserAction.setBadgeTextColor = makePromiseAPI(browser.action.setBadgeTextColor);
+    browser.browserAction.setBadgeBackgroundColor = makePromiseAPI(browser.browserAction.setBadgeBackgroundColor);
     browser.notifications.clear = makePromiseAPI(browser.notifications.clear);
     browser.notifications.create = makePromiseAPI2(browser.notifications.create);
     browser.runtime.sendMessage = makePromiseAPI(browser.runtime.sendMessage);

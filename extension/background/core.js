@@ -1934,6 +1934,8 @@ async function init(storage) {
     browser.runtime.onConnect.addListener(catchAll(handleConnect));
 
     initMenus();
+    await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
+    await browser.browserAction.setBadgeBackgroundColor({ color: "#e02020" });
     updateDisplay(true, true);
 
     if (useDebugger)
