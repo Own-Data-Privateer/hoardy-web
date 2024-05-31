@@ -66,7 +66,7 @@ function assignRec(target, value) {
 }
 
 // like `assignRec`, but only updates fields that already exist in target
-function updateFromRec(target, value) {
+function updateFromRec(target, value, prefer_original) {
     if (value === undefined)
         return target;
     else if (target === undefined)
@@ -74,8 +74,12 @@ function updateFromRec(target, value) {
 
     let typt = typeof target;
     let typ = typeof value;
-    if (typt !== typ)
-        return value;
+    if (typt !== typ) {
+        if (prefer_original)
+            return target;
+        else
+            return value;
+    }
 
     if (typ == "object") {
         for (let k of Object.keys(target)) {
@@ -85,7 +89,7 @@ function updateFromRec(target, value) {
     } else if (typ == "boolean" || typ == "number" || typ == "string") {
         return value;
     } else {
-        console.log(typ, value);
+        console.error("updateFromRec", typ, target, value);
         throw new Error("what?");
     }
 }
