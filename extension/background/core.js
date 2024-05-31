@@ -193,17 +193,11 @@ let reqresInFlight = new Map();
 let reqresFinishingUp = [];
 // completely finished requests
 let reqresAlmostDone = [];
-// total numbers of picked and dropped reqres
-let reqresPickedTotal = 0;
-let reqresDroppedTotal = 0;
 // requests in limbo, waiting to be either dropped or queued for archival
 let reqresLimbo = [];
-// total numbers of collected and discarded reqres
-let reqresCollectedTotal = 0;
-let reqresDiscardedTotal = 0;
 // requests in the process of being archived
 let reqresQueue = [];
-// total number requests archived
+// total number of archived reqres
 let reqresArchivedTotal = 0;
 // failed requests, indexed by archiveURL
 let reqresFailed = new Map();
@@ -232,7 +226,35 @@ function getInLimboLog() {
     return res;
 }
 
-// per-tab state
+// global stats
+let globalStats = {
+    // problematicTotal is reqresProblematicLog.length
+    // total numbers of picked and dropped reqres
+    pickedTotal: 0,
+    droppedTotal: 0,
+    // inLimboTotal is reqresLimbo.length
+    // total numbers of collected and discarded reqres
+    collectedTotal: 0,
+    discardedTotal: 0,
+};
+// did we have new queued reqres since
+let changedGlobalStats = false;
+
+function scheduleSaveGlobalStats() {
+    if (saveGlobalStatsTID !== null)
+        clearTimeout(saveGlobalStatsTID);
+
+    saveGlobalStatsTID = setTimeout(() => {
+        saveGlobalStatsTID = null;
+        if (changedGlobalStats && reqresQueue.length == 0) {
+            changedGlobalStats = false;
+            console.log("saving globalStats", globalStats);
+            browser.storage.local.set({ globalStats }).catch(logError);
+        }
+    }, 10000);
+}
+
+// per-source globalStats.pickedTotal, globalStats.droppedTotal, etc
 let tabState = new Map();
 
 function getOriginStats(tabId, fromExtension) {
@@ -265,6 +287,7 @@ let reqresNotifiedEmpty = false;
 // timeout ID
 let finishingUpTID = null;
 let endgameTID = null;
+let saveGlobalStatsTID = null;
 let reqresNotifyTID = null;
 let reqresRetryTID = null;
 let saveConfigTID = null;
@@ -286,12 +309,12 @@ function getStats() {
     return {
         in_flight,
         problematic: reqresProblematicLog.length,
-        picked: reqresPickedTotal,
-        dropped: reqresDroppedTotal,
+        picked: globalStats.pickedTotal,
+        dropped: globalStats.droppedTotal,
         in_limbo: reqresLimbo.length,
         in_queue: reqresQueue.length,
-        collected: reqresCollectedTotal,
-        discarded: reqresDiscardedTotal,
+        collected: globalStats.collectedTotal,
+        discarded: globalStats.discardedTotal,
         archive_ok: reqresArchivedTotal,
         archive_failed,
         unarchived,
@@ -356,19 +379,8 @@ function getTabStats(tabId) {
 function forgetHistory(tabId) {
     if (tabId === undefined) {
         reqresLog = [];
-        reqresCollectedTotal = 0;
-        reqresDiscardedTotal = 0;
-        for (let info of tabState.values()) {
-            info.collectedTotal = 0;
-            info.discardedTotal = 0;
-        }
     } else {
         reqresLog = reqresLog.filter((e) => e.tabId != tabId);
-        let info = getOriginStats(tabId);
-        reqresCollectedTotal -= info.collectedTotal;
-        reqresDiscardedTotal -= info.discardedTotal;
-        info.collectedTotal = 0;
-        info.discardedTotal = 0;
     }
     broadcast(["resetLog", reqresLog]);
     updateDisplay(true, false, tabId);
@@ -529,6 +541,8 @@ function scheduleEndgame() {
             endgameTID = null;
             processAlmostDone();
         }, 1);
+
+    scheduleSaveGlobalStats();
 }
 
 // mark this archiveURL as failing
@@ -630,6 +644,7 @@ function processArchiving() {
         }
 
         function allok() {
+            changedGlobalStats = true;
             let previouslyBroken = retryFailedArchive(archiveURL);
 
             reqresArchivedTotal += 1;
@@ -873,11 +888,13 @@ function processFinishedReqres(info, collect, shallow, dump, do_broadcast) {
     shallow.collected = collect;
 
     if (collect) {
+        changedGlobalStats = true;
         reqresQueue.push([shallow, dump]);
-        reqresCollectedTotal += 1;
+        globalStats.collectedTotal += 1;
         info.collectedTotal += 1;
     } else {
-        reqresDiscardedTotal += 1;
+        changedGlobalStats = true;
+        globalStats.discardedTotal += 1;
         info.discardedTotal += 1;
     }
 
@@ -1038,10 +1055,10 @@ function processAlmostDone() {
         }
 
         if (collect) {
-            reqresPickedTotal += 1;
+            globalStats.pickedTotal += 1;
             info.pickedTotal += 1;
         } else {
-            reqresDroppedTotal += 1;
+            globalStats.droppedTotal += 1;
             info.droppedTotal += 1;
         }
 
@@ -1876,6 +1893,10 @@ async function init(storage) {
         config.seenChangelog = vNew.every((e, i) => e == vOld[i]);
     }
     config.lastSeenVersion = manifest.version;
+
+    let oldStats = storage.globalStats;
+    if (oldStats !== undefined)
+        globalStats = updateFromRec(globalStats, oldStats, true);
 
     if (false) {
         // for debugging
