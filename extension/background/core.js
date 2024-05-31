@@ -29,6 +29,7 @@ let config = {
 
     // log settings
     history: 1000,
+    logDiscarded: true,
 
     // are we collecting new data?
     collecting: true,
@@ -884,7 +885,7 @@ function renderReqres(reqres) {
     return encoder.result()
 }
 
-function processFinishedReqres(info, collect, shallow, dump, do_broadcast) {
+function processFinishedReqres(info, collect, shallow, dump, newLog) {
     shallow.collected = collect;
 
     if (collect) {
@@ -898,12 +899,16 @@ function processFinishedReqres(info, collect, shallow, dump, do_broadcast) {
         info.discardedTotal += 1;
     }
 
-    reqresLog.push(shallow);
-    while (reqresLog.length > config.history)
-        reqresLog.shift();
+    if (config.logDiscarded || collect || shallow.was_problematic) {
+        reqresLog.push(shallow);
+        while (reqresLog.length > config.history)
+            reqresLog.shift();
 
-    if (do_broadcast !== false)
-        broadcast(["newLog", [shallow], true]);
+        if (newLog === undefined)
+            broadcast(["newLog", [shallow], true]);
+        else
+            newLog.push(shallow);
+    }
 }
 
 function popInLimbo(collect, num, tabId) {
@@ -914,33 +919,26 @@ function popInLimbo(collect, num, tabId) {
     if (tabId !== undefined)
         info = getOriginState(tabId);
 
-    let popped = [];
-    let skipped = [];
-    let limboLog = [];
+    let poppedTotal = 0;
+    let newLog = [];
+    let newReqresLimbo = [];
     for (let el of reqresLimbo) {
         let [shallow, dump] = el;
 
-        if (num !== null && popped.length >= num) {
-            skipped.push(el);
-            limboLog.push(shallow);
-            continue;
-        }
-
-        if (tabId === undefined || shallow.tabId == tabId) {
-            processFinishedReqres(info, collect, shallow, dump, false);
-            popped.push(shallow);
-        } else {
-            skipped.push(el);
-            limboLog.push(shallow);
-        }
+        if ((tabId === undefined || shallow.tabId == tabId)
+            && (num === null || poppedTotal < num)) {
+            processFinishedReqres(info, collect, shallow, dump, newLog);
+            poppedTotal += 1;
+        } else
+            newReqresLimbo.push(el);
     }
 
-    if (popped.length > 0) {
-        reqresLimbo = skipped;
-        if (tabId !== undefined)
-            info.inLimboTotal -= popped.length;
+    if (poppedTotal > 0) {
+        reqresLimbo = newReqresLimbo;
+        if (info !== undefined)
+            info.inLimboTotal -= poppedTotal;
         cleanupTabs();
-        broadcast(["newLog", popped, false]);
+        broadcast(["newLog", newLog, false]);
         updateDisplay(true, false);
     }
 
