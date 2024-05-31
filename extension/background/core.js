@@ -87,8 +87,6 @@ function prefillChildren(data) {
 function getOriginConfig(tabId, fromExtension) {
     if (fromExtension)
         return prefillChildren(config.extension);
-    if (tabId === undefined) // root tab
-        return prefillChildren(config.root);
     else if (tabId == -1) // background process
         return prefillChildren(config.background);
 
@@ -110,7 +108,12 @@ function processNewTab(tabId, openerTabId) {
         openerTabId = negateOpenerTabIds.shift();
     }
 
-    let openercfg = getOriginConfig(openerTabId);
+    let openercfg;
+    if (openerTabId !== undefined)
+        openercfg = getOriginConfig(openerTabId);
+    else
+        openercfg = prefillChildren(config.root); // root tab
+
     let children = openercfg.children;
     if (openerTabId !== undefined && negateConfigFor.delete(openerTabId)) {
         // Negate children.collecting when `openerTabId` is in `negateConfigFor`.
@@ -267,7 +270,7 @@ let defaultTabState = {
 
 function getOriginState(tabId, fromExtension) {
     // NB: not tracking extensions separately here, unlike with configs
-    if (fromExtension || tabId === undefined)
+    if (fromExtension)
         tabId = -1;
 
     let res = tabState.get(tabId);
@@ -325,9 +328,6 @@ function getStats() {
 // Produce a value similar to that of `getStats`, but for a single tab.
 // Used in the UI.
 function getTabStats(tabId) {
-    if (tabId === undefined)
-        tabId = -1;
-
     let info = tabState.get(tabId);
     if (info === undefined)
         info = defaultTabState;
