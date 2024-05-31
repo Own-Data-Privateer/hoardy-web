@@ -127,8 +127,8 @@ function processNewTab(tabId, openerTabId) {
 // reqres)
 function cleanupTabs() {
     // forget problematic reqres in closed tabs
-    let numProblematicBefore = reqresProblematicLog.length;
-    reqresProblematicLog = reqresProblematicLog.filter((e) => openTabs.has(e.tabId));
+    let numProblematicBefore = reqresProblematic.length;
+    reqresProblematic = reqresProblematic.filter((e) => openTabs.has(e.tabId));
 
     // TODO similar reqresLimbo cleanup goes here
 
@@ -144,7 +144,7 @@ function cleanupTabs() {
         usedTabs.add(v.tabId);
     for (let v of reqresAlmostDone)
         usedTabs.add(v.tabId);
-    for (let v of reqresProblematicLog)
+    for (let v of reqresProblematic)
         usedTabs.add(v.tabId);
     for (let [v, _x] of reqresLimbo)
         usedTabs.add(v.tabId);
@@ -171,7 +171,7 @@ function cleanupTabs() {
         tabState.delete(tabId);
     }
 
-    return reqresProblematicLog.length != numProblematicBefore;
+    return reqresProblematic.length != numProblematicBefore;
 }
 
 function processRemoveTab(tabId) {
@@ -193,6 +193,8 @@ let reqresInFlight = new Map();
 let reqresFinishingUp = [];
 // completely finished requests
 let reqresAlmostDone = [];
+// problematic requests
+let reqresProblematic = [];
 // requests in limbo, waiting to be either dropped or queued for archival
 let reqresLimbo = [];
 // requests in the process of being archived
@@ -204,8 +206,6 @@ let reqresFailed = new Map();
 
 // request log
 let reqresLog = [];
-// log of problematic reqres
-let reqresProblematicLog = [];
 
 function getInFlightLog() {
     let res = [];
@@ -228,7 +228,7 @@ function getInLimboLog() {
 
 // global stats
 let globalStats = {
-    // problematicTotal is reqresProblematicLog.length
+    // problematicTotal is reqresProblematic.length
     // total numbers of picked and dropped reqres
     pickedTotal: 0,
     droppedTotal: 0,
@@ -308,7 +308,7 @@ function getStats() {
 
     return {
         in_flight,
-        problematic: reqresProblematicLog.length,
+        problematic: reqresProblematic.length,
         picked: globalStats.pickedTotal,
         dropped: globalStats.droppedTotal,
         in_limbo: reqresLimbo.length,
@@ -377,26 +377,29 @@ function getTabStats(tabId) {
 }
 
 function forgetHistory(tabId) {
-    if (tabId === undefined) {
-        reqresLog = [];
-    } else {
-        reqresLog = reqresLog.filter((e) => e.tabId != tabId);
-    }
+    reqresLog = reqresLog.filter((e) => e.problematic === true || (tabId !== undefined && e.tabId != tabId));
     broadcast(["resetLog", reqresLog]);
     updateDisplay(true, false, tabId);
 }
 
-function forgetProblematic(tabId) {
-    if (tabId === undefined) {
-        reqresProblematicLog = [];
-        for (let info of tabState.values())
-            info.problematicTotal = 0;
-    } else {
-        reqresProblematicLog = reqresProblematicLog.filter((e) => e.tabId != tabId);
-        let info = getOriginStats(tabId);
-        info.problematicTotal = 0;
+function unmarkProblematic(tabId) {
+    let origins = new Set();
+    let kept = [];
+    for (let e of reqresProblematic) {
+        if (tabId === undefined || e.tabId == tabId) {
+            e.problematic = false;
+            origins.add(e.tabId);
+        } else
+            kept.push(e);
     }
-    broadcast(["resetProblematicLog", reqresProblematicLog]);
+    reqresProblematic = kept;
+
+    for (let o of origins) {
+        let info = tabState.get(o);
+        if (info !== undefined)
+            info.problematicTotal = 0;
+    }
+    broadcast(["resetProblematicLog", reqresProblematic]);
     updateDisplay(true, false, tabId);
 }
 
@@ -1046,11 +1049,12 @@ function processAlmostDone() {
         let shallow = shallowCopyOfReqres(reqres);
         shallow.net_state = state;
         shallow.profile = options.profile;
+        shallow.was_problematic = problematic;
         shallow.problematic = problematic;
         shallow.picked = collect;
 
         if (problematic) {
-            reqresProblematicLog.push(shallow);
+            reqresProblematic.push(shallow);
             info.problematicTotal += 1;
         }
 
@@ -1685,10 +1689,10 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(null);
         break;
     case "getProblematicLog":
-        sendResponse(reqresProblematicLog);
+        sendResponse(reqresProblematic);
         break;
-    case "forgetProblematic":
-        forgetProblematic(request[1]);
+    case "unmarkProblematic":
+        unmarkProblematic(request[1]);
         sendResponse(null);
         break;
     case "getInFlightLog":

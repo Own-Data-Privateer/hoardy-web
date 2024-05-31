@@ -63,14 +63,14 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
     buttonToAction("showTabState", catchAllAsync(() => showState(`?tab=${tabId}`, "", tabId)));
 
     buttonToMessage("forgetHistory");
-    buttonToMessage("forgetProblematic");
+    buttonToMessage("unmarkProblematic");
     buttonToMessage("retryAllFailedArchives");
     buttonToAction("collectAllInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, null])));
     buttonToAction("discardAllInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, null])));
     buttonToMessage("stopAllInFlight");
 
     buttonToAction("forgetTabHistory",     catchAllAsync(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
-    buttonToAction("forgetTabProblematic", catchAllAsync(() => browser.runtime.sendMessage(["forgetProblematic", tabId])));
+    buttonToAction("unmarkTabProblematic", catchAllAsync(() => browser.runtime.sendMessage(["unmarkProblematic", tabId])));
     buttonToAction("collectTabInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
     buttonToAction("discardTabInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
     buttonToAction("stopTabInFlight", catchAllAsync(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
