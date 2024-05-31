@@ -41,11 +41,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // resize elements to window
-    // have to do this because we want main and settings iframe to have independent scroll
-    let main = document.getElementById("main");
+    // have to do this because we want body and settings iframe to have independent scroll
+    let body = document.getElementById("body");
     function resize() {
         let h = window.innerHeight - 5;
-        main.style.setProperty("max-height", `${h}px`)
+        body.style.setProperty("max-height", `${h}px`)
         iframe.style.setProperty("max-height", `${h}px`)
     }
     resize();

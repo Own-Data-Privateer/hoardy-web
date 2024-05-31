@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html>
   <head>
     <meta charset="utf-8">
@@ -9,9 +8,10 @@
     <style>
 body {
     display: flex;
+    margin: 0 0.5em;
 }
 
-#main {
+#body {
     display: inline-block;
     width: auto;
     max-height: 500px;
@@ -26,7 +26,7 @@ iframe {
     </style>
   </head>
   <body>
-    <div id="main">
+    <div id="body">
       $body$
     </div>
     <script src="../lib/compat.js"></script>
