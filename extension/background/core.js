@@ -13,12 +13,19 @@
 let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
 
 // default config
-let configVersion = 2;
+let configVersion = 3;
 let config = {
+    version: configVersion,
+
     // debugging options
     ephemeral: false, // stop the config from being saved to disk
     debugging: false, // verbose debugging logs
     dumping: false, // dump dumps to console
+
+    // UI
+    lastSeenVersion: manifest.version,
+    seenChangelog: true,
+    seenHelp: false,
 
     // log settings
     history: 1000,
@@ -277,7 +284,6 @@ function getStats() {
     let unarchived = in_flight + reqresLimbo.length + reqresQueue.length + archive_failed;
 
     return {
-        version: manifest.version,
         in_flight,
         problematic: reqresProblematicLog.length,
         picked: reqresPickedTotal,
@@ -1615,7 +1621,7 @@ function handleMessage(request, sender, sendResponse) {
         if (!config.ephemeral) {
             // save config after a little pause to give the user time to
             // change some more settings
-            let eConfig = assignRec({ version: configVersion }, config);
+            let eConfig = assignRec({}, config);
 
             if (saveConfigTID !== null)
                 clearTimeout(saveConfigTID);
@@ -1827,38 +1833,54 @@ async function handleCommand(command) {
     broadcast(["updateTabConfig", tabId]);
 }
 
+function upgradeConfig(cfg) {
+    function rename(from, to) {
+        let old = cfg[from];
+        delete cfg[from];
+        cfg[to] = old;
+    }
+
+    switch (cfg.version) {
+    case 1:
+        rename("collectPartialRequests", "archivePartialRequest");
+        rename("collectNoResponse", "archiveNoResponse");
+        rename("collectIncompleteResponses", "archiveIncompleteResponse")
+    case 2:
+        // because it got updated lots
+        cfg.seenHelp = false;
+        break;
+    default:
+        console.warn(`Bad old config version ${cfg.version}, reusing values as-is without updates`);
+        // the following updateFromRec will do its best
+    }
+
+    return cfg;
+}
+
 async function init(storage) {
-    let do_showHelp = false;
-    if (storage.config !== undefined) {
-        let oldConfig = storage.config;
-        function rename(from, to) {
-            let old = oldConfig[from];
-            delete oldConfig[from];
-            oldConfig[to] = old;
+    let oldConfig = storage.config;
+    if (oldConfig !== undefined) {
+        if (oldConfig.version !== configVersion) {
+            console.log(`Loading old config of version ${oldConfig.version}`);
+            oldConfig = upgradeConfig(oldConfig);
         }
+        config = updateFromRec(config, oldConfig, true);
+    }
 
-        let version = oldConfig.version;
-        delete oldConfig["version"];
+    config.version = configVersion;
+    config.ephemeral = false;
+    if (config.seenChangelog && config.lastSeenVersion != manifest.version) {
+        // reset `config.seenChangelog` when major version changes
+        let vOld = config.lastSeenVersion.split(".");
+        let vNew = manifest.version.split(".").slice(0, 2);
+        config.seenChangelog = vNew.every((e, i) => e == vOld[i]);
+    }
+    config.lastSeenVersion = manifest.version;
 
-        // show help when config version changes
-        if (version !== configVersion)
-            do_showHelp = true;
-
-        if (version == 1) {
-            console.log("Using old config version " + version);
-            rename("collectPartialRequests", "archivePartialRequest");
-            rename("collectNoResponse", "archiveNoResponse");
-            rename("collectIncompleteResponses", "archiveIncompleteResponse")
-        } else if (version == 2) {
-            console.log("Using config version " + version);
-        } else {
-            console.log("Unknwon old config version " + version);
-            oldConfig = undefined;
-        }
-
-        config = updateFromRec(config, oldConfig);
-    } else
-        do_showHelp = true;
+    if (false) {
+        // for debugging
+        config.ephemeral = true;
+    }
 
     if (useBlocking)
         browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), {urls: ["<all_urls>"]}, ["blocking", "requestBody"]);
@@ -1902,9 +1924,6 @@ async function init(storage) {
     console.log(`initialized pWebArc with source of '${sourceDesc}'`);
     console.log("runtime options are", { useSVGIcons, useBlocking, useDebugger });
     console.log("config is", config);
-
-    if (do_showHelp)
-        showHelp();
 }
 
 browser.storage.local.get(null).then(init, (error) => init({}));

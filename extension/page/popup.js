@@ -108,11 +108,10 @@ document.addEventListener("DOMContentLoaded", catchAllAsync(async () => {
             browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
         });
 
-        body.classList.remove("disabled-archiving", "disabled-collecting")
-        if (!config.archiving)
-            body.classList.add("disabled-archiving");
-        if (!config.collecting)
-            body.classList.add("disabled-collecting");
+        setConditionalClass(body, !config.archiving, "disabled-archiving");
+        setConditionalClass(body, !config.collecting, "disabled-collecting");
+        setConditionalClass(versionButton, !config.seenChangelog, "attention");
+        setConditionalClass(helpButton, !config.seenHelp, "attention");
     }
 
     async function updateTabConfig(tabconfig) {

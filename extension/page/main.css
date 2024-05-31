@@ -157,3 +157,9 @@ div.help-tip {
     background-color: #ffffff;
     text-decoration: dotted underline;
 }
+
+/* similar .target, but for things needing user's attention at some
+   later point in time */
+.attention {
+    border-style: 2px solid red;
+}

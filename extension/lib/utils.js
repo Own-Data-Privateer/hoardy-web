@@ -207,6 +207,14 @@ async function showInternalPageAtNode(url, id, tabId, scrollIntoViewOptions) {
     return tab;
 }
 
+// add or remove class based on condition
+function setConditionalClass(node, condition, className) {
+    if (condition)
+        node.classList.add(className);
+    else
+        node.classList.remove(className);
+}
+
 // set values of DOM elements from a given object
 function setUI(prefix, value, update) {
     let typ = typeof value;
