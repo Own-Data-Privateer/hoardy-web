@@ -1591,7 +1591,7 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "setConfig":
         let oldconfig = config;
-        config = request[1];
+        config = updateFromRec(assignRec({}, config), request[1], true);
         updateDisplay(false, false);
 
         if (oldconfig.archiving !== config.archiving) {
