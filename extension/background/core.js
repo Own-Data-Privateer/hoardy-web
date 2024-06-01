@@ -181,6 +181,16 @@ function cleanupTabs() {
 function processRemoveTab(tabId) {
     openTabs.delete(tabId);
     updateDisplay(cleanupTabs(), true);
+    if (useDebugger) {
+        // after a small timeout, force emit all `debugReqresInFlight` of this
+        // tab, since Chromium won't send any new debug events for them anyway
+        setTimeout(() => {
+            if (config.debugging)
+                console.log("cleaning up debugReqresInFlight after tab", tabId);
+            forceEmitInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_CLOSED_TAB");
+            processMatchFinishingUpWebRequestDebug();
+        }, 10000);
+    }
 }
 
 // browserAction state
@@ -1085,10 +1095,10 @@ function processAlmostDone() {
     scheduleEndgame();
 }
 
-function forceEmitInFlightWebRequest(tabId) {
+function forceEmitInFlightWebRequest(tabId, reason) {
     for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
         if (tabId === null || reqres.tabId == tabId)
-            emitRequest(requestId, reqres, "webRequest::pWebArc::EMIT_FORCED_BY_USER", true);
+            emitRequest(requestId, reqres, "webRequest::" + reason, true);
     }
 }
 
@@ -1159,9 +1169,9 @@ function stopAllInFlight(tabId) {
         tabId = null;
 
     processFinishingUp(true);
-    forceEmitInFlightWebRequest(tabId);
+    forceEmitInFlightWebRequest(tabId, "pWebArc::EMIT_FORCED_BY_USER");
     if (useDebugger) {
-        forceEmitInFlightDebug(tabId);
+        forceEmitInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_USER");
         processMatchFinishingUpWebRequestDebug(true);
         forceFinishingUpDebug((r) => tabId == null || r.tabId == tabId);
     }
@@ -1176,6 +1186,7 @@ function importantError(error) {
                      || error === "debugger::net::ERR_ABORTED"
                      || error === "debugger::net::ERR_CANCELED"
                      || error === "debugger::pWebArc::EMIT_FORCED_BY_USER"
+                     || error === "debugger::pWebArc::EMIT_FORCED_BY_CLOSED_TAB"
                      || error.startsWith("debugger::net::ERR_BLOCKED::")))
         // Chromium
         return false;

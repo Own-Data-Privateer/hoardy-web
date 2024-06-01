@@ -286,10 +286,10 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     }
 }
 
-function forceEmitInFlightDebug(tabId) {
+function forceEmitInFlightDebug(tabId, reason) {
     for (let [requestId, dreqres] of Array.from(debugReqresInFlight.entries())) {
         if (tabId === null || dreqres.tabId === tabId)
-            emitDebugRequest(requestId, dreqres, false, "debugger::pWebArc::EMIT_FORCED_BY_USER", true);
+            emitDebugRequest(requestId, dreqres, false, "debugger::" + reason, true);
     }
 }
 
