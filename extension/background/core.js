@@ -775,9 +775,6 @@ function getHeaderValue(headers, name) {
 
 // encode browser's Headers structure into an Array of [string, Uint8Array] pairs
 function encodeHeaders(headers) {
-    if (headers === undefined)
-        return [];
-
     let result = [];
     for (let i = 0; i < headers.length; ++i) {
         let header = headers[i];
@@ -983,7 +980,7 @@ function processAlmostDone() {
             state = "incomplete";
             problematic = config.markProblematicIncomplete;
             collect = config.archiveIncompleteResponse;
-        } else if (reqres.statusCode === 200 && reqres.fromCache && reqres.responseHeaders !== undefined) {
+        } else if (reqres.statusCode === 200 && reqres.fromCache) {
             let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
             if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
                 // Under Firefox, filterResponseData filters will get empty response data for some
@@ -1018,7 +1015,7 @@ function processAlmostDone() {
         }
 
         if (reqres.protocol === undefined) {
-            if (reqres.requestHeaders !== undefined && getHeaderValue(reqres.requestHeaders, ":authority") !== undefined)
+            if (getHeaderValue(reqres.requestHeaders, ":authority") !== undefined)
                 reqres.protocol = "HTTP/2.0";
             else if (lineProtocol !== undefined)
                 reqres.protocol = lineProtocol;
@@ -1360,14 +1357,16 @@ function handleBeforeRequest(e) {
         errors: [],
 
         requestTimeStamp: e.timeStamp,
-        requestComplete: true,
+        requestHeaders: [],
         requestBody: new ChunkedBuffer(),
+        requestComplete: true,
 
         sent: false,
 
-        fromCache: false,
-        responseComplete: false,
+        responseHeaders : [],
         responseBody: new ChunkedBuffer(),
+        responseComplete: false,
+        fromCache: false,
     };
 
     if (e.documentUrl !== undefined && e.documentUrl !== null)
