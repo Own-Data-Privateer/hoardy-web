@@ -177,6 +177,9 @@ Notably, pWebArc provides:
 
   Usually this is not a problem since such media will be archived on first (non-cached) access.
   But if you want to force everything on the page to be archived, you can reload the page without the cache with =Control+F5=.
+
+- Firefox fails to run =onstop= method for =browser.webRequest.filterResponseData= filter for the very first HTTP/2 request the browser makes after you start it, thus making the first reqres =incomplete=.
+  pWebArc transparently works around this bug by redirecting the very first request to =about:blank= and then reloading the tab with the original URL.
 ** On Chromium, Chrome, etc
 *** Known browser quirks
 On Chromium-based browsers, there is no way to get HTTP response data without attaching Chromium's debugger to a tab from which a request originates from.

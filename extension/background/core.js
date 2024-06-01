@@ -1280,6 +1280,8 @@ function shallowCopyOfReqres(reqres) {
 
 // handlers
 
+let workaroundFirstRequest = true;
+
 function handleBeforeRequest(e) {
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
@@ -1311,13 +1313,29 @@ function handleBeforeRequest(e) {
     let options = getOriginConfig(e.tabId, fromExtension);
     if (!options.collecting) return;
 
-    // on Chromium, cancel all network requests from tabs that are not
-    // yet debugged, start debugging, and then reload the tab
-    if (useDebugger && e.tabId !== -1 && !tabsDebugging.has(e.tabId)
+    // On Chromium, cancel all network requests from tabs that are not
+    // yet debugged, start debugging, and then reload the tab.
+    if (useDebugger && e.tabId !== -1
+        && !tabsDebugging.has(e.tabId)
         && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
-        console.log("canceling request to", e.url, "as tab", e.tabId, "is not managed yet", e);
+        if (config.debugging)
+            console.log("canceling request to", e.url, "as tab", e.tabId, "is not managed yet", e);
         attachDebuggerAndReloadIn(e.tabId, 1000);
         return { cancel: true };
+    }
+
+    // On Firefox, redirect the very first non-background request to
+    // `about:blank`, and then reload the tab with the original URL to
+    // work-around a Firefox bug where it will fail to run `onstop` for the
+    // `filterResponseData` of the very first request, thus breaking it.
+    if (!useDebugger && e.tabId !== -1
+        && workaroundFirstRequest
+        && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
+        workaroundFirstRequest = false;
+        if (config.debugging)
+            console.log("canceling request to", e.url, "as it is the very first request to workaround a bug in Firefox", e);
+        setTimeout(() => browser.tabs.update(e.tabId, { url: e.url }), 300);
+        return { redirectUrl: "about:blank" };
     }
 
     logRequest("before request", e);
