@@ -14,19 +14,9 @@ function showAll() {
 }
 
 async function popupMain() {
-    // get current windowId and tabId of the active tab
-    let windowId;
-    let tabId;
-
-    let tabs = await browser.tabs.query({ active: true, currentWindow: true });
-    for (let tab of tabs) {
-        windowId = tab.windowId;
-        tabId = getStateTabIdOrTabId(tab);
-        break;
-    }
-
-    if (tabId === undefined || windowId === undefined)
-        throw new Error("failed to get tabId or windowId");
+    let tab = await getActiveTab();
+    let windowId = tab.windowId;
+    let tabId = getStateTabIdOrTabId(tab);
 
     // start recording tabId changes
     async function recordTabId(event) {

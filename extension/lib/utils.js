@@ -159,6 +159,14 @@ function escapeHTML(text) {
         .replaceAll("'", "&#039;");
 }
 
+async function getActiveTab() {
+    let tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    for (let tab of tabs) {
+        return tab;
+    }
+    return null;
+}
+
 // attach function to `onclick` of DOM node with a given id
 function buttonToAction(id, action) {
     let el = document.getElementById(id);

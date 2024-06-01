@@ -1841,14 +1841,10 @@ function initMenus() {
 }
 
 async function handleCommand(command) {
-    let tabId = undefined;
-    let tabs = await browser.tabs.query({ active: true, currentWindow: true });
-    for (let tab of tabs) {
-        tabId = getStateTabIdOrTabId(tab);
-        break;
-    }
-    if (tabId === undefined)
+    let tab = await getActiveTab();
+    if (tab === null)
         return;
+    let tabId = getStateTabIdOrTabId(tab);
 
     let tabcfg = undefined;
     switch (command) {
