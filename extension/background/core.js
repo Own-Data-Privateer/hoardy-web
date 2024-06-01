@@ -1187,6 +1187,7 @@ function importantError(error) {
                      || error === "debugger::net::ERR_CANCELED"
                      || error === "debugger::pWebArc::EMIT_FORCED_BY_USER"
                      || error === "debugger::pWebArc::EMIT_FORCED_BY_CLOSED_TAB"
+                     || error === "debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER"
                      || error.startsWith("debugger::net::ERR_BLOCKED::")))
         // Chromium
         return false;

@@ -125,13 +125,17 @@ function handleDebugEvent(debuggee, method, params) {
 
 function handleDebugDetach(debuggee, reason) {
     console.log("debugger detached", debuggee, reason);
-    if (debuggee.tabId !== undefined) {
-        tabsDebugging.delete(debuggee.tabId);
-        if (config.collecting && reason !== "target_closed")
+    let tabId = debuggee.tabId;
+    if (tabId !== undefined) {
+        tabsDebugging.delete(tabId);
+        // Unfortunately, this means all debugReqresInFlight of this tab are broken now
+        forceEmitInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER");
+        if (config.collecting && reason !== "target_closed") {
             // In Chrome, it's pretty easy to click the notification or press
             // Escape while doing Control+F and detach the debugger, so let's
             // reattach it immediately
-            setTimeout(() => attachDebugger(debuggee.tabId), 1);
+            setTimeout(() => attachDebugger(tabId), 1);
+        }
     }
 }
 
