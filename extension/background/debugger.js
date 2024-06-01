@@ -179,6 +179,8 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         if (e.documentURL !== undefined && e.documentURL !== null)
             dreqres.documentUrl = e.documentURL;
         dreqres.requestHeaders = e.request.headers;
+        if (!isBoringURL(dreqres.url))
+            broadcast(["newInFlight", [shallowCopyOfReqres(dreqres)]]);
     } else {
         if (dreqres.requestTimeStamp === undefined)
             dreqres.requestTimeStamp = Date.now();

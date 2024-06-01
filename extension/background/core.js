@@ -212,11 +212,13 @@ let reqresLog = [];
 
 function getInFlightLog() {
     let res = [];
-    for (let v of reqresAlmostDone) {
+    for (let v of reqresAlmostDone)
         res.push(shallowCopyOfReqres(v));
-    }
-    for (let [k, v] of reqresInFlight.entries()) {
+    for (let [k, v] of reqresInFlight.entries())
         res.push(shallowCopyOfReqres(v));
+    for (let [k, v] of debugReqresInFlight.entries()) {
+        if (!isBoringURL(v.url))
+            res.push(shallowCopyOfReqres(v));
     }
     return res;
 }
