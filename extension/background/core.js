@@ -369,16 +369,19 @@ function getTabStats(tabId) {
 }
 
 function forgetHistory(tabId) {
-    reqresLog = reqresLog.filter((e) => e.problematic === true || (tabId !== undefined && e.tabId != tabId));
+    reqresLog = reqresLog.filter((e) => e.problematic === true || (tabId !== null && e.tabId != tabId));
     broadcast(["resetLog", reqresLog]);
     updateDisplay(true, false, tabId);
 }
 
 function unmarkProblematic(tabId) {
+    if (tabId === undefined)
+        tabId = null;
+
     let origins = new Set();
     let kept = [];
     for (let e of reqresProblematic) {
-        if (tabId === undefined || e.tabId == tabId) {
+        if (tabId === null || e.tabId == tabId) {
             e.problematic = false;
             origins.add(e.tabId);
         } else
@@ -447,7 +450,7 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
         await browser.browserAction.setBadgeText({ text: newBadge });
     }
 
-    if (!changed && updatedTabId === undefined)
+    if (!changed && updatedTabId === null)
         return;
 
     let tabs = await browser.tabs.query({ active: true });
@@ -455,7 +458,7 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
         let tabId = getStateTabIdOrTabId(tab);
 
         // skip updates for unchanged tabs, when specified
-        if (!changed && updatedTabId !== undefined && updatedTabId != tabId)
+        if (!changed && updatedTabId !== null && updatedTabId != tabId)
             continue;
 
         let tabcfg = tabConfig.get(tabId);
@@ -914,9 +917,11 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
 function popInLimbo(collect, num, tabId) {
     if (reqresLimbo.length == 0)
         return;
+    if (tabId === undefined)
+        tabId = null;
 
     let info = undefined;
-    if (tabId !== undefined)
+    if (tabId !== null)
         info = getOriginState(tabId);
 
     let poppedTotal = 0;
@@ -925,7 +930,7 @@ function popInLimbo(collect, num, tabId) {
     for (let el of reqresLimbo) {
         let [shallow, dump] = el;
 
-        if ((tabId === undefined || shallow.tabId == tabId)
+        if ((tabId === null || shallow.tabId == tabId)
             && (num === null || poppedTotal < num)) {
             processFinishedReqres(info, collect, shallow, dump, newLog);
             poppedTotal += 1;
@@ -1083,7 +1088,7 @@ function processAlmostDone() {
 
 function forceEmitInFlightWebRequest(tabId) {
     for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
-        if (tabId === undefined || reqres.tabId == tabId)
+        if (tabId === null || reqres.tabId == tabId)
             emitRequest(requestId, reqres, "webRequest::pWebArc::EMIT_FORCED_BY_USER", true);
     }
 }
@@ -1151,14 +1156,17 @@ function forceFinishingUpWebRequest(predicate) {
 }
 
 function stopAllInFlight(tabId) {
+    if (tabId === undefined)
+        tabId = null;
+
     processFinishingUp(true);
     forceEmitInFlightWebRequest(tabId);
     if (useDebugger) {
         forceEmitInFlightDebug(tabId);
         processMatchFinishingUpWebRequestDebug(true);
-        forceFinishingUpDebug((r) => tabId == undefined || r.tabId == tabId);
+        forceFinishingUpDebug((r) => tabId == null || r.tabId == tabId);
     }
-    forceFinishingUpWebRequest((r) => tabId == undefined || r.tabId == tabId);
+    forceFinishingUpWebRequest((r) => tabId == null || r.tabId == tabId);
     updateDisplay(true, false);
     scheduleEndgame();
 }

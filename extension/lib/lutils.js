@@ -38,7 +38,7 @@ function getStateTabId(purl) {
         if (tabId !== null)
             return Number(tabId).valueOf();
     }
-    return undefined;
+    return null;
 }
 
 function getStateTabIdOrTabId(tab) {
@@ -47,7 +47,7 @@ function getStateTabIdOrTabId(tab) {
         url = tab.pendingUrl;
     if (url !== undefined) {
         let tabId = getStateTabId(new URL(url));
-        if (tabId !== undefined)
+        if (tabId !== null)
             return tabId;
     }
     return tab.id;

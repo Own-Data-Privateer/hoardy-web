@@ -17,7 +17,7 @@ function fdate(epoch) {
 }
 
 let tabId = getStateTabId(document.location);
-if (tabId !== undefined)
+if (tabId !== null)
     document.title = `pWebArc: tab ${tabId}: Internal State`;
 
 function switchToDataTabId() {
@@ -99,7 +99,7 @@ function newReqres(reqres) {
 
 function appendLog(el, log, predicate) {
     for (let reqres of log)
-        if ((tabId === undefined || reqres.tabId == tabId) &&
+        if ((tabId === null || reqres.tabId == tabId) &&
             (predicate === undefined || predicate(reqres)))
             el.appendChild(newReqres(reqres));
 }
