@@ -162,6 +162,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) {
         dreqres = {
+            errors: [],
             responseComplete: false,
             responseBody: "",
             sent: true,
@@ -259,7 +260,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     if (error !== undefined) {
         if (importantError(error))
             console.error("emitDebugRequest", requestId, "error", error, dreqres);
-        dreqres.error = error;
+        dreqres.errors.push(error);
     }
 
     if (withResponse === true) {
@@ -393,8 +394,8 @@ function emitDone(closest, dreqres) {
         };
     }
 
-    if (dreqres.error !== undefined)
-        closest.errors.push(dreqres.error);
+    for (let error of dreqres.errors)
+        closest.errors.push(error);
 
     closest.protocol = dreqres.protocol;
     closest.reason = dreqres.reason;
