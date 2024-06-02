@@ -47,22 +47,23 @@ td.long {
       </ul>
     </div>
     <div id="body" style="display: none">
-    <h1>In flight
+    <span id="top" />
+    <h1 id="in_flight">In flight
       <span data-help="Open the help page."><input type="button" id="help" value="Help" /></span>
       <span class="right">
         <span data-help="Stop tracking progress of all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup."><input type="button" id="stopAllInFlight" value="Stop tracking all" /></span>
       </span>
     </h1>
-    <table><tbody id="in_flight"></tbody></table>
+    <table><tbody id="data_in_flight"></tbody></table>
 
-    <h1>Problematic
+    <h1 id="problematic">Problematic
       <span class="right">
         <span data-help="Unset `problematic` flag from all reqres below."><input type="button" id="unmarkProblematic" value="Unmark all" /></span>
       </span>
     </h1>
-    <table><tbody id="problematic"></tbody></table>
+    <table><tbody id="data_problematic"></tbody></table>
 
-    <h1>In limbo
+    <h1 id="in_limbo">In limbo
       <span class="right">
         <span data-help="Discard the first reqres below."><input type="button" id="discardOneInLimbo" value="Discard the first one" /></span>
         <span data-help="Discard all reqres below."><input type="button" id="discardAllInLimbo" value="Discard all" /></span>
@@ -72,16 +73,16 @@ td.long {
       <span data-help="Collect the first reqres below."><input type="button" id="collectOneInLimbo" value="Collect the first one" /></span>
       <span data-help="Collect all reqres below."><input type="button" id="collectAllInLimbo" value="Collect all" /></span>
     </div>
-    <table><tbody id="in_limbo"></tbody></table>
+    <table><tbody id="data_in_limbo"></tbody></table>
 
-    <h1>Recent history
+    <h1 id="log">Log
       <span class="right">
         <span data-help="Forget about all the requests below."><input type="button" id="forgetHistory" value="Forget all" /></span>
       </span>
     </h1>
-    <table><tbody id="finished"></tbody></table>
+    <table><tbody id="data_log"></tbody></table>
     <!-- This anchor goes here, because we usually want to see the tail of the log. -->
-    <span id="end" />
+    <span id="bottom" />
     </div>
 
     <script src="../lib/compat.js"></script>

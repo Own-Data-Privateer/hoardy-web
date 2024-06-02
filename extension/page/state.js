@@ -25,7 +25,7 @@ function switchToDataTabId() {
     browser.tabs.update(dataTabId, { active: true }).catch(logError);
 }
 
-function newReqres(reqres) {
+function appendReqres(el, reqres) {
     let tr = document.createElement("tr");
 
     let state = "in_flight";
@@ -81,7 +81,9 @@ function newReqres(reqres) {
     mtr(state
         + (reqres.net_state !== undefined ? " " + reqres.net_state : "")
         + (reqres.redirectUrl !== undefined ? " redirected" : "")
-        + (reqres.was_problematic === true ? " problematic!" : "")
+        + (reqres.was_in_limbo === true ? " was_in_limbo" : "")
+        + (reqres.problematic === true ? " problematic!" :
+           (reqres.was_problematic === true ? " was_problematic" : ""))
        );
 
     mtr(fdate(reqres.requestTimeStamp));
@@ -94,38 +96,54 @@ function newReqres(reqres) {
     mtr(fdate(reqres.responseTimeStamp));
     mtr(reqres.reason).className = "long";
 
-    return tr;
+    el.appendChild(tr);
+
+    if (reqres.errors.length > 0) {
+        let etr = document.createElement("tr");
+        etr.setAttribute("style", `background-color: ${color}`);
+        let etd = document.createElement("td");
+        etd.setAttribute("colspan", 2);
+        etr.appendChild(etd);
+
+        etd = document.createElement("td");
+        etd.setAttribute("colspan", 7);
+        etd.setAttribute("title", "errors");
+        etd.innerHTML = escapeHTML(reqres.errors.join("\n")).replaceAll("\n", "<br>");
+        etr.appendChild(etd);
+
+        el.appendChild(etr);
+    }
 }
 
-function appendLog(el, log, predicate) {
-    for (let reqres of log)
+function appendToLog(el, log_data, predicate) {
+    for (let reqres of log_data)
         if ((tabId === null || reqres.tabId == tabId) &&
             (predicate === undefined || predicate(reqres)))
-            el.appendChild(newReqres(reqres));
+            appendReqres(el, reqres);
 }
 
-function resetLog(id, log, predicate) {
+function resetDataNode(id, log_data, predicate) {
     let newtbody = document.createElement("tbody");
     newtbody.id = id;
-    appendLog(newtbody, log, predicate);
+    appendToLog(newtbody, log_data, predicate);
     let tbody = document.getElementById(id);
     tbody.parentElement.replaceChild(newtbody, tbody);
 }
 
-function resetFinished(log) {
-    resetLog("finished", log);
+function resetInFlight(log_data) {
+    resetDataNode("data_in_flight", log_data);
 }
 
-function resetProblematic(log) {
-    resetLog("problematic", log);
+function resetProblematic(log_data) {
+    resetDataNode("data_problematic", log_data);
 }
 
-function resetInLimbo(log) {
-    resetLog("in_limbo", log);
+function resetInLimbo(log_data) {
+    resetDataNode("data_in_limbo", log_data);
 }
 
-function resetInFlight(log) {
-    resetLog("in_flight", log);
+function resetLog(log_data) {
+    resetDataNode("data_log", log_data);
 }
 
 async function stateMain() {
@@ -139,12 +157,11 @@ async function stateMain() {
 <tr>
   <th><span data-help="Source of this reqres: &quot;ext&quot; for reqres produced by extensions, &quot;bg&quot; for reqres produced by background tasks, &quot;tab #N&quot; for reqres produced by the tab with id \`N\`. For tabs the label is a button which switches currently active tab to the tab in question.">Src</span></th>
   <th><span data-help="The \`.status\` this reqres will have in wrrarms: &quot;I&quot; or &quot;C&quot; character (for &quot;Incomplete&quot; and &quot;Complete&quot; respectively) representing the value of \`.request.complete\` flag followed by either &quot;N&quot; (for &quot;No response&quot;) or an HTTP status code (integer, e.g. &quot;200&quot;), followed by &quot;I&quot; or &quot;C&quot; representing the value of \`.response.complete\` flag.">WRR</span></th>
-  <th><span data-help="The current reqres \`state\` followed by \`the final networking state\`, followed by &quot;redirected&quot; when this reqres is a redirect, followed by &quot;problematic!&quot; when this reqres was ever marked as problematic (see the Help page for more info).">pWA</span></th>
+  <th><span data-help="The current reqres \`state\` followed by \`the final networking state\`, followed by &quot;redirected&quot; when this reqres is a redirect, followed by &quot;was_in_limbo&quot; when this reqres was ever in limbo, followed by either &quot;problematic!&quot; when this reqres is marked as problematic or &quot;was_problematic&quot; when this reqres was marked as problematic before (see the Help page for more info).">pWA</span></th>
   <th><span data-help="Timestamp of when the first byte of HTTP request headers was sent.">Request at</span></th>
   <th><span data-help="Protocol/version.">P</span></th>
   <th><span data-help="Protocol method.">M</span></th>
   <th><span data-help="Request URL, followed by &quot; -> &quot; and a redirect URL when this reqres is a redirect.">URL</span></th>
-
   <th><span data-help="Timestamp of when the first byte of HTTP response headers was received.">Response at</span></th>
   <th><span data-help="HTTP protocol response reason, if any. Note that the HTTP response code is displayed as a part of the &quot;WRR&quot; field.">Reason</span></th>
 </tr>
@@ -170,7 +187,7 @@ async function stateMain() {
         let [what, data] = update;
         switch(what) {
         case "resetLog":
-            resetFinished(data);
+            resetLog(data);
             break;
         case "resetProblematicLog":
             resetProblematic(data);
@@ -180,17 +197,17 @@ async function stateMain() {
             break;
         // incrementally add new rows
         case "newInFlight":
-            appendLog(document.getElementById("in_flight"), data);
+            appendToLog(document.getElementById("data_in_flight"), data);
             break;
         case "newLimbo":
-            appendLog(document.getElementById("in_limbo"), data);
-            appendLog(document.getElementById("problematic"), data, (r) => r.problematic);
+            appendToLog(document.getElementById("data_in_limbo"), data);
+            appendToLog(document.getElementById("data_problematic"), data, (r) => r.problematic);
             browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);
             break;
         case "newLog":
-            appendLog(document.getElementById("finished"), data);
+            appendToLog(document.getElementById("data_log"), data);
             if (update[2]) // it's fresh from in-flight
-                appendLog(document.getElementById("problematic"), data, (r) => r.problematic);
+                appendToLog(document.getElementById("data_problematic"), data, (r) => r.problematic);
             else {
                 // it comes from limbo
                 browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo).catch(logError);
@@ -204,10 +221,10 @@ async function stateMain() {
     }
 
     await subscribeToExtension(catchAllAsync(processUpdate), catchAllAsync(async () => {
-        await browser.runtime.sendMessage(["getLog"]).then(resetFinished);
+        await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
         await browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic);
         await browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);
-        await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
+        await browser.runtime.sendMessage(["getLog"]).then(resetLog);
     }));
 
     // show UI

@@ -941,6 +941,7 @@ function popInLimbo(collect, num, tabId) {
 
         if ((tabId === null || shallow.tabId == tabId)
             && (num === null || poppedTotal < num)) {
+            shallow.was_in_limbo = true;
             processFinishedReqres(info, collect, shallow, dump, newLog);
             poppedTotal += 1;
         } else
