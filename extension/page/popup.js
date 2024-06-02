@@ -8,9 +8,14 @@
 
 function showAll() {
     document.getElementById("show").style.display = "none";
-    for (let node of document.getElementsByName("more")) {
+    for (let node of document.getElementsByName("more"))
         node.style.removeProperty("display");
-    }
+}
+
+function hideAll() {
+    document.getElementById("show").style.removeProperty("display");
+    for (let node of document.getElementsByName("more"))
+        node.style.display = "none";
 }
 
 async function popupMain() {
@@ -66,20 +71,6 @@ async function popupMain() {
     buttonToAction("stopTabInFlight", catchAllAsync(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
     buttonToAction("show", catchAll(showAll));
 
-    // when #hash is specified (used in the ./help.org), we don't
-    // want anything hidden and we want to point user to the
-    // appropriate node
-    var hash = window.location.hash.substr(1);
-    if (hash !== "") {
-        showAll();
-        highlightNode(hash);
-    } else {
-        // otherwise hide things under elements named "more" until showAll()
-        for (let node of document.getElementsByName("more")) {
-            node.style.display = "none";
-        }
-    }
-
     async function updateStats(stats) {
         if (stats === undefined)
             stats = await browser.runtime.sendMessage(["getStats"]);
@@ -127,18 +118,29 @@ async function popupMain() {
     browser.tabs.onActivated.removeListener(recordTabIdFunc);
     browser.tabs.onActivated.addListener(catchAllAsync(recordUpdateTabId));
 
+    // set default UI state
+    let hash = document.location.hash.substr(1);
+    if (hash)
+        showAll();
+    else
+        hideAll();
+
     async function processUpdate(update) {
         let [what, data] = update;
-        if (what == "updateStats") {
+        switch (what) {
+        case "updateStats":
             await updateStats(data);
             await updateTabStats();
-        } else if (what == "updateConfig")
+            break;
+        case "updateConfig":
             await updateConfig();
-        else if (what == "updateTabConfig" && data == tabId)
-            await updateTabConfig(update[2]);
-        else if (what == "highlight") {
-            showAll();
-            highlightNode(data);
+            break;
+        case "updateTabConfig":
+            if (data == tabId)
+                await updateTabConfig(update[2]);
+            break;
+        default:
+            await handleDefaultMessages(update, "popup");
         }
     }
 
@@ -151,6 +153,10 @@ async function popupMain() {
 
     // show UI
     setPageLoaded();
+
+    // highlight current target
+    // NB: not using showAll and hideAll here, so that unhighlight will not shrink the UI
+    focusHashNode();
 }
 
 document.addEventListener("DOMContentLoaded", () => popupMain().catch(setPageError), setPageError);

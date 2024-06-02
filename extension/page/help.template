@@ -31,6 +31,7 @@ iframe {
     </div>
     <script src="../lib/compat.js"></script>
     <script src="../lib/utils.js"></script>
+    <script src="../lib/lutils.js"></script>
     <script src="help.js"></script>
   </body>
 </html>

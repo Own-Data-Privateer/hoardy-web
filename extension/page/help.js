@@ -7,11 +7,6 @@
 "use strict";
 
 document.addEventListener("DOMContentLoaded", () => {
-    // highlight current target
-    var hash = window.location.hash.substr(1);
-    if (hash !== "")
-        highlightNode(hash);
-
     let popupURL = browser.runtime.getURL("/page/popup.html");
 
     // show settings as iframe
@@ -32,11 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
             sticky = !sticky;
         };
         el.onmouseover = (event) => {
-            browser.runtime.sendMessage(["broadcast", ["highlight", target]]);
+            broadcast(["focusNode", "popup", target]);
         };
         el.onmouseleave = (event) => {
             if (!sticky)
-                browser.runtime.sendMessage(["broadcast", ["highlight", "all"]]);
+                broadcast(["focusNode", "popup", null]);
         };
     }
 
@@ -50,4 +45,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     resize();
     window.onresize = (event) => resize();
+
+    subscribeToExtensionSimple("help");
+
+    // highlight current target
+    focusHashNode();
 });

@@ -1623,6 +1623,12 @@ function handleTabUpdatedChromium(tabId, changeInfo, tabInfo) {
 // open client tab ports
 let openPorts = new Map();
 
+// Yes, this overrides the function in ../lib/utils.js
+//
+// This is the whole point. In normal modules `broadcast` just sends data to
+// the `handleMessage` below, which then uses this function to broadcast it to
+// all connected ports. And this module uses this function directly instead.
+// (So, this module is the center of a star message-passing topology.)
 function broadcast(data) {
     if (config.debugging)
         console.log("broadcasting", data);

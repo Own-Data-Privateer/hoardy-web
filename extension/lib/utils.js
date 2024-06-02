@@ -167,6 +167,12 @@ async function getActiveTab() {
     return null;
 }
 
+// Ask ../background/core.js to broadcast this `data` to all open
+// pages belonging to this extension.
+function broadcast(data) {
+    return browser.runtime.sendMessage(["broadcast", data]);
+}
+
 // attach function to `onclick` of DOM node with a given id
 function buttonToAction(id, action) {
     let el = document.getElementById(id);
@@ -212,6 +218,8 @@ async function showInternalPageAtNode(url, id, tabId, scrollIntoViewOptions) {
         // in case tabId points to a dead tab
         tab = await openOrActivateTab(rurl);
     }
+    if (id !== undefined)
+        broadcast(["viewNode", tab.id, id, scrollIntoViewOptions]);
     return tab;
 }
 
@@ -221,6 +229,85 @@ function setConditionalClass(node, condition, className) {
         node.classList.add(className);
     else
         node.classList.remove(className);
+}
+
+let defaultScrollIntoViewOptions = { behavior: "smooth", block: "center" };
+
+function viewHTMLNode(el, scrollIntoViewOptions, showAllFunc, hideAllFunc) {
+    if (el !== null) {
+        if (showAllFunc !== undefined)
+            showAllFunc();
+        el.scrollIntoView(scrollIntoViewOptions ? scrollIntoViewOptions : defaultScrollIntoViewOptions);
+    } else if (hideAllFunc !== undefined)
+        hideAllFunc();
+}
+
+function viewNode(id, scrollIntoViewOptions, showAllFunc, hideAllFunc) {
+    let el = id ? document.getElementById(id) : null;
+    viewHTMLNode(el, scrollIntoViewOptions, showAllFunc, hideAllFunc);
+}
+
+// currently highlighted node
+let targetNode = null;
+
+// Highlight DOM node with the given id by adding "target" to its class list.
+// It also un-highlights previously highlighted one, if any.
+function highlightNode(id) {
+    if (targetNode !== null)
+        targetNode.classList.remove("target");
+
+    let el = id ? document.getElementById(id) : null;
+    if (el !== null) {
+        targetNode = el;
+        el.classList.add("target");
+    }
+
+    return el;
+}
+
+// highlightNode followed by viewNode, essentially
+function focusNode(id, scrollIntoViewOptions, showAllFunc, hideAllFunc) {
+    let el = highlightNode(id);
+    viewHTMLNode(el, scrollIntoViewOptions, showAllFunc, hideAllFunc);
+}
+
+function viewHashNode(scrollIntoViewOptions, showAllFunc, hideAllFunc) {
+    let hash = document.location.hash.substr(1);
+    let el = hash ? document.getElementById(hash) : null;
+    // no-smooth scrolling by default here
+    viewHTMLNode(el, scrollIntoViewOptions ? scrollIntoViewOptions : { block: "start" }, showAllFunc, hideAllFunc);
+}
+
+function focusHashNode(scrollIntoViewOptions, showAllFunc, hideAllFunc) {
+    let hash = document.location.hash.substr(1);
+    // no-smooth scrolling by default here
+    focusNode(hash, scrollIntoViewOptions ? scrollIntoViewOptions : { block: "start" }, showAllFunc, hideAllFunc);
+}
+
+function handleDefaultMessages(update, thisTabId, showAllFunc, hideAllFunc) {
+    let [what, reqTabId, data1, data2] = update;
+    if (reqTabId !== thisTabId)
+        return;
+
+    switch (what) {
+    case "showAll":
+        if (showAllFunc !== undefined)
+            showAllFunc();
+        return;
+    case "hideAll":
+        if (hideAllFunc !== undefined)
+            hideAllFunc();
+        return;
+    case "viewNode":
+        viewNode(data1, data2 ? data2 : defaultScrollIntoViewOptions, showAllFunc, hideAllFunc);
+        return;
+    case "highlightNode":
+        highlightNode(data1);
+        return;
+    case "focusNode":
+        focusNode(data1, data2 ? data2 : defaultScrollIntoViewOptions, showAllFunc, hideAllFunc);
+        return;
+    }
 }
 
 // this goes here to prevent Chromium running GC on this
@@ -348,23 +435,6 @@ function makeUI(node) {
     }
 
     node.parentElement.replaceChild(res, node);
-}
-
-// currently highlighted node
-let targetNode = null;
-
-// Highlight DOM node with the given id by adding "target" to its class list.
-// It also un-highlights previously highlighted one, if any.
-function highlightNode(id) {
-    if (targetNode !== null)
-        targetNode.classList.remove("target");
-
-    let el = document.getElementById(id);
-    if (el !== null) {
-        el.classList.add("target");
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        targetNode = el;
-    }
 }
 
 // current helpMark and helpDiv

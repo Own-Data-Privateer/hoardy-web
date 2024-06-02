@@ -129,6 +129,9 @@ function resetInFlight(log) {
 }
 
 async function stateMain() {
+    let thisTab = await getActiveTab();
+    let thisTabId = thisTab.id;
+
     // create UI
     for (let el of document.getElementsByTagName("table")) {
         let thead = document.createElement("thead");
@@ -195,6 +198,8 @@ async function stateMain() {
             }
             browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);
             break;
+        default:
+            await handleDefaultMessages(update, thisTabId);
         }
     }
 
@@ -209,9 +214,7 @@ async function stateMain() {
     setPageLoaded();
 
     // force re-scroll
-    let focused = document.getElementById(document.location.hash.substr(1));
-    if (focused)
-        focused.scrollIntoView({ block: "center" });
+    viewHashNode();
 }
 
 document.addEventListener("DOMContentLoaded", () => stateMain().catch(setPageError), setPageError);
