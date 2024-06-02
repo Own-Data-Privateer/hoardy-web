@@ -163,10 +163,7 @@ async function stateMain() {
     // add help tooltips
     addHelp(document.body, true);
 
-    // open connection to the background script
-    let port = browser.runtime.connect();
-
-    port.onMessage.addListener(catchAll((update) => {
+    async function processUpdate(update) {
         let [what, data] = update;
         switch(what) {
         case "resetLog":
@@ -199,14 +196,14 @@ async function stateMain() {
             browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);
             break;
         }
-    }));
+    }
 
-    // meanwhile, get the whole log, render it, and replace the whole
-    // page with it
-    await browser.runtime.sendMessage(["getLog"]).then(resetFinished);
-    await browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic);
-    await browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);
-    await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
+    await subscribeToExtension(catchAllAsync(processUpdate), catchAllAsync(async () => {
+        await browser.runtime.sendMessage(["getLog"]).then(resetFinished);
+        await browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic);
+        await browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);
+        await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
+    }));
 
     // show UI
     setPageLoaded();

@@ -1633,12 +1633,22 @@ function broadcast(data) {
 }
 
 function handleConnect(port) {
-    //console.log("new port", port);
-    openPorts.set(port.sender.contextId, port);
-    port.onDisconnect.addListener((p) => {
-        //console.log("del port", port);
-        openPorts.delete(port.sender.contextId);
-    });
+    let portId;
+    if (useDebugger) {
+        if (port.sender.tab !== undefined)
+            portId = port.sender.tab.id;
+        else
+            portId = port.sender.url;
+    } else
+        portId = port.sender.contextId;
+    if (config.debugging)
+        console.log("port opened", portId, port);
+    openPorts.set(portId, port);
+    port.onDisconnect.addListener(catchAll(() => {
+        if (config.debugging)
+            console.log("port disconnected", portId);
+        openPorts.delete(portId);
+    }));
 }
 
 function handleMessage(request, sender, sendResponse) {

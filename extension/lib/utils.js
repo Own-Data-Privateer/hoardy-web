@@ -223,6 +223,30 @@ function setConditionalClass(node, condition, className) {
         node.classList.remove(className);
 }
 
+// this goes here to prevent Chromium running GC on this
+let portToExtension;
+
+// open port
+async function subscribeToExtension(processUpdate, refreshFunc, extensionId, connectInfo) {
+    // open connection to the core.js script and listen for updates
+    portToExtension = browser.runtime.connect(extensionId, connectInfo);
+    portToExtension.onMessage.addListener(processUpdate);
+    // retry in 1s on disconnect
+    portToExtension.onDisconnect.addListener(() => {
+        setTimeout(catchAll(() => {
+            subscribeToExtension(processUpdate, refreshFunc, extensionId, connectInfo);
+        }), 1000);
+    });
+
+    // meanwhile, update everything
+    if (refreshFunc !== undefined)
+        await refreshFunc();
+}
+
+function subscribeToExtensionSimple(name, showAllFunc, hideAllFunc) {
+    return subscribeToExtension(catchAllAsync((update) => handleDefaultMessages(update, name)));
+}
+
 // set values of DOM elements from a given object
 function setUI(prefix, value, update) {
     let typ = typeof value;
