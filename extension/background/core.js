@@ -21,6 +21,7 @@ let config = {
     ephemeral: false, // stop the config from being saved to disk
     debugging: false, // verbose debugging logs
     dumping: false, // dump dumps to console
+    discardAllNew: false,
 
     // UI
     lastSeenVersion: manifest.version,
@@ -470,6 +471,13 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
 
     if (stats.issues> 0)
         newBadge = stats.issues.toString() + newBadge;
+
+    if (config.ephemeral
+        || config.debugging || config.dumping
+        || config.discardAllNew) {
+        newBadge += "!";
+        chunks.push("debugging");
+    }
 
     let newTitle = "pWebArc: idle";
     if (chunks.length != 0)
@@ -929,7 +937,8 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
 
     if (collect) {
         changedGlobalStats = true;
-        reqresQueue.push([shallow, dump]);
+        if (!config.discardAllNew)
+            reqresQueue.push([shallow, dump]);
         globalStats.collectedTotal += 1;
         info.collectedTotal += 1;
     } else {
