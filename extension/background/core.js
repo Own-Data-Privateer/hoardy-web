@@ -51,6 +51,12 @@ let config = {
     archiveNoResponse: false,
     archiveIncompleteResponse: false,
 
+    // automatic actions
+    autoUnmarkProblematic: false,
+    autoPopInLimboCollect: false,
+    autoPopInLimboDiscard: false,
+    autoTimeout: 1,
+
     root: {
         collecting: true,
         limbo: false,
@@ -130,12 +136,6 @@ function processNewTab(tabId, openerTabId) {
 // cleanup changed stats (which can happens when a deleted tab has problematic
 // reqres)
 function cleanupTabs() {
-    // forget problematic reqres in closed tabs
-    let numProblematicBefore = reqresProblematic.length;
-    reqresProblematic = reqresProblematic.filter((e) => openTabs.has(e.tabId));
-
-    // TODO similar reqresLimbo cleanup goes here
-
     // collect all tabs referenced in not yet archived requests
     let usedTabs = new Set();
     for (let [k, v] of reqresInFlight.entries())
@@ -174,13 +174,34 @@ function cleanupTabs() {
         console.warn("removing stale tab state", tabId);
         tabState.delete(tabId);
     }
+}
 
-    return reqresProblematic.length != numProblematicBefore;
+function cleanupAfterTab(tabId, untimeout) {
+    if (config.autoUnmarkProblematic && reqresProblematic.length > 0
+        || (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) && reqresLimbo.length > 0)
+        setTimeout(() => {
+            if (config.autoUnmarkProblematic) {
+                if (config.debugging)
+                    console.log("cleaning up reqresProblematic after tab", tabId);
+                unmarkProblematic(tabId);
+            }
+
+            if (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) {
+                if (config.debugging)
+                    console.log("cleaning up reqresLimbo after tab", tabId);
+                if (config.autoPopInLimboCollect)
+                    popInLimbo(true, null, tabId);
+                else if (config.autoPopInLimboDiscard)
+                    popInLimbo(false, null, tabId);
+            }
+        }, config.autoTimeout * 1000 - untimeout);
 }
 
 function processRemoveTab(tabId) {
     openTabs.delete(tabId);
-    updateDisplay(cleanupTabs(), true);
+    cleanupTabs();
+    updateDisplay(false, true);
+
     if (useDebugger) {
         // after a small timeout, force emit all `debugReqresInFlight` of this
         // tab, since Chromium won't send any new debug events for them anyway
@@ -189,8 +210,10 @@ function processRemoveTab(tabId) {
                 console.log("cleaning up debugReqresInFlight after tab", tabId);
             forceEmitInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_CLOSED_TAB");
             processMatchFinishingUpWebRequestDebug();
+            cleanupAfterTab(tabId, 10000);
         }, 10000);
-    }
+    } else
+        cleanupAfterTab(tabId, 0);
 }
 
 // browserAction state
@@ -716,7 +739,8 @@ function processArchiving() {
                 reqresFailed.delete(archiveURL);
         }
 
-        updateDisplay(cleanupTabs(), false);
+        cleanupTabs();
+        updateDisplay(false, false);
 
         if (reqresFailed.size == 0) {
             // nothing else to do in this branch, try again
@@ -749,7 +773,8 @@ function processArchiving() {
         }, 1000);
     } else { // if all queues are empty
         cancelRetryAll();
-        updateDisplay(cleanupTabs(), false);
+        cleanupTabs();
+        updateDisplay(false, false);
 
         if (reqresNotifyEmpty && !reqresNotifiedEmpty) {
             reqresNotifiedEmpty = true;

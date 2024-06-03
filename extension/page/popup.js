@@ -86,11 +86,22 @@ async function popupMain() {
     async function updateConfig() {
         let config = await browser.runtime.sendMessage(["getConfig"]);
         setUI("config", config, (newconfig, path) => {
+            switch (path) {
+            case "config.autoPopInLimboCollect":
+                newconfig.autoPopInLimboDiscard = newconfig.autoPopInLimboDiscard && !newconfig.autoPopInLimboCollect;
+                break;
+            case "config.autoPopInLimboDiscard":
+                newconfig.autoPopInLimboCollect = newconfig.autoPopInLimboCollect && !newconfig.autoPopInLimboDiscard;
+                break;
+            }
             browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
         });
 
         setConditionalClass(body, !config.archiving, "disabled-archiving");
         setConditionalClass(body, !config.collecting, "disabled-collecting");
+        setConditionalClass(body, !config.autoUnmarkProblematic
+                            && !config.autoPopInLimboCollect
+                            && !config.autoPopInLimboDiscard, "disabled-auto");
         setConditionalClass(versionButton, !config.seenChangelog, "attention");
         setConditionalClass(helpButton, !config.seenHelp, "attention");
     }
@@ -99,12 +110,17 @@ async function popupMain() {
         if (tabconfig === undefined)
             tabconfig = await browser.runtime.sendMessage(["getOriginConfig", tabId]);
         setUI("tabconfig", tabconfig, (newtabconfig, path) => {
-            if (path == "tabconfig.collecting")
+            switch (path) {
+            case "tabconfig.collecting":
                 newtabconfig.children.collecting = newtabconfig.collecting;
-            if (path == "tabconfig.limbo")
+                break;
+            case "tabconfig.limbo":
                 newtabconfig.children.limbo = newtabconfig.limbo;
-            if (path == "tabconfig.negLimbo")
+                break;
+            case "tabconfig.negLimbo":
                 newtabconfig.children.negLimbo = newtabconfig.negLimbo;
+                break;
+            }
             browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]);
         });
     }

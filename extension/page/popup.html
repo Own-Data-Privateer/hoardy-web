@@ -85,7 +85,8 @@ label code {
 
 .disabled-archiving .da,
 .disabled-collecting .dc,
-.disabled-collecting .dc input[type="checkbox"].toggle {
+.disabled-collecting .dc input[type="checkbox"].toggle,
+.disabled-auto .dauto {
     --text-background: var(--untoggle-background);
     --text-border-color: var(--untoggle-border-color);
     --toggle-background: var(--untoggle-background);
@@ -284,6 +285,13 @@ label code {
       <ui id="config.markProblematicNoResponse" type="boolean" class="prefer-on" data-help="Mark a newly finished reqres as problematic when it got no response (i.e. the request in question was interrupted before request headers were received; this usually means a networking issue). Enabled by default.">... in <code>no_response</code> state</ui>
       <ui id="config.markProblematicIncomplete" type="boolean" class="prefer-on" data-help="Mark a newly finished reqres as problematic when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Enabled by default.">... in <code>incomplete</code> state</ui>
       <ui id="config.markProblematicIncompleteFC" type="boolean" class="prefer-off" data-help="Mark a newly finished reqres as problematic when it was loaded from browser's cache but its response data was not given to the extension (this only happens on Firefox-based browsers). Disabled by default because this usually means that one of the previously collected reqres had this response data archived already, if had not, you can reload the page with browser's cache disabled via `Contrlol+F5`.">... in <code>incomplete_fc</code> state</ui>
+    </div>
+    <div id="closed-auto-options">
+      <h2>Automatic actions for recently closed tabs</h2>
+      <ui id="config.autoUnmarkProblematic" type="boolean" data-help="For a recently closed tab, automatically forget about problematic reqres.">Auto-unmark problematic reqres</ui>
+      <ui id="config.autoPopInLimboCollect" type="boolean" data-help="For a recently closed tab, automatically collect reqres in limbo.">Auto-collect reqres in limbo</ui>
+      <ui id="config.autoPopInLimboDiscard" type="boolean" class="prefer-off" data-help="For a recently closed tab, automatically discard reqres in limbo.">Auto-discard reqres in limbo</ui>
+      <ui id="config.autoTimeout" type="number" class="dauto" data-help="Perform automatic actions after this many seconds after the target tab is closed.">After</ui>
     </div>
     <div id="history-options">
       <h2>History</h2>
