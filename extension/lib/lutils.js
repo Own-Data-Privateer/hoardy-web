@@ -75,3 +75,30 @@ function setPageError(error) {
     document.getElementById("body_loading").style.display = "none";
     document.getElementById("body_error").style.display = "block";
 }
+
+function isUnknownError(error) {
+    if (useDebugger && (error === "webRequest::net::ERR_ABORTED"
+                     || error === "webRequest::net::ERR_BLOCKED_BY_CLIENT"
+                     || error === "debugger::net::ERR_ABORTED"
+                     || error === "debugger::net::ERR_CANCELED"
+                     || error === "debugger::pWebArc::EMIT_FORCED_BY_USER"
+                     || error === "debugger::pWebArc::EMIT_FORCED_BY_CLOSED_TAB"
+                     || error === "debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER"
+                     || error.startsWith("debugger::net::ERR_BLOCKED::")))
+        // Chromium
+        return false;
+    else if (!useDebugger && (error === "webRequest::NS_ERROR_ABORT"
+                           || error === "webRequest::NS_BINDING_ABORTED"
+                           || error === "webRequest::pWebArc::EMIT_FORCED_BY_USER"
+                           || error === "filterResponseData::Channel redirected"))
+        // Firefox
+        return false;
+    return true;
+}
+
+function isProblematicError(error) {
+    if (!useDebugger && error === "filterResponseData::Channel redirected")
+        // Firefox
+        return false;
+    return true;
+}

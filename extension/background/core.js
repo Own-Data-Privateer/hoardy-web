@@ -44,12 +44,15 @@ let config = {
     markProblematicNoResponse: true,
     markProblematicIncomplete: true,
     markProblematicIncompleteFC: false,
+    markProblematicWithErrors: false,
+    markProblematicPickedWithErrors: true,
 
     // collection options
     archivePartialRequest: true,
     archiveCanceled: false,
     archiveNoResponse: false,
     archiveIncompleteResponse: false,
+    archiveWithErrors: true,
 
     // automatic actions
     autoUnmarkProblematic: false,
@@ -1041,6 +1044,14 @@ function processAlmostDone() {
             collect = collect && config.archivePartialRequest;
         }
 
+        if (reqres.errors.some(isProblematicError)) {
+            // it had some potentially problematic errors
+            collect = collect && config.archiveWithErrors;
+            problematic = problematic
+                || config.markProblematicWithErrors
+                || (collect && config.markProblematicPickedWithErrors);
+        }
+
         let lineProtocol;
         let lineReason;
         if (reqres.statusLine !== undefined) {
@@ -1205,25 +1216,6 @@ function stopAllInFlight(tabId) {
     scheduleEndgame();
 }
 
-function importantError(error) {
-    if (useDebugger && (error === "webRequest::net::ERR_ABORTED"
-                     || error === "webRequest::net::ERR_BLOCKED_BY_CLIENT"
-                     || error === "debugger::net::ERR_ABORTED"
-                     || error === "debugger::net::ERR_CANCELED"
-                     || error === "debugger::pWebArc::EMIT_FORCED_BY_USER"
-                     || error === "debugger::pWebArc::EMIT_FORCED_BY_CLOSED_TAB"
-                     || error === "debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER"
-                     || error.startsWith("debugger::net::ERR_BLOCKED::")))
-        // Chromium
-        return false;
-    else if (!useDebugger && (error === "webRequest::NS_ERROR_ABORT"
-                           || error === "webRequest::pWebArc::EMIT_FORCED_BY_USER"
-                           || error === "filterResponseData::Channel redirected"))
-        // Firefox
-        return false;
-    return true;
-}
-
 function emitRequest(requestId, reqres, error, dontFinishUp) {
     reqresInFlight.delete(requestId);
 
@@ -1272,7 +1264,7 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
     }
 
     if (error !== undefined) {
-        if (importantError(error))
+        if (isUnknownError(error))
             console.error("emitRequest", requestId, "error", error, reqres);
         reqres.errors.push(error);
     }
@@ -1459,7 +1451,7 @@ function handleBeforeRequest(e) {
             if (filter.error !== "Invalid request ID") {
                 // if filter was actually started
                 let error = "filterResponseData::" + filter.error;
-                if (importantError(error))
+                if (isUnknownError(error))
                     console.error("filterResponseData", requestId, "error", error);
                 reqres.errors.push(error);
             }

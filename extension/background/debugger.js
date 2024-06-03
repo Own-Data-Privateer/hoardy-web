@@ -264,7 +264,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     dreqres.requestId = requestId;
 
     if (error !== undefined) {
-        if (importantError(error))
+        if (isUnknownError(error))
             console.error("emitDebugRequest", requestId, "error", error, dreqres);
         dreqres.errors.push(error);
     }
