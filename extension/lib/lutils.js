@@ -89,6 +89,8 @@ function isUnknownError(error) {
         return false;
     else if (!useDebugger && (error === "webRequest::NS_ERROR_ABORT"
                            || error === "webRequest::NS_BINDING_ABORTED"
+                           || error === "webRequest::NS_ERROR_NET_ON_WAITING_FOR"
+                           || error === "webRequest::NS_ERROR_UNKNOWN_HOST"
                            || error === "webRequest::pWebArc::EMIT_FORCED_BY_USER"
                            || error === "filterResponseData::Channel redirected"))
         // Firefox
