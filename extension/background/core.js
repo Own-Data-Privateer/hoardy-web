@@ -200,7 +200,6 @@ function cleanupAfterTab(tabId, untimeout) {
 function processRemoveTab(tabId) {
     openTabs.delete(tabId);
     cleanupTabs();
-    updateDisplay(false, true);
 
     if (useDebugger) {
         // after a small timeout, force emit all `debugReqresInFlight` of this
@@ -1613,12 +1612,14 @@ function handleTabCreated(tab) {
             }, logError);
     } else
         processNewTab(tab.id, tab.openerTabId);
+    updateDisplay(false, true);
 }
 
 function handleTabRemoved(tabId) {
     if (config.debugging)
         console.log("tab removed", tabId);
     processRemoveTab(tabId);
+    updateDisplay(false, true);
 }
 
 function handleTabReplaced(addedTabId, removedTabId) {
@@ -1626,6 +1627,7 @@ function handleTabReplaced(addedTabId, removedTabId) {
         console.log("tab replaced", removedTabId, addedTabId);
     processRemoveTab(removedTabId);
     processNewTab(addedTabId);
+    updateDisplay(false, true);
 }
 
 function handleTabActivated(e) {
