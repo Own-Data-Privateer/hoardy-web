@@ -31,6 +31,26 @@
     },
 
     "commands": {
+        "_execute_browser_action": {
+            "suggested_key": {
+                "default": "Alt+A"
+            }
+        },
+        "show-state": {
+            "suggested_key": {
+                "default": "Alt+G"
+            }
+        },
+        "show-log": {
+            "suggested_key": {
+                "default": "Alt+Shift+G"
+            }
+        },
+        "show-tab-log": {
+            "suggested_key": {
+                "default": "Alt+Shift+I"
+            }
+        },
         "toggle-tabconfig-children-limbo": {
             "suggested_key": {
                 "default": "Alt+Shift+L"

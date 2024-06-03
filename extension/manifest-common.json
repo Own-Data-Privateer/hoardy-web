@@ -18,11 +18,20 @@
     },
 
     "commands": {
+        "show-state": {
+            "description": "Show the internal state"
+        },
+        "show-log": {
+            "description": "Show the log of recently collected and discarded reqres"
+        },
         "show-tab-state": {
             "suggested_key": {
                 "default": "Alt+I"
             },
-            "description": "For the current tab, show the internal state and the log of recently collected and discarded reqres"
+            "description": "For the current tab, show the internal state"
+        },
+        "show-tab-log": {
+            "description": "For the current tab, show the log of recently collected and discarded reqres"
         },
         "toggle-tabconfig-tracking": {
             "suggested_key": {

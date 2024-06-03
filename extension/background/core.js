@@ -1892,8 +1892,17 @@ async function handleCommand(command) {
 
     let tabcfg = undefined;
     switch (command) {
+    case "show-state":
+        showState("", "top", tabId);
+        return;
+    case "show-log":
+        showState("", "bottom", tabId);
+        return;
     case "show-tab-state":
-        showState(`?tab=${tabId}`, "", tabId);
+        showState(`?tab=${tabId}`, "top", tabId);
+        return;
+    case "show-tab-log":
+        showState(`?tab=${tabId}`, "bottom", tabId);
         return;
     case "toggle-tabconfig-tracking":
         tabcfg = getOriginConfig(tabId);

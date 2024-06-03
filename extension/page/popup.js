@@ -54,8 +54,8 @@ async function popupMain() {
     let helpButton = document.getElementById("help");
     helpButton.onclick = catchAllAsync(() => resetAndOpen({ seenHelp: true }, showHelp));
 
-    buttonToAction("showState", catchAllAsync(() => showState("", "", tabId)));
-    buttonToAction("showTabState", catchAllAsync(() => showState(`?tab=${tabId}`, "", tabId)));
+    buttonToAction("showState", catchAllAsync(() => showState("", "top", tabId)));
+    buttonToAction("showTabState", catchAllAsync(() => showState(`?tab=${tabId}`, "top", tabId)));
 
     buttonToMessage("forgetHistory");
     buttonToMessage("unmarkProblematic");
