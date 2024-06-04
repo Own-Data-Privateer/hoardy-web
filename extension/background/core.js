@@ -187,7 +187,7 @@ function cleanupAfterTab(tabId, untimeout) {
             if (config.autoUnmarkProblematic) {
                 if (config.debugging)
                     console.log("cleaning up reqresProblematic after tab", tabId);
-                unmarkProblematic(tabId);
+                unmarkProblematic(null, tabId);
             }
 
             if (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) {
@@ -406,33 +406,110 @@ function getTabStats(tabId) {
     };
 }
 
-function forgetHistory(tabId) {
-    reqresLog = reqresLog.filter((e) => e.problematic === true || (tabId !== null && e.tabId != tabId));
-    broadcast(["resetLog", reqresLog]);
-    updateDisplay(true, false, tabId);
-}
-
-function unmarkProblematic(tabId) {
+function unmarkProblematic(num, tabId) {
+    if (reqresProblematic.length == 0)
+        return;
     if (tabId === undefined)
         tabId = null;
 
-    let origins = new Set();
-    let kept = [];
-    for (let e of reqresProblematic) {
-        if (tabId === null || e.tabId == tabId) {
-            e.problematic = false;
-            origins.add(e.tabId);
-        } else
-            kept.push(e);
-    }
-    reqresProblematic = kept;
+    let [popped, unpopped] = partitionN((shallow) => {
+        let res = tabId === null || shallow.tabId == tabId;
+        if (res) {
+            shallow.problematic = false;
+            let info = getOriginState(shallow.tabId, shallow.fromExtension);
+            info.problematicTotal -= 1;
+        }
+        return res;
+    }, num, reqresProblematic);
+    reqresProblematic = unpopped;
 
-    for (let o of origins) {
-        let info = tabState.get(o);
-        if (info !== undefined)
-            info.problematicTotal = 0;
+    if (popped.length > 0) {
+        broadcast(["resetProblematicLog", reqresProblematic]);
+        cleanupTabs();
+        updateDisplay(true, false, tabId);
     }
+}
+
+function rotateProblematic(num, tabId) {
+    if (reqresProblematic.length == 0)
+        return;
+    if (tabId === undefined)
+        tabId = null;
+
+    let [popped, unpopped] = partitionN((shallow) =>
+                                        tabId === null || shallow.tabId == tabId
+                                       , num, reqresProblematic);
+    // rotate them to the back
+    for (let shallow of popped)
+        unpopped.push(shallow);
+    reqresProblematic = unpopped;
+
     broadcast(["resetProblematicLog", reqresProblematic]);
+    //updateDisplay(false, false, tabId);
+}
+
+function popInLimbo(collect, num, tabId) {
+    if (reqresLimbo.length == 0)
+        return;
+    if (tabId === undefined)
+        tabId = null;
+
+    let newLog = [];
+    let [popped, unpopped] = partitionN((el) => {
+        let [shallow, dump] = el;
+        let res = tabId === null || shallow.tabId == tabId;
+        if (res) {
+            shallow.was_in_limbo = true;
+            let info = getOriginState(shallow.tabId, shallow.fromExtension);
+            info.inLimboTotal -= 1;
+            processFinishedReqres(info, collect, shallow, dump, newLog);
+        }
+        return res;
+    }, num, reqresLimbo);
+    reqresLimbo = unpopped;
+
+    if (popped.length > 0) {
+        // broadcast(["resetInLimboLog", reqresLimbo]);
+        // is implied by
+        broadcast(["newLog", newLog, false]);
+        cleanupTabs();
+        updateDisplay(true, false);
+        scheduleEndgame();
+    }
+}
+
+function rotateInLimbo(num, tabId) {
+    if (reqresLimbo.length == 0)
+        return;
+    if (tabId === undefined)
+        tabId = null;
+
+    let [popped, unpopped] = partitionN((el) => {
+        let [shallow, dump] = el;
+        return tabId === null || shallow.tabId == tabId;
+    }, num, reqresLimbo);
+    // rotate them to the back
+    for (let el of popped)
+        unpopped.push(el);
+    reqresLimbo = unpopped;
+
+    broadcast(["resetInLimboLog", reqresLimbo]);
+    //updateDisplay(false, false, tabId);
+}
+
+function forgetHistory(tabId) {
+    if (reqresLog.length == 0)
+        return;
+    if (tabId === undefined)
+        tabId = null;
+
+    let [popped, unpopped] = partitionN((shallow) =>
+                                        (tabId === null || shallow.tabId == tabId)
+                                        && shallow.problematic === false
+                                       , null, reqresLog);
+    reqresLog = unpopped;
+
+    broadcast(["resetLog", reqresLog]);
     updateDisplay(true, false, tabId);
 }
 
@@ -957,43 +1034,6 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
         else
             newLog.push(shallow);
     }
-}
-
-function popInLimbo(collect, num, tabId) {
-    if (reqresLimbo.length == 0)
-        return;
-    if (tabId === undefined)
-        tabId = null;
-
-    let info = undefined;
-    if (tabId !== null)
-        info = getOriginState(tabId);
-
-    let poppedTotal = 0;
-    let newLog = [];
-    let newReqresLimbo = [];
-    for (let el of reqresLimbo) {
-        let [shallow, dump] = el;
-
-        if ((tabId === null || shallow.tabId == tabId)
-            && (num === null || poppedTotal < num)) {
-            shallow.was_in_limbo = true;
-            processFinishedReqres(info, collect, shallow, dump, newLog);
-            poppedTotal += 1;
-        } else
-            newReqresLimbo.push(el);
-    }
-
-    if (poppedTotal > 0) {
-        reqresLimbo = newReqresLimbo;
-        if (info !== undefined)
-            info.inLimboTotal -= poppedTotal;
-        cleanupTabs();
-        broadcast(["newLog", newLog, false]);
-        updateDisplay(true, false);
-    }
-
-    scheduleEndgame();
 }
 
 function processAlmostDone() {
@@ -1771,7 +1811,7 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(reqresProblematic);
         break;
     case "unmarkProblematic":
-        unmarkProblematic(request[1]);
+        unmarkProblematic(null, request[1]);
         sendResponse(null);
         break;
     case "getInFlightLog":

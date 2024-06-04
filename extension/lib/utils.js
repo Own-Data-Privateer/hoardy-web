@@ -8,6 +8,23 @@
 
 "use strict";
 
+// partition a list via a predicate, but stop after num elements
+function partitionN(predicate, num, list) {
+    let total = 0;
+    let first = [];
+    let second = [];
+    for (let e of list) {
+        if ((num === null || total < num)
+            && (predicate === undefined || predicate(e))) {
+            total += 1;
+            first.push(e);
+        } else
+            second.push(e);
+    }
+
+    return [first, second];
+}
+
 // turn all uncaught exceptions into console.error
 function catchAll(func) {
     return (...args) => {
