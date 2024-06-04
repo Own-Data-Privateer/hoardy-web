@@ -51,6 +51,11 @@
                 "default": "Alt+Shift+I"
             }
         },
+        "toggle-tabconfig-children-tracking": {
+            "suggested_key": {
+                "default": "Alt+Shift+C"
+            }
+        },
         "toggle-tabconfig-children-limbo": {
             "suggested_key": {
                 "default": "Alt+Shift+L"

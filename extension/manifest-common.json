@@ -40,9 +40,6 @@
             "description": "For the current tab, toggle tracking and reset it for the tab's new children"
         },
         "toggle-tabconfig-children-tracking": {
-            "suggested_key": {
-                "default": "Alt+Shift+C"
-            },
             "description": "For current tab's new children, toggle tracking"
         },
         "toggle-tabconfig-limbo": {
@@ -53,6 +50,12 @@
         },
         "toggle-tabconfig-children-limbo": {
             "description": "For current tab's new children, toggle limbo mode"
+        },
+        "unmark-all-tab-problematic": {
+            "suggested_key": {
+                "default": "Alt+Shift+U"
+            },
+            "description": "For the current tab, unmark all problematic reqres"
         },
         "collect-all-tab-inlimbo": {
             "description": "For the current tab, collect all reqres in limbo"

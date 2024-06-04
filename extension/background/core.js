@@ -1973,6 +1973,9 @@ async function handleCommand(command) {
         tabcfg = getOriginConfig(tabId);
         tabcfg.children.limbo = !tabcfg.children.limbo;
         break;
+    case "unmark-all-tab-problematic":
+        unmarkProblematic(null, tabId);
+        return;
     case "collect-all-tab-inlimbo":
         popInLimbo(true, null, tabId);
         return;
