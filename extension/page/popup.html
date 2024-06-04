@@ -128,23 +128,27 @@ label code {
           <span id="stats.archive_failed">0</span>
         </span>
       </div>
-      <div id="div-stats.collected" data-help="The numbers of finished reqres that were collected for archival / discarded from memory.">
+      <div id="div-stats.collected" data-help="The numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory.">
         <span>Collected/Discarded</span>
         <span>
         </span>
         <span>
           <span id="stats.collected">0</span>
+          (<span id="stats.collected_size">0</span>)
           /
           <span id="stats.discarded">0</span>
         </span>
       </div>
-      <div id="div-stats.in_limbo" data-help="The number of finished reqres in limbo.">
+      <div id="div-stats.in_limbo" data-help="The number of finished reqres in limbo (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
           <span data-help="Collect all reqres in limbo."><input type="button" id="collectAllInLimbo" value="✔️" /></span>
           <span data-help="Discard all reqres in limbo."><input type="button" id="discardAllInLimbo" value="✖️" /></span>
         </span>
-        <span id="stats.in_limbo">0</span>
+        <span>
+          <span id="stats.in_limbo">0</span>
+          (<span id="stats.in_limbo_size">0</span>)
+        </span>
       </div>
       <div id="div-stats.picked" data-help="The number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
         <span>Picked/Dropped</span>
@@ -189,23 +193,27 @@ label code {
       </span>
     </h1>
     <div class="stats">
-      <div id="div-tabstats.collected" data-help="For this tab, the numbers of finished reqres that were collected for archival / discarded from memory.">
+      <div id="div-tabstats.collected" data-help="For this tab, the numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory.">
         <span>Collected/Discarded</span>
         <span>
         </span>
         <span>
           <span id="tabstats.collected">0</span>
+          (<span id="tabstats.collected_size">0</span>)
           /
           <span id="tabstats.discarded">0</span>
         </span>
       </div>
-      <div id="div-tabstats.in_limbo" data-help="For this tab, the number of finished reqres in limbo.">
+      <div id="div-tabstats.in_limbo" data-help="For this tab, the number of finished reqres in limbo (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
           <span data-help="For reqres of this tab, collect all reqres in limbo."><input type="button" id="collectTabInLimbo" value="✔️" /></span>
           <span data-help="For reqres of this tab, discard all reqres in limbo."><input type="button" id="discardTabInLimbo" value="✖️" /></span>
         </span>
-        <span id="tabstats.in_limbo">0</span>
+        <span>
+          <span id="tabstats.in_limbo">0</span>
+          (<span id="tabstats.in_limbo_size">0</span>)
+        </span>
       </div>
       <div id="div-tabstats.picked" data-help="For this tab, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
         <span>Picked/Dropped</span>

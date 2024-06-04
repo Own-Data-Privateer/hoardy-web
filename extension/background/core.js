@@ -236,6 +236,7 @@ let reqresAlmostDone = [];
 let reqresProblematic = [];
 // requests in limbo, waiting to be either dropped or queued for archival
 let reqresLimbo = [];
+let reqresLimboSize = 0;
 // requests in the process of being archived
 let reqresQueue = [];
 // total number of archived reqres
@@ -273,9 +274,9 @@ let globalStats = {
     // total numbers of picked and dropped reqres
     pickedTotal: 0,
     droppedTotal: 0,
-    // inLimboTotal is reqresLimbo.length
     // total numbers of collected and discarded reqres
     collectedTotal: 0,
+    collectedSize: 0,
     discardedTotal: 0,
 };
 // did we have new queued reqres since
@@ -302,7 +303,9 @@ let defaultTabState = {
     pickedTotal: 0,
     droppedTotal: 0,
     inLimboTotal: 0,
+    inLimboSize: 0,
     collectedTotal: 0,
+    collectedSize: 0,
     discardedTotal: 0,
 };
 
@@ -352,8 +355,10 @@ function getStats() {
         picked: globalStats.pickedTotal,
         dropped: globalStats.droppedTotal,
         in_limbo: reqresLimbo.length,
+        in_limbo_size: reqresLimboSize,
         in_queue: reqresQueue.length,
         collected: globalStats.collectedTotal,
+        collected_size: globalStats.collectedSize,
         discarded: globalStats.discardedTotal,
         archive_ok: reqresArchivedTotal,
         archive_failed,
@@ -401,7 +406,9 @@ function getTabStats(tabId) {
         picked: info.pickedTotal,
         dropped: info.droppedTotal,
         in_limbo: info.inLimboTotal,
+        in_limbo_size: info.inLimboSize,
         collected: info.collectedTotal,
+        collected_size: info.collectedSize,
         discarded: info.discardedTotal,
     };
 }
@@ -462,7 +469,9 @@ function popInLimbo(collect, num, tabId) {
             shallow.was_in_limbo = true;
             let info = getOriginState(shallow.tabId, shallow.fromExtension);
             info.inLimboTotal -= 1;
+            info.inLimboSize -= dump.byteLength;
             processFinishedReqres(info, collect, shallow, dump, newLog);
+            reqresLimboSize -= dump.byteLength;
         }
         return res;
     }, num, reqresLimbo);
@@ -1016,7 +1025,9 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
         if (!config.discardAllNew)
             reqresQueue.push([shallow, dump]);
         globalStats.collectedTotal += 1;
+        globalStats.collectedSize += dump.byteLength;
         info.collectedTotal += 1;
+        info.collectedSize += dump.byteLength;
     } else {
         changedGlobalStats = true;
         globalStats.discardedTotal += 1;
@@ -1167,7 +1178,9 @@ function processAlmostDone() {
 
             if (collect && options.limbo || !collect && options.negLimbo) {
                 reqresLimbo.push([shallow, dump]);
+                reqresLimboSize += dump.byteLength;
                 info.inLimboTotal += 1;
+                info.inLimboSize += dump.byteLength;
                 broadcast(["newLimbo", [shallow]]);
             } else
                 processFinishedReqres(info, true, shallow, dump);
