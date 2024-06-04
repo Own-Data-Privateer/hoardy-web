@@ -469,8 +469,7 @@ function popInLimbo(collect, num, tabId) {
     reqresLimbo = unpopped;
 
     if (popped.length > 0) {
-        // broadcast(["resetInLimboLog", reqresLimbo]);
-        // is implied by
+        broadcast(["resetInLimboLog", getInLimboLog()]);
         broadcast(["newLog", newLog, false]);
         cleanupTabs();
         updateDisplay(true, false);
@@ -493,7 +492,7 @@ function rotateInLimbo(num, tabId) {
         unpopped.push(el);
     reqresLimbo = unpopped;
 
-    broadcast(["resetInLimboLog", reqresLimbo]);
+    broadcast(["resetInLimboLog", getInLimboLog()]);
     //updateDisplay(false, false, tabId);
 }
 
@@ -1024,7 +1023,7 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
         info.discardedTotal += 1;
     }
 
-    if (config.logDiscarded || collect || shallow.was_problematic) {
+    if (collect || config.logDiscarded || shallow.was_problematic) {
         reqresLog.push(shallow);
         while (reqresLog.length > config.history)
             reqresLog.shift();
@@ -1174,6 +1173,9 @@ function processAlmostDone() {
                 processFinishedReqres(info, true, shallow, dump);
         } else
             processFinishedReqres(info, false, shallow, undefined);
+
+        if (problematic)
+            broadcast(["newProblematic", [shallow]]);
     }
 
     updateDisplay(true, false, updatedTabId);
@@ -1811,7 +1813,11 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(reqresProblematic);
         break;
     case "unmarkProblematic":
-        unmarkProblematic(null, request[1]);
+        unmarkProblematic(request[1], request[2]);
+        sendResponse(null);
+        break;
+    case "rotateProblematic":
+        rotateProblematic(request[1], request[2]);
         sendResponse(null);
         break;
     case "getInFlightLog":
@@ -1826,6 +1832,10 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "popInLimbo":
         popInLimbo(request[1], request[2], request[3]);
+        sendResponse(null);
+        break;
+    case "rotateInLimbo":
+        rotateInLimbo(request[1], request[2]);
         sendResponse(null);
         break;
     case "broadcast":

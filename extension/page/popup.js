@@ -58,14 +58,14 @@ async function popupMain() {
     buttonToAction("showTabState", catchAllAsync(() => showState(`?tab=${tabId}`, "top", tabId)));
 
     buttonToMessage("forgetHistory");
-    buttonToMessage("unmarkProblematic");
+    buttonToAction("unmarkAllProblematic", catchAllAsync(() => browser.runtime.sendMessage(["unmarkProblematic", null])));
     buttonToMessage("retryAllFailedArchives");
     buttonToAction("collectAllInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, null])));
     buttonToAction("discardAllInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, null])));
     buttonToMessage("stopAllInFlight");
 
     buttonToAction("forgetTabHistory",     catchAllAsync(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
-    buttonToAction("unmarkTabProblematic", catchAllAsync(() => browser.runtime.sendMessage(["unmarkProblematic", tabId])));
+    buttonToAction("unmarkTabProblematic", catchAllAsync(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
     buttonToAction("collectTabInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
     buttonToAction("discardTabInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
     buttonToAction("stopTabInFlight", catchAllAsync(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));

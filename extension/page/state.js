@@ -173,7 +173,10 @@ async function stateMain() {
     }
 
     buttonToAction("forgetHistory", catchAllAsync(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
-    buttonToAction("unmarkProblematic", catchAllAsync(() => browser.runtime.sendMessage(["unmarkProblematic", tabId])));
+    buttonToAction("rotateOneProblematic", catchAllAsync(() => browser.runtime.sendMessage(["rotateProblematic", 1, tabId])));
+    buttonToAction("unmarkOneProblematic", catchAllAsync(() => browser.runtime.sendMessage(["unmarkProblematic", 1, tabId])));
+    buttonToAction("unmarkAllProblematic", catchAllAsync(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
+    buttonToAction("rotateOneInLimbo",  catchAllAsync(() => browser.runtime.sendMessage(["rotateInLimbo", 1, tabId])));
     buttonToAction("discardOneInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, 1, tabId])));
     buttonToAction("discardAllInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
     buttonToAction("collectOneInLimbo",   catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, 1, tabId])));
@@ -199,21 +202,18 @@ async function stateMain() {
         case "newInFlight":
             appendToLog(document.getElementById("data_in_flight"), data);
             break;
+        case "newProblematic":
+            appendToLog(document.getElementById("data_problematic"), data);
+            break;
         case "newLimbo":
             appendToLog(document.getElementById("data_in_limbo"), data);
-            appendToLog(document.getElementById("data_problematic"), data, (r) => r.problematic);
             browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);
             break;
         case "newLog":
             appendToLog(document.getElementById("data_log"), data);
-            if (update[2]) // it's fresh from in-flight
-                appendToLog(document.getElementById("data_problematic"), data, (r) => r.problematic);
-            else {
-                // it comes from limbo
-                browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo).catch(logError);
-                browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic).catch(logError);
-            }
-            browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);
+            if (update[2])
+                // it's flesh from in-flight
+                browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);
             break;
         default:
             await handleDefaultMessages(update, thisTabId);

@@ -58,9 +58,13 @@ td.long {
 
     <h1 id="problematic">Problematic
       <span class="right">
-        <span data-help="Unset `problematic` flag from all reqres below."><input type="button" id="unmarkProblematic" value="Unmark all" /></span>
+        <span data-help="Unset `problematic` flag from the first reqres below."><input type="button" id="unmarkOneProblematic" value="Unmark the first one" /></span>
+        <span data-help="Unset `problematic` flag from all reqres below."><input type="button" id="unmarkAllProblematic" value="Unmark all" /></span>
       </span>
     </h1>
+    <div>
+      <span data-help="Move the first reqres below to the end."><input type="button" id="rotateOneProblematic" value="Rotate the first one" /></span>
+    </div>
     <table><tbody id="data_problematic"></tbody></table>
 
     <h1 id="in_limbo">In limbo
@@ -70,6 +74,7 @@ td.long {
       </span>
     </h1>
     <div>
+      <span data-help="Move the first reqres below to the end."><input type="button" id="rotateOneInLimbo" value="Rotate the first one" /></span>
       <span data-help="Collect the first reqres below."><input type="button" id="collectOneInLimbo" value="Collect the first one" /></span>
       <span data-help="Collect all reqres below."><input type="button" id="collectAllInLimbo" value="Collect all" /></span>
     </div>
