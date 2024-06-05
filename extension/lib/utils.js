@@ -8,6 +8,12 @@
 
 "use strict";
 
+let KILOBYTE = 1024;
+let MEGABYTE = KILOBYTE * 1024;
+let GIGABYTE = MEGABYTE * 1024;
+let TERABYTE = GIGABYTE * 1024;
+let PETABYTE = TERABYTE * 1024;
+
 // partition a list via a predicate, but stop after num elements
 function partitionN(predicate, num, list) {
     let total = 0;
@@ -109,6 +115,55 @@ function updateFromRec(target, value, prefer_original) {
         console.error("updateFromRec", typ, target, value);
         throw new Error("what?");
     }
+}
+
+function numberToPowerString(n, powers) {
+    function mk(pow, psuf) {
+        let v = n / pow;
+        let vs = v.toString();
+        let dot = vs.indexOf(".");
+        if (dot >= 3)
+            vs = vs.substr(0, dot);
+        else if (dot != -1)
+            vs = vs.substr(0, dot + 2);
+        return vs + psuf;
+    }
+
+    let res;
+    for (let [pow, psuf] of powers) {
+        if (n > pow) {
+            res = mk(pow, psuf);
+            break;
+        }
+    }
+    if (res !== undefined)
+        return res;
+    else
+        return n.toString();
+}
+
+let countPowers = [
+    [Math.pow(1000, 5), "P"],
+    [Math.pow(1000, 4), "T"],
+    [Math.pow(1000, 3), "G"],
+    [Math.pow(1000, 2), "M"],
+    [1000, "K"],
+];
+
+function countToString(n) {
+    return numberToPowerString(n, countPowers);
+}
+
+let byteLengthPowers = [
+    [PETABYTE, "Pi"],
+    [TERABYTE, "Ti"],
+    [GIGABYTE, "Gi"],
+    [MEGABYTE, "Mi"],
+    [KILOBYTE, "Ki"],
+];
+
+function byteLengthToString(n) {
+    return numberToPowerString(n, byteLengthPowers) + "B";
 }
 
 // decode base64 into Uint8Array
