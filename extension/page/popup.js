@@ -18,6 +18,19 @@ function hideAll() {
         node.style.display = "none";
 }
 
+function asPowers(obj) {
+    for (let [k, v] of Object.entries(obj)) {
+        let typ = typeof v;
+        if (typ === "number") {
+            if (k.endsWith("_size"))
+                obj[k] = byteLengthToString(v);
+            else
+                obj[k] = countToString(v);
+        }
+    }
+    return obj;
+}
+
 async function popupMain() {
     let tab = await getActiveTab();
     let windowId = tab.windowId;
@@ -74,13 +87,13 @@ async function popupMain() {
     async function updateStats(stats) {
         if (stats === undefined)
             stats = await browser.runtime.sendMessage(["getStats"]);
-        setUI("stats", stats);
+        setUI("stats", asPowers(stats));
     }
 
     async function updateTabStats(tabstats) {
         if (tabstats === undefined)
             tabstats = await browser.runtime.sendMessage(["getTabStats", tabId]);
-        setUI("tabstats", tabstats);
+        setUI("tabstats", asPowers(tabstats));
     }
 
     async function updateConfig() {
