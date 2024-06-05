@@ -231,6 +231,7 @@ function processRemoveTab(tabId) {
 // browserAction state
 let oldTitle = null;
 let oldBadge = null;
+let oldColor = null;
 
 // archiving state
 // reqres means "request + response"
@@ -543,17 +544,25 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
         broadcast(["updateStats", stats]);
 
     let newBadge = "";
+    let newColor = 0;
     let chunks = [];
+
+    if (stats.issues > 0)
+        newBadge = stats.issues.toString();
+
     if (!config.collecting)
         chunks.push("off");
-    if (!config.archiving)
-        chunks.push("not archiving");
-    if (stats.archive_failed > 0) {
+    if (!config.archiving || stats.archive_failed > 0) {
         newBadge += "A";
-        chunks.push(`failed to archive ${stats.archive_failed} reqres`);
+        newColor = 1;
+        if (!config.archiving)
+            chunks.push("not archiving");
+        if (stats.archive_failed > 0)
+            chunks.push(`failed to archive ${stats.archive_failed} reqres`);
     }
     if (stats.problematic > 0) {
         newBadge += "P";
+        newColor = 1;
         chunks.push(`${stats.problematic} problematic reqres`);
     }
     if (stats.in_queue > 0) {
@@ -562,21 +571,27 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
     }
     if (stats.in_limbo > 0) {
         newBadge += "L";
+        newColor = 1;
         chunks.push(`${stats.in_limbo} reqres in limbo`);
     }
     if (stats.in_flight > 0) {
         newBadge += "T";
         chunks.push(`still tracking ${stats.in_flight} in-flight reqres`);
     }
-
-    if (stats.issues> 0)
-        newBadge = stats.issues.toString() + newBadge;
-
-    if (config.ephemeral
-        || config.debugging || config.dumping
-        || config.discardAllNew) {
+    if (config.ephemeral) {
+        newBadge += "E";
+        newColor = 1;
+        chunks.push("ephemeral");
+    }
+    if (config.debugging || config.dumping) {
+        newBadge += "D";
+        newColor = 1;
+        chunks.push("debugging (SLOW!)");
+    }
+    if (config.autoPopInLimboDiscard || config.discardAllNew) {
         newBadge += "!";
-        chunks.push("debugging");
+        newColor = 2;
+        chunks.push("auto-discarding");
     }
 
     let newTitle = "pWebArc: idle";
@@ -593,6 +608,24 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
         changed = true;
 
         await browser.browserAction.setBadgeText({ text: newBadge });
+
+        if (oldColor !== newColor) {
+            oldColor = newColor;
+            switch (newColor) {
+            case 0:
+                await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
+                await browser.browserAction.setBadgeBackgroundColor({ color: "#777777" });
+                break;
+            case 1:
+                await browser.browserAction.setBadgeTextColor({ color: "#000000" });
+                await browser.browserAction.setBadgeBackgroundColor({ color: "#e0e020" });
+                break;
+            default:
+                await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
+                await browser.browserAction.setBadgeBackgroundColor({ color: "#e02020" });
+            }
+        }
+
     }
 
     if (!changed && updatedTabId === null)
@@ -2145,8 +2178,6 @@ async function init(storage) {
     browser.runtime.onConnect.addListener(catchAll(handleConnect));
 
     initMenus();
-    await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
-    await browser.browserAction.setBadgeBackgroundColor({ color: "#e02020" });
     updateDisplay(true, true);
 
     if (useDebugger)
