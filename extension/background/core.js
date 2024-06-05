@@ -2070,6 +2070,14 @@ async function init(storage) {
     }
     config.lastSeenVersion = manifest.version;
 
+    if (config.autoPopInLimboDiscard || config.discardAllNew)
+        browser.notifications.create("autoDiscard", {
+            title: "pWebArc: REMINDER",
+            message: `One of both of "Auto-discard reqres in limbo" or "Stop collecting new data" options are enabled.`,
+            iconUrl: iconURL("limbo", 128),
+            type: "basic",
+        }).catch(logError);
+
     let oldStats = storage.globalStats;
     if (oldStats !== undefined)
         globalStats = updateFromRec(globalStats, oldStats, true);
