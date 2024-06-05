@@ -103,6 +103,7 @@ function makeFirefoxish(browser) {
     browser.browserAction.setBadgeBackgroundColor = makePromiseAPI(browser.browserAction.setBadgeBackgroundColor);
     browser.notifications.clear = makePromiseAPI(browser.notifications.clear);
     browser.notifications.create = makePromiseAPI2(browser.notifications.create);
+    browser.notifications.getAll = makePromiseAPI0(browser.notifications.getAll);
     browser.runtime.sendMessage = makePromiseAPI(browser.runtime.sendMessage);
     browser.tabs.create = makePromiseAPI(browser.tabs.create);
     browser.tabs.get = makePromiseAPI(browser.tabs.get);

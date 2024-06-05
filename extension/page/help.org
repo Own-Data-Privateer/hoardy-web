@@ -92,6 +92,9 @@ On its own line:
   - and similar errors where the data was properly fetched.
 
   The raw error strings reported by the browser for each reqres can be seen in the [[./popup.html#showState][recent reqres history log]].
+
+  If [[./popup.html#div-config.problematicNotify][this option]] is enabled pWebArc will generate a desktop notification each time a new /problematic reqres/ get produced.
+  If you don't care about the /problematic/ flag and it annoys you, you should disable that option, not options under [[./popup.html#problematic-options]["Mark reqres as problematic when they finish" settings]].
 ** Step 3: Collection, Discarding, and Limbo
 Normally, /picked reqres/ proceed to the =collected= state, which queues them for archival.
 
@@ -105,6 +108,8 @@ However, for /picked reqres/, when [[./popup.html#div-tabconfig.limbo]["Put newl
 
 Similarly, for /dropped reqres/, when [[./popup.html#div-tabconfig.negLimbo]["Put newly finished reqres in negLimbo" setting]] is enabled in the currently active tab (or [[./popup.html#div-tabconfig.children.negLimbo][via]] [[./popup.html#div-config.root.negLimbo][the]] [[./popup.html#div-config.background.negLimbo][respective]] [[./popup.html#div-config.extension.negLimbo][settings]] for other reqres sources), the reqres in question will be similarly put into limbo.
 Mainly, this exists for debugging.
+
+If [[./popup.html#div-config.limboNotify][this option]] is enabled and there are more than [[./popup.html#div-config.limboMaxNumber][this number]] reqres in limbo or the total size of all dumps in limbo is more than [[./popup.html#div-config.limboMaxSize][this size]] (in MiB), pWebArc will complain to remind you to /collect/ or /discard/ some of them so that your browser does not waste much memory and so that you won't loose too much data if something crashes.
 *** Glossary
 On its own line:
 
@@ -131,6 +136,9 @@ It will also specify =profile= query parameter to the POST request using the app
 - and so forth for the others (press "?" symbols to see a tooltip explaining what each of them does).
 
 Evaluation of the =profile=  parameter is done just before the POST request is sent, so if the queue is not yet empty, and you disable [[./popup.html#div-config.archiving]["Archive collected reqres"]], edit some of the "Profile" settings, and enable [[./popup.html#div-config.archiving]["Archive collected reqres"]] again, pWebArc will start using the new setting immediately.
+
+If [[./popup.html#div-config.archiveNotifyFailed][this option]] is enabled and some reqres failed to be archived, a new desktop notification will be generated.
+If [[./popup.html#div-config.archiveNotifyOK][this option]] is enabled, a new desktop notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
 Displayed on the [[./popup.html#div-stats.archived][Archived/Failed reqres]] line:
 

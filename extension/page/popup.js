@@ -115,6 +115,7 @@ async function popupMain() {
         setConditionalClass(body, !config.autoUnmarkProblematic
                             && !config.autoPopInLimboCollect
                             && !config.autoPopInLimboDiscard, "disabled-auto");
+        setConditionalClass(body, !config.limboNotify, "disabled-limbo-notify");
         setConditionalClass(versionButton, !config.seenChangelog, "attention");
         setConditionalClass(helpButton, !config.seenHelp, "attention");
     }
