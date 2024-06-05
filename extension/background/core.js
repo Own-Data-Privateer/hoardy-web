@@ -69,6 +69,7 @@ let config = {
     autoPopInLimboCollect: false,
     autoPopInLimboDiscard: false,
     autoTimeout: 1,
+    autoNotify: true,
 
     root: {
         collecting: true,
@@ -193,20 +194,43 @@ function cleanupAfterTab(tabId, untimeout) {
     if (config.autoUnmarkProblematic && reqresProblematic.length > 0
         || (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) && reqresLimbo.length > 0)
         setTimeout(() => {
+            let unprob = 0;
+            let unlimbo = 0;
+
             if (config.autoUnmarkProblematic) {
                 if (config.debugging)
                     console.log("cleaning up reqresProblematic after tab", tabId);
-                unmarkProblematic(null, tabId);
+                unprob = unmarkProblematic(null, tabId);
             }
 
             if (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) {
                 if (config.debugging)
                     console.log("cleaning up reqresLimbo after tab", tabId);
                 if (config.autoPopInLimboCollect)
-                    popInLimbo(true, null, tabId);
+                    unlimbo = popInLimbo(true, null, tabId);
                 else if (config.autoPopInLimboDiscard)
-                    popInLimbo(false, null, tabId);
+                    unlimbo = popInLimbo(false, null, tabId);
             }
+
+            if (config.autoNotify
+                && (unprob > 0 || unlimbo > 0)) {
+                let message;
+                let what = config.autoPopInLimboCollect ? "collected" : "discarded";
+                if (unprob > 0 && unlimbo > 0)
+                    message = `Auto-unmarked ${unprob} problematic and auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
+                else if (unprob > 0)
+                    message = `Auto-unmarked ${unprob} problematic reqres from tab #${tabId}.`;
+                else
+                    message = `Auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
+
+                browser.notifications.create(`cleaned-${tabId}`, {
+                    title: "pWebArc: AUTO",
+                    message,
+                    iconUrl: iconURL("error", 128),
+                    type: "basic",
+                }).catch(logError);
+            }
+
         }, config.autoTimeout * 1000 - untimeout);
 }
 
@@ -450,6 +474,8 @@ function unmarkProblematic(num, tabId) {
         updateDisplay(true, false, tabId);
         scheduleComplaints(100);
     }
+
+    return popped.length;
 }
 
 function rotateProblematic(num, tabId) {
@@ -500,6 +526,8 @@ function popInLimbo(collect, num, tabId) {
         updateDisplay(true, false);
         scheduleEndgame();
     }
+
+    return popped.length;
 }
 
 function rotateInLimbo(num, tabId) {
