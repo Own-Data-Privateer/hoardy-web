@@ -87,6 +87,7 @@ label code {
 .disabled-collecting .dc,
 .disabled-collecting .dc input[type="checkbox"].toggle,
 .disabled-auto .dauto,
+.disabled-problematic-notify .dpn,
 .disabled-limbo-notify .dln {
     --text-background: var(--untoggle-background);
     --text-border-color: var(--untoggle-border-color);
@@ -313,6 +314,7 @@ label code {
     <div id="notification-options">
       <h2>Generate desktop notifications about</h2>
       <ui id="config.problematicNotify" type="boolean" data-help="Complain when a new problematic reqres appears.">... new problematic reqres</ui>
+      <ui id="config.problematicNotifyNumber" type="number" class="dpn" data-help="Show no more than this many latest METHOD + URL lines in the generated problematic reqres notification.">But no more than</ui>
       <ui id="config.limboNotify" type="boolean" class="prefer-on" data-help="Complain when too much stuff is being held in limbo.">... too much stuff in limbo</ui>
       <ui id="config.limboMaxNumber" type="number" class="dln" data-help="Start complaining when more than this number of reqres are in limbo.">Complain after #</ui>
       <ui id="config.limboMaxSize" type="number" class="dln" data-help="Start complaining when the total size of all dumps in limbo is larger than this many Megabytes.">Complain after MiB</ui>

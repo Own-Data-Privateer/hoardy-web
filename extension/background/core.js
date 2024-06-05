@@ -50,6 +50,7 @@ let config = {
     markProblematicWithErrors: false,
     markProblematicPickedWithErrors: true,
     problematicNotify: true,
+    problematicNotifyNumber: 10,
 
     // collection options
     archivePartialRequest: true,
@@ -818,14 +819,39 @@ async function doComplain() {
         changedProblematic = false;
 
         if (reqresProblematic.length > 0) {
-            if (config.problematicNotify)
+            if (config.problematicNotify) {
                 // generate a new one
+                //
+                // make a log of no more than `problematicNotifyNumber`
+                // elements, merging those referencing the same URL
+                let latest = new Map();
+                for (let i = reqresProblematic.length - 1; i >= 0; --i) {
+                    let r = reqresProblematic[i];
+                    let desc = (r.method ? r.method : "?") + " " + r.url;
+                    let l = latest.get(desc);
+                    if (l === undefined) {
+                        if (latest.size < config.problematicNotifyNumber)
+                            latest.set(desc, 1);
+                        else
+                            break;
+                    } else
+                        latest.set(desc, l + 1);
+                }
+                let latestDesc = [];
+                for (let [k, v] of latest.entries()) {
+                    if (k.length < 80)
+                        latestDesc.push(`${v}x ${k}`);
+                    else
+                        latestDesc.push(`${v}x ${k.substr(0, 80)}\u2026`);
+                }
+                latestDesc.reverse();
                 await browser.notifications.create("problematic", {
                     title: "pWebArc: WARNING",
-                    message: `Have ${reqresProblematic.length} reqres marked as problematic.`,
+                    message: `Have ${reqresProblematic.length} reqres marked as problematic.\n\n` + latestDesc.join("\n"),
                     iconUrl: iconURL("error", 128),
                     type: "basic",
                 });
+            }
         } else
             // clear stale
             await browser.notifications.clear("problematic");
