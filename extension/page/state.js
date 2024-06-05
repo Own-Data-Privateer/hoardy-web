@@ -16,7 +16,7 @@ function fdate(epoch) {
     return str.replace("T", " ");
 }
 
-let tabId = getStateTabId(document.location);
+let tabId = mapStateTabId(document.location, (x) => x, null, null);
 if (tabId !== null)
     document.title = `pWebArc: tab ${tabId}: Internal State`;
 

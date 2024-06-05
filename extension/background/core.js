@@ -1952,21 +1952,24 @@ async function handleCommand(command) {
     let tab = await getActiveTab();
     if (tab === null)
         return;
-    let tabId = getStateTabIdOrTabId(tab);
+    // The map is set this way so that show-state -> show-tab-state would open
+    // the state narrowed to background tasks. This is not very intuitive but
+    // rather useful.
+    let tabId = mapStateTabId(new URL(getTabURL(tab) || ""), (x) => x, -1, tab.id);
 
     let tabcfg = undefined;
     switch (command) {
     case "show-state":
-        showState("", "top", tabId);
+        showState("", "top", tab.id);
         return;
     case "show-log":
-        showState("", "bottom", tabId);
+        showState("", "bottom", tab.id);
         return;
     case "show-tab-state":
-        showState(`?tab=${tabId}`, "top", tabId);
+        showState(`?tab=${tabId}`, "top", tab.id);
         return;
     case "show-tab-log":
-        showState(`?tab=${tabId}`, "bottom", tabId);
+        showState(`?tab=${tabId}`, "bottom", tab.id);
         return;
     case "toggle-tabconfig-tracking":
         tabcfg = getOriginConfig(tabId);
