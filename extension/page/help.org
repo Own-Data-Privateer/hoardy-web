@@ -61,7 +61,37 @@ In principle, at reaching =finished= state the reqres can be serialized and save
   If some reqres get stuck in one of the =in_flight= states, the UI has buttons ([[./popup.html#stopAllInFlight][this one]] in the popup) to force them out of the current state as if an error occurred.
 - A /finished reqres/ is a reqres that reached the =finished= state, /the final networking state/ is the last state before =finished= (i.e. =complete=, =incomplete=, etc).
 ** Step 2: Classification
-On reaching the =finished= state, pWebArc performs reqres classification.
+On reaching the =finished= state, pWebArc performs reqres classification controlled by [[./popup.html#pick-options]["Pick reqres for archival when they finish"]] and [[./popup.html#problematic-options]["Mark reqres as problematic when they finish" ]] settings.
+
+The [[./popup.html#pick-options][former]] set decides whether the reqres in question should be =picked= or =dropped=, which influences the actions pWebArc will perform in the next step.
+
+The [[./popup.html#problematic-options][latter]] set decides if the reqres in question should be marked as =problematic=.
+Note that =problematic= is a status flag, not a state.
+
+The =problematic= reqres status does not influence archival or any actions discussed in the latter steps.
+It exists because, normally, browsers provide no indication when some parts of the page failed to load properly --- they expect you to actually look at the page with your eyes to notice something looking broken (and reload it manually) instead --- which is not a proper way to do this when you want to be sure that the whole page with all its resources was archived, as some of the incompletely loaded parts of the page might be invisible.
+
+And so, to provide such an indicator, pWebArc keeps the log of =problematic= reqres and displays the number of elements in the log in its toolbar button's (=browserAction='s) badge.
+
+By default, HTTP requests that failed to get a response, those that have incomplete response bodies, and those for which the browser reported potentially /problematic errors/ but then pWebArc =picked= them anyway, will be marked as =problematic=.
+
+/Problematic errors/ are errors like
+
+- "fetching of this request's data was aborted because this whole request was aborted, for instance, because the JavaScript making it decided to cancel it as no longer relevant when you moved your mouse cursor away from an interactive video thumbnail it was needed for",
+- and similar things that probably imply some part of the page was left unfetched,
+
+but NOT errors like
+
+- "fetching of this request's data was aborted because it was redirected by the server",
+- "the browser decided against rendering of this data",
+- and similar errors where the data was properly fetched.
+
+(In principle, pWebArc could have been designed to never record the errors of the latter category in the first place, thus simplifying the above bit, but pWebArc is designed to follow the philosophy or "collect everything as browser gives it, as raw as possible, do all the post-processing logic separately, allow for no logic at all, if the user asks for it".)
+
+The raw error strings reported by the browser for each reqres can be seen in the [[./popup.html#showState][recent reqres history log]].
+
+If [[./popup.html#div-config.problematicNotify][this option]] is enabled pWebArc will generate a desktop notification each time a new /problematic reqres/ get produced.
+If you don't care about the /problematic/ flag and it annoys you, you should disable that option, not options under [[./popup.html#problematic-options]["Mark reqres as problematic when they finish" settings]].
 *** Glossary
 Displayed on the [[./popup.html#div-stats.picked][Picked/Dropped reqres]] line:
 
@@ -71,30 +101,6 @@ Displayed on the [[./popup.html#div-stats.picked][Picked/Dropped reqres]] line:
 On its own line:
 
 - [[./popup.html#div-stats.problematic][A /problematic reqres/]] is a /finished reqres/ that satisfies the conditions set by [[./popup.html#problematic-options]["Mark reqres as problematic when they finish" settings]].
-  Note that /problematic/ is a status flag, not a state.
-
-  /Problematic/ reqres status is separate from all other statuses and states and does not influence archival.
-  It exists because, normally, browsers provide no indication when some parts of the page failed to load properly --- they expect you to actually look at the page with your eyes to notice something looking broken (and reload it manually) instead --- which is not a proper way to do this when you want to be sure that the whole page with all its resources was archived, as some of the incompletely loaded parts of the page might be invisible.
-
-  And so, to provide such an indicator, pWebArc keeps the log of /problematic/ reqres and displays the number of elements in the log in its toolbar button's (=browserAction='s) badge.
-
-  By default, HTTP requests that failed to get a response, those that have incomplete response bodies, and those for which the browser reported potentially /problematic errors/ but then pWebArc /picked/ them anyway, will be marked as /problematic/.
-
-  /Problematic errors/ are errors like
-
-  - "fetching of this request's data was aborted because this whole request was aborted, for instance, because the JavaScript making it decided to cancel it as no longer relevant when you moved your mouse cursor away from an interactive video thumbnail it was needed for",
-  - and similar things that probably imply some part of the page was left unfetched,
-
-  but NOT errors like
-
-  - "fetching of this request's data was aborted because it was redirected by the server",
-  - "the browser decided against rendering of this data",
-  - and similar errors where the data was properly fetched.
-
-  The raw error strings reported by the browser for each reqres can be seen in the [[./popup.html#showState][recent reqres history log]].
-
-  If [[./popup.html#div-config.problematicNotify][this option]] is enabled pWebArc will generate a desktop notification each time a new /problematic reqres/ get produced.
-  If you don't care about the /problematic/ flag and it annoys you, you should disable that option, not options under [[./popup.html#problematic-options]["Mark reqres as problematic when they finish" settings]].
 ** Step 3: Collection, Discarding, and Limbo
 Normally, /picked reqres/ proceed to the =collected= state, which queues them for archival.
 
@@ -119,7 +125,7 @@ Displayed on the [[./popup.html#div-stats.collected][Collected/Discarded reqres]
 
 - [[./popup.html#stats.collected][A /collected reqres/]] is a reqres that was (either automatically or manually) sent to the =collected= state.
 - [[./popup.html#stats.discarded][A /discarded reqres/]] is a reqres that was (either automatically or manually) sent to the =discarded=.
-*** Logging
+** Step 3.5: Logging
 On entering =collected= or =discarded= state, metadata of each reqres is copied into the [[./popup.html#showState][recent reqres history log]] (which can be narrowed to the currently active tab with [[./popup.html#showTabState][this button]]) and is kept there until the size of the log reaches [[./popup.html#div-config.history][this many elements]], at which point the older elements of the log start being elided automatically.
 
 You can also ask pWebArc to forget some history manually by pressing [[./popup.html#forgetHistory][this button]] to forget all history, or [[./popup.html#forgetTabHistory][this button]] to forget history of reqres generated by the currently active tab.
