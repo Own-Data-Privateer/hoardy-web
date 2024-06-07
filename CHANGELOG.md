@@ -1,3 +1,88 @@
+# extension-v1.9.0
+
+- Bugfixes. A whole ton of bugfixes.
+
+    So many bugfixes that pWebArc on Chromium now actually works almost as well as on Firefox.
+
+    All leftover issues on Chromium I'm aware of are consequences of Chromium's debugging API limitations and, as far as I can see, are unsolvable without actually patching Chromium (which is unlikely to be accepted upstream, given that patching them will make ad-blocking easier).
+
+    `archiveweb.page` project appears to suffer from the same issues.
+
+    Meanwhile, pWebArc continues to work exceptionally well on Firefox-based browsers.
+
+- pWebArc now follows the following state diagram:
+
+    ```
+    (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
+       |                           |                              |             |
+       |                           v                              v             v
+       |                     (no_response)                   (incomplete)   (complete)
+       |                           |                              |             |
+       |                           \                              |             |
+       |\---> (canceled) -----\     \                             |             |
+       |                       \     \                            \             |
+       |                        \     \                            \            v
+       |\-> (incomplete_fc) ----->----->---------------------------->-----> (finished)
+       |                        /                                            /  |
+       |                       /                                      /-----/   |
+       \--> (complete_fc) ----/        /--------------- (picked) <---/          v
+                                       |                   |                (dropped)
+                                       v                   v                 /  |
+           (archived) <- (sIO) <- (collected) <------- (in_limbo) <---------/   |
+                           |           ^                   |                    |
+                           |           |                   |                    |
+                    /------/           \-----\             \--> (discarded) <---/
+                    |                        |
+                    \-> (failed to archive) -/
+    ```
+
+    Terminology-wise, most notably, `picked` and `dropped` now mean what `collected` and `discarded` meant before.
+
+    See [the "Help" page](./extension/page/help.org) for more info.
+
+    - A lot of changes to make pWebArc consistently use the above terminology --- both in the source and in the documentation --- were performed for this release.
+
+- New features:
+
+    - Implemented "negative limbo mode".
+
+        It does the same thing as limbo mode does, but for reqres that were dropped instead of picked.
+        (Which is why there is an arrow from `dropped` to `in_limbo` on the diagram above.)
+
+    - Implemented optional automatic actions when a tab gets closed.
+
+        E.g., you can ask pWebArc to automatically unmark that tab's `problematic` reqres and/or collect and archive everything belonging to that tab from `limbo`.
+
+    - Implemented a bunch of new desktop notifications.
+
+    - Added a bunch of new configuration options.
+
+        This includes a bunch of them for controlling desktop notifications.
+
+    - Added a bunch of new keyboard shortcuts.
+
+        Also, keyboard shortcuts now work properly in narrowed "Internal State" pages.
+
+    - Implemented stat persistence between restarts.
+
+        You can brag about your archiving prowess to your friends by sharing popup UI screenshots now.
+
+- Added the "Changelog" page, which can be viewed by clicking the version number in the extension's popup.
+
+- Improved visuals:
+
+    - Extension's toolbar button icon, badge, and title are much more informative and consistent in their behaviour now.
+
+    - The version number button in the popup (which opens the "Changelog") will now get highlighted on major updates.
+
+    - Similarly, the "Help" button will now get highlighted when that page gets updated.
+
+    - The popup, the "Help" page, the "Internal State" aka the "Log" page all had their UI improved greatly.
+
+    - All the toggles in the popup are now color-coded with their expected values, so if something looks red(-dish), you might want to check the help string in question just in case.
+
+- Improved documentation.
+
 # tool-v0.12.0
 
 - Changed format of reqres `.status` to `<"C" or "I" for request.complete><"N" for no response or <response.code><"C" or "I" for response.complete> otherwise>` (yes, this changes most `--output` formats of `organize`, again).

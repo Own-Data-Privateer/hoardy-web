@@ -24,7 +24,10 @@ for target in "$@"; do
 
     echo "  Building the changelog page..."
 
-    pandoc -f markdown -t html --wrap=none --template=page/changelog.template --metadata pagetitle=changelog ../CHANGELOG.md > page/changelog.html
+    cat ../CHANGELOG.md \
+        | sed 's%\./extension/page/help\.org%./help.html%g' \
+        | pandoc -f markdown -t html --wrap=none --template=page/changelog.template --metadata pagetitle=changelog \
+        > page/changelog.html
 
     echo "  Preparing icons..."
 
