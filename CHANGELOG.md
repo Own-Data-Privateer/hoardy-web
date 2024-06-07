@@ -1,3 +1,20 @@
+# tool-v0.12.0
+
+- Changed format of reqres `.status` to `<"C" or "I" for request.complete><"N" for no response or <response.code><"C" or "I" for response.complete> otherwise>` (yes, this changes most `--output` formats of `organize`, again).
+
+    - Added `~=` expression atom which does `re.match` internally.
+
+    - Changed all documentation examples to do `~= .200C` instead of `== 200C` to reflect the above change.
+
+- `export mirror`: implemented `--no-overwrites`, `--partial`, and `--overwrite-dangerously` options.
+
+    Switched the default from `--overwrite-dangerously` (which is what `export mirror` did before even if there was no option for it) to `--no-overwrites`.
+    This makes the default semantics consistent with that of `organize`.
+
+- `organize`: renamed `--keep` -> `--no-overwrites` for consistency.
+
+- Improved documentation.
+
 # extension-v1.8.1
 
 - Tiny bugfix.
