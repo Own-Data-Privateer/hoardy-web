@@ -89,6 +89,8 @@ Currently, the [add-on](./extension/) can collect data from all Firefox- and Chr
 - wast `webRequest` API capabilities of Firefox-based browsers (but they give no way to archive WebSockets data ATM, unfortunately);
 - meager `webRequest` API and the wast debugging API capabilities of Chromium-based browsers (archival of WebSockets data appears to be theoretically possible, but it's not implemented ATM); which is rather hacky, produces pretty annoying UI (all [alternatives](#alternatives) that use Chromium-based browsers suffer from exactly the same issue), and will probably stop working at least in Chrome eventually, given how persistently Google pushes for Manifest V3 and WebExtension API restrictions in its quest to tame ad-blockers.
 
+See the extension's ["Help" page](./extension/page/help.org) (or the "Help" button in the extension's UI, which will make it interactive) for a long detailed description of what it does step-by-step and how each of its main configuration options changes its behaviour.
+
 Also, as far as I'm aware, `wrrarms` is a tool that can do more useful stuff to your WRR archives than any other tool can do to any other file format for HTTP dumps with the sole exception of WARC.
 
 For example, you can feed [`wrrarms`](./tool/) a subset of your archives produced by the [add-on](./extension/) and it will [generate a static offline website mirror a-la `wget -mpk`](./tool/#mirror), but then you can discover you dislike the result, change some options and re-generate the mirror **without re-downloading anything**.
@@ -115,9 +117,14 @@ I eat what I cook: since October 2023 I archive all of my web traffic with `pWeb
 ### `pWebArc` extension
 
 - Improve UI:
-  - Slightly better add-on popup layout.
-  - Implement more tab states, display per-tab collection errors.
+  - No-emoji mode.
+  - More desktop notification options.
+  - More action buttons.
+  - Interactive filters for the log.
+- DOM snapshots capture.
 - Serverless archival into browser's local storage: for easier bootstrap and to allow using Tor Browser securely with its default config.
+- Per-host configs and/or config profiles.
+- Maybe: Dumping straight into WARC, so that third-party tools (i.e. not just `wrrarms`) could be used for everything except capture.
 
 ### `wrrarms` tool
 
@@ -128,7 +135,7 @@ I eat what I cook: since October 2023 I archive all of my web traffic with `pWeb
 - Data de-duplication between WRR files and bundle-packing of related WRR files.
 - Converter from WRR to WARC.
 - Converter from PCAP ito WRR.
-- (maybe) Full text indexing and search.
+- Maybe: Full text indexing and search. "Maybe", because offloading (almost) everything search-related to third-party tools may be a better idea.
 
 ## Parts and pieces
 
