@@ -300,6 +300,9 @@ function forceEmitInFlightDebug(tabId, reason) {
 function forceFinishingUpDebug(predicate) {
     // Emit these by making up fake webRequest counterparts for them
     for (let dreqres of debugReqresFinishingUp) {
+        if (predicate !== undefined && !predicate(reqres))
+            continue;
+
         if (config.debugging)
             console.log("STUCK debug.Network.request", dreqres);
 
