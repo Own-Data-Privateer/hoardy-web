@@ -84,9 +84,15 @@ function setPageError(error) {
 
 function isUnknownError(error) {
     if (useDebugger && (error === "webRequest::net::ERR_ABORTED"
+                     || error === "webRequest::net::ERR_CANCELED"
+                     || error === "webRequest::net::ERR_FAILED"
                      || error === "webRequest::net::ERR_BLOCKED_BY_CLIENT"
+                     || error === "webRequest::net::ERR_CONNECTION_CLOSED"
                      || error === "debugger::net::ERR_ABORTED"
                      || error === "debugger::net::ERR_CANCELED"
+                     || error === "debugger::net::ERR_FAILED"
+                     || error === "debugger::net::ERR_BLOCKED_BY_CLIENT"
+                     || error === "debugger::net::ERR_CONNECTION_CLOSED"
                      || error === "debugger::pWebArc::EMIT_FORCED_BY_USER"
                      || error === "debugger::pWebArc::EMIT_FORCED_BY_CLOSED_TAB"
                      || error === "debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER"
@@ -96,6 +102,7 @@ function isUnknownError(error) {
     else if (!useDebugger && (error === "webRequest::NS_ERROR_ABORT"
                            || error === "webRequest::NS_BINDING_ABORTED"
                            || error === "webRequest::NS_ERROR_NET_ON_WAITING_FOR"
+                           || error === "webRequest::NS_ERROR_NET_ON_RESOLVED"
                            || error === "webRequest::NS_ERROR_UNKNOWN_HOST"
                            || error === "webRequest::pWebArc::EMIT_FORCED_BY_USER"
                            || error === "filterResponseData::Channel redirected"))
