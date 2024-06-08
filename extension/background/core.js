@@ -285,6 +285,10 @@ function getInFlightLog() {
     let res = [];
     for (let v of reqresAlmostDone)
         res.push(shallowCopyOfReqres(v));
+    for (let v of reqresFinishingUp)
+        res.push(shallowCopyOfReqres(v));
+    for (let v of debugReqresFinishingUp)
+        res.push(shallowCopyOfReqres(v));
     for (let [k, v] of reqresInFlight.entries())
         res.push(shallowCopyOfReqres(v));
     for (let [k, v] of debugReqresInFlight.entries()) {
