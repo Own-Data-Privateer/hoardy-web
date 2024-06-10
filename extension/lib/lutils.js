@@ -30,16 +30,16 @@ function mkIcons(what) {
 
 let stateURL = browser.runtime.getURL("/page/state.html");
 
-function getTabURL(tab) {
+function getTabURL(tab, def) {
+    if (useDebugger) {
+        let pendingUrl = tab.pendingUrl;
+        if (pendingUrl !== undefined && pendingUrl !== null && pendingUrl !== "")
+            return pendingUrl;
+    }
     let url = tab.url;
-    if (useDebugger
-        && tab.pendingUrl !== undefined && tab.pendingUrl !== null
-        && tab.pendingUrl !== "")
-        url = tab.pendingUrl;
-    if (url !== undefined && url !== null
-        && url !== "")
+    if (url !== undefined && url !== null && url !== "")
         return url;
-    return null;
+    return def;
 }
 
 // return mapped ?tab= parameter when the URL is the state page
@@ -56,7 +56,7 @@ function mapStateTabId(purl, f, def1, def2) {
 }
 
 function getStateTabIdOrTabId(tab) {
-    return mapStateTabId(new URL(getTabURL(tab) || ""), (x) => x, tab.id, tab.id);
+    return mapStateTabId(new URL(getTabURL(tab, "")), (x) => x, tab.id, tab.id);
 }
 
 function showChangelog(suffix, id, tabId) {

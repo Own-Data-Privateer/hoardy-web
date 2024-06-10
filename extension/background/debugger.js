@@ -54,9 +54,7 @@ async function syncDebuggersState(tabs) {
         tabs = await browser.tabs.query({});
 
     for (let tab of tabs) {
-        let url = tab.url;
-        if (url == "" && tab.pendingUrl !== undefined && tab.pendingUrl !== "")
-            url = tab.pendingUrl;
+        let url = getTabURL(tab, "");
 
         let hasInFlight = false;
         for (let [requestId, dreqres] of debugReqresInFlight.entries()) {
