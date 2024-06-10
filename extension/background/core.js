@@ -718,8 +718,8 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
 
         if (useDebugger) {
             // Chromium does not support per-window browserActions, so we have to update them per-tab.
-            await browser.browserAction.setIcon({ tabId: tab.id, path: mkIcons(icon) }).catch(logError);
-            await browser.browserAction.setTitle({ tabId: tab.id, title }).catch(logError);
+            await browser.browserAction.setIcon({ tabId: tab.id, path: mkIcons(icon) }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
+            await browser.browserAction.setTitle({ tabId: tab.id, title }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
         } else {
             let windowId = tab.windowId;
             await browser.browserAction.setIcon({ windowId, path: mkIcons(icon) }).catch(logError);

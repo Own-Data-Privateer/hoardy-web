@@ -13,6 +13,14 @@ function logError(err) {
     console.trace();
 }
 
+function logErrorExceptWhenStartsWith(prefix) {
+    return (err) => {
+        if (typeof err === "string" && err.startsWith(prefix))
+            return;
+        logError(err);
+    };
+}
+
 // turn all uncaught exceptions into console.error
 function catchAll(func) {
     return (...args) => {
