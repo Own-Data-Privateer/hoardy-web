@@ -161,16 +161,12 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
 
     logDebugRequest("request will be sent", nonExtra, e);
 
-    let dreqres = debugReqresInFlight.get(e.requestId);
-    if (dreqres === undefined) {
-        dreqres = {
-            errors: [],
-            responseComplete: false,
-            responseBody: "",
-            sent: true,
-        };
-        debugReqresInFlight.set(e.requestId, dreqres)
-    }
+    let dreqres = cacheSingleton(debugReqresInFlight, e.requestId, () => { return {
+        errors: [],
+        sent: true,
+        responseBody: "",
+        responseComplete: false,
+    }; });
 
     dreqres.tabId = e.tabId;
 

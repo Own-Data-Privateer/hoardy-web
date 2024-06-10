@@ -56,6 +56,16 @@ function partitionN(predicate, num, list) {
     return [first, second];
 }
 
+// Use a Map as a singleton storage/mutable cache.
+function cacheSingleton(map, key, func) {
+    let value = map.get(key);
+    if (value === undefined) {
+        value = func(key);
+        map.set(key, value);
+    }
+    return value;
+}
+
 // recursively assign fields in target from fields in value
 // i.e. `assignRec({}, value)` would just copy `value`
 function assignRec(target, value) {

@@ -110,13 +110,7 @@ function getOriginConfig(tabId, fromExtension) {
         return prefillChildren(config.extension);
     else if (tabId == -1) // background process
         return prefillChildren(config.background);
-
-    let tabcfg = tabConfig.get(tabId);
-    if (tabcfg === undefined) {
-        tabcfg = prefillChildren(config.root);
-        tabConfig.set(tabId, tabcfg);
-    }
-    return tabcfg;
+    return cacheSingleton(tabConfig, tabId, () => prefillChildren(config.root));
 }
 
 function processNewTab(tabId, openerTabId) {
@@ -351,13 +345,7 @@ function getOriginState(tabId, fromExtension) {
     // NB: not tracking extensions separately here, unlike with configs
     if (fromExtension)
         tabId = -1;
-
-    let res = tabState.get(tabId);
-    if (res === undefined) {
-        res = assignRec({}, defaultTabState);
-        tabState.set(tabId, res);
-    }
-    return res;
+    return cacheSingleton(tabState, tabId, () => assignRec({}, defaultTabState));
 }
 
 // scheduleComplaints flags
