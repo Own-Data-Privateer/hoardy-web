@@ -8,11 +8,31 @@
 
 "use strict";
 
-let KILOBYTE = 1024;
-let MEGABYTE = KILOBYTE * 1024;
-let GIGABYTE = MEGABYTE * 1024;
-let TERABYTE = GIGABYTE * 1024;
-let PETABYTE = TERABYTE * 1024;
+function logError(err) {
+    console.error("uncaught error", err);
+    console.trace();
+}
+
+// turn all uncaught exceptions into console.error
+function catchAll(func) {
+    return (...args) => {
+        try {
+            return func(...args);
+        } catch (err)
+            logError(err);
+    };
+}
+
+// same, but for async
+function catchAllAsync(func) {
+    return async (...args) => {
+        try {
+            let res = await func(...args);
+            return res;
+        } catch (err)
+            logError(err);
+    };
+}
 
 // partition a list via a predicate, but stop after num elements
 function partitionN(predicate, num, list) {
@@ -29,37 +49,6 @@ function partitionN(predicate, num, list) {
     }
 
     return [first, second];
-}
-
-// turn all uncaught exceptions into console.error
-function catchAll(func) {
-    return (...args) => {
-        try {
-            return func(...args);
-        } catch (exc) {
-            console.error("exception in", func, ":", exc);
-            console.trace();
-        }
-    };
-}
-
-// same, but for async
-function catchAllAsync(func) {
-    return async (...args) => {
-        try {
-            let res = await func(...args);
-            return res;
-        } catch (exc) {
-            console.error("exception in", func, ":", exc);
-            console.trace();
-        }
-    };
-}
-
-// `catchAll`, but for use in Promises
-function logError(err) {
-    console.error("uncaught error", err);
-    console.trace();
 }
 
 // recursively assign fields in target from fields in value
@@ -153,6 +142,12 @@ let countPowers = [
 function countToString(n) {
     return numberToPowerString(n, countPowers);
 }
+
+let KILOBYTE = 1024;
+let MEGABYTE = KILOBYTE * 1024;
+let GIGABYTE = MEGABYTE * 1024;
+let TERABYTE = GIGABYTE * 1024;
+let PETABYTE = TERABYTE * 1024;
 
 let byteLengthPowers = [
     [PETABYTE, "Pi"],
