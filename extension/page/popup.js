@@ -87,18 +87,18 @@ async function popupMain() {
     async function updateStats(stats) {
         if (stats === undefined)
             stats = await browser.runtime.sendMessage(["getStats"]);
-        setUI("stats", asPowers(stats));
+        setUI(document, "stats", asPowers(stats));
     }
 
     async function updateTabStats(tabstats) {
         if (tabstats === undefined)
             tabstats = await browser.runtime.sendMessage(["getTabStats", tabId]);
-        setUI("tabstats", asPowers(tabstats));
+        setUI(document, "tabstats", asPowers(tabstats));
     }
 
     async function updateConfig() {
         let config = await browser.runtime.sendMessage(["getConfig"]);
-        setUI("config", config, (newconfig, path) => {
+        setUI(document, "config", config, (newconfig, path) => {
             switch (path) {
             case "config.autoPopInLimboCollect":
                 newconfig.autoPopInLimboDiscard = newconfig.autoPopInLimboDiscard && !newconfig.autoPopInLimboCollect;
@@ -124,7 +124,7 @@ async function popupMain() {
     async function updateTabConfig(tabconfig) {
         if (tabconfig === undefined)
             tabconfig = await browser.runtime.sendMessage(["getOriginConfig", tabId]);
-        setUI("tabconfig", tabconfig, (newtabconfig, path) => {
+        setUI(document, "tabconfig", tabconfig, (newtabconfig, path) => {
             switch (path) {
             case "tabconfig.collecting":
                 newtabconfig.children.collecting = newtabconfig.collecting;

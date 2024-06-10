@@ -417,17 +417,17 @@ function subscribeToExtensionSimple(name, showAllFunc, hideAllFunc) {
 }
 
 // set values of DOM elements from a given object
-function setUI(prefix, value, update) {
+function setUI(node, prefix, value, update) {
     let typ = typeof value;
 
     if (typ == "object") {
         if (update === undefined) {
             for (let k of Object.keys(value)) {
-                setUI(prefix + "." + k, value[k]);
+                setUI(node, prefix ? prefix + "." + k : k, value[k]);
             }
         } else {
             for (let k of Object.keys(value)) {
-                setUI(prefix + "." + k, value[k], (newvalue, path) => {
+                setUI(node, prefix ? prefix + "." + k : k, value[k], (newvalue, path) => {
                     value[k] = newvalue;
                     update(value, path);
                 });
@@ -436,7 +436,7 @@ function setUI(prefix, value, update) {
         return;
     }
 
-    let el = document.getElementById(prefix);
+    let el = node.getElementById(prefix);
     if (el === null) return;
     //console.log("setting UI", prefix, typ, el, value);
 
