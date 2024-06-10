@@ -465,7 +465,7 @@ function setUI(prefix, value, update) {
 // given a DOM node, replace <ui> nodes with corresponding UI elements
 function makeUI(node) {
     for (let child of node.childNodes) {
-        if (child.nodeName === "#text") continue;
+        if (child.nodeName === "#text" || child.nodeName === "#comment") continue;
         makeUI(child);
     }
 
