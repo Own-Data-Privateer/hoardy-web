@@ -172,16 +172,16 @@ async function stateMain() {
         el.appendChild(tfoot);
     }
 
-    buttonToAction("forgetHistory", catchAllAsync(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
-    buttonToAction("rotateOneProblematic", catchAllAsync(() => browser.runtime.sendMessage(["rotateProblematic", 1, tabId])));
-    buttonToAction("unmarkOneProblematic", catchAllAsync(() => browser.runtime.sendMessage(["unmarkProblematic", 1, tabId])));
-    buttonToAction("unmarkAllProblematic", catchAllAsync(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
-    buttonToAction("rotateOneInLimbo",  catchAllAsync(() => browser.runtime.sendMessage(["rotateInLimbo", 1, tabId])));
-    buttonToAction("discardOneInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, 1, tabId])));
-    buttonToAction("discardAllInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
-    buttonToAction("collectOneInLimbo",   catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, 1, tabId])));
-    buttonToAction("collectAllInLimbo",   catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
-    buttonToAction("stopAllInFlight", catchAllAsync(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
+    buttonToAction("forgetHistory", catchAll(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
+    buttonToAction("rotateOneProblematic", catchAll(() => browser.runtime.sendMessage(["rotateProblematic", 1, tabId])));
+    buttonToAction("unmarkOneProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", 1, tabId])));
+    buttonToAction("unmarkAllProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
+    buttonToAction("rotateOneInLimbo",  catchAll(() => browser.runtime.sendMessage(["rotateInLimbo", 1, tabId])));
+    buttonToAction("discardOneInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, 1, tabId])));
+    buttonToAction("discardAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
+    buttonToAction("collectOneInLimbo",   catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, 1, tabId])));
+    buttonToAction("collectAllInLimbo",   catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
+    buttonToAction("stopAllInFlight", catchAll(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
 
     // add help tooltips
     addHelp(document.body, true);
@@ -220,7 +220,7 @@ async function stateMain() {
         }
     }
 
-    await subscribeToExtension(catchAllAsync(processUpdate), catchAllAsync(async () => {
+    await subscribeToExtension(catchAll(processUpdate), catchAll(async () => {
         await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
         await browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic);
         await browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);

@@ -24,21 +24,18 @@ function logErrorExceptWhenStartsWith(prefix) {
 // turn all uncaught exceptions into console.error
 function catchAll(func) {
     return (...args) => {
+        let res;
         try {
-            return func(...args);
-        } catch (err)
+            res = func(...args);
+        } catch (err) {
             logError(err);
-    };
-}
+            return;
+        }
 
-// same, but for async
-function catchAllAsync(func) {
-    return async (...args) => {
-        try {
-            let res = await func(...args);
+        if (res instanceof Promise)
+            return new Promise((resolve, reject) => res.catch(logError).then(resolve));
+        else
             return res;
-        } catch (err)
-            logError(err);
     };
 }
 
@@ -261,7 +258,7 @@ function buttonToAction(id, action) {
 
 // make a DOM node with a given id emit a `browser.runtime.sendMessage` with the same id
 function buttonToMessage(id) {
-    buttonToAction(id, catchAllAsync(() => browser.runtime.sendMessage([id])));
+    buttonToAction(id, catchAll(() => browser.runtime.sendMessage([id])));
 }
 
 // activate a tab with a given document URL if exists, or open new if not
@@ -406,7 +403,7 @@ async function subscribeToExtension(processUpdate, refreshFunc, extensionId, con
 }
 
 function subscribeToExtensionSimple(name, showAllFunc, hideAllFunc) {
-    return subscribeToExtension(catchAllAsync((update) => handleDefaultMessages(update, name)));
+    return subscribeToExtension(catchAll((update) => handleDefaultMessages(update, name)));
 }
 
 // set values of DOM elements from a given object

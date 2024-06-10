@@ -2215,7 +2215,7 @@ async function init(storage) {
     if (useDebugger)
         await initDebugger(tabs);
 
-    browser.commands.onCommand.addListener(catchAllAsync(handleCommand));
+    browser.commands.onCommand.addListener(catchAll(handleCommand));
 
     console.log(`initialized pWebArc with source of '${sourceDesc}'`);
     console.log("runtime options are", { useSVGIcons, useBlocking, useDebugger });

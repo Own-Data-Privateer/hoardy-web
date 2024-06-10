@@ -44,7 +44,7 @@ async function popupMain() {
         let tab = await browser.tabs.get(event.tabId);
         tabId = getStateTabIdOrTabId(tab);
     }
-    let recordTabIdFunc = catchAllAsync(recordTabId);
+    let recordTabIdFunc = catchAll(recordTabId);
     browser.tabs.onActivated.addListener(recordTabIdFunc);
 
     // generate UI
@@ -62,26 +62,26 @@ async function popupMain() {
 
     let versionButton = document.getElementById("version");
     versionButton.value = "v" + manifest.version;
-    versionButton.onclick = catchAllAsync(() => resetAndOpen({ seenChangelog: true }, showChangelog));
+    versionButton.onclick = catchAll(() => resetAndOpen({ seenChangelog: true }, showChangelog));
 
     let helpButton = document.getElementById("help");
-    helpButton.onclick = catchAllAsync(() => resetAndOpen({ seenHelp: true }, showHelp));
+    helpButton.onclick = catchAll(() => resetAndOpen({ seenHelp: true }, showHelp));
 
-    buttonToAction("showState", catchAllAsync(() => showState("", "top", tabId)));
-    buttonToAction("showTabState", catchAllAsync(() => showState(`?tab=${tabId}`, "top", tabId)));
+    buttonToAction("showState", catchAll(() => showState("", "top", tabId)));
+    buttonToAction("showTabState", catchAll(() => showState(`?tab=${tabId}`, "top", tabId)));
 
     buttonToMessage("forgetHistory");
-    buttonToAction("unmarkAllProblematic", catchAllAsync(() => browser.runtime.sendMessage(["unmarkProblematic", null])));
+    buttonToAction("unmarkAllProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null])));
     buttonToMessage("retryAllFailedArchives");
-    buttonToAction("collectAllInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, null])));
-    buttonToAction("discardAllInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, null])));
+    buttonToAction("collectAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null])));
+    buttonToAction("discardAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null])));
     buttonToMessage("stopAllInFlight");
 
-    buttonToAction("forgetTabHistory",     catchAllAsync(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
-    buttonToAction("unmarkTabProblematic", catchAllAsync(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
-    buttonToAction("collectTabInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
-    buttonToAction("discardTabInLimbo", catchAllAsync(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
-    buttonToAction("stopTabInFlight", catchAllAsync(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
+    buttonToAction("forgetTabHistory",     catchAll(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
+    buttonToAction("unmarkTabProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
+    buttonToAction("collectTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
+    buttonToAction("discardTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
+    buttonToAction("stopTabInFlight", catchAll(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
     buttonToAction("show", catchAll(showAll));
 
     async function updateStats(stats) {
@@ -147,7 +147,7 @@ async function popupMain() {
         await updateTabConfig();
     }
     browser.tabs.onActivated.removeListener(recordTabIdFunc);
-    browser.tabs.onActivated.addListener(catchAllAsync(recordUpdateTabId));
+    browser.tabs.onActivated.addListener(catchAll(recordUpdateTabId));
 
     // set default UI state
     let hash = document.location.hash.substr(1);
@@ -175,7 +175,7 @@ async function popupMain() {
         }
     }
 
-    await subscribeToExtension(catchAllAsync(processUpdate), catchAllAsync(async () => {
+    await subscribeToExtension(catchAll(processUpdate), catchAll(async () => {
         await updateStats();
         await updateTabStats();
         await updateConfig();
