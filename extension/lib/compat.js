@@ -118,8 +118,10 @@ function makeFirefoxish(browser) {
 
     let old_local = browser.storage.local;
     browser.storage.local = {
+        clear: makePromiseAPI0(old_local.clear, old_local),
         get: makePromiseAPI(old_local.get, old_local),
-        set: makePromiseAPI(old_local.set, old_local)
+        remove: makePromiseAPI(old_local.remove, old_local),
+        set: makePromiseAPI(old_local.set, old_local),
     };
 
     browser.debugger.attach = makePromiseAPI2(browser.debugger.attach);

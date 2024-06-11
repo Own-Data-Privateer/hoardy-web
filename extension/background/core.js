@@ -301,8 +301,7 @@ function getInLimboLog() {
     return res;
 }
 
-// global stats
-let globalStats = {
+let persistentStatsDefaults = {
     // problematicTotal is reqresProblematic.length
     // total numbers of picked and dropped reqres
     pickedTotal: 0,
@@ -312,24 +311,37 @@ let globalStats = {
     collectedSize: 0,
     discardedTotal: 0,
 };
-// did we have new queued reqres since
-let changedGlobalStats = false;
 
-function scheduleSaveGlobalStats() {
-    if (saveGlobalStatsTID !== null)
-        clearTimeout(saveGlobalStatsTID);
+// persistent global stats
+let persistentStats = assignRec({}, persistentStatsDefaults);
+// did it change recently?
+let changedPersistentStats = false;
 
-    saveGlobalStatsTID = setTimeout(() => {
-        saveGlobalStatsTID = null;
-        if (changedGlobalStats && reqresQueue.length == 0) {
-            changedGlobalStats = false;
-            console.log("saving globalStats", globalStats);
-            browser.storage.local.set({ globalStats }).catch(logError);
-        }
-    }, 10000);
+async function savePersistentStats() {
+    console.log("saving persistentStats", persistentStats);
+    changedPersistentStats = false;
+    await browser.storage.local.set({ persistentStats }).catch(logError);
+    await browser.storage.local.remove("globalStats").catch(() => {});
 }
 
-// per-source globalStats.pickedTotal, globalStats.droppedTotal, etc
+function scheduleSavePersistentStats() {
+    if (savePersistentStatsTID !== null)
+        clearTimeout(savePersistentStatsTID);
+
+    if (changedPersistentStats && reqresQueue.length == 0)
+        savePersistentStatsTID = setTimeout(() => {
+            savePersistentStatsTID = null;
+            savePersistentStats();
+        }, 1000);
+}
+
+async function resetPersistentStats() {
+    persistentStats = assignRec({}, persistentStatsDefaults);
+    await savePersistentStats();
+    await updateDisplay(true, false);
+}
+
+// per-source persistentStats.pickedTotal, persistentStats.droppedTotal, etc
 let tabState = new Map();
 let defaultTabState = {
     problematicTotal: 0,
@@ -362,7 +374,7 @@ let changedProblematic = false;
 // timeout ID
 let finishingUpTID = null;
 let endgameTID = null;
-let saveGlobalStatsTID = null;
+let savePersistentStatsTID = null;
 let reqresComplainTID = null;
 let reqresRetryTID = null;
 let saveConfigTID = null;
@@ -382,14 +394,14 @@ function getStats() {
     return {
         in_flight,
         problematic: reqresProblematic.length,
-        picked: globalStats.pickedTotal,
-        dropped: globalStats.droppedTotal,
+        picked: persistentStats.pickedTotal,
+        dropped: persistentStats.droppedTotal,
         in_limbo: reqresLimbo.length,
         in_limbo_size: reqresLimboSize,
         in_queue: reqresQueue.length,
-        collected: globalStats.collectedTotal,
-        collected_size: globalStats.collectedSize,
-        discarded: globalStats.discardedTotal,
+        collected: persistentStats.collectedTotal,
+        collected_size: persistentStats.collectedSize,
+        discarded: persistentStats.discardedTotal,
         archive_ok: reqresArchivedTotal,
         archive_failed,
         issues: in_flight
@@ -753,7 +765,7 @@ function scheduleEndgame() {
         cleanupTabs();
         updateDisplay(false, false);
         scheduleComplaints(1000);
-        scheduleSaveGlobalStats();
+        scheduleSavePersistentStats();
     }
 }
 
@@ -964,7 +976,6 @@ function processArchiving() {
 
         function allok() {
             retryFailedArchive(archiveURL);
-            changedGlobalStats = true;
             reqresArchivedTotal += 1;
             changedFailedOrArchived = true;
             broadcast(["newArchived", [shallow]]);
@@ -1133,16 +1144,16 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
     shallow.collected = collect;
 
     if (collect) {
-        changedGlobalStats = true;
         if (!config.discardAllNew)
             reqresQueue.push([shallow, dump]);
-        globalStats.collectedTotal += 1;
-        globalStats.collectedSize += dump.byteLength;
+        persistentStats.collectedTotal += 1;
+        persistentStats.collectedSize += dump.byteLength;
+        changedPersistentStats = true;
         info.collectedTotal += 1;
         info.collectedSize += dump.byteLength;
     } else {
-        changedGlobalStats = true;
-        globalStats.discardedTotal += 1;
+        persistentStats.discardedTotal += 1;
+        changedPersistentStats = true;
         info.discardedTotal += 1;
     }
 
@@ -1287,10 +1298,10 @@ function processAlmostDone() {
         }
 
         if (collect) {
-            globalStats.pickedTotal += 1;
+            persistentStats.pickedTotal += 1;
             info.pickedTotal += 1;
         } else {
-            globalStats.droppedTotal += 1;
+            persistentStats.droppedTotal += 1;
             info.droppedTotal += 1;
         }
 
@@ -1941,6 +1952,9 @@ function handleMessage(request, sender, sendResponse) {
     case "getStats":
         sendResponse(getStats());
         break;
+    case "resetPersistentStats":
+        resetPersistentStats();
+        break;
     case "getTabStats":
         sendResponse(getTabStats(request[1]));
         break;
@@ -2136,7 +2150,7 @@ async function handleCommand(command) {
     broadcast(["updateTabConfig", tabId]);
 }
 
-function upgradeConfig(cfg) {
+function upgradeConfigAndPersistentStats(cfg, stats) {
     function rename(from, to) {
         let old = cfg[from];
         delete cfg[from];
@@ -2157,17 +2171,23 @@ function upgradeConfig(cfg) {
         // the following updateFromRec will do its best
     }
 
-    return cfg;
+    return [cfg, stats];
 }
 
 async function init(storage) {
     let oldConfig = storage.config;
     if (oldConfig !== undefined) {
+        let oldPersistentStats = storage.persistentStats;
+        if (oldPersistentStats === undefined)
+            oldPersistentStats = storage.globalStats;
+
         if (oldConfig.version !== configVersion) {
             console.log(`Loading old config of version ${oldConfig.version}`);
-            oldConfig = upgradeConfig(oldConfig);
+            [oldConfig, oldPersistentStats] = upgradeConfigAndPersistentStats(oldConfig, oldPersistentStats);
         }
+
         config = updateFromRec(config, oldConfig, true);
+        persistentStats = updateFromRec(persistentStats, oldPersistentStats, true);
     }
 
     config.version = configVersion;
@@ -2187,10 +2207,6 @@ async function init(storage) {
             iconUrl: iconURL("limbo", 128),
             type: "basic",
         }).catch(logError);
-
-    let oldStats = storage.globalStats;
-    if (oldStats !== undefined)
-        globalStats = updateFromRec(globalStats, oldStats, true);
 
     if (false) {
         // for debugging

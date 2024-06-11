@@ -82,6 +82,9 @@ async function popupMain() {
     buttonToAction("collectTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
     buttonToAction("discardTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
     buttonToAction("stopTabInFlight", catchAll(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
+
+    buttonToMessage("resetPersistentStats");
+
     buttonToAction("show", catchAll(showAll));
 
     async function updateStats(stats) {
