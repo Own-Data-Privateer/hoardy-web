@@ -1160,6 +1160,18 @@ function processAlmostDone() {
         if (reqres.tabId === undefined)
             reqres.tabId = -1;
 
+        if (!useDebugger && reqres.errors.some(isAbortedError))
+            // Apparently, sometimes Firefox calls `filter.onstop` for aborted
+            // requests as if nothing out of the ordinary happened. It is a
+            // bug, yes.
+            //
+            // Our `filter.onstop` marks requests as complete. So, we have to
+            // undo that.
+            //
+            // We are doing that here instead of in `emitRequest` because the
+            // `filter` is guaranteed to be finished here.
+            reqres.responseComplete = false;
+
         updatedTabId = reqres.tabId;
 
         let options = getOriginConfig(updatedTabId, reqres.fromExtension);

@@ -111,6 +111,14 @@ function isUnknownError(error) {
     return true;
 }
 
+function isAbortedError(error) {
+    if (!useDebugger && (error === "webRequest::NS_ERROR_ABORT"
+                      || error === "webRequest::NS_BINDING_ABORTED"))
+        // Firefox
+        return true;
+    return false;
+}
+
 function isProblematicError(error) {
     if (!useDebugger && error === "filterResponseData::Channel redirected")
         // Firefox
