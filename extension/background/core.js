@@ -1400,7 +1400,7 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
     if (reqres.formData !== undefined) {
         // recover requestBody from formData
         let contentType = getHeaderValue(reqres.requestHeaders, "Content-Type") || "";
-        let parts = contentType.split("; ");
+        let parts = contentType.split(";");
         if (parts[0] == "application/x-www-form-urlencoded") {
             let bodyParts = [];
             for (const [name, value] of Object.entries(reqres.formData)) {
