@@ -1556,18 +1556,21 @@ function handleBeforeRequest(e) {
         return { cancel: true };
     }
 
-    // On Firefox, redirect the very first non-background request to
-    // `about:blank`, and then reload the tab with the original URL to
+    // On Firefox, cancel the very first navigation request, redirect the tab
+    // to `about:blank`, and then reload the tab with the original URL to
     // work-around a Firefox bug where it will fail to run `onstop` for the
     // `filterResponseData` of the very first request, thus breaking it.
-    if (!useDebugger && e.tabId !== -1
-        && workaroundFirstRequest
-        && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
+    if (!useDebugger && workaroundFirstRequest) {
         workaroundFirstRequest = false;
-        if (config.debugging)
-            console.warn("canceling and restarting request to", e.url, "to workaround a bug in Firefox");
-        setTimeout(() => browser.tabs.update(e.tabId, { url: e.url }), 300);
-        return { redirectUrl: "about:blank" };
+        if (e.tabId !== -1
+            && initiator === undefined
+            && e.type == "main_frame"
+            && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
+            if (config.debugging)
+                console.warn("canceling and restarting request to", e.url, "to workaround a bug in Firefox");
+            resetTab(e.tabId, "about:blank").then(() => browser.tabs.update(e.tabId, { url: e.url })).catch(logError);
+            return { cancel: true };
+        }
     }
 
     let requestId = e.requestId;
