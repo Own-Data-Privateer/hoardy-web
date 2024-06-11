@@ -170,7 +170,8 @@ function cleanupTabs() {
     for (let tabId of Array.from(tabConfig.keys())) {
         if(openTabs.has(tabId) || usedTabs.has(tabId))
             continue;
-        console.log("removing config of tab", tabId);
+        if (config.debugging)
+            console.log("removing config of tab", tabId);
         tabConfig.delete(tabId);
         tabState.delete(tabId);
     }
@@ -1364,7 +1365,10 @@ function forceFinishingUpWebRequest(predicate) {
         }
 
         if (config.debugging)
-            console.log("STUCK webRequest", reqres);
+            console.warn("UNSTUCK webRequest requestId", reqres.requestId,
+                         "tabId", reqres.tabId,
+                         "url", reqres.url,
+                         "reqres", reqres);
 
         reqresAlmostDone.push(reqres);
     }
@@ -1446,9 +1450,15 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
         processFinishingUp();
 }
 
-function logRequest(rtype, e) {
+function logEvent(rtype, e, reqres) {
     if (config.debugging)
-        console.log("webRequest", e.requestId, rtype, e.timeStamp, e.tabId, e.method, e.url, e.statusCode, e.statusLine, e);
+        console.warn("EVENT webRequest",
+                     rtype,
+                     "requestId", e.requestId,
+                     "tabId", e.tabId,
+                     "url", e.url,
+                     "event", e,
+                     "reqres", reqres);
 }
 
 // reqres
@@ -1521,13 +1531,15 @@ function handleBeforeRequest(e) {
     let options = getOriginConfig(e.tabId, fromExtension);
     if (!options.collecting) return;
 
+    logEvent("BeforeRequest", e, undefined);
+
     // On Chromium, cancel all network requests from tabs that are not
     // yet debugged, start debugging, and then reload the tab.
     if (useDebugger && e.tabId !== -1
         && !tabsDebugging.has(e.tabId)
         && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
         if (config.debugging)
-            console.log("canceling request to", e.url, "as tab", e.tabId, "is not managed yet", e);
+            console.warn("canceling and restarting request to", e.url, "as tab", e.tabId, "is not managed yet");
         attachDebuggerAndReloadIn(e.tabId, 1000);
         return { cancel: true };
     }
@@ -1541,12 +1553,10 @@ function handleBeforeRequest(e) {
         && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
         workaroundFirstRequest = false;
         if (config.debugging)
-            console.log("canceling request to", e.url, "as it is the very first request to workaround a bug in Firefox", e);
+            console.warn("canceling and restarting request to", e.url, "to workaround a bug in Firefox");
         setTimeout(() => browser.tabs.update(e.tabId, { url: e.url }), 300);
         return { redirectUrl: "about:blank" };
     }
-
-    logRequest("before request", e);
 
     let requestId = e.requestId;
     let reqres = {
@@ -1642,14 +1652,14 @@ function handleBeforeSendHeaders(e) {
     let reqres = reqresInFlight.get(e.requestId);
     if (reqres === undefined) return;
 
-    logRequest("before send headers", e);
+    logEvent("BeforeSendHeaders", e, reqres);
 }
 
 function handleSendHeaders(e) {
     let reqres = reqresInFlight.get(e.requestId);
     if (reqres === undefined) return;
 
-    logRequest("send headers", e);
+    logEvent("SendHeaders", e, reqres);
     reqres.sent = true;
     reqres.requestHeaders = e.requestHeaders;
 }
@@ -1673,7 +1683,7 @@ function handleHeadersRecieved(e) {
     let reqres = reqresInFlight.get(e.requestId);
     if (reqres === undefined) return;
 
-    logRequest("headers recieved", e);
+    logEvent("HeadersRecieved", e, reqres);
 
     if (reqres.responseTimeStamp !== undefined) {
         // the browser can call this multiple times for the same request, e.g.
@@ -1701,7 +1711,7 @@ function handleBeforeRedirect(e) {
     let reqres = reqresInFlight.get(e.requestId);
     if (reqres === undefined) return;
 
-    logRequest("before redirect", e);
+    logEvent("BeforeRedirect", e, reqres);
 
     if (reqres.responseTimeStamp === undefined) {
         // this happens when a request gets redirected right after
@@ -1724,7 +1734,7 @@ function handleAuthRequired(e) {
     let reqres = reqresInFlight.get(e.requestId);
     if (reqres === undefined) return;
 
-    logRequest("auth required", e);
+    logEvent("AuthRequired", e, reqres);
 
     // similarly to above
     let creqres = completedCopyOfReqres(reqres);
@@ -1738,7 +1748,7 @@ function handleCompleted(e) {
     let reqres = reqresInFlight.get(e.requestId);
     if (reqres === undefined) return;
 
-    logRequest("completed", e);
+    logEvent("Completed", e, reqres);
     emitRequest(e.requestId, reqres);
 }
 
@@ -1746,7 +1756,7 @@ function handleErrorOccurred(e) {
     let reqres = reqresInFlight.get(e.requestId);
     if (reqres === undefined) return;
 
-    logRequest("error", e);
+    logEvent("ErrorOccured", e, reqres);
     emitRequest(e.requestId, reqres, "webRequest::" + e.error);
 }
 

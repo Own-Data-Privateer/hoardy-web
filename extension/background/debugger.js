@@ -32,7 +32,8 @@ function attachDebugger(tabId) {
         //await browser.debugger.sendCommand(debuggee, "Fetch.enable", {});
         //await browser.debugger.sendCommand(debuggee, "Page.enable", {});
         tabsDebugging.add(tabId);
-        console.log("attached debugger to tab", tabId);
+        if (config.debugging)
+            console.log("attached debugger to tab", tabId);
     });
 }
 
@@ -40,7 +41,8 @@ function detachDebugger(tabId) {
     let debuggee = { tabId };
     return browser.debugger.detach(debuggee).then(() => {
         tabsDebugging.delete(tabId);
-        console.log("detached debugger from tab", tabId);
+        if (config.debugging)
+            console.log("detached debugger from tab", tabId);
     });
 }
 
@@ -122,7 +124,11 @@ function handleDebugEvent(debuggee, method, params) {
 }
 
 function handleDebugDetach(debuggee, reason) {
-    console.log("debugger detached", debuggee, reason);
+    if (reason !== "target_closed")
+        console.warn("debugger detached", debuggee, reason);
+    else if (config.debugging)
+        console.log("debugger detached", debuggee, reason);
+
     let tabId = debuggee.tabId;
     if (tabId !== undefined) {
         tabsDebugging.delete(tabId);
@@ -144,12 +150,18 @@ let debugReqresInFlight = new Map();
 // similarly to reqresFinishingUp
 let debugReqresFinishingUp = [];
 
-function logDebugRequest(rtype, nonExtra, e) {
+function logDebugEvent(rtype, nonExtra, e, dreqres) {
     if (config.debugging) {
         let url;
         if (e.request !== undefined)
             url = e.request.url;
-        console.log("debug.Network.request " + rtype, nonExtra, e.tabId, e.requestId, url, e);
+        console.warn("EVENT debugRequest",
+                     rtype + (nonExtra ? "" : "ExtraInfo"),
+                     "drequestId", e.requestId,
+                     "tabId", e.tabId,
+                     "url", url,
+                     "event", e,
+                     "dreqres", dreqres);
     }
 }
 
@@ -159,7 +171,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
 
-    logDebugRequest("request will be sent", nonExtra, e);
+    logDebugEvent("requestWillBeSent", nonExtra, e, undefined);
 
     let dreqres = cacheSingleton(debugReqresInFlight, e.requestId, () => { return {
         errors: [],
@@ -190,7 +202,7 @@ function handleDebugResponseRecieved(nonExtra, e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
-    logDebugRequest("responce recieved", nonExtra, e);
+    logDebugEvent("responseReceived", nonExtra, e, dreqres);
 
     if (nonExtra) {
         dreqres.responseTimeStamp = e.response.responseTime;
@@ -224,7 +236,7 @@ function handleDebugCompleted(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
-    logDebugRequest("completed", false, e);
+    logDebugEvent("loadingFinished", true, e, dreqres);
 
     emitDebugRequest(e.requestId, dreqres, true);
 }
@@ -233,7 +245,7 @@ function handleDebugErrorOccuried(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
-    logDebugRequest("error", false, e);
+    logDebugEvent("loadingFailed", true, e, dreqres);
 
     if (e.canceled === true) {
         dreqres.sent = false;
@@ -272,6 +284,11 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
             dreqres.responseComplete = error === undefined;
         }, () => {}).finally(() => {
             debugReqresFinishingUp.push(dreqres);
+            if (config.debugging)
+                console.warn("CAPTURED debugRequest drequestId", dreqres.requestId,
+                             "tabId", dreqres.tabId,
+                             "url", dreqres.url,
+                             "dreqres", dreqres);
             if (!dontFinishUp)
                 processMatchFinishingUpWebRequestDebug();
         });
@@ -279,6 +296,11 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     } else {
         dreqres.responseComplete = error === undefined;
         debugReqresFinishingUp.push(dreqres);
+        if (config.debugging)
+            console.warn("CAPTURED debugRequest drequestId", dreqres.requestId,
+                         "tabId", dreqres.tabId,
+                         "url", dreqres.url,
+                         "dreqres", dreqres);
         if (!dontFinishUp)
             processMatchFinishingUpWebRequestDebug();
     }
@@ -298,7 +320,10 @@ function forceFinishingUpDebug(predicate) {
             continue;
 
         if (config.debugging)
-            console.log("STUCK debug.Network.request", dreqres);
+            console.warn("UNSTUCK debugRequest drequestId", dreqres.requestId,
+                         "tabId", dreqres.tabId,
+                         "url", dreqres.url,
+                         "dreqres", dreqres);
 
         emitDone(undefined, dreqres);
     }
