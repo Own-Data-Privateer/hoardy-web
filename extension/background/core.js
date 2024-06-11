@@ -462,7 +462,10 @@ function unmarkProblematic(num, tabId) {
 
     if (popped.length > 0) {
         changedProblematic = true;
+        // reset all the logs, since some statuses may have changed
         broadcast(["resetProblematicLog", reqresProblematic]);
+        broadcast(["resetInLimboLog", getInLimboLog()]);
+        broadcast(["resetLog", reqresLog]);
         cleanupTabs();
         updateDisplay(true, false, tabId);
         scheduleComplaints(100);
@@ -514,6 +517,9 @@ function popInLimbo(collect, num, tabId) {
     if (popped.length > 0) {
         changedLimbo = true;
         broadcast(["resetInLimboLog", getInLimboLog()]);
+        if (popped.some((r) => r.problematic === true))
+            // also reset problematic, since reqres statuses have changed
+            broadcast(["resetProblematicLog", reqresProblematic]);
         broadcast(["newLog", newLog, false]);
         cleanupTabs();
         updateDisplay(true, false);
