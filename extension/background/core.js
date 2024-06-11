@@ -1230,7 +1230,7 @@ function processAlmostDone() {
         if (reqres.protocol === undefined) {
             if (getHeaderValue(reqres.requestHeaders, ":authority") !== undefined)
                 reqres.protocol = "HTTP/2.0";
-            else if (lineProtocol !== undefined)
+            else if (lineProtocol !== undefined && lineProtocol !== "")
                 reqres.protocol = lineProtocol;
             else
                 reqres.protocol = "HTTP/1.0";
