@@ -50,7 +50,7 @@ let config = {
     markProblematicWithErrors: false,
     markProblematicPickedWithErrors: true,
     problematicNotify: true,
-    problematicNotifyNumber: 10,
+    problematicNotifyNumber: 3,
 
     // collection options
     archivePartialRequest: true,
@@ -60,8 +60,8 @@ let config = {
     archiveWithErrors: true,
 
     // limbo options
-    limboMaxNumber: 100,
-    limboMaxSize: 100,
+    limboMaxNumber: 1024,
+    limboMaxSize: 128,
     limboNotify: true,
 
     // automatic actions
