@@ -120,10 +120,10 @@ label code {
       </span>
     </h1>
     <div class="stats">
-      <div id="div-stats.archived" data-help="The numbers of reqres that were: successfully archived to the server (+still in the archiving queue) / failed to be archived to the server.">
+      <div id="div-stats.archived" data-help="For this session, the numbers of reqres that were: successfully archived to the server (+still in the archival queue) / failed to be archived to the server.">
         <span>Archived/Failed</span>
         <span>
-          <span data-help="Retry archiving reqres that failed to archive. I.e., move all failed to archive reqres to the archiving queue. This action will be performed automatically every 60 seconds when archiving is enabled."><input type="button" id="retryAllFailedArchives" value="♻" /></span>
+          <span data-help="Retry archiving reqres that failed to archive. I.e., move all failed to archive reqres to the archival queue. This action will be performed automatically every 60 seconds when archiving is enabled."><input type="button" id="retryAllFailedArchives" value="♻" /></span>
         </span>
         <span>
           <span id="stats.archive_ok">0</span>
@@ -132,7 +132,7 @@ label code {
           <span id="stats.archive_failed">0</span>
         </span>
       </div>
-      <div id="div-stats.collected" data-help="The numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory.">
+      <div id="div-stats.collected" data-help="From the last reset, the numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory.">
         <span>Collected/Discarded</span>
         <span>
         </span>
@@ -143,7 +143,7 @@ label code {
           <span id="stats.discarded">0</span>
         </span>
       </div>
-      <div id="div-stats.in_limbo" data-help="The number of finished reqres in limbo (and the sum total of all sizes of their dumps).">
+      <div id="div-stats.in_limbo" data-help="At the moment, the number of finished reqres in limbo (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
           <span data-help="Collect all reqres in limbo."><input type="button" id="collectAllInLimbo" value="✔️" /></span>
@@ -154,7 +154,7 @@ label code {
           (<span id="stats.in_limbo_size">0</span>)
         </span>
       </div>
-      <div id="div-stats.picked" data-help="The number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
+      <div id="div-stats.picked" data-help="From the last reset, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
         <span>Picked/Dropped</span>
         <span>
         </span>
@@ -164,7 +164,7 @@ label code {
           <span id="stats.dropped">0</span>
         </span>
       </div>
-      <div id="div-stats.problematic" data-help="The number of reqres that satisfied &quot;Mark reqres as problematic when they finish&quot; conditions (at the moment they `finished`).">
+      <div id="div-stats.problematic" data-help="At the moment, the number of reqres that satisfied &quot;Mark reqres as problematic when they finish&quot; conditions (at the moment they `finished`).">
         <span>Problematic</span>
         <span>
           <span data-help="Unmark all problematic reqres."><input type="button" id="unmarkAllProblematic" value="🧹" /></span>
@@ -173,7 +173,7 @@ label code {
           <span id="stats.problematic">0</span>
         </span>
       </div>
-      <div id="div-stats.in_flight" data-help="The number of reqres that have not finished yet.">
+      <div id="div-stats.in_flight" data-help="At the moment, the number of reqres that have not finished yet.">
         <span>In flight</span>
         <span>
           <span data-help="Stop tracking progress of all in-flight reqres and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options."><input type="button" id="stopAllInFlight" value="⏹" /></span>
