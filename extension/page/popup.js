@@ -7,13 +7,13 @@
 "use strict";
 
 function showAll() {
-    document.getElementById("show").style.display = "none";
+    document.getElementById("showAll").style.display = "none";
     for (let node of document.getElementsByName("more"))
         node.style.removeProperty("display");
 }
 
 function hideAll() {
-    document.getElementById("show").style.removeProperty("display");
+    document.getElementById("showAll").style.removeProperty("display");
     for (let node of document.getElementsByName("more"))
         node.style.display = "none";
 }
@@ -127,7 +127,7 @@ async function popupMain() {
 
     buttonToMessage("resetPersistentStats");
 
-    buttonToAction("show", catchAll(showAll));
+    buttonToAction("showAll", catchAll(showAll));
 
     async function updateStats(stats) {
         if (stats === undefined)
