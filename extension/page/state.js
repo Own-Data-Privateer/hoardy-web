@@ -29,21 +29,21 @@ function appendReqres(el, reqres) {
     let tr = document.createElement("tr");
 
     let state = "in_flight";
-    let color = "#ffffaa";
+    let color = "in-flight";
     if (reqres.collected === true) {
         state = "collected";
-        color = "#aaffaa";
+        color = "collected";
     } else if (reqres.collected === false) {
         state = "discarded";
-        color = "#ffaaaa";
+        color = "discarded";
     } else if (reqres.picked === true) {
         state = "in_limbo";
-        color = "#eeffee";
+        color = "picked";
     } else if (reqres.picked === false) {
         state = "in_limbo";
-        color = "#ffeeee";
+        color = "dropped";
     }
-    tr.setAttribute("style", `background-color: ${color}`);
+    tr.classList.add(color);
 
     function mtr(data) {
         let td = document.createElement("td");
@@ -100,12 +100,14 @@ function appendReqres(el, reqres) {
 
     if (reqres.errors.length > 0) {
         let etr = document.createElement("tr");
-        etr.setAttribute("style", `background-color: ${color}`);
+        etr.classList.add("errors");
+
         let etd = document.createElement("td");
         etd.setAttribute("colspan", 2);
         etr.appendChild(etd);
 
         etd = document.createElement("td");
+        etd.classList.add(color);
         etd.setAttribute("colspan", 7);
         etd.setAttribute("title", "errors");
         etd.innerHTML = escapeHTML(reqres.errors.join("\n")).replaceAll("\n", "<br>");

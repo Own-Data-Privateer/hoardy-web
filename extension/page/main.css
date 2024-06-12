@@ -1,4 +1,5 @@
 :root {
+    color-scheme: light dark;
     --untoggle-background: #cfcfd855;
     --untoggle-border-color: #cfcfd8;
     --untoggle-background-good: #94f89455;
@@ -14,22 +15,48 @@
     --toggle-background-bad: #fb3230;
     --toggle-border-color-bad: #94023e;
     --text-background: inherit;
-    --text-border-color: black;
+    --text-border-color: #000000;
+    --text-color: inherit;
+    --text-inactive-background: var(--untoggle-background);
+    --text-inactive-border-color: var(--untoggle-border-color);
+    --text-inactive-color: inherit;
     --help-btn-background: #aaaaaa;
     --help-btn-border-color : #bbbbbb;
-    --help-btn: #fafafa;
-    --help-btn-background-checked: #666666;
-    --help-btn-checked: #ffffff;
+    --help-btn-color: #fafafa;
+    --help-btn-checked-background: #666666;
+    --help-btn-checked-border-color : #888888;
+    --help-btn-checked-color: #ffffff;
     --help-tip-background:  #fffffa;
     --help-tip-border-color: #aaaaaa;
     --help-tip-text: #000000;
-    --target-background: #ffaa00;
+    --target-background-1: #ffaa00;
     --target-background-2: #ffaa0080;
-    --target-border-color: var(--target-background);
+    --target-border-color: var(--target-background-1);
     --target-pointer: #ee8800;
-    --attention-background: #e02020;
-    --attention-background-2: #ffffff00;
-    --attention-border-color: var(--attention-background);
+    --attention-background-1: #e02020;
+    --attention-background-2: #ffffff;
+    --attention-border-color: var(--attention-background-1);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --untoggle-background: #515138;
+        --untoggle-background-good: #94f894;
+        --untoggle-background-bad: #f89494;
+        --text-border-color: #ffffff;
+        --text-inactive-background: inherit;
+        --text-inactive-border-color: #505050;
+        --text-inactive-color: #505050;
+        --help-btn-background: #333333;
+        --help-btn-border-color : #666666;
+        --help-btn-color: #aaaaaa;
+        --help-btn-checked-background: #aaaaaa;
+        --help-btn-checked-border-color : #bbbbbb;
+        --help-btn-checked-color: #060606;
+        --help-tip-background: #000005;
+        --help-tip-text: #ffffff;
+        --attention-background-2: #000000;
+    }
 }
 
 body {
@@ -105,6 +132,7 @@ input[type="text"],
 input[type="number"] {
     background: var(--text-background);
     border: 1px solid var(--text-border-color);
+    color: var(--text-color);
 }
 
 .help-root {
@@ -127,15 +155,16 @@ input[type="checkbox"].help-btn {
 input[type="checkbox"].help-btn:after {
     content: "?";
     margin-left: calc(8px - 0.5ch);
-    color: var(--help-btn);
+    color: var(--help-btn-color);
 }
 
 input[type="checkbox"].help-btn:checked {
-    background: var(--help-btn-background-checked);
+    background: var(--help-btn-checked-background);
+    border-color: var(--help-btn-checked-border-color);
 }
 
 input[type="checkbox"].help-btn:checked:after {
-    color: var(--help-btn-checked);
+    color: var(--help-btn-checked-color);
 }
 
 div.ui,
@@ -162,7 +191,7 @@ div.help-tip {
     position: absolute;
     z-index: 20;
 
-    background-color: var(--help-tip-background);
+    background: var(--help-tip-background);
     border-radius: 3px;
     border: 1px solid var(--help-tip-border-color);
     box-shadow: 1px 1px 3px var(--help-tip-border-color);
@@ -183,7 +212,7 @@ div.help-tip {
 .target {
     border: 1px solid var(--target-border-color);
     border-radius: 5px;
-    background-color: var(--target-background);
+    background: var(--target-background);
     animation-name: highlight;
     animation-duration: 2s;
     animation-timing-function: linear;
@@ -192,13 +221,13 @@ div.help-tip {
 
 @keyframes highlight {
     from {
-        background-color: var(--target-background);
+        background-color: var(--target-background-1);
     }
     50% {
         background-color: var(--target-background-2);
     }
     to {
-        background-color: var(--target-background);
+        background-color: var(--target-background-1);
     }
 }
 
@@ -213,7 +242,7 @@ div.help-tip {
 .attention {
     border: 5px solid var(--attention-border-color);
     border-radius: 5px;
-    background-color: var(--attention-background);
+    background: var(--attention-background-1);
     color: var(--attention-color);
     animation-name: attention;
     animation-duration: 5s;
@@ -223,12 +252,12 @@ div.help-tip {
 
 @keyframes attention {
     from {
-        background-color: var(--attention-background);
+        background-color: var(--attention-background-1);
     }
     50% {
         background-color: var(--attention-background-2);
     }
     to {
-        background-color: var(--attention-background);
+        background-color: var(--attention-background-1);
     }
 }

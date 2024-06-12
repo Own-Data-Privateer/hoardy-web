@@ -6,6 +6,24 @@
     <link rel="shortcut icon" type="image/svg" href="../icon/main.svg">
     <link rel="stylesheet" href="main.css?v=1">
     <style>
+:root {
+    --log-in-flight: #ffffaa;
+    --log-picked: #eeffee;
+    --log-dropped: #ffeeee;
+    --log-collected: #aaffaa;
+    --log-discarded: #ffaaaa;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --log-in-flight: #606020;
+        --log-picked: #446044;
+        --log-dropped: #604444;
+        --log-collected: #004000;
+        --log-discarded: #400000;
+    }
+}
+
 h1 {
     font-size: 200%;
     margin: 0;
@@ -30,9 +48,19 @@ table {
     width: 100%;
 }
 
+table tr.errors td:nth-child(1) {
+    border: none;
+}
+
 td.long {
     line-break: anywhere;
 }
+
+.in-flight { background: var(--log-in-flight); }
+.picked { background: var(--log-picked); }
+.dropped { background: var(--log-dropped); }
+.collected { background: var(--log-collected); }
+.discarded { background: var(--log-discarded); }
     </style>
   </head>
   <body>
