@@ -200,7 +200,7 @@ async function stateMain() {
 
     // add help tooltips
     let body = document.body;
-    addHelp(body, true);
+    addHelp(body);
 
     async function updateConfig() {
         let config = await browser.runtime.sendMessage(["getConfig"]);

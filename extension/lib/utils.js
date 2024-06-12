@@ -617,14 +617,14 @@ function helpMarkupToHTML(text) {
 }
 
 // given a DOM node, add help tooltips to all its children with data-help attribute
-function addHelp(node, attachHide) {
+function addHelp(node, noHide) {
     for (let child of node.childNodes) {
         if (child.nodeName === "#text" || child.nodeName === "#comment") continue;
-        addHelp(child);
+        addHelp(child, true);
     }
 
-    if (attachHide === true)
-        node.onclick = hideHelp;
+    if (!noHide)
+        node.addEventListener("click", hideHelp);
 
     let help = node.getAttribute("data-help");
     if (help === null) return;
