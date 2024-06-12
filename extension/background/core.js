@@ -28,6 +28,7 @@ let config = {
     seenChangelog: true,
     seenHelp: false,
     colorblind: false,
+    pureText: false,
 
     // log settings
     history: 1000,

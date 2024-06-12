@@ -641,6 +641,7 @@ function addHelp(node, attachHide) {
 
     let helpMark = document.createElement("input");
     helpMark.type = "checkbox";
+    helpMark.setAttribute("aria-label", "Show help for this element.");
     helpMark.classList.add("help-btn");
 
     helpMark.onchange = () => {

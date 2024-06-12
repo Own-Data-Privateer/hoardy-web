@@ -52,6 +52,46 @@ async function popupMain() {
     makeUI(body);
     addHelp(body, true);
 
+    // emoji labels for the UI buttons
+    let emojiButtons = {
+        forgetHistory: "🧹",
+        showState: "📜",
+        runAllActions: "🟢",
+        cancelCleanupActions: "🟥",
+        retryAllFailedArchives: "♻",
+        collectAllInLimbo: "✔",
+        discardAllInLimbo: "✖",
+        unmarkAllProblematic: "🧹",
+        stopAllInFlight: "⏹",
+        forgetTabHistory: "🧹",
+        showTabState: "📜",
+        collectTabInLimbo: "✔",
+        discardTabInLimbo: "✖",
+        unmarkTabProblematic: "🧹",
+        stopTabInFlight: "⏹",
+    };
+
+    // populate with the original values from the ./popup.html
+    let emojiButtonsOriginals = {};
+    for (let k of Object.keys(emojiButtons)) {
+        let node = document.getElementById(k);
+        emojiButtonsOriginals[k] = node.value;
+    }
+
+    // sync config state and UI state
+    let pureTextState = true;
+    function resetPureText(config) {
+        if (pureTextState == config.pureText)
+            return;
+
+        if (config.pureText)
+            setUI(document, undefined, emojiButtonsOriginals);
+        else
+            setUI(document, undefined, emojiButtons);
+
+        pureTextState = config.pureText;
+    }
+
     async function resetAndOpen(reset, open) {
         // reset given config setting
         await browser.runtime.sendMessage(["setConfig", reset]);
@@ -116,6 +156,8 @@ async function popupMain() {
         });
 
         setConditionalClass(body, config.colorblind, "colorblind");
+        setConditionalClass(body, config.pureText, "pure-text");
+        resetPureText(config);
         setConditionalClass(body, !config.archiving, "disabled-archiving");
         setConditionalClass(body, !config.collecting, "disabled-collecting");
         setConditionalClass(body, !config.autoUnmarkProblematic

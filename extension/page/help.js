@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // show settings as iframe
     let iframe = document.createElement("iframe");
     iframe.src = popupURL + "#all";
+    iframe.setAttribute("title", "The Settings Popup.");
     document.body.appendChild(iframe);
 
     // a flag making the highlight stick around
