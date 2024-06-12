@@ -14,6 +14,11 @@
     --log-discarded: #ffaaaa;
 }
 
+.colorblind {
+    --log-picked: #eeeeff;
+    --log-collected: #aaaaff;
+}
+
 @media (prefers-color-scheme: dark) {
     :root {
         --log-in-flight: #606020;
@@ -21,6 +26,11 @@
         --log-dropped: #604444;
         --log-collected: #004000;
         --log-discarded: #400000;
+    }
+
+    .colorblind {
+        --log-picked: #444460;
+        --log-collected: #000040;
     }
 }
 

@@ -32,10 +32,17 @@
     --target-background-1: #ffaa00;
     --target-background-2: #ffaa0080;
     --target-border-color: var(--target-background-1);
-    --target-pointer: #ee8800;
+    --target-pointer: #aa4400;
     --attention-background-1: #e02020;
     --attention-background-2: #ffffff;
     --attention-border-color: var(--attention-background-1);
+}
+
+.colorblind {
+    --untoggle-background-good: #9494f855;
+    --untoggle-border-color-good: #cfcfd8;
+    --toggle-background-good: #0250bb;
+    --toggle-border-color-good: #053e94;
 }
 
 @media (prefers-color-scheme: dark) {

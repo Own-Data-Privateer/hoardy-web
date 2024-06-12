@@ -115,6 +115,7 @@ async function popupMain() {
             browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
         });
 
+        setConditionalClass(body, config.colorblind, "colorblind");
         setConditionalClass(body, !config.archiving, "disabled-archiving");
         setConditionalClass(body, !config.collecting, "disabled-collecting");
         setConditionalClass(body, !config.autoUnmarkProblematic

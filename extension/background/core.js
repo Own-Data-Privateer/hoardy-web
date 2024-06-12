@@ -27,6 +27,7 @@ let config = {
     lastSeenVersion: manifest.version,
     seenChangelog: true,
     seenHelp: false,
+    colorblind: false,
 
     // log settings
     history: 1000,

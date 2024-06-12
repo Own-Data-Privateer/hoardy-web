@@ -186,11 +186,20 @@ async function stateMain() {
     buttonToAction("stopAllInFlight", catchAll(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
 
     // add help tooltips
-    addHelp(document.body, true);
+    let body = document.body;
+    addHelp(body, true);
+
+    async function updateConfig() {
+        let config = await browser.runtime.sendMessage(["getConfig"]);
+        setConditionalClass(body, config.colorblind, "colorblind");
+    }
 
     async function processUpdate(update) {
         let [what, data] = update;
         switch(what) {
+        case "updateConfig":
+            await updateConfig();
+            break;
         case "resetLog":
             resetLog(data);
             break;
@@ -223,6 +232,7 @@ async function stateMain() {
     }
 
     await subscribeToExtension(catchAll(processUpdate), catchAll(async () => {
+        await updateConfig();
         await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
         await browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic);
         await browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);
