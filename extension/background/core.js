@@ -21,7 +21,7 @@ let config = {
     ephemeral: false, // stop the config from being saved to disk
     debugging: false, // verbose debugging logs
     dumping: false, // dump dumps to console
-    discardAllNew: false,
+    doNotQueue: false,
 
     // UI
     lastSeenVersion: manifest.version,
@@ -639,7 +639,7 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
         newColor = 1;
         chunks.push("debugging (SLOW!)");
     }
-    if (config.autoPopInLimboDiscard || config.discardAllNew) {
+    if (config.autoPopInLimboDiscard || config.doNotQueue) {
         newBadge += "!";
         newColor = 2;
         chunks.push("auto-discarding");
@@ -1138,7 +1138,7 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
     shallow.collected = collect;
 
     if (collect) {
-        if (!config.discardAllNew)
+        if (!config.doNotQueue)
             reqresQueue.push([shallow, dump]);
         persistentStats.collectedTotal += 1;
         persistentStats.collectedSize += dump.byteLength;
@@ -2198,13 +2198,19 @@ async function init(storage) {
     }
     config.lastSeenVersion = manifest.version;
 
-    if (config.autoPopInLimboDiscard || config.discardAllNew)
+    if (config.autoPopInLimboDiscard || config.doNotQueue) {
+        let what = [];
+        if (config.autoPopInLimboDiscard)
+            what.push(`"Auto-discard reqres in limbo"`);
+        if (config.doNotQueue)
+            what.push(`"Do not queue new reqres"`);
         browser.notifications.create("autoDiscard", {
             title: "pWebArc: REMINDER",
-            message: `One of both of "Auto-discard reqres in limbo" or "Stop collecting new data" options are enabled.`,
+            message: `Some auto-discarding options are enabled: ${what.join(", ")}.`,
             iconUrl: iconURL("limbo", 128),
             type: "basic",
         }).catch(logError);
+    }
 
     if (false) {
         // for debugging
