@@ -20,10 +20,18 @@ let tabId = mapStateTabId(document.location, (x) => x, null, null);
 if (tabId !== null)
     document.title = `pWebArc: tab ${tabId}: Internal State`;
 
-function switchToDataTabId() {
-    let dataTabId = Number(this.getAttribute("data-tabid"));
+function switchToDataTabId(dataTabId) {
     browser.tabs.update(dataTabId, { active: true }).catch(logError);
 }
+
+function showStateOfDataTabId(dataTabId) {
+    showState(`?tab=${dataTabId}`, "top", tabId);
+}
+
+// caches of `switchToDataTabId` and `showStateOfDataTabId` bound to a
+// given argument, for efficiency
+let switchFuncMap = new Map();
+let showStateFuncMap = new Map();
 
 function appendReqres(el, reqres) {
     let tr = document.createElement("tr");
@@ -52,14 +60,12 @@ function appendReqres(el, reqres) {
         return td;
     }
 
-    function mbtn(data) {
+    function mbtn(node, data, func) {
         let btn = document.createElement("input");
         btn.type = "button";
         btn.value = data;
-
-        let td = document.createElement("td");
-        td.appendChild(btn);
-        tr.appendChild(td);
+        btn.onclick = func;
+        node.appendChild(btn);
         return btn;
     }
 
@@ -68,9 +74,16 @@ function appendReqres(el, reqres) {
     else if (reqres.tabId == -1)
         mtr("bg");
     else {
-        let btn = mbtn(`tab #${reqres.tabId}`);
-        btn.setAttribute("data-tabid", reqres.tabId.toString());
-        btn.onclick = switchToDataTabId.bind(btn);
+        let dataTabId = reqres.tabId;
+        let td = document.createElement("td");
+        let div = document.createElement("div");
+        mbtn(div, `tab #${reqres.tabId}`,
+             cacheSingleton(switchFuncMap, dataTabId, () => switchToDataTabId.bind(undefined, dataTabId)));
+        if (tabId === null)
+            mbtn(div, "IS",
+                 cacheSingleton(showStateFuncMap, dataTabId, () => showStateOfDataTabId.bind(undefined, dataTabId)));
+        td.appendChild(div);
+        tr.appendChild(td);
     }
 
     mtr((reqres.requestComplete ? "C" : "I")
@@ -157,7 +170,7 @@ async function stateMain() {
         let thead = document.createElement("thead");
         thead.innerHTML = `
 <tr>
-  <th><span data-help="Source of this reqres: &quot;ext&quot; for reqres produced by extensions, &quot;bg&quot; for reqres produced by background tasks, &quot;tab #N&quot; for reqres produced by the tab with id \`N\`. For tabs the label is a button which switches currently active tab to the tab in question.">Src</span></th>
+  <th><span data-help="Source of this reqres: &quot;ext&quot; for reqres produced by extensions, &quot;bg&quot; for reqres produced by background tasks, &quot;tab #N&quot; for reqres produced by the tab with id \`N\`. For tabs the label is a button which switches currently active tab to the tab in question. If the current page is not narrowed to a tab, then a button labled &quot;IS&quot; follows. That button opens this page narrowed to the tab in question.">Src</span></th>
   <th><span data-help="The \`.status\` this reqres will have in wrrarms: &quot;I&quot; or &quot;C&quot; character (for &quot;Incomplete&quot; and &quot;Complete&quot; respectively) representing the value of \`.request.complete\` flag followed by either &quot;N&quot; (for &quot;No response&quot;) or an HTTP status code (integer, e.g. &quot;200&quot;), followed by &quot;I&quot; or &quot;C&quot; representing the value of \`.response.complete\` flag.">WRR</span></th>
   <th><span data-help="The current reqres \`state\` followed by \`the final networking state\`, followed by &quot;redirected&quot; when this reqres is a redirect, followed by &quot;was_in_limbo&quot; when this reqres was ever in limbo, followed by either &quot;problematic!&quot; when this reqres is marked as problematic or &quot;was_problematic&quot; when this reqres was marked as problematic before (see the Help page for more info).">pWA</span></th>
   <th><span data-help="Timestamp of when the first byte of HTTP request headers was sent.">Request at</span></th>
