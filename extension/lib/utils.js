@@ -629,15 +629,13 @@ function addHelp(node, noHide) {
     let help = node.getAttribute("data-help");
     if (help === null) return;
     node.removeAttribute("data-help");
-    node.setAttribute("data-orig-help", help);
-    node.setAttribute("title", help);
-    node.classList.add("help-root");
 
-    let helpDiv = document.createElement("div");
-    helpDiv.classList.add("help-tip");
-    helpDiv.style.display = "none";
-    helpDiv.innerHTML = helpMarkupToHTML(help);
-    helpDiv.onclick = hideHelp;
+    let helpTip = document.createElement("div");
+    helpTip.classList.add("help-tip");
+    helpTip.setAttribute("data-orig-help", help);
+    helpTip.style.display = "none";
+    helpTip.innerHTML = helpMarkupToHTML(help);
+    helpTip.onclick = hideHelp;
 
     let helpMark = document.createElement("input");
     helpMark.type = "checkbox";
@@ -648,12 +646,20 @@ function addHelp(node, noHide) {
         hideHelp();
 
         if (helpMark.checked) {
-            helpDiv.style.display = "block";
-            helpNodes = [helpMark, helpDiv];
+            helpTip.style.display = "block";
+            helpNodes = [helpMark, helpTip];
         } else
-            helpDiv.style.display = "none";
+            helpTip.style.display = "none";
     }
 
     node.appendChild(helpMark);
-    node.appendChild(helpDiv);
+
+    let root = document.createElement("span");
+    root.classList.add("help-root");
+    root.setAttribute("title", help);
+
+    node.parentElement.replaceChild(root, node);
+
+    root.appendChild(node);
+    root.appendChild(helpTip);
 }
