@@ -8,14 +8,6 @@
 
 "use strict";
 
-// delayed cleanup hook
-let debugFinishingUpTID = null;
-
-function cancelDebugFinishingUp() {
-    if (debugFinishingUpTID !== null)
-        clearTimeout(debugFinishingUpTID);
-}
-
 async function initDebugger(tabs) {
     browser.debugger.onDetach.addListener(handleDebugDetach);
     browser.debugger.onEvent.addListener(handleDebugEvent);
@@ -81,8 +73,6 @@ async function syncDebuggersState(tabs) {
 }
 
 function handleDebugEvent(debuggee, method, params) {
-    cancelDebugFinishingUp();
-
     switch (method) {
     case "Network.requestWillBeSent":
         params.tabId = debuggee.tabId;
@@ -168,6 +158,8 @@ function logDebugEvent(rtype, nonExtra, e, dreqres) {
 // handlers
 
 function handleDebugRequestWillBeSent(nonExtra, e) {
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
 
@@ -196,9 +188,13 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
             dreqres.requestTimeStamp = Date.now();
         dreqres.requestHeadersExtra = e.headers;
     }
+
+    updateDisplay(true, false);
 }
 
 function handleDebugResponseRecieved(nonExtra, e) {
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
@@ -233,6 +229,8 @@ function handleDebugResponseRecieved(nonExtra, e) {
 }
 
 function handleDebugCompleted(e) {
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
@@ -242,6 +240,8 @@ function handleDebugCompleted(e) {
 }
 
 function handleDebugErrorOccuried(e) {
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
@@ -307,10 +307,14 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
 }
 
 function forceEmitInFlightDebug(tabId, reason) {
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+
     for (let [requestId, dreqres] of Array.from(debugReqresInFlight.entries())) {
         if (tabId === null || dreqres.tabId === tabId)
             emitDebugRequest(requestId, dreqres, false, "debugger::" + reason, true);
     }
+
+    processMatchFinishingUpWebRequestDebug();
 }
 
 function forceFinishingUpDebug(predicate) {
@@ -459,6 +463,8 @@ function emitDone(closest, dreqres) {
 }
 
 function processMatchFinishingUpWebRequestDebug(forcing) {
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+
     if (debugReqresFinishingUp.length > 0 && reqresFinishingUp.length > 0) {
         // match elements from debugReqresFinishingUp to elements from
         // reqresFinishingUp, attach the former to the best-matching latter,
@@ -511,8 +517,6 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
         debugReqresFinishingUp = notFinished;
     }
 
-    cancelDebugFinishingUp();
-
     if(!forcing && reqresInFlight.size === 0 && debugReqresInFlight.size === 0) {
         // NB: It is totally possible for a reqres to finish and get emitted
         // from reqresInFlight while the corresponding dreqres didn't even
@@ -542,12 +546,11 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             // above, it should not really make a difference, but we pause
             // just in case Chromium decides to emit some of those debug
             // events after all).
-            debugFinishingUpTID = setTimeout(() => {
-                debugFinishingUpTID = null;
+            resetSingletonTimeout(scheduledInternal, "debugFinishingUp", 1000, () => {
                 forceFinishingUpWebRequest((r) => !r.sent);
                 updateDisplay(true, false);
                 scheduleEndgame();
-            }, 10000);
+            });
     }
 
     if (config.debugging) {
@@ -561,6 +564,5 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
     if (forcing)
         return;
 
-    updateDisplay(true, false);
     scheduleEndgame();
 }

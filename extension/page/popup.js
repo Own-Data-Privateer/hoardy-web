@@ -73,6 +73,8 @@ async function popupMain() {
     buttonToMessage("forgetHistory");
     buttonToAction("unmarkAllProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null])));
     buttonToMessage("retryAllFailedArchives");
+    buttonToMessage("runAllActions");
+    buttonToMessage("cancelCleanupActions");
     buttonToAction("collectAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null])));
     buttonToAction("discardAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null])));
     buttonToMessage("stopAllInFlight");

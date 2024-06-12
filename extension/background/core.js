@@ -93,6 +93,13 @@ let config = {
     },
 };
 
+// scheduled internal functions
+let scheduledInternal = new Map();
+// scheduled cancelable functions
+let scheduledCancelable = new Map();
+// scheduled functions hidden from the UI
+let scheduledHidden = new Map();
+
 // per-tab config
 let tabConfig = new Map();
 let openTabs = new Set();
@@ -185,66 +192,73 @@ function cleanupTabs() {
     }
 }
 
-function cleanupAfterTab(tabId, untimeout) {
-    if (config.autoUnmarkProblematic && reqresProblematic.length > 0
-        || (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) && reqresLimbo.length > 0)
-        setTimeout(() => {
-            let unprob = 0;
-            let unlimbo = 0;
+function cleanupAfterTab(tabId) {
+    let unprob = 0;
+    let unlimbo = 0;
 
-            if (config.autoUnmarkProblematic) {
-                if (config.debugging)
-                    console.log("cleaning up reqresProblematic after tab", tabId);
-                unprob = unmarkProblematic(null, tabId);
-            }
+    if (config.autoUnmarkProblematic) {
+        if (config.debugging)
+            console.log("cleaning up reqresProblematic after tab", tabId);
+        unprob = unmarkProblematic(null, tabId);
+    }
 
-            if (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) {
-                if (config.debugging)
-                    console.log("cleaning up reqresLimbo after tab", tabId);
-                if (config.autoPopInLimboCollect)
-                    unlimbo = popInLimbo(true, null, tabId);
-                else if (config.autoPopInLimboDiscard)
-                    unlimbo = popInLimbo(false, null, tabId);
-            }
+    if (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) {
+        if (config.debugging)
+            console.log("cleaning up reqresLimbo after tab", tabId);
+        if (config.autoPopInLimboCollect)
+            unlimbo = popInLimbo(true, null, tabId);
+        else if (config.autoPopInLimboDiscard)
+            unlimbo = popInLimbo(false, null, tabId);
+    }
 
-            if (config.autoNotify
-                && (unprob > 0 || unlimbo > 0)) {
-                let message;
-                let what = config.autoPopInLimboCollect ? "collected" : "discarded";
-                if (unprob > 0 && unlimbo > 0)
-                    message = `Auto-unmarked ${unprob} problematic and auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
-                else if (unprob > 0)
-                    message = `Auto-unmarked ${unprob} problematic reqres from tab #${tabId}.`;
-                else
-                    message = `Auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
+    if (config.autoNotify && (unprob > 0 || unlimbo > 0)) {
+        let message;
+        let what = config.autoPopInLimboCollect ? "collected" : "discarded";
+        if (unprob > 0 && unlimbo > 0)
+            message = `Auto-unmarked ${unprob} problematic and auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
+        else if (unprob > 0)
+            message = `Auto-unmarked ${unprob} problematic reqres from tab #${tabId}.`;
+        else
+            message = `Auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
 
-                browser.notifications.create(`cleaned-${tabId}`, {
-                    title: "pWebArc: AUTO",
-                    message,
-                    iconUrl: iconURL("error", 128),
-                    type: "basic",
-                }).catch(logError);
-            }
+        browser.notifications.create(`cleaned-${tabId}`, {
+            title: "pWebArc: AUTO",
+            message,
+            iconUrl: iconURL("error", 128),
+            type: "basic",
+        }).catch(logError);
+    }
 
-        }, config.autoTimeout * 1000 - untimeout);
+    cleanupTabs();
+    updateDisplay(true, false, tabId);
+}
+
+function scheduleCleanupAfterTab(tabId, untimeout) {
+    let tabstats = getTabStats(tabId);
+    if (config.autoUnmarkProblematic && tabstats.problematic > 0
+       || (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) && tabstats.in_limbo > 0) {
+        resetSingletonTimeout(scheduledCancelable, `cleanupAfterTab#${tabId}`, config.autoTimeout * 1000 - untimeout, () => cleanupAfterTab(tabId));
+    }
 }
 
 function processRemoveTab(tabId) {
     openTabs.delete(tabId);
-    cleanupTabs();
-
-    if (useDebugger) {
+    if (useDebugger && Array.from(debugReqresInFlight.values()).some((r) => r.tabId === tabId)) {
         // after a small timeout, force emit all `debugReqresInFlight` of this
         // tab, since Chromium won't send any new debug events for them anyway
-        setTimeout(() => {
+        let timeout = 3000;
+        resetSingletonTimeout(scheduledCancelable, `forceStopDebugTab#${tabId}`, timeout, () => {
             if (config.debugging)
                 console.log("cleaning up debugReqresInFlight after tab", tabId);
             forceEmitInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_CLOSED_TAB");
             processMatchFinishingUpWebRequestDebug();
-            cleanupAfterTab(tabId, 10000);
-        }, 10000);
+            scheduleCleanupAfterTab(tabId, timeout);
+            updateDisplay(true, false, tabId);
+        });
     } else
-        cleanupAfterTab(tabId, 0);
+        scheduleCleanupAfterTab(tabId, 0);
+
+    updateDisplay(true, false, tabId);
 }
 
 // browserAction state
@@ -324,17 +338,6 @@ async function savePersistentStats() {
     await browser.storage.local.remove("globalStats").catch(() => {});
 }
 
-function scheduleSavePersistentStats() {
-    if (savePersistentStatsTID !== null)
-        clearTimeout(savePersistentStatsTID);
-
-    if (changedPersistentStats && reqresQueue.length == 0)
-        savePersistentStatsTID = setTimeout(() => {
-            savePersistentStatsTID = null;
-            savePersistentStats();
-        }, 1000);
-}
-
 async function resetPersistentStats() {
     persistentStats = assignRec({}, persistentStatsDefaults);
     await savePersistentStats();
@@ -371,14 +374,6 @@ let changedLimbo = false;
 // do we have newp problematic reqres?
 let changedProblematic = false;
 
-// timeout ID
-let finishingUpTID = null;
-let endgameTID = null;
-let savePersistentStatsTID = null;
-let reqresComplainTID = null;
-let reqresRetryTID = null;
-let saveConfigTID = null;
-
 // Compute total sizes of all queues and similar.
 // Used in the UI.
 function getStats() {
@@ -391,7 +386,12 @@ function getStats() {
         Math.max(reqresInFlight.size, debugReqresInFlight.size) +
         Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length);
 
+    let low_prio = countSingletonTimeouts(scheduledCancelable);
+
     return {
+        scheduled_low: low_prio,
+        scheduled: low_prio
+                 + countSingletonTimeouts(scheduledInternal),
         in_flight,
         problematic: reqresProblematic.length,
         picked: persistentStats.pickedTotal,
@@ -533,9 +533,7 @@ function popInLimbo(collect, num, tabId) {
             // also reset problematic, since reqres statuses have changed
             broadcast(["resetProblematicLog", reqresProblematic]);
         broadcast(["newLog", newLog, false]);
-        cleanupTabs();
-        updateDisplay(true, false);
-        scheduleEndgame();
+        scheduleEndgame(tabId);
     }
 
     return popped.length;
@@ -577,6 +575,9 @@ function forgetHistory(tabId) {
 }
 
 async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
+    if (updatedTabId === undefined)
+        updatedTabId = null;
+
     let stats = getStats();
 
     if (statsChanged)
@@ -604,18 +605,27 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
         newColor = 1;
         chunks.push(`${stats.problematic} problematic reqres`);
     }
-    if (stats.in_queue > 0) {
-        newBadge += "Q";
-        chunks.push(`${stats.in_queue} reqres in queue`);
+    if (stats.in_flight > 0) {
+        newBadge += "T";
+        chunks.push(`still tracking ${stats.in_flight} in-flight reqres`);
+    }
+    if (stats.scheduled > stats.scheduled_low) {
+        newBadge += "~";
+        newColor = 1;
+        chunks.push(`${stats.scheduled} scheduled actions`);
     }
     if (stats.in_limbo > 0) {
         newBadge += "L";
         newColor = 1;
         chunks.push(`${stats.in_limbo} reqres in limbo`);
     }
-    if (stats.in_flight > 0) {
-        newBadge += "T";
-        chunks.push(`still tracking ${stats.in_flight} in-flight reqres`);
+    if (stats.in_queue > 0) {
+        newBadge += "Q";
+        chunks.push(`${stats.in_queue} reqres in queue`);
+    }
+    if (stats.scheduled == stats.scheduled_low && stats.scheduled_low > 0) {
+        newBadge += ".";
+        chunks.push(`${stats.scheduled_low} low-priority scheduled actions`);
     }
     if (config.ephemeral) {
         newBadge += "E";
@@ -736,37 +746,28 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
 }
 
 // schedule processFinishingUp
-function scheduleFinishingUp() {
-    if (finishingUpTID !== null)
-        clearTimeout(finishingUpTID);
-
-    finishingUpTID = setTimeout(() => {
-        finishingUpTID = null;
-        processFinishingUp();
-    }, 1);
+function scheduleFinishingUp(updatedTabId) {
+    resetSingletonTimeout(scheduledInternal, "finishingUp", 1, processFinishingUp);
+    updateDisplay(true, false, updatedTabId);
 }
 
 // schedule processArchiving and processAlmostDone
-function scheduleEndgame() {
-    if (endgameTID !== null)
-        clearTimeout(endgameTID);
-
+function scheduleEndgame(updatedTabId) {
     if (config.archiving && reqresQueue.length > 0)
-        endgameTID = setTimeout(() => {
-            endgameTID = null;
-            processArchiving();
-        }, 1);
+        resetSingletonTimeout(scheduledInternal, "endgame", 1, processArchiving);
     else if (reqresAlmostDone.length > 0)
-        endgameTID = setTimeout(() => {
-            endgameTID = null;
-            processAlmostDone();
-        }, 1);
-    else {
+        resetSingletonTimeout(scheduledInternal, "endgame", 1, processAlmostDone);
+    else if (!config.archiving || reqresQueue.length == 0) {
         cleanupTabs();
-        updateDisplay(false, false);
         scheduleComplaints(1000);
-        scheduleSavePersistentStats();
+        if (changedPersistentStats)
+            resetSingletonTimeout(scheduledCancelable, "savePersistentStats", 1000, async () => {
+                await savePersistentStats();
+                await updateDisplay(true, false);
+            });
     }
+
+    updateDisplay(true, false, updatedTabId);
 }
 
 // mark this archiveURL as failing
@@ -810,40 +811,40 @@ function retryAllFailedArchives() {
             reqresQueue.push(e);
         reqresFailed.delete(archiveURL);
     }
+    scheduleEndgame(null);
 }
 
-function retryAllFailedArchivesIn(msec) {
-    if (reqresRetryTID !== null)
-        clearTimeout(reqresRetryTID);
-
-    reqresRetryTID = setTimeout(() => {
-        reqresRetryTID = null;
-        retryAllFailedArchives();
-        updateDisplay(true, false);
-        scheduleEndgame();
-    }, msec);
+function retryAllFailedArchivesIn(timeout) {
+    resetSingletonTimeout(scheduledInternal, "retryAllFailedArchives", timeout, retryAllFailedArchives);
 }
 
 async function doComplain() {
-    let all_ = await browser.notifications.getAll();
-    let all = Object.keys(all_);
-
     if (changedFailedOrArchived) {
         changedFailedOrArchived = false;
 
         // cleanup stale archives
         cleanupFailedArchives();
 
-        // clear stale notifications
-        let all_failed = Array.from(reqresFailed.keys());
+        // record the current state, because the rest of this chunk is async
+        let rrFailed = Array.from(reqresFailed.entries());
+        let queueLen = reqresQueue.length;
+
+        // get shown notifications
+        let all_ = await browser.notifications.getAll();
+        let all = Object.keys(all_);
+
+        // clear stale
         for (let label in all) {
-            if (label.startsWith("archiving-") && !all_failed.includes(label.substr(10)))
+            if (!label.startsWith("archiving-"))
+                continue;
+            let archiveURL = label.substr(10);
+            if (rrFailed.every((e) => e[0] !== archiveURL))
                 await browser.notifications.clear(label);
         }
 
         if (config.archiveNotifyFailed) {
             // generate new ones
-            for (let [archiveURL, failed] of reqresFailed.entries()) {
+            for (let [archiveURL, failed] of rrFailed) {
                 await browser.notifications.create(`archiving-${archiveURL}`, {
                     title: "pWebArc: FAILED",
                     message: `Failed to archive ${failed.queue.length} items in the queue because ${failed.reason}`,
@@ -853,8 +854,9 @@ async function doComplain() {
             }
         }
 
-        if (reqresFailed.size == 0 && reqresQueue.length == 0) {
+        if (rrFailed.length == 0 && queueLen == 0) {
             if (config.archiveNotifyOK && needArchivingOK) {
+                needArchivingOK = false;
                 // generate a new one
                 await browser.notifications.create("archivingOK", {
                     title: "pWebArc: OK",
@@ -862,9 +864,8 @@ async function doComplain() {
                     iconUrl: iconURL("idle", 128),
                     type: "basic",
                 });
-                needArchivingOK = false;
             }
-        } else if (reqresFailed.size > 0)
+        } else if (rrFailed.length > 0)
             // clear stale
             await browser.notifications.clear("archivingOK");
     }
@@ -931,13 +932,7 @@ async function doComplain() {
 }
 
 function scheduleComplaints(timeout) {
-    if (reqresComplainTID !== null)
-        clearTimeout(reqresComplainTID);
-
-    reqresComplainTID = setTimeout(() => {
-        reqresComplainTID = null;
-        doComplain();
-    }, timeout);
+    resetSingletonTimeout(scheduledHidden, "complaints", timeout, doComplain);
 }
 
 function processArchiving() {
@@ -958,8 +953,7 @@ function processArchiving() {
             failed.queue.push(archivable);
             changedFailedOrArchived = true;
             needArchivingOK = true;
-            updateDisplay(true, false);
-            scheduleEndgame();
+            scheduleEndgame(shallow.tabId);
             return;
         }
 
@@ -968,10 +962,9 @@ function processArchiving() {
             failed.queue.push(archivable);
             changedFailedOrArchived = true;
             needArchivingOK = true;
-            updateDisplay(true, false);
             // retry failed in 60s
             retryAllFailedArchivesIn(60000);
-            scheduleEndgame();
+            scheduleEndgame(shallow.tabId);
         }
 
         function allok() {
@@ -979,8 +972,7 @@ function processArchiving() {
             reqresArchivedTotal += 1;
             changedFailedOrArchived = true;
             broadcast(["newArchived", [shallow]]);
-            updateDisplay(true, false);
-            scheduleEndgame();
+            scheduleEndgame(shallow.tabId);
         }
 
         if (config.debugging)
@@ -1170,7 +1162,7 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
 }
 
 function processAlmostDone() {
-    let updatedTabId = undefined;
+    let updatedTabId = null;
 
     if (reqresAlmostDone.length > 0) {
         let reqres = reqresAlmostDone.shift()
@@ -1329,8 +1321,7 @@ function processAlmostDone() {
         }
     }
 
-    updateDisplay(true, false, updatedTabId);
-    scheduleEndgame();
+    scheduleEndgame(updatedTabId);
 }
 
 function forceEmitInFlightWebRequest(tabId, reason) {
@@ -1369,8 +1360,7 @@ function processFinishingUpWebRequest(forcing) {
     if (forcing)
         return;
 
-    updateDisplay(true, false);
-    scheduleEndgame();
+    scheduleEndgame(null);
 }
 
 let processFinishingUp = processFinishingUpWebRequest;
@@ -1417,8 +1407,8 @@ function stopAllInFlight(tabId) {
         forceFinishingUpDebug((r) => tabId == null || r.tabId == tabId);
     }
     forceFinishingUpWebRequest((r) => tabId == null || r.tabId == tabId);
-    updateDisplay(true, false);
-    scheduleEndgame();
+
+    scheduleEndgame(tabId);
 }
 
 function emitRequest(requestId, reqres, error, dontFinishUp) {
@@ -1659,7 +1649,7 @@ function handleBeforeRequest(e) {
                 console.log("filterResponseData", requestId, "finished");
             reqres.responseComplete = true;
             filter.disconnect();
-            scheduleFinishingUp(); // in case we were waiting for this filter
+            scheduleFinishingUp(reqres.tabId); // in case we were waiting for this filter
         };
         filter.onerror = (event) => {
             if (filter.error !== "Invalid request ID") {
@@ -1669,7 +1659,7 @@ function handleBeforeRequest(e) {
                     console.error("filterResponseData", requestId, "error", error);
                 reqres.errors.push(error);
             }
-            scheduleFinishingUp(); // in case we were waiting for this filter
+            scheduleFinishingUp(reqres.tabId); // in case we were waiting for this filter
         };
 
         reqres.filter = filter;
@@ -1905,27 +1895,22 @@ function handleMessage(request, sender, sendResponse) {
         config = updateFromRec(assignRec({}, config), request[1], true);
         updateDisplay(false, false);
 
-        if (oldconfig.archiving !== config.archiving && config.archiving) {
+        if (oldconfig.archiving !== config.archiving && config.archiving)
             retryAllFailedArchives();
-            scheduleEndgame();
-        }
 
         if (useDebugger)
             syncDebuggersState();
 
         if (!config.ephemeral) {
-            // save config after a little pause to give the user time to
-            // change some more settings
+            // save config after a little pause to give the user time to click
+            // the same toggle again without torturing the SSD
             let eConfig = assignRec({}, config);
-
-            if (saveConfigTID !== null)
-                clearTimeout(saveConfigTID);
-
-            saveConfigTID = setTimeout(() => {
-                saveConfigTID = null;
+            resetSingletonTimeout(scheduledInternal, "saveConfig", 500, () => {
                 console.log("saving config", eConfig);
                 browser.storage.local.set({ config: eConfig }).catch(logError);
-            }, 500);
+                updateDisplay(true, false);
+            });
+            updateDisplay(true, false);
         }
 
         broadcast(["updateConfig"]);
@@ -1992,6 +1977,17 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "rotateInLimbo":
         rotateInLimbo(request[1], request[2]);
+        sendResponse(null);
+        break;
+    case "runAllActions":
+        popAllSingletonTimeouts(scheduledCancelable, true);
+        popAllSingletonTimeouts(scheduledInternal, true);
+        updateDisplay(true, false);
+        sendResponse(null);
+        break;
+    case "cancelCleanupActions":
+        popAllSingletonTimeouts(scheduledCancelable, false);
+        updateDisplay(true, false);
         sendResponse(null);
         break;
     case "broadcast":
@@ -2146,7 +2142,7 @@ async function handleCommand(command) {
         return;
     }
 
-    updateDisplay(false, true);
+    updateDisplay(false, true, tabId);
     broadcast(["updateTabConfig", tabId]);
 }
 

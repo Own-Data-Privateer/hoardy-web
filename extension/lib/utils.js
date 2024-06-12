@@ -66,6 +66,83 @@ function cacheSingleton(map, key, func) {
     return value;
 }
 
+// Use a Map as directory for delayed overridable and chainable functions.
+function resetSingletonTimeout(map, key, timeout, func, priority) {
+    if (priority === undefined)
+        priority = 100;
+
+    let value = map.get(key);
+    if (value !== undefined) {
+        let [vhandle, _vfunc, vprio] = value;
+        if (vprio !== undefined && vprio < priority)
+            // do nothing, the scheduled thing has a higher (smaller) priority
+            return;
+        else if (vhandle === null) {
+            // it is running asynchronously already, schedule `func`
+            // as the next action
+            value[1] = func;
+            value[2] = priority;
+            return;
+        } else
+            clearTimeout(vhandle);
+    }
+    map.set(key, [setTimeout(async () => {
+        let value = map.get(key);
+        value[0] = null;
+        value[1] = undefined;
+        // setting this to `undefined` so that anything could override
+        value[2] = undefined;
+        while (func !== undefined) {
+            try {
+                let res = func();
+                if (res instanceof Promise)
+                    await res;
+            } catch (err) {
+                logError(err);
+            }
+
+            // run the next one, if it is set
+            func = value[1];
+            value[1] = undefined;
+            value[2] = undefined; // similarly
+        }
+        // self-destruct
+        map.delete(key);
+    }, timeout), func, priority]);
+}
+
+async function popSingletonTimeout(map, key, run) {
+    let value = map.get(key);
+    if (value === undefined || value[0] === null)
+        return;
+    map.delete(key);
+    clearTimeout(value[0]);
+    if (run) {
+        try {
+            let res = value[1]();
+            if (res instanceof Promise)
+                await res.catch(logError);
+        } catch (err) {
+            logError(err);
+        }
+    }
+}
+
+async function popAllSingletonTimeouts(map, run) {
+    for (let key of Array.from(map.keys()))
+        await popSingletonTimeout(map, key, run);
+}
+
+function countSingletonTimeouts(map) {
+    let res = 0;
+    for (let [key, value] of map.entries()) {
+        if (value[0] === null)
+            continue;
+        res += 1;
+    }
+    return res;
+}
+
 // recursively assign fields in target from fields in value
 // i.e. `assignRec({}, value)` would just copy `value`
 function assignRec(target, value) {
