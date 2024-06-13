@@ -51,9 +51,18 @@
         "toggleTabConfigChildrenLimbo": {
             "description": "For current tab's new children, toggle limbo mode"
         },
+        "unmarkAllProblematic": {
+            "description": "Unmark all problematic reqres"
+        },
+        "collectAllInLimbo": {
+            "description": "Collect all reqres in limbo"
+        },
+        "discardAllInLimbo": {
+            "description": "Discard all reqres in limbo"
+        },
         "unmarkAllTabProblematic": {
             "suggested_key": {
-                "default": "Alt+Shift+U"
+                "default": "Alt+U"
             },
             "description": "For the current tab, unmark all problematic reqres"
         },

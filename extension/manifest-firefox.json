@@ -61,14 +61,29 @@
                 "default": "Alt+Shift+L"
             }
         },
+        "unmarkAllProblematic": {
+            "suggested_key": {
+                "default": "Alt+Shift+U"
+            }
+        },
+        "collectAllInLimbo": {
+            "suggested_key": {
+                "default": "Alt+Shift+S"
+            }
+        },
+        "discardAllInLimbo": {
+            "suggested_key": {
+                "default": "Alt+Shift+W"
+            }
+        },
         "collectAllTabInLimbo": {
             "suggested_key": {
-                "default": "Alt+Shift+A"
+                "default": "Alt+S"
             }
         },
         "discardAllTabInLimbo": {
             "suggested_key": {
-                "default": "Alt+Shift+D"
+                "default": "Alt+W"
             }
         }
     }

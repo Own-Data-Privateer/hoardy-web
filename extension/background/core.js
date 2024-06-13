@@ -2152,6 +2152,15 @@ async function handleCommand(command) {
         tabcfg = getOriginConfig(tabId);
         tabcfg.children.limbo = !tabcfg.children.limbo;
         break;
+    case "unmarkAllProblematic":
+        unmarkProblematic(null, null);
+        return;
+    case "collectAllInLimbo":
+        popInLimbo(true, null, null);
+        return;
+    case "discardAllInLimbo":
+        popInLimbo(false, null, null);
+        return;
     case "unmarkAllTabProblematic":
         unmarkProblematic(null, tabId);
         return;
