@@ -576,13 +576,14 @@ function makeUI(node) {
 
     let id = node.getAttribute("id");
     let typ = node.getAttribute("type");
+    let tabindex = node.getAttribute("tabindex");
 
     let res = document.createElement("div");
     res.id = "div-" + id;
     // copy other attributes
     for (let attr of node.attributes) {
         let name = attr.name;
-        if (name == "id") continue;
+        if (name == "id" || name == "tabindex") continue;
         res.setAttribute(name, node.getAttribute(name))
     }
     res.classList.add("ui");
@@ -594,6 +595,8 @@ function makeUI(node) {
         let ne = document.createElement("input");
         ne.id = id + (typ == "tristate" ? "-tristate" : "");
         ne.name = id;
+        if (tabindex !== undefined)
+            ne.setAttribute("tabindex", tabindex)
         ne.type = "checkbox";
         if (typ == "boolean")
             ne.classList.add("toggle");
@@ -609,6 +612,8 @@ function makeUI(node) {
         let ne = document.createElement("input");
         ne.id = id;
         ne.name = id;
+        if (tabindex !== undefined)
+            ne.setAttribute("tabindex", tabindex)
         if (typ == "number") {
             ne.type = "number";
             ne.value = 0;
@@ -669,8 +674,9 @@ function addHelp(node, noHide) {
 
     let helpMark = document.createElement("input");
     helpMark.type = "checkbox";
-    helpMark.setAttribute("aria-label", "Show help for this element.");
     helpMark.classList.add("help-btn");
+    helpMark.setAttribute("aria-label", "Show help for this element.");
+    helpMark.setAttribute("tabindex", -1);
 
     helpMark.onchange = () => {
         hideHelp();
