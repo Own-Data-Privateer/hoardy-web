@@ -659,6 +659,18 @@ async function getShortcuts() {
     return res;
 }
 
+function macroShortcuts(node, shortcuts, mapShortcutFunc) {
+    for (let child of node.childNodes) {
+        if (child.nodeName === "#text" || child.nodeName === "#comment") continue;
+        macroShortcuts(child, shortcuts, mapShortcutFunc);
+    }
+
+    let sname = node.getAttribute("data-macro-shortcut");
+    if (sname === null) return;
+    let shortcut = shortcuts[sname];
+    node.innerHTML = helpMarkupToHTML(mapShortcutFunc(node.innerText, shortcut, sname));
+}
+
 // given a DOM node, add help tooltips to all its children with data-help attribute
 function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     for (let child of node.childNodes) {
