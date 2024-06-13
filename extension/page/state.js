@@ -16,6 +16,12 @@ function fdate(epoch) {
     return str.replace("T", " ");
 }
 
+let rrfilters = {
+    problematic: assignRec({}, rrfilterDefaults),
+    in_limbo: assignRec({}, rrfilterDefaults),
+    log: assignRec({}, rrfilterDefaults),
+};
+
 let tabId = mapStateTabId(document.location, (x) => x, null, null);
 if (tabId !== null)
     document.title = `pWebArc: tab ${tabId}: Internal State`;
@@ -36,22 +42,38 @@ let showStateFuncMap = new Map();
 function appendReqres(el, reqres) {
     let tr = document.createElement("tr");
 
-    let state = "in_flight";
-    let color = "in-flight";
+    let sparts = [];
+    let color;
     if (reqres.collected === true) {
-        state = "collected";
         color = "collected";
+        sparts.push("collected");
     } else if (reqres.collected === false) {
-        state = "discarded";
         color = "discarded";
+        sparts.push("discarded");
     } else if (reqres.picked === true) {
-        state = "in_limbo";
         color = "picked";
+        sparts.push("picked");
     } else if (reqres.picked === false) {
-        state = "in_limbo";
         color = "dropped";
+        sparts.push("dropped");
+    } else {
+        color = "in-flight";
+        sparts.push("in_flight");
     }
     tr.classList.add(color);
+
+    if (reqres.net_state !== undefined)
+        sparts.push(reqres.net_state);
+    if (reqres.redirectUrl !== undefined)
+        sparts.push("redirected");
+    if (reqres.in_limbo === true)
+        sparts.push("in_limbo");
+    else if (reqres.was_in_limbo === true)
+        sparts.push("was_in_limbo");
+    if (reqres.problematic === true)
+        sparts.push("problematic!");
+    else if (reqres.was_problematic === true)
+        sparts.push("was_problematic");
 
     function mtr(data) {
         let td = document.createElement("td");
@@ -91,14 +113,7 @@ function appendReqres(el, reqres) {
            : (reqres.statusCode.toString()
               + (reqres.responseComplete ? "C" : "I"))));
 
-    mtr(state
-        + (reqres.net_state !== undefined ? " " + reqres.net_state : "")
-        + (reqres.redirectUrl !== undefined ? " redirected" : "")
-        + (reqres.was_in_limbo === true ? " was_in_limbo" : "")
-        + (reqres.problematic === true ? " problematic!" :
-           (reqres.was_problematic === true ? " was_problematic" : ""))
-       );
-
+    mtr(sparts.join(" "));
     mtr(fdate(reqres.requestTimeStamp));
     mtr(reqres.protocol);
     mtr(reqres.method);
@@ -150,22 +165,25 @@ function resetInFlight(log_data) {
 }
 
 function resetProblematic(log_data) {
-    resetDataNode("data_problematic", log_data);
+    resetDataNode("data_problematic", log_data, (reqres) => isAcceptedBy(rrfilters.problematic, reqres));
 }
 
 function resetInLimbo(log_data) {
-    resetDataNode("data_in_limbo", log_data);
+    resetDataNode("data_in_limbo", log_data, (reqres) => isAcceptedBy(rrfilters.in_limbo, reqres));
 }
 
 function resetLog(log_data) {
-    resetDataNode("data_log", log_data);
+    resetDataNode("data_log", log_data, (reqres) => isAcceptedBy(rrfilters.log, reqres));
 }
 
 async function stateMain() {
     let thisTab = await getActiveTab();
     let thisTabId = thisTab.id;
 
-    // create UI
+    // generate UI
+    let body = document.body;
+    makeUI(body);
+
     for (let el of document.getElementsByTagName("table")) {
         let thead = document.createElement("thead");
         thead.innerHTML = `
@@ -187,20 +205,29 @@ async function stateMain() {
         el.appendChild(tfoot);
     }
 
-    buttonToAction("forgetHistory", catchAll(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
-    buttonToAction("rotateOneProblematic", catchAll(() => browser.runtime.sendMessage(["rotateProblematic", 1, tabId])));
-    buttonToAction("unmarkOneProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", 1, tabId])));
-    buttonToAction("unmarkAllProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
-    buttonToAction("rotateOneInLimbo",  catchAll(() => browser.runtime.sendMessage(["rotateInLimbo", 1, tabId])));
-    buttonToAction("discardOneInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, 1, tabId])));
-    buttonToAction("discardAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
-    buttonToAction("collectOneInLimbo",   catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, 1, tabId])));
-    buttonToAction("collectAllInLimbo",   catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
+    addHelp(body);
+
+    buttonToAction("forgetHistory", catchAll(() => browser.runtime.sendMessage(["forgetHistory", tabId, rrfilters.log])));
+    buttonToAction("rotateOneProblematic", catchAll(() => browser.runtime.sendMessage(["rotateProblematic", 1, tabId, rrfilters.problematic])));
+    buttonToAction("unmarkOneProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", 1, tabId, rrfilters.problematic])));
+    buttonToAction("unmarkAllProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId, rrfilters.problematic])));
+    buttonToAction("rotateOneInLimbo",  catchAll(() => browser.runtime.sendMessage(["rotateInLimbo", 1, tabId, rrfilters.in_limbo])));
+    buttonToAction("discardOneInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, 1, tabId, rrfilters.in_limbo])));
+    buttonToAction("discardAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId, rrfilters.in_limbo])));
+    buttonToAction("collectOneInLimbo",   catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, 1, tabId, rrfilters.in_limbo])));
+    buttonToAction("collectAllInLimbo",   catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId, rrfilters.in_limbo])));
     buttonToAction("stopAllInFlight", catchAll(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
 
-    // add help tooltips
-    let body = document.body;
-    addHelp(body);
+    setUI(document, "rrfilters", rrfilters, (value, path) => {
+        if (path.startsWith("rrfilters.problematic."))
+            browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic).catch(logError);
+        else if (path.startsWith("rrfilters.in_limbo."))
+            browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo).catch(logError);
+        else if (path.startsWith("rrfilters.log."))
+            browser.runtime.sendMessage(["getLog"]).then(resetLog).catch(logError);
+        else
+            console.warn("unknown rrfilters update", path, value);
+    });
 
     async function updateConfig() {
         let config = await browser.runtime.sendMessage(["getConfig"]);
@@ -227,14 +254,14 @@ async function stateMain() {
             appendToLog(document.getElementById("data_in_flight"), data);
             break;
         case "newProblematic":
-            appendToLog(document.getElementById("data_problematic"), data);
+            appendToLog(document.getElementById("data_problematic"), data, (reqres) => isAcceptedBy(rrfilters.problematic, reqres));
             break;
         case "newLimbo":
-            appendToLog(document.getElementById("data_in_limbo"), data);
+            appendToLog(document.getElementById("data_in_limbo"), data, (reqres) => isAcceptedBy(rrfilters.in_limbo, reqres));
             browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);
             break;
         case "newLog":
-            appendToLog(document.getElementById("data_log"), data);
+            appendToLog(document.getElementById("data_log"), data, (reqres) => isAcceptedBy(rrfilters.log, reqres));
             if (update[2])
                 // it's flesh from in-flight
                 browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);

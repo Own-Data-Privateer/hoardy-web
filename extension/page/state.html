@@ -36,9 +36,25 @@
 
 h1 {
     font-size: 200%;
-    margin: 0;
-    margin-top: 5px;
+    margin: 5px 0 0 0;
     display: flex;
+}
+
+div.controls,
+.right {
+    display: flex;
+}
+
+div.controls {
+    margin-top: 10px;
+}
+
+div.controls > span {
+    margin-right: 10px;
+}
+
+.right > span {
+    margin-left: 10px;
 }
 
 .help-tip {
@@ -55,7 +71,7 @@ table, th, td {
 }
 
 table {
-    margin: 1em 0;
+    margin: 10px 0;
     width: 100%;
 }
 
@@ -90,7 +106,7 @@ td.long {
       </ul>
     </div>
     <div id="body" style="display: none">
-    <span id="top" />
+    <span id="top"></span>
     <h1 id="in_flight">In flight
       <span class="right">
         <span data-help="Stop tracking progress of all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup."><input type="button" id="stopAllInFlight" value="Stop tracking all" /></span>
@@ -104,7 +120,11 @@ td.long {
         <span data-help="Unset `problematic` flag from all reqres below."><input type="button" id="unmarkAllProblematic" value="Unmark all" /></span>
       </span>
     </h1>
-    <div>
+    <div class="controls">
+      <ui id="rrfilters.problematic.in_limbo" type="tristate" data-help="Tristate filter for the &quot;in_limbo&quot; flag.">In limbo</ui>
+      <ui id="rrfilters.problematic.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
+      <ui id="rrfilters.problematic.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.problematic.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
       <span data-help="Move the first reqres below to the end."><input type="button" id="rotateOneProblematic" value="Rotate the first one" /></span>
     </div>
     <table><tbody id="data_problematic"></tbody></table>
@@ -115,21 +135,33 @@ td.long {
         <span data-help="Discard all reqres below."><input type="button" id="discardAllInLimbo" value="Discard all" /></span>
       </span>
     </h1>
-    <div>
+    <div class="controls">
+      <ui id="rrfilters.in_limbo.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+      <ui id="rrfilters.in_limbo.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+      <ui id="rrfilters.in_limbo.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.in_limbo.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
       <span data-help="Move the first reqres below to the end."><input type="button" id="rotateOneInLimbo" value="Rotate the first one" /></span>
       <span data-help="Collect the first reqres below."><input type="button" id="collectOneInLimbo" value="Collect the first one" /></span>
       <span data-help="Collect all reqres below."><input type="button" id="collectAllInLimbo" value="Collect all" /></span>
     </div>
     <table><tbody id="data_in_limbo"></tbody></table>
 
-    <h1 id="log">Log
+    <h1 id="log">Recent history log
       <span class="right">
-        <span data-help="Forget about all the requests below."><input type="button" id="forgetHistory" value="Forget all" /></span>
+        <span data-help="Forget about all the requests below except for those marked as &quot;problematic&quot;. Except, if the &quot;Problematic&quot; tristate filter below is set, then those will be forgotten about too."><input type="button" id="forgetHistory" value="Forget all" /></span>
       </span>
     </h1>
+    <div class="controls">
+      <ui id="rrfilters.log.collected" type="tristate" data-help="Tristate filter for the &quot;collected/discarded&quot; state.">Collected</ui>
+      <ui id="rrfilters.log.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+      <ui id="rrfilters.log.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+      <ui id="rrfilters.log.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
+      <ui id="rrfilters.log.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.log.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+    </div>
     <table><tbody id="data_log"></tbody></table>
     <!-- This anchor goes here, because we usually want to see the tail of the log. -->
-    <span id="bottom" />
+    <span id="bottom"></span>
     </div>
 
     <script src="../lib/compat.js"></script>

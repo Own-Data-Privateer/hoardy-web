@@ -584,7 +584,10 @@ function forgetHistory(tabId, rrfilter) {
     let [popped, unpopped] = partitionN((shallow) => {
         let res = (tabId === null || shallow.tabId == tabId)
                && (rrfilter === null || isAcceptedBy(rrfilter, shallow))
-               && shallow.problematic === false;
+               && (shallow.problematic === false
+                // this is so that the user could forget problematic reqres
+                // with `forgetHistory` button
+                || rrfilter !== null && rrfilter.problematic !== null);
         return res;
     }, null, reqresLog);
     reqresLog = unpopped;
