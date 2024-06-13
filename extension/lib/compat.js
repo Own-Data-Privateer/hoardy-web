@@ -101,6 +101,7 @@ function makeFirefoxish(browser) {
     // TODO on V3 do this instead:
     //browser.browserAction.setBadgeTextColor = makePromiseAPI(browser.action.setBadgeTextColor);
     browser.browserAction.setBadgeBackgroundColor = makePromiseAPI(browser.browserAction.setBadgeBackgroundColor);
+    browser.commands.getAll = makePromiseAPI0(browser.commands.getAll);
     browser.notifications.clear = makePromiseAPI(browser.notifications.clear);
     browser.notifications.create = makePromiseAPI2(browser.notifications.create);
     browser.notifications.getAll = makePromiseAPI0(browser.notifications.getAll);

@@ -651,11 +651,19 @@ function helpMarkupToHTML(text) {
     ;
 }
 
+async function getShortcuts() {
+    let shortcuts = await browser.commands.getAll();
+    let res = {};
+    for (let s of shortcuts)
+        res[s.name] = s.shortcut;
+    return res;
+}
+
 // given a DOM node, add help tooltips to all its children with data-help attribute
-function addHelp(node, noHide) {
+function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     for (let child of node.childNodes) {
         if (child.nodeName === "#text" || child.nodeName === "#comment") continue;
-        addHelp(child, true);
+        addHelp(child, shortcuts, mapShortcutFunc, true);
     }
 
     if (!noHide)
@@ -663,11 +671,20 @@ function addHelp(node, noHide) {
 
     let help = node.getAttribute("data-help");
     if (help === null) return;
+    let origHelp = help;
     node.removeAttribute("data-help");
+
+    if (shortcuts !== undefined) {
+        let sname = node.getAttribute("data-shortcut");
+        if (sname !== null) {
+            let shortcut = shortcuts[sname];
+            help = mapShortcutFunc(help, shortcut, sname);
+        }
+    }
 
     let helpTip = document.createElement("div");
     helpTip.classList.add("help-tip");
-    helpTip.setAttribute("data-orig-help", help);
+    helpTip.setAttribute("data-orig-help", origHelp);
     helpTip.style.display = "none";
     helpTip.innerHTML = helpMarkupToHTML(help);
     helpTip.onclick = hideHelp;
