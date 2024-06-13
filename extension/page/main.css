@@ -1,25 +1,25 @@
 :root {
     color-scheme: light dark;
-    --untoggle-background: #cfcfd855;
-    --untoggle-border-color: #cfcfd8;
-    --untoggle-background-good: #94f89455;
-    --untoggle-border-color-good: #cfd8cf;
-    --untoggle-background-bad: #f8949455;
-    --untoggle-border-color-bad: #d8cfcf;
-    --toggle-dot-color: #ffffff;
-    --toggle-dot-outline-color: #000000;
-    --toggle-background: #f8f850;
-    --toggle-border-color: #f49405;
-    --toggle-background-good: #02bb50;
-    --toggle-border-color-good: #05943e;
-    --toggle-background-bad: #fb3230;
-    --toggle-border-color-bad: #94023e;
     --text-background: inherit;
     --text-border-color: #000000;
     --text-color: inherit;
     --text-inactive-background: var(--untoggle-background);
     --text-inactive-border-color: var(--untoggle-border-color);
     --text-inactive-color: inherit;
+    --untoggle-background: #cfcfd855;
+    --untoggle-border-color: #cfcfd8;
+    --untoggle-background-good: #94f89455;
+    --untoggle-border-color-good: #cfd8cf;
+    --untoggle-background-bad: #f8949455;
+    --untoggle-border-color-bad: #d8cfcf;
+    --toggle-dot-background: #ffffff;
+    --toggle-dot-border-color: #000000;
+    --toggle-background: #f8f850;
+    --toggle-border-color: #f49405;
+    --toggle-background-good: #02bb50;
+    --toggle-border-color-good: #05943e;
+    --toggle-background-bad: #fb3230;
+    --toggle-border-color-bad: #94023e;
     --help-btn-background: #aaaaaa;
     --help-btn-border-color : #bbbbbb;
     --help-btn-color: #fafafa;
@@ -47,13 +47,13 @@
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --untoggle-background: #515138;
-        --untoggle-background-good: #94f894;
-        --untoggle-background-bad: #f89494;
         --text-border-color: #ffffff;
         --text-inactive-background: inherit;
         --text-inactive-border-color: #505050;
         --text-inactive-color: #505050;
+        --untoggle-background: #515138;
+        --untoggle-background-good: #94f894;
+        --untoggle-background-bad: #f89494;
         --help-btn-background: #333333;
         --help-btn-border-color : #666666;
         --help-btn-color: #aaaaaa;
@@ -87,38 +87,48 @@ body {
     margin-left: auto;
 }
 
-input[type="checkbox"].toggle {
-    appearance: none;
-    padding: 0;
-    margin: 0;
-    height: 16px;
-    width: 26px;
-    border-radius: 8px;
-    background: var(--untoggle-background);
-    border: 1px solid var(--untoggle-border-color);
-    box-sizing: border-box;
+div.ui,
+div.ui label {
+    display: flex;
 }
 
-input[type="checkbox"].toggle::before {
-    display: block;
-    content: "";
-    background: var(--toggle-dot-color);
-    height: 10px;
-    width: 10px;
-    margin: 2px;
-    border-radius: 5px;
-    outline: 1px solid var(--toggle-dot-outline-color);
-    transition: transform 500ms;
-    transform: translate(0, calc(50% - 10px / 2));
+div.ui label,
+div.ui label input[type="number"],
+div.ui label input[type="text"] {
+    flex: 1 0 auto;
+    margin: auto 0;
+}
+
+div.ui label input[type="number"],
+div.ui label input[type="text"],
+div.ui label input[type="checkbox"] {
+    margin: auto 0;
+}
+
+div.ui label input[type="number"]:nth-last-child(1),
+div.ui label input[type="text"]:nth-last-child(1) {
+    margin-left: 1ch;
+}
+
+div.ui label input[type="checkbox"]:nth-child(1) {
+    margin-right: 1ch;
+}
+
+input[type="checkbox"].toggle {
+    appearance: none;
+    background: var(--untoggle-background);
+    border-radius: 8px;
+    border: 1px solid var(--untoggle-border-color);
+    box-sizing: border-box;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    width: 26px;
 }
 
 input[type="checkbox"].toggle:checked {
     background: var(--toggle-background);
     border-color: var(--toggle-border-color);
-}
-
-input[type="checkbox"].toggle:checked::before {
-    transform: translate(10px, calc(50% - 10px / 2));
 }
 
 .prefer-off input[type="checkbox"].toggle {
@@ -135,6 +145,23 @@ input[type="checkbox"].toggle:checked::before {
     --toggle-border-color: var(--toggle-border-color-good);
 }
 
+input[type="checkbox"].toggle::before {
+    background: var(--toggle-dot-background);
+    border-radius: 50%;
+    content: "";
+    display: block;
+    height: 10px;
+    margin: 2px;
+    outline: 1px solid var(--toggle-dot-border-color);
+    transform: translate(0, calc(50% - 10px / 2));
+    transition: transform 500ms;
+    width: 10px;
+}
+
+input[type="checkbox"].toggle:checked::before {
+    transform: translate(10px, calc(50% - 10px / 2));
+}
+
 input[type="text"],
 input[type="number"] {
     background: var(--text-background);
@@ -148,15 +175,14 @@ input[type="number"] {
 
 input[type="checkbox"].help-btn {
     appearance: unset;
-    padding: 0;
-    margin: 0;
-    margin-left: 5px;
-    height: 16px;
-    width: 16px;
-    border-radius: 16px;
     background: var(--help-btn-background);
+    border-radius: 50%;
     border: 1px solid var(--help-btn-border-color);
     box-sizing: border-box;
+    height: 16px;
+    margin: 0 0 0 5px;
+    padding: 0;
+    width: 16px;
 }
 
 input[type="checkbox"].help-btn:after {
@@ -174,26 +200,6 @@ input[type="checkbox"].help-btn:checked:after {
     color: var(--help-btn-checked-color);
 }
 
-div.ui,
-div.ui label {
-    display: flex;
-}
-
-div.ui label,
-div.ui label input[type="number"],
-div.ui label input[type="text"] {
-    flex: 1 0 auto;
-}
-
-div.ui label input[type="number"],
-div.ui label input[type="text"] {
-    margin: auto 0 auto 1ch;
-}
-
-div.ui label input[type="checkbox"] {
-    margin: auto 1ch auto 0;
-}
-
 div.help-tip {
     position: absolute;
     z-index: 20;
@@ -207,11 +213,6 @@ div.help-tip {
     padding: 4px;
     text-align: left;
     white-space: pre-line;
-}
-
-/* right-most help-tip sticks to the edge */
-.right *:nth-last-child(1) .help-tip {
-    right: 0;
 }
 
 /* HTML node highlighter, can't use :target because some nodes are
