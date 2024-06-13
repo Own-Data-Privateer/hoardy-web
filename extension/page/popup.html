@@ -119,7 +119,7 @@ label code {
       <span data-help="Open the help page."><input type="button" id="help" class="smaller" value="Help" /></span>
       <span class="right">
         <span data-help="Forget recent history."><input type="button" id="forgetHistory" value="Forget" /></span>
-        <span data-help="Show the internal state and history."><input type="button" id="showState" value="State" /></span>
+        <span data-shortcut="showState" data-help="Show the internal state and history."><input type="button" id="showState" value="State" /></span>
       </span>
     </h1>
     <div class="stats">
@@ -206,7 +206,7 @@ label code {
     <h1>This tab
       <span class="right">
         <span data-help="For reqres of this tab, forget recent history."><input type="button" id="forgetTabHistory" value="Forget" /></span>
-        <span data-help="For reqres of this tab, show the internal state and history."><input type="button" id="showTabState" value="State" /></span>
+        <span data-shortcut="showTabState" data-help="For reqres of this tab, show the internal state and history."><input type="button" id="showTabState" value="State" /></span>
       </span>
     </h1>
     <div class="stats">
@@ -224,8 +224,8 @@ label code {
       <div id="div-tabstats.in_limbo" data-help="For this tab, the number of finished reqres in limbo (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
-          <span data-help="For reqres of this tab, collect all reqres in limbo."><input type="button" id="collectAllTabInLimbo" value="Collect" /></span>
-          <span data-help="For reqres of this tab, discard all reqres in limbo."><input type="button" id="discardAllTabInLimbo" value="Discard" /></span>
+          <span data-shortcut="collectAllTabInLimbo" data-help="For reqres of this tab, collect all reqres in limbo."><input type="button" id="collectAllTabInLimbo" value="Collect" /></span>
+          <span data-shortcut="discardAllTabInLimbo" data-help="For reqres of this tab, discard all reqres in limbo."><input type="button" id="discardAllTabInLimbo" value="Discard" /></span>
         </span>
         <span>
           <span id="tabstats.in_limbo">0</span>
@@ -245,7 +245,7 @@ label code {
       <div id="div-tabstats.problematic" data-help="For this tab, the number of reqres that satisfied &quot;Mark reqres as problematic when they finish&quot; conditions (at the moment they `finished`).">
         <span>Problematic</span>
         <span>
-          <span data-help="For reqres of this tab, unmark all problematic reqres."><input type="button" id="unmarkAllTabProblematic" value="Unmark" /></span>
+          <span data-shortcut="unmarkAllTabProblematic" data-help="For reqres of this tab, unmark all problematic reqres."><input type="button" id="unmarkAllTabProblematic" value="Unmark" /></span>
         </span>
         <span>
           <span id="tabstats.problematic">0</span>
@@ -261,8 +261,8 @@ label code {
         </span>
       </div>
     </div>
-    <ui id="tabconfig.collecting" type="boolean" class="prefer-on dc" tabindex=1 data-help="Track new reqres originating from this tab.">Track new reqres</ui>
-    <ui id="tabconfig.limbo" type="boolean" tabindex=2 data-help="For this tab, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
+    <ui id="tabconfig.collecting" type="boolean" class="prefer-on dc" tabindex=1 data-shortcut="toggleTabConfigTracking" data-help="Track new reqres originating from this tab.">Track new reqres</ui>
+    <ui id="tabconfig.limbo" type="boolean" tabindex=2 data-shortcut="toggleTabConfigLimbo" data-help="For this tab, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
 
     <div name="more">
     <ui id="tabconfig.negLimbo" type="boolean" class="prefer-off" data-help="For this tab, put newly `finished` reqres that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
@@ -270,8 +270,8 @@ label code {
     </div>
 
     <h1>This tab&#039;s new children</h1>
-    <ui id="tabconfig.children.collecting" type="boolean" tabindex=3 class="prefer-on dc" data-help="Enable &quot;Track new reqres&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Track new reqres&quot;</ui>
-    <ui id="tabconfig.children.limbo" type="boolean" tabindex=4 data-help="Enable &quot;Pick into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Pick into limbo&quot;</ui>
+    <ui id="tabconfig.children.collecting" type="boolean" tabindex=3 class="prefer-on dc" data-shortcut="toggleTabConfigChildrenTracking" data-help="Enable &quot;Track new reqres&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Track new reqres&quot;</ui>
+    <ui id="tabconfig.children.limbo" type="boolean" tabindex=4 data-shortcut="toggleTabConfigChildrenLimbo" data-help="Enable &quot;Pick into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Pick into limbo&quot;</ui>
 
     <div name="more">
     <ui id="tabconfig.children.negLimbo" type="boolean" class="prefer-off" data-help="Enable &quot;Drop into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Drop into limbo&quot;</ui>

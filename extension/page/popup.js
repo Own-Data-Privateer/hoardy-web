@@ -50,7 +50,10 @@ async function popupMain() {
     // generate UI
     let body = document.getElementById("body");
     makeUI(body);
-    addHelp(body);
+
+    let shortcuts = await getShortcuts();
+    addHelp(body, shortcuts
+            , (help, shortcut) => shortcut ? `(\`${shortcut}\`) ${help}` : `(unbound) ${help}`);
 
     // emoji labels for the UI buttons
     let emojiButtons = {
