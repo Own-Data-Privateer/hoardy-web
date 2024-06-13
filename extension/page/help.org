@@ -1,7 +1,9 @@
+#+MACRO: shortcut @@html:<span data-macro-shortcut="$1">bound to <code>manifest.commands.$1</code></span>@@
+
 * What?
-=pWebArc= (Personal Private Passive Web Archive) is a browser extension that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the dumb archiving server]], also [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][there]]) as you browse the web.
+=pWebArc= (Personal Private Passive Web Archive) is a browser extension that passively captures, collects, and archives dumps of HTTP requests and responses to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the dumb archiving server]], also [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][there]]) as you browse the web.
 ** Glossary
-- A /reqres/ (/REQuest/ + /RESponse/) is a pWebArc-internal object containing information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
+- A /reqres/ (/REQuest/ + /RESponse/) is a pWebArc-internal object containing captured information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
 * General operation
 ** State Diagram
 Reqres change their internal states according to the following state diagram (which is explained below):
@@ -30,7 +32,7 @@ Reqres change their internal states according to the following state diagram (wh
                 \-> (failed to archive) -/
 #+END_SRC
 ** Step 1: Tracking
-pWebArc attaches to browser's runtime and tracks progress of HTTP requests and their responses, saving both their request and response headers and data at appropriate times in the browser's request and response processing pipeline.
+pWebArc attaches to browser's runtime and tracks progress of HTTP requests and their responses, capturing both their request and response headers and data at appropriate times in the browser's request and response processing pipeline.
 
 Whether pWebArc will track a given request depends on the "Track new reqres" toggles (or checkboxes, if you are using a browser without support for the needed CSS) in the settings popup (also displayed on the right here), e.g:
 
@@ -61,6 +63,10 @@ In principle, at reaching =finished= state the reqres can be serialized and save
   If some reqres get stuck in one of the =in_flight= states, the UI has buttons ([[./popup.html#stopAllInFlight][this one]] in the popup) to force them out of the current state as if an error occurred.
 - A /finished reqres/ is a reqres that reached the =finished= state, /the final networking state/ is the last state before =finished= (i.e. =complete=, =incomplete=, etc).
 ** Step 2: Classification
+:PROPERTIES:
+:CUSTOM_ID: classification
+:END:
+
 On reaching the =finished= state, pWebArc performs reqres classification controlled by [[./popup.html#pick-options]["Pick reqres for archival when they finish"]] and [[./popup.html#problematic-options]["Mark reqres as problematic when they finish" ]] settings.
 
 The [[./popup.html#pick-options][former]] set decides whether the reqres in question should be =picked= or =dropped=, which influences the actions pWebArc will perform in the next step.
@@ -110,9 +116,9 @@ Similarly, /dropped reqres/ proceed to being =discarded= from memory.
 :CUSTOM_ID: limbo
 :END:
 
-However, for /picked reqres/, when [[./popup.html#div-tabconfig.limbo]["Put newly finished reqres in limbo" setting]] is enabled in the currently active tab (or [[./popup.html#div-tabconfig.children.limbo][via]] [[./popup.html#div-config.root.limbo][the]] [[./popup.html#div-config.background.limbo][respective]] [[./popup.html#div-config.extension.limbo][settings]] for other reqres sources), the reqres in question will be put into limbo until you /collect/ it or /discard/ it manually by pressing the [[./popup.html#div-tabstats.in_limbo][appropriate buttons]] (or [[./popup.html#div-stats.in_limbo][global buttons]], if you want to do it for all tabs and sources at once).
+However, for /picked reqres/, when [[./popup.html#div-tabconfig.limbo]["Pick into limbo" setting]] is enabled in the currently active tab (or [[./popup.html#div-tabconfig.children.limbo][via]] [[./popup.html#div-config.root.limbo][the]] [[./popup.html#div-config.background.limbo][respective]] [[./popup.html#div-config.extension.limbo][settings]] for other reqres sources), the reqres in question will be put into limbo until you /collect/ it or /discard/ it manually by pressing the [[./popup.html#div-tabstats.in_limbo][appropriate buttons]] (or [[./popup.html#div-stats.in_limbo][global buttons]], if you want to do it for all tabs and sources at once).
 
-Similarly, for /dropped reqres/, when [[./popup.html#div-tabconfig.negLimbo]["Put newly finished reqres in negLimbo" setting]] is enabled in the currently active tab (or [[./popup.html#div-tabconfig.children.negLimbo][via]] [[./popup.html#div-config.root.negLimbo][the]] [[./popup.html#div-config.background.negLimbo][respective]] [[./popup.html#div-config.extension.negLimbo][settings]] for other reqres sources), the reqres in question will be similarly put into limbo.
+Similarly, for /dropped reqres/, when [[./popup.html#div-tabconfig.negLimbo]["Drop into limbo" setting]] is enabled in the currently active tab (or [[./popup.html#div-tabconfig.children.negLimbo][via]] [[./popup.html#div-config.root.negLimbo][the]] [[./popup.html#div-config.background.negLimbo][respective]] [[./popup.html#div-config.extension.negLimbo][settings]] for other reqres sources), the reqres in question will be similarly put into limbo.
 Mainly, this exists for debugging.
 
 If [[./popup.html#div-config.limboNotify][this option]] is enabled and there are more than [[./popup.html#div-config.limboMaxNumber][this number]] reqres in limbo or the total size of all dumps in limbo is more than [[./popup.html#div-config.limboMaxSize][this size]] (in MiB), pWebArc will complain to remind you to /collect/ or /discard/ some of them so that your browser does not waste much memory and so that you won't loose too much data if something crashes.
@@ -157,17 +163,26 @@ pWebArc provides a bunch of keyboard and context menu shortcuts to allow using i
 - On Firefox-based browsers, you can see and edit all keyboard shortcuts via "Add-ons and themes" (=about:addons=) -> the gear icon -> Manage Extension Shortcuts.
 - On Chromium-based browsers, you can see and edit all keyboard shortcuts via the menu -> "Extensions" -> "Manage Extensions" (=chrome://extensions/=) -> "Keyboard shortcuts" (on the left).
 ** Keyboard shortcuts
-pWebArc provides:
+pWebArc provides shortcuts to:
 
-- a shortcut to open the "Internal State and Logs" page narrowed to the currently active tab's data, bound to =Alt+I= by default;
-- a shortcut to toggle tracking of newly spawned HTTP requests in the [[./popup.html#div-tabconfig.collecting][currently active tab]] and [[./popup.html#div-tabconfig.children.collecting][its children]] bound to =Alt+C= by default;
-- a shortcut to toggle tracking of newly spawned HTTP requests in [[./popup.html#div-tabconfig.children.collecting][children tabs]] bound to =Alt+Shift+C= by default;
-- two similar shortcuts for toggling limbo mode, bound to =Alt+L= and =Alt+Shift+L= respectively by default;
-- shortcuts to collect and discard all reqres from limbo for the currently active tab, bound to =Alt+Shift+A= and =Alt+Shift+D= respectively by default;
+- open [[./popup.html#showState][the "Internal State and Logs" page]], {{{shortcut(showState)}}};
+- open the "Internal State and Logs" page, scrolled to the bottom, {{{shortcut(showLog)}}};
+- open [[./popup.html#showTabState][the "Internal State and Logs" page]] narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
+- open the "Internal State and Logs" page narrowed to the currently active tab's data, scrolled to the bottom, {{{shortcut(showTabLog)}}};
+- toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned HTTP requests in the currently active tab]] {{{shortcut(toggleTabConfigTracking)}}};
+- toggle [[./popup.html#div-tabconfig.children.collecting][tracking of newly spawned HTTP requests currently active tab's children]] {{{shortcut(toggleTabConfigChildrenTracking)}}};
+- toggle [[./popup.html#div-tabconfig.limbo][limbo mode in the currently active tab]], {{{shortcut(toggleTabConfigLimbo)}}};
+- toggle [[./popup.html#div-tabconfig.children.limbo][limbo mode in currently active tab's children]], {{{shortcut(toggleTabConfigChildrenLimbo)}}};
+- [[./popup.html#unmarkAllProblematic][unmark all problematic reqres]], {{{shortcut(unmarkAllProblematic)}}};
+- [[./popup.html#collectAllInLimbo][collect all reqres from limbo]], {{{shortcut(collectAllInLimbo)}}};
+- [[./popup.html#discardAllInLimbo][discard all reqres from limbo]], {{{shortcut(discardAllInLimbo)}}};
+- [[./popup.html#unmarkAllTabProblematic][unmark all current tab's problematic reqres]], {{{shortcut(unmarkAllTabProblematic)}}};
+- [[./popup.html#collectAllTabInLimbo][collect all reqres from limbo for the currently active tab]], {{{shortcut(collectAllTabInLimbo)}}};
+- [[./popup.html#discardAllTabInLimbo][discard all reqres from limbo for the currently active tab]], {{{shortcut(discardAllTabInLimbo)}}}.
 ** Context menu actions
-pWebArc provides:
+pWebArc provides context menu actions to:
 
-- a context menu action to open a given link with currently active tab's [[./popup.html#div-tabconfig.children.collecting][tracking in children tabs setting]] negated.
+- open a given link in a new tab with currently active tab's [[./popup.html#div-tabconfig.children.collecting][tracking in children tabs setting]] negated.
   I.e.,
 
   - right-mouse clicking while pointing at a link and
@@ -179,20 +194,28 @@ pWebArc provides:
   - middle-mouse clicking a link,
   - toggling [[./popup.html#div-tabconfig.children.collecting][this]] again.
 
-#+BEGIN_EXPORT html
-<div id="bugs">
-#+END_EXPORT
+- do the same thing, but opening it in a new window.
 * Quirks and Bugs
-** All browsers
-*** Known extension bugs
+:PROPERTIES:
+:CUSTOM_ID: bugs
+:END:
+** Known extension issues
 - At the moment, reqres in =limbo= and =queued= reqres in the archival queue are only stored in memory, so if you close the browser or reload the extension before all the =queued= reqres finish archiving, or if you forget about some reqres in =limbo=, you will lose some data.
 
   This is not an issue under normal conditions, as limbo is disabled by default and archiving a reqres takes milliseconds, meaning that the queue will stay empty almost all of the time.
   But this is technically a bug that might get fixed later.
 
 - When the extension is (re-)loaded, all tabs inherit the values of [[./popup.html#div-config.root.collecting][this]], [[./popup.html#div-config.root.limbo][this]], [[./popup.html#div-config.root.negLimbo][this]], and [[./popup.html#div-config.root.profile][this]] setting.
-** On Firefox, Tor Browser, etc
-*** Known browser bugs
+
+- At the moment, pWebArc does not implement collection of WebSockets data on any of the supported browsers (even though, Chromium does support it, in theory).
+# TODO: mention DOM archival as an alternative, when implemented
+
+- On Chromium, response data of background requests and requests made by other extensions does not get collected, since there's no tab to attach a debugger to, and I have not figured out how to attach debugger to other things yet.
+** Relevant issues of Firefox, Tor Browser, LibreWolf, etc
+:PROPERTIES:
+:CUSTOM_ID: firefox-bugs
+:END:
+
 - On Firefox-based browsers, without the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/firefox/][patch]] (also [[https://oxij.org/software/pwebarc/tree/master/firefox/][there]]), the browser only supplies =formData= to =browser.webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a POST request.
 
   pWebArc will mark such requests as having a "partial request body" and try its best to recover the data from =formData= structure, but if a POST request was uploading files, they won't be recoverable from =formData= (in fact, it is not even possible to tell if there were any files attached there), and so your archived request data will be incomplete even after pWebArc did its best.
@@ -214,14 +237,20 @@ pWebArc provides:
 
 - Firefox fails to run =onstop= method for =browser.webRequest.filterResponseData= filter for the very first HTTP/2 request the browser makes after you start it, thus making the first reqres =incomplete=.
   pWebArc transparently works around this bug by redirecting the very first non-background request to =about:blank= and then reloading the tab.
-** On Chromium, Chrome, etc
-*** Known browser quirks
+
+- Firefox-based browsers provide no API for archiving WebSockets data at the moment, unfortunately.
+# TODO: mention DOM archival as an alternative, when implemented
+** Relevant issues of Chromium, Chrome, etc
+:PROPERTIES:
+:CUSTOM_ID: chromium-bugs
+:END:
+
 On Chromium-based browsers, there is no way to get HTTP response data without attaching Chromium's debugger to a tab from which a request originates from.
 This makes things a bit tricky, for instance:
 
 - With [[./popup.html#div-config.collecting][pWebArc enabled]], new tabs will be set to =about:blank= because the default of =chrome://newtab/= does not allow attaching debugger to the tabs with =chrome:= URLs.
 
-- Requests made before the debugger is attached will get canceled by the extension.
+- Requests made before the debugger is attached will get canceled by pWebArc.
   So, for instance, when you middle-click a link, Chromium will open a new tab, but pWebArc will block the requests from there until the debugger gets attached and then automatically reload the tab after.
   As side-effect of this, Chromium will show "Request blocked" page until the debugger is attached and the page is reloaded, meaning it will get visually stuck on "Request blocked" page if fetching the request ended up spawning a download instead of showing a page.
   The download will proceed as normal, though.
@@ -235,14 +264,25 @@ This makes things a bit tricky, for instance:
   If you [[./popup.html#div-config.collecting][disable pWebArc]] the debuggers will get detached only after all requests finish.
   But even if there are no requests in-flight the notification will not disappear immediately.
   Chromium takes its time updating the UI after the debugger is detached.
-*** Known browser bugs
+
+Moreover, Chromium has the following long-standing issues/bugs making things difficult:
+
 - Chromium will automatically detach a debugger from a tab if it tries to save too much data into its debugger state.
   Which means that a tab that loads too much data too fast will get its debugger detached.
-  Chromium does this to try and save memory, but this, among other issues, means that large media files will fail to be properly archived, and any page that loads such files is likely to fail to be archived too.
+  Chromium does this to try and save memory, but this, among other issues, means that large images will fail to be properly archived, and any page that loads such files is likely to fail to be archived too.
 
   This is a design limitation of Chromium debugging interface, there appears to be no work-around for this at the moment.
 
   Meanwhile, on Firefox, pWebArc uses =browser.webRequest.filterResponseData= API (not available no Chromium, because it greatly enhances browser's ad-blocking capabilities) which does not suffer from this problem.
+
+- Chromium will occasionally detach debuggers from some tabs at random.
+  It just happens.
+  Fortunately, pWebArc will mark the resulting broken reqres as [[#classification][problematic]] by default as they match the conditions of at least one of [[./popup.html#div-config.markProblematicNoResponse][this]], [[./popup.html#div-config.markProblematicIncomplete][this]], or [[./popup.html#div-config.markProblematicPickedWithErrors][that]] options.
+
+- Chromium handling of media files (audio and video) within its debugging interface is very strange.
+  When Chromium encounters a media file, it immediately loads a first few frames of it, then cancels the rest of the download, generates a networking error debugging event, but forgets to give the already loaded data to it, and then, when the user clicks the play button, continues the download by requesting the rest of the file as normal.
+  Thus, on Chromium, for media files pWebArc will only ever get "206 Partial Content" HTTP responses with the first few kilobytes of file data missing.
+  This bug has no good workaround, all alternatives to pWebArc that work with Chromium work it around by silently re-downloading the file the second time in background.
 
 - Similarly to unpatched Firefox, Chromium-based browsers do not supply contents of files in POST request data.
   They do, however, provide a way to see if files were present in the request, so pWebArc will mark such and only such requests as having a "partial request body".
@@ -255,14 +295,11 @@ This makes things a bit tricky, for instance:
 
 - Chromium fails to provide =openerTabId= to tabs created with =chrome.tabs.create= API so in the unlikely case of opening two or more new tabs/windows in rapid succession via pWebArc context menu actions and not giving them time to initialize pWebArc could end up mixing up settings between the newly created tabs/windows.
   This bug is impossible to trigger unless your system is very slow or you are clicking things with automation tools like =AutoHotKey= or =xnee=.
-*** Known extension bugs
-- Response data of background requests and requests made by other extensions does not get collected.
-
-#+BEGIN_EXPORT html
-</div>
-<div id="errors">
-#+END_EXPORT
 * Error messages
+:PROPERTIES:
+:CUSTOM_ID: errors
+:END:
+
 - =pWebArc FAILED to archive <N> items in the queue because it can't establish a connection to the archive at <URL>=
 
   Are you running the [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][the archiving server script]]?
@@ -275,29 +312,31 @@ This makes things a bit tricky, for instance:
   Some common reasons it could be failing:
   - No space left on the device you are archiving to.
   - It's a bug.
-
-#+BEGIN_EXPORT html
-</div>
-<div id="faq">
-#+END_EXPORT
 * Frequently Asked Questions
-** Does pWebArc send any of my collected web browsing data to any third-parties?
+:PROPERTIES:
+:CUSTOM_ID: faq
+:END:
+** Does pWebArc send any of my captured web browsing data to any third-parties?
 No, pWebArc only ever sends data to the [[./popup.html#div-config.archiveURLBase][archiving server URL]] you specify.
 ** Does pWebArc collect and send any telemetry anywhere?
-No. pWebArc does remember some global stat numbers (like [[./popup.html#div-stats.collected][Collected/Discarded reqres]]) across restarts, but they are never sent anywhere, and [[./popup.html#resetPersistentStats][you can reset them]].
-** Why do pages under [[https://addons.mozilla.org/]] and [[https://chromewebstore.google.com/]] can not be collected?
+pWebArc does persist some global stat numbers across restarts (like [[./popup.html#div-stats.collected][Collected/Discarded reqres]]), but they are never sent anywhere, and [[./popup.html#resetPersistentStats][you can reset them]].
+** Why do pages under [[https://addons.mozilla.org/]] and [[https://chromewebstore.google.com/]] can not be captured?
 Browsers prevent extensions from running on extension store pages to prevent them from manipulating ratings, reviews, and etc such things.
 However, you can archive [[https://addons.mozilla.org/]] pages by running pWebArc under Chromium and [[https://chromewebstore.google.com/]] pages by running pWebArc under Firefox.
-** Why does page X or some part of it fails to be properly collected?
+** Why does a URL =http://...=, =https://...= or some part of it fails to be properly captured?
 Did you read the notes on [[#bugs][the bugs of the browser you are using]] above?
 
 Most notably:
 
-- both Chromium- and Firefox-based browsers in their default builds fail to properly supply POST request data to their extensions; for Firefox-based browsers there exists a patch that fixes it, mostly; Chromium users are out of luck at the moment;
+- both Chromium- and Firefox-based browsers in their default builds fail to properly supply POST request data to their extensions; for Firefox-based browsers there exists a [[#firefox-bugs][patch]] that fixes it, mostly; Chromium users are out of luck at the moment;
 
-- on a Chromium-based browser, because of limitations of the Chromium's debugging interface, it is impossible to archive large media files; this issue has no work-around and, AFAIK, all alternatives to pWebArc running on Chromium-based browser suffer from it; try using pWebArc in a Firefox-based browser instead.
+- on a Chromium-based browser, because of [[#chromium-bugs][limitations of the Chromium's debugging interface]], it is impossible to capture media files (both audio and video, except for those that are absolutely tiny, as in 64KiB or less) and large images; this issue has no good work-around and, AFAIK, all alternatives to pWebArc running on Chromium-based browser suffer from it (and work around it by silently re-downloading the media file the second time in background); try using pWebArc under a Firefox-based browser instead.
+** Can I capture a web page without archiving it, look at it, decide if I want to save it, and archive it only if I do, all without reloading the page?
+:PROPERTIES:
+:CUSTOM_ID: faq-limbo
+:END:
 
-If the notes above do not explain your problem, [[https://github.com/Own-Data-Privateer/pwebarc/issues][open an issue on GitHub]].
-#+BEGIN_EXPORT html
-</div>
-#+END_EXPORT
+Yes. This is why [[./popup.html#div-tabconfig.limbo]["Pick into limbo" setting]] exists.
+See [[#limbo][above]] for more info.
+** This page does not answer my question. What do I do?
+If the whole content of this page (not just this section, did you try searching for stuff with =Control+F=? there's a lot of info here) does not explain your problem, [[https://github.com/Own-Data-Privateer/pwebarc/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]].

@@ -6,7 +6,7 @@
 
 "use strict";
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     let popupURL = browser.runtime.getURL("/page/popup.html");
 
     // show settings as iframe
@@ -47,6 +47,27 @@ document.addEventListener("DOMContentLoaded", () => {
     resize();
     window.onresize = (event) => resize();
 
+    // expand shortcut macros
+    let shortcuts = await getShortcuts();
+    macroShortcuts(body, shortcuts, (inner, shortcut, sname) => {
+        let sk = manifest.commands[sname];
+        let def;
+        if (sk.suggested_key !== undefined && sk.suggested_key.default !== undefined)
+            def = sk.suggested_key.default;
+        if (def) {
+            if (shortcut) {
+                return (shortcut === def)
+                    ? `bound to \`${shortcut}\` (= default)`
+                    : `bound to \`${shortcut}\` (default: \`${def}\`)`
+            } else
+                return `unbound at the moment (default: \`${def}\`)`;
+        } else if (shortcut)
+            return `bound to \`${shortcut}\` (default: unbound)`
+        else
+            return `unbound`;
+    });
+
+    // add default handlers
     subscribeToExtensionSimple("help");
 
     // highlight current target
