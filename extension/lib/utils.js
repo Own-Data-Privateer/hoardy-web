@@ -497,7 +497,7 @@ function subscribeToExtensionSimple(name, showAllFunc, hideAllFunc) {
 function setUI(node, prefix, value, update) {
     let typ = typeof value;
 
-    if (typ == "object") {
+    if (typ == "object" && value !== null) {
         if (update === undefined) {
             for (let k of Object.keys(value)) {
                 setUI(node, prefix ? prefix + "." + k : k, value[k]);
@@ -514,7 +514,12 @@ function setUI(node, prefix, value, update) {
     }
 
     let el = node.getElementById(prefix);
-    if (el === null) return;
+    if (el === null) {
+        el = node.getElementById(prefix + "-tristate");
+        if (el === null)
+            return;
+        typ = "tristate";
+    }
     //console.log("setting UI", prefix, typ, el, value);
 
     if (typ == "boolean" && el.tagName == "INPUT" && el.type == "checkbox") {
@@ -522,6 +527,27 @@ function setUI(node, prefix, value, update) {
         if (update !== undefined)
             el.onchange = () => {
                 update(el.checked, prefix);
+            };
+    } else if (typ == "tristate" && el.tagName == "INPUT" && el.type == "checkbox") {
+        // emulating tristate using a checkbox:
+        // - true -> true,
+        // - false -> null,
+        // - false + .false class -> false
+        el.checked = value === true;
+        if (value === false)
+            el.classList.add("false");
+        if (update !== undefined)
+            el.onchange = () => {
+                // switch it like this:
+                // null -> true -> false -> null
+                let nvalue = el.checked;
+                if (el.classList.contains("false")) {
+                    nvalue = null;
+                    el.checked = false;
+                    el.classList.remove("false");
+                } else if (!nvalue)
+                    el.classList.add("false");
+                update(nvalue, prefix);
             };
     } else if ((typ == "number" || typ == "string") && el.tagName == "INPUT"
                && (el.type == "number" || el.type == "text" || el.type == "button")) {
@@ -555,20 +581,24 @@ function makeUI(node) {
     res.id = "div-" + id;
     // copy other attributes
     for (let attr of node.attributes) {
-        if (attr.name == "id") continue;
-        res.setAttribute(attr.name, node.getAttribute(attr.name))
+        let name = attr.name;
+        if (name == "id") continue;
+        res.setAttribute(name, node.getAttribute(name))
     }
     res.classList.add("ui");
     res.classList.add(typ);
 
     let sep = " "; // "<span class=\"sep\"> </span>";
 
-    if (typ == "boolean") {
+    if (typ == "boolean" || typ == "tristate") {
         let ne = document.createElement("input");
-        ne.id = id;
+        ne.id = id + (typ == "tristate" ? "-tristate" : "");
         ne.name = id;
         ne.type = "checkbox";
-        ne.classList.add("toggle");
+        if (typ == "boolean")
+            ne.classList.add("toggle");
+        else
+            ne.classList.add("tristate");
         ne.checked = false;
 
         let lbl = document.createElement("label");

@@ -114,7 +114,8 @@ div.ui label input[type="checkbox"]:nth-child(1) {
     margin-right: 1ch;
 }
 
-input[type="checkbox"].toggle {
+input[type="checkbox"].toggle,
+input[type="checkbox"].tristate {
     appearance: none;
     background: var(--untoggle-background);
     border-radius: 8px;
@@ -126,9 +127,23 @@ input[type="checkbox"].toggle {
     width: 26px;
 }
 
+input[type="checkbox"].tristate {
+    width: 32px;
+}
+
 input[type="checkbox"].toggle:checked {
     background: var(--toggle-background);
     border-color: var(--toggle-border-color);
+}
+
+input[type="checkbox"].tristate.false {
+    background: var(--toggle-background-bad);
+    border-color: var(--toggle-border-color-bad);
+}
+
+input[type="checkbox"].tristate:checked {
+    background: var(--toggle-background-good);
+    border-color: var(--toggle-border-color-good);
 }
 
 .prefer-off input[type="checkbox"].toggle {
@@ -145,7 +160,8 @@ input[type="checkbox"].toggle:checked {
     --toggle-border-color: var(--toggle-border-color-good);
 }
 
-input[type="checkbox"].toggle::before {
+input[type="checkbox"].toggle::before,
+input[type="checkbox"].tristate::before {
     background: var(--toggle-dot-background);
     border-radius: 50%;
     content: "";
@@ -160,6 +176,14 @@ input[type="checkbox"].toggle::before {
 
 input[type="checkbox"].toggle:checked::before {
     transform: translate(10px, calc(50% - 10px / 2));
+}
+
+input[type="checkbox"].tristate.false::before {
+    transform: translate(8px, calc(50% - 10px / 2));
+}
+
+input[type="checkbox"].tristate:checked::before {
+    transform: translate(16px, calc(50% - 10px / 2));
 }
 
 input[type="text"],
