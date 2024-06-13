@@ -2122,43 +2122,43 @@ async function handleCommand(command) {
 
     let tabcfg = undefined;
     switch (command) {
-    case "show-state":
+    case "showState":
         showState("", "top", tab.id);
         return;
-    case "show-log":
+    case "showLog":
         showState("", "bottom", tab.id);
         return;
-    case "show-tab-state":
+    case "showTabState":
         showState(`?tab=${tabId}`, "top", tab.id);
         return;
-    case "show-tab-log":
+    case "showTabLog":
         showState(`?tab=${tabId}`, "bottom", tab.id);
         return;
-    case "toggle-tabconfig-tracking":
+    case "toggleTabConfigTracking":
         tabcfg = getOriginConfig(tabId);
         tabcfg.collecting = !tabcfg.collecting;
         tabcfg.children.collecting = tabcfg.collecting;
         break;
-    case "toggle-tabconfig-children-tracking":
+    case "toggleTabConfigChildrenTracking":
         tabcfg = getOriginConfig(tabId);
         tabcfg.children.collecting = !tabcfg.children.collecting;
         break;
-    case "toggle-tabconfig-limbo":
+    case "toggleTabConfigLimbo":
         tabcfg = getOriginConfig(tabId);
         tabcfg.limbo = !tabcfg.limbo;
         tabcfg.children.limbo = tabcfg.limbo;
         break;
-    case "toggle-tabconfig-children-limbo":
+    case "toggleTabConfigChildrenLimbo":
         tabcfg = getOriginConfig(tabId);
         tabcfg.children.limbo = !tabcfg.children.limbo;
         break;
-    case "unmark-all-tab-problematic":
+    case "unmarkAllTabProblematic":
         unmarkProblematic(null, tabId);
         return;
-    case "collect-all-tab-inlimbo":
+    case "collectAllTabInLimbo":
         popInLimbo(true, null, tabId);
         return;
-    case "discard-all-tab-inlimbo":
+    case "discardAllTabInLimbo":
         popInLimbo(false, null, tabId);
         return;
     default:

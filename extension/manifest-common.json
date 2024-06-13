@@ -18,49 +18,49 @@
     },
 
     "commands": {
-        "show-state": {
+        "showState": {
             "description": "Show the internal state"
         },
-        "show-log": {
+        "showLog": {
             "description": "Show the log of recently collected and discarded reqres"
         },
-        "show-tab-state": {
+        "showTabState": {
             "suggested_key": {
                 "default": "Alt+I"
             },
             "description": "For the current tab, show the internal state"
         },
-        "show-tab-log": {
+        "showTabLog": {
             "description": "For the current tab, show the log of recently collected and discarded reqres"
         },
-        "toggle-tabconfig-tracking": {
+        "toggleTabConfigTracking": {
             "suggested_key": {
                 "default": "Alt+C"
             },
             "description": "For the current tab, toggle tracking and reset it for the tab's new children"
         },
-        "toggle-tabconfig-children-tracking": {
+        "toggleTabConfigChildrenTracking": {
             "description": "For current tab's new children, toggle tracking"
         },
-        "toggle-tabconfig-limbo": {
+        "toggleTabConfigLimbo": {
             "suggested_key": {
                 "default": "Alt+L"
             },
             "description": "For the current tab, toggle limbo mode and reset it for the tab's new children"
         },
-        "toggle-tabconfig-children-limbo": {
+        "toggleTabConfigChildrenLimbo": {
             "description": "For current tab's new children, toggle limbo mode"
         },
-        "unmark-all-tab-problematic": {
+        "unmarkAllTabProblematic": {
             "suggested_key": {
                 "default": "Alt+Shift+U"
             },
             "description": "For the current tab, unmark all problematic reqres"
         },
-        "collect-all-tab-inlimbo": {
+        "collectAllTabInLimbo": {
             "description": "For the current tab, collect all reqres in limbo"
         },
-        "discard-all-tab-inlimbo": {
+        "discardAllTabInLimbo": {
             "description": "For the current tab, discard all reqres in limbo"
         }
     }

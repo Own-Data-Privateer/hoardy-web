@@ -36,37 +36,37 @@
                 "default": "Alt+A"
             }
         },
-        "show-state": {
+        "showState": {
             "suggested_key": {
                 "default": "Alt+G"
             }
         },
-        "show-log": {
+        "showLog": {
             "suggested_key": {
                 "default": "Alt+Shift+G"
             }
         },
-        "show-tab-log": {
+        "showTabLog": {
             "suggested_key": {
                 "default": "Alt+Shift+I"
             }
         },
-        "toggle-tabconfig-children-tracking": {
+        "toggleTabConfigChildrenTracking": {
             "suggested_key": {
                 "default": "Alt+Shift+C"
             }
         },
-        "toggle-tabconfig-children-limbo": {
+        "toggleTabConfigChildrenLimbo": {
             "suggested_key": {
                 "default": "Alt+Shift+L"
             }
         },
-        "collect-all-tab-inlimbo": {
+        "collectAllTabInLimbo": {
             "suggested_key": {
                 "default": "Alt+Shift+A"
             }
         },
-        "discard-all-tab-inlimbo": {
+        "discardAllTabInLimbo": {
             "suggested_key": {
                 "default": "Alt+Shift+D"
             }

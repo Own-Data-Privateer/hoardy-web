@@ -65,10 +65,10 @@ async function popupMain() {
         stopAllInFlight: "⏹",
         forgetTabHistory: "🧹",
         showTabState: "📜",
-        collectTabInLimbo: "✔",
-        discardTabInLimbo: "✖",
-        unmarkTabProblematic: "🧹",
-        stopTabInFlight: "⏹",
+        collectAllTabInLimbo: "✔",
+        discardAllTabInLimbo: "✖",
+        unmarkAllTabProblematic: "🧹",
+        stopAllTabInFlight: "⏹",
     };
 
     // populate with the original values from the ./popup.html
@@ -111,19 +111,19 @@ async function popupMain() {
     buttonToAction("showTabState", catchAll(() => showState(`?tab=${tabId}`, "top", tabId)));
 
     buttonToMessage("forgetHistory");
-    buttonToAction("unmarkAllProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null])));
-    buttonToMessage("retryAllFailedArchives");
     buttonToMessage("runAllActions");
     buttonToMessage("cancelCleanupActions");
+    buttonToMessage("retryAllFailedArchives");
     buttonToAction("collectAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null])));
     buttonToAction("discardAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null])));
+    buttonToAction("unmarkAllProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null])));
     buttonToMessage("stopAllInFlight");
 
     buttonToAction("forgetTabHistory",     catchAll(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
-    buttonToAction("unmarkTabProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
-    buttonToAction("collectTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
-    buttonToAction("discardTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
-    buttonToAction("stopTabInFlight", catchAll(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
+    buttonToAction("collectAllTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
+    buttonToAction("discardAllTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
+    buttonToAction("unmarkAllTabProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
+    buttonToAction("stopAllTabInFlight", catchAll(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
 
     buttonToMessage("resetPersistentStats");
 
