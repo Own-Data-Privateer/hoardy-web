@@ -457,14 +457,17 @@ function getTabStats(tabId) {
     };
 }
 
-function unmarkProblematic(num, tabId) {
+function unmarkProblematic(num, tabId, rrfilter) {
     if (reqresProblematic.length == 0)
         return;
     if (tabId === undefined)
         tabId = null;
+    if (rrfilter === undefined)
+        rrfilter = null;
 
     let [popped, unpopped] = partitionN((shallow) => {
-        let res = tabId === null || shallow.tabId == tabId;
+        let res = (tabId === null || shallow.tabId == tabId)
+               && (rrfilter === null || isAcceptedBy(rrfilter, shallow));
         if (res) {
             shallow.problematic = false;
             let info = getOriginState(shallow.tabId, shallow.fromExtension);
@@ -488,15 +491,19 @@ function unmarkProblematic(num, tabId) {
     return popped.length;
 }
 
-function rotateProblematic(num, tabId) {
+function rotateProblematic(num, tabId, rrfilter) {
     if (reqresProblematic.length == 0)
         return;
     if (tabId === undefined)
         tabId = null;
+    if (rrfilter === undefined)
+        rrfilter = null;
 
-    let [popped, unpopped] = partitionN((shallow) =>
-                                        tabId === null || shallow.tabId == tabId
-                                       , num, reqresProblematic);
+    let [popped, unpopped] = partitionN((shallow) => {
+        let res = (tabId === null || shallow.tabId == tabId)
+               && (rrfilter === null || isAcceptedBy(rrfilter, shallow));
+        return res;
+    }, num, reqresProblematic);
     // rotate them to the back
     for (let shallow of popped)
         unpopped.push(shallow);
@@ -506,18 +513,20 @@ function rotateProblematic(num, tabId) {
     //updateDisplay(false, false, tabId);
 }
 
-function popInLimbo(collect, num, tabId) {
+function popInLimbo(collect, num, tabId, rrfilter) {
     if (reqresLimbo.length == 0)
         return;
     if (tabId === undefined)
         tabId = null;
+    if (rrfilter === undefined)
+        rrfilter = null;
 
     let newLog = [];
     let [popped, unpopped] = partitionN((el) => {
         let [shallow, dump] = el;
-        let res = tabId === null || shallow.tabId == tabId;
+        let res = (tabId === null || shallow.tabId == tabId)
+               && (rrfilter === null || isAcceptedBy(rrfilter, shallow));
         if (res) {
-            shallow.was_in_limbo = true;
             let info = getOriginState(shallow.tabId, shallow.fromExtension);
             info.inLimboTotal -= 1;
             info.inLimboSize -= dump.byteLength;
@@ -541,15 +550,19 @@ function popInLimbo(collect, num, tabId) {
     return popped.length;
 }
 
-function rotateInLimbo(num, tabId) {
+function rotateInLimbo(num, tabId, rrfilter) {
     if (reqresLimbo.length == 0)
         return;
     if (tabId === undefined)
         tabId = null;
+    if (rrfilter === undefined)
+        rrfilter = null;
 
     let [popped, unpopped] = partitionN((el) => {
         let [shallow, dump] = el;
-        return tabId === null || shallow.tabId == tabId;
+        let res = (tabId === null || shallow.tabId == tabId)
+               && (rrfilter === null || isAcceptedBy(rrfilter, shallow));
+        return res;
     }, num, reqresLimbo);
     // rotate them to the back
     for (let el of popped)
@@ -560,16 +573,20 @@ function rotateInLimbo(num, tabId) {
     //updateDisplay(false, false, tabId);
 }
 
-function forgetHistory(tabId) {
+function forgetHistory(tabId, rrfilter) {
     if (reqresLog.length == 0)
         return;
     if (tabId === undefined)
         tabId = null;
+    if (rrfilter === undefined)
+        rrfilter = null;
 
-    let [popped, unpopped] = partitionN((shallow) =>
-                                        (tabId === null || shallow.tabId == tabId)
-                                        && shallow.problematic === false
-                                       , null, reqresLog);
+    let [popped, unpopped] = partitionN((shallow) => {
+        let res = (tabId === null || shallow.tabId == tabId)
+               && (rrfilter === null || isAcceptedBy(rrfilter, shallow))
+               && shallow.problematic === false;
+        return res;
+    }, null, reqresLog);
     reqresLog = unpopped;
 
     broadcast(["resetLog", reqresLog]);
@@ -1135,6 +1152,7 @@ function renderReqres(reqres) {
 }
 
 function processFinishedReqres(info, collect, shallow, dump, newLog) {
+    shallow.in_limbo = false;
     shallow.collected = collect;
 
     if (collect) {
@@ -1190,24 +1208,24 @@ function processAlmostDone() {
 
         let state = "complete";
         let problematic = false;
-        let collect = true;
+        let picked = true;
 
         if (!reqres.sent) {
             // it failed somewhere before handleSendHeaders
             state = "canceled";
             problematic = config.markProblematicCanceled;
-            collect = config.archiveCanceled;
+            picked = config.archiveCanceled;
         } else if (reqres.responseTimeStamp === undefined) {
             // no response after sending headers
             state = "no_response";
             problematic = config.markProblematicNoResponse;
-            collect = config.archiveNoResponse;
+            picked = config.archiveNoResponse;
             // filter.onstop might have set it to true
             reqres.responseComplete = false;
         } else if (!reqres.responseComplete) {
             state = "incomplete";
             problematic = config.markProblematicIncomplete;
-            collect = config.archiveIncompleteResponse;
+            picked = config.archiveIncompleteResponse;
         } else if (reqres.statusCode === 200 && reqres.fromCache) {
             let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
             if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
@@ -1218,7 +1236,7 @@ function processAlmostDone() {
                 // with Control+F5 will.)
                 state = "incomplete_fc";
                 problematic = config.markProblematicIncompleteFC;
-                collect = config.archiveIncompleteResponse;
+                picked = config.archiveIncompleteResponse;
                 // filter.onstop will have set it to true
                 reqres.responseComplete = false;
             } else
@@ -1229,15 +1247,15 @@ function processAlmostDone() {
         if (!reqres.requestComplete) {
             // requestBody recovered from formData
             problematic = problematic || config.markProblematicPartialRequest;
-            collect = collect && config.archivePartialRequest;
+            picked = picked && config.archivePartialRequest;
         }
 
         if (reqres.errors.some(isProblematicError)) {
             // it had some potentially problematic errors
-            collect = collect && config.archiveWithErrors;
+            picked = picked && config.archiveWithErrors;
             problematic = problematic
                 || config.markProblematicWithErrors
-                || (collect && config.markProblematicPickedWithErrors);
+                || (picked && config.markProblematicPickedWithErrors);
         }
 
         let lineProtocol;
@@ -1268,7 +1286,7 @@ function processAlmostDone() {
 
         // dump it to console when debugging
         if (config.debugging)
-            console.log(collect ? "PICKED" : "DROPPED", reqres.requestId,
+            console.log(picked ? "PICKED" : "DROPPED", reqres.requestId,
                         "state", state,
                         reqres.protocol, reqres.method, reqres.url,
                         "tabId", updatedTabId,
@@ -1282,16 +1300,16 @@ function processAlmostDone() {
         let shallow = shallowCopyOfReqres(reqres);
         shallow.net_state = state;
         shallow.profile = options.profile;
-        shallow.was_problematic = problematic;
-        shallow.problematic = problematic;
-        shallow.picked = collect;
+        shallow.was_problematic = shallow.problematic = problematic;
+        shallow.picked = picked;
+        shallow.was_in_limbo = shallow.in_limbo = false;
 
         if (problematic) {
             reqresProblematic.push(shallow);
             info.problematicTotal += 1;
         }
 
-        if (collect) {
+        if (picked) {
             persistentStats.pickedTotal += 1;
             info.pickedTotal += 1;
         } else {
@@ -1299,13 +1317,14 @@ function processAlmostDone() {
             info.droppedTotal += 1;
         }
 
-        if (collect || options.negLimbo) {
+        if (picked || options.negLimbo) {
             let dump = renderReqres(reqres);
 
             if (config.dumping)
                 dumpToConsole(dump);
 
-            if (collect && options.limbo || !collect && options.negLimbo) {
+            if (picked && options.limbo || !picked && options.negLimbo) {
+                shallow.was_in_limbo = shallow.in_limbo = true;
                 reqresLimbo.push([shallow, dump]);
                 reqresLimboSize += dump.byteLength;
                 info.inLimboTotal += 1;
@@ -1949,18 +1968,18 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(reqresLog);
         break;
     case "forgetHistory":
-        forgetHistory(request[1]);
+        forgetHistory(request[1], request[2]);
         sendResponse(null);
         break;
     case "getProblematicLog":
         sendResponse(reqresProblematic);
         break;
     case "unmarkProblematic":
-        unmarkProblematic(request[1], request[2]);
+        unmarkProblematic(request[1], request[2], request[3]);
         sendResponse(null);
         break;
     case "rotateProblematic":
-        rotateProblematic(request[1], request[2]);
+        rotateProblematic(request[1], request[2], request[3]);
         sendResponse(null);
         break;
     case "getInFlightLog":
@@ -1974,11 +1993,11 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(getInLimboLog());
         break;
     case "popInLimbo":
-        popInLimbo(request[1], request[2], request[3]);
+        popInLimbo(request[1], request[2], request[3], request[4]);
         sendResponse(null);
         break;
     case "rotateInLimbo":
-        rotateInLimbo(request[1], request[2]);
+        rotateInLimbo(request[1], request[2], request[3]);
         sendResponse(null);
         break;
     case "runAllActions":
