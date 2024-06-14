@@ -99,6 +99,16 @@ let config = {
         profile: "background",
     },
 };
+// last config saved in storage
+let savedConfig = undefined;
+
+async function saveConfig(eConfig) {
+    if (equalRec(savedConfig, eConfig))
+        return;
+    savedConfig = eConfig;
+    console.log("saving config", eConfig);
+    await browser.storage.local.set({ config: eConfig }).catch(logError);
+}
 
 // scheduled internal functions
 let scheduledInternal = new Map();
@@ -332,22 +342,25 @@ let persistentStatsDefaults = {
     collectedSize: 0,
     discardedTotal: 0,
 };
-
 // persistent global stats
 let persistentStats = assignRec({}, persistentStatsDefaults);
 // did it change recently?
 let changedPersistentStats = false;
+// last stats saved in storage
+let savedPersistentStats = undefined;
 
-async function savePersistentStats() {
-    console.log("saving persistentStats", persistentStats);
-    changedPersistentStats = false;
-    await browser.storage.local.set({ persistentStats }).catch(logError);
+async function savePersistentStats(eStats) {
+    if (equalRec(savedPersistentStats, eStats))
+        return;
+    savedPersistentStats = eStats;
+    console.log("saving persistentStats", eStats);
+    await browser.storage.local.set({ persistentStats: eStats }).catch(logError);
     await browser.storage.local.remove("globalStats").catch(() => {});
 }
 
 async function resetPersistentStats() {
     persistentStats = assignRec({}, persistentStatsDefaults);
-    await savePersistentStats();
+    await savePersistentStats(persistentStats);
     await updateDisplay(0, true, false);
 }
 
@@ -807,11 +820,21 @@ async function scheduleEndgame(updatedTabId) {
         let timeout = inFlight > 0 ? 10000 : 100;
 
         scheduleComplaints(timeout);
-        if (changedPersistentStats)
+
+        if (changedPersistentStats) {
+            changedPersistentStats = false;
+
+            if (savedPersistentStats !== undefined
+                && savedPersistentStats.collectedTotal === persistentStats.collectedTotal)
+                // the change is inconsequential, extend timeout
+                timeout = 60000;
+
+            let eStats = assignRec({}, persistentStats);
             resetSingletonTimeout(scheduledCancelable, "savePersistentStats", timeout, async () => {
-                await savePersistentStats();
+                await savePersistentStats(eStats);
                 await updateDisplay(0, true, false);
             });
+        }
         await updateDisplay(0, true, false, updatedTabId);
     }
 }
@@ -1198,12 +1221,10 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
         }
         persistentStats.collectedTotal += 1;
         persistentStats.collectedSize += dump.byteLength;
-        changedPersistentStats = true;
         info.collectedTotal += 1;
         info.collectedSize += dump.byteLength;
     } else {
         persistentStats.discardedTotal += 1;
-        changedPersistentStats = true;
         info.discardedTotal += 1;
     }
 
@@ -1354,6 +1375,7 @@ function processAlmostDone() {
         persistentStats.droppedTotal += 1;
         info.droppedTotal += 1;
     }
+    changedPersistentStats = true;
 
     if (picked || options.negLimbo) {
         let dump = renderReqres(reqres);
@@ -1950,28 +1972,26 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(config);
         break;
     case "setConfig":
-        let oldconfig = config;
-        config = updateFromRec(assignRec({}, config), request[1]);
-        updateDisplay(0, false, false);
+        let oldConfig = config;
+        config = updateFromRec(assignRec({}, oldConfig), request[1]);
 
-        if (oldconfig.archiving !== config.archiving && config.archiving)
-            retryAllFailedArchives();
+        if (!config.ephemeral && !equalRec(oldConfig, config)) {
+            // save config after a little pause to give the user time to click
+            // the same toggle again without torturing the SSD
+            let eConfig = assignRec({}, config);
+            resetSingletonTimeout(scheduledInternal, "saveConfig", 1000, async () => {
+                await saveConfig(eConfig);
+                await updateDisplay(0, true, false);
+            });
+        }
 
         if (useDebugger)
             syncDebuggersState();
 
-        if (!config.ephemeral) {
-            // save config after a little pause to give the user time to click
-            // the same toggle again without torturing the SSD
-            let eConfig = assignRec({}, config);
-            resetSingletonTimeout(scheduledInternal, "saveConfig", 500, () => {
-                console.log("saving config", eConfig);
-                browser.storage.local.set({ config: eConfig }).catch(logError);
-                updateDisplay(0, true, false);
-            });
-            updateDisplay(0, true, false);
-        }
+        if (oldConfig.archiving !== config.archiving && config.archiving)
+            retryAllFailedArchives();
 
+        updateDisplay(0, true, false);
         broadcast(["updateConfig"]);
         sendResponse(null);
         break;
@@ -2238,19 +2258,19 @@ function upgradeConfigAndPersistentStats(cfg, stats) {
 }
 
 async function init(storage) {
-    let oldConfig = storage.config;
-    if (oldConfig !== undefined) {
-        let oldPersistentStats = storage.persistentStats;
-        if (oldPersistentStats === undefined)
-            oldPersistentStats = storage.globalStats;
+    savedConfig = storage.config;
+    if (savedConfig !== undefined) {
+        savedPersistentStats = storage.persistentStats;
+        if (savedPersistentStats === undefined)
+            savedPersistentStats = storage.globalStats;
 
-        if (oldConfig.version !== configVersion) {
-            console.log(`Loading old config of version ${oldConfig.version}`);
-            [oldConfig, oldPersistentStats] = upgradeConfigAndPersistentStats(oldConfig, oldPersistentStats);
+        if (savedConfig.version !== configVersion) {
+            console.log(`Loading old config of version ${savedConfig.version}`);
+            [savedConfig, savedPersistentStats] = upgradeConfigAndPersistentStats(savedConfig, savedPersistentStats);
         }
 
-        config = updateFromRec(config, oldConfig);
-        persistentStats = updateFromRec(persistentStats, oldPersistentStats);
+        config = updateFromRec(config, savedConfig);
+        persistentStats = updateFromRec(persistentStats, savedPersistentStats);
     }
 
     config.version = configVersion;
