@@ -189,7 +189,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         dreqres.requestHeadersExtra = e.headers;
     }
 
-    updateDisplay(true, false);
+    updateDisplay(0, true, false);
 }
 
 function handleDebugResponseRecieved(nonExtra, e) {
@@ -548,7 +548,7 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             // events after all).
             resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000, () => {
                 forceFinishingUpWebRequest((r) => !r.sent);
-                updateDisplay(true, false);
+                updateDisplay(0, true, false);
                 scheduleEndgame();
             });
     }

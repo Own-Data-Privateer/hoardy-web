@@ -237,7 +237,7 @@ function cleanupAfterTab(tabId) {
     }
 
     cleanupTabs();
-    updateDisplay(true, false, tabId);
+    updateDisplay(0, true, false, tabId);
 }
 
 function scheduleCleanupAfterTab(tabId, untimeout) {
@@ -260,12 +260,12 @@ function processRemoveTab(tabId) {
             forceEmitInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_CLOSED_TAB");
             processMatchFinishingUpWebRequestDebug();
             scheduleCleanupAfterTab(tabId, timeout);
-            updateDisplay(true, false, tabId);
+            updateDisplay(0, true, false, tabId);
         });
     } else
         scheduleCleanupAfterTab(tabId, 0);
 
-    updateDisplay(true, false, tabId);
+    updateDisplay(0, true, false, tabId);
 }
 
 // browserAction state
@@ -348,7 +348,7 @@ async function savePersistentStats() {
 async function resetPersistentStats() {
     persistentStats = assignRec({}, persistentStatsDefaults);
     await savePersistentStats();
-    await updateDisplay(true, false);
+    await updateDisplay(0, true, false);
 }
 
 // per-source persistentStats.pickedTotal, persistentStats.droppedTotal, etc
@@ -491,7 +491,7 @@ function unmarkProblematic(num, tabId, rrfilter) {
         broadcast(["resetInLimboLog", getInLimboLog()]);
         broadcast(["resetLog", reqresLog]);
         cleanupTabs();
-        updateDisplay(true, false, tabId);
+        updateDisplay(0, true, false, tabId);
         scheduleComplaints(100);
     }
 
@@ -517,7 +517,7 @@ function rotateProblematic(num, tabId, rrfilter) {
     reqresProblematic = unpopped;
 
     broadcast(["resetProblematicLog", reqresProblematic]);
-    //updateDisplay(false, false, tabId);
+    //updateDisplay(0, false, false, tabId);
 }
 
 function popInLimbo(collect, num, tabId, rrfilter) {
@@ -577,7 +577,7 @@ function rotateInLimbo(num, tabId, rrfilter) {
     reqresLimbo = unpopped;
 
     broadcast(["resetInLimboLog", getInLimboLog()]);
-    //updateDisplay(false, false, tabId);
+    //updateDisplay(0, false, false, tabId);
 }
 
 function forgetHistory(tabId, rrfilter) {
@@ -600,10 +600,17 @@ function forgetHistory(tabId, rrfilter) {
     reqresLog = unpopped;
 
     broadcast(["resetLog", reqresLog]);
-    updateDisplay(true, false, tabId);
+    updateDisplay(0, true, false, tabId);
 }
 
-async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
+let updateDisplayEpisode = 1;
+async function updateDisplay(episodic, statsChanged, switchedTab, updatedTabId) {
+    if (!switchedTab && updateDisplayEpisode < episodic) {
+        updateDisplayEpisode += 1;
+        return;
+    }
+    updateDisplayEpisode = 1;
+
     if (updatedTabId === undefined)
         updatedTabId = null;
 
@@ -703,7 +710,6 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
                 await browser.browserAction.setBadgeBackgroundColor({ color: "#e02020" });
             }
         }
-
     }
 
     if (!changed && updatedTabId === null)
@@ -775,18 +781,26 @@ async function updateDisplay(statsChanged, switchedTab, updatedTabId) {
 }
 
 // schedule processFinishingUp
-function scheduleFinishingUp(updatedTabId) {
-    resetSingletonTimeout(scheduledInternal, "finishingUp", 1, processFinishingUp);
-    updateDisplay(true, false, updatedTabId);
+async function scheduleFinishingUp() {
+    resetSingletonTimeout(scheduledInternal, "finishingUp", 100, async () => {
+        await updateDisplay(0, true, false);
+        processFinishingUp();
+    });
 }
 
 // schedule processArchiving and processAlmostDone
-function scheduleEndgame(updatedTabId) {
-    if (config.archiving && reqresQueue.length > 0)
-        resetSingletonTimeout(scheduledInternal, "endgame", 1, processArchiving);
-    else if (reqresAlmostDone.length > 0)
-        resetSingletonTimeout(scheduledInternal, "endgame", 1, processAlmostDone);
-    else if (!config.archiving || reqresQueue.length == 0) {
+async function scheduleEndgame(updatedTabId) {
+    if (config.archiving && reqresQueue.length > 0) {
+        resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+            await updateDisplay(10, true, false, updatedTabId);
+            processArchiving();
+        });
+    } else if (reqresAlmostDone.length > 0) {
+        resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+            await updateDisplay(10, true, false, updatedTabId);
+            processAlmostDone();
+        });
+    } else if (!config.archiving || reqresQueue.length == 0) {
         cleanupTabs();
 
         // use a much longer timeout if some reqres are still in flight
@@ -796,13 +810,12 @@ function scheduleEndgame(updatedTabId) {
 
         scheduleComplaints(timeout);
         if (changedPersistentStats)
-            resetSingletonTimeout(scheduledCancelable, "savePersistentStats", timeout , async () => {
+            resetSingletonTimeout(scheduledCancelable, "savePersistentStats", timeout, async () => {
                 await savePersistentStats();
-                await updateDisplay(true, false);
+                await updateDisplay(0, true, false);
             });
+        await updateDisplay(0, true, false, updatedTabId);
     }
-
-    updateDisplay(true, false, updatedTabId);
 }
 
 // mark this archiveURL as failing
@@ -1210,8 +1223,6 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
 }
 
 function processAlmostDone() {
-    let updatedTabId = null;
-
     if (reqresAlmostDone.length > 0) {
         let reqres = reqresAlmostDone.shift()
         if (reqres.tabId === undefined)
@@ -1229,7 +1240,7 @@ function processAlmostDone() {
             // `filter` is guaranteed to be finished here.
             reqres.responseComplete = false;
 
-        updatedTabId = reqres.tabId;
+        let updatedTabId = reqres.tabId;
 
         let options = getOriginConfig(updatedTabId, reqres.fromExtension);
         let info = getOriginState(updatedTabId, reqres.fromExtension);
@@ -1368,9 +1379,9 @@ function processAlmostDone() {
             changedProblematic = true;
             broadcast(["newProblematic", [shallow]]);
         }
-    }
 
-    scheduleEndgame(updatedTabId);
+        scheduleEndgame(updatedTabId);
+    }
 }
 
 function forceEmitInFlightWebRequest(tabId, reason) {
@@ -1699,7 +1710,7 @@ function handleBeforeRequest(e) {
                 console.log("filterResponseData", requestId, "finished");
             reqres.responseComplete = true;
             filter.disconnect();
-            scheduleFinishingUp(reqres.tabId); // in case we were waiting for this filter
+            scheduleFinishingUp(); // in case we were waiting for this filter
         };
         filter.onerror = (event) => {
             if (filter.error !== "Invalid request ID") {
@@ -1709,7 +1720,7 @@ function handleBeforeRequest(e) {
                     console.error("filterResponseData", requestId, "error", error);
                 reqres.errors.push(error);
             }
-            scheduleFinishingUp(reqres.tabId); // in case we were waiting for this filter
+            scheduleFinishingUp(); // in case we were waiting for this filter
         };
 
         reqres.filter = filter;
@@ -1717,7 +1728,7 @@ function handleBeforeRequest(e) {
 
     reqresInFlight.set(requestId, reqres);
     broadcast(["newInFlight", [shallowCopyOfReqres(reqres)]]);
-    updateDisplay(true, false);
+    updateDisplay(0, true, false);
 }
 
 function handleBeforeSendHeaders(e) {
@@ -1858,14 +1869,14 @@ function handleTabCreated(tab) {
             }, logError);
     } else
         processNewTab(tab.id, tab.openerTabId);
-    updateDisplay(false, true);
+    updateDisplay(0, false, true);
 }
 
 function handleTabRemoved(tabId) {
     if (config.debugging)
         console.log("tab removed", tabId);
     processRemoveTab(tabId);
-    updateDisplay(false, true);
+    updateDisplay(0, false, true);
 }
 
 function handleTabReplaced(addedTabId, removedTabId) {
@@ -1873,7 +1884,7 @@ function handleTabReplaced(addedTabId, removedTabId) {
         console.log("tab replaced", removedTabId, addedTabId);
     processRemoveTab(removedTabId);
     processNewTab(addedTabId);
-    updateDisplay(false, true);
+    updateDisplay(0, false, true);
 }
 
 function handleTabActivated(e) {
@@ -1883,7 +1894,7 @@ function handleTabActivated(e) {
         // Chromium does not provide `browser.menus.onShown` event
         updateMenu(e.tabId);
     // This will do nothing on Chromium, see handleTabUpdatedChromium
-    updateDisplay(false, true);
+    updateDisplay(0, false, true);
 }
 
 function handleTabUpdatedChromium(tabId, changeInfo, tabInfo) {
@@ -1891,7 +1902,7 @@ function handleTabUpdatedChromium(tabId, changeInfo, tabInfo) {
         console.log("tab updated", tabId);
     // Chromium resets the browserAction icon when tab chages state, so we
     // have to update icons after each one
-    updateDisplay(false, true);
+    updateDisplay(0, false, true);
 }
 
 // open client tab ports
@@ -1943,7 +1954,7 @@ function handleMessage(request, sender, sendResponse) {
     case "setConfig":
         let oldconfig = config;
         config = updateFromRec(assignRec({}, config), request[1], true);
-        updateDisplay(false, false);
+        updateDisplay(0, false, false);
 
         if (oldconfig.archiving !== config.archiving && config.archiving)
             retryAllFailedArchives();
@@ -1958,9 +1969,9 @@ function handleMessage(request, sender, sendResponse) {
             resetSingletonTimeout(scheduledInternal, "saveConfig", 500, () => {
                 console.log("saving config", eConfig);
                 browser.storage.local.set({ config: eConfig }).catch(logError);
-                updateDisplay(true, false);
+                updateDisplay(0, true, false);
             });
-            updateDisplay(true, false);
+            updateDisplay(0, true, false);
         }
 
         broadcast(["updateConfig"]);
@@ -1976,7 +1987,7 @@ function handleMessage(request, sender, sendResponse) {
             syncDebuggersState();
         }
         broadcast(["updateTabConfig", request[1], request[2]]);
-        updateDisplay(false, true);
+        updateDisplay(0, false, true);
         sendResponse(null);
         break;
     case "retryAllFailedArchives":
@@ -2031,12 +2042,12 @@ function handleMessage(request, sender, sendResponse) {
     case "runAllActions":
         popAllSingletonTimeouts(scheduledCancelable, true);
         popAllSingletonTimeouts(scheduledInternal, true);
-        updateDisplay(true, false);
+        updateDisplay(0, true, false);
         sendResponse(null);
         break;
     case "cancelCleanupActions":
         popAllSingletonTimeouts(scheduledCancelable, false);
-        updateDisplay(true, false);
+        updateDisplay(0, true, false);
         sendResponse(null);
         break;
     case "broadcast":
@@ -2200,7 +2211,7 @@ async function handleCommand(command) {
         return;
     }
 
-    updateDisplay(false, true, tabId);
+    updateDisplay(0, false, true, tabId);
     broadcast(["updateTabConfig", tabId]);
 }
 
@@ -2305,7 +2316,7 @@ async function init(storage) {
     browser.runtime.onConnect.addListener(catchAll(handleConnect));
 
     initMenus();
-    updateDisplay(true, true);
+    updateDisplay(0, true, true);
 
     if (useDebugger)
         await initDebugger(tabs);
