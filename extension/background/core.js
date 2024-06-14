@@ -994,69 +994,70 @@ function scheduleComplaints(timeout) {
 }
 
 function processArchiving() {
-    if (reqresQueue.length > 0) {
-        let archivable = reqresQueue.shift();
-        let [shallow, dump] = archivable;
+    if (reqresQueue.length == 0)
+        return;
 
-        // we ignore and recompute shallow.profile here because the user could
-        // have changed some settings while archiving was disabled
-        let options = getOriginConfig(shallow.tabId, shallow.fromExtension);
-        shallow.profile = options.profile;
+    let archivable = reqresQueue.shift();
+    let [shallow, dump] = archivable;
 
-        let archiveURL = config.archiveURLBase + "?profile=" + encodeURIComponent(options.profile);
+    // we ignore and recompute shallow.profile here because the user could
+    // have changed some settings while archiving was disabled
+    let options = getOriginConfig(shallow.tabId, shallow.fromExtension);
+    shallow.profile = options.profile;
 
-        let failed = reqresFailed.get(archiveURL);
-        if (failed !== undefined && (Date.now() - failed.when) < 1000) {
-            // this archiveURL is marked broken, and we just had a failure there, fail this reqres immediately
-            failed.queue.push(archivable);
-            changedFailedOrArchived = true;
-            needArchivingOK = true;
-            scheduleEndgame(shallow.tabId);
-            return;
-        }
+    let archiveURL = config.archiveURLBase + "?profile=" + encodeURIComponent(options.profile);
 
-        function broken(reason) {
-            let failed = markArchiveAsFailed(archiveURL, Date.now(), reason);
-            failed.queue.push(archivable);
-            changedFailedOrArchived = true;
-            needArchivingOK = true;
-            // retry failed in 60s
-            retryAllFailedArchivesIn(60000);
-            scheduleEndgame(shallow.tabId);
-        }
-
-        function allok() {
-            retryFailedArchive(archiveURL);
-            reqresArchivedTotal += 1;
-            changedFailedOrArchived = true;
-            broadcast(["newArchived", [shallow]]);
-            scheduleEndgame(shallow.tabId);
-        }
-
-        if (config.debugging)
-            console.log("trying to archive", shallow);
-
-        const req = new XMLHttpRequest();
-        req.open("POST", archiveURL, true);
-        req.responseType = "text";
-        req.setRequestHeader("Content-Type", "application/cbor");
-        req.onabort = (event) => {
-            //console.log("archiving aborted", event);
-            broken(`a request to \n${archiveURL}\n was aborted by the browser`);
-        }
-        req.onerror = (event) => {
-            //console.log("archiving error", event);
-            broken(`pWebArc can't establish a connection to the archive at\n${archiveURL}`);
-        }
-        req.onload = (event) => {
-            //console.log("archiving loaded", event);
-            if (req.status == 200)
-                allok();
-            else
-                broken(`a request to\n${archiveURL}\nfailed with:\n${req.status} ${req.statusText}: ${req.responseText}`);
-        };
-        req.send(dump);
+    let failed = reqresFailed.get(archiveURL);
+    if (failed !== undefined && (Date.now() - failed.when) < 1000) {
+        // this archiveURL is marked broken, and we just had a failure there, fail this reqres immediately
+        failed.queue.push(archivable);
+        changedFailedOrArchived = true;
+        needArchivingOK = true;
+        scheduleEndgame(shallow.tabId);
+        return;
     }
+
+    function broken(reason) {
+        let failed = markArchiveAsFailed(archiveURL, Date.now(), reason);
+        failed.queue.push(archivable);
+        changedFailedOrArchived = true;
+        needArchivingOK = true;
+        // retry failed in 60s
+        retryAllFailedArchivesIn(60000);
+        scheduleEndgame(shallow.tabId);
+    }
+
+    function allok() {
+        retryFailedArchive(archiveURL);
+        reqresArchivedTotal += 1;
+        changedFailedOrArchived = true;
+        broadcast(["newArchived", [shallow]]);
+        scheduleEndgame(shallow.tabId);
+    }
+
+    if (config.debugging)
+        console.log("trying to archive", shallow);
+
+    const req = new XMLHttpRequest();
+    req.open("POST", archiveURL, true);
+    req.responseType = "text";
+    req.setRequestHeader("Content-Type", "application/cbor");
+    req.onabort = (event) => {
+        //console.log("archiving aborted", event);
+        broken(`a request to \n${archiveURL}\n was aborted by the browser`);
+    }
+    req.onerror = (event) => {
+        //console.log("archiving error", event);
+        broken(`pWebArc can't establish a connection to the archive at\n${archiveURL}`);
+    }
+    req.onload = (event) => {
+        //console.log("archiving loaded", event);
+        if (req.status == 200)
+            allok();
+        else
+            broken(`a request to\n${archiveURL}\nfailed with:\n${req.status} ${req.statusText}: ${req.responseText}`);
+    };
+    req.send(dump);
 }
 
 function getHeaderString(header) {
@@ -1223,165 +1224,166 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
 }
 
 function processAlmostDone() {
-    if (reqresAlmostDone.length > 0) {
-        let reqres = reqresAlmostDone.shift()
-        if (reqres.tabId === undefined)
-            reqres.tabId = -1;
+    if (reqresAlmostDone.length == 0)
+        return;
 
-        if (!useDebugger && reqres.errors.some(isAbortedError))
-            // Apparently, sometimes Firefox calls `filter.onstop` for aborted
-            // requests as if nothing out of the ordinary happened. It is a
-            // bug, yes.
-            //
-            // Our `filter.onstop` marks requests as complete. So, we have to
-            // undo that.
-            //
-            // We are doing that here instead of in `emitRequest` because the
-            // `filter` is guaranteed to be finished here.
-            reqres.responseComplete = false;
+    let reqres = reqresAlmostDone.shift()
+    if (reqres.tabId === undefined)
+        reqres.tabId = -1;
 
-        let updatedTabId = reqres.tabId;
+    if (!useDebugger && reqres.errors.some(isAbortedError))
+        // Apparently, sometimes Firefox calls `filter.onstop` for aborted
+        // requests as if nothing out of the ordinary happened. It is a
+        // bug, yes.
+        //
+        // Our `filter.onstop` marks requests as complete. So, we have to
+        // undo that.
+        //
+        // We are doing that here instead of in `emitRequest` because the
+        // `filter` is guaranteed to be finished here.
+        reqres.responseComplete = false;
 
-        let options = getOriginConfig(updatedTabId, reqres.fromExtension);
-        let info = getOriginState(updatedTabId, reqres.fromExtension);
+    let updatedTabId = reqres.tabId;
 
-        let state = "complete";
-        let problematic = false;
-        let picked = true;
+    let options = getOriginConfig(updatedTabId, reqres.fromExtension);
+    let info = getOriginState(updatedTabId, reqres.fromExtension);
 
-        if (!reqres.sent) {
-            // it failed somewhere before handleSendHeaders
-            state = "canceled";
-            problematic = config.markProblematicCanceled;
-            picked = config.archiveCanceled;
-        } else if (reqres.responseTimeStamp === undefined) {
-            // no response after sending headers
-            state = "no_response";
-            problematic = config.markProblematicNoResponse;
-            picked = config.archiveNoResponse;
-            // filter.onstop might have set it to true
-            reqres.responseComplete = false;
-        } else if (!reqres.responseComplete) {
-            state = "incomplete";
-            problematic = config.markProblematicIncomplete;
+    let state = "complete";
+    let problematic = false;
+    let picked = true;
+
+    if (!reqres.sent) {
+        // it failed somewhere before handleSendHeaders
+        state = "canceled";
+        problematic = config.markProblematicCanceled;
+        picked = config.archiveCanceled;
+    } else if (reqres.responseTimeStamp === undefined) {
+        // no response after sending headers
+        state = "no_response";
+        problematic = config.markProblematicNoResponse;
+        picked = config.archiveNoResponse;
+        // filter.onstop might have set it to true
+        reqres.responseComplete = false;
+    } else if (!reqres.responseComplete) {
+        state = "incomplete";
+        problematic = config.markProblematicIncomplete;
+        picked = config.archiveIncompleteResponse;
+    } else if (reqres.statusCode === 200 && reqres.fromCache) {
+        let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
+        if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
+            // Under Firefox, filterResponseData filters will get empty response data for some
+            // cached objects. We use a special state for these, as this is not really an error,
+            // and reloading the page will not help in archiving that data, as those requests
+            // will be answered from cache again. (But reloading the page with cache disabled
+            // with Control+F5 will.)
+            state = "incomplete_fc";
+            problematic = config.markProblematicIncompleteFC;
             picked = config.archiveIncompleteResponse;
-        } else if (reqres.statusCode === 200 && reqres.fromCache) {
-            let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
-            if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
-                // Under Firefox, filterResponseData filters will get empty response data for some
-                // cached objects. We use a special state for these, as this is not really an error,
-                // and reloading the page will not help in archiving that data, as those requests
-                // will be answered from cache again. (But reloading the page with cache disabled
-                // with Control+F5 will.)
-                state = "incomplete_fc";
-                problematic = config.markProblematicIncompleteFC;
-                picked = config.archiveIncompleteResponse;
-                // filter.onstop will have set it to true
-                reqres.responseComplete = false;
-            } else
-                state = "complete_fc";
-        } else if (reqres.fromCache)
-            state = "complete_fc";
-
-        if (!reqres.requestComplete) {
-            // requestBody recovered from formData
-            problematic = problematic || config.markProblematicPartialRequest;
-            picked = picked && config.archivePartialRequest;
-        }
-
-        if (reqres.errors.some(isProblematicError)) {
-            // it had some potentially problematic errors
-            picked = picked && config.archiveWithErrors;
-            problematic = problematic
-                || config.markProblematicWithErrors
-                || (picked && config.markProblematicPickedWithErrors);
-        }
-
-        let lineProtocol;
-        let lineReason;
-        if (reqres.statusLine !== undefined) {
-            lineProtocol = reqres.statusLine.split(" ", 1)[0];
-            lineReason = "";
-            let pos = reqres.statusLine.indexOf(" ", lineProtocol.length + 1);
-            if (pos !== -1)
-                lineReason = reqres.statusLine.substr(pos + 1);
-        }
-
-        if (reqres.protocol === undefined) {
-            if (getHeaderValue(reqres.requestHeaders, ":authority") !== undefined)
-                reqres.protocol = "HTTP/2.0";
-            else if (lineProtocol !== undefined && lineProtocol !== "")
-                reqres.protocol = lineProtocol;
-            else
-                reqres.protocol = "HTTP/1.0";
-        }
-
-        if (reqres.reason === undefined) {
-            if (lineReason !== undefined)
-                reqres.reason = lineReason;
-            else
-                reqres.reason = "";
-        }
-
-        // dump it to console when debugging
-        if (config.debugging)
-            console.log(picked ? "PICKED" : "DROPPED", reqres.requestId,
-                        "state", state,
-                        reqres.protocol, reqres.method, reqres.url,
-                        "tabId", updatedTabId,
-                        "req", reqres.requestComplete,
-                        "res", reqres.responseComplete,
-                        "result", reqres.statusCode, reqres.reason, reqres.statusLine,
-                        "errors", reqres.errors,
-                        "profile", options.profile,
-                        reqres);
-
-        let shallow = shallowCopyOfReqres(reqres);
-        shallow.net_state = state;
-        shallow.profile = options.profile;
-        shallow.was_problematic = shallow.problematic = problematic;
-        shallow.picked = picked;
-        shallow.was_in_limbo = shallow.in_limbo = false;
-
-        if (problematic) {
-            reqresProblematic.push(shallow);
-            info.problematicTotal += 1;
-        }
-
-        if (picked) {
-            persistentStats.pickedTotal += 1;
-            info.pickedTotal += 1;
-        } else {
-            persistentStats.droppedTotal += 1;
-            info.droppedTotal += 1;
-        }
-
-        if (picked || options.negLimbo) {
-            let dump = renderReqres(reqres);
-
-            if (config.dumping)
-                dumpToConsole(dump);
-
-            if (picked && options.limbo || !picked && options.negLimbo) {
-                shallow.was_in_limbo = shallow.in_limbo = true;
-                reqresLimbo.push([shallow, dump]);
-                reqresLimboSize += dump.byteLength;
-                info.inLimboTotal += 1;
-                info.inLimboSize += dump.byteLength;
-                changedLimbo = true;
-                broadcast(["newLimbo", [shallow]]);
-            } else
-                processFinishedReqres(info, true, shallow, dump);
+            // filter.onstop will have set it to true
+            reqres.responseComplete = false;
         } else
-            processFinishedReqres(info, false, shallow, undefined);
+            state = "complete_fc";
+    } else if (reqres.fromCache)
+        state = "complete_fc";
 
-        if (problematic) {
-            changedProblematic = true;
-            broadcast(["newProblematic", [shallow]]);
-        }
-
-        scheduleEndgame(updatedTabId);
+    if (!reqres.requestComplete) {
+        // requestBody recovered from formData
+        problematic = problematic || config.markProblematicPartialRequest;
+        picked = picked && config.archivePartialRequest;
     }
+
+    if (reqres.errors.some(isProblematicError)) {
+        // it had some potentially problematic errors
+        picked = picked && config.archiveWithErrors;
+        problematic = problematic
+            || config.markProblematicWithErrors
+            || (picked && config.markProblematicPickedWithErrors);
+    }
+
+    let lineProtocol;
+    let lineReason;
+    if (reqres.statusLine !== undefined) {
+        lineProtocol = reqres.statusLine.split(" ", 1)[0];
+        lineReason = "";
+        let pos = reqres.statusLine.indexOf(" ", lineProtocol.length + 1);
+        if (pos !== -1)
+            lineReason = reqres.statusLine.substr(pos + 1);
+    }
+
+    if (reqres.protocol === undefined) {
+        if (getHeaderValue(reqres.requestHeaders, ":authority") !== undefined)
+            reqres.protocol = "HTTP/2.0";
+        else if (lineProtocol !== undefined && lineProtocol !== "")
+            reqres.protocol = lineProtocol;
+        else
+            reqres.protocol = "HTTP/1.0";
+    }
+
+    if (reqres.reason === undefined) {
+        if (lineReason !== undefined)
+            reqres.reason = lineReason;
+        else
+            reqres.reason = "";
+    }
+
+    // dump it to console when debugging
+    if (config.debugging)
+        console.log(picked ? "PICKED" : "DROPPED", reqres.requestId,
+                    "state", state,
+                    reqres.protocol, reqres.method, reqres.url,
+                    "tabId", updatedTabId,
+                    "req", reqres.requestComplete,
+                    "res", reqres.responseComplete,
+                    "result", reqres.statusCode, reqres.reason, reqres.statusLine,
+                    "errors", reqres.errors,
+                    "profile", options.profile,
+                    reqres);
+
+    let shallow = shallowCopyOfReqres(reqres);
+    shallow.net_state = state;
+    shallow.profile = options.profile;
+    shallow.was_problematic = shallow.problematic = problematic;
+    shallow.picked = picked;
+    shallow.was_in_limbo = shallow.in_limbo = false;
+
+    if (problematic) {
+        reqresProblematic.push(shallow);
+        info.problematicTotal += 1;
+    }
+
+    if (picked) {
+        persistentStats.pickedTotal += 1;
+        info.pickedTotal += 1;
+    } else {
+        persistentStats.droppedTotal += 1;
+        info.droppedTotal += 1;
+    }
+
+    if (picked || options.negLimbo) {
+        let dump = renderReqres(reqres);
+
+        if (config.dumping)
+            dumpToConsole(dump);
+
+        if (picked && options.limbo || !picked && options.negLimbo) {
+            shallow.was_in_limbo = shallow.in_limbo = true;
+            reqresLimbo.push([shallow, dump]);
+            reqresLimboSize += dump.byteLength;
+            info.inLimboTotal += 1;
+            info.inLimboSize += dump.byteLength;
+            changedLimbo = true;
+            broadcast(["newLimbo", [shallow]]);
+        } else
+            processFinishedReqres(info, true, shallow, dump);
+    } else
+        processFinishedReqres(info, false, shallow, undefined);
+
+    if (problematic) {
+        changedProblematic = true;
+        broadcast(["newProblematic", [shallow]]);
+    }
+
+    scheduleEndgame(updatedTabId);
 }
 
 function forceEmitInFlightWebRequest(tabId, reason) {
