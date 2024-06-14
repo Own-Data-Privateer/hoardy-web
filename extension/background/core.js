@@ -372,16 +372,16 @@ function getOriginState(tabId, fromExtension) {
 }
 
 // scheduleComplaints flags
-// do we have new queued reqres?
-let changedQueued = false;
 // do we have new failed or archived reqres?
-let changedFailedOrArchived = false;
+let newArchivedOrFailed = false;
 // do we need to show empty queue notification?
 let needArchivingOK = true;
+// do we have new queued reqres?
+let newQueued = false;
 // do we have new reqres in limbo?
-let changedLimbo = false;
+let newLimbo = false;
 // do we have newp problematic reqres?
-let changedProblematic = false;
+let newProblematic = false;
 
 // Compute total sizes of all queues and similar.
 // Used in the UI.
@@ -485,7 +485,6 @@ function unmarkProblematic(num, tabId, rrfilter) {
     reqresProblematic = unpopped;
 
     if (popped.length > 0) {
-        changedProblematic = true;
         // reset all the logs, since some statuses may have changed
         broadcast(["resetProblematicLog", reqresProblematic]);
         broadcast(["resetInLimboLog", getInLimboLog()]);
@@ -545,7 +544,6 @@ function popInLimbo(collect, num, tabId, rrfilter) {
     reqresLimbo = unpopped;
 
     if (popped.length > 0) {
-        changedLimbo = true;
         broadcast(["resetInLimboLog", getInLimboLog()]);
         if (popped.some((r) => r.problematic === true))
             // also reset problematic, since reqres statuses have changed
@@ -867,8 +865,8 @@ function retryAllFailedArchivesIn(timeout) {
 }
 
 async function doComplain() {
-    if (changedQueued && config.archiveNotifyDisabled && !config.archiving && reqresQueue.length > 0) {
-        changedQueued = false;
+    if (newQueued && config.archiveNotifyDisabled && !config.archiving && reqresQueue.length > 0) {
+        newQueued = false;
         await browser.notifications.create("notArchiving", {
             title: "pWebArc: WARNING",
             message: "Some data is waiting in the archival queue, but archiving is disabled.",
@@ -877,8 +875,8 @@ async function doComplain() {
         });
     }
 
-    if (changedFailedOrArchived) {
-        changedFailedOrArchived = false;
+    if (newArchivedOrFailed) {
+        newArchivedOrFailed = false;
 
         // cleanup stale archives
         cleanupFailedArchives();
@@ -928,64 +926,62 @@ async function doComplain() {
             await browser.notifications.clear("archivingOK");
     }
 
-    if (changedLimbo) {
-        changedLimbo = false;
 
-        if (reqresLimbo.length > config.limboMaxNumber
-            || reqresLimboSize > config.limboMaxSize * MEGABYTE) {
-            if (config.limboNotify)
-                // generate a new one
-                await browser.notifications.create("fatLimbo", {
-                    title: "pWebArc: WARNING",
-                    message: `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.`,
-                    iconUrl: iconURL("limbo", 128),
-                    type: "basic",
-                });
-        } else
-            // clear stale
-            await browser.notifications.clear("fatLimbo");
+    let fatLimbo = reqresLimbo.length > config.limboMaxNumber
+                || reqresLimboSize > config.limboMaxSize * MEGABYTE;
+
+    if (!fatLimbo)
+        // clear stale
+        await browser.notifications.clear("fatLimbo");
+    else if (newLimbo && config.limboNotify) {
+        newLimbo = false;
+
+        // generate a new one
+        await browser.notifications.create("fatLimbo", {
+            title: "pWebArc: WARNING",
+            message: `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.`,
+            iconUrl: iconURL("limbo", 128),
+            type: "basic",
+        });
     }
 
-    if (changedProblematic) {
-        changedProblematic = false;
+    if (reqresProblematic.length == 0)
+        // clear stale
+        await browser.notifications.clear("problematic");
+    else if (newProblematic && config.problematicNotify) {
+        newProblematic = false;
 
-        if (reqresProblematic.length > 0) {
-            if (config.problematicNotify) {
-                // generate a new one
-                //
-                // make a log of no more than `problematicNotifyNumber`
-                // elements, merging those referencing the same URL
-                let latest = new Map();
-                for (let i = reqresProblematic.length - 1; i >= 0; --i) {
-                    let r = reqresProblematic[i];
-                    let desc = (r.method ? r.method : "?") + " " + r.url;
-                    let l = latest.get(desc);
-                    if (l === undefined) {
-                        if (latest.size < config.problematicNotifyNumber)
-                            latest.set(desc, 1);
-                        else
-                            break;
-                    } else
-                        latest.set(desc, l + 1);
-                }
-                let latestDesc = [];
-                for (let [k, v] of latest.entries()) {
-                    if (k.length < 80)
-                        latestDesc.push(`${v}x ${k}`);
-                    else
-                        latestDesc.push(`${v}x ${k.substr(0, 80)}\u2026`);
-                }
-                latestDesc.reverse();
-                await browser.notifications.create("problematic", {
-                    title: "pWebArc: WARNING",
-                    message: `Have ${reqresProblematic.length} reqres marked as problematic.\n\n` + latestDesc.join("\n"),
-                    iconUrl: iconURL("error", 128),
-                    type: "basic",
-                });
-            }
-        } else
-            // clear stale
-            await browser.notifications.clear("problematic");
+        // generate a new one
+        //
+        // make a log of no more than `problematicNotifyNumber`
+        // elements, merging those referencing the same URL
+        let latest = new Map();
+        for (let i = reqresProblematic.length - 1; i >= 0; --i) {
+            let r = reqresProblematic[i];
+            let desc = (r.method ? r.method : "?") + " " + r.url;
+            let l = latest.get(desc);
+            if (l === undefined) {
+                if (latest.size < config.problematicNotifyNumber)
+                    latest.set(desc, 1);
+                else
+                    break;
+            } else
+                latest.set(desc, l + 1);
+        }
+        let latestDesc = [];
+        for (let [k, v] of latest.entries()) {
+            if (k.length < 80)
+                latestDesc.push(`${v}x ${k}`);
+            else
+                latestDesc.push(`${v}x ${k.substr(0, 80)}\u2026`);
+        }
+        latestDesc.reverse();
+        await browser.notifications.create("problematic", {
+            title: "pWebArc: WARNING",
+            message: `Have ${reqresProblematic.length} reqres marked as problematic.\n\n` + latestDesc.join("\n"),
+            iconUrl: iconURL("error", 128),
+            type: "basic",
+        });
     }
 }
 
@@ -1011,7 +1007,7 @@ function processArchiving() {
     if (failed !== undefined && (Date.now() - failed.when) < 1000) {
         // this archiveURL is marked broken, and we just had a failure there, fail this reqres immediately
         failed.queue.push(archivable);
-        changedFailedOrArchived = true;
+        newArchivedOrFailed = true;
         needArchivingOK = true;
         scheduleEndgame(shallow.tabId);
         return;
@@ -1020,7 +1016,7 @@ function processArchiving() {
     function broken(reason) {
         let failed = markArchiveAsFailed(archiveURL, Date.now(), reason);
         failed.queue.push(archivable);
-        changedFailedOrArchived = true;
+        newArchivedOrFailed = true;
         needArchivingOK = true;
         // retry failed in 60s
         retryAllFailedArchivesIn(60000);
@@ -1030,7 +1026,7 @@ function processArchiving() {
     function allok() {
         retryFailedArchive(archiveURL);
         reqresArchivedTotal += 1;
-        changedFailedOrArchived = true;
+        newArchivedOrFailed = true;
         broadcast(["newArchived", [shallow]]);
         scheduleEndgame(shallow.tabId);
     }
@@ -1198,7 +1194,7 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
     if (collect) {
         if (!config.doNotQueue) {
             reqresQueue.push([shallow, dump]);
-            changedQueued = true;
+            newQueued = true;
         }
         persistentStats.collectedTotal += 1;
         persistentStats.collectedSize += dump.byteLength;
@@ -1371,7 +1367,7 @@ function processAlmostDone() {
             reqresLimboSize += dump.byteLength;
             info.inLimboTotal += 1;
             info.inLimboSize += dump.byteLength;
-            changedLimbo = true;
+            newLimbo = true;
             broadcast(["newLimbo", [shallow]]);
         } else
             processFinishedReqres(info, true, shallow, dump);
@@ -1379,7 +1375,7 @@ function processAlmostDone() {
         processFinishedReqres(info, false, shallow, undefined);
 
     if (problematic) {
-        changedProblematic = true;
+        newProblematic = true;
         broadcast(["newProblematic", [shallow]]);
     }
 
