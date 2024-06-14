@@ -788,9 +788,15 @@ function scheduleEndgame(updatedTabId) {
         resetSingletonTimeout(scheduledInternal, "endgame", 1, processAlmostDone);
     else if (!config.archiving || reqresQueue.length == 0) {
         cleanupTabs();
-        scheduleComplaints(1000);
+
+        // use a much longer timeout if some reqres are still in flight
+        let inFlight = reqresInFlight.size + debugReqresInFlight.size
+                     + reqresFinishingUp.length + debugReqresFinishingUp.length;
+        let timeout = inFlight > 0 ? 10000 : 100;
+
+        scheduleComplaints(timeout);
         if (changedPersistentStats)
-            resetSingletonTimeout(scheduledCancelable, "savePersistentStats", 1000, async () => {
+            resetSingletonTimeout(scheduledCancelable, "savePersistentStats", timeout , async () => {
                 await savePersistentStats();
                 await updateDisplay(true, false);
             });
