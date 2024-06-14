@@ -1965,11 +1965,10 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "setTabConfig":
         tabConfig.set(request[1], request[2]);
-        if (useDebugger)
-            // Chromium does not provide `browser.menus.onShown` event
-            updateMenu(request[1]);
-        if (useDebugger)
+        if (useDebugger) {
+            updateMenu(request[1]); // Chromium does not provide `browser.menus.onShown` event
             syncDebuggersState();
+        }
         broadcast(["updateTabConfig", request[1], request[2]]);
         updateDisplay(false, true);
         sendResponse(null);
