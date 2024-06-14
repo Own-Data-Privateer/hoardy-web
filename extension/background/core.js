@@ -42,6 +42,7 @@ let config = {
     archiveURLBase: "http://127.0.0.1:3210/pwebarc/dump",
     archiveNotifyOK: true,
     archiveNotifyFailed: true,
+    archiveNotifyDisabled: true,
 
     // problematic options
     markProblematicPartialRequest: false,
@@ -367,6 +368,8 @@ function getOriginState(tabId, fromExtension) {
 }
 
 // scheduleComplaints flags
+// do we have new queued reqres?
+let changedQueued = false;
 // do we have new failed or archived reqres?
 let changedFailedOrArchived = false;
 // do we need to show empty queue notification?
@@ -841,6 +844,16 @@ function retryAllFailedArchivesIn(timeout) {
 }
 
 async function doComplain() {
+    if (changedQueued && config.archiveNotifyDisabled && !config.archiving && reqresQueue.length > 0) {
+        changedQueued = false;
+        await browser.notifications.create("notArchiving", {
+            title: "pWebArc: WARNING",
+            message: "Some data is waiting in the archival queue, but archiving is disabled.",
+            iconUrl: iconURL("archiving", 128),
+            type: "basic",
+        });
+    }
+
     if (changedFailedOrArchived) {
         changedFailedOrArchived = false;
 
@@ -1159,8 +1172,10 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
     shallow.collected = collect;
 
     if (collect) {
-        if (!config.doNotQueue)
+        if (!config.doNotQueue) {
             reqresQueue.push([shallow, dump]);
+            changedQueued = true;
+        }
         persistentStats.collectedTotal += 1;
         persistentStats.collectedSize += dump.byteLength;
         changedPersistentStats = true;
