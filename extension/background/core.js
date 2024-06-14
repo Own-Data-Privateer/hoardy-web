@@ -1951,7 +1951,7 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "setConfig":
         let oldconfig = config;
-        config = updateFromRec(assignRec({}, config), request[1], true);
+        config = updateFromRec(assignRec({}, config), request[1]);
         updateDisplay(0, false, false);
 
         if (oldconfig.archiving !== config.archiving && config.archiving)
@@ -2249,8 +2249,8 @@ async function init(storage) {
             [oldConfig, oldPersistentStats] = upgradeConfigAndPersistentStats(oldConfig, oldPersistentStats);
         }
 
-        config = updateFromRec(config, oldConfig, true);
-        persistentStats = updateFromRec(persistentStats, oldPersistentStats, true);
+        config = updateFromRec(config, oldConfig);
+        persistentStats = updateFromRec(persistentStats, oldPersistentStats);
     }
 
     config.version = configVersion;

@@ -148,50 +148,47 @@ function countSingletonTimeouts(map) {
 function assignRec(target, value) {
     if (value === undefined)
         return target;
-    else if (target === undefined)
+
+    if (value === null)
         return value;
 
-    let typt = typeof target;
     let typ = typeof value;
-    if (typt !== typ)
+    if (typ == "boolean" || typ == "number" || typ == "string")
         return value;
 
-    if (typ == "object") {
+    if (value instanceof Object) {
+        if (target === undefined)
+            target = {};
         for (let [k, v] of Object.entries(value)) {
             target[k] = assignRec(target[k], v);
         }
         return target;
-    } else if (typ == "boolean" || typ == "number" || typ == "string") {
-        return value;
     } else {
-        console.log(typ, value);
+        console.error("assignRec", typ, target, value);
         throw new Error("what?");
     }
 }
 
 // like `assignRec`, but only updates fields that already exist in target
-function updateFromRec(target, value, prefer_original) {
-    if (value === undefined)
+function updateFromRec(target, value) {
+    if (target === undefined || value === undefined)
         return target;
-    else if (target === undefined)
+
+    if (value === null)
         return value;
 
-    let typt = typeof target;
     let typ = typeof value;
-    if (typt !== typ) {
-        if (prefer_original)
-            return target;
-        else
-            return value;
-    }
+    if (typeof target !== typ)
+        return target;
 
-    if (typ == "object") {
+    if (typ == "boolean" || typ == "number" || typ == "string")
+        return value;
+
+    if (value instanceof Object) {
         for (let k of Object.keys(target)) {
             target[k] = updateFromRec(target[k], value[k]);
         }
         return target;
-    } else if (typ == "boolean" || typ == "number" || typ == "string") {
-        return value;
     } else {
         console.error("updateFromRec", typ, target, value);
         throw new Error("what?");
