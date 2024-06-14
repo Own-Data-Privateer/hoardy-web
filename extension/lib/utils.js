@@ -143,6 +143,35 @@ function countSingletonTimeouts(map) {
     return res;
 }
 
+// recursive equality comparison
+function equalRec(a, b) {
+    if (a === undefined && b !== undefined || a !== undefined && b === undefined)
+        return false;
+    else if (a === null && b !== null || a !== null && b === null)
+        return false;
+
+    let typ = typeof a;
+    if (typ == "boolean" || typ == "number" || typ == "string")
+        return a === b;
+
+    if (a instanceof Object && b instanceof Object) {
+        let ae = Array.from(Object.entries(a));
+        let be = Array.from(Object.entries(b));
+        if (ae.length !== be.length)
+            return false;
+
+        let res = true;
+        for (let [k, v] of ae)
+            if (!equalRec(v, b[k])) {
+                res = false;
+                break;
+            }
+        return res;
+    }
+
+    return false;
+}
+
 // recursively assign fields in target from fields in value
 // i.e. `assignRec({}, value)` would just copy `value`
 function assignRec(target, value) {
