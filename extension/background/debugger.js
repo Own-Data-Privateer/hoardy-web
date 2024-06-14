@@ -546,7 +546,7 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             // above, it should not really make a difference, but we pause
             // just in case Chromium decides to emit some of those debug
             // events after all).
-            resetSingletonTimeout(scheduledInternal, "debugFinishingUp", 1000, () => {
+            resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000, () => {
                 forceFinishingUpWebRequest((r) => !r.sent);
                 updateDisplay(true, false);
                 scheduleEndgame();

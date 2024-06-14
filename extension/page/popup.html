@@ -343,6 +343,14 @@ label code {
       <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
       <ui id="config.pureText" type="boolean" data-help="Do not use emojis in UI labels. Makes screen readers happier.">Pure text labels</ui>
     </div>
+    <div id="firefox-workarounds">
+      <h2>Workarounds for Firefox bugs</h2>
+      <ui id="config.workaroundFirefoxFirstRequest" type="boolean" data-help="Cancel and re-run the very first non-background request Firefox makes. See the &quot;Quirks and Bugs&quot; section of the Help page for details.">The very first request</ui>
+    </div>
+    <div id="chromium-workarounds">
+      <h2>Workarounds for Chromium bugs</h2>
+      <ui id="config.workaroundChromiumDebugTimeout" type="number" data-help="Wait this many seconds for Chromium to generate new debugging or webRequest events before giving up and forcefully finishing all unmatched in-flight reqres. See the &quot;Quirks and Bugs&quot; section of the Help page for details. Make this larger if your system is slow in general or if pWebArc generates duplicated reqres for the same fetched URL.">Unmatched timeout</ui>
+    </div>
     <div id="debugging-options">
       <h2>Debugging
         <span class="right">

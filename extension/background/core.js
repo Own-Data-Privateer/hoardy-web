@@ -74,6 +74,10 @@ let config = {
     autoTimeout: 1,
     autoNotify: true,
 
+    // workarounds
+    workaroundFirefoxFirstRequest: true,
+    workaroundChromiumDebugTimeout: 3,
+
     root: {
         collecting: true,
         limbo: false,
@@ -249,7 +253,7 @@ function processRemoveTab(tabId) {
     if (useDebugger && Array.from(debugReqresInFlight.values()).some((r) => r.tabId === tabId)) {
         // after a small timeout, force emit all `debugReqresInFlight` of this
         // tab, since Chromium won't send any new debug events for them anyway
-        let timeout = 3000;
+        let timeout = config.workaroundChromiumDebugTimeout * 1000;
         resetSingletonTimeout(scheduledCancelable, `forceStopDebugTab#${tabId}`, timeout, () => {
             if (config.debugging)
                 console.log("cleaning up debugReqresInFlight after tab", tabId);
@@ -1608,7 +1612,8 @@ function handleBeforeRequest(e) {
     // `filterResponseData` of the very first request, thus breaking it.
     if (!useDebugger && workaroundFirstRequest) {
         workaroundFirstRequest = false;
-        if (e.tabId !== -1
+        if (config.workaroundFirefoxFirstRequest
+            && e.tabId !== -1
             && initiator === undefined
             && e.type == "main_frame"
             && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
