@@ -1156,7 +1156,7 @@ function processArchiving() {
 }
 
 function getHeaderString(header) {
-    if (header.binValue !== undefined) {
+    if (header.binaryValue !== undefined) {
         let dec = new TextDecoder("utf-8", { fatal: false });
         return dec.decode(header.binaryValue);
     } else {
