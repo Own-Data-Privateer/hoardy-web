@@ -224,7 +224,7 @@ async function popupMain() {
                 await updateTabConfig(update[2]);
             break;
         default:
-            await handleDefaultMessages(update, "popup");
+            await handleDefaultUpdate(update, "popup");
         }
     }
 

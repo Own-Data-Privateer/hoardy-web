@@ -469,7 +469,7 @@ function focusHashNode(scrollIntoViewOptions, showAllFunc, hideAllFunc) {
     focusNode(hash, scrollIntoViewOptions ? scrollIntoViewOptions : { block: "start" }, showAllFunc, hideAllFunc);
 }
 
-function handleDefaultMessages(update, thisTabId, showAllFunc, hideAllFunc) {
+function handleDefaultUpdate(update, thisTabId, showAllFunc, hideAllFunc) {
     let [what, reqTabId, data1, data2] = update;
     if (reqTabId !== thisTabId)
         return;
@@ -495,28 +495,115 @@ function handleDefaultMessages(update, thisTabId, showAllFunc, hideAllFunc) {
     }
 }
 
-// this goes here to prevent Chromium running GC on this
+function sleep(timeout) {
+    return new Promise((resolve, reject) => setTimeout(resolve, timeout));
+}
+
+// this goes here to prevent GC freeing this
 let portToExtension;
 
-// open port
-async function subscribeToExtension(processUpdate, refreshFunc, extensionId, connectInfo) {
-    // open connection to the core.js script and listen for updates
+// Open port to extension asynchronously, running async init and uninit
+// functions properly in the correct order. Reconnect, if the connection
+// closes unexpectedly.
+async function connectToExtension(init, uninit, extensionId, connectInfo) {
+    function retry() {
+        setTimeout(catchAll(
+            () => connectToExtension(init, uninit, extensionId, connectInfo)
+        ), 1000)
+    }
+
+    let doUninit = false;
+    let ready = false;
+
     portToExtension = browser.runtime.connect(extensionId, connectInfo);
-    portToExtension.onMessage.addListener(processUpdate);
-    // retry in 1s on disconnect
-    portToExtension.onDisconnect.addListener(() => {
-        setTimeout(catchAll(() => {
-            subscribeToExtension(processUpdate, refreshFunc, extensionId, connectInfo);
-        }), 1000);
+    portToExtension.onDisconnect.addListener(async () => {
+        if (ready) {
+            await uninit();
+            retry();
+        } else
+            doUninit = true;
     });
 
-    // meanwhile, update everything
-    if (refreshFunc !== undefined)
-        await refreshFunc();
+    if (doUninit)
+        return;
+    await init();
+    if (doUninit) {
+        await uninit();
+        retry();
+    } else
+        ready = true;
+}
+
+function subscribeToExtension(processUpdate, completeRefresh, extensionId, connectInfo) {
+    // onMessage will not wait for an Promises. Thus, multiple updates could
+    // race, so we have to run them synchronously here.
+    let updateQueue = [];
+    let queueSyncRunning = false;
+
+    async function doQueueSync() {
+        queueSyncRunning = true;
+        while (updateQueue.length > 0) {
+            let update = updateQueue.shift();
+            await processUpdate(update);
+        }
+        queueSyncRunning = false;
+    }
+
+    function processUpdateSync(event) {
+        updateQueue.push(event);
+        if (queueSyncRunning)
+            return;
+        doQueueSync();
+    }
+
+    return connectToExtension(async () => {
+        if (completeRefresh === undefined) {
+            // the boring use case, no inconsistencies possible here
+            portToExtension.onMessage.addListener(processUpdateSync);
+            return;
+        }
+
+        // a flag which remembers if there were any updates while
+        // completeRefresh was running asynchronously
+        let shouldReset = false;
+        function willReset() {
+            return shouldReset;
+        }
+        function rememberToReset() {
+            shouldReset = true;
+        }
+        portToExtension.onMessage.addListener(rememberToReset);
+
+        while (true) {
+            // start processing updates
+            updateQueue = [];
+            shouldReset = false;
+            portToExtension.onMessage.addListener(processUpdateSync);
+
+            // run full update
+            await completeRefresh(willReset);
+
+            if (!shouldReset)
+                break;
+
+            // if there were messages in-between, async completeRefresh
+            // could have resulted in an inconsistent state, retry in 1s
+            console.warn("received some async state updates while doing async page init, the result is probably inconsistent, retrying");
+
+            // stop processing updates
+            portToExtension.onMessage.removeListener(processUpdateSync);
+            await sleep(1000);
+        }
+
+        // cleanup
+        portToExtension.onMessage.removeListener(rememberToReset);
+    }, async () => {
+        portToExtension.onMessage.removeListener(processUpdateSync);
+    }, extensionId, connectInfo);
 }
 
 function subscribeToExtensionSimple(name, showAllFunc, hideAllFunc) {
-    return subscribeToExtension(catchAll((update) => handleDefaultMessages(update, name)));
+    return subscribeToExtension(catchAll((update) => handleDefaultUpdate(update, name)));
 }
 
 // set values of DOM elements from a given object

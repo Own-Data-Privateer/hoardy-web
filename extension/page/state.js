@@ -259,25 +259,33 @@ async function stateMain() {
             break;
         case "newLimbo":
             appendToLog(document.getElementById("data_in_limbo"), data, (reqres) => isAcceptedBy(rrfilters.in_limbo, reqres));
-            browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);
+            await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
             break;
         case "newLog":
             appendToLog(document.getElementById("data_log"), data, (reqres) => isAcceptedBy(rrfilters.log, reqres));
             if (update[2])
                 // it's flesh from in-flight
-                browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight).catch(logError);
+                await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
             break;
         default:
-            await handleDefaultMessages(update, thisTabId);
+            await handleDefaultUpdate(update, thisTabId);
         }
     }
 
-    await subscribeToExtension(catchAll(processUpdate), catchAll(async () => {
+    await subscribeToExtension(catchAll(processUpdate), catchAll(async (willReset) => {
         await updateConfig();
-        await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
-        await browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic);
-        await browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo);
-        await browser.runtime.sendMessage(["getLog"]).then(resetLog);
+        let inFlightLog = await browser.runtime.sendMessage(["getInFlightLog"]);
+        let problematicLog = await browser.runtime.sendMessage(["getProblematicLog"]);
+        if (willReset()) return;
+        let inLimboLog = await browser.runtime.sendMessage(["getInLimboLog"]);
+        if (willReset()) return;
+        let log = await browser.runtime.sendMessage(["getLog"]);
+        if (willReset()) return;
+
+        resetInFlight(inFlightLog);
+        resetProblematic(problematicLog);
+        resetInLimbo(inLimboLog);
+        resetLog(log);
     }));
 
     // show UI
