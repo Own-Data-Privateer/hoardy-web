@@ -88,6 +88,7 @@ function isUnknownError(error) {
                      || error === "webRequest::net::ERR_FAILED"
                      || error === "webRequest::net::ERR_BLOCKED_BY_CLIENT"
                      || error === "webRequest::net::ERR_CONNECTION_CLOSED"
+                     || error === "webRequest::pWebArc::NO_DEBUGGER::CANCELED"
                      || error === "debugger::net::ERR_ABORTED"
                      || error === "debugger::net::ERR_CANCELED"
                      || error === "debugger::net::ERR_FAILED"

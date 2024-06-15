@@ -248,7 +248,7 @@ pWebArc provides context menu actions to:
 On Chromium-based browsers, there is no way to get HTTP response data without attaching Chromium's debugger to a tab from which a request originates from.
 This makes things a bit tricky, for instance:
 
-- With [[./popup.html#div-config.collecting][pWebArc enabled]], new tabs will be set to =about:blank= because the default of =chrome://newtab/= does not allow attaching debugger to the tabs with =chrome:= URLs.
+- With [[./popup.html#div-config.collecting][pWebArc]] and [[./popup.html#div-config.workaroundChromiumResetRootTab][this option]] enabled, new tabs will be reset to [[./popup.html#div-config.workaroundChromiumResetRootTabURL][this value]] (=about:blank= by default) because the default of =chrome://newtab/= does not allow attaching debugger to the tabs with =chrome:= URLs.
 
 - Requests made before the debugger is attached will get canceled by pWebArc.
   So, for instance, when you middle-click a link, Chromium will open a new tab, but pWebArc will block the requests from there until the debugger gets attached and then automatically reload the tab after.

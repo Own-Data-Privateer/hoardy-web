@@ -352,6 +352,21 @@ async function getActiveTab() {
     return null;
 }
 
+function navigateTabTo(tabId, url) {
+    return browser.tabs.update(tabId, { url });
+}
+
+function blankTab(tabId) {
+    return navigateTabTo(tabId, "about:blank");
+}
+
+async function captureURLThenBlankTab(tabId) {
+    let tab = await browser.tabs.get(tabId);
+    let url = getTabURL(tab);
+    await navigateTabTo(tabId, "about:blank");
+    return url;
+}
+
 // Ask ../background/core.js to broadcast this `data` to all open
 // pages belonging to this extension.
 function broadcast(data) {

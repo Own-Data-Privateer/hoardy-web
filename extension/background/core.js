@@ -74,8 +74,12 @@ let config = {
     autoTimeout: 1,
     autoNotify: true,
 
-    // workarounds
+    // Firefox workarounds
     workaroundFirefoxFirstRequest: true,
+
+    // Chromium workarounds
+    workaroundChromiumResetRootTab: true,
+    workaroundChromiumResetRootTabURL: "about:blank",
     workaroundChromiumDebugTimeout: 3,
 
     root: {
@@ -116,6 +120,49 @@ let scheduledInternal = new Map();
 let scheduledCancelable = new Map();
 // scheduled functions hidden from the UI
 let scheduledHidden = new Map();
+
+async function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
+    resetSingletonTimeout(scheduledInternal, `resetTab#${tabId}`, 100, async () => {
+        let r;
+        if (resetFunc !== undefined)
+            r = await resetFunc(tabId);
+        resetSingletonTimeout(scheduledInternal, `reloadTab#${tabId}`, 300, async () => {
+            try {
+                if (preFunc !== undefined)
+                    await preFunc(tabId);
+                if (actionFunc !== undefined)
+                    await actionFunc(tabId, r);
+            } finally {
+                await updateDisplay(0, true, false, tabId);
+            }
+        }, priority);
+    }, priority);
+    await updateDisplay(0, true, false, tabId);
+}
+
+function resetAndNavigateTab(tabId, url, priority) {
+    return sleepResetTab(tabId, priority,
+                         blankTab, undefined,
+                         (tabId) => navigateTabTo(tabId, url));
+}
+
+function resetAttachDebuggerAndNavigateTab(tabId, url, priority) {
+    return sleepResetTab(tabId, priority,
+                         blankTab, attachDebugger,
+                         (tabId) => navigateTabTo(tabId, url));
+}
+
+function resetAttachDebuggerAndReloadTab(tabId, priority) {
+    return sleepResetTab(tabId, priority,
+                         captureURLThenBlankTab, attachDebugger,
+                         navigateTabTo);
+}
+
+function attachDebuggerAndReloadTab(tabId, priority) {
+    return sleepResetTab(tabId, priority,
+                         undefined, attachDebugger,
+                         browser.tabs.reload);
+}
 
 // per-tab config
 let tabConfig = new Map();
@@ -173,12 +220,12 @@ function setOriginConfig(tabId, fromExtension, tabcfg) {
 function processNewTab(tabId, openerTabId) {
     openTabs.add(tabId);
 
-    if (useDebugger && openerTabId === undefined && negateOpenerTabIds.length > 0) {
+    if (useDebugger && openerTabId === undefined && negateOpenerTabIds.length > 0)
         // On Chromium, `browser.tabs.create` with `openerTabId` specified
-        // does not pass it into `openerTabId` variable here (it's a bug), so
-        // we have to work around it by using `negateOpenerTabIds` variable.
+        // does not pass it into `openerTabId` of `handleTabCreated` (it's a
+        // bug), so we have to work around it by using `negateOpenerTabIds`
+        // variable.
         openerTabId = negateOpenerTabIds.shift();
-    }
 
     let openercfg = getOriginConfig(openerTabId !== undefined ? openerTabId : null);
 
@@ -1661,15 +1708,29 @@ function handleBeforeRequest(e) {
 
     logEvent("BeforeRequest", e, undefined);
 
-    // On Chromium, cancel all network requests from tabs that are not
-    // yet debugged, start debugging, and then reload the tab.
+    // Should we generate and then immediately cancel this reqres?
+    let reject = false;
+
+    // On Chromium, cancel all requests from a tab that is not yet debugged,
+    // start debugging, and then reload the tab.
     if (useDebugger && e.tabId !== -1
         && !tabsDebugging.has(e.tabId)
         && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
         if (config.debugging)
             console.warn("canceling and restarting request to", e.url, "as tab", e.tabId, "is not managed yet");
-        attachDebuggerAndReloadIn(e.tabId, 1000);
-        return { cancel: true };
+        if (e.type == "main_frame") {
+            // attach debugger and reload the main flame
+            attachDebuggerAndReloadTab(e.tabId).catch(logError);
+            // not using
+            //   resetAttachDebuggerAndNavigateTab(e.tabId, e.url).catch(logError);
+            // or
+            //   resetAttachDebuggerAndReloadTab(e.tabId).catch(logError);
+            // bacause they reset the referrer
+            return { cancel: true };
+        } else
+            // cancel it, but generate a reqres for it, so that it would be
+            // logged
+            reject = true;
     }
 
     // On Firefox, cancel the very first navigation request, redirect the tab
@@ -1685,7 +1746,7 @@ function handleBeforeRequest(e) {
             && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
             if (config.debugging)
                 console.warn("canceling and restarting request to", e.url, "to workaround a bug in Firefox");
-            resetTab(e.tabId, "about:blank").then(() => browser.tabs.update(e.tabId, { url: e.url })).catch(logError);
+            resetAndNavigateTab(e.tabId, e.url).catch(logError);
             return { cancel: true };
         }
     }
@@ -1739,6 +1800,13 @@ function handleBeforeRequest(e) {
             reqres.formData = e.requestBody.formData;
             reqres.requestComplete = false;
         }
+    }
+
+    if (reject) {
+        reqres.errors.push("webRequest::pWebArc::NO_DEBUGGER::CANCELED")
+        reqresAlmostDone.push(reqres);
+        scheduleEndgame(e.tabId);
+        return { cancel: true };
     }
 
     if (!useDebugger) {
@@ -1900,24 +1968,30 @@ function handleNotificationClicked(notificationId) {
     });
 }
 
+function chromiumResetRootTab(tabId, tabcfg) {
+    // Navigate to `workaroundChromiumResetRootTabURL` instead.
+    //
+    // NB: `priority` argument here overrides `attachDebuggerAndReloadTab` what
+    // `handleBeforeRequest` does. Thus, this action wins.
+    resetAttachDebuggerAndNavigateTab(tabId, config.workaroundChromiumResetRootTabURL, 0).catch(logError);
+}
+
 function handleTabCreated(tab) {
+    let tabId = tab.id;
+
     if (config.debugging)
-        console.log("tab added", tab.id, tab.openerTabId);
+        console.log("tab added", tabId, tab.openerTabId);
 
     if (useDebugger && tab.pendingUrl == "chrome://newtab/") {
         // work around Chrome's "New Tab" action creating a child tab by
         // ignoring openerTabId
-        let tabcfg = processNewTab(tab.id, undefined);
-        // Unfortunately, Chromium does not allow attaching the debugger to
-        // chrome:// URLs, meaning that new tabs with the default page opened
-        // will not get debugged, thus no response bodies will ever get
-        // collected there. So, we navigate new tabs to about:blank instead.
-        if (config.collecting && tabcfg.collecting)
-            browser.tabs.update(tab.id, { url: "about:blank" }).then(() => {
-                setTimeout(() => attachDebugger(tab.id), 500);
-            }, logError);
+        let tabcfg = processNewTab(tabId, undefined);
+        // reset its URL, maybe
+        if (config.collecting && tabcfg.collecting && config.workaroundChromiumResetRootTab)
+            chromiumResetRootTab(tabId, tabcfg);
     } else
-        processNewTab(tab.id, tab.openerTabId);
+        processNewTab(tabId, tab.openerTabId);
+
     updateDisplay(0, false, true);
 }
 
@@ -2349,7 +2423,12 @@ async function init(storage) {
     let tabs = await browser.tabs.query({});
     for (let tab of tabs) {
         openTabs.add(tab.id);
-        getOriginConfig(tab.id);
+        let tabcfg = getOriginConfig(tab.id);
+        // reset its URL, maybe
+        if (useDebugger
+            && config.collecting && tabcfg.collecting && config.workaroundChromiumResetRootTab
+            && tab.pendingUrl == "chrome://newtab/")
+            chromiumResetRootTab(tab.id, tabcfg);
     }
 
     browser.runtime.onMessage.addListener(catchAll(handleMessage));

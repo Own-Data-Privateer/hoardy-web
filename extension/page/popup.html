@@ -115,8 +115,8 @@ label code {
     <div id="body" style="display: none">
     <h1>
       Globally
-      <span data-help="Open the changelog page."><input type="button" id="version" value="v?" /></span>
-      <span data-help="Open the help page."><input type="button" id="help" class="smaller" value="Help" /></span>
+      <span data-help="Open the &quot;Changelog&quot; page."><input type="button" id="version" value="v?" /></span>
+      <span data-help="Open the &quot;Help&quot; page."><input type="button" id="help" class="smaller" value="Help" /></span>
       <span class="right">
         <span data-help="Forget recent history."><input type="button" id="forgetHistory" value="Forget" /></span>
         <span data-shortcut="showState" data-help="Show the internal state and history."><input type="button" id="showState" value="State" /></span>
@@ -298,7 +298,7 @@ label code {
     <h1>Options</h1>
     <div id="pick-options">
       <h2>Pick reqres for archival when they finish</h2>
-      <ui id="config.archivePartialRequest" type="boolean" class="prefer-on" data-help="Pick a finished reqres for archival even when its request body is incomplete. Enabled by default, and you probably want to keep this enabled. See the &quot;Quirks and Bugs&quot; section of the Help page for details.">... with partial POST form data</ui>
+      <ui id="config.archivePartialRequest" type="boolean" class="prefer-on" data-help="Pick a finished reqres for archival even when its request body is incomplete. Enabled by default, and you probably want to keep this enabled. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">... with partial POST form data</ui>
       <ui id="config.archiveCanceled" type="boolean" class="prefer-off" data-help="Pick a finished reqres for archival even when it was canceled before it was even sent (this usually means the HTTP request in question was blocked by another extension like &quot;uBlock Origin&quot;). Disabled by default because such archived reqres carry no information except that the browser tried to do a request at specified time.">... in <code>canceled</code> state</ui>
       <ui id="config.archiveNoResponse" type="boolean" class="prefer-off" data-help="Pick a finished reqres for archival even when it got no response (i.e. the request in question was interrupted before request headers were received, this usually means a networking issue). Disabled by default because such archived reqres carry no information except that the browser tried to do a request at specified time.">... in <code>no_response</code> state</ui>
       <ui id="config.archiveIncompleteResponse" type="boolean" class="prefer-off" data-help="Pick a finished reqres for archival even when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Disabled by default because simply reloading the page and not dealing with partial files is usually a better option.">... in <code>incomplete</code> or <code>incomplete_fc</code> state</ui>
@@ -306,7 +306,7 @@ label code {
     </div>
     <div id="problematic-options">
       <h2>Mark reqres as problematic when they finish</h2>
-      <ui id="config.markProblematicPartialRequest" type="boolean" data-help="Marke a newly finished reqres as problematic when its request body is incomplete. Enabled by default. See the &quot;Quirks and Bugs&quot; section of the Help page for details.">... with partial POST form data</ui>
+      <ui id="config.markProblematicPartialRequest" type="boolean" data-help="Marke a newly finished reqres as problematic when its request body is incomplete. Enabled by default. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">... with partial POST form data</ui>
       <ui id="config.markProblematicCanceled" type="boolean" class="prefer-off" data-help="Mark a newly finished reqres as problematic when it was canceled before it was even sent (this usually means the HTTP request in question was blocked by another extension like &quot;uBlock Origin&quot;). Disabled by default.">... in <code>canceled</code> state</ui>
       <ui id="config.markProblematicNoResponse" type="boolean" class="prefer-on" data-help="Mark a newly finished reqres as problematic when it got no response (i.e. the request in question was interrupted before request headers were received; this usually means a networking issue). Enabled by default.">... in <code>no_response</code> state</ui>
       <ui id="config.markProblematicIncomplete" type="boolean" class="prefer-on" data-help="Mark a newly finished reqres as problematic when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Enabled by default.">... in <code>incomplete</code> state</ui>
@@ -345,11 +345,13 @@ label code {
     </div>
     <div id="firefox-workarounds">
       <h2>Workarounds for Firefox bugs</h2>
-      <ui id="config.workaroundFirefoxFirstRequest" type="boolean" data-help="Cancel and re-run the very first non-background request Firefox makes. See the &quot;Quirks and Bugs&quot; section of the Help page for details.">The very first request</ui>
+      <ui id="config.workaroundFirefoxFirstRequest" type="boolean" data-help="Cancel and re-run the very first non-background request Firefox makes. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">The very first request</ui>
     </div>
     <div id="chromium-workarounds">
       <h2>Workarounds for Chromium bugs</h2>
-      <ui id="config.workaroundChromiumDebugTimeout" type="number" data-help="Wait this many seconds for Chromium to generate new debugging or webRequest events before giving up and forcefully finishing all unmatched in-flight reqres. See the &quot;Quirks and Bugs&quot; section of the Help page for details. Make this larger if your system is slow in general or if pWebArc generates duplicated reqres for the same fetched URL.">Unmatched timeout</ui>
+      <ui id="config.workaroundChromiumResetRootTab" type="boolean" class="prefer-on" data-help="Reset new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item) to the URL below. You can disable this, but then pWebArc will proceed trying to collect the first page the browser loads there, which will probably fail.">Reset new root tabs</ui>
+      <ui id="config.workaroundChromiumResetRootTabURL" type="string" data-help="URL of the first page in a new tab. Setting this to `about:blank` is highly recommended.">... to URL</ui>
+      <ui id="config.workaroundChromiumDebugTimeout" type="number" data-help="Wait this many seconds for Chromium to generate new debugging or webRequest events before giving up and forcefully finishing all unmatched in-flight reqres. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details. Make this larger if your system is slow in general or if pWebArc generates duplicated reqres for the same fetched URL.">Unmatched timeout</ui>
     </div>
     <div id="debugging-options">
       <h2>Debugging
