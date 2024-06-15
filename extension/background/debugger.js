@@ -249,7 +249,7 @@ function handleDebugErrorOccuried(e) {
 
     if (e.canceled === true) {
         dreqres.sent = false;
-        emitDebugRequest(e.requestId, dreqres, false, "debugger::net::ERR_CANCELED");
+        emitDebugRequest(e.requestId, dreqres, false, "debugger::" + (e.errorText ? e.errorText : "net::ERR_CANCELED"));
     } else if (e.blockedReason !== undefined && e.blockedReason !== "") {
         dreqres.sent = false;
         emitDebugRequest(e.requestId, dreqres, false, "debugger::net::ERR_BLOCKED::" + e.blockedReason);
