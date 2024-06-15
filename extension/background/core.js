@@ -132,9 +132,42 @@ function prefillChildren(data) {
 function getOriginConfig(tabId, fromExtension) {
     if (fromExtension)
         return prefillChildren(config.extension);
-    else if (tabId == -1) // background process
+    else if (tabId == -1)
         return prefillChildren(config.background);
-    return cacheSingleton(tabConfig, tabId, () => prefillChildren(config.root));
+    else if (tabId === null)
+        return prefillChildren(config.root);
+    else
+        return cacheSingleton(tabConfig, tabId, () => prefillChildren(config.root));
+}
+
+function setOriginConfig(tabId, fromExtension, tabcfg) {
+    function clean() {
+        let d = assignRec({}, tabcfg);
+        delete d["children"];
+        return d;
+    }
+
+    if (fromExtension) {
+        config.extension = clean();
+        broadcast(["updateConfig", config]);
+    } else if (tabId == -1) {
+        // background process
+        config.background = clean();
+        broadcast(["updateConfig", config]);
+    } else if (tabId === null) {
+        config.root = clean();
+        broadcast(["updateConfig", config]);
+    } else {
+        tabConfig.set(tabId, tabcfg);
+        broadcast(["updateOriginConfig", tabId, tabcfg]);
+
+        if (useDebugger) {
+            // Chromium does not provide `browser.menus.onShown` event
+            updateMenu(tabcfg);
+            syncDebuggersState();
+        }
+    }
+    updateDisplay(0, false, true);
 }
 
 function processNewTab(tabId, openerTabId) {
@@ -147,11 +180,7 @@ function processNewTab(tabId, openerTabId) {
         openerTabId = negateOpenerTabIds.shift();
     }
 
-    let openercfg;
-    if (openerTabId !== undefined)
-        openercfg = getOriginConfig(openerTabId);
-    else
-        openercfg = prefillChildren(config.root); // root tab
+    let openercfg = getOriginConfig(openerTabId !== undefined ? openerTabId : null);
 
     let children = openercfg.children;
     if (openerTabId !== undefined && negateConfigFor.delete(openerTabId)) {
@@ -1912,7 +1941,7 @@ function handleTabActivated(e) {
         console.log("tab activated", e.tabId);
     if (useDebugger)
         // Chromium does not provide `browser.menus.onShown` event
-        updateMenu(e.tabId);
+        updateMenu(getOriginConfig(e.tabId));
     // This will do nothing on Chromium, see handleTabUpdatedChromium
     updateDisplay(0, false, true);
 }
@@ -1996,16 +2025,10 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(null);
         break;
     case "getOriginConfig":
-        sendResponse(getOriginConfig(request[1]));
+        sendResponse(getOriginConfig(request[1], request[2]));
         break;
-    case "setTabConfig":
-        tabConfig.set(request[1], request[2]);
-        if (useDebugger) {
-            updateMenu(request[1]); // Chromium does not provide `browser.menus.onShown` event
-            syncDebuggersState();
-        }
-        broadcast(["updateTabConfig", request[1], request[2]]);
-        updateDisplay(0, false, true);
+    case "setOriginConfig":
+        setOriginConfig(request[1], request[2], request[3]);
         sendResponse(null);
         break;
     case "retryAllFailedArchives":
@@ -2092,9 +2115,8 @@ let menuIcons = {
 }
 let menuOldState = true;
 
-function updateMenu(tabId) {
-    let cfg = getOriginConfig(tabId);
-    let newState = !cfg.children.collecting;
+function updateMenu(tabcfg) {
+    let newState = !tabcfg.children.collecting;
 
     if (menuOldState === newState) return;
     menuOldState = newState;
@@ -2128,7 +2150,7 @@ function initMenus() {
         // Firefox provides `browser.menus.onShown` event, so `updateMenu` can be called on-demand
         browser.menus.onShown.addListener(catchAll((info, tab) => {
             if (tab === undefined) return;
-            updateMenu(tab.id);
+            updateMenu(getOriginConfig(tab.id));
             browser.menus.refresh();
         }));
     }
@@ -2229,8 +2251,8 @@ async function handleCommand(command) {
         return;
     }
 
+    setOriginConfig(tabId, false, tabcfg);
     updateDisplay(0, false, true, tabId);
-    broadcast(["updateTabConfig", tabId]);
 }
 
 function upgradeConfigAndPersistentStats(cfg, stats) {

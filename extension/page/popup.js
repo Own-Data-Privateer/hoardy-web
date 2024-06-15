@@ -144,8 +144,10 @@ async function popupMain() {
         setUI(document, "tabstats", asPowers(tabstats));
     }
 
-    async function updateConfig() {
-        let config = await browser.runtime.sendMessage(["getConfig"]);
+    async function updateConfig(config) {
+        if (config === undefined)
+            config = await browser.runtime.sendMessage(["getConfig"]);
+
         setUI(document, "config", config, (newconfig, path) => {
             switch (path) {
             case "config.autoPopInLimboCollect":
@@ -187,7 +189,7 @@ async function popupMain() {
                 newtabconfig.children.negLimbo = newtabconfig.negLimbo;
                 break;
             }
-            browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]);
+            browser.runtime.sendMessage(["setOriginConfig", tabId, false, newtabconfig]);
         });
     }
 
@@ -215,9 +217,9 @@ async function popupMain() {
             await updateTabStats();
             break;
         case "updateConfig":
-            await updateConfig();
+            await updateConfig(data);
             break;
-        case "updateTabConfig":
+        case "updateOriginConfig":
             if (data == tabId)
                 await updateTabConfig(update[2]);
             break;

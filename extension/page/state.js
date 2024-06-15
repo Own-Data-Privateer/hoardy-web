@@ -229,8 +229,9 @@ async function stateMain() {
             console.warn("unknown rrfilters update", path, value);
     });
 
-    async function updateConfig() {
-        let config = await browser.runtime.sendMessage(["getConfig"]);
+    async function updateConfig(config) {
+        if (config === undefined)
+            config = await browser.runtime.sendMessage(["getConfig"]);
         setConditionalClass(body, config.colorblind, "colorblind");
     }
 
@@ -238,7 +239,7 @@ async function stateMain() {
         let [what, data] = update;
         switch(what) {
         case "updateConfig":
-            await updateConfig();
+            await updateConfig(data);
             break;
         case "resetLog":
             resetLog(data);
