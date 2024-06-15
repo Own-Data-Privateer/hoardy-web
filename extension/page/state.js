@@ -109,9 +109,9 @@ function appendReqres(el, reqres) {
     }
 
     mtr((reqres.requestComplete ? "C" : "I")
-        + (!reqres.sent || reqres.responseTimeStamp === undefined ? "N"
-           : (reqres.statusCode.toString()
-              + (reqres.responseComplete ? "C" : "I"))));
+        + (reqres.responded
+           ? reqres.statusCode.toString() + (reqres.responseComplete ? "C" : "I")
+           : "N"));
 
     mtr(sparts.join(" "));
     mtr(fdate(reqres.requestTimeStamp));

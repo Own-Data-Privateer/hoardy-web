@@ -97,6 +97,9 @@ function isUnknownError(error) {
                      || error === "debugger::pWebArc::EMIT_FORCED_BY_USER"
                      || error === "debugger::pWebArc::EMIT_FORCED_BY_CLOSED_TAB"
                      || error === "debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER"
+                     || error === "debugger::pWebArc::NO_RESPONSE_BODY::DETACHED_DEBUGGER"
+                     || error === "debugger::pWebArc::NO_RESPONSE_BODY::ACCESS_DENIED"
+                     || error === "debugger::pWebArc::NO_RESPONSE_BODY::OTHER"
                      || error.startsWith("debugger::net::ERR_BLOCKED::")))
         // Chromium
         return false;

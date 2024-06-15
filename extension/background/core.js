@@ -394,7 +394,8 @@ function getInFlightLog() {
     for (let [k, v] of reqresInFlight.entries())
         res.push(shallowCopyOfReqres(v));
     for (let [k, v] of debugReqresInFlight.entries()) {
-        if (!isBoringURL(v.url))
+        // `.url` can be unset, see (veryEarly) in `emitDebugRequest`.
+        if (v.url !== undefined && !isBoringURL(v.url))
             res.push(shallowCopyOfReqres(v));
     }
     return res;
@@ -1252,9 +1253,9 @@ function renderReqres(reqres) {
         rest.fake = true;
 
     let response = null;
-    if (reqres.sent && reqres.responseTimeStamp !== undefined) {
+    if (reqres.responded) {
         response = [
-            reqres.responseTimeStamp,
+            Math.floor(reqres.responseTimeStamp),
             reqres.statusCode,
             reqres.reason,
             encodeHeaders(reqres.responseHeaders),
@@ -1268,7 +1269,7 @@ function renderReqres(reqres) {
         sourceDesc,
         reqres.protocol,
         [
-            reqres.requestTimeStamp,
+            Math.floor(reqres.requestTimeStamp),
             reqres.method,
             url,
             encodeHeaders(reqres.requestHeaders),
@@ -1276,7 +1277,7 @@ function renderReqres(reqres) {
             reqres.requestBody,
         ],
         response,
-        reqres.emitTimeStamp,
+        Math.floor(reqres.emitTimeStamp),
         rest,
     ], {
         allowNull: true,
@@ -1350,7 +1351,7 @@ function processAlmostDone() {
         state = "canceled";
         problematic = config.markProblematicCanceled;
         picked = config.archiveCanceled;
-    } else if (reqres.responseTimeStamp === undefined) {
+    } else if (!reqres.responded) {
         // no response after sending headers
         state = "no_response";
         problematic = config.markProblematicNoResponse;
@@ -1361,7 +1362,7 @@ function processAlmostDone() {
         state = "incomplete";
         problematic = config.markProblematicIncomplete;
         picked = config.archiveIncompleteResponse;
-    } else if (reqres.statusCode === 200 && reqres.fromCache) {
+    } else if (!useDebugger && reqres.statusCode === 200 && reqres.fromCache) {
         let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
         if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
             // Under Firefox, filterResponseData filters will get empty response data for some
@@ -1657,6 +1658,7 @@ function shallowCopyOfReqres(reqres) {
         requestComplete: reqres.requestComplete,
 
         sent: reqres.sent,
+        responded: reqres.responded,
 
         responseTimeStamp: reqres.responseTimeStamp,
         statusLine: reqres.statusLine,
@@ -1753,7 +1755,7 @@ function handleBeforeRequest(e) {
 
     let requestId = e.requestId;
     let reqres = {
-        requestId: requestId,
+        requestId,
         tabId: e.tabId,
         fromExtension,
 
@@ -1768,6 +1770,7 @@ function handleBeforeRequest(e) {
         requestComplete: true,
 
         sent: false,
+        responded: false,
 
         responseHeaders : [],
         responseBody: new ChunkedBuffer(),
@@ -1879,13 +1882,22 @@ function completedCopyOfReqres(reqres) {
     return res;
 }
 
+function fillResponse(reqres, e) {
+    reqres.responded = true;
+    reqres.responseTimeStamp = e.timeStamp;
+    reqres.statusCode = e.statusCode;
+    reqres.statusLine = e.statusLine;
+    reqres.responseHeaders = e.responseHeaders;
+    reqres.fromCache = e.fromCache;
+}
+
 function handleHeadersRecieved(e) {
     let reqres = reqresInFlight.get(e.requestId);
     if (reqres === undefined) return;
 
     logEvent("HeadersRecieved", e, reqres);
 
-    if (reqres.responseTimeStamp !== undefined) {
+    if (reqres.responded) {
         // the browser can call this multiple times for the same request, e.g.
         // when sending If-Modified-Since and If-None-Match and receiving
         // 304 response.
@@ -1900,11 +1912,7 @@ function handleHeadersRecieved(e) {
         reqresInFlight.set(e.requestId, reqres);
     }
 
-    reqres.responseTimeStamp = e.timeStamp;
-    reqres.statusCode = e.statusCode;
-    reqres.statusLine = e.statusLine;
-    reqres.responseHeaders = e.responseHeaders;
-    reqres.fromCache = e.fromCache;
+    fillResponse(reqres, e);
 }
 
 function handleBeforeRedirect(e) {
@@ -1913,15 +1921,10 @@ function handleBeforeRedirect(e) {
 
     logEvent("BeforeRedirect", e, reqres);
 
-    if (reqres.responseTimeStamp === undefined) {
+    if (!reqres.responded)
         // this happens when a request gets redirected right after
         // handleBeforeRequest by another extension
-        reqres.responseTimeStamp = e.timeStamp;
-        reqres.statusCode = e.statusCode;
-        reqres.statusLine = e.statusLine;
-        reqres.responseHeaders = e.responseHeaders;
-        reqres.fromCache = e.fromCache;
-    }
+        fillResponse(reqres, e);
     reqres.responseComplete = true;
     reqres.redirectUrl = e.redirectUrl;
     emitRequest(e.requestId, reqres);

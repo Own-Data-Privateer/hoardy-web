@@ -195,6 +195,37 @@ function logDebugEvent(rtype, nonExtra, e, dreqres) {
     }
 }
 
+// Encode debugger's headers structure into the one used by webRequest API.
+function debugHeadersToHeaders(dheaders) {
+    if (dheaders === undefined)
+        return [];
+
+    let res = [];
+    for (let [k, v] of Object.entries(dheaders)) {
+        res.push({ name: k, value: v });
+    }
+    return res;
+}
+
+// update `headers` with headers from `dheaders`
+function mergeInHeaders(headers, dheaders) {
+    for (let dheader of dheaders) {
+        let name = dheader.name.toLowerCase();
+        let found = false;
+        for (let header of headers) {
+            if (header.name.toLowerCase() == name) {
+                if (getHeaderString(header) == getHeaderString(dheader)) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found)
+            headers.push(dheader);
+    }
+    return headers;
+}
+
 // handlers
 
 function handleDebugRequestWillBeSent(nonExtra, e) {
@@ -206,13 +237,41 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
     logDebugEvent("requestWillBeSent", nonExtra, e, undefined);
 
     let dreqres = cacheSingleton(debugReqresInFlight, e.requestId, () => { return {
-        errors: [],
-        sent: true,
-        responseBody: "",
-        responseComplete: false,
-    }; });
+        requestId: e.requestId,
+        tabId: e.tabId,
+        fromExtension: false, // most likely
 
-    dreqres.tabId = e.tabId;
+        //method: undefined,
+        //url: undefined,
+
+        //documentUrl: undefined,
+        //originUrl: undefined,
+
+        errors: [],
+
+        //requestTimeStamp: Date.now(),
+        //requestHeaders: undefined,
+        //requestHeadersDebug: undefined,
+        //requestHeadersDebugExtra: undefined,
+        //requestBody: undefined,
+        //requestComplete: true,
+
+        sent: false,
+        responded: false,
+
+        //responseTimeStamp: undefined,
+        //protocol: undefined, // on Chromium is a part of the response, not the request
+        //statusCode: undefined,
+        //reason: undefined,
+        //responseHeaders : undefined,
+        //responseHeadersDebug: undefined,
+        //responseHeadersDebugExtra: undefined,
+        //responseBody: undefined,
+        responseComplete: false,
+
+        fromCache: false,
+        fake: true,
+    }; });
 
     if (nonExtra) {
         dreqres.requestTimeStamp = e.wallTime * 1000;
@@ -220,13 +279,13 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         dreqres.url = e.request.url;
         if (e.documentURL !== undefined && e.documentURL !== null)
             dreqres.documentUrl = e.documentURL;
-        dreqres.requestHeaders = e.request.headers;
+        dreqres.requestHeadersDebug = e.request.headers;
         if (!isBoringURL(dreqres.url))
             broadcast(["newInFlight", [shallowCopyOfReqres(dreqres)]]);
     } else {
         if (dreqres.requestTimeStamp === undefined)
             dreqres.requestTimeStamp = Date.now();
-        dreqres.requestHeadersExtra = e.headers;
+        dreqres.requestHeadersDebugExtra = e.headers;
     }
 
     updateDisplay(0, true, false);
@@ -240,28 +299,33 @@ function handleDebugResponseRecieved(nonExtra, e) {
 
     logDebugEvent("responseReceived", nonExtra, e, dreqres);
 
+    dreqres.sent = true;
+    dreqres.responded = true;
+
     if (nonExtra) {
         dreqres.responseTimeStamp = e.response.responseTime;
-        dreqres.protocol = e.response.protocol.toUpperCase();
-        if (dreqres.protocol == "H3" || dreqres.protocol == "H3C")
+        let protocol = e.response.protocol.toUpperCase();
+        if (protocol == "H3" || protocol == "H3C")
             dreqres.protocol = "HTTP/3.0";
-        else if (dreqres.protocol == "H2" || dreqres.protocol == "H2C")
+        else if (protocol == "H2" || protocol == "H2C")
             dreqres.protocol = "HTTP/2.0";
+        else
+            dreqres.protocol = protocol;
         dreqres.statusCode = e.response.status;
         dreqres.reason = e.response.statusText;
-        dreqres.responseHeaders = e.response.headers;
+        dreqres.responseHeadersDebug = e.response.headers;
     } else {
         if (dreqres.responseTimeStamp === undefined)
             dreqres.responseTimeStamp = Date.now();
+        if (dreqres.statusCode === undefined)
+            dreqres.statusCode = e.statusCode;
         dreqres.statusCodeExtra = e.statusCode;
-        dreqres.responseHeadersExtra = e.headers;
-        if (redirectStatusCodes.has(e.statusCode)) {
+        dreqres.responseHeadersDebugExtra = e.headers;
+        if (redirectStatusCodes.has(e.statusCode))
             // If this is a redirect request, emit it immediately, because
             // there would be neither nonExtra, nor handleDebugCompleted event
             // for it
-            dreqres.statusCode = e.statusCode;
             emitDebugRequest(e.requestId, dreqres, false);
-        }
         // can't do the same for 304 Not Modified, because it needs to
         // accumulate both extra and non-extra data first to match to
         // reqresFinishingUp requests, and it does get handleDebugCompleted
@@ -288,31 +352,51 @@ function handleDebugErrorOccuried(e) {
     logDebugEvent("loadingFailed", true, e, dreqres);
 
     if (e.canceled === true) {
-        dreqres.sent = false;
         emitDebugRequest(e.requestId, dreqres, false, "debugger::" + (e.errorText ? e.errorText : "net::ERR_CANCELED"));
     } else if (e.blockedReason !== undefined && e.blockedReason !== "") {
-        dreqres.sent = false;
         emitDebugRequest(e.requestId, dreqres, false, "debugger::net::ERR_BLOCKED::" + e.blockedReason);
     } else
         emitDebugRequest(e.requestId, dreqres, true, "debugger::" + e.errorText);
 }
 
 function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp) {
-    debugReqresInFlight.delete(requestId)
+    debugReqresInFlight.delete(requestId);
 
-    // ignore data, file, end extension URLs
-    if (isBoringURL(dreqres.url))
+    // First case: happens when a debugger gets detached very early, after
+    // `handleDebugRequestWillBeSent(false, ...)` but before
+    // `handleDebugRequestWillBeSent(true, ...)`.
+    //
+    // Also see (veryEarly) in `getInFlightLog`.
+    //
+    // Second case: ignore data, file, end extension URLs.
+    if (dreqres.url === undefined || isBoringURL(dreqres.url))
         return;
     // NB: We do this here, instead of any other place because Chromium
     // generates debug events in different orders for different request types.
 
     dreqres.emitTimeStamp = Date.now();
-    dreqres.requestId = requestId;
 
     if (error !== undefined) {
         if (isUnknownError(error))
             console.error("emitDebugRequest", requestId, "error", error, dreqres);
         dreqres.errors.push(error);
+    }
+
+    dreqres.requestHeaders = [];
+    mergeInHeaders(dreqres.requestHeaders, debugHeadersToHeaders(dreqres.requestHeadersDebug));
+    mergeInHeaders(dreqres.requestHeaders, debugHeadersToHeaders(dreqres.requestHeadersDebugExtra));
+
+    dreqres.responseHeaders = [];
+    if (dreqres.responded) {
+        mergeInHeaders(dreqres.responseHeaders, debugHeadersToHeaders(dreqres.responseHeadersDebug));
+        mergeInHeaders(dreqres.responseHeaders, debugHeadersToHeaders(dreqres.responseHeadersDebugExtra));
+    }
+
+    if (!config.debugging) {
+        delete dreqres["requestHeadersDebug"];
+        delete dreqres["requestHeadersDebugExtra"];
+        delete dreqres["responseHeadersDebug"];
+        delete dreqres["responseHeadersDebugExtra"];
     }
 
     if (withResponse === true) {
@@ -322,7 +406,20 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
             else
                 dreqres.responseBody = res.body;
             dreqres.responseComplete = error === undefined;
-        }, () => {}).finally(() => {
+        }, (err) => {
+            if (typeof err === "string") {
+                if (err.startsWith("Debugger is not attached to the tab with id:")
+                    || err.startsWith("Detached while handling command.")) {
+                    dreqres.errors.push("debugger::pWebArc::NO_RESPONSE_BODY::DETACHED_DEBUGGER");
+                    return;
+                } else if (err.startsWith("Cannot access contents of url")) {
+                    dreqres.errors.push("debugger::pWebArc::NO_RESPONSE_BODY::ACCESS_DENIED");
+                    return;
+                }
+            }
+            dreqres.errors.push("debugger::pWebArc::NO_RESPONSE_BODY::OTHER");
+            logError(err);
+        }).finally(() => {
             debugReqresFinishingUp.push(dreqres);
             if (config.debugging)
                 console.warn("CAPTURED debugRequest drequestId", dreqres.requestId,
@@ -332,7 +429,6 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
             if (!dontFinishUp)
                 processMatchFinishingUpWebRequestDebug();
         });
-        return;
     } else {
         dreqres.responseComplete = error === undefined;
         debugReqresFinishingUp.push(dreqres);
@@ -369,23 +465,24 @@ function forceFinishingUpDebug(predicate) {
                          "url", dreqres.url,
                          "dreqres", dreqres);
 
-        emitDone(undefined, dreqres);
+        dreqresToReques(dreqres);
+        reqresAlmostDone.push(dreqres);
     }
     debugReqresFinishingUp = [];
 }
 
-function debugHeadersMatchScore(dreqres, reqres) {
-    let matching = [];
-    let unmatching = [];
+function debugHeadersMatchScore(reqres, dreqres) {
+    let matching = 0;
+    let unmatching = 0;
 
     function match(headers, dheaders) {
-        for (let [k, v] of Object.entries(dheaders)) {
-            let name = k.toLowerCase();
+        for (let dheader of dheaders) {
+            let name = dheader.name.toLowerCase();
             let found = false;
             let foundWrong = false;
             for (let header of headers) {
                 if (header.name.toLowerCase() == name) {
-                    if (getHeaderString(header) == v) {
+                    if (getHeaderString(header) == getHeaderString(dheader)) {
                         found = true;
                         break;
                     } else
@@ -393,113 +490,75 @@ function debugHeadersMatchScore(dreqres, reqres) {
                 }
             }
             if (found)
-                matching.push(name);
+                matching += 1;
             else if (foundWrong)
-                unmatching.push(name);
+                unmatching += 1;
         }
     }
 
-    if (dreqres.requestHeadersExtra !== undefined)
-        match(reqres.requestHeaders, dreqres.requestHeadersExtra);
-    else if (dreqres.requestHeaders !== undefined)
-        match(reqres.requestHeaders, dreqres.requestHeaders);
+    match(reqres.requestHeaders, dreqres.requestHeaders);
+    match(reqres.responseHeaders, dreqres.responseHeaders);
 
-    if (dreqres.responseHeadersExtra !== undefined)
-        match(reqres.responseHeaders, dreqres.responseHeadersExtra);
-    else if (dreqres.responseHeaders !== undefined)
-        match(reqres.responseHeaders, dreqres.responseHeaders);
-
-    let score = matching.length - unmatching.length * 1000;
+    let score = matching - unmatching * 1000;
     if (config.debugging)
-        console.log("debugHeadersMatchScore", score, dreqres, reqres);
+        console.log("debugHeadersMatchScore", score, reqres, dreqres);
     return score;
 }
 
-function addMissingDebugHeaders(headers, obj) {
-    if (obj === undefined) return;
+// Turn debugging `dreqres` into a structure that can be used as a normal
+// webRequest `reqres`. This is used when Chromium bugs out and forgets to
+// produce the webRequest part. Essentially, this is a continuation of
+// emitDebugRequest, which finishes it up to become a valid `reqres`.
+function dreqresToReques(dreqres) {
+    dreqres.requestBody = new ChunkedBuffer();
+    dreqres.requestComplete = true;
+    if (dreqres.responseBody === undefined)
+        dreqres.responseBody = new ChunkedBuffer();
+    // dreqres.responseComplete is set
 
-    for (let [k, v] of Object.entries(obj)) {
-        let name = k.toLowerCase();
-        let found = false;
-        for (let header of headers) {
-            if (header.name.toLowerCase() == name) {
-                if (getHeaderString(header) == v) {
-                    // update the name to the original one
-                    header.name = k;
-                    found = true;
-                    break;
-                }
-            }
-        }
-        if (!found)
-            headers.push({ name: k, value: v });
-    }
+    // TODO remove?
+    dreqres.originUrl = getHeaderValue(dreqres.requestHeaders, "Referer");
 }
 
-function emitDone(closest, dreqres) {
-    if (closest === undefined) {
-        closest = {
-            tabId: dreqres.tabId,
-            fromExtension: false, // most likely
-
-            method: dreqres.method,
-            url: dreqres.url,
-
-            errors: [],
-
-            requestTimeStamp: dreqres.requestTimeStamp,
-            requestHeaders: [],
-            requestComplete: true,
-            requestBody: new ChunkedBuffer(),
-
-            sent: dreqres.sent,
-
-            responseTimeStamp: dreqres.responseTimeStamp,
-            statusCode: dreqres.statusCode,
-            responseHeaders: [],
-            responseComplete: false,
-            responseBody: new ChunkedBuffer(),
-
-            emitTimeStamp: dreqres.emitTimeStamp,
-
-            fake: true,
-        };
-    }
-
-    for (let error of dreqres.errors)
-        closest.errors.push(error);
-
-    closest.protocol = dreqres.protocol;
-    closest.reason = dreqres.reason;
-
+// Update webRequest `reqres` with data collected in the debugging `dreqres`.
+function mergeInDebugReqres(reqres, dreqres) {
     if (dreqres.documentUrl !== undefined)
-        closest.documentUrl = dreqres.documentUrl;
+        reqres.documentUrl = dreqres.documentUrl;
 
-    if (closest.fake)
-        closest.originUrl = getHeaderValue(closest.requestHeaders, "Referer");
+    if (dreqres.requestTimeStamp < reqres.requestTimeStamp)
+        reqres.requestTimeStamp = dreqres.requestTimeStamp;
 
-    // round timestamps to int
-    closest.requestTimeStamp = Math.floor(closest.requestTimeStamp);
-    if (closest.responseTimeStamp !== undefined)
-        closest.responseTimeStamp = Math.floor(closest.responseTimeStamp);
+    for (let e of dreqres.errors)
+        reqres.errors.push(e);
 
-    addMissingDebugHeaders(closest.requestHeaders, dreqres.requestHeaders);
-    addMissingDebugHeaders(closest.requestHeaders, dreqres.requestHeadersExtra);
-    addMissingDebugHeaders(closest.responseHeaders, dreqres.responseHeaders);
-    addMissingDebugHeaders(closest.responseHeaders, dreqres.responseHeadersExtra);
+    mergeInHeaders(reqres.requestHeaders, dreqres.requestHeaders);
 
-    if (dreqres.statusCodeExtra !== undefined && dreqres.statusCodeExtra == 304) {
+    if (!dreqres.responded)
+        return;
+
+    if (dreqres.responseTimeStamp < reqres.responseTimeStamp)
+        reqres.responseTimeStamp = dreqres.responseTimeStamp;
+    if (dreqres.protocol !== undefined)
+        reqres.protocol = dreqres.protocol;
+    if (dreqres.statusCode !== undefined)
+        reqres.statusCode = dreqres.statusCode;
+    if (dreqres.reason !== undefined)
+        reqres.reason = dreqres.reason;
+
+    mergeInHeaders(reqres.responseHeaders, dreqres.responseHeaders);
+
+    if (dreqres.statusCodeExtra == 304) {
         // handle 304 Not Modified cached result by submitting this request twice,
         // first time with 304 code and with no response body
-        let creqres = completedCopyOfReqres(closest);
+        let creqres = completedCopyOfReqres(reqres);
         creqres.statusCode = 304;
         reqresAlmostDone.push(creqres);
         // and then, again, normally
     }
 
-    closest.responseBody = dreqres.responseBody;
-    closest.responseComplete = dreqres.responseComplete;
-    reqresAlmostDone.push(closest);
+    if (dreqres.responseBody !== undefined)
+        reqres.responseBody = dreqres.responseBody;
+    reqres.responseComplete = dreqres.responseComplete;
 }
 
 function processMatchFinishingUpWebRequestDebug(forcing) {
@@ -528,11 +587,11 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
 
             if (matching.length > 0) {
                 let closest = matching.shift();
-                let score = debugHeadersMatchScore(dreqres, closest);
+                let score = debugHeadersMatchScore(closest, dreqres);
                 let diff = Math.abs(dreqres.requestTimeStamp - closest.requestTimeStamp);
                 while (matching.length > 0) {
                     let next = matching.shift();
-                    let nscore = debugHeadersMatchScore(dreqres, next);
+                    let nscore = debugHeadersMatchScore(next, dreqres);
                     let ndiff = Math.abs(dreqres.requestTimeStamp - next.requestTimeStamp);
                     if (nscore > score || nscore == score && ndiff < diff) {
                         notMatching.push(closest);
@@ -547,7 +606,8 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
                 if (config.debugging)
                     console.log("MATCHED", dreqres, closest);
 
-                emitDone(closest, dreqres);
+                mergeInDebugReqres(closest, dreqres);
+                reqresAlmostDone.push(closest);
             } else
                 notFinished.push(dreqres);
 
@@ -557,7 +617,7 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
         debugReqresFinishingUp = notFinished;
     }
 
-    if(!forcing && reqresInFlight.size === 0 && debugReqresInFlight.size === 0) {
+    if (!forcing && reqresInFlight.size === 0 && debugReqresInFlight.size === 0) {
         // NB: It is totally possible for a reqres to finish and get emitted
         // from reqresInFlight while the corresponding dreqres didn't even
         // start.
