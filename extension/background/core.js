@@ -13,7 +13,7 @@
 let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
 
 // default config
-let configVersion = 3;
+let configVersion = 4;
 let config = {
     version: configVersion,
 
@@ -52,8 +52,9 @@ let config = {
     markProblematicIncompleteFC: false,
     markProblematicTransientCodes: true,
     markProblematicPermanentCodes: false,
-    markProblematicWithErrors: false,
+    markProblematicWithImportantErrors: true,
     markProblematicPickedWithErrors: true,
+    markProblematicDroppedWithErrors: false,
     problematicNotify: true,
     problematicNotifyNumber: 3,
 
@@ -1412,12 +1413,14 @@ function processAlmostDone() {
         // a weird status code, mark it!
         problematic = true;
 
-    if (reqres.errors.some(isProblematicError)) {
+    if (reqres.errors.some(isNonTrivialError)) {
         // it had some potentially problematic errors
         picked = picked && config.archiveWithErrors;
         problematic = problematic
-            || config.markProblematicWithErrors
-            || (picked && config.markProblematicPickedWithErrors);
+            || (config.markProblematicWithImportantErrors
+                && reqres.errors.some(isImportantError))
+            || (picked ? config.markProblematicPickedWithErrors
+                       : config.markProblematicDroppedWithErrors);
     }
 
     let lineProtocol;
@@ -2373,6 +2376,11 @@ function upgradeConfigAndPersistentStats(cfg, stats) {
     case 2:
         // because it got updated lots
         cfg.seenHelp = false;
+    case 3:
+        // making them disjoint
+        if (cfg.markProblematicWithErrors)
+            cfg.markProblematicPickedWithErrors = true;
+        rename("markProblematicWithErrors", "markProblematicDroppedWithErrors")
         break;
     default:
         console.warn(`Bad old config version ${cfg.version}, reusing values as-is without updates`);

@@ -135,7 +135,13 @@ function isAbortedError(error) {
     return false;
 }
 
-function isProblematicError(error) {
+function isImportantError(error) {
+    if (error.startsWith("webRequest::pWebArc::") || error.startsWith("debugger::pWebArc::"))
+        return true;
+    return false;
+}
+
+function isNonTrivialError(error) {
     if (!useDebugger && error === "filterResponseData::Channel redirected")
         // Firefox
         return false;
