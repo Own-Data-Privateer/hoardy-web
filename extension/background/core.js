@@ -256,6 +256,11 @@ function processNewTab(tabId, openerTabId) {
     }
     let tabcfg = prefillChildren(children);
     tabConfig.set(tabId, tabcfg);
+
+    if (useDebugger)
+        // prevent empty icons on Chromium
+        browser.browserAction.setIcon({ tabId, path: mkIcons("main") }).catch(logError);
+
     return tabcfg;
 }
 
