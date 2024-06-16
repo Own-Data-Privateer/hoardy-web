@@ -60,7 +60,7 @@ As shown on the above diagram, a new reqres proceeds through the following netwo
 In principle, at reaching =finished= state the reqres can be serialized and saved to disk, but pWebArc provides more states and UI for convenience.
 *** Glossary
 - [[./popup.html#div-stats.in_flight][An /in-flight reqres/]] is a reqres that did not reach the =finished= state yet, in the UI such reqres will be shown to be in =in_flight= state.
-  If some reqres get stuck in one of the =in_flight= states, the UI has buttons ([[./popup.html#stopAllInFlight][this one]] in the popup) to force them out of the current state as if an error occurred.
+  If some reqres get stuck in one of the =in_flight= states, the UI has buttons ([[./popup.html#stopAllInFlight][this]] and [[./popup.html#stopAllTabInFlight][this]] in the popup) to force them out of the current state as if an error occurred.
 - A /finished reqres/ is a reqres that reached the =finished= state, /the final networking state/ is the last state before =finished= (i.e. =complete=, =incomplete=, etc).
 ** Step 2: Classification
 :PROPERTIES:
@@ -302,15 +302,16 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   Which is ugly enough.
   But then Chromium sometimes generates debugging API events and forgets to produce the corresponding =webRequest= API events, or vice versa, thus leaving some of those reqres unmatched.
   To work around that, pWebArc waits [[./popup.html#div-config.workaroundChromiumDebugTimeout][this many seconds]] for new events to arrive, and if none do, forcefully finishes all unmatched in-flight reqres.
-* Error messages
+* Error messages and codes
 :PROPERTIES:
 :CUSTOM_ID: errors
 :END:
-
+** Desktop notifications
 - =pWebArc FAILED to archive <N> items in the queue because it can't establish a connection to the archive at <URL>=
 
   Are you running the [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][the archiving server script]]?
   pWebArc requires an archiving server to actually archive anything.
+
 - =pWebArc FAILED to archive <N> items in the queue because requests to URL fail with: <STATUS> <REASON>: <RESPONSE>=
 
   Your archiving sever is returning HTTP errors when pWebArc is trying to archive data to it.
@@ -319,6 +320,42 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   Some common reasons it could be failing:
   - No space left on the device you are archiving to.
   - It's a bug.
+** Errors recorded in =reqres=, as seen in the [[./popup.html#showState][log]]
+Most error codes are produced by attaching one of the following prefixes to the raw error code given by the browser:
+
+- =webRequest::= prefix is prepended to errors produced by the =browser.webRequest= API;
+
+- =debugger::= prefix is prepended to errors produced by the Chromium Debugger API code;
+
+- =filterResponseData::= prefix is prepended to errors produced by =browser.webRequest.filterResponseData= API (these can usually be ignored, since Firefox generates normal =webRequest::= codes for those reqres too, when it was an actual error, but pWebArc still collects them, adhering to "collect everything as browser gives it, when possible" philosophy).
+
+In particular, =webRequest::NS_= prefix on Firefox, and =webRequest::net::= and =debugger::net::= prefixes on Chromium signify various issues produced by the networking stacks of those browsers.
+For instance:
+
+  - =webRequest::NS_ERROR_ABORT= on Firefox and =webRequest::net::ERR_ABORTED= on Chromium signify that this request was aborted before it finished, e.g. because the originator tab was closed before it was fully loaded;
+    Firefox also uses this code to mean what Chromium signifies with various =BLOCKED= codes;
+
+  - =webRequest::net::ERR_BLOCKED_BY_CLIENT= on Chromium signifies that an extension blocked it;
+
+  - =debugger::net::ERR_BLOCKED::= is a prefix for other errors when the request was blocked, e.g. by CSP;
+
+  - =webRequest::NS_ERROR_NET= prefix on Firefox and =webRequest::net::ERR_FAILED= error on Chromium signify various networking issues.
+
+The exception to the above rule of keeping everything as raw as possible are =webRequest::pWebArc::= and =debugger::pWebArc::= prefixes which signify various errors produced by pWebArc itself in its =webRequest=- or =debugger=-handling code, respectively.
+In particular:
+
+- =webRequest::pWebArc::EMIT_FORCED_BY_USER= and =debugger::pWebArc::EMIT_FORCED_BY_USER= are produced when you forcefully advance a reqres from in-flight state by pressing [[./popup.html#stopAllInFlight][this]] or [[./popup.html#stopAllTabInFlight][that]] button;
+
+- =debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER= is produced when Chromium debugger gets detached from its tab while a reqres inside that tab is still in flight;
+
+- =debugger::pWebArc::EMIT_FORCED_BY_CLOSED_TAB= is produced when a tab gets closed while a reqres inside of it is still in flight;
+
+- =debugger::pWebArc::NO_RESPONSE_BODY::= is a prefix for errors produced when getting request's response body from Chromium's debugger fails for various reasons;
+
+- =webRequest::pWebArc::NO_DEBUGGER::CANCELED= is produced when a non-main-frame request is canceled by pWebArc because no debugger is available to capture it;
+  in the case of a main frame request, pWebArc will cancel the request and reload the tab, [[#chromium-bugs][as discussed above]], so this error will not be produced;
+  but it can happen if a page tries to load a sub-frame (like =iframe=) while the debugger for the tab (and, thus, the main frame) did not attach yet (which only happens for pages where Chromium disallows debugging, or when pWebArc gets enabled after the page in question already started loading, e.g. the very first page after the browser stats);
+  also, this can happen when the debugger gets detached after the main frame was captured but its resources are still loading.
 * Frequently Asked Questions
 :PROPERTIES:
 :CUSTOM_ID: faq
@@ -345,5 +382,21 @@ Most notably:
 
 Yes. This is why [[./popup.html#div-tabconfig.limbo]["Pick into limbo" setting]] exists.
 See [[#limbo][above]] for more info.
+** On Chromium, a lot of my captures fail with =debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER=, =debugger::pWebArc::NO_RESPONSE_BODY::DETACHED_DEBUGGER=, and =webRequest::pWebArc::NO_DEBUGGER::CANCELED= errors. What do I do?
+
+You are either
+
+- pressing the "Cancel" or "Close" (cross) buttons in the Chromium's popup-toolbar telling you about the debugger being enabled, and so Chromium detaches it, breaking everything ([[#chromium-bugs][see above]]);
+
+- pressing =Space= or =Escape= keyboard keys when doing things in Chromium's UI, but nothing at that particular moment reacts to the key you pressed, except there is that popup-toolbar... and so Chromium decides it must mean you want to press "Cancel" button there ... and detaches the debugger, breaking everything ([[#chromium-bugs][again]]);
+
+  yes, this is really annoying, and this is a common problem for me, since I usually page-down using =Space= and press =Escape= a lot (usually to cancel selection, but sometimes also as a trauma of a long-time Vim user);
+
+  the only solution to this I know of is to just not touch the keyboard at all, at least while things are still loading;
+  i.e. just click on stuff using the mouse/track-point/touch-pad/touchscreen/etc, wait for the "T" ("Tracking") to vanish from the extension's badge, and only then let your (grabby and impatient for exercise via keyboard shortcuts) fingers to touch the keyboard;
+
+  even then, Chromium will detach debuggers from time to time seemingly at random, but at least it will be rare enough that you won't need to reload much;
+
+- trying to capture very large media files; [[#chromium-bugs][as discussed above]], this has no workaround, run pWebArc under Firefox instead.
 ** This page does not answer my question. What do I do?
 If the whole content of this page (not just this section, did you try searching for stuff with =Control+F=? there's a lot of info here) does not explain your problem, [[https://github.com/Own-Data-Privateer/pwebarc/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]].
