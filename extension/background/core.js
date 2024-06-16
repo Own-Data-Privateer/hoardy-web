@@ -1962,12 +1962,21 @@ function handleBeforeRedirect(e) {
 
     logEvent("BeforeRedirect", e, reqres);
 
-    if (!reqres.responded)
+    if (!reqres.responded) {
         // this happens when a request gets redirected right after
         // handleBeforeRequest by another extension
         fillResponse(reqres, e);
+
+        if (!useDebugger && reqres.statusCode === 0) {
+            // workaround internal Firefox redirects giving no codes and statuses
+            reqres.statusCode = 307;
+            reqres.reason = "Internal Redirect";
+        }
+    }
+
     reqres.responseComplete = true;
     reqres.redirectUrl = e.redirectUrl;
+
     emitRequest(e.requestId, reqres);
 
     // after this it will go back to handleBeforeRequest, so we don't need to
