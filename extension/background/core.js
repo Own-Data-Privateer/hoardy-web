@@ -374,9 +374,10 @@ function processRemoveTab(tabId) {
 }
 
 // browserAction state
-let oldTitle = null;
-let oldBadge = null;
-let oldColor = null;
+let udStats = null;
+let udTitle = null;
+let udBadge = null;
+let udColor = null;
 
 // archiving state
 // reqres means "request + response"
@@ -721,89 +722,100 @@ async function updateDisplay(episodic, statsChanged, switchedTab, updatedTabId) 
     if (updatedTabId === undefined)
         updatedTabId = null;
 
-    let stats = getStats();
+    let stats;
+    let title;
+    let changed = switchedTab;
 
-    if (statsChanged)
+    if (statsChanged || udStats === null) {
+        stats = getStats();
+
+        if (udStats === null
+            || stats.archive_failed !== udStats.archive_failed
+            || stats.in_queue != udStats.in_queue)
+            // because these global stats influence the tab's icon
+            changed = true;
+
+        udStats = stats;
+
         broadcast(["updateStats", stats]);
 
-    let newBadge = "";
-    let newColor = 0;
-    let chunks = [];
+        let badge = "";
+        let color = 0;
+        let chunks = [];
 
-    if (stats.issues > 0)
-        newBadge = stats.issues.toString();
+        if (stats.issues > 0)
+            badge = stats.issues.toString();
 
-    if (!config.collecting)
-        chunks.push("off");
-    if (!config.archiving || stats.archive_failed > 0) {
-        newBadge += "A";
-        newColor = 1;
-        if (!config.archiving)
-            chunks.push("not archiving");
-        if (stats.archive_failed > 0)
-            chunks.push(`failed to archive ${stats.archive_failed} reqres`);
-    }
-    if (stats.problematic > 0) {
-        newBadge += "P";
-        newColor = 1;
-        chunks.push(`${stats.problematic} problematic reqres`);
-    }
-    if (stats.in_flight > 0) {
-        newBadge += "T";
-        chunks.push(`still tracking ${stats.in_flight} in-flight reqres`);
-    }
-    if (stats.scheduled > stats.scheduled_low) {
-        newBadge += "~";
-        newColor = 1;
-        chunks.push(`${stats.scheduled} scheduled actions`);
-    }
-    if (stats.in_limbo > 0) {
-        newBadge += "L";
-        newColor = 1;
-        chunks.push(`${stats.in_limbo} reqres in limbo`);
-    }
-    if (stats.in_queue > 0) {
-        newBadge += "Q";
-        chunks.push(`${stats.in_queue} reqres in queue`);
-    }
-    if (stats.scheduled == stats.scheduled_low && stats.scheduled_low > 0) {
-        newBadge += ".";
-        chunks.push(`${stats.scheduled_low} low-priority scheduled actions`);
-    }
-    if (config.ephemeral) {
-        newBadge += "E";
-        newColor = 1;
-        chunks.push("ephemeral");
-    }
-    if (config.debugging || config.dumping) {
-        newBadge += "D";
-        newColor = 1;
-        chunks.push("debugging (SLOW!)");
-    }
-    if (config.autoPopInLimboDiscard || config.doNotQueue) {
-        newBadge += "!";
-        newColor = 2;
-        chunks.push("auto-discarding");
-    }
+        if (!config.collecting)
+            chunks.push("off");
+        if (!config.archiving || stats.archive_failed > 0) {
+            badge += "A";
+            color = 1;
+            if (!config.archiving)
+                chunks.push("not archiving");
+            if (stats.archive_failed > 0)
+                chunks.push(`failed to archive ${stats.archive_failed} reqres`);
+        }
+        if (stats.problematic > 0) {
+            badge += "P";
+            color = 1;
+            chunks.push(`${stats.problematic} problematic reqres`);
+        }
+        if (stats.in_flight > 0) {
+            badge += "T";
+            chunks.push(`still tracking ${stats.in_flight} in-flight reqres`);
+        }
+        if (stats.scheduled > stats.scheduled_low) {
+            badge += "~";
+            color = 1;
+            chunks.push(`${stats.scheduled} scheduled actions`);
+        }
+        if (stats.in_limbo > 0) {
+            badge += "L";
+            color = 1;
+            chunks.push(`${stats.in_limbo} reqres in limbo`);
+        }
+        if (stats.in_queue > 0) {
+            badge += "Q";
+            chunks.push(`${stats.in_queue} reqres in queue`);
+        }
+        if (stats.scheduled == stats.scheduled_low && stats.scheduled_low > 0) {
+            badge += ".";
+            chunks.push(`${stats.scheduled_low} low-priority scheduled actions`);
+        }
+        if (config.ephemeral) {
+            badge += "E";
+            color = 1;
+            chunks.push("ephemeral");
+        }
+        if (config.debugging || config.dumping) {
+            badge += "D";
+            color = 1;
+            chunks.push("debugging (SLOW!)");
+        }
+        if (config.autoPopInLimboDiscard || config.doNotQueue) {
+            badge += "!";
+            color = 2;
+            chunks.push("auto-discarding");
+        }
 
-    let newTitle = "pWebArc: idle";
-    if (chunks.length != 0)
-        newTitle = "pWebArc: " + chunks.join(", ");
+        if (chunks.length > 0)
+            title = "pWebArc: " + chunks.join(", ");
+        else
+            title = "pWebArc: idle";
 
-    let changed = switchedTab;
-    if (oldTitle != newTitle || oldBadge !== newBadge) {
-        if (config.debugging)
-            console.log(`updated browserAction: badge "${newBadge}", title "${newTitle}"`);
+        if (udBadge !== badge) {
+            changed = true;
+            udBadge = badge;
+            await browser.browserAction.setBadgeText({ text: badge });
+            if (config.debugging)
+                console.log(`updated browserAction: badge "${badge}"`);
+        }
 
-        oldTitle = newTitle;
-        oldBadge = newBadge;
-        changed = true;
-
-        await browser.browserAction.setBadgeText({ text: newBadge });
-
-        if (oldColor !== newColor) {
-            oldColor = newColor;
-            switch (newColor) {
+        if (udColor !== color) {
+            changed = true;
+            udColor = color;
+            switch (color) {
             case 0:
                 await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
                 await browser.browserAction.setBadgeBackgroundColor({ color: "#777777" });
@@ -817,6 +829,14 @@ async function updateDisplay(episodic, statsChanged, switchedTab, updatedTabId) 
                 await browser.browserAction.setBadgeBackgroundColor({ color: "#e02020" });
             }
         }
+
+        if (udTitle != title) {
+            changed = true;
+            udTitle = title;
+        }
+    } else {
+        stats = udStats;
+        title = udTitle;
     }
 
     if (!changed && updatedTabId === null)
@@ -824,16 +844,17 @@ async function updateDisplay(episodic, statsChanged, switchedTab, updatedTabId) 
 
     let tabs = await browser.tabs.query({ active: true });
     for (let tab of tabs) {
-        let tabId = getStateTabIdOrTabId(tab);
+        let tabId = tab.id;
+        let stateTabId = getStateTabIdOrTabId(tab);
 
         // skip updates for unchanged tabs, when specified
-        if (!changed && updatedTabId !== null && updatedTabId != tabId)
+        if (!changed && updatedTabId !== null && updatedTabId != stateTabId)
             continue;
 
-        let tabcfg = tabConfig.get(tabId);
+        let tabcfg = tabConfig.get(stateTabId);
         if (tabcfg === undefined)
             tabcfg = config.root;
-        let tabstats = getTabStats(tabId);
+        let tabstats = getTabStats(stateTabId);
 
         let icon;
         if (config.archiving && stats.in_queue > 0)
@@ -868,22 +889,22 @@ async function updateDisplay(episodic, statsChanged, switchedTab, updatedTabId) 
         else if (tabcfg.negLimbo)
             tchunks.push("dropping into limbo");
 
-        let title = newTitle;
+        let ttitle = title;
         if (tchunks.length != 0)
-            title += "; this tab: " + tchunks.join(", ");
-
-        if (config.debugging)
-            console.log(`updated browserAction: tabId ${tab.id}: icon "${icon}", title "${title}"`);
+            ttitle += "; this tab: " + tchunks.join(", ");
 
         if (useDebugger) {
             // Chromium does not support per-window browserActions, so we have to update them per-tab.
-            await browser.browserAction.setIcon({ tabId: tab.id, path: mkIcons(icon) }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
-            await browser.browserAction.setTitle({ tabId: tab.id, title }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
+            await browser.browserAction.setIcon({ tabId, path: mkIcons(icon) }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
+            await browser.browserAction.setTitle({ tabId, title: ttitle }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
         } else {
             let windowId = tab.windowId;
             await browser.browserAction.setIcon({ windowId, path: mkIcons(icon) }).catch(logError);
-            await browser.browserAction.setTitle({ windowId, title }).catch(logError);
+            await browser.browserAction.setTitle({ windowId, title: ttitle }).catch(logError);
         }
+
+        if (config.debugging)
+            console.log(`updated browserAction: tabId ${tabId}: icon "${icon}", title "${ttitle}"`);
     }
 }
 
@@ -2045,7 +2066,7 @@ function handleTabCreated(tab) {
     } else
         processNewTab(tabId, tab.openerTabId);
 
-    updateDisplay(0, false, true);
+    updateDisplay(0, false, true, tabId);
 }
 
 function handleTabRemoved(tabId) {
