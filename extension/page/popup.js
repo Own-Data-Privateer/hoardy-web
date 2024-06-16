@@ -128,6 +128,7 @@ async function popupMain() {
     buttonToAction("unmarkAllTabProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
     buttonToAction("stopAllTabInFlight", catchAll(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
 
+    buttonToMessage("resetConfig");
     buttonToMessage("resetPersistentStats");
 
     buttonToAction("showAll", catchAll(showAll));

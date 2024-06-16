@@ -39,14 +39,14 @@ h2 span.right {
     display: flex;
 }
 
-#version {
+h1 input[type="button"],
+h2 input[type="button"] {
     margin-left: 0.5em;
-    font-size: 70%;
-    vertical-align: top;
 }
 
-#help, #forgetHistory, #showState {
-    margin-left: 0.5em;
+#version {
+    font-size: 70%;
+    vertical-align: top;
 }
 
 .smaller,
@@ -363,6 +363,7 @@ label code {
     <div id="debugging-options">
       <h2>Debugging
         <span class="right">
+          <span data-help="Reset all config options to their default values."><input type="button" id="resetConfig" class="smaller" value="Reset!" /></span>
           <span data-help="Reset all persistent collected, discarded, picked, and dropped stats to zero."><input type="button" id="resetPersistentStats" class="smaller" value="Wipe stats!" /></span>
         </span>
       </h2>

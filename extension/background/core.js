@@ -14,7 +14,7 @@ let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
 
 // default config
 let configVersion = 4;
-let config = {
+let configDefaults = {
     version: configVersion,
 
     // debugging options
@@ -110,6 +110,8 @@ let config = {
         profile: "background",
     },
 };
+// current config
+let config = assignRec({}, configDefaults);
 // last config saved in storage
 let savedConfig = undefined;
 
@@ -119,6 +121,16 @@ async function saveConfig(eConfig) {
     savedConfig = eConfig;
     console.log("saving config", eConfig);
     await browser.storage.local.set({ config: eConfig }).catch(logError);
+}
+
+function scheduleSaveConfig(config, noUpdateDisplay) {
+    let eConfig = assignRec({}, config);
+    resetSingletonTimeout(scheduledInternal, "saveConfig", 1000, async () => {
+        await saveConfig(eConfig);
+        await updateDisplay(0, true, false);
+    });
+    if (!noUpdateDisplay)
+        updateDisplay(0, true, false);
 }
 
 // scheduled internal functions
@@ -2110,15 +2122,10 @@ function handleMessage(request, sender, sendResponse) {
         let oldConfig = config;
         config = updateFromRec(assignRec({}, oldConfig), request[1]);
 
-        if (!config.ephemeral && !equalRec(oldConfig, config)) {
+        if (!config.ephemeral && !equalRec(oldConfig, config))
             // save config after a little pause to give the user time to click
             // the same toggle again without torturing the SSD
-            let eConfig = assignRec({}, config);
-            resetSingletonTimeout(scheduledInternal, "saveConfig", 1000, async () => {
-                await saveConfig(eConfig);
-                await updateDisplay(0, true, false);
-            });
-        }
+            scheduleSaveConfig(config, true);
 
         if (useDebugger)
             syncDebuggersState();
@@ -2127,7 +2134,13 @@ function handleMessage(request, sender, sendResponse) {
             retryAllFailedArchives();
 
         updateDisplay(0, true, false);
-        broadcast(["updateConfig"]);
+        broadcast(["updateConfig", config]);
+        sendResponse(null);
+        break;
+    case "resetConfig":
+        config = assignRec({}, configDefaults);
+        scheduleSaveConfig(config);
+        broadcast(["updateConfig", config]);
         sendResponse(null);
         break;
     case "getOriginConfig":
