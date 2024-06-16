@@ -261,8 +261,8 @@ label code {
         </span>
       </div>
     </div>
-    <ui id="tabconfig.collecting" type="boolean" class="prefer-on dc" tabindex=1 data-shortcut="toggleTabConfigTracking" data-help="Track new reqres originating from this tab.">Track new reqres</ui>
-    <ui id="tabconfig.limbo" type="boolean" tabindex=2 data-shortcut="toggleTabConfigLimbo" data-help="For this tab, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
+    <ui id="tabconfig.collecting" type="boolean" class="prefer-on dc" tabindex=2 data-shortcut="toggleTabConfigTracking" data-help="Track new reqres originating from this tab.">Track new reqres</ui>
+    <ui id="tabconfig.limbo" type="boolean" tabindex=3 data-shortcut="toggleTabConfigLimbo" data-help="For this tab, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
 
     <div name="more">
     <ui id="tabconfig.negLimbo" type="boolean" class="prefer-off" data-help="For this tab, put newly `finished` reqres that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
@@ -270,8 +270,8 @@ label code {
     </div>
 
     <h1>This tab&#039;s new children</h1>
-    <ui id="tabconfig.children.collecting" type="boolean" tabindex=3 class="prefer-on dc" data-shortcut="toggleTabConfigChildrenTracking" data-help="Enable &quot;Track new reqres&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Track new reqres&quot;</ui>
-    <ui id="tabconfig.children.limbo" type="boolean" tabindex=4 data-shortcut="toggleTabConfigChildrenLimbo" data-help="Enable &quot;Pick into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Pick into limbo&quot;</ui>
+    <ui id="tabconfig.children.collecting" type="boolean" tabindex=4 class="prefer-on dc" data-shortcut="toggleTabConfigChildrenTracking" data-help="Enable &quot;Track new reqres&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Track new reqres&quot;</ui>
+    <ui id="tabconfig.children.limbo" type="boolean" tabindex=5 data-shortcut="toggleTabConfigChildrenLimbo" data-help="Enable &quot;Pick into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Pick into limbo&quot;</ui>
 
     <div name="more">
     <ui id="tabconfig.children.negLimbo" type="boolean" class="prefer-off" data-help="Enable &quot;Drop into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Drop into limbo&quot;</ui>
@@ -279,8 +279,8 @@ label code {
     </div>
 
     <h1>New root tabs</h1>
-    <ui id="config.root.collecting" type="boolean" class="prefer-on dc" tabindex=5 data-help="Enable &quot;Track new reqres&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Track new reqres&quot;</ui>
-    <ui id="config.root.limbo" type="boolean" tabindex=6 data-help="Enable &quot;Pick into limbo&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Pick into limbo&quot;</ui>
+    <ui id="config.root.collecting" type="boolean" class="prefer-on dc" tabindex=6 data-help="Enable &quot;Track new reqres&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Track new reqres&quot;</ui>
+    <ui id="config.root.limbo" type="boolean" tabindex=7 data-help="Enable &quot;Pick into limbo&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Pick into limbo&quot;</ui>
 
     <div name="more">
     <ui id="config.root.negLimbo" type="boolean" class="prefer-off" data-help="Enable &quot;Drop into limbo&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Drop into limbo&quot;</ui>
@@ -335,7 +335,7 @@ label code {
     </div>
     <div id="notification-options">
       <h2>Generate desktop notifications about</h2>
-      <ui id="config.problematicNotify" type="boolean" data-help="Complain when a new problematic reqres appears.">... new problematic reqres</ui>
+      <ui id="config.problematicNotify" type="boolean" tabindex=8 data-help="Complain when a new problematic reqres appears.">... new problematic reqres</ui>
       <ui id="config.problematicNotifyNumber" type="number" class="dpn" data-help="Show no more than this many latest METHOD + URL lines in the generated problematic reqres notification.">But no more than</ui>
       <ui id="config.limboNotify" type="boolean" class="prefer-on" data-help="Complain when too much stuff is being held in limbo.">... too much stuff in limbo</ui>
       <ui id="config.limboMaxNumber" type="number" class="dln" data-help="Start complaining when more than this number of reqres are in limbo.">Complain after #</ui>
@@ -374,7 +374,7 @@ label code {
     </div>
     </div>
 
-    <input type="button" id="showAll" tabindex=7 value="Show all" />
+    <input type="button" id="showAll" tabindex=1 value="Show all" />
     </div>
 
     <script src="../lib/compat.js"></script>

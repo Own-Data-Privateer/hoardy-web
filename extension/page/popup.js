@@ -10,6 +10,12 @@ function showAll() {
     document.getElementById("showAll").style.display = "none";
     for (let node of document.getElementsByName("more"))
         node.style.removeProperty("display");
+
+    for (let node of document.getElementsByTagName("input")) {
+        let ti = node.getAttribute("tabindex");
+        if (ti !== null && ti != -1)
+            node.removeAttribute("tabindex");
+    }
 }
 
 function hideAll() {
