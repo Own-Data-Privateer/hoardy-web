@@ -50,6 +50,8 @@ let config = {
     markProblematicNoResponse: true,
     markProblematicIncomplete: true,
     markProblematicIncompleteFC: false,
+    markProblematicTransientCodes: true,
+    markProblematicPermanentCodes: false,
     markProblematicWithErrors: false,
     markProblematicPickedWithErrors: true,
     problematicNotify: true,
@@ -60,6 +62,10 @@ let config = {
     archiveCanceled: false,
     archiveNoResponse: false,
     archiveIncompleteResponse: false,
+    archive1xxCodes: true,
+    archive3xxCodes: true,
+    archiveTransientCodes: true,
+    archivePermanentCodes: true,
     archiveWithErrors: true,
 
     // limbo options
@@ -1341,6 +1347,7 @@ function processAlmostDone() {
         reqres.responseComplete = false;
 
     let updatedTabId = reqres.tabId;
+    let statusCode = reqres.statusCode;
 
     let options = getOriginConfig(updatedTabId, reqres.fromExtension);
     let info = getOriginState(updatedTabId, reqres.fromExtension);
@@ -1365,7 +1372,7 @@ function processAlmostDone() {
         state = "incomplete";
         problematic = config.markProblematicIncomplete;
         picked = config.archiveIncompleteResponse;
-    } else if (!useDebugger && reqres.statusCode === 200 && reqres.fromCache) {
+    } else if (!useDebugger && statusCode === 200 && reqres.fromCache) {
         let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
         if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
             // Under Firefox, filterResponseData filters will get empty response data for some
@@ -1388,6 +1395,22 @@ function processAlmostDone() {
         problematic = problematic || config.markProblematicPartialRequest;
         picked = picked && config.archivePartialRequest;
     }
+
+    if (!reqres.responded || statusCode >= 200 && statusCode < 300) {
+        // do nothing
+    } else if (statusCode >= 100 && statusCode < 200)
+        picked = picked && config.archive1xxCodes;
+    else if (statusCode >= 300 && statusCode < 400)
+        picked = picked && config.archive3xxCodes;
+    else if (transientStatusCodes.has(statusCode)) {
+        picked = picked && config.archiveTransientCodes;
+        problematic = problematic || config.markProblematicTransientCodes;
+    } else if (statusCode >= 400 && statusCode < 600) {
+        picked = picked && config.archivePermanentCodes;
+        problematic = problematic || config.markProblematicPermanentCodes;
+    } else
+        // a weird status code, mark it!
+        problematic = true;
 
     if (reqres.errors.some(isProblematicError)) {
         // it had some potentially problematic errors
@@ -1431,7 +1454,7 @@ function processAlmostDone() {
                     "tabId", updatedTabId,
                     "req", reqres.requestComplete,
                     "res", reqres.responseComplete,
-                    "result", reqres.statusCode, reqres.reason, reqres.statusLine,
+                    "result", statusCode, reqres.reason, reqres.statusLine,
                     "errors", reqres.errors,
                     "profile", options.profile,
                     reqres);

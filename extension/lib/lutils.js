@@ -6,7 +6,19 @@
  * This file can be distributed under the terms of the GNU GPL, version 3 or later.
  */
 
+// see https://en.wikipedia.org/wiki/HTTP_status_codes
+// and https://datatracker.ietf.org/doc/html/rfc9110
 let redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
+let transientStatusCodes = new Set([
+    401, 402, 403, 404, 407, 408, 409,
+    412, 416, 418, 421, 423, 424, 425,
+    426, 429, 451,
+    500, 502, 503, 504, 507, 511,
+    // unofficial ones
+    419, 440, 450, 495, 496,
+    509, 520, 521, 522, 523, 524, 525,
+    526, 530, 540, 598, 599,
+]);
 
 // for filtering out our own requests, pages, etc
 let selfURL = browser.runtime.getURL("/");
