@@ -130,6 +130,10 @@ function handleDebugEvent(debuggee, method, params) {
         params.tabId = debuggee.tabId;
         handleDebugResponseRecieved(false, params);
         break;
+    case "Network.requestServedFromCache":
+        params.tabId = debuggee.tabId;
+        handleRequestServedFromCache(params);
+        break;
     case "Network.loadingFinished":
         params.tabId = debuggee.tabId;
         handleDebugCompleted(params);
@@ -143,7 +147,6 @@ function handleDebugEvent(debuggee, method, params) {
     //    browser.debugger.sendCommand(debuggee, "Fetch.continueRequest", { requestId: params.requestId });
     //    break;
     case "Inspector.detached":
-    case "Network.requestServedFromCache":
     case "Network.dataReceived":
     case "Network.resourceChangedPriority":
         // ignore
@@ -330,6 +333,17 @@ function handleDebugResponseRecieved(nonExtra, e) {
         // accumulate both extra and non-extra data first to match to
         // reqresFinishingUp requests, and it does get handleDebugCompleted
     }
+}
+
+function handleRequestServedFromCache(e) {
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+
+    let dreqres = debugReqresInFlight.get(e.requestId);
+    if (dreqres === undefined) return;
+
+    logDebugEvent("requestServedFromCache", true, e, dreqres);
+
+    dreqres.fromCache = true;
 }
 
 function handleDebugCompleted(e) {
@@ -544,6 +558,8 @@ function mergeInDebugReqres(reqres, dreqres) {
         reqres.statusCode = dreqres.statusCode;
     if (dreqres.reason !== undefined)
         reqres.reason = dreqres.reason;
+    if (dreqres.fromCache)
+        reqres.fromCache = true;
 
     mergeInHeaders(reqres.responseHeaders, dreqres.responseHeaders);
 
