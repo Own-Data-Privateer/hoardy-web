@@ -2,84 +2,84 @@
 
 - Bugfixes. A whole ton of bugfixes.
 
-    So many bugfixes that pWebArc on Chromium now actually works almost as well as on Firefox.
+  So many bugfixes that pWebArc on Chromium now actually works almost as well as on Firefox.
 
-    All leftover issues on Chromium I'm aware of are consequences of Chromium's debugging API limitations and, as far as I can see, are unsolvable without actually patching Chromium (which is unlikely to be accepted upstream, given that patching them will make ad-blocking easier).
+  All leftover issues on Chromium I'm aware of are consequences of Chromium's debugging API limitations and, as far as I can see, are unsolvable without actually patching Chromium (which is unlikely to be accepted upstream, given that patching them will make ad-blocking easier).
 
-    `archiveweb.page` project appears to suffer from the same issues.
+  `archiveweb.page` project appears to suffer from the same issues.
 
-    Meanwhile, pWebArc continues to work exceptionally well on Firefox-based browsers.
+  Meanwhile, pWebArc continues to work exceptionally well on Firefox-based browsers.
 
 - pWebArc now follows the following state diagram:
 
-    ```
-    (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
-       |                           |                              |             |
-       |                           v                              v             v
-       |                     (no_response)                   (incomplete)   (complete)
-       |                           |                              |             |
-       |                           \                              |             |
-       |\---> (canceled) -----\     \                             |             |
-       |                       \     \                            \             |
-       |                        \     \                            \            v
-       |\-> (incomplete_fc) ----->----->---------------------------->-----> (finished)
-       |                        /                                            /  |
-       |                       /                                      /-----/   |
-       \--> (complete_fc) ----/        /--------------- (picked) <---/          v
-                                       |                   |                (dropped)
-                                       v                   v                 /  |
-           (archived) <- (sIO) <- (collected) <------- (in_limbo) <---------/   |
-                           |           ^                   |                    |
-                           |           |                   |                    |
-                    /------/           \-----\             \--> (discarded) <---/
-                    |                        |
-                    \-> (failed to archive) -/
-    ```
+  ```
+  (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
+     |                           |                              |             |
+     |                           v                              v             v
+     |                     (no_response)                   (incomplete)   (complete)
+     |                           |                              |             |
+     |                           \                              |             |
+     |\---> (canceled) -----\     \                             |             |
+     |                       \     \                            \             |
+     |                        \     \                            \            v
+     |\-> (incomplete_fc) ----->----->---------------------------->-----> (finished)
+     |                        /                                            /  |
+     |                       /                                      /-----/   |
+     \--> (complete_fc) ----/        /--------------- (picked) <---/          v
+                                     |                   |                (dropped)
+                                     v                   v                 /  |
+         (archived) <- (sIO) <- (collected) <------- (in_limbo) <---------/   |
+                         |           ^                   |                    |
+                         |           |                   |                    |
+                  /------/           \-----\             \--> (discarded) <---/
+                  |                        |
+                  \-> (failed to archive) -/
+  ```
 
-    Terminology-wise, most notably, `picked` and `dropped` now mean what `collected` and `discarded` meant before.
+  Terminology-wise, most notably, `picked` and `dropped` now mean what `collected` and `discarded` meant before.
 
-    See [the "Help" page](./extension/page/help.org) for more info.
+  See [the "Help" page](./extension/page/help.org) for more info.
 
-    - A lot of changes to make pWebArc consistently use the above terminology --- both in the source and in the documentation --- were performed for this release.
+  - A lot of changes to make pWebArc consistently use the above terminology --- both in the source and in the documentation --- were performed for this release.
 
 - New features:
 
-    - Implemented "negative limbo mode".
+  - Implemented "negative limbo mode".
 
-        It does the same thing as limbo mode does, but for reqres that were dropped instead of picked.
-        (Which is why there is an arrow from `dropped` to `in_limbo` on the diagram above.)
+    It does the same thing as limbo mode does, but for reqres that were dropped instead of picked.
+    (Which is why there is an arrow from `dropped` to `in_limbo` on the diagram above.)
 
-    - Implemented optional automatic actions when a tab gets closed.
+  - Implemented optional automatic actions when a tab gets closed.
 
-        E.g., you can ask pWebArc to automatically unmark that tab's `problematic` reqres and/or collect and archive everything belonging to that tab from `limbo`.
+    E.g., you can ask pWebArc to automatically unmark that tab's `problematic` reqres and/or collect and archive everything belonging to that tab from `limbo`.
 
-    - Implemented a bunch of new desktop notifications.
+  - Implemented a bunch of new desktop notifications.
 
-    - Added a bunch of new configuration options.
+  - Added a bunch of new configuration options.
 
-        This includes a bunch of them for controlling desktop notifications.
+    This includes a bunch of them for controlling desktop notifications.
 
-    - Added a bunch of new keyboard shortcuts.
+  - Added a bunch of new keyboard shortcuts.
 
-        Also, keyboard shortcuts now work properly in narrowed "Internal State" pages.
+    Also, keyboard shortcuts now work properly in narrowed "Internal State" pages.
 
-    - Implemented stat persistence between restarts.
+  - Implemented stat persistence between restarts.
 
-        You can brag about your archiving prowess to your friends by sharing popup UI screenshots now.
+    You can brag about your archiving prowess to your friends by sharing popup UI screenshots now.
 
 - Added the "Changelog" page, which can be viewed by clicking the version number in the extension's popup.
 
 - Improved visuals:
 
-    - Extension's toolbar button icon, badge, and title are much more informative and consistent in their behaviour now.
+  - Extension's toolbar button icon, badge, and title are much more informative and consistent in their behaviour now.
 
-    - The version number button in the popup (which opens the "Changelog") will now get highlighted on major updates.
+  - The version number button in the popup (which opens the "Changelog") will now get highlighted on major updates.
 
-    - Similarly, the "Help" button will now get highlighted when that page gets updated.
+  - Similarly, the "Help" button will now get highlighted when that page gets updated.
 
-    - The popup, the "Help" page, the "Internal State" aka the "Log" page all had their UI improved greatly.
+  - The popup, the "Help" page, the "Internal State" aka the "Log" page all had their UI improved greatly.
 
-    - All the toggles in the popup are now color-coded with their expected values, so if something looks red(-dish), you might want to check the help string in question just in case.
+  - All the toggles in the popup are now color-coded with their expected values, so if something looks red(-dish), you might want to check the help string in question just in case.
 
 - Improved documentation.
 
@@ -87,14 +87,14 @@
 
 - Changed format of reqres `.status` to `<"C" or "I" for request.complete><"N" for no response or <response.code><"C" or "I" for response.complete> otherwise>` (yes, this changes most `--output` formats of `organize`, again).
 
-    - Added `~=` expression atom which does `re.match` internally.
+  - Added `~=` expression atom which does `re.match` internally.
 
-    - Changed all documentation examples to do `~= .200C` instead of `== 200C` to reflect the above change.
+  - Changed all documentation examples to do `~= .200C` instead of `== 200C` to reflect the above change.
 
 - `export mirror`: implemented `--no-overwrites`, `--partial`, and `--overwrite-dangerously` options.
 
-    Switched the default from `--overwrite-dangerously` (which is what `export mirror` did before even if there was no option for it) to `--no-overwrites`.
-    This makes the default semantics consistent with that of `organize`.
+  Switched the default from `--overwrite-dangerously` (which is what `export mirror` did before even if there was no option for it) to `--no-overwrites`.
+  This makes the default semantics consistent with that of `organize`.
 
 - `organize`: renamed `--keep` -> `--no-overwrites` for consistency.
 
@@ -108,23 +108,23 @@
 
 - Implemented "problematic" reqres flag, its tracking, UI, and documentation.
 
-    This flag gets set for "no_response" and "incomplete" reqres by default but, unlike "Archive reqres with" settings, it does not influence archival.
-    Instead pWebArc displays "error" as its icon and its badge gets "!" at the end.
+  This flag gets set for "no_response" and "incomplete" reqres by default but, unlike "Archive reqres with" settings, it does not influence archival.
+  Instead pWebArc displays "error" as its icon and its badge gets "!" at the end.
 
-    This is needed because, normally, browsers provide no indication when some parts of the page failed to load properly --- they expect you to actually look at the page with your eyes to notice something looking broken instead --- which is not a proper way to do this when you want to be sure that the whole page with all its resources was archived.
+  This is needed because, normally, browsers provide no indication when some parts of the page failed to load properly --- they expect you to actually look at the page with your eyes to notice something looking broken instead --- which is not a proper way to do this when you want to be sure that the whole page with all its resources was archived.
 
 - Implemented currently active tab's limbo mode indication via the icon.
 
 - Added more shortcuts, changed defaults for others:
 
-    - Added `toggle-tabconfig-limbo`, `toggle-tabconfig-children-limbo`, and `show-tab-state` shortcuts,
+  - Added `toggle-tabconfig-limbo`, `toggle-tabconfig-children-limbo`, and `show-tab-state` shortcuts,
 
-    - Changed the default shortcut for `collect-all-tab-inlimbo` from `Alt+A` to `Alt+Shift+A` for uniformity.
+  - Changed the default shortcut for `collect-all-tab-inlimbo` from `Alt+A` to `Alt+Shift+A` for uniformity.
 
 - Renamed reqres states:
 
-    - `noresponse` -\> `no_response`,
-    - `incomplete-fc` -\> `incomplete_fc`.
+  - `noresponse` -\> `no_response`,
+  - `incomplete-fc` -\> `incomplete_fc`.
 
 - Added a separate state for reqres that are completed from cache: `complete_fc`.
 
@@ -146,11 +146,11 @@
 
 - Implement "in limbo" reqres processing stage and toggles.
 
-    "Limbo" is an optional pre-archival-queue stage for finished reqres that are ready to be archived but, unlike non-limbo reqres, are not to be archived automatically.
+  "Limbo" is an optional pre-archival-queue stage for finished reqres that are ready to be archived but, unlike non-limbo reqres, are not to be archived automatically.
 
-    Which is useful in cases when you need to actually look at a page before deciding if you want to archive it.
+  Which is useful in cases when you need to actually look at a page before deciding if you want to archive it.
 
-    E.g., you enable limbo mode, reload the page, notice there were no updates to the interesting parts of the page, and so you discard all of the reqres newly generated by that tab via appropriate button in the add-on popup, or via the new keyboard shortcut.
+  E.g., you enable limbo mode, reload the page, notice there were no updates to the interesting parts of the page, and so you discard all of the reqres newly generated by that tab via appropriate button in the add-on popup, or via the new keyboard shortcut.
 
 - The "Log" page became the "Internal State" page, now shows in-flight and in-limbo reqres. It also allows narrowing to data belonging to a single tab now.
 
@@ -167,9 +167,9 @@
 
 - Implemented `scrub` `--expr` atom for rewriting links/references and wiping inner evils out from HTML, JavaScript, and CSS values.
 
-    CSS scrubbing is not finished yet, so all CSS gets censored out by default at the moment.
+  CSS scrubbing is not finished yet, so all CSS gets censored out by default at the moment.
 
-    HTML processing uses `html5lib`, which is pretty nice (though, rather slow), but overall the complexity of this thing and the time it took to debug it into working is kind of unamusing.
+  HTML processing uses `html5lib`, which is pretty nice (though, rather slow), but overall the complexity of this thing and the time it took to debug it into working is kind of unamusing.
 
 - Implemented `export mirror` subcommand generating static website mirrors from previously archived WRR files, kind of similar to what `wget -mpk` does, but offline and the outputs are properly `scrub`bed.
 
@@ -189,11 +189,11 @@
 
 - Made more improvements to `--output` option of `organize` and `import` with IDNA and component-wise quoting/unquoting of tool-v0.8:
 
-    - Added `pretty_url`, `mq_path`, `mq_query`, `mq_nquery` to substitutions and made pre-defined `--output` formats use them.
+  - Added `pretty_url`, `mq_path`, `mq_query`, `mq_nquery` to substitutions and made pre-defined `--output` formats use them.
 
-        `mq_nquery`, and `pretty_url` do what `nquery` and `nquery_url` did before v0.8.0, but better.
+    `mq_nquery`, and `pretty_url` do what `nquery` and `nquery_url` did before v0.8.0, but better.
 
-    - Dropped `shpq`, `hpq`, `shpq_msn`, and `hpq_msn` `--output` formats as they are now equivalent to their `hup` versions.
+  - Dropped `shpq`, `hpq`, `shpq_msn`, and `hpq_msn` `--output` formats as they are now equivalent to their `hup` versions.
 
 - Bugfixed `--expr` option of `run`, and the `clock` line in `pprint`.
 
@@ -203,13 +203,13 @@
 
 - Bugfix #1:
 
-    `tool-v0.8` might have skipped some of the updates when `import`ing and forgot to do some actions when doing `organize`, which was not the case for `tool-v0.6`.
+  `tool-v0.8` might have skipped some of the updates when `import`ing and forgot to do some actions when doing `organize`, which was not the case for `tool-v0.6`.
 
-    These bugs should have not been triggered ever (and with the default `--output` they are impossible to trigger) but to be absolutely sure you can re-run `import mitmproxy` and `organize` with the same arguments you used before.
+  These bugs should have not been triggered ever (and with the default `--output` they are impossible to trigger) but to be absolutely sure you can re-run `import mitmproxy` and `organize` with the same arguments you used before.
 
 - Bugfix #2:
 
-    `organize --output` `num`bering is deterministic again, like it was in `tool-v0.6`.
+  `organize --output` `num`bering is deterministic again, like it was in `tool-v0.6`.
 
 - Added `--output flat_n`.
 
@@ -227,15 +227,15 @@
 
 - Renamed response status codes:
 
-    - `N` -\> `I` for "Incomplete"
-    - `NR` -\> `N` for "None"
+  - `N` -\> `I` for "Incomplete"
+  - `NR` -\> `N` for "None"
 
 - Renamed
 
-    - `organize --action rename` -\> `organize --move` (as it can now atomically move files between file systems, see below),
-    - `--action hardlink` -\> `--hardlink`,
-    - `--action symlink` -\> `--symlink`,
-    - `--action symlink-update` -\> `--symlink --latest`.
+  - `organize --action rename` -\> `organize --move` (as it can now atomically move files between file systems, see below),
+  - `--action hardlink` -\> `--hardlink`,
+  - `--action symlink` -\> `--symlink`,
+  - `--action symlink-update` -\> `--symlink --latest`.
 
 - Added `organize --copy`.
 
