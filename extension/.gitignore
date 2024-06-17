@@ -1,4 +1,4 @@
 dist/
-page/help.html
-page/changelog.html
+background/*.html
+page/*.html
 private/chromium.key.pem

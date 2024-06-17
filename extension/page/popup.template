@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <title>pWebArc: Settings</title>
-    <link rel="shortcut icon" type="image/svg" href="../icon/main.svg">
-    <link rel="stylesheet" href="main.css?v=2">
+    <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
+    <link rel="stylesheet" href="main.css?v=$cssVersion$">
     <style>
 body {
     min-width: 300px;
@@ -381,9 +381,7 @@ label code {
     <input type="button" id="showAll" tabindex=1 value="Show all" />
     </div>
 
-    <script src="../lib/compat.js"></script>
-    <script src="../lib/utils.js"></script>
-    <script src="../lib/lutils.js"></script>
+    $for(libScript)$<script src="../lib/$libScript$"></script>$endfor$
     <script src="popup.js"></script>
   </body>
 </html>

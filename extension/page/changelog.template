@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <title>pWebArc: Changelog</title>
-    <link rel="shortcut icon" type="image/svg" href="../icon/main.svg">
-    <link rel="stylesheet" href="main.css?v=2">
+    <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
+    <link rel="stylesheet" href="main.css?v=$cssVersion$">
     <style>
 #body > p,
 #body > ul {

@@ -18,22 +18,20 @@ for target in "$@"; do
     DEST="dist/$NAME"
     mkdir -p "$DEST"
 
-    echo "  Building the help page..."
-
-    pandoc -f org -t html --wrap=none --template=page/help.template --metadata pagetitle=help page/help.org > page/help.html
-
-    echo "  Building the changelog page..."
-
-    cat ../CHANGELOG.md \
-        | sed 's%\./extension/page/help\.org%./help.html%g' \
-        | pandoc -f markdown -t html --wrap=none --template=page/changelog.template --metadata pagetitle=changelog \
-        > page/changelog.html
+    pandocArgs=( \
+        -V libScript=compat.js \
+        -V libScript=utils.js \
+        -V libScript=lutils.js \
+        -V cssVersion=2 \
+    )
 
     echo "  Preparing icons..."
 
     install -d "$DEST"/icon
 
     if [[ "$target" != firefox ]]; then
+        pandocArgs+=(-V iconMIME=image/png -V iconFile=128/main.png)
+
         makeicons() {
             mkdir -p "$DEST/icon/$1"
             for a in icon/"$iconTheme"/*.svg ; do
@@ -50,19 +48,28 @@ for target in "$@"; do
         #makeicons 96
         makeicons 128
     else
+        pandocArgs+=(-V iconMIME=image/svg+xml -V iconFile=main.svg)
         install -C -t "$DEST"/icon icon/"$iconTheme"/*.svg
     fi
 
-    if [[ "$target" == chromium ]]; then
-        (
-            cd "dist"
-            if [[ ! -e "manifest-$target-id.json" ]]; then
-                echo "  Generating Chromium key and ID..."
-                mkdir -p "../private"
-                ../bin/gen-chromium-keys.sh "../private/$target.key.pem" "manifest-$target-id.json"
-            fi
-        )
-    fi
+    runPandoc() {
+        pandoc -f $1 -t html --wrap=none --template="$2".template -M pagetitle="$2" "${pandocArgs[@]}" > "$2".html
+    }
+
+    for p in background/main page/popup page/state; do
+        echo "  Building $p..."
+        echo | runPandoc markdown "$p"
+    done
+
+    echo "  Building page/help..."
+
+    cat page/help.org | runPandoc org page/help
+
+    echo "  Building page/changelog..."
+
+    cat ../CHANGELOG.md \
+        | sed 's%\./extension/page/help\.org%./help.html%g' \
+        | runPandoc markdown page/changelog
 
     echo "  Copying files..."
 
@@ -76,6 +83,17 @@ for target in "$@"; do
     install -C -t "$DEST"/background background/*.html background/debugger.js background/core.js
 
     install -C -t "$DEST" ../LICENSE.txt
+
+    if [[ "$target" == chromium ]]; then
+        (
+            cd "dist"
+            if [[ ! -e "manifest-$target-id.json" ]]; then
+                echo "  Generating Chromium key and ID..."
+                mkdir -p "../private"
+                ../bin/gen-chromium-keys.sh "../private/$target.key.pem" "manifest-$target-id.json"
+            fi
+        )
+    fi
 
     echo "  Building manifest.json..."
 

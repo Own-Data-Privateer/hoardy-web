@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <title>pWebArc: Internal State</title>
-    <link rel="shortcut icon" type="image/svg" href="../icon/main.svg">
-    <link rel="stylesheet" href="main.css?v=2">
+    <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
+    <link rel="stylesheet" href="main.css?v=$cssVersion$">
     <style>
 :root {
     --log-in-flight: #ffffaa;
@@ -164,9 +164,7 @@ td.long {
     <span id="bottom"></span>
     </div>
 
-    <script src="../lib/compat.js"></script>
-    <script src="../lib/utils.js"></script>
-    <script src="../lib/lutils.js"></script>
+    $for(libScript)$<script src="../lib/$libScript$"></script>$endfor$
     <script src="state.js"></script>
   </body>
 </html>
