@@ -1,74 +1,80 @@
 # What is `pWebArc` browser extension/add-on?
 
-`pWebArc` (Personal Private Passive Web Archive) is a browser add-on (extension) that passively collects and archives dumps of HTTP requests and responses to your own private archiving server (like [the dumb archiving server](../dumb_server/)) as you browse the web.
+`pWebArc` (Personal Private Passive Web Archive) is a browser add-on (extension) that passively captures, collects, and archives dumps of HTTP requests and responses to your own private archiving server (like [the dumb archiving server](../dumb_server/)) as you browse the web.
 
-This is most similar to [archiveweb.page](https://github.com/webrecorder/archiveweb.page) but `pWebArc` follows "archive everything now, figure out what to do with it later" philosophy, not forcing you to manually enable it in each new tab.
-Also, `pWebArc` works both on Firefox- and Chromium-based browsers.
-
+`pWebArc` is most similar to [archiveweb.page](https://github.com/webrecorder/archiveweb.page) and [DiskerNet](https://github.com/dosyago/DownloadNet) projects, but it works both on Firefox- and Chromium-based browsers, and it follows [a different design philosophy](../README.md#philosophy), which makes the experience of using it is very different.
 Basically, you install this, enable it, run the archiving server, and forget about it until you need to refer back to something you've seen before.
 
-See [higher-level README](../README.md) if the above makes little sense, or if you want to see in-depth comparisons to `archiveweb.page` and other similar and related software.
+See [higher-level README](../README.md) if the above makes little sense or if you want more docs, or if you want to see in-depth comparisons to `archiveweb.page` and other similar and related software.
 
 # Screenshots
 
-![Screenshot of browser's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.7.0-popup.png)
-
-![Screenshot of extension's help page. The highlighted setting is referenced by the text under the mouse cursor.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.7.0-help-page.png)
-
-# Installation
-
-## <span id="install-firefox"/>On Firefox/Tor Browser/etc
-
-- [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/).
-
-## <span id="install-chromium"/>On Chromium/Chrome
-
-- Download `pWebArc-chromium-v*.zip` from Releases, unpack it, it's packed with a single directory named `pWebArc-chromium-v*` inside for convenience.
-- Go to `Extensions > Manage Extensions` in the menu, enable "Developer mode" toggle, press "Load Unpacked", and select the directory the unpack produced, it should have `manifest.json` file in it, just navigate into it and then press the "Open" button.
-- Then press "Extensions" toolbar button and pin "pWebArc".
+See [higher-level README](../README.md#screenshots).
 
 # What does it do exactly? I have questions.
 
-For general technical design description see [the appropriate section in higher-level README](../README.md#technical).
+See ["Technical Philosophy"](../README.md#philosophy) and ["I have questions"](../README.md#more-docs) sections of the higher-level README.
 
-For extension's technical details see the ["Help" page](./page/help.org) (local interactive version available via the "Help" button in the extension settings drop-down pane) and the FAQ there.
+# Installation
 
-If your question is unanswered by these, then open an Issue on GitHub or write me an e-mail.
+## <span id="install-firefox"/>On Firefox, Tor Browser, LibreWolf, etc
 
-# Building and installing from source
+- [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/).
+  Then press "Extensions" toolbar button and pin "pWebArc".
 
-## Build
+- Alternatively, download the latest `pWebArc-firefox-v*.xpi` from Releases, and then [follow "Install as an unsigned XPI" instructions below](#unsigned-xpi).
+
+- Alternatively, [build it from source](#build) and then follow those same instructions.
+
+### <span id="unsigned-xpi"/>Install as an unsigned XPI
+
+- Make sure your browser [supports installation of unsigned add-ons](https://wiki.mozilla.org/Add-ons/Extension_Signing) (Firefox ESR, Nightly, Developer Edition, and Tor Browser do).
+- Go to `about:config`, set `xpinstall.signatures.required` to `false`.
+- Go to `about:addons`, click the gear button, select "Install Add-on from File", and select the XPI file in `./extension/dist` directory (or do `File > Open File` from the menu and then select the XPI file, or drag-and-drop the XPI file into the browser window).
+- Then press "Extensions" toolbar button and pin "pWebArc".
+
+### Install as a temporary add-on
+
+If you are [building from source](#build), this is a nice way to do development, since to reload the add-on on after making a new build will require a single click.
+
+- In the browser, go to `about:debugging#/runtime/this-firefox`, click "Load Temporary Add-on" button, and select `./extension/dist/pWebArc-firefox-v*/manifest.json`.
+- Then you might need to go into `about:addons` and enable "Run in Private Windows" for `pWebArc` if your Firefox is running in Private-Windows-only mode.
+
+## <span id="install-chromium"/>On Chromium, Chrome, etc
+
+Why isn't `pWebArc` on Chrome Web Store?
+Because Google appears to dislike the idea of things like `pWebArc` very much, and so `pWebArc` violates their "Terms of Use", see [higher-level README](../README.md#quickstart) for more info.
+
+So, installation on Chromium-based browsers requires a little bit of work.
+
+- Download the latest `pWebArc-chromium-v*.zip` from Releases, unpack it, it's packed with a single directory named `pWebArc-chromium-v*` inside for convenience, then [follow "Install as an unpacked extension" instructions below](#unpacked-zip).
+
+- Alternatively, [build it from source](#build) and then follow those same instructions.
+
+### <span id="unpacked-zip"/>Install as an unpacked extension
+
+- Go to `Extensions > Manage Extensions` in the menu, enable "Developer mode" toggle, press "Load Unpacked", and select `./extension/dist/pWebArc-chromium-v*` directory (or the directory the unpacking of the `.zip` file produced, if you are using the pre-built `.zip`), it should have `manifest.json` file in it, just navigate to that directory select it and then press the "Open" button (or navigate into that directory and then press the "Open" button, that will work too).
+- Then press "Extensions" toolbar button and pin "pWebArc".
+
+### Install the CRX
+
+- [The build](#build) will build it, and you can try installing it, but installing the CRX manually does not appear work in modern version of Chromium/Chrome.
+
+# <span id="build"/>Build it from source
 
 - `git clone` this repository.
-- For Firefox/Tor Browser/etc: build by running `./build.sh clean firefox` from this directory.
+- `cd extension`.
+- Optionally: run `nix-shell ./default.nix` to get the exact build environment I use.
+- For Firefox, Tor Browser, LibreWolf, etc: build by running `./build.sh clean firefox` from this directory.
 - For Chromium/Chrome/etc: build by running `./build.sh clean chromium` from this directory.
+- All outputs can then be found in the `dist` directory.
 
-## <span id="build-firefox"/>On Firefox, Tor Browser, etc
+# Debugging
 
-1. As a temporary add-on
+## On Firefox, Tor Browser, LibreWolf, etc
 
-    - [Bulid it](#build).
-    - In the browser, go to `about:debugging#/runtime/this-firefox`, click "Load Temporary Add-on" button, and select `./extension/dist/pWebArc-firefox-v*/manifest.json`.
-    - Then you might need to go into `about:addons` and enable "Run in Private Windows" for `pWebArc` if your Firefox is running in Private-Windows-only mode.
-    - To get the debugger console go to `about:debugging` and press extension's "Inspect" button.
+- To get the debugger console go to `about:debugging` and press extension's "Inspect" button.
 
-2. Installing an unsigned XPI
+## On Chromium, Chrome, etc
 
-    - [Bulid it](#build).
-    - Make sure your browser [supports installation of unsigned add-ons](https://wiki.mozilla.org/Add-ons/Extension_Signing) (Firefox ESR, Nightly, Developer Edition, and Tor Browser do).
-    - Go to `about:config`, set `xpinstall.signatures.required` to `false`.
-    - Go to `about:addons`, click the gear button, select "Install Add-on from File", and select the XPI file in `./extension/dist` directory (or do `File > Open File` from the menu and then select the XPI file, or drag-and-drop the XPI file into the browser window).
-
-## <span id="build-chromium"/>On Chromium, Chrome, etc
-
-1.  As an unpacked extension
-
-    - [Bulid it](#build).
-    - Go to `Extensions > Manage Extensions` in the menu, enable "Developer mode" toggle, press "Load Unpacked", and select `./extension/dist/pWebArc-chromium-v*` directory (navigate into it and then press the "Open" button).
-    - Then press "Extensions" toolbar button and pin "pWebArc".
-    - To get the debugger console press "Inspect views" link after the extension's ID.
-
-2.  As CRX
-
-    - You can [build it](#build), but
-    - installing the CRX manually does not appear work in modern version of Chromium/Chrome.
+- To get the debugger console go to `Extensions > Manage Extensions` and press "Inspect views" link after the extension's ID.
