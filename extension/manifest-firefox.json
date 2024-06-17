@@ -36,14 +36,14 @@
                 "default": "Alt+A"
             }
         },
-        "showState": {
-            "suggested_key": {
-                "default": "Alt+G"
-            }
-        },
         "showLog": {
             "suggested_key": {
                 "default": "Alt+Shift+G"
+            }
+        },
+        "showTabState": {
+            "suggested_key": {
+                "default": "Alt+I"
             }
         },
         "showTabLog": {
@@ -71,14 +71,14 @@
                 "default": "Alt+Shift+S"
             }
         },
-        "discardAllInLimbo": {
-            "suggested_key": {
-                "default": "Alt+Shift+W"
-            }
-        },
         "collectAllTabInLimbo": {
             "suggested_key": {
                 "default": "Alt+S"
+            }
+        },
+        "discardAllInLimbo": {
+            "suggested_key": {
+                "default": "Alt+Shift+W"
             }
         },
         "discardAllTabInLimbo": {

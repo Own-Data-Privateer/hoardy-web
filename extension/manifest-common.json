@@ -19,19 +19,19 @@
 
     "commands": {
         "showState": {
-            "description": "Show the internal state"
+            "suggested_key": {
+                "default": "Alt+G"
+            },
+            "description": "Open the internal state page"
         },
         "showLog": {
-            "description": "Show the log of recently collected and discarded reqres"
+            "description": "Open the log of recently collected and discarded reqres"
         },
         "showTabState": {
-            "suggested_key": {
-                "default": "Alt+I"
-            },
-            "description": "For the current tab, show the internal state"
+            "description": "For the current tab, open the internal state page"
         },
         "showTabLog": {
-            "description": "For the current tab, show the log of recently collected and discarded reqres"
+            "description": "For the current tab, open the log of recently collected and discarded reqres"
         },
         "toggleTabConfigTracking": {
             "suggested_key": {
@@ -54,20 +54,20 @@
         "unmarkAllProblematic": {
             "description": "Unmark all problematic reqres"
         },
-        "collectAllInLimbo": {
-            "description": "Collect all reqres in limbo"
-        },
-        "discardAllInLimbo": {
-            "description": "Discard all reqres in limbo"
-        },
         "unmarkAllTabProblematic": {
             "suggested_key": {
                 "default": "Alt+U"
             },
             "description": "For the current tab, unmark all problematic reqres"
         },
+        "collectAllInLimbo": {
+            "description": "Collect all reqres in limbo"
+        },
         "collectAllTabInLimbo": {
             "description": "For the current tab, collect all reqres in limbo"
+        },
+        "discardAllInLimbo": {
+            "description": "Discard all reqres in limbo"
         },
         "discardAllTabInLimbo": {
             "description": "For the current tab, discard all reqres in limbo"
