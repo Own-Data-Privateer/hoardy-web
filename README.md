@@ -235,14 +235,18 @@ After adding each new feature to [`wrrarms` CLI tool](./tool/), as a rule, I fee
 
 ## `pWebArc` extension
 
-- Improve UI:
-  - No-emoji mode.
-  - More desktop notification options.
-  - More action buttons.
-  - Interactive filters for the log.
+- Improved UI:
+
+  - Roll/unroll popup UI in steps, a-la uBlock Origin.
+    The number of settings pWebArc now has is kind of ridiculous (and I still want more), I find it hard to find stuff in there myself now, so.
+    Alternatively, make a separate "Settings" page, but I kind of dislike that idea, I like having everything on a single page which can be `Control+F`ed.
+
+  - Track navigations and allow to use them as boundaries between batches of reqres saved in limbo mode.
+
+  - Reorganize tracking- and problematic-related options into config profiles (~25% done), allow them to override each over, and then implement per-host profiles.
+
 - DOM snapshots capture.
 - Serverless archival into browser's local storage: for easier bootstrap and to allow using Tor Browser securely with its default config.
-- Per-host configs and/or config profiles.
 - Maybe: Dumping straight into WARC, so that third-party tools (i.e. not just `wrrarms`) could be used for everything except capture.
 
 ## `wrrarms` tool
