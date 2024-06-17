@@ -333,9 +333,11 @@ label code {
       <ui id="config.logDiscarded" type="boolean" class="prefer-on" data-help="What it says on the tin. Enabled by default because it makes figuring out what the browser is doing much easier. Disabling this could make the log much shorter at the cost of making things harder to debug.">Log non-problematic discarded reqres</ui>
       <ui id="config.history" type="number" data-help="Remember at most this many collected and discarded reqres in the log.">Maximum size</ui>
     </div>
+    </div>
     <div id="notification-options">
       <h2>Generate desktop notifications about</h2>
       <ui id="config.problematicNotify" type="boolean" tabindex=8 data-help="Complain when a new problematic reqres appears.">... new problematic reqres</ui>
+      <div name="more">
       <ui id="config.problematicNotifyNumber" type="number" class="dpn" data-help="Show no more than this many latest METHOD + URL lines in the generated problematic reqres notification.">But no more than</ui>
       <ui id="config.limboNotify" type="boolean" class="prefer-on" data-help="Complain when too much stuff is being held in limbo.">... too much stuff in limbo</ui>
       <ui id="config.limboMaxNumber" type="number" class="dln" data-help="Start complaining when more than this number of reqres are in limbo.">Complain after #</ui>
@@ -344,7 +346,9 @@ label code {
       <ui id="config.archiveNotifyDisabled" type="boolean" class="prefer-on" data-help="Complain when some reqres are stuck in the archival queue with archiving disabled.">... non-empty queue with archiving disabled</ui>
       <ui id="config.archiveNotifyFailed" type="boolean" class="prefer-on" data-help="Complain when some reqres fail to be archived to the archival server.">... archival errors</ui>
       <ui id="config.archiveNotifyOK" type="boolean" data-help="Generate an &quot;All OK&quot; notification when the queue becomes empty the very first time or after a previous archival failure. This exists mostly for on-boarding new users.">... first empty archival queue</ui>
+      </div>
     </div>
+    <div name="more">
     <div id="ui-options">
       <h2>User Interface and Accessibility</h2>
       <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
