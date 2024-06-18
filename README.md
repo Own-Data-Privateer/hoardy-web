@@ -11,9 +11,11 @@ In short, `pwebarc`'s main workflow is this: you install an extension/add-on int
 
 # Screenshots
 
-![Screenshot of browser's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.7.0-popup.png)
+![Screenshot of Firefox's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.10.0-popup.png)
 
-![Screenshot of extension's help page. The highlighted setting is referenced by the text under the mouse cursor.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.7.0-help-page.png)
+![Screenshot of extension's help page under Firefox, which is set to a dark mode theme. The highlighted setting is referenced by the text under the mouse cursor.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.10.0-help-page-dark.png)
+
+![Screenshot of Chromium's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.10.0-chromium.png)
 
 # <span id="why"/>Why does `pwebarc` exists?
 
