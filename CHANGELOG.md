@@ -1,3 +1,58 @@
+# extension-v1.10.0
+
+- Implemented dark mode theme.
+  The extension will switch to it automatically when the browser asks (which it will if you switch your browser's theme to a dark one).
+
+- Implemented some new optional UI-related accessibility config options with toggles in popup UI:
+
+  - Colorblind mode: uses bluish colors instead of greenish where possible (which uses mostly the same colors pWebArc used before color-coding of UI toggles was introduced in `v1.9.0`, with slight variations for the new color-coding).
+  - Pure text labels: disables emojis in UI labels, makes screen readers happier.
+
+- Improved Internal State/Log UI:
+
+  - Added a bunch of tristate toggles for filtering the logs.
+  - Added in-log buttons to open a narrowed page for reqres with an associated tab.
+
+- Improved keyboard shortcuts:
+
+  - In popup UI, toggles and buttons with bound keyboard shortcuts will now get those shortcuts displayed in their tooltips.
+  - [The "Keyboard shortcuts" section of the "Help" page](./extension/page/help.org#keyboard-shortcuts) will now show currently active shortcuts (when viewed via the "Help" button from the extension UI).
+  - The changes to the code there mean all the shortcuts will be reset to their default keys, but it makes stuff much cleaner internally, so.
+  - Collecting all reqres from currently active tab's limbo is bound to `Alt+S` by default now (similarly to how `Ctrl+S` saves the page).
+  - Discarding all reqres from currently active tab's limbo is bound to `Alt+W` by default now (similarly to how `Ctrl+W` closes the tab).
+  - Unmarking all problematic reqres in the currently active tab is bound to `Alt+U` by default now.
+  - Added a few more shortcuts:
+    - `Alt+Shift+U` by default unmarks all problematic reqres globally now.
+    - `Alt+Shift+S` and `Alt+Shift+W` by default respectively collect and discard all reqres in limbo globally now.
+
+- Added UI for internal scheduled/delayed actions/functions (e.g., saving of frequently changing stuff to persistent storage, automatic actions when a tab closes, canceling and reloading not-yet-debugged tabs on Chromium, etc):
+
+  - If some functions are still waiting to be run, the badge will have "\~" or "." in it and change its color, depending on the importance of the stuff that is waiting to be run.
+  - Popup UI has a new stat line showing the number of such delayed actions and buttons to run or cancel them immediately.
+
+- Much of the code working with Chromium's debugger was rewritten.
+  Now it reports all the errors properly and no longer crashes when the debugger gets detached at inopportune time in the pipeline (which is quite common, unfortunately).
+
+- Added config options and popup UI toggles for picking and marking as problematic reqres with various HTTP status codes.
+
+- "Mark reqres as problematic when they finish ... with reqres errors" config option became "... with reqres errors and get `dropped`", i.e. it is now disjoint with "... with reqres errors and get `picked`".
+
+- Implemented new config options and popup UI toggles for browser-specific workarounds.
+  In particular, on Chromium you can now set the URL new root tabs will be reset to (still `about:blank` by default).
+
+- Improved desktop notifications, added some more of them, added config options and popup UI toggles for them.
+
+- Popup UI, in its default rolled-up state, now exposes "Generate desktop notifications about ... new problematic reqres" option and has custom `tabindex`es set, for convenience.
+
+- Changed some config option defaults (your existing config will not get affected).
+
+- Slightly improved performance in normal operation.
+  Greatly improved performance when archiving large batches of reqres at once, e.g. when collecting a lot of stuff from limbo.
+
+- A lot of bugfixes.
+
+- Greatly improved documentation.
+
 # extension-v1.9.0
 
 - Bugfixes. A whole ton of bugfixes.

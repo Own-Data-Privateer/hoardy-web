@@ -5,7 +5,7 @@
 let packages = import ./packages.nix { inherit pkgs debug; }; in
 
 pkgs.buildEnv {
-  name = "pwebarc-20240607";
+  name = "pwebarc-20240618";
   paths = with packages; [
     dumb_server
     extension
