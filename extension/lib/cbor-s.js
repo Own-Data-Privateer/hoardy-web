@@ -5,8 +5,6 @@
  * encoder-only, supports chunked buffers made of Uint8Array's (for efficiency),
  * and can check for unexpected nulls and undefined values while encoding.
  *
- * The MIT License (MIT)
- *
  * Copyright (c) 2023 Jan Malakhovski <oxij@oxij.org>
  * Copyright (c) 2014-2016 Patrick Gansterer <paroga@paroga.com>
  *
