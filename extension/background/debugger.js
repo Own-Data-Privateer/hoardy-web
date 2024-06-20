@@ -304,7 +304,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         dreqres.requestHeadersDebugExtra = e.headers;
     }
 
-    updateDisplay(0, true, false);
+    updateDisplay(true, e.tabId);
 }
 
 function handleDebugResponseRecieved(nonExtra, e) {
@@ -677,9 +677,11 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             // events after all).
             resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000, () => {
                 forceFinishingUpWebRequest((r) => !r.sent);
-                updateDisplay(0, true, false);
+                updateDisplay(true, null);
                 scheduleEndgame();
             });
+            // NB: not doing updateDisplay here, because scheduleEndgame
+            // below (or the function `forcing` this one) will
     }
 
     if (config.debugging) {

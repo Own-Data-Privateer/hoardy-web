@@ -138,14 +138,13 @@ async function saveConfig(eConfig) {
     await browser.storage.local.set({ config: eConfig }).catch(logError);
 }
 
-function scheduleSaveConfig(config, noUpdateDisplay) {
+function scheduleSaveConfig(config) {
     let eConfig = assignRec({}, config);
     resetSingletonTimeout(scheduledInternal, "saveConfig", 1000, async () => {
         await saveConfig(eConfig);
-        await updateDisplay(0, true, false);
+        await updateDisplay(true);
     });
-    if (!noUpdateDisplay)
-        updateDisplay(0, true, false);
+    // NB: needs updateDisplay afterwards
 }
 
 // scheduled internal functions
@@ -167,11 +166,11 @@ async function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
                 if (actionFunc !== undefined)
                     await actionFunc(tabId, r);
             } finally {
-                await updateDisplay(0, true, false, tabId);
+                await updateDisplay(true, tabId);
             }
         }, priority);
     }, priority);
-    await updateDisplay(0, true, false, tabId);
+    await updateDisplay(true, tabId);
 }
 
 function resetAndNavigateTab(tabId, url, priority) {
@@ -248,7 +247,8 @@ function setOriginConfig(tabId, fromExtension, tabcfg) {
             syncDebuggersState();
         }
     }
-    updateDisplay(0, false, true);
+
+    updateDisplay(false, null);
 }
 
 function processNewTab(tabId, openerTabId) {
@@ -269,12 +269,11 @@ function processNewTab(tabId, openerTabId) {
         children = assignRec({}, openercfg.children);
         children.collecting = !children.collecting;
     }
+
     let tabcfg = prefillChildren(children);
     tabConfig.set(tabId, tabcfg);
 
-    if (useDebugger)
-        // prevent empty icons on Chromium
-        browser.browserAction.setIcon({ tabId, path: mkIcons("main") }).catch(logError);
+    updateDisplay(false, tabId);
 
     return tabcfg;
 }
@@ -362,7 +361,7 @@ function cleanupAfterTab(tabId) {
     }
 
     cleanupTabs();
-    updateDisplay(0, true, false, tabId);
+    updateDisplay(true, tabId);
 }
 
 function scheduleCleanupAfterTab(tabId, untimeout) {
@@ -375,6 +374,7 @@ function scheduleCleanupAfterTab(tabId, untimeout) {
 
 function processRemoveTab(tabId) {
     openTabs.delete(tabId);
+
     if (useDebugger && Array.from(debugReqresInFlight.values()).some((r) => r.tabId === tabId)) {
         // after a small timeout, force emit all `debugReqresInFlight` of this
         // tab, since Chromium won't send any new debug events for them anyway
@@ -385,12 +385,11 @@ function processRemoveTab(tabId) {
             forceEmitInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_CLOSED_TAB");
             processMatchFinishingUpWebRequestDebug();
             scheduleCleanupAfterTab(tabId, timeout);
-            updateDisplay(0, true, false, tabId);
+            updateDisplay(true, tabId);
         });
+        updateDisplay(true);
     } else
         scheduleCleanupAfterTab(tabId, 0);
-
-    updateDisplay(0, true, false, tabId);
 }
 
 // browserAction state
@@ -478,7 +477,7 @@ async function savePersistentStats(eStats) {
 async function resetPersistentStats() {
     persistentStats = assignRec({}, persistentStatsDefaults);
     await savePersistentStats(persistentStats);
-    await updateDisplay(0, true, false);
+    await updateDisplay(true);
 }
 
 // per-source persistentStats.pickedTotal, persistentStats.droppedTotal, etc
@@ -620,7 +619,7 @@ function unmarkProblematic(num, tabId, rrfilter) {
         broadcast(["resetInLimboLog", getInLimboLog()]);
         broadcast(["resetLog", reqresLog]);
         cleanupTabs();
-        updateDisplay(0, true, false, tabId);
+        updateDisplay(true, tabId);
         scheduleComplaints(100);
     }
 
@@ -646,7 +645,6 @@ function rotateProblematic(num, tabId, rrfilter) {
     reqresProblematic = unpopped;
 
     broadcast(["resetProblematicLog", reqresProblematic]);
-    //updateDisplay(0, false, false, tabId);
 }
 
 function popInLimbo(collect, num, tabId, rrfilter) {
@@ -705,7 +703,6 @@ function rotateInLimbo(num, tabId, rrfilter) {
     reqresLimbo = unpopped;
 
     broadcast(["resetInLimboLog", getInLimboLog()]);
-    //updateDisplay(0, false, false, tabId);
 }
 
 function forgetHistory(tabId, rrfilter) {
@@ -728,31 +725,34 @@ function forgetHistory(tabId, rrfilter) {
     reqresLog = unpopped;
 
     broadcast(["resetLog", reqresLog]);
-    updateDisplay(0, true, false, tabId);
+    updateDisplay(true, tabId);
 }
 
 let updateDisplayEpisode = 1;
-async function updateDisplay(episodic, statsChanged, switchedTab, updatedTabId) {
-    if (!switchedTab && updateDisplayEpisode < episodic) {
+
+// `updatedTabId === null` means "config changed or any tab could have been updated"
+// `updatedTabId === undefined` means "no tabs changed"
+// otherwise, it's a tabId of a changed tab
+async function updateDisplay(statsChanged, updatedTabId, episodic) {
+    let changed = updatedTabId === null;
+
+    // only run the rest every `episodic` updates, when it's set
+    if (!changed && updateDisplayEpisode < episodic) {
         updateDisplayEpisode += 1;
         return;
     }
     updateDisplayEpisode = 1;
 
-    if (updatedTabId === undefined)
-        updatedTabId = null;
-
     let stats;
     let title;
-    let changed = switchedTab;
 
-    if (statsChanged || udStats === null) {
+    if (statsChanged || udStats === null || changed) {
         stats = getStats();
 
         if (udStats === null
+            // because these global stats influence the tab's icon
             || stats.archive_failed !== udStats.archive_failed
             || stats.in_queue != udStats.in_queue)
-            // because these global stats influence the tab's icon
             changed = true;
 
         udStats = stats;
@@ -859,8 +859,14 @@ async function updateDisplay(episodic, statsChanged, switchedTab, updatedTabId) 
         title = udTitle;
     }
 
-    if (!changed && updatedTabId === null)
-        return;
+    if (updatedTabId === undefined) {
+        if (!changed)
+            // no tab-specific stuff needs updating, skip the rest of this
+            return;
+
+        // to simplify the logic below
+        updatedTabId = null;
+    }
 
     let tabs = await browser.tabs.query({ active: true });
     for (let tab of tabs) {
@@ -868,7 +874,7 @@ async function updateDisplay(episodic, statsChanged, switchedTab, updatedTabId) 
         let stateTabId = getStateTabIdOrTabId(tab);
 
         // skip updates for unchanged tabs, when specified
-        if (!changed && updatedTabId !== null && updatedTabId != stateTabId)
+        if (updatedTabId !== null && updatedTabId != stateTabId)
             continue;
 
         let tabcfg = tabConfig.get(stateTabId);
@@ -931,7 +937,7 @@ async function updateDisplay(episodic, statsChanged, switchedTab, updatedTabId) 
 // schedule processFinishingUp
 async function scheduleFinishingUp() {
     resetSingletonTimeout(scheduledInternal, "finishingUp", 100, async () => {
-        await updateDisplay(0, true, false);
+        await updateDisplay(true);
         processFinishingUp();
     });
 }
@@ -940,12 +946,12 @@ async function scheduleFinishingUp() {
 async function scheduleEndgame(updatedTabId) {
     if (config.archiving && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
-            await updateDisplay(10, true, false, updatedTabId);
+            await updateDisplay(true, updatedTabId, 10);
             processArchiving();
         });
     } else if (reqresAlmostDone.length > 0) {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
-            await updateDisplay(10, true, false, updatedTabId);
+            await updateDisplay(true, updatedTabId, 10);
             processAlmostDone();
         });
     } else if (!config.archiving || reqresQueue.length == 0) {
@@ -969,10 +975,10 @@ async function scheduleEndgame(updatedTabId) {
             let eStats = assignRec({}, persistentStats);
             resetSingletonTimeout(scheduledCancelable, "savePersistentStats", timeout, async () => {
                 await savePersistentStats(eStats);
-                await updateDisplay(0, true, false);
+                await updateDisplay(true);
             });
         }
-        await updateDisplay(0, true, false, updatedTabId);
+        await updateDisplay(true, updatedTabId);
     }
 }
 
@@ -1930,7 +1936,7 @@ function handleBeforeRequest(e) {
 
     reqresInFlight.set(requestId, reqres);
     broadcast(["newInFlight", [shallowCopyOfReqres(reqres)]]);
-    updateDisplay(0, true, false);
+    updateDisplay(true, e.tabId);
 }
 
 function handleBeforeSendHeaders(e) {
@@ -2086,14 +2092,13 @@ function handleTabCreated(tab) {
     } else
         processNewTab(tabId, tab.openerTabId);
 
-    updateDisplay(0, false, true, tabId);
+    updateDisplay(false, tabId);
 }
 
 function handleTabRemoved(tabId) {
     if (config.debugging)
         console.log("tab removed", tabId);
     processRemoveTab(tabId);
-    updateDisplay(0, false, true);
 }
 
 function handleTabReplaced(addedTabId, removedTabId) {
@@ -2101,7 +2106,6 @@ function handleTabReplaced(addedTabId, removedTabId) {
         console.log("tab replaced", removedTabId, addedTabId);
     processRemoveTab(removedTabId);
     processNewTab(addedTabId);
-    updateDisplay(0, false, true);
 }
 
 function handleTabActivated(e) {
@@ -2110,8 +2114,8 @@ function handleTabActivated(e) {
     if (useDebugger)
         // Chromium does not provide `browser.menus.onShown` event
         updateMenu(getOriginConfig(e.tabId));
-    // This will do nothing on Chromium, see handleTabUpdatedChromium
-    updateDisplay(0, false, true);
+    // This will is not enough on Chromium, see handleTabUpdatedChromium
+    updateDisplay(false, e.tabId);
 }
 
 function handleTabUpdatedChromium(tabId, changeInfo, tabInfo) {
@@ -2119,7 +2123,7 @@ function handleTabUpdatedChromium(tabId, changeInfo, tabInfo) {
         console.log("tab updated", tabId);
     // Chromium resets the browserAction icon when tab chages state, so we
     // have to update icons after each one
-    updateDisplay(0, false, true);
+    updateDisplay(false, tabId);
 }
 
 // open client tab ports
@@ -2183,13 +2187,14 @@ function handleMessage(request, sender, sendResponse) {
         if (oldConfig.archiving !== config.archiving && config.archiving)
             retryAllFailedArchives();
 
-        updateDisplay(0, true, false);
+        updateDisplay(true, null);
         broadcast(["updateConfig", config]);
         sendResponse(null);
         break;
     case "resetConfig":
         config = assignRec({}, configDefaults);
         scheduleSaveConfig(config);
+        updateDisplay(true, null);
         broadcast(["updateConfig", config]);
         sendResponse(null);
         break;
@@ -2252,12 +2257,12 @@ function handleMessage(request, sender, sendResponse) {
     case "runAllActions":
         popAllSingletonTimeouts(scheduledCancelable, true);
         popAllSingletonTimeouts(scheduledInternal, true);
-        updateDisplay(0, true, false);
+        updateDisplay(true);
         sendResponse(null);
         break;
     case "cancelCleanupActions":
         popAllSingletonTimeouts(scheduledCancelable, false);
-        updateDisplay(0, true, false);
+        updateDisplay(true);
         sendResponse(null);
         break;
     case "broadcast":
@@ -2421,7 +2426,6 @@ async function handleCommand(command) {
     }
 
     setOriginConfig(tabId, false, tabcfg);
-    updateDisplay(0, false, true, tabId);
 }
 
 function upgradeConfigAndPersistentStats(cfg, stats) {
@@ -2535,7 +2539,7 @@ async function init(storage) {
     browser.runtime.onConnect.addListener(catchAll(handleConnect));
 
     initMenus();
-    updateDisplay(0, true, true);
+    updateDisplay(true, null);
 
     if (useDebugger)
         await initDebugger(tabs);
