@@ -76,6 +76,11 @@ h2 input[type="button"] {
     padding: 0 1em;
 }
 
+.buttons,
+.buttons > span {
+    display: flex;
+}
+
 label code {
     margin: 0 0.5em;
 }
@@ -113,10 +118,40 @@ label code {
       </ul>
     </div>
     <div id="body" style="display: none">
+
     <h1>
       Globally
       <span data-help="Open the &quot;Changelog&quot; page."><input type="button" id="version" value="v?" /></span>
-      <span data-help="Open the &quot;Help&quot; page."><input type="button" id="help" class="smaller" value="Help" /></span>
+      <span class="right">
+        <span data-help="Open the &quot;Help&quot; page."><input type="button" id="help" class="smaller" value="Help" /></span>
+      </span>
+    </h1>
+    <div class="stats">
+      <div id="div-stats.collected" data-help="From the last reset, the numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory.">
+        <span>Collected/Discarded</span>
+        <span>
+        </span>
+        <span>
+          <span id="stats.collected">0</span>
+          (<span id="stats.collected_size">0</span>)
+          /
+          <span id="stats.discarded">0</span>
+        </span>
+      </div>
+      <div name="more" id="div-stats.picked" data-help="From the last reset, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
+        <span>Picked/Dropped</span>
+        <span>
+        </span>
+        <span>
+          <span id="stats.picked">0</span>
+          /
+          <span id="stats.dropped">0</span>
+        </span>
+      </div>
+    </div>
+
+    <h1>
+      This session
       <span class="right">
         <span data-help="Forget recent history."><input type="button" id="forgetHistory" value="Forget" /></span>
         <span data-shortcut="showState" data-help="Show the internal state and history."><input type="button" id="showState" value="State" /></span>
@@ -133,7 +168,7 @@ label code {
           <span id="stats.scheduled">0</span>
         </span>
       </div>
-      <div id="div-stats.archived" data-help="For this session, the numbers of reqres that were: successfully archived to the server (+still in the archival queue) / failed to be archived to the server.">
+      <div id="div-stats.archived" data-help="At the moment, the numbers of reqres that were: successfully archived to the server (+still in the archival queue) / failed to be archived to the server.">
         <span>Archived/Failed</span>
         <span>
           <span data-help="Retry archiving reqres that failed to archive. I.e., move all failed to archive reqres to the archival queue. This action will be performed automatically every 60 seconds when archiving is enabled."><input type="button" id="retryAllFailedArchives" value="Retry" /></span>
@@ -145,17 +180,6 @@ label code {
           <span id="stats.archive_failed">0</span>
         </span>
       </div>
-      <div id="div-stats.collected" data-help="From the last reset, the numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory.">
-        <span>Collected/Discarded</span>
-        <span>
-        </span>
-        <span>
-          <span id="stats.collected">0</span>
-          (<span id="stats.collected_size">0</span>)
-          /
-          <span id="stats.discarded">0</span>
-        </span>
-      </div>
       <div id="div-stats.in_limbo" data-help="At the moment, the number of finished reqres in limbo (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
@@ -165,16 +189,6 @@ label code {
         <span>
           <span id="stats.in_limbo">0</span>
           (<span id="stats.in_limbo_size">0</span>)
-        </span>
-      </div>
-      <div id="div-stats.picked" data-help="From the last reset, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
-        <span>Picked/Dropped</span>
-        <span>
-        </span>
-        <span>
-          <span id="stats.picked">0</span>
-          /
-          <span id="stats.dropped">0</span>
         </span>
       </div>
       <div id="div-stats.problematic" data-help="At the moment, the number of reqres that satisfied &quot;Mark reqres as problematic when they finish&quot; conditions (at the moment they `finished`).">
@@ -232,7 +246,7 @@ label code {
           (<span id="tabstats.in_limbo_size">0</span>)
         </span>
       </div>
-      <div id="div-tabstats.picked" data-help="For this tab, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
+      <div name="more" id="div-tabstats.picked" data-help="For this tab, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
         <span>Picked/Dropped</span>
         <span>
         </span>
@@ -365,16 +379,18 @@ label code {
       <ui id="config.workaroundChromiumDebugTimeout" type="number" data-help="Wait this many seconds for Chromium to generate new debugging or webRequest events before giving up and forcefully finishing all unmatched in-flight reqres. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details. Make this larger if your system is slow in general or if pWebArc generates duplicated reqres for the same fetched URL.">Unmatched timeout</ui>
     </div>
     <div id="debugging-options">
-      <h2>Debugging
-        <span class="right">
-          <span data-help="Reset all config options to their default values."><input type="button" id="resetConfig" class="smaller" value="Reset!" /></span>
-          <span data-help="Reset all persistent collected, discarded, picked, and dropped stats to zero."><input type="button" id="resetPersistentStats" class="smaller" value="Wipe stats!" /></span>
-        </span>
-      </h2>
+      <h2>Debugging</h2>
       <ui id="config.ephemeral" type="boolean" class="prefer-off" data-help="Make all changes to settings in this popup ephemeral from this point on. Restarting the browser or reloading the extension will reset config to the last state when this setting was off.">Ephemeral settings</ui>
       <ui id="config.debugging" type="boolean" class="prefer-off" data-help="Report lots of data into extension&#039;s debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (SLOW!)</ui>
       <ui id="config.dumping" type="boolean" class="prefer-off" data-help="Dump raw CBOR reqres dumps into extension&#039;s debugging log. Does nothing when the previous option is not enabled. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Dump raw CBORs into the log</ui>
       <ui id="config.doNotQueue" type="boolean" class="prefer-off" data-help="Do not queue any new reqres for archival. Enabling this will make pWebArc update the stats and the log as if everything was properly queued for archival, but then discard all the new data instead. Reqres already queued for archival will still be pushed to the archiving server, eventually. Do not enable unless you know what you are doing. Useful for debugging the collection machinery of pWebArc without actually collecting anything.">Do not queue new reqres</ui>
+    </div>
+    <div id="destructive-actions">
+      <h2>Potentially destructive actions</h2>
+      <div class="buttons"><span class="center">
+        <span data-help="Reset all persistent collected, discarded, picked, and dropped stats to zero."><input type="button" id="resetPersistentStats" value="Reset stats!" /></span>
+        <span data-help="Reset all config options to their default values."><input type="button" id="resetConfig" value="Reset config!" /></span>
+      </span></div>
     </div>
     </div>
 

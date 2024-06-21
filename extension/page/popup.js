@@ -149,8 +149,18 @@ async function popupMain() {
     buttonToAction("unmarkAllTabProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
     buttonToAction("stopAllTabInFlight", catchAll(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
 
-    buttonToMessage("resetConfig");
-    buttonToMessage("resetPersistentStats");
+    buttonToAction("resetPersistentStats", catchAll(() => {
+        if (!window.confirm("Really?"))
+            return;
+
+        browser.runtime.sendMessage(["resetPersistentStats"]);
+    }));
+    buttonToAction("resetConfig", catchAll(() => {
+        if (!window.confirm("Really?"))
+            return;
+
+        browser.runtime.sendMessage(["resetConfig"]);
+    }));
 
     buttonToAction("showAll", catchAll(showAll));
 
