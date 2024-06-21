@@ -30,7 +30,7 @@ h1 {
 h2 {
     font-size: 100%;
     margin: 0;
-    margin-top: 2px;
+    margin-top: 5px;
     display: flex;
 }
 
@@ -54,12 +54,12 @@ h2 input[type="button"] {
     font-size: 80%;
 }
 
-.stats .help-root > div {
-    display: flex;
+.stats {
+    margin-left: 1em;
 }
 
-.stats .help-root > div > span:nth-child(1) {
-    margin-left: 1em;
+.stats .help-root > div {
+    display: flex;
 }
 
 .stats .help-root > div > span:nth-child(2) {
@@ -76,6 +76,10 @@ h2 input[type="button"] {
     padding: 0 1em;
 }
 
+.opts {
+    margin-left: 0.6em;
+}
+
 .buttons,
 .buttons > span {
     display: flex;
@@ -88,8 +92,7 @@ label code {
 #showAll {
     font-size: 100%;
     width: 99%;
-    text-align: center;
-    margin: 5px;
+    margin: 5px auto 0 auto;
 }
 
 .disabled-archiving .da,
@@ -118,6 +121,7 @@ label code {
       </ul>
     </div>
     <div id="body" style="display: none">
+    <!-- idBody -->
 
     <h1>
       Globally
@@ -211,10 +215,10 @@ label code {
       </div>
     </div>
 
-    <div name="more">
+    <div name="more" class="opts">
     <ui id="config.collecting" type="boolean" class="prefer-on" data-help="Also known as &quot;Enable this add-on&quot;. Generate a new reqres and start tracking its progress when the browser makes a new HTTP request. Disabling this option will stop pWebArc from recording any new data. Already tracked reqres will still get tracked until they finish.">Track newly generated requests</ui>
     <ui id="config.archiving" type="boolean" class="prefer-on" data-help="Archive collected reqres by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that the archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
-    <ui id="config.archiveURLBase" type="string" class="da" data-help="URL of the server we are archiving to.">to URL</ui>
+    <ui id="config.archiveURLBase" type="string" class="da" data-help="URL of the server we are archiving to.">... to URL</ui>
     </div>
 
     <h1>This tab
@@ -275,43 +279,61 @@ label code {
         </span>
       </div>
     </div>
+    <div class="opts">
     <ui id="tabconfig.collecting" type="boolean" class="prefer-on dc" tabindex=2 data-shortcut="toggleTabConfigTracking" data-help="Track new reqres originating from this tab.">Track new reqres</ui>
     <ui id="tabconfig.limbo" type="boolean" tabindex=3 data-shortcut="toggleTabConfigLimbo" data-help="For this tab, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
+    </div>
 
-    <div name="more">
+    <div name="more" class="opts">
     <ui id="tabconfig.negLimbo" type="boolean" class="prefer-off" data-help="For this tab, put newly `finished` reqres that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
     <ui id="tabconfig.profile" type="string" class="da" data-help="Use this server-side profile when archiving reqres originating from this tab.">Profile</ui>
     </div>
 
     <h1>This tab&#039;s new children</h1>
+    <div class="opts">
     <ui id="tabconfig.children.collecting" type="boolean" tabindex=4 class="prefer-on dc" data-shortcut="toggleTabConfigChildrenTracking" data-help="Enable &quot;Track new reqres&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Track new reqres&quot;</ui>
     <ui id="tabconfig.children.limbo" type="boolean" tabindex=5 data-shortcut="toggleTabConfigChildrenLimbo" data-help="Enable &quot;Pick into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Pick into limbo&quot;</ui>
+    </div>
 
-    <div name="more">
+    <div name="more" class="opts">
     <ui id="tabconfig.children.negLimbo" type="boolean" class="prefer-off" data-help="Enable &quot;Drop into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Drop into limbo&quot;</ui>
     <ui id="tabconfig.children.profile" type="string" class="da" data-help="Use this server-side profile when archiving reqres originating from new tabs opened from this tab (middle mouse click, context menu actions).">Profile</ui>
     </div>
 
     <h1>New root tabs</h1>
+    <div class="opts">
     <ui id="config.root.collecting" type="boolean" class="prefer-on dc" tabindex=6 data-help="Enable &quot;Track new reqres&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Track new reqres&quot;</ui>
     <ui id="config.root.limbo" type="boolean" tabindex=7 data-help="Enable &quot;Pick into limbo&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Pick into limbo&quot;</ui>
+    </div>
 
     <div name="more">
+    <!-- bigMore -->
+
+    <div class="opts">
     <ui id="config.root.negLimbo" type="boolean" class="prefer-off" data-help="Enable &quot;Drop into limbo&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Drop into limbo&quot;</ui>
     <ui id="config.root.profile" type="string" class="da" data-help="Use this server-side profile when archiving reqres originating from new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Profile</ui>
+    </div>
+
     <h1>Background tasks</h1>
+    <div class="opts">
     <ui id="config.background.collecting" type="boolean" class="prefer-on dc" data-help="Track new reqres originating from browser&#039;s background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this as browsers do link pre-fetching in background, and disabling this will miss that data.">Track new reqres</ui>
     <ui id="config.background.limbo" type="boolean" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
     <ui id="config.background.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
     <ui id="config.background.profile" type="string" class="da" data-help="Use this server-side profile when archiving reqres originating from browser&#039;s background tasks (excluding those originating from extensions).">Profile</ui>
+    </div>
+
     <h1>Extensions</h1>
+    <div class="opts">
     <ui id="config.extension.collecting" type="boolean" class="dc" data-help="Track new reqres originating from browser extensions.">Track new reqres</ui>
     <ui id="config.extension.limbo" type="boolean" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
     <ui id="config.extension.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
     <ui id="config.extension.profile" type="string" class="da" data-help="Use this server-side profile when archiving reqres originating from browser extensions.">Profile</ui>
+    </div>
+
     <h1>Options</h1>
     <div id="pick-options">
       <h2>Pick reqres for archival when they finish</h2>
+      <div class="opts">
       <ui id="config.archivePartialRequest" type="boolean" class="prefer-on" data-help="Pick a finished reqres for archival even when its request body is incomplete. Enabled by default, and you probably want to keep this enabled. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">... with partial POST form data</ui>
       <ui id="config.archiveCanceled" type="boolean" class="prefer-off" data-help="Pick a finished reqres for archival even when it was canceled before it was even sent (this usually means the HTTP request in question was blocked by another extension like &quot;uBlock Origin&quot;). Disabled by default because such archived reqres carry no information except that the browser tried to do a request at specified time.">... in <code>canceled</code> state</ui>
       <ui id="config.archiveNoResponse" type="boolean" class="prefer-off" data-help="Pick a finished reqres for archival even when it got no response (i.e. the request in question was interrupted before request headers were received, this usually means a networking issue). Disabled by default because such archived reqres carry no information except that the browser tried to do a request at specified time.">... in <code>no_response</code> state</ui>
@@ -321,9 +343,11 @@ label code {
       <ui id="config.archiveTransientCodes" type="boolean" class="prefer-on" data-help="Pick a finished reqres for archival even when its HTTP response status code is a transient error. Enabled by default.">... with transient server errors</ui>
       <ui id="config.archivePermanentCodes" type="boolean" class="prefer-on" data-help="Pick a finished reqres for archival even when its HTTP response status code is a permanent error. Enabled by default.">... with permanent server errors</ui>
       <ui id="config.archiveWithErrors" type="boolean" class="prefer-on" data-help="Pick a finished reqres for archival even when pWebArc encountered (non-trivial) errors while collecting it. Enabled by default because very few errors mean the data is invalid. E.g., network errors for requests aborted by other extensions, as well as parsing and rendering-related errors reported by the browser can usually be ignored.">... with reqres errors</ui>
+      </div>
     </div>
     <div id="problematic-options">
       <h2>Mark reqres as problematic when they finish</h2>
+      <div class="opts">
       <ui id="config.markProblematicPartialRequest" type="boolean" data-help="Marke a newly finished reqres as problematic when its request body is incomplete. Enabled by default. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">... with partial POST form data</ui>
       <ui id="config.markProblematicCanceled" type="boolean" class="prefer-off" data-help="Mark a newly finished reqres as problematic when it was canceled before it was even sent (this usually means the HTTP request in question was blocked by another extension like &quot;uBlock Origin&quot;). Disabled by default.">... in <code>canceled</code> state</ui>
       <ui id="config.markProblematicNoResponse" type="boolean" class="prefer-on" data-help="Mark a newly finished reqres as problematic when it got no response (i.e. the request in question was interrupted before request headers were received; this usually means a networking issue). Enabled by default.">... in <code>no_response</code> state</ui>
@@ -334,56 +358,77 @@ label code {
       <ui id="config.markProblematicWithImportantErrors" type="boolean" class="prefer-on" data-help="Mark a newly finished reqres as problematic when it had important collection errors. Currently, only errors generated by pWebArc itself (when it failed to collect the data from the browser for various reasons), are considered important. Enabled by default.">... with important reqres errors</ui>
       <ui id="config.markProblematicPickedWithErrors" type="boolean" class="prefer-on" data-help="Mark a newly finished reqres as problematic when pWebArc encountered (non-trivial) errors while collecting it and &quot;Pick reqres for archival when they finish&quot; settings picked it for archival. Enabled by default.">... with reqres errors and get <code>picked</code></ui>
       <ui id="config.markProblematicDroppedWithErrors" type="boolean" data-help="Mark a newly finished reqres as problematic when pWebArc encountered (non-trivial) errors while collecting it and &quot;Pick reqres for archival when they finish&quot; settings did NOT pick it for archival. Disabled by default because with this enabled all reqres blocked by ad-blocking extension like &quot;uBlock Origin&quot; will be marked as problematic.">... with reqres errors and get <code>dropped</code></ui>
+      </div>
     </div>
     <div id="closed-auto-options">
       <h2>Automatic actions for recently closed tabs</h2>
+      <div class="opts">
       <ui id="config.autoTimeout" type="number" class="dauto" data-help="Perform automatic actions after this many seconds after the target tab is closed.">Timeout</ui>
       <ui id="config.autoUnmarkProblematic" type="boolean" data-help="For a recently closed tab, automatically forget about problematic reqres.">Auto-unmark problematic reqres</ui>
       <ui id="config.autoPopInLimboCollect" type="boolean" data-help="For a recently closed tab, automatically collect reqres in limbo.">Auto-collect reqres in limbo</ui>
       <ui id="config.autoPopInLimboDiscard" type="boolean" class="prefer-off" data-help="For a recently closed tab, automatically discard reqres in limbo.">Auto-discard reqres in limbo</ui>
+      </div>
     </div>
     <div id="history-options">
       <h2>History</h2>
-      <ui id="config.logDiscarded" type="boolean" class="prefer-on" data-help="What it says on the tin. Enabled by default because it makes figuring out what the browser is doing much easier. Disabling this could make the log much shorter at the cost of making things harder to debug.">Log non-problematic discarded reqres</ui>
+      <div class="opts">
       <ui id="config.history" type="number" data-help="Remember at most this many collected and discarded reqres in the log.">Maximum size</ui>
+      <ui id="config.logDiscarded" type="boolean" class="prefer-on" data-help="What it says on the tin. Enabled by default because it makes figuring out what the browser is doing much easier. Disabling this could make the log much shorter at the cost of making things harder to debug.">Log non-problematic discarded reqres</ui>
+      </div>
     </div>
+
+    <!-- bigMore -->
     </div>
+
     <div id="notification-options">
       <h2>Generate desktop notifications about</h2>
+      <div class="opts">
       <ui id="config.problematicNotify" type="boolean" tabindex=8 data-help="Complain when a new problematic reqres appears.">... new problematic reqres</ui>
       <div name="more">
-      <ui id="config.problematicNotifyNumber" type="number" class="dpn" data-help="Show no more than this many latest METHOD + URL lines in the generated problematic reqres notification.">But no more than</ui>
+      <ui id="config.problematicNotifyNumber" type="number" class="dpn" data-help="Show no more than this many latest METHOD + URL lines in the generated problematic reqres notification.">... ... but no more than</ui>
       <ui id="config.limboNotify" type="boolean" class="prefer-on" data-help="Complain when too much stuff is being held in limbo.">... too much stuff in limbo</ui>
-      <ui id="config.limboMaxNumber" type="number" class="dln" data-help="Start complaining when more than this number of reqres are in limbo.">Complain after #</ui>
-      <ui id="config.limboMaxSize" type="number" class="dln" data-help="Start complaining when the total size of all dumps in limbo is larger than this many Megabytes.">Complain after MiB</ui>
+      <ui id="config.limboMaxNumber" type="number" class="dln" data-help="Start complaining when more than this number of reqres are in limbo.">... ... after #</ui>
+      <ui id="config.limboMaxSize" type="number" class="dln" data-help="Start complaining when the total size of all dumps in limbo is larger than this many Megabytes.">... ... after MiB</ui>
       <ui id="config.autoNotify" type="boolean" data-help="Generate a notification when an automatic action was performed in background.">... automatic actions</ui>
       <ui id="config.archiveNotifyDisabled" type="boolean" class="prefer-on" data-help="Complain when some reqres are stuck in the archival queue with archiving disabled.">... non-empty queue with archiving disabled</ui>
       <ui id="config.archiveNotifyFailed" type="boolean" class="prefer-on" data-help="Complain when some reqres fail to be archived to the archival server.">... archival errors</ui>
       <ui id="config.archiveNotifyOK" type="boolean" data-help="Generate an &quot;All OK&quot; notification when the queue becomes empty the very first time or after a previous archival failure. This exists mostly for on-boarding new users.">... first empty archival queue</ui>
       </div>
+      </div>
     </div>
+
     <div name="more">
+    <!-- bigMore -->
+
     <div id="ui-options">
       <h2>User Interface and Accessibility</h2>
+      <div class="opts">
       <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
       <ui id="config.pureText" type="boolean" data-help="Do not use emojis in UI labels. Makes screen readers happier.">Pure text labels</ui>
+      </div>
     </div>
     <div id="firefox-workarounds">
       <h2>Workarounds for Firefox bugs</h2>
-      <ui id="config.workaroundFirefoxFirstRequest" type="boolean" data-help="Cancel and re-run the very first non-background request Firefox makes. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">The very first request</ui>
+      <div class="opts">
+      <ui id="config.workaroundFirefoxFirstRequest" type="boolean" data-help="Cancel and restart the very first non-background request Firefox makes. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details.">Restart the very first request</ui>
+      </div>
     </div>
     <div id="chromium-workarounds">
       <h2>Workarounds for Chromium bugs</h2>
-      <ui id="config.workaroundChromiumResetRootTab" type="boolean" class="prefer-on" data-help="Reset new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item) to the URL below. You can disable this, but then pWebArc will proceed trying to collect the first page the browser loads there, which will probably fail.">Reset new root tabs</ui>
-      <ui id="config.workaroundChromiumResetRootTabURL" type="string" data-help="URL of the first page in a new tab. Setting this to `about:blank` is highly recommended.">... to URL</ui>
+      <div class="opts">
       <ui id="config.workaroundChromiumDebugTimeout" type="number" data-help="Wait this many seconds for Chromium to generate new debugging or webRequest events before giving up and forcefully finishing all unmatched in-flight reqres. See the &quot;Quirks and Bugs&quot; section of the &quot;Help&quot; page for details. Make this larger if your system is slow in general or if pWebArc generates duplicated reqres for the same fetched URL.">Unmatched timeout</ui>
+      <ui id="config.workaroundChromiumResetRootTab" type="boolean" class="prefer-on" data-help="Reset new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item) to the URL below. You can disable this, but then pWebArc will proceed trying to collect the first page the browser loads there, which will probably fail.">Reset new root tabs</ui>
+      <ui id="config.workaroundChromiumResetRootTabURL" type="string" data-help="URL of the first page in a new tab. Setting this to `about:blank` is highly recommended.">... ... to URL</ui>
+      </div>
     </div>
     <div id="debugging-options">
       <h2>Debugging</h2>
+      <div class="opts">
       <ui id="config.ephemeral" type="boolean" class="prefer-off" data-help="Make all changes to settings in this popup ephemeral from this point on. Restarting the browser or reloading the extension will reset config to the last state when this setting was off.">Ephemeral settings</ui>
       <ui id="config.debugging" type="boolean" class="prefer-off" data-help="Report lots of data into extension&#039;s debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (SLOW!)</ui>
       <ui id="config.dumping" type="boolean" class="prefer-off" data-help="Dump raw CBOR reqres dumps into extension&#039;s debugging log. Does nothing when the previous option is not enabled. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Dump raw CBORs into the log</ui>
       <ui id="config.doNotQueue" type="boolean" class="prefer-off" data-help="Do not queue any new reqres for archival. Enabling this will make pWebArc update the stats and the log as if everything was properly queued for archival, but then discard all the new data instead. Reqres already queued for archival will still be pushed to the archiving server, eventually. Do not enable unless you know what you are doing. Useful for debugging the collection machinery of pWebArc without actually collecting anything.">Do not queue new reqres</ui>
+      </div>
     </div>
     <div id="destructive-actions">
       <h2>Potentially destructive actions</h2>
@@ -392,9 +437,15 @@ label code {
         <span data-help="Reset all config options to their default values."><input type="button" id="resetConfig" value="Reset config!" /></span>
       </span></div>
     </div>
+
+    <!-- bigMore -->
     </div>
 
-    <input type="button" id="showAll" tabindex=1 value="Show all" />
+    <div class="buttons">
+      <input type="button" id="showAll" tabindex=1 value="Show all" />
+    </div>
+
+    <!-- idBody -->
     </div>
 
     $for(libScript)$<script src="../lib/$libScript$"></script>$endfor$
