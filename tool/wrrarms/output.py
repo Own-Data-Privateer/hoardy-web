@@ -78,7 +78,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
         for k, v in reqres.extra.items():
             fobj.write_str(k + " ")
             fobj.write_bytes(pyrepr_dumps(v, starting_indent = 2, width = 80, default = PyStreamEncoder.encode_py).lstrip())
-        fobj.write_str_ln("")
+            fobj.write_str_ln("")
 
     def dump_data(rr : Request | Response, complete : str) -> None:
         data = rr.body
@@ -143,25 +143,29 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
             fobj.write_str(indent + name + ": ")
             fobj.write_bytes_ln(value)
 
-    fobj.write_str_ln("\nRequest headers:")
+    fobj.write_str_ln("")
+    fobj.write_str_ln("Request headers:")
     dump_headers(req.headers, "  ")
 
     if res is not None:
-        fobj.write_str_ln("\nResponse headers:")
+        fobj.write_str_ln("")
+        fobj.write_str_ln("Response headers:")
         dump_headers(res.headers, "  ")
 
+    fobj.write_str_ln("")
     if len(req.body) > 0:
-        fobj.write_str("\nRequest body ")
+        fobj.write_str("Request body ")
         dump_data(req, req_complete)
     else:
-        fobj.write_str_ln("\nEmpty request body")
+        fobj.write_str_ln("Empty request body")
 
     if res is not None:
+        fobj.write_str_ln("")
         if len(res.body) > 0:
-            fobj.write_str("\nResponse body ")
+            fobj.write_str("Response body ")
             dump_data(res, res_complete)
         else:
-            fobj.write_str_ln("\nEmpty response body")
+            fobj.write_str_ln("Empty response body")
 
     fobj.write_str_ln("")
     fobj.flush()
