@@ -28,16 +28,16 @@
             "description": "Open the log of recently collected and discarded reqres"
         },
         "showTabState": {
-            "description": "For the current tab, open the internal state page"
+            "description": "For the currently active tab, open the internal state page"
         },
         "showTabLog": {
-            "description": "For the current tab, open the log of recently collected and discarded reqres"
+            "description": "For the currently active tab, open the log of recently collected and discarded reqres"
         },
         "toggleTabConfigTracking": {
             "suggested_key": {
                 "default": "Alt+C"
             },
-            "description": "For the current tab, toggle tracking and reset it for the tab's new children"
+            "description": "For the currently active tab, toggle tracking and reset it for the tab's new children"
         },
         "toggleTabConfigChildrenTracking": {
             "description": "For current tab's new children, toggle tracking"
@@ -46,7 +46,7 @@
             "suggested_key": {
                 "default": "Alt+L"
             },
-            "description": "For the current tab, toggle limbo mode and reset it for the tab's new children"
+            "description": "For the currently active tab, toggle limbo mode and reset it for the tab's new children"
         },
         "toggleTabConfigChildrenLimbo": {
             "description": "For current tab's new children, toggle limbo mode"
@@ -58,19 +58,19 @@
             "suggested_key": {
                 "default": "Alt+U"
             },
-            "description": "For the current tab, unmark all problematic reqres"
+            "description": "For the currently active tab, unmark all problematic reqres"
         },
         "collectAllInLimbo": {
             "description": "Collect all reqres in limbo"
         },
         "collectAllTabInLimbo": {
-            "description": "For the current tab, collect all reqres in limbo"
+            "description": "For the currently active tab, collect all reqres in limbo"
         },
         "discardAllInLimbo": {
             "description": "Discard all reqres in limbo"
         },
         "discardAllTabInLimbo": {
-            "description": "For the current tab, discard all reqres in limbo"
+            "description": "For the currently active tab, discard all reqres in limbo"
         }
     }
 }
