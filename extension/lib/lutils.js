@@ -61,11 +61,11 @@ let stateURL = browser.runtime.getURL("/page/state.html");
 function getTabURL(tab, def) {
     if (useDebugger) {
         let pendingUrl = tab.pendingUrl;
-        if (pendingUrl !== undefined && pendingUrl !== null && pendingUrl !== "")
+        if (isDefinedURL(pendingUrl))
             return pendingUrl;
     }
     let url = tab.url;
-    if (url !== undefined && url !== null && url !== "")
+    if (isDefinedURL(url))
         return url;
     return def;
 }

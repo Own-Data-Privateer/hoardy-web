@@ -1278,14 +1278,14 @@ function renderReqres(reqres) {
     // no documentUrl is set (in Firefox topmost level document does not get
     // documentUrl, which is annoying, we want to save the #hashes there).
     let documentUrl;
-    if (reqres.documentUrl !== undefined)
+    if (isDefinedURL(reqres.documentUrl))
         documentUrl = canonicalizeURL(reqres.documentUrl);
     else
         documentUrl = canonicalizeURL(reqres.url);
 
     // do similarly for originUrl for similar Chromium-related reasons
-    let originUrl = undefined;
-    if (reqres.originUrl !== undefined)
+    let originUrl;
+    if (isDefinedURL(reqres.originUrl))
         originUrl = canonicalizeURL(reqres.originUrl);
 
     // The primary effect of the normalization and canonicalization above and
@@ -1775,9 +1775,9 @@ function handleBeforeRequest(e) {
         return;
 
     let initiator;
-    if (e.documentUrl !== undefined && e.documentUrl !== null)
+    if (isDefinedURL(e.documentUrl))
         initiator = e.documentUrl; // Firefox
-    else if (e.initiator !== undefined && e.initiator !== null && e.initiator !== "null")
+    else if (isDefinedURL(e.initiator) && e.initiator !== "null")
         initiator = e.initiator; // Chromium
 
     let fromExtension = false;
@@ -1866,12 +1866,12 @@ function handleBeforeRequest(e) {
         fromCache: false,
     };
 
-    if (e.documentUrl !== undefined && e.documentUrl !== null)
+    if (isDefinedURL(e.documentUrl))
         reqres.documentUrl = e.documentUrl;
 
-    if (e.originUrl !== undefined && e.originUrl !== null)
+    if (isDefinedURL(e.originUrl))
         reqres.originUrl = e.originUrl; // Firefox
-    else if (e.initiator !== undefined && e.initiator !== null && e.initiator !== "null")
+    else if (isDefinedURL(e.initiator) && e.initiator !== "null")
         reqres.originUrl = e.initiator; // Chromium
 
     if (e.requestBody !== undefined && e.requestBody !== null) {

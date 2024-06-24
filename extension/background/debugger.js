@@ -293,7 +293,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         dreqres.requestTimeStamp = e.wallTime * 1000;
         dreqres.method = e.request.method;
         dreqres.url = e.request.url;
-        if (e.documentURL !== undefined && e.documentURL !== null)
+        if (isDefinedURL(e.documentURL))
             dreqres.documentUrl = e.documentURL;
         dreqres.requestHeadersDebug = e.request.headers;
         if (!isBoringURL(dreqres.url))

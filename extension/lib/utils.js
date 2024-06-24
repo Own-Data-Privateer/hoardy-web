@@ -334,6 +334,10 @@ function normalizeURL(url) {
     return canonicalizeURL(removeURLHash(url));
 }
 
+function isDefinedURL(url) {
+    return url !== undefined && url !== null && url !== "";
+}
+
 function isLocalURL(url) {
     if (url.startsWith("about:") || url.startsWith("chrome:")
         || url.startsWith("data:") || url.startsWith("file:"))
