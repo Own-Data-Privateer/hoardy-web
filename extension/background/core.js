@@ -2384,24 +2384,6 @@ async function handleCommand(command) {
     case "showTabLog":
         showState(`?tab=${tabId}`, "bottom", tab.id);
         return;
-    case "toggleTabConfigTracking":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.collecting = !tabcfg.collecting;
-        tabcfg.children.collecting = tabcfg.collecting;
-        break;
-    case "toggleTabConfigChildrenTracking":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.children.collecting = !tabcfg.children.collecting;
-        break;
-    case "toggleTabConfigLimbo":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.limbo = !tabcfg.limbo;
-        tabcfg.children.limbo = tabcfg.limbo;
-        break;
-    case "toggleTabConfigChildrenLimbo":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.children.limbo = !tabcfg.children.limbo;
-        break;
     case "unmarkAllProblematic":
         unmarkProblematic(null, null);
         return;
@@ -2420,6 +2402,24 @@ async function handleCommand(command) {
     case "discardAllTabInLimbo":
         popInLimbo(false, null, tabId);
         return;
+    case "toggleTabConfigTracking":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.collecting = !tabcfg.collecting;
+        tabcfg.children.collecting = tabcfg.collecting;
+        break;
+    case "toggleTabConfigChildrenTracking":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.children.collecting = !tabcfg.children.collecting;
+        break;
+    case "toggleTabConfigLimbo":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.limbo = !tabcfg.limbo;
+        tabcfg.children.limbo = tabcfg.limbo;
+        break;
+    case "toggleTabConfigChildrenLimbo":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.children.limbo = !tabcfg.children.limbo;
+        break;
     default:
         console.error(`unknown command ${command}`);
         return;
