@@ -247,7 +247,7 @@ After adding each new feature to [`wrrarms` CLI tool](./tool/), as a rule, I fee
 
   - Reorganize tracking- and problematic-related options into config profiles (~25% done), allow them to override each over, and then implement per-host profiles.
 
-- DOM snapshots capture.
+- Automatic capture of DOM snapshots when a page changes.
 - Serverless archival into browser's local storage: for easier bootstrap and to allow using Tor Browser securely with its default config.
 - Maybe: Dumping straight into WARC, so that third-party tools (i.e. not just `wrrarms`) could be used for everything except capture.
 

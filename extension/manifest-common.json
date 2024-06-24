@@ -71,6 +71,12 @@
         },
         "discardAllTabInLimbo": {
             "description": "For the currently active tab, discard all reqres in limbo"
+        },
+        "snapshotAll": {
+            "description": "Take DOM snapshots of all frames of all open tabs for which \"Track newly generated requests\" setting is enabled"
+        },
+        "snapshotTab": {
+            "description": "Take DOM snapshots of all frames of the currently active tab"
         }
     }
 }

@@ -82,6 +82,9 @@ for target in "$@"; do
     install -d "$DEST"/background
     install -C -t "$DEST"/background background/*.html background/debugger.js background/core.js
 
+    install -d "$DEST"/inject
+    install -C -t "$DEST"/inject inject/*.js
+
     install -C -t "$DEST" ../LICENSE.txt
 
     if [[ "$target" == chromium ]]; then

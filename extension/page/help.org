@@ -15,13 +15,13 @@ Reqres change their internal states according to the following state diagram (wh
    |                     (no_response)                   (incomplete)   (complete)
    |                           |                              |             |
    |                           \                              |             |
-   |\---> (canceled) -----\     \                             |             |
-   |                       \     \                            \             |
-   |                        \     \                            \            v
-   |\-> (incomplete_fc) ----->----->---------------------------->-----> (finished)
-   |                        /                                            /  |
-   |                       /                                      /-----/   |
-   \--> (complete_fc) ----/        /--------------- (picked) <---/          v
+   |\---> (canceled) ----\      \                             |             |
+   |                      \      \                            \             |
+   |\-> (incomplete_fc) ---\      \                            \            v
+   |                        >------>---------------------------->-----> (finished)
+   |\--> (complete_fc) ----/                                             /  |
+   |                      /                                       /-----/   |
+   \----> (snapshot) ----/         /--------------- (picked) <---/          v
                                    |                   |                (dropped)
                                    v                   v                 /  |
        (archived) <- (sIO) <- (collected) <------- (in_limbo) <---------/   |
@@ -55,6 +55,7 @@ As shown on the above diagram, a new reqres proceeds through the following netwo
 - =incomplete_fc=: only on Firefox-based browsers: the browser loaded the response data of this reqres directly from its cache, but did not give it to pWebArc; this is just how Firefox handles things sometimes (usually, for images); this is a separate state, because usually this means this URL was successfully archived before (if it was not, reload the page with =Control+F5=);
 - =complete=: request was completed successfully;
 - =complete_fc=: request was completed successfully from browser's cache;
+- =snapshot=: this reqres was produced by taking a DOM (Document Object Model) snapshot (using one of the [[./popup.html#snapshotTab][appropriate]] [[./popup.html#snapshotAll][buttons]] in the popup), i.e. it was produced by capturing a raw HTML/XML of the current state of the tab/frame, not by capturing a network request;
 - =finished=: the terminal state of this step, no new events for this reqres will come from the browser (=webRequest= API);
 
 In principle, at reaching =finished= state the reqres can be serialized and saved to disk, but pWebArc provides more states and UI for convenience.
@@ -174,11 +175,13 @@ pWebArc provides shortcuts to:
 - toggle [[./popup.html#div-tabconfig.limbo][limbo mode in the currently active tab]], {{{shortcut(toggleTabConfigLimbo)}}};
 - toggle [[./popup.html#div-tabconfig.children.limbo][limbo mode in currently active tab's children]], {{{shortcut(toggleTabConfigChildrenLimbo)}}};
 - [[./popup.html#unmarkAllProblematic][unmark all problematic reqres]], {{{shortcut(unmarkAllProblematic)}}};
-- [[./popup.html#collectAllInLimbo][collect all reqres from limbo]], {{{shortcut(collectAllInLimbo)}}};
-- [[./popup.html#discardAllInLimbo][discard all reqres from limbo]], {{{shortcut(discardAllInLimbo)}}};
 - [[./popup.html#unmarkAllTabProblematic][unmark all current tab's problematic reqres]], {{{shortcut(unmarkAllTabProblematic)}}};
+- [[./popup.html#collectAllInLimbo][collect all reqres from limbo]], {{{shortcut(collectAllInLimbo)}}};
 - [[./popup.html#collectAllTabInLimbo][collect all reqres from limbo for the currently active tab]], {{{shortcut(collectAllTabInLimbo)}}};
-- [[./popup.html#discardAllTabInLimbo][discard all reqres from limbo for the currently active tab]], {{{shortcut(discardAllTabInLimbo)}}}.
+- [[./popup.html#discardAllInLimbo][discard all reqres from limbo]], {{{shortcut(discardAllInLimbo)}}};
+- [[./popup.html#discardAllTabInLimbo][discard all reqres from limbo for the currently active tab]], {{{shortcut(discardAllTabInLimbo)}}};
+- [[./popup.html#snapshotAll][take DOM snapshot of all tabs]] for which [[./popup.html#div-tabconfig.collecting]["Track newly generated requests" setting]] is enabled, {{{shortcut(snapshotAll)}}};
+- [[./popup.html#snapshotTab][take DOM snapshot of the currently active tab]], {{{shortcut(snapshotTab)}}}.
 ** Context menu actions
 pWebArc provides context menu actions to:
 
@@ -207,8 +210,13 @@ pWebArc provides context menu actions to:
 
 - When the extension is (re-)loaded, all tabs inherit the values of [[./popup.html#div-config.root.collecting][this]], [[./popup.html#div-config.root.limbo][this]], [[./popup.html#div-config.root.negLimbo][this]], and [[./popup.html#div-config.root.profile][this]] setting.
 
-- At the moment, pWebArc does not implement collection of WebSockets data on any of the supported browsers (even though, Chromium does support it, in theory).
-# TODO: mention DOM archival as an alternative, when implemented
+- pWebArc does not implement collection of WebSockets data on any of the supported browsers.
+
+  (Firefox does not support it.
+  Chromium does support it, in theory, but I have not tried using that API, so I have no idea how well it works.)
+
+  This is low-priority issue since you can simply take a DOM [[./popup.html#snapshotTab][snapshot]] instead of capturing and later replaying WebSocket messages to in-page JavaScript.
+  Also, capturing and archiving a DOM snapshot will free you from needing to run any JavaScript at all when you decide to return to view the archived page later, which is nice.
 
 - On Chromium, response data of background requests and requests made by other extensions does not get collected, since there's no tab to attach a debugger to, and I have not figured out how to attach debugger to other things yet.
 ** Relevant issues of Firefox, Tor Browser, LibreWolf, etc
@@ -239,7 +247,6 @@ pWebArc provides context menu actions to:
   If [[./popup.html#div-config.workaroundFirefoxFirstRequest][this option]] is enabled, pWebArc transparently works around this bug by redirecting the very first navigation request to =about:blank= and then reloading the tab with its original URL.
 
 - Firefox-based browsers provide no API for archiving WebSockets data at the moment, unfortunately.
-# TODO: mention DOM archival as an alternative, when implemented
 ** Relevant issues of Chromium, Chrome, etc
 :PROPERTIES:
 :CUSTOM_ID: chromium-bugs
@@ -382,6 +389,17 @@ Most notably:
 
 Yes. This is why [[./popup.html#div-tabconfig.limbo]["Pick into limbo" setting]] exists.
 See [[#limbo][above]] for more info.
+** Can I capture a web page/tab/frame as it currently is, after all JavaScript was run, not as it was when it was last fetched from the network?
+:PROPERTIES:
+:CUSTOM_ID: faq-snapshot
+:END:
+
+Yes, you can capture DOM (Document Object Model) snapshots for the currently active tab by pressing [[./popup.html#snapshotTab][this button]] in the popup.
+
+Doing that will generate and capture snapshots of raw HTML/XMLs for each frame contained in the currently active tab.
+(Reqres-wise they will be "200 OK" responses, but with =protocol= set to ="SNAPSHOT"= and =method= set to ="DOM"=.)
+
+You can also do that for all open tabs at once by pressing [[./popup.html#snapshotAll][that button]].
 ** On Chromium, a lot of my captures fail with =debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER=, =debugger::pWebArc::NO_RESPONSE_BODY::DETACHED_DEBUGGER=, and =webRequest::pWebArc::NO_DEBUGGER::CANCELED= errors. What do I do?
 
 You are either

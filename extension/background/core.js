@@ -36,6 +36,7 @@ let configDefaults = {
     ephemeral: false, // stop the config from being saved to disk
     debugging: false, // verbose debugging logs
     dumping: false, // dump dumps to console
+    snapshotAny: false, // snapshot isBoringURL
     doNotQueue: false,
 
     // UI
@@ -1416,7 +1417,10 @@ function processAlmostDone() {
     let problematic = false;
     let picked = true;
 
-    if (!reqres.sent) {
+    if (reqres.protocol === "SNAPSHOT") {
+        // it's a snapshot
+        state = "snapshot";
+    } else if (!reqres.sent) {
         // it failed somewhere before handleSendHeaders
         state = "canceled";
         problematic = config.markProblematicCanceled;
@@ -1567,6 +1571,122 @@ function processAlmostDone() {
     }
 
     scheduleEndgame(updatedTabId);
+}
+
+async function snapshotOneTab(tabId, tabUrl, noEndgame) {
+    if (!config.snapshotAny && isBoringURL(tabUrl)) {
+        // skip stuff like handleBeforeRequest does
+        if (config.debugging)
+            console.log("NOT taking DOM snapshot of tab", tabId, tabUrl);
+        return;
+    }
+
+    if (config.debugging)
+        console.log("taking DOM snapshot of tab", tabId, tabUrl);
+
+    let start = Date.now();
+    let allErrors = [];
+
+    try {
+        let allResults = await browser.tabs.executeScript(tabId, {
+            file: "/inject/snapshot.js",
+            allFrames: true,
+        });
+
+        console.log(allResults);
+
+        let emit = Date.now();
+
+        for (let data of allResults) {
+            if (data === undefined) {
+                allErrors.push("access denied");
+                continue;
+            }
+
+            let [date, documentUrl, originUrl, url, ct, result, errors] = data;
+
+            if (!config.snapshotAny && isBoringURL(url))
+                // skip stuff like handleBeforeRequest does, again, now for
+                // sub-frames
+                continue;
+            else if (errors.length > 0) {
+                allErrors.push(errors.join("; "));
+                continue;
+            } else if (typeof result !== "string") {
+                allErrors.push(`failed to snapshot a frame with \`${ct}\` content type`);
+                continue;
+            }
+
+            let reqres = {
+                requestId: undefined,
+                tabId,
+                fromExtension: false,
+
+                protocol: "SNAPSHOT",
+                method: "DOM",
+                url,
+
+                documentUrl,
+                originUrl,
+
+                errors: [],
+
+                requestTimeStamp: start,
+                requestHeaders: [],
+                requestBody: new ChunkedBuffer(),
+                requestComplete: true,
+
+                sent: false,
+                responded: true,
+                fromCache: false,
+
+                responseTimeStamp: date,
+                responseHeaders : [
+                    { name: "Content-Type", value: ct }
+                ],
+                responseBody: result,
+                responseComplete: true,
+
+                statusCode: 200,
+                reason: "OK",
+
+                emitTimeStamp: emit,
+            };
+
+            reqresAlmostDone.push(reqres);
+        }
+    } catch (err) {
+        allErrors.push(err.toString());
+    } finally {
+        if (allErrors.length > 0)
+            await browser.notifications.create(`snapshot-${tabId}`, {
+                title: "pWebArc: ERROR",
+                message: `While taking DOM snapshot of tab #${tabId} (${tabUrl.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`,
+                iconUrl: iconURL("error", 128),
+                type: "basic",
+            });
+
+        if (!noEndgame)
+            await scheduleEndgame(tabId);
+    }
+}
+
+async function snapshotTab(tabIdNull) {
+    if (tabIdNull === null) {
+        // snapshot all tabs
+        let tabs = await browser.tabs.query({});
+        for (let tab of tabs) {
+            let tabId = tab.id;
+            let tabcfg = getOriginConfig(tabId);
+            if (!tabcfg.collecting)
+                continue;
+            await snapshotOneTab(tabId, getTabURL(tab), true);
+        }
+        await scheduleEndgame(null);
+    } else {
+        let tab = await browser.tabs.get(tabIdNull);
+        return await snapshotOneTab(tabIdNull, getTabURL(tab));
+    }
 }
 
 function forceEmitInFlightWebRequest(tabId, reason) {
@@ -2254,6 +2374,10 @@ function handleMessage(request, sender, sendResponse) {
         rotateInLimbo(request[1], request[2], request[3]);
         sendResponse(null);
         break;
+    case "snapshotTab":
+        snapshotTab(request[1]);
+        sendResponse(null);
+        break;
     case "runAllActions":
         popAllSingletonTimeouts(scheduledCancelable, true);
         popAllSingletonTimeouts(scheduledInternal, true);
@@ -2401,6 +2525,12 @@ async function handleCommand(command) {
         return;
     case "discardAllTabInLimbo":
         popInLimbo(false, null, tabId);
+        return;
+    case "snapshotAll":
+        snapshotTab(null);
+        return;
+    case "snapshotTab":
+        snapshotTab(tabId);
         return;
     case "toggleTabConfigTracking":
         tabcfg = getOriginConfig(tabId);

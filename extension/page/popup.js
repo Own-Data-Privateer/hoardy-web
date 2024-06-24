@@ -78,6 +78,7 @@ async function popupMain() {
 
     // emoji labels for the UI buttons
     let emojiButtons = {
+        snapshotAll: "📸",
         forgetHistory: "🧹",
         showState: "📜",
         runAllActions: "🟢",
@@ -87,6 +88,7 @@ async function popupMain() {
         discardAllInLimbo: "✖",
         unmarkAllProblematic: "🧹",
         stopAllInFlight: "⏹",
+        snapshotTab: "📸",
         forgetTabHistory: "🧹",
         showTabState: "📜",
         collectAllTabInLimbo: "✔",
@@ -134,6 +136,7 @@ async function popupMain() {
     buttonToAction("showState", catchAll(() => showState("", "top", tabId)));
     buttonToAction("showTabState", catchAll(() => showState(`?tab=${tabId}`, "top", tabId)));
 
+    buttonToAction("snapshotAll", catchAll(() => browser.runtime.sendMessage(["snapshotTab", null])));
     buttonToMessage("forgetHistory");
     buttonToMessage("runAllActions");
     buttonToMessage("cancelCleanupActions");
@@ -143,6 +146,7 @@ async function popupMain() {
     buttonToAction("unmarkAllProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null])));
     buttonToMessage("stopAllInFlight");
 
+    buttonToAction("snapshotTab", catchAll(() => browser.runtime.sendMessage(["snapshotTab", tabId])));
     buttonToAction("forgetTabHistory",     catchAll(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
     buttonToAction("collectAllTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
     buttonToAction("discardAllTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));

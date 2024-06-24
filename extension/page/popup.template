@@ -44,6 +44,11 @@ h2 input[type="button"] {
     margin-left: 0.5em;
 }
 
+h1 input[type="button"]:nth-child(1),
+h2 input[type="button"]:nth-child(1) {
+    margin-left: 1em;
+}
+
 #version {
     font-size: 70%;
     vertical-align: top;
@@ -156,6 +161,7 @@ label code {
 
     <h1>
       This session
+      <span data-shortcut="snapshotAll" data-help="Take DOM snapshots of all frames of all open tabs for which &quot;Track newly generated requests&quot; setting is enabled."><input type="button" id="snapshotAll" value="Snapshot" /></span>
       <span class="right">
         <span data-help="Forget recent history."><input type="button" id="forgetHistory" value="Forget" /></span>
         <span data-shortcut="showState" data-help="Show the internal state and history."><input type="button" id="showState" value="State" /></span>
@@ -222,6 +228,7 @@ label code {
     </div>
 
     <h1>This tab
+      <span data-shortcut="snapshotTab" data-help="Take DOM snapshots of all frames of this tab, regardless of &quot;Track newly generated requests&quot; setting."><input type="button" id="snapshotTab" value="Snapshot" /></span>
       <span class="right">
         <span data-help="For reqres of this tab, forget recent history."><input type="button" id="forgetTabHistory" value="Forget" /></span>
         <span data-shortcut="showTabState" data-help="For reqres of this tab, show the internal state and history."><input type="button" id="showTabState" value="State" /></span>
@@ -427,6 +434,7 @@ label code {
       <ui id="config.ephemeral" type="boolean" class="prefer-off" data-help="Make all changes to settings in this popup ephemeral from this point on. Restarting the browser or reloading the extension will reset config to the last state when this setting was off.">Ephemeral settings</ui>
       <ui id="config.debugging" type="boolean" class="prefer-off" data-help="Report lots of data into extension&#039;s debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (SLOW!)</ui>
       <ui id="config.dumping" type="boolean" class="prefer-off" data-help="Dump raw CBOR reqres dumps into extension&#039;s debugging log. Does nothing when the previous option is not enabled. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Dump raw CBORs into the log</ui>
+      <ui id="config.snapshotAny" type="boolean" class="prefer-off" data-help="Try capturing DOM snapshots for tabs and frames with all URLs, including `about:`, `data:`, `file:`, and extension pages. If you enable this, expect to see a lot of snapshot capture errors.">Capture snapshots of all URLs</ui>
       <ui id="config.doNotQueue" type="boolean" class="prefer-off" data-help="Do not queue any new reqres for archival. Enabling this will make pWebArc update the stats and the log as if everything was properly queued for archival, but then discard all the new data instead. Reqres already queued for archival will still be pushed to the archiving server, eventually. Do not enable unless you know what you are doing. Useful for debugging the collection machinery of pWebArc without actually collecting anything.">Do not queue new reqres</ui>
       </div>
     </div>

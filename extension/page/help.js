@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     macroShortcuts(body, shortcuts, (inner, shortcut, sname) => {
         let sk = manifest.commands[sname];
         let def;
-        if (sk.suggested_key !== undefined && sk.suggested_key.default !== undefined)
+        if (sk.suggested_key && sk.suggested_key.default)
             def = sk.suggested_key.default;
         if (def) {
             if (shortcut) {
@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else if (shortcut)
             return `bound to \`${shortcut}\` (default: unbound)`
         else
-            return `unbound`;
+            return `unbound (= default)`;
     });
 
     // add default handlers

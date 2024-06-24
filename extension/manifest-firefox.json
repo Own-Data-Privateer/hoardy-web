@@ -85,6 +85,11 @@
             "suggested_key": {
                 "default": "Alt+Shift+W"
             }
+        },
+        "snapshotTab": {
+            "suggested_key": {
+                "default": "Ctrl+Alt+S"
+            }
         }
     }
 }
