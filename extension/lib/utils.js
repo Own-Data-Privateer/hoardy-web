@@ -335,7 +335,8 @@ function normalizeURL(url) {
 }
 
 function isLocalURL(url) {
-    if (url.startsWith("data:") || url.startsWith("file:"))
+    if (url.startsWith("about:") || url.startsWith("chrome:")
+        || url.startsWith("data:") || url.startsWith("file:"))
         return true;
     return false;
 }
