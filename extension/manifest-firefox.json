@@ -68,22 +68,22 @@
         },
         "collectAllInLimbo": {
             "suggested_key": {
-                "default": "Alt+Shift+S"
+                "default": "Ctrl+Alt+A"
             }
         },
         "collectAllTabInLimbo": {
             "suggested_key": {
-                "default": "Alt+S"
+                "default": "Ctrl+Alt+C"
             }
         },
         "discardAllInLimbo": {
             "suggested_key": {
-                "default": "Alt+Shift+W"
+                "default": "Alt+Shift+D"
             }
         },
         "discardAllTabInLimbo": {
             "suggested_key": {
-                "default": "Alt+W"
+                "default": "Alt+Shift+W"
             }
         }
     }
