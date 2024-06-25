@@ -346,17 +346,20 @@ function cleanupAfterTab(tabId) {
     if (config.autoNotify && (unprob > 0 || unlimbo > 0)) {
         let message;
         let what = config.autoPopInLimboCollect ? "collected" : "discarded";
+        let icon = "problematic";
         if (unprob > 0 && unlimbo > 0)
             message = `Auto-unmarked ${unprob} problematic and auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
         else if (unprob > 0)
             message = `Auto-unmarked ${unprob} problematic reqres from tab #${tabId}.`;
-        else
+        else {
             message = `Auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
+            icon = "limbo";
+        }
 
         browser.notifications.create(`cleaned-${tabId}`, {
             title: "pWebArc: AUTO",
             message,
-            iconUrl: iconURL("error", 128),
+            iconUrl: iconURL(icon, 128),
             type: "basic",
         }).catch(logError);
     }
@@ -891,7 +894,7 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
         else if (tabstats.in_flight > 0)
             icon = "tracking";
         else if (tabstats.problematic > 0)
-            icon = "error";
+            icon = "problematic";
         else if (!config.collecting || !tabcfg.collecting)
             icon = "off";
         else if (tabcfg.limbo || tabcfg.negLimbo)
@@ -1146,7 +1149,7 @@ async function doComplain() {
         await browser.notifications.create("problematic", {
             title: "pWebArc: WARNING",
             message: `Have ${reqresProblematic.length} reqres marked as problematic.\n\n` + latestDesc.join("\n"),
-            iconUrl: iconURL("error", 128),
+            iconUrl: iconURL("problematic", 128),
             type: "basic",
         });
     }
