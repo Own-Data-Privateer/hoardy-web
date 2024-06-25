@@ -35,16 +35,10 @@
      cy="72.749641"
      rx="17.025068"
      ry="5.7584796" />
-  <text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:52.78518677px;line-height:125%;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.98972225px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-     x="32.51218"
-     y="71.505608"
-     id="text889"><tspan
-       id="tspan887"
-       x="32.51218"
-       y="71.505608"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:52.78518677px;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';stroke-width:0.98972225px">&gt;_&lt;</tspan></text>
+  <path
+     id="text889"
+     d="m 37.685129,68.707993 c -3.360319,-0.444443 -2.287324,-4.75281 0.503282,-5.223326 4.2486,-2.164995 8.4972,-4.32999 12.7458,-6.494986 -4.832506,-2.564987 -9.71648,-5.042717 -14.515927,-7.663749 -2.829044,-2.234823 1.287543,-5.818701 3.539191,-3.390252 7.33628,3.702262 14.67256,7.404524 22.00884,11.106786 -7.864618,3.829546 -15.660443,7.817305 -23.568586,11.54676 z m 58.148657,8.076133 c 0,1.759507 0,3.519013 0,5.278519 -10.557037,0 -21.114075,0 -31.671112,0 0,-1.759506 0,-3.519012 0,-5.278519 10.557037,0 21.114075,0 31.671112,0 z M 122.31133,45.060229 c 3.31662,0.52054 2.28827,4.728733 -0.50328,5.223325 -4.2486,2.164996 -8.4972,4.329991 -12.7458,6.494986 4.82572,2.57396 9.76066,4.965395 14.51593,7.657152 2.81506,2.262997 -1.28363,5.820807 -3.53919,3.39685 C 112.70271,64.13028 105.36643,60.428018 98.030145,56.725755 105.89476,52.89621 113.69059,48.908451 121.59873,45.178996 Z"
+     style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.98972225px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
   <ellipse
      style="opacity:1;fill:#ff6000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:6.69117641;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
      id="path829-3"
