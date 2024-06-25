@@ -1,4 +1,2 @@
 dist/
-background/*.html
-page/*.html
 private/chromium.key.pem

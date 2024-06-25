@@ -53,7 +53,9 @@ for target in "$@"; do
     fi
 
     runPandoc() {
-        pandoc -f $1 -t html --wrap=none --template="$2".template -M pagetitle="$2" "${pandocArgs[@]}" > "$2".html
+        local destfile="$DEST/$2".html
+        mkdir -p "$(dirname "$destfile")"
+        pandoc -f $1 -t html --wrap=none --template="$2".template -M pagetitle="$2" "${pandocArgs[@]}" > "$destfile"
     }
 
     for p in background/main page/popup page/state; do
@@ -77,10 +79,10 @@ for target in "$@"; do
     install -C -t "$DEST"/lib lib/*.js
 
     install -d "$DEST"/page
-    install -C -t "$DEST"/page page/*.html page/*.css page/*.js
+    install -C -t "$DEST"/page page/*.css page/*.js
 
     install -d "$DEST"/background
-    install -C -t "$DEST"/background background/*.html background/debugger.js background/core.js
+    install -C -t "$DEST"/background background/*.js
 
     install -d "$DEST"/inject
     install -C -t "$DEST"/inject inject/*.js
