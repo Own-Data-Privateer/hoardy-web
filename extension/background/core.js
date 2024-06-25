@@ -887,6 +887,13 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
         let tabstats = getTabStats(stateTabId);
 
         let icon;
+
+        let isLimbo = tabcfg.limbo || tabcfg.children.limbo;
+        let isNegLimbo = tabcfg.negLimbo || tabcfg.children.negLimbo;
+        let isBothLimbo = isLimbo && isNegLimbo;
+        let isLimboSame = tabcfg.limbo === tabcfg.children.limbo;
+        let isNegLimboSame = tabcfg.negLimbo === tabcfg.children.negLimbo;
+
         if (config.archiving && stats.in_queue > 0)
             icon = "archiving";
         else if (stats.archive_failed > 0)
@@ -895,11 +902,35 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
             icon = "tracking";
         else if (tabstats.problematic > 0)
             icon = "problematic";
-        else if (!config.collecting || !tabcfg.collecting)
+        else if (!config.collecting)
             icon = "off";
-        else if (tabcfg.limbo || tabcfg.negLimbo)
-            icon = "limbo";
-        else
+        else if (!tabcfg.collecting || !tabcfg.children.collecting) {
+            if (tabcfg.collecting === tabcfg.children.collecting)
+                icon = "off";
+            else if (isBothLimbo)
+                icon = "off-part-bothlimbo";
+            else if (isLimbo)
+                icon = "off-part-limbo";
+            else if (isNegLimbo)
+                icon = "off-part-neglimbo";
+            else
+                icon = "off-part";
+        } else if (isBothLimbo) {
+            if (isLimboSame && isNegLimboSame)
+                icon = "bothlimbo";
+            else
+                icon = "bothlimbo-mix";
+        } else if (isLimbo) {
+            if (tabcfg.limbo === tabcfg.children.limbo)
+                icon = "limbo";
+            else
+                icon = "limbo-part";
+        } else if (isNegLimbo) {
+            if (tabcfg.negLimbo === tabcfg.children.negLimbo)
+                icon = "neglimbo";
+            else
+                icon = "neglimbo-part";
+        } else
             icon = "idle";
 
         let tchunks = [];
