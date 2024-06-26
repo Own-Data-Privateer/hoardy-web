@@ -42,10 +42,16 @@ if (tabId !== null)
     document.title = `pWebArc: tab ${tabId}: Internal State`;
 
 function switchToDataTabId(dataTabId) {
-    browser.tabs.update(dataTabId, { active: true }).catch(logError);
+    return browser.tabs.update(dataTabId, { active: true }).catch(logError);
 }
 
-function showStateOfDataTabId(dataTabId) {
+async function showStateOfDataTabId(dataTabId) {
+    let tabId = dataTabId;
+
+    let tab = await getActiveTab();
+    if (tab !== null)
+        tabId = tab.id;
+
     showState(`?tab=${dataTabId}`, "top", tabId);
 }
 
