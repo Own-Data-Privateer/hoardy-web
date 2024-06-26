@@ -222,16 +222,16 @@ async function stateMain() {
 
     addHelp(body);
 
-    buttonToAction("forgetHistory", catchAll(() => browser.runtime.sendMessage(["forgetHistory", tabId, rrfilters.log])));
-    buttonToAction("rotateOneProblematic", catchAll(() => browser.runtime.sendMessage(["rotateProblematic", 1, tabId, rrfilters.problematic])));
-    buttonToAction("unmarkOneProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", 1, tabId, rrfilters.problematic])));
-    buttonToAction("unmarkAllProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId, rrfilters.problematic])));
-    buttonToAction("rotateOneInLimbo",  catchAll(() => browser.runtime.sendMessage(["rotateInLimbo", 1, tabId, rrfilters.in_limbo])));
-    buttonToAction("discardOneInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, 1, tabId, rrfilters.in_limbo])));
-    buttonToAction("discardAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId, rrfilters.in_limbo])));
-    buttonToAction("collectOneInLimbo",   catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, 1, tabId, rrfilters.in_limbo])));
-    buttonToAction("collectAllInLimbo",   catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId, rrfilters.in_limbo])));
-    buttonToAction("stopAllInFlight", catchAll(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
+    buttonToMessage("forgetHistory",        () => ["forgetHistory", tabId, rrfilters.log]);
+    buttonToMessage("rotateOneProblematic", () => ["rotateProblematic", 1, tabId, rrfilters.problematic]);
+    buttonToMessage("unmarkOneProblematic", () => ["unmarkProblematic", 1, tabId, rrfilters.problematic]);
+    buttonToMessage("unmarkAllProblematic", () => ["unmarkProblematic", null, tabId, rrfilters.problematic]);
+    buttonToMessage("rotateOneInLimbo",     () => ["rotateInLimbo", 1, tabId, rrfilters.in_limbo]);
+    buttonToMessage("discardOneInLimbo",    () => ["popInLimbo", false, 1, tabId, rrfilters.in_limbo]);
+    buttonToMessage("discardAllInLimbo",    () => ["popInLimbo", false, null, tabId, rrfilters.in_limbo]);
+    buttonToMessage("collectOneInLimbo",    () => ["popInLimbo", true, 1, tabId, rrfilters.in_limbo]);
+    buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, null, tabId, rrfilters.in_limbo]);
+    buttonToMessage("stopAllInFlight",      () => ["stopAllInFlight", tabId]);
 
     setUI(document, "rrfilters", rrfilters, (value, path) => {
         if (path.startsWith("rrfilters.problematic."))

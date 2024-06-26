@@ -134,24 +134,24 @@ async function popupMain() {
     helpButton.onclick = catchAll(() => resetAndOpen({ seenHelp: true }, showHelp));
 
     buttonToAction("showState", catchAll(() => showState("", "top", tabId)));
-    buttonToAction("showTabState", catchAll(() => showState(`?tab=${tabId}`, "top", tabId)));
+    buttonToMessage("forgetHistory",           () => ["forgetHistory", null]);
+    buttonToMessage("snapshotAll",             () => ["snapshotTab", null]);
+    buttonToMessage("collectAllInLimbo",       () => ["popInLimbo", true, null, null]);
+    buttonToMessage("discardAllInLimbo",       () => ["popInLimbo", false, null, null]);
+    buttonToMessage("unmarkAllProblematic",    () => ["unmarkProblematic", null, null]);
+    buttonToMessage("stopAllInFlight",         () => ["stopAllInFlight", null]);
 
-    buttonToAction("snapshotAll", catchAll(() => browser.runtime.sendMessage(["snapshotTab", null])));
-    buttonToMessage("forgetHistory");
+    buttonToAction("showTabState", catchAll(() => showState(`?tab=${tabId}`, "top", tabId)));
+    buttonToMessage("forgetTabHistory",        () => ["forgetHistory", tabId]);
+    buttonToMessage("snapshotTab",             () => ["snapshotTab", tabId]);
+    buttonToMessage("collectAllTabInLimbo",    () => ["popInLimbo", true, null, tabId]);
+    buttonToMessage("discardAllTabInLimbo",    () => ["popInLimbo", false, null, tabId]);
+    buttonToMessage("unmarkAllTabProblematic", () => ["unmarkProblematic", null, tabId]);
+    buttonToMessage("stopAllTabInFlight",      () => ["stopAllInFlight", tabId]);
+
     buttonToMessage("runAllActions");
     buttonToMessage("cancelCleanupActions");
     buttonToMessage("retryAllFailedArchives");
-    buttonToAction("collectAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null])));
-    buttonToAction("discardAllInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null])));
-    buttonToAction("unmarkAllProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null])));
-    buttonToMessage("stopAllInFlight");
-
-    buttonToAction("snapshotTab", catchAll(() => browser.runtime.sendMessage(["snapshotTab", tabId])));
-    buttonToAction("forgetTabHistory",     catchAll(() => browser.runtime.sendMessage(["forgetHistory", tabId])));
-    buttonToAction("collectAllTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", true, null, tabId])));
-    buttonToAction("discardAllTabInLimbo", catchAll(() => browser.runtime.sendMessage(["popInLimbo", false, null, tabId])));
-    buttonToAction("unmarkAllTabProblematic", catchAll(() => browser.runtime.sendMessage(["unmarkProblematic", null, tabId])));
-    buttonToAction("stopAllTabInFlight", catchAll(() => browser.runtime.sendMessage(["stopAllInFlight", tabId])));
 
     buttonToAction("resetPersistentStats", catchAll(() => {
         if (!window.confirm("Really?"))

@@ -600,8 +600,6 @@ function getTabStats(tabId) {
 function unmarkProblematic(num, tabId, rrfilter) {
     if (reqresProblematic.length == 0)
         return;
-    if (tabId === undefined)
-        tabId = null;
     if (rrfilter === undefined)
         rrfilter = null;
 
@@ -633,8 +631,6 @@ function unmarkProblematic(num, tabId, rrfilter) {
 function rotateProblematic(num, tabId, rrfilter) {
     if (reqresProblematic.length == 0)
         return;
-    if (tabId === undefined)
-        tabId = null;
     if (rrfilter === undefined)
         rrfilter = null;
 
@@ -654,8 +650,6 @@ function rotateProblematic(num, tabId, rrfilter) {
 function popInLimbo(collect, num, tabId, rrfilter) {
     if (reqresLimbo.length == 0)
         return;
-    if (tabId === undefined)
-        tabId = null;
     if (rrfilter === undefined)
         rrfilter = null;
 
@@ -690,8 +684,6 @@ function popInLimbo(collect, num, tabId, rrfilter) {
 function rotateInLimbo(num, tabId, rrfilter) {
     if (reqresLimbo.length == 0)
         return;
-    if (tabId === undefined)
-        tabId = null;
     if (rrfilter === undefined)
         rrfilter = null;
 
@@ -712,8 +704,6 @@ function rotateInLimbo(num, tabId, rrfilter) {
 function forgetHistory(tabId, rrfilter) {
     if (reqresLog.length == 0)
         return;
-    if (tabId === undefined)
-        tabId = null;
     if (rrfilter === undefined)
         rrfilter = null;
 
@@ -1795,9 +1785,6 @@ function forceFinishingUpWebRequest(predicate) {
 }
 
 function stopAllInFlight(tabId) {
-    if (tabId === undefined)
-        tabId = null;
-
     processFinishingUp(true);
     forceEmitInFlightWebRequest(tabId, "pWebArc::EMIT_FORCED_BY_USER");
     if (useDebugger) {
