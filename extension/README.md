@@ -9,7 +9,7 @@ See [higher-level README](../README.md) if the above makes little sense or if yo
 
 # Screenshots
 
-See [higher-level README](../README.md#screenshots).
+See [higher-level README](../doc/gallery.md).
 
 # What does it do exactly? I have questions.
 
