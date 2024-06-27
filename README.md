@@ -89,27 +89,27 @@ Technically, `pwebarc` is most similar to
 
 Or, to summarize it another way, you can view `pwebarc` as an alternative for [mitmproxy](https://github.com/mitmproxy/mitmproxy) which leaves SSL/TLS layer alone and hooks into target application's runtime instead.
 
-(In fact, the unpublished and now irrelevant ancestor project of `pwebarc` was a tool to generate website mirrors from `mitmproxy` stream captures.
-[And if you want that, `wrrarms` tool can do that for you too.](./tool/#mitmproxy-mirror)
-But then I got annoyed by all the sites that don't work under `mitmproxy`, did some research into the alternatives, decided there were none I wanted to use, and so I made my own.)
+In fact, an unpublished and now irrelevant ancestor project of `pwebarc` was a tool to generate website mirrors from `mitmproxy` stream captures.
+[(By the way, if you want that, `pwebarc`'s `wrrarms` tool can do that for you. It can take `mitmproxy` dumps as inputs.)](./tool/#mitmproxy-mirror)
+But then I got annoyed by all the sites that don't work under `mitmproxy`, did some research into the alternatives, decided there were none I wanted to use, and so I made my own.
 
 ## Highlights of differences when compared to [the alternatives](#alternatives)
 
 To highlight the main differences to its alternatives, `pwebarc` **DOES NOT**:
 
-- require you to capture and/or collect and/or archive and/or export recorded data explicitly one page/browsing session at a time: the default behaviour is to archive everything completely automatically;
+- require you to capture and/or collect and/or archive and/or export recorded data explicitly one page/browsing session at a time (the default behaviour is to archive everything completely automatically);
 
 - (though, the extension implements optional ["limbo mode"](./extension/page/help.org#faq-limbo) which delays archival of collected data and provides optional manual/semi-automatic control if you want it;)
 
-- force you to use Chromium (and, yes, this point deserves repeating because you can use `pwebarc` with Firefox, Tor Browser, LibreWolf, etc, which is not a small thing, since if you tried using any of the alternatives supporting passive collection on Chromium, you might have noticed that the experience there is pretty awful: it becomes even slower than usual, large files don't get captured, random stuff fails to be captured at random times because Chromium randomly detaches its debugger from its tabs... none of these problems exist on Firefox-based browsers);
+- force you to use Chromium (and, yes, this point deserves repeating because you can use `pwebarc` with Firefox, Tor Browser, LibreWolf, etc, which is not a small thing, since if you tried using any of the alternatives running under Chromium, you might have noticed that the experience there is pretty awful: it becomes even slower than usual, large files don't get captured, random stuff fails to be captured at random times because Chromium randomly detaches its debugger from its tabs... none of these problems exist on Firefox-based browsers);
 
-- require you to download the data you want to archive twice or more (you'd be surprised how commonly other tools will either require you to do that, or just do that silently when you ask them to save something);
+- require you to download the data you want to archive twice or more (you'd be surprised how commonly other tools will either ask you to do that explicitly, or just do that silently when you ask them to save something);
 
 - require you to store all the things in browser's local storage where they can vanish at any moment;
 - require you to run a database server;
 - share your archived data with anyone by default;
 
-- require you to run a web browser to view the data you already archived: `wrrarms` provides [a bunch of example scripts](./tool/script/) which show how to view it with other tools, e.g. via `pandoc` piped into `less` in [your favorite tty emulator](https://st.suckless.org/).
+- require you to run a web browser to view the data you already archived (in fact, `wrrarms` comes with [a bunch of scripts](./tool/script/) which allow you to use other tools for that; e.g., a script to view HTML documents via `pandoc` piped into `less` in [your favorite tty emulator](https://st.suckless.org/)).
 
 ## Parts and pieces
 
@@ -297,7 +297,7 @@ After adding each new feature to [`wrrarms` CLI tool](./tool/), as a rule, I fee
     I'm glad you asked!
     I'm not a lawyer, but to me it looks like `pWebArc` violates [Chrome Web Store's "Terms of Use"](https://web.archive.org/web/20240604062520/https://developer.chrome.com/docs/webstore/program-policies/terms).
     Specifically, the "enables the unauthorized download of streaming content or media" clause.
-    I my personal opinion, any content you web browser downloads while you are browsing the web normally you are "authorized" to download, but given the context of that clause in that document, I feel like Google would disagree.
+    In my personal opinion, any content you web browser downloads while you are browsing the web normally you are "authorized" to download, but given the context of that clause in that document, I feel like Google would disagree.
 
     Meanwhile, `pWebArc` tries its best to collect all web traffic you browser generates, which, obviously, includes streaming content.
 
@@ -419,6 +419,20 @@ Pros:
 
 - its replay is much more mature than anything `pwebarc` currently has.
 
+Differences in design:
+
+- it captures whole browsing sessions (instead of capturing separate HTTP requests and responses, like `pWebArc`);
+- it implements ["Autopilot"](https://archiveweb.page/en/features/autopilot/), which [`pWebArc` will never get](./extension/page/help.org#faq-lazy) (if you want that, `pWebArc` expects you to use UserScripts instead).
+
+Same issues:
+
+- When `pWebArc` extension is run under Chromium, [a bunch of Chromium's bugs](./extension/page/help.org#chromium-bugs) make many things [pretty annoying](./extension/page/help.org#faq-debugger).
+
+  Both `pWebArc` and `archiveweb.page` suffer from exactly the same issues, which --- if you know what to look for --- you can notice straight in the advertisement animation [on their "Usage" page](https://archiveweb.page/en/usage/).
+
+  Those issues have no workarounds known to me.
+  But because they exists, I made `pWebArc` instead of trying to port `archiveweb.page` to Firefox, forking it, and making the fork follow my preferred workflow.
+
 ## [DiskerNet](https://github.com/dosyago/DownloadNet)
 
 A self-hosted web app and web crawler written in `Node.js` most similar to `pwebarc` in its intended use.
@@ -434,6 +448,10 @@ Cons:
 Pros:
 
 - otherwise, it actually does most of what `pwebarc` aims to do on the basic level.
+
+Same issues:
+
+- when run under Chromium, same [bugs](./extension/page/help.org#chromium-bugs) and [annoyances](./extension/page/help.org#faq-debugger) apply.
 
 ## But you could just enable request logging in your browser's Network Monitor and manually save your data as HAR archives from time to time.
 
