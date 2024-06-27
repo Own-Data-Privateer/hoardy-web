@@ -1,3 +1,29 @@
+# extension-v1.11.0
+
+- Implemented DOM snapshots, their popup UI, keyboard shortcuts and documentation.
+
+  - `Ctrl+Alt+S` runs `snapshotTab` by default now.
+
+- Changed some default keyboard shortcuts:
+
+  - `Ctrl+Alt+A` and `Ctrl+Alt+C` run `collectAllInLimbo` and `collectAllTabInLimbo` respectively now;
+  - `Alt+Shift+D` and `Alt+Shift+W`run `discardAllInLimbo` and `discardAllTabInLimbo` now.
+
+- Popup UI:
+
+  - Improved layout.
+  - Destructive actions will start asking for confirmations now.
+
+- Added a bunch of new toolbar icons for various tab states.
+
+  In particular, `problematic` state as well as mixed-capture states (e.g., disabled in this tab, but enabled and with limbo mode in children tabs) now have their own special icons.
+
+- All SVG icons were edited to not reference any fonts, since those are not guaranteed to be available on a user's system.
+
+- Improved behaviour of new tabs created by clicking buttons on the "Internal State" page.
+
+- Greatly improved documentation.
+
 # extension-v1.10.0
 
 - Implemented dark mode theme.
