@@ -1617,7 +1617,8 @@ async function snapshotOneTab(tabId, tabUrl, noEndgame) {
             allFrames: true,
         });
 
-        console.log(allResults);
+        if (config.debugging)
+            console.log("snapshot.js returned", allResults);
 
         let emit = Date.now();
 
