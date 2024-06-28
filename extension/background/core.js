@@ -302,7 +302,7 @@ function cleanupTabs() {
     for (let [v, _x] of reqresQueue)
         usedTabs.add(v.tabId);
     for (let [k, f] of reqresFailed.entries())
-        for(let v of f.queue)
+        for(let [v, _x] of f.queue)
             usedTabs.add(v.tabId);
 
     // delete configs of closed and unused tabs
