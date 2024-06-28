@@ -2,12 +2,13 @@
 
 - Implemented DOM snapshots, their popup UI, keyboard shortcuts and documentation.
 
+  - Popup UI now has buttons to snapshot a single tab (`snapshotTab`) and snapshot all open tabs (`snapshotAll`).
   - `Ctrl+Alt+S` runs `snapshotTab` by default now.
 
 - Changed some default keyboard shortcuts:
 
   - `Ctrl+Alt+A` and `Ctrl+Alt+C` run `collectAllInLimbo` and `collectAllTabInLimbo` respectively now;
-  - `Alt+Shift+D` and `Alt+Shift+W`run `discardAllInLimbo` and `discardAllTabInLimbo` now.
+  - `Alt+Shift+D` and `Alt+Shift+W` run `discardAllInLimbo` and `discardAllTabInLimbo` now.
 
 - Popup UI:
 
