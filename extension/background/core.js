@@ -868,7 +868,7 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
         let stateTabId = getStateTabIdOrTabId(tab);
 
         // skip updates for unchanged tabs, when specified
-        if (updatedTabId !== null && updatedTabId != stateTabId)
+        if (updatedTabId !== null && updatedTabId !== tabId && updatedTabId !== stateTabId)
             continue;
 
         let tabcfg = tabConfig.get(stateTabId);
@@ -2256,16 +2256,22 @@ function handleTabActivated(e) {
     if (useDebugger)
         // Chromium does not provide `browser.menus.onShown` event
         updateMenu(getOriginConfig(e.tabId));
-    // This will is not enough on Chromium, see handleTabUpdatedChromium
+    // Usually, this will not be enough, see `handleTabUpdated`.
     updateDisplay(false, e.tabId);
 }
 
-function handleTabUpdatedChromium(tabId, changeInfo, tabInfo) {
+function handleTabUpdated(tabId, changeInfo, tabInfo) {
     if (config.debugging)
         console.log("tab updated", tabId);
-    // Chromium resets the browserAction icon when tab chages state, so we
-    // have to update icons after each one
-    updateDisplay(false, tabId);
+    if (changeInfo.url !== undefined)
+        // On Firefox, there's no `tab.pendingUrl`, so `updateDisplay` might
+        // get confused about which icon to show for our internal pages
+        // until `tab.url` is set.
+        updateDisplay(false, tabId);
+    else if (useDebugger)
+        // On Chromium, Chromium resets the browserAction icon each time tab chages
+        // state, so we have to update icons after each one.
+        updateDisplay(false, tabId);
 }
 
 // open client tab ports
@@ -2672,8 +2678,7 @@ async function init(storage) {
     browser.tabs.onRemoved.addListener(catchAll(handleTabRemoved));
     browser.tabs.onReplaced.addListener(catchAll(handleTabReplaced));
     browser.tabs.onActivated.addListener(catchAll(handleTabActivated));
-    if (useDebugger)
-        browser.tabs.onUpdated.addListener(catchAll(handleTabUpdatedChromium));
+    browser.tabs.onUpdated.addListener(catchAll(handleTabUpdated));
 
     // record it all currently open tabs, compute and cache their configs
     let tabs = await browser.tabs.query({});
