@@ -873,7 +873,7 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
 
         let tabcfg = tabConfig.get(stateTabId);
         if (tabcfg === undefined)
-            tabcfg = config.root;
+            tabcfg = prefillChildren(config.root);
         let tabstats = getTabStats(stateTabId);
 
         let icon;
