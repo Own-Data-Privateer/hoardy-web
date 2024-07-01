@@ -27,6 +27,12 @@
 // for archiving
 let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
 
+let updateAvailable = false;
+
+function handleUpdateAvailable(details) {
+    updateAvailable = true;
+}
+
 // default config
 let configVersion = 4;
 let configDefaults = {
@@ -2616,6 +2622,8 @@ function upgradeConfigAndPersistentStats(cfg, stats) {
 }
 
 async function init(storage) {
+    browser.runtime.onUpdateAvailable.addListener(catchAll(handleUpdateAvailable));
+
     savedConfig = storage.config;
     if (savedConfig !== undefined) {
         savedPersistentStats = storage.persistentStats;
