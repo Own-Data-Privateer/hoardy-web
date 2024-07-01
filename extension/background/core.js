@@ -383,7 +383,7 @@ function processRemoveTab(tabId) {
         // after a small timeout, force emit all `debugReqresInFlight` of this
         // tab, since Chromium won't send any new debug events for them anyway
         let timeout = config.workaroundChromiumDebugTimeout * 1000;
-        resetSingletonTimeout(scheduledCancelable, `forceStopDebugTab#${tabId}`, timeout, () => {
+        resetSingletonTimeout(scheduledInternal, `forceStopDebugTab#${tabId}`, timeout, () => {
             if (config.debugging)
                 console.log("cleaning up debugReqresInFlight after tab", tabId);
             forceEmitInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_CLOSED_TAB");
