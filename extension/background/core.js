@@ -147,7 +147,7 @@ async function saveConfig(eConfig) {
 
 function scheduleSaveConfig(config) {
     let eConfig = assignRec({}, config);
-    resetSingletonTimeout(scheduledInternal, "saveConfig", 1000, async () => {
+    resetSingletonTimeout(scheduledSaveState, "saveConfig", 1000, async () => {
         await saveConfig(eConfig);
         await updateDisplay(true);
     });
@@ -158,6 +158,8 @@ function scheduleSaveConfig(config) {
 let scheduledInternal = new Map();
 // scheduled cancelable functions
 let scheduledCancelable = new Map();
+// scheduled save state functions
+let scheduledSaveState = new Map();
 // scheduled functions hidden from the UI
 let scheduledHidden = new Map();
 
@@ -534,7 +536,8 @@ function getStats() {
         Math.max(reqresInFlight.size, debugReqresInFlight.size) +
         Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length);
 
-    let low_prio = countSingletonTimeouts(scheduledCancelable);
+    let low_prio = countSingletonTimeouts(scheduledCancelable)
+                 + countSingletonTimeouts(scheduledSaveState);
 
     return {
         scheduled_low: low_prio,
@@ -1004,7 +1007,7 @@ async function scheduleEndgame(updatedTabId) {
                 timeout = 60000;
 
             let eStats = assignRec({}, persistentStats);
-            resetSingletonTimeout(scheduledCancelable, "savePersistentStats", timeout, async () => {
+            resetSingletonTimeout(scheduledSaveState, "savePersistentStats", timeout, async () => {
                 await savePersistentStats(eStats);
                 await updateDisplay(true);
             });
@@ -2413,14 +2416,19 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(null);
         break;
     case "runAllActions":
-        popAllSingletonTimeouts(scheduledCancelable, true);
-        popAllSingletonTimeouts(scheduledInternal, true);
-        updateDisplay(true);
+        (async () => {
+            await popAllSingletonTimeouts(scheduledCancelable, true);
+            await popAllSingletonTimeouts(scheduledInternal, true);
+            await popAllSingletonTimeouts(scheduledSaveState, true);
+            await updateDisplay(true);
+        })();
         sendResponse(null);
         break;
     case "cancelCleanupActions":
-        popAllSingletonTimeouts(scheduledCancelable, false);
-        updateDisplay(true);
+        (async () => {
+            await popAllSingletonTimeouts(scheduledCancelable, false);
+            await updateDisplay(true);
+        })();
         sendResponse(null);
         break;
     case "broadcast":
