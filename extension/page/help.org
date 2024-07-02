@@ -1,5 +1,8 @@
 #+MACRO: shortcut @@html:<span data-macro-shortcut="$1">bound to <code>manifest.commands.$1</code></span>@@
 
+#+BEGIN_EXPORT html
+<div name="less">
+#+END_EXPORT
 * How to read this document
 It is highly recommended you view this page by clicking the "Help" button in the extension's own UI.
 Doing that will make this page interactive: the settings popup will be displayed on the right on this page and hovering over or clicking on any links pointing to =popup.html= will highlight those elements in the popup.
@@ -7,6 +10,9 @@ Doing that will make this page interactive: the settings popup will be displayed
 See [[../../doc/gallery.md][screenshots]] if you want to see how it will look.
 
 You can still read this page outside of the extension's UI, but be prepared for all links pointing to =popup.html= to be useless.
+#+BEGIN_EXPORT html
+</div>
+#+END_EXPORT
 * What?
 =pWebArc= (Personal Private Passive Web Archive) is a browser extension that passively captures, collects, and archives dumps of HTTP requests and responses to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the dumb archiving server]], also [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][there]]) as you browse the web.
 ** Glossary

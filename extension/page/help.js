@@ -21,6 +21,9 @@
 
 "use strict";
 
+for (let node of document.getElementsByName("less"))
+    node.style.display = "none";
+
 document.addEventListener("DOMContentLoaded", async () => {
     let popupURL = browser.runtime.getURL("/page/popup.html");
 
