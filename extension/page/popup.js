@@ -39,10 +39,12 @@ function hideAll() {
         node.style.display = "none";
 }
 
-function asPowers(obj) {
+function present(obj) {
     for (let [k, v] of Object.entries(obj)) {
         let typ = typeof v;
-        if (typ === "number") {
+        if (v instanceof Array)
+            obj[k] = v.join(", ");
+        else if (typ === "number") {
             if (k.endsWith("_size"))
                 obj[k] = byteLengthToString(v);
             else
@@ -171,13 +173,13 @@ async function popupMain() {
     async function updateStats(stats) {
         if (stats === undefined)
             stats = await browser.runtime.sendMessage(["getStats"]);
-        setUI(document, "stats", asPowers(stats));
+        setUI(document, "stats", present(stats));
     }
 
     async function updateTabStats(tabstats) {
         if (tabstats === undefined)
             tabstats = await browser.runtime.sendMessage(["getTabStats", tabId]);
-        setUI(document, "tabstats", asPowers(tabstats));
+        setUI(document, "tabstats", present(tabstats));
     }
 
     async function updateConfig(config) {

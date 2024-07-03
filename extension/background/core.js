@@ -537,13 +537,16 @@ function getStats() {
         Math.max(reqresInFlight.size, debugReqresInFlight.size) +
         Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length);
 
-    let low_prio = countSingletonTimeouts(scheduledCancelable)
-                 + countSingletonTimeouts(scheduledSaveState);
+    let actions = [];
+    forEachSingletonTimeout(scheduledCancelable, (key) => actions.push(key));
+    forEachSingletonTimeout(scheduledSaveState, (key) => actions.push(key));
+    let low_prio = actions.length;
+    forEachSingletonTimeout(scheduledInternal, (key) => actions.push(key));
 
     return {
         scheduled_low: low_prio,
-        scheduled: low_prio
-                 + countSingletonTimeouts(scheduledInternal),
+        scheduled: actions.length,
+        actions,
         in_flight,
         problematic: reqresProblematic.length,
         picked: persistentStats.pickedTotal,

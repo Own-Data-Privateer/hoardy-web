@@ -149,14 +149,12 @@ async function popAllSingletonTimeouts(map, run) {
         await popSingletonTimeout(map, key, run);
 }
 
-function countSingletonTimeouts(map) {
-    let res = 0;
+function forEachSingletonTimeout(map, func) {
     for (let [key, value] of map.entries()) {
         if (value[0] === null)
             continue;
-        res += 1;
+        func(key, value);
     }
-    return res;
 }
 
 // recursive equality comparison

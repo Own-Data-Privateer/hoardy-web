@@ -144,6 +144,14 @@ label code {
           <span id="stats.scheduled">0</span>
         </span>
       </div>
+      <div name="more" id="div-stats.actions" data-help="Names of the currently scheduled internal actions.">
+        <span>... actions</span>
+        <span>
+        </span>
+        <span>
+          <span id="stats.actions"></span>
+        </span>
+      </div>
       <div id="div-stats.archived" data-help="At the moment, the numbers of reqres that were: successfully archived to the server / failed to be archived to the server.">
         <span>Archived/Failed</span>
         <span>
