@@ -776,6 +776,11 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
 
         if (!config.collecting)
             chunks.push("off");
+        if (stats.in_flight > 0) {
+            badge += "T";
+            color = 1;
+            chunks.push(`still tracking ${stats.in_flight} in-flight reqres`);
+        }
         if (!config.archiving || stats.archive_failed > 0) {
             badge += "A";
             color = 1;
@@ -788,10 +793,6 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
             badge += "P";
             color = 1;
             chunks.push(`${stats.problematic} problematic reqres`);
-        }
-        if (stats.in_flight > 0) {
-            badge += "T";
-            chunks.push(`still tracking ${stats.in_flight} in-flight reqres`);
         }
         if (stats.scheduled > stats.scheduled_low) {
             badge += "~";
@@ -898,12 +899,12 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
         let isLimboSame = tabcfg.limbo === tabcfg.children.limbo;
         let isNegLimboSame = tabcfg.negLimbo === tabcfg.children.negLimbo;
 
-        if (config.archiving && stats.in_queue > 0)
+        if (tabstats.in_flight > 0)
+            icon = "tracking";
+        else if (config.archiving && stats.in_queue > 0)
             icon = "archiving";
         else if (stats.archive_failed > 0)
             icon = "error";
-        else if (tabstats.in_flight > 0)
-            icon = "tracking";
         else if (tabstats.problematic > 0)
             icon = "problematic";
         else if (!config.collecting)
