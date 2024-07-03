@@ -1,3 +1,29 @@
+# extension-v1.12.0
+
+- pWebArc will no longer automatically reload on updates, waiting for the browser to restart or for you to reload it explicitly instead.
+
+  This way you won't lose any data on extension updates.
+
+  Proper automatic reloads on updates will be implemented later, after pWebArc gets full persistence.
+
+- Popup UI:
+
+  - Reverted the split between "Globally" and "This session".
+
+    Implementing that split properly will make future things much harder, so, simple is best.
+
+  - "Queued" stat moved to a separate line again.
+
+    It also shows the sum total of sizes of all dumps now.
+
+  - Added "Scheduled ... actions" stat line, showing the names of actions that are scheduled.
+
+    It is hidden by default, because watching it closely while pWebArc is very busy can probably cause seizures in some people.
+
+- Improved documentation.
+
+- Bugfixes.
+
 # extension-v1.11.0
 
 - Implemented DOM snapshots, their popup UI, keyboard shortcuts and documentation.
