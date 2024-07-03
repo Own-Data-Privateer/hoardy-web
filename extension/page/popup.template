@@ -144,16 +144,24 @@ label code {
           <span id="stats.scheduled">0</span>
         </span>
       </div>
-      <div id="div-stats.archived" data-help="At the moment, the numbers of reqres that were: successfully archived to the server (+still in the archival queue) / failed to be archived to the server.">
+      <div id="div-stats.archived" data-help="At the moment, the numbers of reqres that were: successfully archived to the server / failed to be archived to the server.">
         <span>Archived/Failed</span>
         <span>
           <span data-help="Retry archiving reqres that failed to archive. I.e., move all failed to archive reqres to the archival queue. This action will be performed automatically every 60 seconds when archiving is enabled."><input type="button" id="retryAllFailedArchives" value="Retry" /></span>
         </span>
         <span>
           <span id="stats.archive_ok">0</span>
-          (+<span id="stats.in_queue">0</span>)
           /
           <span id="stats.archive_failed">0</span>
+        </span>
+      </div>
+      <div id="div-stats.queued" data-help="At the moment, the number of reqres that are still in the archival queue (and the sum total of all sizes of their dumps).">
+        <span>Queued</span>
+        <span>
+        </span>
+        <span>
+          <span id="stats.in_queue">0</span>
+          (<span id="stats.in_queue_size">0</span>)
         </span>
       </div>
       <div id="div-stats.collected" data-help="From the last reset, the numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory.">

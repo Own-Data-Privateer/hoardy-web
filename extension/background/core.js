@@ -426,6 +426,7 @@ let reqresLimbo = [];
 let reqresLimboSize = 0;
 // requests in the process of being archived
 let reqresQueue = [];
+let reqresQueueSize = 0;
 // total number of archived reqres
 let reqresArchivedTotal = 0;
 // failed requests, indexed by archiveURL
@@ -550,6 +551,7 @@ function getStats() {
         in_limbo: reqresLimbo.length,
         in_limbo_size: reqresLimboSize,
         in_queue: reqresQueue.length,
+        in_queue_size: reqresQueueSize,
         collected: persistentStats.collectedTotal,
         collected_size: persistentStats.collectedSize,
         discarded: persistentStats.discardedTotal,
@@ -1046,8 +1048,11 @@ function retryFailedArchive(archiveURL) {
     let failed = reqresFailed.get(archiveURL);
     if (failed === undefined)
         return;
-    for (let e of failed.queue)
-        reqresQueue.push(e);
+    for (let archivable of failed.queue) {
+        let [shallow, dump] = archivable;
+        reqresQueue.push(archivable);
+        reqresQueueSize += dump.byteLength;
+    }
     reqresFailed.delete(archiveURL);
 }
 
@@ -1195,6 +1200,7 @@ function processArchiving() {
 
     let archivable = reqresQueue.shift();
     let [shallow, dump] = archivable;
+    reqresQueueSize -= dump.byteLength;
 
     // we ignore and recompute shallow.profile here because the user could
     // have changed some settings while archiving was disabled
@@ -1397,6 +1403,7 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
     if (collect) {
         if (!config.doNotQueue) {
             reqresQueue.push([shallow, dump]);
+            reqresQueueSize += dump.byteLength;
             newQueued = true;
         }
         persistentStats.collectedTotal += 1;

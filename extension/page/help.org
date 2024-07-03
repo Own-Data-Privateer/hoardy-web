@@ -178,10 +178,13 @@ Evaluation of the =profile=  parameter is done just before the POST request is s
 If [[./popup.html#div-config.archiveNotifyFailed][this option]] is enabled and some reqres failed to be archived, a new desktop notification will be generated.
 If [[./popup.html#div-config.archiveNotifyOK][this option]] is enabled, a new desktop notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
+On its own line:
+
+- [[./popup.html#div-stats.queued][A /queued reqres/]] is a =collected= reqres still queued for archival.
+
 Displayed on the [[./popup.html#div-stats.archived][Archived/Failed reqres]] line:
 
 - [[./popup.html#stats.archive_ok][An /archived reqres/]] is a reqres that was successfully archived to the archiving server and thus was discarded from memory.
-- [[./popup.html#stats.in_queue][A /queued reqres/]] is a =collected= reqres still queued for archival.
 - [[./popup.html#stats.archive_failed][A /failed to archive reqres/]] is a reqres that failed to be archived to the archiving server. Archiving of these reqres' will be retried every 60 seconds but you can retry it immediately by pressing [[./popup.html#retryAllFailedArchives][this button]].
 * Shortcuts
 pWebArc provides a bunch of keyboard and context menu shortcuts to allow using it in more efficient ways.
