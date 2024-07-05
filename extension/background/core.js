@@ -315,7 +315,7 @@ function cleanupTabs() {
 
     // delete configs of closed and unused tabs
     for (let tabId of Array.from(tabConfig.keys())) {
-        if(openTabs.has(tabId) || usedTabs.has(tabId))
+        if(tabId === -1 || openTabs.has(tabId) || usedTabs.has(tabId))
             continue;
         if (config.debugging)
             console.log("removing config of tab", tabId);
@@ -325,7 +325,7 @@ function cleanupTabs() {
 
     // delete any stale leftovers from tabState
     for (let tabId of Array.from(tabState.keys())) {
-        if(openTabs.has(tabId) || usedTabs.has(tabId))
+        if(tabId === -1 || openTabs.has(tabId) || usedTabs.has(tabId))
             continue;
         console.warn("removing stale tab state", tabId);
         tabState.delete(tabId);
