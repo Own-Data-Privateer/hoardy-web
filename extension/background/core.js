@@ -2179,7 +2179,10 @@ function handleBeforeRedirect(e) {
         if (!useDebugger && reqres.statusCode === 0) {
             // workaround internal Firefox redirects giving no codes and statuses
             reqres.statusCode = 307;
-            reqres.reason = "Internal Redirect";
+            reqres.statusLine = "HTTP/1.0 307 Internal Redirect";
+            reqres.responseHeaders = [
+                { name: "Location", value: e.redirectUrl }
+            ];
         }
     }
 
