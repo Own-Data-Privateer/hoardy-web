@@ -43,7 +43,7 @@ let configDefaults = {
     debugging: false, // verbose debugging logs
     dumping: false, // dump dumps to console
     snapshotAny: false, // snapshot isBoringURL
-    doNotQueue: false,
+    discardAll: false,
 
     // UI
     lastSeenVersion: manifest.version,
@@ -821,7 +821,7 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
             color = 1;
             chunks.push("debugging (SLOW!)");
         }
-        if (config.autoPopInLimboDiscard || config.doNotQueue) {
+        if (config.autoPopInLimboDiscard || config.discardAll) {
             badge += "!";
             color = 2;
             chunks.push("auto-discarding");
@@ -1205,6 +1205,11 @@ function processArchiving() {
     let [shallow, dump] = archivable;
     reqresQueueSize -= dump.byteLength;
 
+    if (config.discardAll) {
+        scheduleEndgame(shallow.tabId);
+        return;
+    }
+
     // we ignore and recompute shallow.profile here because the user could
     // have changed some settings while archiving was disabled
     let options = getOriginConfig(shallow.tabId, shallow.fromExtension);
@@ -1404,11 +1409,9 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
     shallow.collected = collect;
 
     if (collect) {
-        if (!config.doNotQueue) {
-            reqresQueue.push([shallow, dump]);
-            reqresQueueSize += dump.byteLength;
-            newQueued = true;
-        }
+        reqresQueue.push([shallow, dump]);
+        reqresQueueSize += dump.byteLength;
+        newQueued = true;
         persistentStats.collectedTotal += 1;
         persistentStats.collectedSize += dump.byteLength;
         info.collectedTotal += 1;
@@ -2670,12 +2673,12 @@ async function init(storage) {
     }
     config.lastSeenVersion = manifest.version;
 
-    if (config.autoPopInLimboDiscard || config.doNotQueue) {
+    if (config.autoPopInLimboDiscard || config.discardAll) {
         let what = [];
         if (config.autoPopInLimboDiscard)
             what.push(`"Auto-discard reqres in limbo"`);
-        if (config.doNotQueue)
-            what.push(`"Do not queue new reqres"`);
+        if (config.discardAll)
+            what.push(`"Discard all reqres just before archival"`);
         browser.notifications.create("autoDiscard", {
             title: "pWebArc: REMINDER",
             message: `Some auto-discarding options are enabled: ${what.join(", ")}.`,
