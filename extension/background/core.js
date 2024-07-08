@@ -54,7 +54,6 @@ let configDefaults = {
 
     // log settings
     history: 1000,
-    logDiscarded: true,
 
     // are we collecting new data?
     collecting: true,
@@ -1419,7 +1418,7 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
         info.discardedTotal += 1;
     }
 
-    if (collect || config.logDiscarded || shallow.was_problematic) {
+    if (true) {
         reqresLog.push(shallow);
         while (reqresLog.length > config.history)
             reqresLog.shift();
