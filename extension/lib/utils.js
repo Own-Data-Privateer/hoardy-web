@@ -884,14 +884,19 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
             helpTip.style.display = "none";
     }
 
-    node.appendChild(helpMark);
-
     let root = document.createElement("span");
     root.classList.add("help-root");
-    root.setAttribute("title", help);
 
     node.parentElement.replaceChild(root, node);
 
-    root.appendChild(node);
+    let main = node;
+    if (node.tagName === "INPUT") {
+        main = document.createElement("span");
+        main.classList.add("help-main");
+        main.appendChild(node);
+    }
+    main.setAttribute("title", help);
+    main.appendChild(helpMark);
+    root.appendChild(main);
     root.appendChild(helpTip);
 }

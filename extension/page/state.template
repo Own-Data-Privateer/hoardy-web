@@ -109,15 +109,15 @@ td.long {
     <span id="top"></span>
     <h1 id="in_flight">In flight
       <span class="right">
-        <span data-help="Stop tracking progress of all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup."><input type="button" id="stopAllInFlight" value="Stop tracking all" /></span>
+        <input type="button" id="stopAllInFlight" data-help="Stop tracking progress of all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup." value="Stop tracking all" />
       </span>
     </h1>
     <table><tbody id="data_in_flight"></tbody></table>
 
     <h1 id="problematic">Problematic
       <span class="right">
-        <span data-help="Unset `problematic` flag from the first reqres below."><input type="button" id="unmarkOneProblematic" value="Unmark the first one" /></span>
-        <span data-help="Unset `problematic` flag from all reqres below."><input type="button" id="unmarkAllProblematic" value="Unmark all" /></span>
+        <input type="button" id="unmarkOneProblematic" data-help="Unset `problematic` flag from the first reqres below." value="Unmark the first one" />
+        <input type="button" id="unmarkAllProblematic" data-help="Unset `problematic` flag from all reqres below." value="Unmark all" />
       </span>
     </h1>
     <div class="controls">
@@ -125,14 +125,14 @@ td.long {
       <ui id="rrfilters.problematic.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
       <ui id="rrfilters.problematic.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
       <ui id="rrfilters.problematic.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
-      <span data-help="Move the first reqres below to the end."><input type="button" id="rotateOneProblematic" value="Rotate the first one" /></span>
+      <input type="button" id="rotateOneProblematic" data-help="Move the first reqres below to the end." value="Rotate the first one" />
     </div>
     <table><tbody id="data_problematic"></tbody></table>
 
     <h1 id="in_limbo">In limbo
       <span class="right">
-        <span data-help="Discard the first reqres below."><input type="button" id="discardOneInLimbo" value="Discard the first one" /></span>
-        <span data-help="Discard all reqres below."><input type="button" id="discardAllInLimbo" value="Discard all" /></span>
+        <input type="button" id="discardOneInLimbo" data-help="Discard the first reqres below." value="Discard the first one" />
+        <input type="button" id="discardAllInLimbo" data-help="Discard all reqres below." value="Discard all" />
       </span>
     </h1>
     <div class="controls">
@@ -140,15 +140,15 @@ td.long {
       <ui id="rrfilters.in_limbo.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
       <ui id="rrfilters.in_limbo.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
       <ui id="rrfilters.in_limbo.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
-      <span data-help="Move the first reqres below to the end."><input type="button" id="rotateOneInLimbo" value="Rotate the first one" /></span>
-      <span data-help="Collect the first reqres below."><input type="button" id="collectOneInLimbo" value="Collect the first one" /></span>
-      <span data-help="Collect all reqres below."><input type="button" id="collectAllInLimbo" value="Collect all" /></span>
+      <input type="button" id="rotateOneInLimbo" data-help="Move the first reqres below to the end." value="Rotate the first one" />
+      <input type="button" id="collectOneInLimbo" data-help="Collect the first reqres below." value="Collect the first one" />
+      <input type="button" id="collectAllInLimbo" data-help="Collect all reqres below." value="Collect all" />
     </div>
     <table><tbody id="data_in_limbo"></tbody></table>
 
     <h1 id="log">Recent history log
       <span class="right">
-        <span data-help="Forget about all the requests below except for those marked as &quot;problematic&quot;. Except, if the &quot;Problematic&quot; tristate filter below is set, then those will be forgotten about too."><input type="button" id="forgetHistory" value="Forget all" /></span>
+        <input type="button" id="forgetHistory" data-help="Forget about all the requests below except for those marked as &quot;problematic&quot;. Except, if the &quot;Problematic&quot; tristate filter below is set, then those will be forgotten about too." value="Forget all" />
       </span>
     </h1>
     <div class="controls">
