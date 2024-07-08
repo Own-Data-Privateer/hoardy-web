@@ -55,6 +55,10 @@ function catchAll(func) {
     };
 }
 
+function toNumber(x) {
+    return Number(x).valueOf();
+}
+
 // partition a list via a predicate, but stop after num elements
 function partitionN(predicate, num, list) {
     let total = 0;
@@ -308,6 +312,19 @@ function binaryToText(dump) {
 function dumpToConsole(dump) {
     console.log("dump:");
     console.log(binaryToText(dump));
+}
+
+// return mapped ?`param`= parameter when the URL starts with `op`
+function getMapURLParam(op, param, purl, f, def1, def2) {
+    if (purl.origin + purl.pathname == op) {
+        let params = new URLSearchParams(purl.search);
+        let id = params.get(param);
+        if (id !== null)
+            return f(id);
+        else
+            return def1;
+    }
+    return def2;
 }
 
 // remove #.* from the end of the URL

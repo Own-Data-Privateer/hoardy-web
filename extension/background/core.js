@@ -2550,7 +2550,7 @@ async function handleCommand(command) {
     // The map is set this way so that show-state -> show-tab-state would open
     // the state narrowed to background tasks. This is not very intuitive but
     // rather useful.
-    let tabId = mapStateTabId(new URL(getTabURL(tab, "")), (x) => x, -1, tab.id);
+    let tabId = getMapURLParam(stateURL, "tab", new URL(getTabURL(tab, "")), toNumber, -1, tab.id);
 
     let tabcfg = undefined;
     switch (command) {

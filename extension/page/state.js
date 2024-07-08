@@ -37,7 +37,7 @@ let rrfilters = {
     log: assignRec({}, rrfilterDefaults),
 };
 
-let tabId = mapStateTabId(document.location, (x) => x, null, null);
+let tabId = getMapURLParam(stateURL, "tab", document.location, toNumber, null, null);
 if (tabId !== null)
     document.title = `pWebArc: tab ${tabId}: Internal State`;
 

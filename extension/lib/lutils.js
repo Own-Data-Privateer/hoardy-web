@@ -70,21 +70,8 @@ function getTabURL(tab, def) {
     return def;
 }
 
-// return mapped ?tab= parameter when the URL is the state page
-function mapStateTabId(purl, f, def1, def2) {
-    if (purl.origin + purl.pathname == stateURL) {
-        let params = new URLSearchParams(purl.search);
-        let tabId = params.get("tab");
-        if (tabId !== null)
-            return f(Number(tabId).valueOf());
-        else
-            return def1;
-    }
-    return def2;
-}
-
 function getStateTabIdOrTabId(tab) {
-    return mapStateTabId(new URL(getTabURL(tab, "")), (x) => x, tab.id, tab.id);
+    return getMapURLParam(stateURL, "tab", new URL(getTabURL(tab, "")), toNumber, tab.id, tab.id);
 }
 
 function showChangelog(suffix, id, tabId) {
