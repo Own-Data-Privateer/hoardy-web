@@ -185,7 +185,10 @@ On its own line:
 Displayed on the [[./popup.html#div-stats.archived][Archived/Failed reqres]] line:
 
 - [[./popup.html#stats.archive_ok][An /archived reqres/]] is a reqres that was successfully archived to the archiving server and thus was discarded from memory.
-- [[./popup.html#stats.archive_failed][A /failed to archive reqres/]] is a reqres that failed to be archived to the archiving server. Archiving of these reqres' will be retried every 60 seconds but you can retry it immediately by pressing [[./popup.html#retryAllFailedArchives][this button]].
+- [[./popup.html#stats.archive_failed][A /failed to archive reqres/]] is a reqres that failed to be archived to the archiving server.
+  Archivals of reqres' that failed because of networking issues will be retried automatically every 60 seconds.
+  Archivals of reqres' rejected by the archiving server will not be retried automatically as those usually happen when there is no space left on the device the server is archiving to.
+  You can retry all failed archivals by pressing [[./popup.html#retryAllFailedArchives][this button]].
 * Shortcuts
 pWebArc provides a bunch of keyboard and context menu shortcuts to allow using it in more efficient ways.
 
@@ -342,12 +345,12 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
 :CUSTOM_ID: errors
 :END:
 ** Desktop notifications
-- =pWebArc FAILED to archive <N> items in the queue because it can't establish a connection to the archive at <URL>=
+- =Failed to archive <N> items in the queue because pWebArc can't establish a connection to the archive at <URL>=
 
   Are you running the [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][the archiving server script]]?
   pWebArc requires an archiving server to actually archive anything.
 
-- =pWebArc FAILED to archive <N> items in the queue because requests to URL fail with: <STATUS> <REASON>: <RESPONSE>=
+- =Failed to archive <N> items in the queue because requests to URL fail with: <STATUS> <REASON>: <RESPONSE>=
 
   Your archiving sever is returning HTTP errors when pWebArc is trying to archive data to it.
   See its error console for more information.

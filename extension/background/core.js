@@ -1014,39 +1014,31 @@ async function scheduleEndgame(updatedTabId) {
                 await updateDisplay(true);
             });
         }
+
+        if (config.archive && reqresFailed.length > 0)
+            // retry failed in 60s
+            resetSingletonTimeout(scheduledInternal, "retryAllFailedArchives", timeout, () => retryAllFailedArchives(true));
+
         await updateDisplay(true, updatedTabId);
     }
 }
 
-// mark this archiveURL as failing
-function markArchiveAsFailed(archiveURL, when, reason) {
-    let v = reqresFailed.get(archiveURL);
-    if (v === undefined) {
-        v = {
-            when,
-            reason,
-            queue: [],
-        };
-        reqresFailed.set(archiveURL, v);
-    } else {
-        v.when = when;
-        v.reason = reason;
-    }
-
+// record this archiveURL and its archivable as failing
+function markAsFailed(archiveURL, archivable, when, reason, recoverable) {
+    let v = cacheSingleton(reqresFailed, archiveURL, () => { return { queue: [] }; });
+    v.when = when;
+    v.reason = reason;
+    v.recoverable = recoverable;
+    v.queue.push(archivable);
+    newArchivedOrFailed = true;
+    needArchivingOK = true;
     return v;
 }
 
-// cleanup stale
-function cleanupFailedArchives() {
-    for (let [archiveURL, failed] of Array.from(reqresFailed.entries())) {
-        if (failed.queue.length == 0)
-            reqresFailed.delete(archiveURL);
-    }
-}
-
-function retryFailedArchive(archiveURL) {
+function retryFailedArchive(archiveURL, recoverableOnly) {
     let failed = reqresFailed.get(archiveURL);
-    if (failed === undefined)
+    if (failed === undefined
+        || recoverableOnly && failed.recoverable === false)
         return;
     for (let archivable of failed.queue) {
         let [shallow, dump] = archivable;
@@ -1056,17 +1048,10 @@ function retryFailedArchive(archiveURL) {
     reqresFailed.delete(archiveURL);
 }
 
-function retryAllFailedArchives() {
-    for (let [archiveURL, failed] of Array.from(reqresFailed.entries())) {
-        for (let e of failed.queue)
-            reqresQueue.push(e);
-        reqresFailed.delete(archiveURL);
-    }
+function retryAllFailedArchives(recoverableOnly) {
+    for (let archiveURL of Array.from(reqresFailed.keys()))
+        retryFailedArchive(archiveURL, recoverableOnly);
     scheduleEndgame(null);
-}
-
-function retryAllFailedArchivesIn(timeout) {
-    resetSingletonTimeout(scheduledInternal, "retryAllFailedArchives", timeout, retryAllFailedArchives);
 }
 
 async function doComplain() {
@@ -1082,9 +1067,6 @@ async function doComplain() {
 
     if (newArchivedOrFailed) {
         newArchivedOrFailed = false;
-
-        // cleanup stale archives
-        cleanupFailedArchives();
 
         // record the current state, because the rest of this chunk is async
         let rrFailed = Array.from(reqresFailed.entries());
@@ -1224,18 +1206,13 @@ function processArchiving() {
         return;
     }
 
-    function broken(reason) {
-        let failed = markArchiveAsFailed(archiveURL, Date.now(), reason);
-        failed.queue.push(archivable);
-        newArchivedOrFailed = true;
-        needArchivingOK = true;
-        // retry failed in 60s
-        retryAllFailedArchivesIn(60000);
+    function broken(reason, recoverable) {
+        markAsFailed(archiveURL, archivable, Date.now(), reason, recoverable);
         scheduleEndgame(shallow.tabId);
     }
 
     function allok() {
-        retryFailedArchive(archiveURL);
+        retryFailedArchive(archiveURL, true);
         reqresArchivedTotal += 1;
         newArchivedOrFailed = true;
         broadcast(["newArchived", [shallow]]);
@@ -1251,18 +1228,18 @@ function processArchiving() {
     req.setRequestHeader("Content-Type", "application/cbor");
     req.onabort = (event) => {
         //console.log("archiving aborted", event);
-        broken(`a request to \n${archiveURL}\n was aborted by the browser`);
+        broken(`a request to \n${archiveURL}\n was aborted by the browser`, true);
     }
     req.onerror = (event) => {
         //console.log("archiving error", event);
-        broken(`pWebArc can't establish a connection to the archive at\n${archiveURL}`);
+        broken(`pWebArc can't establish a connection to the archive at\n${archiveURL}`, true);
     }
     req.onload = (event) => {
         //console.log("archiving loaded", event);
         if (req.status == 200)
             allok();
         else
-            broken(`a request to\n${archiveURL}\nfailed with:\n${req.status} ${req.statusText}: ${req.responseText}`);
+            broken(`a request to\n${archiveURL}\nfailed with:\n${req.status} ${req.statusText}: ${req.responseText}`, false);
     };
     req.send(dump);
 }
@@ -2357,7 +2334,7 @@ function handleMessage(request, sender, sendResponse) {
             syncDebuggersState();
 
         if (oldConfig.archiving !== config.archiving && config.archiving)
-            retryAllFailedArchives();
+            retryAllFailedArchives(true);
 
         updateDisplay(true, null);
         broadcast(["updateConfig", config]);
@@ -2378,7 +2355,7 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(null);
         break;
     case "retryAllFailedArchives":
-        retryAllFailedArchivesIn(100);
+        retryAllFailedArchives(false);
         sendResponse(null);
         break;
     case "getStats":
