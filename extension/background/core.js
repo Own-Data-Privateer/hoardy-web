@@ -24,8 +24,7 @@
 
 "use strict";
 
-// for archiving
-let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
+// NB: "reqres" means "request + response"
 
 let updateAvailable = false;
 
@@ -403,14 +402,7 @@ function processRemoveTab(tabId) {
         scheduleCleanupAfterTab(tabId, 0);
 }
 
-// browserAction state
-let udStats = null;
-let udTitle = null;
-let udBadge = null;
-let udColor = null;
-
-// archiving state
-// reqres means "request + response"
+// session state
 
 // requests in-flight, indexed by requestId
 let reqresInFlight = new Map();
@@ -460,6 +452,7 @@ function getInLimboLog() {
     return res;
 }
 
+// persistent global stats
 let persistentStatsDefaults = {
     // problematicTotal is reqresProblematic.length
     // total numbers of picked and dropped reqres
@@ -470,7 +463,6 @@ let persistentStatsDefaults = {
     collectedSize: 0,
     discardedTotal: 0,
 };
-// persistent global stats
 let persistentStats = assignRec({}, persistentStatsDefaults);
 // did it change recently?
 let changedPersistentStats = false;
@@ -735,7 +727,12 @@ function forgetHistory(tabId, rrfilter) {
     updateDisplay(true, tabId);
 }
 
-let updateDisplayEpisode = 1;
+// browserAction state
+let udStats = null;
+let udTitle = null;
+let udBadge = null;
+let udColor = null;
+let udEpisode = 1;
 
 // `updatedTabId === null` means "config changed or any tab could have been updated"
 // `updatedTabId === undefined` means "no tabs changed"
@@ -744,11 +741,11 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
     let changed = updatedTabId === null;
 
     // only run the rest every `episodic` updates, when it's set
-    if (!changed && updateDisplayEpisode < episodic) {
-        updateDisplayEpisode += 1;
+    if (!changed && udEpisode < episodic) {
+        udEpisode += 1;
         return;
     }
-    updateDisplayEpisode = 1;
+    udEpisode = 1;
 
     let stats;
     let title;
@@ -1309,6 +1306,8 @@ function encodeHeaders(headers) {
 
     return result;
 }
+
+let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
 
 // render reqres structure into a CBOR dump
 function renderReqres(reqres) {
