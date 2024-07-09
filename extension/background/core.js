@@ -1710,7 +1710,7 @@ async function snapshotOneTab(tabId, tabUrl, noEndgame) {
                 message: `While taking DOM snapshot of tab #${tabId} (${tabUrl.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`,
                 iconUrl: iconURL("error", 128),
                 type: "basic",
-            });
+            }).catch(logError);
 
         if (!noEndgame)
             await scheduleEndgame(tabId);

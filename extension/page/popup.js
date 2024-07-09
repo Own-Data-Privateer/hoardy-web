@@ -159,13 +159,13 @@ async function popupMain() {
         if (!window.confirm("Really?"))
             return;
 
-        browser.runtime.sendMessage(["resetPersistentStats"]);
+        browser.runtime.sendMessage(["resetPersistentStats"]).catch(logError);
     }));
     buttonToAction("resetConfig", catchAll(() => {
         if (!window.confirm("Really?"))
             return;
 
-        browser.runtime.sendMessage(["resetConfig"]);
+        browser.runtime.sendMessage(["resetConfig"]).catch(logError);
     }));
 
     buttonToAction("showAll", catchAll(showAll));
@@ -227,7 +227,7 @@ async function popupMain() {
                 newtabconfig.children.negLimbo = newtabconfig.negLimbo;
                 break;
             }
-            browser.runtime.sendMessage(["setOriginConfig", tabId, false, newtabconfig]);
+            browser.runtime.sendMessage(["setOriginConfig", tabId, false, newtabconfig]).catch(logError);
         });
     }
 
