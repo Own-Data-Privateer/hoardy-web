@@ -135,18 +135,17 @@ let config = assignRec({}, configDefaults);
 // last config saved in storage
 let savedConfig = undefined;
 
-async function saveConfig(eConfig) {
-    if (equalRec(savedConfig, eConfig))
+async function saveConfig() {
+    if (equalRec(savedConfig, config))
         return;
-    savedConfig = eConfig;
-    console.log("saving config", eConfig);
-    await browser.storage.local.set({ config: eConfig }).catch(logError);
+    savedConfig = assignRec({}, config);
+    console.log("saving config", savedConfig);
+    await browser.storage.local.set({ config: savedConfig }).catch(logError);
 }
 
-function scheduleSaveConfig(config) {
-    let eConfig = assignRec({}, config);
+function scheduleSaveConfig() {
     resetSingletonTimeout(scheduledSaveState, "saveConfig", 1000, async () => {
-        await saveConfig(eConfig);
+        await saveConfig();
         await updateDisplay(true);
     });
     // NB: needs updateDisplay afterwards
@@ -463,28 +462,32 @@ let persistentStatsDefaults = {
     collectedSize: 0,
     discardedTotal: 0,
 };
-let persistentStats = assignRec({}, persistentStatsDefaults);
+// persistent global variables
+let globals = assignRec({
+    version: 1,
+}, persistentStatsDefaults);
 // did it change recently?
-let changedPersistentStats = false;
+let changedGlobals = false;
 // last stats saved in storage
-let savedPersistentStats = undefined;
+let savedGlobals = undefined;
 
-async function savePersistentStats(eStats) {
-    if (equalRec(savedPersistentStats, eStats))
+async function saveGlobals() {
+    if (equalRec(savedGlobals, globals))
         return;
-    savedPersistentStats = eStats;
-    console.log("saving persistentStats", eStats);
-    await browser.storage.local.set({ persistentStats: eStats }).catch(logError);
+    savedGlobals = assignRec({}, globals);
+    console.log("saving globals", savedGlobals);
+    await browser.storage.local.set({ globals: savedGlobals }).catch(logError);
+    await browser.storage.local.remove("persistentStats").catch(() => {});
     await browser.storage.local.remove("globalStats").catch(() => {});
 }
 
 async function resetPersistentStats() {
-    persistentStats = assignRec({}, persistentStatsDefaults);
-    await savePersistentStats(persistentStats);
+    globals = updateFromRec(globals, persistentStatsDefaults);
+    await saveGlobals();
     await updateDisplay(true);
 }
 
-// per-source persistentStats.pickedTotal, persistentStats.droppedTotal, etc
+// per-source globals.pickedTotal, globals.droppedTotal, etc
 let tabState = new Map();
 let defaultTabState = {
     problematicTotal: 0,
@@ -540,15 +543,15 @@ function getStats() {
         actions,
         in_flight,
         problematic: reqresProblematic.length,
-        picked: persistentStats.pickedTotal,
-        dropped: persistentStats.droppedTotal,
+        picked: globals.pickedTotal,
+        dropped: globals.droppedTotal,
         in_limbo: reqresLimbo.length,
         in_limbo_size: reqresLimboSize,
         in_queue: reqresQueue.length,
         in_queue_size: reqresQueueSize,
-        collected: persistentStats.collectedTotal,
-        collected_size: persistentStats.collectedSize,
-        discarded: persistentStats.discardedTotal,
+        collected: globals.collectedTotal,
+        collected_size: globals.collectedSize,
+        discarded: globals.discardedTotal,
         archive_ok: reqresArchivedTotal,
         archive_failed,
         issues: in_flight
@@ -675,6 +678,7 @@ function popInLimbo(collect, num, tabId, rrfilter) {
     reqresLimbo = unpopped;
 
     if (popped.length > 0) {
+        changedGlobals = true;
         broadcast(["resetInLimboLog", getInLimboLog()]);
         if (popped.some((r) => r.problematic === true))
             // also reset problematic, since reqres statuses have changed
@@ -1000,17 +1004,16 @@ async function scheduleEndgame(updatedTabId) {
 
         scheduleComplaints(timeout);
 
-        if (changedPersistentStats) {
-            changedPersistentStats = false;
+        if (changedGlobals) {
+            changedGlobals = false;
 
-            if (savedPersistentStats !== undefined
-                && savedPersistentStats.collectedTotal === persistentStats.collectedTotal)
+            if (savedGlobals !== undefined
+                && savedGlobals.collectedTotal === globals.collectedTotal)
                 // the change is inconsequential, extend timeout
                 timeout = 60000;
 
-            let eStats = assignRec({}, persistentStats);
-            resetSingletonTimeout(scheduledSaveState, "savePersistentStats", timeout, async () => {
-                await savePersistentStats(eStats);
+            resetSingletonTimeout(scheduledSaveState, "saveGlobals", timeout, async () => {
+                await saveGlobals();
                 await updateDisplay(true);
             });
         }
@@ -1388,12 +1391,12 @@ function processFinishedReqres(info, collect, shallow, dump, newLog) {
         reqresQueue.push([shallow, dump]);
         reqresQueueSize += dump.byteLength;
         newQueued = true;
-        persistentStats.collectedTotal += 1;
-        persistentStats.collectedSize += dump.byteLength;
+        globals.collectedTotal += 1;
+        globals.collectedSize += dump.byteLength;
         info.collectedTotal += 1;
         info.collectedSize += dump.byteLength;
     } else {
-        persistentStats.discardedTotal += 1;
+        globals.discardedTotal += 1;
         info.discardedTotal += 1;
     }
 
@@ -1560,13 +1563,12 @@ function processAlmostDone() {
     }
 
     if (picked) {
-        persistentStats.pickedTotal += 1;
+        globals.pickedTotal += 1;
         info.pickedTotal += 1;
     } else {
-        persistentStats.droppedTotal += 1;
+        globals.droppedTotal += 1;
         info.droppedTotal += 1;
     }
-    changedPersistentStats = true;
 
     if (picked || options.negLimbo) {
         let dump = renderReqres(reqres);
@@ -1591,6 +1593,8 @@ function processAlmostDone() {
         newProblematic = true;
         broadcast(["newProblematic", [shallow]]);
     }
+
+    changedGlobals = true;
 
     scheduleEndgame(updatedTabId);
 }
@@ -2328,7 +2332,7 @@ function handleMessage(request, sender, sendResponse) {
         if (!config.ephemeral && !equalRec(oldConfig, config))
             // save config after a little pause to give the user time to click
             // the same toggle again without torturing the SSD
-            scheduleSaveConfig(config, true);
+            scheduleSaveConfig();
 
         if (useDebugger)
             syncDebuggersState();
@@ -2342,7 +2346,7 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "resetConfig":
         config = assignRec({}, configDefaults);
-        scheduleSaveConfig(config);
+        scheduleSaveConfig();
         updateDisplay(true, null);
         broadcast(["updateConfig", config]);
         sendResponse(null);
@@ -2592,7 +2596,7 @@ async function handleCommand(command) {
     setOriginConfig(tabId, false, tabcfg);
 }
 
-function upgradeConfigAndPersistentStats(cfg, stats) {
+function upgradeConfig(cfg) {
     function rename(from, to) {
         let old = cfg[from];
         delete cfg[from];
@@ -2612,31 +2616,49 @@ function upgradeConfigAndPersistentStats(cfg, stats) {
         if (cfg.markProblematicWithErrors)
             cfg.markProblematicPickedWithErrors = true;
         rename("markProblematicWithErrors", "markProblematicDroppedWithErrors")
+    case 4:
         break;
     default:
         console.warn(`Bad old config version ${cfg.version}, reusing values as-is without updates`);
         // the following updateFromRec will do its best
     }
 
-    return [cfg, stats];
+    return cfg;
 }
 
-async function init(storage) {
+function upgradeGlobals(globs) {
+    if (globs.version === undefined)
+        globs.version = 1;
+
+    return globs;
+}
+
+async function init() {
     browser.runtime.onUpdateAvailable.addListener(catchAll(handleUpdateAvailable));
 
-    savedConfig = storage.config;
-    if (savedConfig !== undefined) {
-        savedPersistentStats = storage.persistentStats;
-        if (savedPersistentStats === undefined)
-            savedPersistentStats = storage.globalStats;
+    let localData = await browser.storage.local.get([
+        "config", "globals", "persistentStats", "globalStats"
+    ]).catch(() => { return {}; });
 
-        if (savedConfig.version !== configVersion) {
-            console.log(`Loading old config of version ${savedConfig.version}`);
-            [savedConfig, savedPersistentStats] = upgradeConfigAndPersistentStats(savedConfig, savedPersistentStats);
-        }
+    let oldConfig = localData.config;
+    if (oldConfig !== undefined) {
+        console.log(`Loading old config of version ${oldConfig.version}`);
 
-        config = updateFromRec(config, savedConfig);
-        persistentStats = updateFromRec(persistentStats, savedPersistentStats);
+        oldConfig  = upgradeConfig(oldConfig);
+        config = updateFromRec(config, oldConfig);
+    }
+
+    let oldGlobals = localData.globals;
+    if (oldGlobals === undefined)
+        oldGlobals = localData.persistentStats;
+    if (oldGlobals === undefined)
+        oldGlobals = localData.globalStats;
+
+    if (oldGlobals !== undefined) {
+        console.log(`Loading old globals of version ${oldGlobals.version}`);
+
+        oldGlobals = upgradeGlobals(oldGlobals);
+        globals = updateFromRec(globals, oldGlobals);
     }
 
     config.version = configVersion;
@@ -2649,24 +2671,30 @@ async function init(storage) {
     }
     config.lastSeenVersion = manifest.version;
 
-    if (config.autoPopInLimboDiscard || config.discardAll) {
-        let what = [];
-        if (config.autoPopInLimboDiscard)
-            what.push(`"Auto-discard reqres in limbo"`);
-        if (config.discardAll)
-            what.push(`"Discard all reqres just before archival"`);
-        browser.notifications.create("autoDiscard", {
-            title: "pWebArc: REMINDER",
-            message: `Some auto-discarding options are enabled: ${what.join(", ")}.`,
-            iconUrl: iconURL("limbo", 128),
-            type: "basic",
-        }).catch(logError);
-    }
-
     if (false) {
         // for debugging
         config.ephemeral = true;
     }
+
+    // get all currently open tabs
+    let tabs = await browser.tabs.query({});
+    for (let tab of tabs) {
+        // record them
+        openTabs.add(tab.id);
+
+        // compute and cache their configs
+        let tabcfg = getOriginConfig(tab.id);
+        // on Chromium, reset their URLs, maybe
+        if (useDebugger
+            && config.collecting && tabcfg.collecting && config.workaroundChromiumResetRootTab
+            && tab.pendingUrl == "chrome://newtab/")
+            chromiumResetRootTab(tab.id, tabcfg);
+    }
+
+    console.log(`initialized pWebArc with source of '${sourceDesc}'`);
+    console.log("runtime options are", { useSVGIcons, useBlocking, useDebugger });
+    console.log("config is", config);
+    console.log("globals are", globals);
 
     if (useBlocking)
         browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), {urls: ["<all_urls>"]}, ["blocking", "requestBody"]);
@@ -2688,32 +2716,33 @@ async function init(storage) {
     browser.tabs.onActivated.addListener(catchAll(handleTabActivated));
     browser.tabs.onUpdated.addListener(catchAll(handleTabUpdated));
 
-    // record it all currently open tabs, compute and cache their configs
-    let tabs = await browser.tabs.query({});
-    for (let tab of tabs) {
-        openTabs.add(tab.id);
-        let tabcfg = getOriginConfig(tab.id);
-        // reset its URL, maybe
-        if (useDebugger
-            && config.collecting && tabcfg.collecting && config.workaroundChromiumResetRootTab
-            && tab.pendingUrl == "chrome://newtab/")
-            chromiumResetRootTab(tab.id, tabcfg);
-    }
+    browser.commands.onCommand.addListener(catchAll(handleCommand));
 
     browser.runtime.onMessage.addListener(catchAll(handleMessage));
     browser.runtime.onConnect.addListener(catchAll(handleConnect));
 
     initMenus();
-    updateDisplay(true, null);
 
     if (useDebugger)
         await initDebugger(tabs);
 
-    browser.commands.onCommand.addListener(catchAll(handleCommand));
+    await updateDisplay(true, null);
 
-    console.log(`initialized pWebArc with source of '${sourceDesc}'`);
-    console.log("runtime options are", { useSVGIcons, useBlocking, useDebugger });
-    console.log("config is", config);
+    console.log("pWebArc is ready!");
+
+    if (config.autoPopInLimboDiscard || config.discardAll) {
+        let what = [];
+        if (config.autoPopInLimboDiscard)
+            what.push(`"Auto-discard reqres in limbo"`);
+        if (config.discardAll)
+            what.push(`"Discard all reqres just before archival"`);
+        browser.notifications.create("autoDiscard", {
+            title: "pWebArc: REMINDER",
+            message: `Some auto-discarding options are enabled: ${what.join(", ")}.`,
+            iconUrl: iconURL("limbo", 128),
+            type: "basic",
+        }).catch(logError);
+    }
 }
 
-browser.storage.local.get(null).then(init, (error) => init({}));
+init();
