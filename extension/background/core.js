@@ -160,6 +160,22 @@ let scheduledSaveState = new Map();
 // scheduled functions hidden from the UI
 let scheduledHidden = new Map();
 
+function runAllActions() {
+    runSynchronously(async () => {
+        await popAllSingletonTimeouts(scheduledCancelable, true);
+        await popAllSingletonTimeouts(scheduledInternal, true);
+        await popAllSingletonTimeouts(scheduledSaveState, true);
+    });
+    scheduleEndgame(null);
+}
+
+function cancelCleanupActions() {
+    runSynchronously(async () => {
+        await popAllSingletonTimeouts(scheduledCancelable, false);
+    });
+    scheduleEndgame(null);
+}
+
 async function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
     resetSingletonTimeout(scheduledInternal, `resetTab#${tabId}`, 100, async () => {
         let r;
@@ -539,7 +555,7 @@ function getStats() {
 
     return {
         scheduled_low: low_prio,
-        scheduled: actions.length,
+        scheduled: actions.length + synchronousClosures.length,
         actions,
         in_flight,
         problematic: reqresProblematic.length,
@@ -628,9 +644,7 @@ function unmarkProblematic(num, tabId, rrfilter) {
         broadcast(["resetProblematicLog", reqresProblematic]);
         broadcast(["resetInLimboLog", getInLimboLog()]);
         broadcast(["resetLog", reqresLog]);
-        cleanupTabs();
-        updateDisplay(true, tabId);
-        scheduleComplaints(100);
+        scheduleEndgame(tabId);
     }
 
     return popped.length;
@@ -982,9 +996,35 @@ async function scheduleFinishingUp() {
     });
 }
 
-// schedule processArchiving and processAlmostDone
-async function scheduleEndgame(updatedTabId) {
-    if (config.archiving && reqresQueue.length > 0) {
+// evaluator for `synchronousClosures` below
+async function evalSynchronousClosures(closures) {
+    while (closures.length > 0) {
+        let [fun, args] = closures.shift();
+        try {
+            await fun(...args);
+        } catch (err) {
+            logError(err);
+        }
+    }
+}
+
+// a list of [function, args] pairs; these are closures that need to be run synchronously
+let synchronousClosures = [];
+
+// syntax sugar
+function runSynchronously(func, ...args) {
+    synchronousClosures.push([func, args]);
+}
+
+// schedule processArchiving, processAlmostDone, etc
+function scheduleEndgame(updatedTabId) {
+    if (synchronousClosures.length > 0) {
+        resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+            await updateDisplay(true, updatedTabId);
+            await evalSynchronousClosures(synchronousClosures);
+            scheduleEndgame(null);
+        });
+    } else if (config.archiving && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
             await updateDisplay(true, updatedTabId, 10);
             processArchiving();
@@ -994,35 +1034,37 @@ async function scheduleEndgame(updatedTabId) {
             await updateDisplay(true, updatedTabId, 10);
             processAlmostDone();
         });
-    } else if (!config.archiving || reqresQueue.length == 0) {
-        cleanupTabs();
+    } else /* if (!config.archiving || reqresQueue.length == 0) */ {
+        resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+            cleanupTabs();
 
-        // use a much longer timeout if some reqres are still in flight
-        let inFlight = reqresInFlight.size + debugReqresInFlight.size
-                     + reqresFinishingUp.length + debugReqresFinishingUp.length;
-        let timeout = inFlight > 0 ? 10000 : 100;
+            // use a much longer timeout if some reqres are still in flight
+            let inFlight = reqresInFlight.size + debugReqresInFlight.size
+                         + reqresFinishingUp.length + debugReqresFinishingUp.length;
+            let timeout = inFlight > 0 ? 10000 : 100;
 
-        scheduleComplaints(timeout);
+            scheduleComplaints(timeout);
 
-        if (changedGlobals) {
-            changedGlobals = false;
+            if (changedGlobals) {
+                changedGlobals = false;
 
-            if (savedGlobals !== undefined
-                && savedGlobals.collectedTotal === globals.collectedTotal)
-                // the change is inconsequential, extend timeout
-                timeout = 60000;
+                if (savedGlobals !== undefined
+                    && savedGlobals.collectedTotal === globals.collectedTotal)
+                    // the change is inconsequential, extend timeout
+                    timeout = 60000;
 
-            resetSingletonTimeout(scheduledSaveState, "saveGlobals", timeout, async () => {
-                await saveGlobals();
-                await updateDisplay(true);
-            });
-        }
+                resetSingletonTimeout(scheduledSaveState, "saveGlobals", timeout, async () => {
+                    await saveGlobals();
+                    await updateDisplay(true);
+                });
+            }
 
-        if (config.archive && reqresFailed.length > 0)
-            // retry failed in 60s
-            resetSingletonTimeout(scheduledInternal, "retryAllFailedArchives", timeout, () => retryAllFailedArchives(true));
+            if (config.archiving && reqresFailed.size > 0)
+                // retry failed in 60s
+                resetSingletonTimeout(scheduledInternal, "retryAllFailedArchives", 60000, () => retryAllFailedArchives(true));
 
-        await updateDisplay(true, updatedTabId);
+            await updateDisplay(true, updatedTabId);
+        });
     }
 }
 
@@ -1599,7 +1641,7 @@ function processAlmostDone() {
     scheduleEndgame(updatedTabId);
 }
 
-async function snapshotOneTab(tabId, tabUrl, noEndgame) {
+async function snapshotOneTab(tabId, tabUrl) {
     if (!config.snapshotAny && isBoringURL(tabUrl)) {
         // skip stuff like handleBeforeRequest does
         if (config.debugging)
@@ -1692,9 +1734,6 @@ async function snapshotOneTab(tabId, tabUrl, noEndgame) {
                 iconUrl: iconURL("error", 128),
                 type: "basic",
             }).catch(logError);
-
-        if (!noEndgame)
-            await scheduleEndgame(tabId);
     }
 }
 
@@ -1707,13 +1746,14 @@ async function snapshotTab(tabIdNull) {
             let tabcfg = getOriginConfig(tabId);
             if (!tabcfg.collecting)
                 continue;
-            await snapshotOneTab(tabId, getTabURL(tab), true);
+            await snapshotOneTab(tabId, getTabURL(tab));
         }
-        await scheduleEndgame(null);
     } else {
         let tab = await browser.tabs.get(tabIdNull);
-        return await snapshotOneTab(tabIdNull, getTabURL(tab));
+        await snapshotOneTab(tabIdNull, getTabURL(tab));
     }
+
+    scheduleEndgame(tabIdNull);
 }
 
 function forceEmitInFlightWebRequest(tabId, reason) {
@@ -2412,19 +2452,11 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(null);
         break;
     case "runAllActions":
-        (async () => {
-            await popAllSingletonTimeouts(scheduledCancelable, true);
-            await popAllSingletonTimeouts(scheduledInternal, true);
-            await popAllSingletonTimeouts(scheduledSaveState, true);
-            await updateDisplay(true);
-        })();
+        runAllActions();
         sendResponse(null);
         break;
     case "cancelCleanupActions":
-        (async () => {
-            await popAllSingletonTimeouts(scheduledCancelable, false);
-            await updateDisplay(true);
-        })();
+        cancelCleanupActions();
         sendResponse(null);
         break;
     case "broadcast":
