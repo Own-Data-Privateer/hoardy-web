@@ -32,6 +32,8 @@ function handleUpdateAvailable(details) {
     updateAvailable = true;
 }
 
+let sessionId = Date.now();
+
 // default config
 let configVersion = 5;
 let configDefaults = {
@@ -724,7 +726,7 @@ function getTabStats(tabId) {
 }
 
 function isAcceptedLoggable(tabId, rrfilter, loggable) {
-    return (tabId === null || loggable.tabId === tabId)
+    return (tabId === null || loggable.sessionId === sessionId && loggable.tabId === tabId)
         && (rrfilter === null || isAcceptedBy(rrfilter, loggable));
 }
 
@@ -1898,6 +1900,7 @@ async function snapshotOneTab(tabId, tabUrl) {
             }
 
             let reqres = {
+                sessionId,
                 requestId: undefined,
                 tabId,
                 fromExtension: false,
@@ -2124,6 +2127,7 @@ function logEvent(rtype, e, reqres) {
 
 function shallowCopyOfReqres(reqres) {
     return {
+        sessionId: reqres.sessionId,
         requestId: reqres.requestId,
         tabId: reqres.tabId,
         fromExtension: reqres.fromExtension,
@@ -2252,6 +2256,7 @@ function handleBeforeRequest(e) {
 
     let requestId = e.requestId;
     let reqres = {
+        sessionId,
         requestId,
         tabId: e.tabId,
         fromExtension,
@@ -2587,6 +2592,9 @@ function handleMessage(request, sender, sendResponse) {
 
     let cmd = request[0];
     switch (cmd) {
+    case "getSessionId":
+        sendResponse(sessionId);
+        break;
     case "getConfig":
         sendResponse(config);
         break;

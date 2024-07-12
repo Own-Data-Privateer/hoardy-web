@@ -253,6 +253,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
     logDebugEvent("requestWillBeSent", nonExtra, e, undefined);
 
     let dreqres = cacheSingleton(debugReqresInFlight, e.requestId, () => { return {
+        sessionId,
         requestId: e.requestId,
         tabId: e.tabId,
         fromExtension: false, // most likely
