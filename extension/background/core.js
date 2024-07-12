@@ -1061,7 +1061,7 @@ function scheduleEndgame(updatedTabId) {
 
             if (config.archiving && reqresFailed.size > 0)
                 // retry failed in 60s
-                resetSingletonTimeout(scheduledInternal, "retryAllFailedArchives", 60000, () => retryAllFailedArchives(true));
+                resetSingletonTimeout(scheduledInternal, "retryFailed", 60000, () => retryFailed(true));
 
             await updateDisplay(true, updatedTabId);
         });
@@ -1093,7 +1093,7 @@ function retryFailedArchive(archiveURL, recoverableOnly) {
     reqresFailed.delete(archiveURL);
 }
 
-function retryAllFailedArchives(recoverableOnly) {
+function retryFailed(recoverableOnly) {
     for (let archiveURL of Array.from(reqresFailed.keys()))
         retryFailedArchive(archiveURL, recoverableOnly);
     scheduleEndgame(null);
@@ -2378,7 +2378,7 @@ function handleMessage(request, sender, sendResponse) {
             syncDebuggersState();
 
         if (oldConfig.archiving !== config.archiving && config.archiving)
-            retryAllFailedArchives(true);
+            retryFailed(true);
 
         updateDisplay(true, null);
         broadcast(["updateConfig", config]);
@@ -2398,8 +2398,8 @@ function handleMessage(request, sender, sendResponse) {
         setOriginConfig(request[1], request[2], request[3]);
         sendResponse(null);
         break;
-    case "retryAllFailedArchives":
-        retryAllFailedArchives(false);
+    case "retryFailed":
+        retryFailed(false);
         sendResponse(null);
         break;
     case "getStats":

@@ -155,7 +155,7 @@ label code {
       <div id="div-stats.archived" data-help="At the moment, the numbers of reqres that were: successfully archived to the server / failed to be archived to the server.">
         <span>Archived/Failed</span>
         <span>
-          <input type="button" id="retryAllFailedArchives" data-help="Move all failed to archive reqres to the archival queue. (Archivals that fail because of networking issues will be retried automatically every 60 seconds, others will not.) See the &quot;Help&quot; page for more info." value="Retry" />
+          <input type="button" id="retryFailed" data-help="Move all failed to archive reqres to the archival queue. (Archivals that fail because of networking issues will be retried automatically every 60 seconds, others will not.) See the &quot;Help&quot; page for more info." value="Retry" />
         </span>
         <span>
           <span id="stats.archive_ok">0</span>

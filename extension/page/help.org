@@ -188,7 +188,7 @@ Displayed on the [[./popup.html#div-stats.archived][Archived/Failed reqres]] lin
 - [[./popup.html#stats.archive_failed][A /failed to archive reqres/]] is a reqres that failed to be archived to the archiving server.
   Archivals of reqres' that failed because of networking issues will be retried automatically every 60 seconds.
   Archivals of reqres' rejected by the archiving server will not be retried automatically as those usually happen when there is no space left on the device the server is archiving to.
-  You can retry all failed archivals by pressing [[./popup.html#retryAllFailedArchives][this button]].
+  You can retry all failed archivals by pressing [[./popup.html#retryFailed][this button]].
 * Shortcuts
 pWebArc provides a bunch of keyboard and context menu shortcuts to allow using it in more efficient ways.
 

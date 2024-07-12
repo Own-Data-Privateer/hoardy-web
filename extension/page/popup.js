@@ -85,7 +85,7 @@ async function popupMain() {
         showState: "📜",
         runAllActions: "🟢",
         cancelCleanupActions: "🟥",
-        retryAllFailedArchives: "♻",
+        retryFailed: "♻",
         collectAllInLimbo: "✔",
         discardAllInLimbo: "✖",
         unmarkAllProblematic: "🧹",
@@ -153,7 +153,7 @@ async function popupMain() {
 
     buttonToMessage("runAllActions");
     buttonToMessage("cancelCleanupActions");
-    buttonToMessage("retryAllFailedArchives");
+    buttonToMessage("retryFailed");
 
     buttonToAction("resetPersistentStats", catchAll(() => {
         if (!window.confirm("Really?"))
