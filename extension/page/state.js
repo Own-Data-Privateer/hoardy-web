@@ -21,16 +21,6 @@
 
 "use strict";
 
-function fdate(epoch) {
-    if (epoch === undefined)
-        return "undefined";
-    let str = new Date(epoch).toISOString();
-    let pos = str.indexOf(".");
-    if (pos != -1)
-        str = str.substr(0, pos);
-    return str.replace("T", " ");
-}
-
 let rrfilters = {
     problematic: assignRec({}, rrfilterDefaults),
     in_limbo: assignRec({}, rrfilterDefaults),
@@ -135,14 +125,14 @@ function appendReqres(el, reqres) {
            : "N"));
 
     mtr(sparts.join(" "));
-    mtr(fdate(reqres.requestTimeStamp));
+    mtr(dateToString(reqres.requestTimeStamp));
     mtr(reqres.protocol);
     mtr(reqres.method);
     mtr(reqres.url
         + (reqres.redirectUrl !== undefined ? " -> " + reqres.redirectUrl : "")
        ).className = "long";
 
-    mtr(fdate(reqres.responseTimeStamp));
+    mtr(dateToString(reqres.responseTimeStamp));
     mtr(reqres.reason).className = "long";
 
     el.appendChild(tr);

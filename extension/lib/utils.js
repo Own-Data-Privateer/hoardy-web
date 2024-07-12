@@ -64,6 +64,17 @@ function toNumber(x) {
     return Number(x).valueOf();
 }
 
+// convert milliseconds since UNIX epoch to "YYYY-mm-DD HH:MM:SS"
+function dateToString(epoch) {
+    if (epoch === undefined || typeof epoch !== "number")
+        return "undefined";
+    let str = new Date(epoch).toISOString();
+    let pos = str.indexOf(".");
+    if (pos != -1)
+        str = str.substr(0, pos);
+    return str.replace("T", " ");
+}
+
 // partition a list via a predicate, but stop after num elements
 function partitionN(predicate, num, list) {
     let total = 0;
