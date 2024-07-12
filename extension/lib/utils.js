@@ -216,7 +216,7 @@ function assignRec(target, value) {
         return value;
 
     let typ = typeof value;
-    if (typ == "boolean" || typ == "number" || typ == "string")
+    if (typ == "boolean" || typ == "number" || typ == "string" || value instanceof Array)
         return value;
 
     if (value instanceof Object) {
