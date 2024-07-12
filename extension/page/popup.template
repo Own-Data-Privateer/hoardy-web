@@ -160,18 +160,19 @@ label code {
         <span>
           <span id="stats.submittedHTTP">0</span>
           (<span id="stats.submittedHTTP_size">0</span>)
-          /
-          <span id="stats.failed">0</span>
-          (<span id="stats.failed_size">0</span>)
         </span>
       </div>
-      <div id="div-stats.queued" data-help="At the moment, the number of reqres that are still in the archival queue (and the sum total of all sizes of their dumps).">
-        <span>Queued</span>
+      <div id="div-stats.queued_failed" data-help="At the moment, the number of reqres that are waiting to be archived in the archival queue (and the sum total of all sizes of their dumps). / At the moment, the number of reqres that failed to be archived via one or more of the selected archiving methods (and the sum total of all sizes of their dumps).">
+        <span>Queued/Failed</span>
         <span>
+          <input type="button" id="retryFailed" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake. (Archivals that fail because of networking issues will be retried automatically every 60 seconds, others will not.) See the &quot;Help&quot; page for more info." value="Retry" />
         </span>
         <span>
           <span id="stats.queued">0</span>
           (<span id="stats.queued_size">0</span>)
+          /
+          <span id="stats.failed">0</span>
+          (<span id="stats.failed_size">0</span>)
         </span>
       </div>
       <div id="div-stats.collected" data-help="From the last reset, the numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory (and the sum total of all sizes of their dumps).">
@@ -477,6 +478,18 @@ label code {
 
     <div id="debugging-options">
     <h2>Debugging</h2>
+    <div class="stats">
+      <div name="more" id="div-stats.errored" data-help="At the moment, the number of reqres for which pWebArc produced internal errors. Basically, the number of reqres that hit bugs in pWebArc.">
+        <span>Errored</span>
+        <span>
+          <input type="button" id="forgetErrored" class="smaller" data-help="Forget about all these reqres." value="Forget" />
+        </span>
+        <span>
+          <span id="stats.errored">0</span>
+          (<span id="stats.errored_size">0</span>)
+        </span>
+      </div>
+    </div>
     <div class="opts">
     <ui id="config.ephemeral" type="boolean" class="prefer-off" data-help="Make all changes to settings in this popup ephemeral from this point on. Restarting the browser or reloading the extension will reset config to the last state when this setting was off.">Ephemeral settings</ui>
     <ui id="config.debugging" type="boolean" class="prefer-off" data-help="Report lots of data into extension&#039;s debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (SLOW!)</ui>

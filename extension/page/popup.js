@@ -153,6 +153,7 @@ async function popupMain() {
 
     buttonToMessage("runAllActions");
     buttonToMessage("cancelCleanupActions");
+    buttonToMessage("forgetErrored");
     buttonToMessage("retryFailed");
 
     buttonToAction("resetPersistentStats", catchAll(() => {
