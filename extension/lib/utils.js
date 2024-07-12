@@ -24,6 +24,16 @@
 
 "use strict";
 
+function errorMessageOf(err) {
+    if (typeof err === "string")
+        return err;
+    let msg = err.message;
+    if (msg === undefined)
+        return err.toString();
+    else
+        return msg.replace(/\.$/, "");
+}
+
 function logError(err) {
     console.error("Uncaught error:", err);
     console.trace();

@@ -201,7 +201,7 @@ async function popupMain() {
         setConditionalClass(body, config.colorblind, "colorblind");
         setConditionalClass(body, config.pureText, "pure-text");
         resetPureText(config);
-        setConditionalClass(body, !config.archiving, "disabled-archiving");
+        setConditionalClass(body, !config.archive, "disabled-archive");
         setConditionalClass(body, !config.collecting, "disabled-collecting");
         setConditionalClass(body, !config.autoUnmarkProblematic
                             && !config.autoPopInLimboCollect

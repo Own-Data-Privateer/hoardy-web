@@ -167,16 +167,16 @@ let rrfilterDefaults = {
     no_errors: null,
 };
 
-// reqres is accepted by the rrfilter
-function isAcceptedBy(rrfilter, reqres) {
-    if ((rrfilter.picked !== null && reqres.picked !== rrfilter.picked)
-        || (rrfilter.was_problematic !== null && reqres.was_problematic !== rrfilter.was_problematic)
-        || (rrfilter.problematic !== null && reqres.problematic !== rrfilter.problematic)
-        || (rrfilter.was_in_limbo !== null && reqres.was_in_limbo !== rrfilter.was_in_limbo)
-        || (rrfilter.in_limbo !== null && reqres.in_limbo !== rrfilter.in_limbo)
-        || (rrfilter.collected !== null && reqres.collected !== rrfilter.collected)
-        || (rrfilter.no_errors === false && reqres.errors.length == 0)
-        || (rrfilter.no_errors === true && reqres.errors.length > 0))
+// loggable is accepted by the rrfilter
+function isAcceptedBy(rrfilter, loggable) {
+    if ((rrfilter.picked !== null && loggable.picked !== rrfilter.picked)
+        || (rrfilter.was_problematic !== null && loggable.was_problematic !== rrfilter.was_problematic)
+        || (rrfilter.problematic !== null && loggable.problematic !== rrfilter.problematic)
+        || (rrfilter.was_in_limbo !== null && loggable.was_in_limbo !== rrfilter.was_in_limbo)
+        || (rrfilter.in_limbo !== null && loggable.in_limbo !== rrfilter.in_limbo)
+        || (rrfilter.collected !== null && loggable.collected !== rrfilter.collected)
+        || (rrfilter.no_errors === false && loggable.errors.length == 0)
+        || (rrfilter.no_errors === true && loggable.errors.length > 0))
         return false;
     return true;
 }

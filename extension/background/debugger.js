@@ -297,7 +297,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
             dreqres.documentUrl = e.documentURL;
         dreqres.requestHeadersDebug = e.request.headers;
         if (!isBoringURL(dreqres.url))
-            broadcast(["newInFlight", [shallowCopyOfReqres(dreqres)]]);
+            broadcast(["newInFlight", [makeLoggableReqres(dreqres)]]);
     } else {
         if (dreqres.requestTimeStamp === undefined)
             dreqres.requestTimeStamp = Date.now();

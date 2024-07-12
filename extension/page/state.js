@@ -50,21 +50,21 @@ async function showStateOfDataTabId(dataTabId) {
 let switchFuncMap = new Map();
 let showStateFuncMap = new Map();
 
-function appendReqres(el, reqres) {
+function appendLoggable(el, loggable) {
     let tr = document.createElement("tr");
 
     let sparts = [];
     let color;
-    if (reqres.collected === true) {
+    if (loggable.collected === true) {
         color = "collected";
         sparts.push("collected");
-    } else if (reqres.collected === false) {
+    } else if (loggable.collected === false) {
         color = "discarded";
         sparts.push("discarded");
-    } else if (reqres.picked === true) {
+    } else if (loggable.picked === true) {
         color = "picked";
         sparts.push("picked");
-    } else if (reqres.picked === false) {
+    } else if (loggable.picked === false) {
         color = "dropped";
         sparts.push("dropped");
     } else {
@@ -73,24 +73,28 @@ function appendReqres(el, reqres) {
     }
     tr.classList.add(color);
 
-    if (reqres.net_state !== undefined)
-        sparts.push(reqres.net_state);
-    if (reqres.redirectUrl !== undefined)
+    if (loggable.net_state !== undefined)
+        sparts.push(loggable.net_state);
+    if (loggable.redirectUrl !== undefined)
         sparts.push("redirected");
-    if (reqres.in_limbo === true)
+    if (loggable.in_limbo === true)
         sparts.push("in_limbo");
-    else if (reqres.was_in_limbo === true)
+    else if (loggable.was_in_limbo === true)
         sparts.push("was_in_limbo");
-    if (reqres.problematic === true)
+    if (loggable.problematic === true)
         sparts.push("problematic!");
-    else if (reqres.was_problematic === true)
+    else if (loggable.was_problematic === true)
         sparts.push("was_problematic");
 
+    function mn(node, inn, data) {
+        let n = document.createElement(inn);
+        n.innerText = data;
+        node.appendChild(n);
+        return n;
+    }
+
     function mtr(data) {
-        let td = document.createElement("td");
-        td.innerText = data;
-        tr.appendChild(td);
-        return td;
+        return mn(tr, "td", data);
     }
 
     function mbtn(node, data, func) {
@@ -102,42 +106,34 @@ function appendReqres(el, reqres) {
         return btn;
     }
 
-    if (reqres.fromExtension)
-        mtr("ext");
-    else if (reqres.tabId == -1)
-        mtr("bg");
-    else {
-        let dataTabId = reqres.tabId;
-        let td = document.createElement("td");
-        let div = document.createElement("div");
-        mbtn(div, `tab #${reqres.tabId}`,
-             cacheSingleton(switchFuncMap, dataTabId, () => switchToDataTabId.bind(undefined, dataTabId)));
-        if (tabId === null)
-            mbtn(div, "IS",
-                 cacheSingleton(showStateFuncMap, dataTabId, () => showStateOfDataTabId.bind(undefined, dataTabId)));
-        td.appendChild(div);
-        tr.appendChild(td);
-    }
+    let dataTabId = loggable.tabId;
+    let name = loggable.fromExtension ? "ext" : (dataTabId === -1 ? "bg" : `tab #${loggable.tabId}`);
+    let td = document.createElement("td");
+    let div = document.createElement("div");
+    mbtn(div, name,
+         cacheSingleton(switchFuncMap, dataTabId, () => switchToDataTabId.bind(undefined, dataTabId)));
+    if (tabId === null)
+        mbtn(div, "IS",
+             cacheSingleton(showStateFuncMap, dataTabId, () => showStateOfDataTabId.bind(undefined, dataTabId)));
+    td.appendChild(div);
+    tr.appendChild(td);
 
-    mtr((reqres.requestComplete ? "C" : "I")
-        + (reqres.responded
-           ? reqres.statusCode.toString() + (reqres.responseComplete ? "C" : "I")
-           : "N"));
+    mtr(loggable.status);
 
     mtr(sparts.join(" "));
-    mtr(dateToString(reqres.requestTimeStamp));
-    mtr(reqres.protocol);
-    mtr(reqres.method);
-    mtr(reqres.url
-        + (reqres.redirectUrl !== undefined ? " -> " + reqres.redirectUrl : "")
+    mtr(dateToString(loggable.requestTimeStamp));
+    mtr(loggable.protocol);
+    mtr(loggable.method);
+    mtr(loggable.url
+        + (loggable.redirectUrl !== undefined ? " -> " + loggable.redirectUrl : "")
        ).className = "long";
 
-    mtr(dateToString(reqres.responseTimeStamp));
-    mtr(reqres.reason).className = "long";
+    mtr(dateToString(loggable.responseTimeStamp));
+    mtr(loggable.reason).className = "long";
 
     el.appendChild(tr);
 
-    if (reqres.errors.length > 0) {
+    if (loggable.errors.length > 0) {
         let etr = document.createElement("tr");
         etr.classList.add("errors");
 
@@ -149,7 +145,7 @@ function appendReqres(el, reqres) {
         etd.classList.add(color);
         etd.setAttribute("colspan", 7);
         etd.setAttribute("title", "errors");
-        etd.innerHTML = escapeHTML(reqres.errors.join("\n")).replaceAll("\n", "<br>");
+        etd.innerHTML = escapeHTML(loggable.errors.join("\n")).replaceAll("\n", "<br>");
         etr.appendChild(etd);
 
         el.appendChild(etr);
@@ -157,10 +153,10 @@ function appendReqres(el, reqres) {
 }
 
 function appendToLog(el, log_data, predicate) {
-    for (let reqres of log_data)
-        if ((tabId === null || reqres.tabId == tabId) &&
-            (predicate === undefined || predicate(reqres)))
-            appendReqres(el, reqres);
+    for (let loggable of log_data)
+        if ((tabId === null || loggable.tabId == tabId) &&
+            (predicate === undefined || predicate(loggable)))
+            appendLoggable(el, loggable);
 }
 
 function resetDataNode(id, log_data, predicate) {
@@ -176,15 +172,15 @@ function resetInFlight(log_data) {
 }
 
 function resetProblematic(log_data) {
-    resetDataNode("data_problematic", log_data, (reqres) => isAcceptedBy(rrfilters.problematic, reqres));
+    resetDataNode("data_problematic", log_data, (loggable) => isAcceptedBy(rrfilters.problematic, loggable));
 }
 
 function resetInLimbo(log_data) {
-    resetDataNode("data_in_limbo", log_data, (reqres) => isAcceptedBy(rrfilters.in_limbo, reqres));
+    resetDataNode("data_in_limbo", log_data, (loggable) => isAcceptedBy(rrfilters.in_limbo, loggable));
 }
 
 function resetLog(log_data) {
-    resetDataNode("data_log", log_data, (reqres) => isAcceptedBy(rrfilters.log, reqres));
+    resetDataNode("data_log", log_data, (loggable) => isAcceptedBy(rrfilters.log, loggable));
 }
 
 async function stateMain() {
@@ -252,8 +248,8 @@ async function stateMain() {
         case "updateConfig":
             await updateConfig(data);
             break;
-        case "resetLog":
-            resetLog(data);
+        case "resetInFlight":
+            resetInFlight(data);
             break;
         case "resetProblematicLog":
             resetProblematic(data);
@@ -261,22 +257,21 @@ async function stateMain() {
         case "resetInLimboLog":
             resetInLimbo(data);
             break;
+        case "resetLog":
+            resetLog(data);
+            break;
         // incrementally add new rows
         case "newInFlight":
             appendToLog(document.getElementById("data_in_flight"), data);
             break;
         case "newProblematic":
-            appendToLog(document.getElementById("data_problematic"), data, (reqres) => isAcceptedBy(rrfilters.problematic, reqres));
+            appendToLog(document.getElementById("data_problematic"), data, (loggable) => isAcceptedBy(rrfilters.problematic, loggable));
             break;
         case "newLimbo":
-            appendToLog(document.getElementById("data_in_limbo"), data, (reqres) => isAcceptedBy(rrfilters.in_limbo, reqres));
-            await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
+            appendToLog(document.getElementById("data_in_limbo"), data, (loggable) => isAcceptedBy(rrfilters.in_limbo, loggable));
             break;
         case "newLog":
-            appendToLog(document.getElementById("data_log"), data, (reqres) => isAcceptedBy(rrfilters.log, reqres));
-            if (update[2])
-                // it's flesh from in-flight
-                await browser.runtime.sendMessage(["getInFlightLog"]).then(resetInFlight);
+            appendToLog(document.getElementById("data_log"), data, (loggable) => isAcceptedBy(rrfilters.log, loggable));
             break;
         default:
             await handleDefaultUpdate(update, thisTabId);

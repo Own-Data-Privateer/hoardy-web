@@ -33,7 +33,7 @@ function handleUpdateAvailable(details) {
 }
 
 // default config
-let configVersion = 4;
+let configVersion = 5;
 let configDefaults = {
     version: configVersion,
 
@@ -58,11 +58,15 @@ let configDefaults = {
     collecting: true,
 
     // are we archiving? or temporarily paused
-    archiving: true,
-    archiveURLBase: "http://127.0.0.1:3210/pwebarc/dump",
-    archiveNotifyOK: true,
-    archiveNotifyFailed: true,
-    archiveNotifyDisabled: true,
+    archive: true,
+
+    // archiving to an archiving server
+    submitHTTPURLBase: "http://127.0.0.1:3210/pwebarc/dump",
+
+    // archiving notifications
+    archiveDoneNotify: true,
+    archiveFailedNotify: true,
+    archiveStuckNotify: true,
 
     // problematic options
     markProblematicPartialRequest: false,
@@ -300,11 +304,8 @@ function processNewTab(tabId, openerTabId) {
     return tabcfg;
 }
 
-// frees unused `tabConfig` and `tabState` structures, returns `true` if
-// cleanup changed stats (which can happens when a deleted tab has problematic
-// reqres)
-function cleanupTabs() {
-    // collect all tabs referenced in not yet archived requests
+// collect all tabs referenced in not yet archived reqres
+function getUsedTabs() {
     let usedTabs = new Set();
     for (let [k, v] of reqresInFlight.entries())
         usedTabs.add(v.tabId);
@@ -316,15 +317,31 @@ function cleanupTabs() {
         usedTabs.add(v.tabId);
     for (let v of reqresAlmostDone)
         usedTabs.add(v.tabId);
-    for (let v of reqresProblematic)
+    for (let [v, _x] of reqresProblematic)
         usedTabs.add(v.tabId);
     for (let [v, _x] of reqresLimbo)
         usedTabs.add(v.tabId);
     for (let [v, _x] of reqresQueue)
         usedTabs.add(v.tabId);
-    for (let [k, f] of reqresFailed.entries())
-        for(let [v, _x] of f.queue)
-            usedTabs.add(v.tabId);
+
+    function sub(f) {
+        for (let v of f.queue)
+            usedTabs.add(v[0].tabId);
+    }
+
+    for (let f of reqresErrored.values())
+        sub(f);
+    for (let m of reqresFailedToArchive.values())
+        for (let f of m.values())
+            sub(f);
+    return usedTabs;
+}
+
+// frees unused `tabConfig` and `tabState` structures, returns `true` if
+// cleanup changed stats (which can happens when a deleted tab has problematic
+// reqres)
+function cleanupTabs() {
+    let usedTabs = getUsedTabs();
 
     // delete configs of closed and unused tabs
     for (let tabId of Array.from(tabConfig.keys())) {
@@ -419,52 +436,104 @@ function processRemoveTab(tabId) {
 
 // session state
 
-// requests in-flight, indexed by requestId
+// reqres in-flight, indexed by requestId
 let reqresInFlight = new Map();
-// requests that are "completed" by the browser, but might have an unfinished filterResponseData filter
+// reqres that are "completed" by the browser, but might have an unfinished filterResponseData filter
 let reqresFinishingUp = [];
-// completely finished requests
+// completely finished reqres
 let reqresAlmostDone = [];
-// problematic requests
+// problematic archivables
 let reqresProblematic = [];
-// requests in limbo, waiting to be either dropped or queued for archival
+// archivables in limbo, waiting to be either dropped or queued
 let reqresLimbo = [];
 let reqresLimboSize = 0;
-// requests in the process of being archived
-let reqresQueue = [];
-let reqresQueueSize = 0;
-// total number of archived reqres
-let reqresArchivedTotal = 0;
-// failed requests, indexed by archiveURL
-let reqresFailed = new Map();
-
 // request log
 let reqresLog = [];
+// archivables in the process of being archived
+let reqresQueue = [];
+let reqresQueueSize = 0;
+// archivables that failed to be processed in some way, indexed by error message
+let reqresErrored = new Map();
+// archivables that failed in server submission, indexed by archiveURL, then by error message
+let reqresFailedToArchive = new Map();
+
+function truncateLog() {
+    while (reqresLog.length > config.history)
+        reqresLog.shift();
+}
 
 function getInFlightLog() {
     let res = [];
     for (let v of reqresAlmostDone)
-        res.push(shallowCopyOfReqres(v));
+        res.push(makeLoggableReqres(v));
     for (let v of reqresFinishingUp)
-        res.push(shallowCopyOfReqres(v));
+        res.push(makeLoggableReqres(v));
     for (let v of debugReqresFinishingUp)
-        res.push(shallowCopyOfReqres(v));
+        res.push(makeLoggableReqres(v));
     for (let [k, v] of reqresInFlight.entries())
-        res.push(shallowCopyOfReqres(v));
+        res.push(makeLoggableReqres(v));
     for (let [k, v] of debugReqresInFlight.entries()) {
         // `.url` can be unset, see (veryEarly) in `emitDebugRequest`.
         if (v.url !== undefined && !isBoringURL(v.url))
-            res.push(shallowCopyOfReqres(v));
+            res.push(makeLoggableReqres(v));
     }
     return res;
 }
 
-function getInLimboLog() {
-    let res = [];
-    for (let [v, _x] of reqresLimbo) {
+function getLoggables(archivables, res) {
+    for (let [v, _x] of archivables) {
         res.push(v);
     }
     return res;
+}
+
+function getProblematicLog() {
+    return getLoggables(reqresProblematic, []);
+}
+
+function getInLimboLog() {
+    return getLoggables(reqresLimbo, []);
+}
+
+function getByErrorMap(archiveURL) {
+    return cacheSingleton(reqresFailedToArchive, archiveURL, () => new Map());
+}
+
+function getByErrorMapRecord(byErrorMap, error) {
+    return cacheSingleton(byErrorMap, errorMessageOf(error), () => { return {
+        recoverable: true,
+        queue: [],
+        size: 0,
+    }; });
+}
+
+function recordByErrorTo(v, recoverable, archivable, size) {
+    v.when = Date.now();
+    v.recoverable = v.recoverable && recoverable;
+    v.queue.push(archivable);
+    v.size += size;
+}
+
+function recordByError(byErrorMap, error, recoverable, archivable, size) {
+    let v = getByErrorMapRecord(byErrorMap, error);
+    recordByErrorTo(v, recoverable, archivable, size);
+}
+
+function markAsErrored(error, archivable) {
+    let dumpSize = archivable[0].dumpSize;
+    if (dumpSize === undefined)
+        dumpSize = 0;
+    recordByError(reqresErrored, error, false, archivable, dumpSize);
+    gotNewErrored = true;
+}
+
+function forgetErrored() {
+    runSynchronously(async () => {
+        for (let f of reqresErrored.values())
+            await syncMany(f.queue, 0, false);
+        reqresErrored = new Map();
+    });
+    scheduleEndgame(null);
 }
 
 // persistent global stats
@@ -477,6 +546,9 @@ let persistentStatsDefaults = {
     collectedTotal: 0,
     collectedSize: 0,
     discardedTotal: 0,
+    discardedSize: 0,
+    submittedHTTPTotal: 0,
+    submittedHTTPSize: 0,
 };
 // persistent global variables
 let globals = assignRec({
@@ -505,7 +577,7 @@ async function resetPersistentStats() {
 
 // per-source globals.pickedTotal, globals.droppedTotal, etc
 let tabState = new Map();
-let defaultTabState = {
+let tabStateDefaults = {
     problematicTotal: 0,
     pickedTotal: 0,
     droppedTotal: 0,
@@ -514,33 +586,54 @@ let defaultTabState = {
     collectedTotal: 0,
     collectedSize: 0,
     discardedTotal: 0,
+    discardedSize: 0,
 };
 
 function getOriginState(tabId, fromExtension) {
     // NB: not tracking extensions separately here, unlike with configs
     if (fromExtension)
         tabId = -1;
-    return cacheSingleton(tabState, tabId, () => assignRec({}, defaultTabState));
+    return cacheSingleton(tabState, tabId, () => assignRec({}, tabStateDefaults));
 }
 
 // scheduleComplaints flags
-// do we have new failed or archived reqres?
-let newArchivedOrFailed = false;
+// do we have new failed to submit or new archived reqres?
+let gotNewArchivedOrFailed = false;
 // do we need to show empty queue notification?
-let needArchivingOK = true;
+let wantArchiveDoneNotify = true;
 // do we have new queued reqres?
-let newQueued = false;
+let gotNewQueued = false;
 // do we have new reqres in limbo?
-let newLimbo = false;
-// do we have newp problematic reqres?
-let newProblematic = false;
+let gotNewLimbo = false;
+// do we have new problematic reqres?
+let gotNewProblematic = false;
+// do we have new buggy reqres?
+let gotNewErrored = false;
+
+// scheduleEndgame flags
+let wantRetryFailed = false;
+
+function getNumberAndSizeFromQueues(m) {
+    let number = 0;
+    let size = 0;
+    for (let f of m.values()) {
+        number += f.queue.length;
+        size += f.size;
+    }
+    return [number, size];
+}
 
 // Compute total sizes of all queues and similar.
 // Used in the UI.
 function getStats() {
-    let archive_failed = 0;
-    for (let [archiveURL, f] of reqresFailed.entries()) {
-        archive_failed += f.queue.length;
+    let [errored, erroredSize] = getNumberAndSizeFromQueues(reqresErrored);
+
+    let archiveFailed = 0;
+    let archiveFailedSize = 0;
+    for (let m of reqresFailedToArchive.values()) {
+        let [x, y] = getNumberAndSizeFromQueues(m);
+        archiveFailed += x;
+        archiveFailedSize += y;
     }
 
     let in_flight = reqresAlmostDone.length +
@@ -563,16 +656,24 @@ function getStats() {
         dropped: globals.droppedTotal,
         in_limbo: reqresLimbo.length,
         in_limbo_size: reqresLimboSize,
-        in_queue: reqresQueue.length,
-        in_queue_size: reqresQueueSize,
         collected: globals.collectedTotal,
         collected_size: globals.collectedSize,
         discarded: globals.discardedTotal,
-        archive_ok: reqresArchivedTotal,
-        archive_failed,
+        discarded_size: globals.discardedSize,
+        queued: reqresQueue.length,
+        queued_size: reqresQueueSize,
+        submittedHTTP: globals.submittedHTTPTotal,
+        submittedHTTP_size: globals.submittedHTTPSize,
+        failed: archiveFailed,
+        failed_size: archiveFailedSize,
+        errored,
+        errored_size: erroredSize,
         issues: in_flight
-            + reqresLimbo.length + reqresQueue.length
-            + reqresProblematic.length + archive_failed,
+            + reqresProblematic.length
+            + reqresLimbo.length
+            + reqresQueue.length
+            + archiveFailed
+            + errored,
     };
 }
 
@@ -581,29 +682,29 @@ function getStats() {
 function getTabStats(tabId) {
     let info = tabState.get(tabId);
     if (info === undefined)
-        info = defaultTabState;
+        info = tabStateDefaults;
 
     let in_flight = 0;
     let in_flight_debug = 0;
     for (let [k, v] of reqresInFlight.entries())
-        if (v.tabId == tabId)
+        if (v.tabId === tabId)
             in_flight += 1;
     for (let [k, v] of debugReqresInFlight.entries())
-        if (v.tabId == tabId)
+        if (v.tabId === tabId)
             in_flight_debug += 1;
 
     let finishing_up = 0;
     let finishing_up_debug = 0;
     for (let v of reqresFinishingUp)
-        if (v.tabId == tabId)
+        if (v.tabId === tabId)
             finishing_up += 1;
     for (let v of debugReqresFinishingUp)
-        if (v.tabId == tabId)
+        if (v.tabId === tabId)
             finishing_up_debug += 1;
 
     let almost_done = 0;
     for (let v of reqresAlmostDone)
-        if (v.tabId == tabId)
+        if (v.tabId === tabId)
             almost_done += 1;
 
     return {
@@ -618,7 +719,13 @@ function getTabStats(tabId) {
         collected: info.collectedTotal,
         collected_size: info.collectedSize,
         discarded: info.discardedTotal,
+        discarded_size: info.discardedSize,
     };
+}
+
+function isAcceptedLoggable(tabId, rrfilter, loggable) {
+    return (tabId === null || loggable.tabId === tabId)
+        && (rrfilter === null || isAcceptedBy(rrfilter, loggable));
 }
 
 function unmarkProblematic(num, tabId, rrfilter) {
@@ -627,25 +734,36 @@ function unmarkProblematic(num, tabId, rrfilter) {
     if (rrfilter === undefined)
         rrfilter = null;
 
-    let [popped, unpopped] = partitionN((shallow) => {
-        let res = (tabId === null || shallow.tabId == tabId)
-               && (rrfilter === null || isAcceptedBy(rrfilter, shallow));
-        if (res) {
-            shallow.problematic = false;
-            let info = getOriginState(shallow.tabId, shallow.fromExtension);
-            info.problematicTotal -= 1;
-        }
-        return res;
+    let [popped, unpopped] = partitionN((archivable) => {
+        let [loggable, dump] = archivable;
+        return isAcceptedLoggable(tabId, rrfilter, loggable);
     }, num, reqresProblematic);
+
+    if (popped.length === 0)
+        return 0;
+
+    // this is written as a separate loop to make it mostly atomic w.r.t. reqresProblematic
+
+    for (let archivable of popped) {
+        let [loggable, dump] = archivable;
+        try {
+            let info = getOriginState(loggable.tabId, loggable.fromExtension);
+            loggable.problematic = false;
+            info.problematicTotal -= 1;
+        } catch (err) {
+            logHandledError(err);
+            markAsErrored(err, archivable);
+        }
+    }
+
     reqresProblematic = unpopped;
 
-    if (popped.length > 0) {
-        // reset all the logs, since some statuses may have changed
-        broadcast(["resetProblematicLog", reqresProblematic]);
-        broadcast(["resetInLimboLog", getInLimboLog()]);
-        broadcast(["resetLog", reqresLog]);
-        scheduleEndgame(tabId);
-    }
+    // reset all the logs, since some statuses may have changed
+    broadcast(["resetProblematicLog", getProblematicLog()]);
+    broadcast(["resetInLimboLog", getInLimboLog()]);
+    broadcast(["resetLog", reqresLog]);
+
+    scheduleEndgame(tabId);
 
     return popped.length;
 }
@@ -656,17 +774,16 @@ function rotateProblematic(num, tabId, rrfilter) {
     if (rrfilter === undefined)
         rrfilter = null;
 
-    let [popped, unpopped] = partitionN((shallow) => {
-        let res = (tabId === null || shallow.tabId == tabId)
-               && (rrfilter === null || isAcceptedBy(rrfilter, shallow));
-        return res;
+    let [popped, unpopped] = partitionN((archivable) => {
+        let [loggable, dump] = archivable;
+        return isAcceptedLoggable(tabId, rrfilter, loggable);
     }, num, reqresProblematic);
-    // rotate them to the back
-    for (let shallow of popped)
-        unpopped.push(shallow);
+
+    // append them to the end
+    unpopped.push(...popped);
     reqresProblematic = unpopped;
 
-    broadcast(["resetProblematicLog", reqresProblematic]);
+    broadcast(["resetProblematicLog", getProblematicLog()]);
 }
 
 function popInLimbo(collect, num, tabId, rrfilter) {
@@ -675,31 +792,47 @@ function popInLimbo(collect, num, tabId, rrfilter) {
     if (rrfilter === undefined)
         rrfilter = null;
 
-    let newLog = [];
-    let [popped, unpopped] = partitionN((el) => {
-        let [shallow, dump] = el;
-        let res = (tabId === null || shallow.tabId == tabId)
-               && (rrfilter === null || isAcceptedBy(rrfilter, shallow));
-        if (res) {
-            let info = getOriginState(shallow.tabId, shallow.fromExtension);
-            info.inLimboTotal -= 1;
-            info.inLimboSize -= dump.byteLength;
-            processFinishedReqres(info, collect, shallow, dump, newLog);
-            reqresLimboSize -= dump.byteLength;
-        }
-        return res;
+    let [popped, unpopped] = partitionN((archivable) => {
+        let [loggable, dump] = archivable;
+        return isAcceptedLoggable(tabId, rrfilter, loggable);
     }, num, reqresLimbo);
-    reqresLimbo = unpopped;
 
-    if (popped.length > 0) {
-        changedGlobals = true;
-        broadcast(["resetInLimboLog", getInLimboLog()]);
-        if (popped.some((r) => r.problematic === true))
-            // also reset problematic, since reqres statuses have changed
-            broadcast(["resetProblematicLog", reqresProblematic]);
-        broadcast(["newLog", newLog, false]);
-        scheduleEndgame(tabId);
+    if (popped.length == 0)
+        return 0;
+
+    // this is written as a separate loop to make it mostly atomic w.r.t. reqresLimbo
+
+    let minusSize = 0;
+    let newLog = [];
+    for (let archivable of popped) {
+        let [loggable, dump] = archivable;
+        try {
+            let dumpSize = loggable.dumpSize;
+            minusSize += dumpSize;
+
+            let info = getOriginState(loggable.tabId, loggable.fromExtension);
+            loggable.in_limbo = false;
+            info.inLimboTotal -= 1;
+            info.inLimboSize -= dumpSize;
+            processNonLimbo(collect, info, archivable, newLog);
+        } catch (err) {
+            logHandledError(err);
+            markAsErrored(err, archivable);
+        }
     }
+
+    reqresLimbo = unpopped;
+    reqresLimboSize -= minusSize;
+    truncateLog();
+    changedGlobals = true;
+
+    if (popped.some((r) => r.problematic === true))
+        // also reset problematic, since reqres statuses have changed
+        broadcast(["resetProblematicLog", getProblematicLog()]);
+    broadcast(["resetInLimboLog", getInLimboLog()]);
+    broadcast(["newLog", newLog]);
+
+    scheduleEndgame(tabId);
 
     return popped.length;
 }
@@ -710,15 +843,13 @@ function rotateInLimbo(num, tabId, rrfilter) {
     if (rrfilter === undefined)
         rrfilter = null;
 
-    let [popped, unpopped] = partitionN((el) => {
-        let [shallow, dump] = el;
-        let res = (tabId === null || shallow.tabId == tabId)
-               && (rrfilter === null || isAcceptedBy(rrfilter, shallow));
-        return res;
+    let [popped, unpopped] = partitionN((archivable) => {
+        let [loggable, dump] = archivable;
+        return isAcceptedLoggable(tabId, rrfilter, loggable);
     }, num, reqresLimbo);
-    // rotate them to the back
-    for (let el of popped)
-        unpopped.push(el);
+
+    // append them to the end
+    unpopped.push(...popped);
     reqresLimbo = unpopped;
 
     broadcast(["resetInLimboLog", getInLimboLog()]);
@@ -730,17 +861,14 @@ function forgetHistory(tabId, rrfilter) {
     if (rrfilter === undefined)
         rrfilter = null;
 
-    let [popped, unpopped] = partitionN((shallow) => {
-        let res = (tabId === null || shallow.tabId == tabId)
-               && (rrfilter === null || isAcceptedBy(rrfilter, shallow))
-               && (shallow.problematic === false
-                // this is so that the user could forget problematic reqres
-                // with `forgetHistory` button
-                || rrfilter !== null && rrfilter.problematic !== null);
-        return res;
+    let [popped, unpopped] = partitionN((loggable) => {
+        return isAcceptedLoggable(tabId, rrfilter, loggable);
     }, null, reqresLog);
-    reqresLog = unpopped;
 
+    if (popped.length === 0)
+        return;
+
+    reqresLog = unpopped;
     broadcast(["resetLog", reqresLog]);
     updateDisplay(true, tabId);
 }
@@ -773,8 +901,8 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
 
         if (udStats === null
             // because these global stats influence the tab's icon
-            || stats.archive_failed !== udStats.archive_failed
-            || stats.in_queue != udStats.in_queue)
+            || stats.failed !== udStats.failed
+            || stats.queued != udStats.queued)
             changed = true;
 
         udStats = stats;
@@ -790,56 +918,68 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
 
         if (!config.collecting)
             chunks.push("off");
+
         if (stats.in_flight > 0) {
             badge += "T";
             color = 1;
             chunks.push(`still tracking ${stats.in_flight} in-flight reqres`);
-        }
-        if (!config.archiving || stats.archive_failed > 0) {
-            badge += "A";
-            color = 1;
-            if (!config.archiving)
-                chunks.push("not archiving");
-            if (stats.archive_failed > 0)
-                chunks.push(`failed to archive ${stats.archive_failed} reqres`);
         }
         if (stats.problematic > 0) {
             badge += "P";
             color = 1;
             chunks.push(`${stats.problematic} problematic reqres`);
         }
-        if (stats.scheduled > stats.scheduled_low) {
-            badge += "~";
-            color = 1;
-            chunks.push(`${stats.scheduled} scheduled actions`);
-        }
         if (stats.in_limbo > 0) {
             badge += "L";
             color = 1;
             chunks.push(`${stats.in_limbo} reqres in limbo`);
         }
-        if (stats.in_queue > 0) {
+        if (stats.queued > 0) {
             badge += "Q";
-            chunks.push(`${stats.in_queue} reqres in queue`);
+            chunks.push(`${stats.queued} reqres in queue`);
         }
-        if (stats.scheduled == stats.scheduled_low && stats.scheduled_low > 0) {
-            badge += ".";
-            chunks.push(`${stats.scheduled_low} low-priority scheduled actions`);
-        }
-        if (config.ephemeral) {
-            badge += "E";
+        if (!config.archive) {
+            badge += "H";
             color = 1;
-            chunks.push("ephemeral");
-        }
-        if (config.debugging || config.dumping) {
-            badge += "D";
-            color = 1;
-            chunks.push("debugging (SLOW!)");
+            chunks.push("ephemeral mode (archiving is disabled)");
         }
         if (config.autoPopInLimboDiscard || config.discardAll) {
             badge += "!";
             color = 2;
             chunks.push("auto-discarding");
+        }
+        if (stats.errored > 0) {
+            badge += "E";
+            color = 2;
+            chunks.push(`internal errors on ${stats.errored} reqres`);
+        }
+        if (stats.failed > 0) {
+            badge += "F";
+            color = 2;
+            chunks.push(`failed to archive ${stats.failed} reqres`);
+        }
+        if (config.ephemeral) {
+            badge += "D";
+            if (color === 0)
+                color = 1;
+            chunks.push("debugging: ephemeral config");
+        }
+        if (config.debugging || config.dumping) {
+            badge += "D";
+            if (color === 0)
+                color = 1;
+            chunks.push("debugging: logging (SLOW!)");
+        }
+
+        if (stats.scheduled > stats.scheduled_low) {
+            badge += "~";
+            if (color === 0)
+                color = 1;
+            chunks.push(`${stats.scheduled} scheduled actions`);
+        }
+        if (stats.scheduled == stats.scheduled_low && stats.scheduled_low > 0) {
+            badge += ".";
+            chunks.push(`${stats.scheduled_low} low-priority scheduled actions`);
         }
 
         if (chunks.length > 0)
@@ -915,9 +1055,9 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
 
         if (tabstats.in_flight > 0)
             icon = "tracking";
-        else if (config.archiving && stats.in_queue > 0)
+        else if (config.archive && stats.queued > 0)
             icon = "archiving";
-        else if (stats.archive_failed > 0)
+        else if (stats.failed > 0)
             icon = "error";
         else if (tabstats.problematic > 0)
             icon = "problematic";
@@ -989,7 +1129,7 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
 }
 
 // schedule processFinishingUp
-async function scheduleFinishingUp() {
+function scheduleFinishingUp() {
     resetSingletonTimeout(scheduledInternal, "finishingUp", 100, async () => {
         await updateDisplay(true);
         processFinishingUp();
@@ -1024,98 +1164,127 @@ function scheduleEndgame(updatedTabId) {
             await evalSynchronousClosures(synchronousClosures);
             scheduleEndgame(null);
         });
-    } else if (config.archiving && reqresQueue.length > 0) {
+    } else if (config.archive && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
-            await updateDisplay(true, updatedTabId, 10);
-            processArchiving();
+            await updateDisplay(true, updatedTabId);
+            await processArchiving();
+            scheduleEndgame(null);
         });
     } else if (reqresAlmostDone.length > 0) {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
-            await updateDisplay(true, updatedTabId, 10);
-            processAlmostDone();
+            await updateDisplay(true, updatedTabId);
+            await processAlmostDone();
+            scheduleEndgame(null);
         });
-    } else /* if (!config.archiving || reqresQueue.length == 0) */ {
+    } else /* if (!config.archive || reqresQueue.length == 0) */ {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
             cleanupTabs();
 
-            // use a much longer timeout if some reqres are still in flight
-            let inFlight = reqresInFlight.size + debugReqresInFlight.size
-                         + reqresFinishingUp.length + debugReqresFinishingUp.length;
-            let timeout = inFlight > 0 ? 10000 : 100;
-
-            scheduleComplaints(timeout);
+            // do we have some reqres in flight?
+            let haveInFlight = reqresInFlight.size + debugReqresInFlight.size + reqresFinishingUp.length + debugReqresFinishingUp.length > 0;
 
             if (changedGlobals) {
                 changedGlobals = false;
 
-                if (savedGlobals !== undefined
-                    && savedGlobals.collectedTotal === globals.collectedTotal)
-                    // the change is inconsequential, extend timeout
-                    timeout = 60000;
+                // is this change important?
+                let boring = true;
+                if (savedGlobals === undefined
+                    || (!haveInFlight && (savedGlobals.collectedTotal !== globals.collectedTotal
+                                          || savedGlobals.submittedHTTPTotal !== globals.submittedHTTPTotal)))
+                    boring = false;
 
-                resetSingletonTimeout(scheduledSaveState, "saveGlobals", timeout, async () => {
+                resetSingletonTimeout(scheduledSaveState, "saveGlobals", boring ? 90000 : 1000, async () => {
                     await saveGlobals();
                     await updateDisplay(true);
                 });
             }
 
-            if (config.archiving && reqresFailed.size > 0)
-                // retry failed in 60s
-                resetSingletonTimeout(scheduledInternal, "retryFailed", 60000, () => retryFailed(true));
+            if (wantRetryFailed) {
+                wantRetryFailed = false;
+                if (config.archive && reqresFailedToArchive.size > 0)
+                    // retry failed in 60s
+                    scheduleRetryFailed(60000, false);
+            }
+
+            scheduleComplaints(1000);
 
             await updateDisplay(true, updatedTabId);
         });
     }
 }
 
-// record this archiveURL and its archivable as failing
-function markAsFailed(archiveURL, archivable, when, reason, recoverable) {
-    let v = cacheSingleton(reqresFailed, archiveURL, () => { return { queue: [] }; });
-    v.when = when;
-    v.reason = reason;
-    v.recoverable = recoverable;
-    v.queue.push(archivable);
-    newArchivedOrFailed = true;
-    needArchivingOK = true;
-    return v;
-}
-
-function retryFailedArchive(archiveURL, recoverableOnly) {
-    let failed = reqresFailed.get(archiveURL);
-    if (failed === undefined
-        || recoverableOnly && failed.recoverable === false)
+function retryOneFailed(archiveURL, unrecoverable) {
+    let byErrorMap = reqresFailedToArchive.get(archiveURL);
+    if (byErrorMap === undefined)
         return;
-    for (let archivable of failed.queue) {
-        let [shallow, dump] = archivable;
-        reqresQueue.push(archivable);
-        reqresQueueSize += dump.byteLength;
+    for (let [reason, failed] of Array.from(byErrorMap.entries())) {
+        if (!unrecoverable && !failed.recoverable)
+            continue;
+
+        for (let archivable of failed.queue) {
+            let [loggable, dump] = archivable;
+            reqresQueue.push(archivable);
+            reqresQueueSize += loggable.dumpSize;
+        }
+
+        byErrorMap.delete(reason);
     }
-    reqresFailed.delete(archiveURL);
+    if (byErrorMap.size === 0)
+        reqresFailedToArchive.delete(archiveURL);
 }
 
-function retryFailed(recoverableOnly) {
-    for (let archiveURL of Array.from(reqresFailed.keys()))
-        retryFailedArchive(archiveURL, recoverableOnly);
+function retryFailed(unrecoverable) {
+    for (let archiveURL of Array.from(reqresFailedToArchive.keys()))
+        retryOneFailed(archiveURL, unrecoverable);
     scheduleEndgame(null);
 }
 
+function scheduleRetryFailed(timeout, unrecoverable) {
+    resetSingletonTimeout(scheduledCancelable, "retryFailed", timeout, () => retryFailed(unrecoverable));
+}
+
+function formatFailures(why, list) {
+    let parts = [];
+    for (let [reason, failed] of list)
+        parts.push(`- ${why} ${failed.queue.length} items because ${reason}.`);
+    return parts.join("\n");
+}
+
 async function doComplain() {
-    if (newQueued && config.archiveNotifyDisabled && !config.archiving && reqresQueue.length > 0) {
-        newQueued = false;
-        await browser.notifications.create("notArchiving", {
-            title: "pWebArc: WARNING",
-            message: "Some data is waiting in the archival queue, but archiving is disabled.",
-            iconUrl: iconURL("archiving", 128),
+    // record the current state, because the rest of this chunk is async
+    let rrErrored = Array.from(reqresErrored.entries());
+    let rrUnsubmitted = Array.from(reqresFailedToArchive.entries());
+
+    if (gotNewErrored && rrErrored.length > 0) {
+        gotNewErrored = false;
+
+        await browser.notifications.create("errors", {
+            title: "pWebArc: ERROR",
+            message: `Some internal errors:\n${formatFailures("Failed to process", rrErrored)}`,
+            iconUrl: iconURL("error", 128),
             type: "basic",
         });
-    }
+    } else if (rrErrored.length === 0)
+        // clear stale
+        await browser.notifications.clear("errors");
 
-    if (newArchivedOrFailed) {
-        newArchivedOrFailed = false;
+    if (gotNewQueued && reqresQueue.length > 0) {
+        gotNewQueued = false;
 
-        // record the current state, because the rest of this chunk is async
-        let rrFailed = Array.from(reqresFailed.entries());
-        let queueLen = reqresQueue.length;
+        if (config.archiveStuckNotify && !config.archive &&) {
+            await browser.notifications.create("notSaving", {
+                title: "pWebArc: WARNING",
+                message: "Some data is waiting in the archival queue, but archiving is disabled.",
+                iconUrl: iconURL("archiving", 128),
+                type: "basic",
+            });
+        }
+    } else if (config.archive)
+        // clear stale
+        await browser.notifications.clear("notSaving");
+
+    if (gotNewArchivedOrFailed) {
+        gotNewArchivedOrFailed = false;
 
         // get shown notifications
         let all_ = await browser.notifications.getAll();
@@ -1123,170 +1292,187 @@ async function doComplain() {
 
         // clear stale
         for (let label in all) {
-            if (!label.startsWith("archiving-"))
+            if (!label.startsWith("unsubmitted-"))
                 continue;
-            let archiveURL = label.substr(10);
-            if (rrFailed.every((e) => e[0] !== archiveURL))
+            let archiveURL = label.substr(12);
+            if (rrUnsubmitted.every((e) => e[0] !== archiveURL))
                 await browser.notifications.clear(label);
         }
 
-        if (config.archiveNotifyFailed) {
+        if (config.archiveFailedNotify) {
             // generate new ones
-            for (let [archiveURL, failed] of rrFailed) {
-                await browser.notifications.create(`archiving-${archiveURL}`, {
+            for (let [archiveURL, byErrorMap] of rrUnsubmitted) {
+                let where = `Archiving server at ${archiveURL}`;
+                await browser.notifications.create(`unsubmitted-${archiveURL}`, {
                     title: "pWebArc: FAILED",
-                    message: `Failed to archive ${failed.queue.length} items in the queue because ${failed.reason}`,
+                    message: `${where}:\n${formatFailures("Failed to archive", byErrorMap.entries())}`,
                     iconUrl: iconURL("error", 128),
                     type: "basic",
                 });
             }
         }
 
-        if (rrFailed.length == 0 && queueLen == 0) {
-            if (config.archiveNotifyOK && needArchivingOK) {
-                needArchivingOK = false;
+        let isDone = rrUnsubmitted.length === 0;
+
+        if (wantArchiveDoneNotify && isDone && reqresQueue.length === 0) {
+            wantArchiveDoneNotify = false;
+
+            if (config.archiveDoneNotify) {
                 // generate a new one
-                await browser.notifications.create("archivingOK", {
+                await browser.notifications.create("done", {
                     title: "pWebArc: OK",
-                    message: "Archiving appears to work OK!\nThis message won't be repeated unless something breaks.",
+                    message: "Archiving appears to work OK!\n\nThis message won't be repeated unless something breaks.",
                     iconUrl: iconURL("idle", 128),
                     type: "basic",
                 });
             }
-        } else if (rrFailed.length > 0)
-            // clear stale
-            await browser.notifications.clear("archivingOK");
+        }
     }
-
 
     let fatLimbo = reqresLimbo.length > config.limboMaxNumber
                 || reqresLimboSize > config.limboMaxSize * MEGABYTE;
 
-    if (!fatLimbo)
+    if (fatLimbo && gotNewLimbo) {
+        gotNewLimbo = false;
+
+        if (config.limboNotify) {
+            // generate a new one
+            await browser.notifications.create("fatLimbo", {
+                title: "pWebArc: WARNING",
+                message: `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.`,
+                iconUrl: iconURL("limbo", 128),
+                type: "basic",
+            });
+        }
+    } else if (!fatLimbo)
         // clear stale
         await browser.notifications.clear("fatLimbo");
-    else if (newLimbo && config.limboNotify) {
-        newLimbo = false;
 
-        // generate a new one
-        await browser.notifications.create("fatLimbo", {
-            title: "pWebArc: WARNING",
-            message: `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.`,
-            iconUrl: iconURL("limbo", 128),
-            type: "basic",
-        });
-    }
+    if (gotNewProblematic) {
+        gotNewProblematic = false;
 
-    if (reqresProblematic.length == 0)
+        if (config.problematicNotify && reqresProblematic.length > 0) {
+            // generate a new one
+            //
+            // make a log of no more than `problematicNotifyNumber`
+            // elements, merging those referencing the same URL
+            let latest = new Map();
+            for (let i = reqresProblematic.length - 1; i >= 0; --i) {
+                let r = reqresProblematic[i][0];
+                let desc = (r.method ? r.method : "?") + " " + r.url;
+                let l = latest.get(desc);
+                if (l === undefined) {
+                    if (latest.size < config.problematicNotifyNumber)
+                        latest.set(desc, 1);
+                    else
+                        break;
+                } else
+                    latest.set(desc, l + 1);
+            }
+            let latestDesc = [];
+            for (let [k, v] of latest.entries()) {
+                if (k.length < 80)
+                    latestDesc.push(`${v}x ${k}`);
+                else
+                    latestDesc.push(`${v}x ${k.substr(0, 80)}\u2026`);
+            }
+            latestDesc.reverse();
+            await browser.notifications.create("problematic", {
+                title: "pWebArc: WARNING",
+                message: `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n"),
+                iconUrl: iconURL("problematic", 128),
+                type: "basic",
+            });
+        }
+    } else if (reqresProblematic.length === 0)
         // clear stale
         await browser.notifications.clear("problematic");
-    else if (newProblematic && config.problematicNotify) {
-        newProblematic = false;
-
-        // generate a new one
-        //
-        // make a log of no more than `problematicNotifyNumber`
-        // elements, merging those referencing the same URL
-        let latest = new Map();
-        for (let i = reqresProblematic.length - 1; i >= 0; --i) {
-            let r = reqresProblematic[i];
-            let desc = (r.method ? r.method : "?") + " " + r.url;
-            let l = latest.get(desc);
-            if (l === undefined) {
-                if (latest.size < config.problematicNotifyNumber)
-                    latest.set(desc, 1);
-                else
-                    break;
-            } else
-                latest.set(desc, l + 1);
-        }
-        let latestDesc = [];
-        for (let [k, v] of latest.entries()) {
-            if (k.length < 80)
-                latestDesc.push(`${v}x ${k}`);
-            else
-                latestDesc.push(`${v}x ${k.substr(0, 80)}\u2026`);
-        }
-        latestDesc.reverse();
-        await browser.notifications.create("problematic", {
-            title: "pWebArc: WARNING",
-            message: `Have ${reqresProblematic.length} reqres marked as problematic.\n\n` + latestDesc.join("\n"),
-            iconUrl: iconURL("problematic", 128),
-            type: "basic",
-        });
-    }
 }
 
 function scheduleComplaints(timeout) {
     resetSingletonTimeout(scheduledHidden, "complaints", timeout, doComplain);
 }
 
-function processArchiving() {
-    if (reqresQueue.length == 0)
+
+// reqres archiving
+
+async function processOneArchiving(archivable) {
+    let [loggable, dump] = archivable;
+    let dumpSize = loggable.dumpSize;
+
+    if (dump === null)
+        throw new Error("reqres dump is missing");
+
+    if (config.discardAll)
         return;
 
-    let archivable = reqresQueue.shift();
-    let [shallow, dump] = archivable;
-    reqresQueueSize -= dump.byteLength;
+    let options = getOriginConfig(loggable.tabId, loggable.fromExtension);
+    let archiveURL = config.submitHTTPURLBase + "?profile=" + encodeURIComponent(options.profile);
 
-    if (config.discardAll) {
-        scheduleEndgame(shallow.tabId);
-        return;
-    }
-
-    // we ignore and recompute shallow.profile here because the user could
-    // have changed some settings while archiving was disabled
-    let options = getOriginConfig(shallow.tabId, shallow.fromExtension);
-    shallow.profile = options.profile;
-
-    let archiveURL = config.archiveURLBase + "?profile=" + encodeURIComponent(options.profile);
-
-    let failed = reqresFailed.get(archiveURL);
-    if (failed !== undefined && (Date.now() - failed.when) < 1000) {
-        // this archiveURL is marked broken, and we just had a failure there, fail this reqres immediately
-        failed.queue.push(archivable);
-        newArchivedOrFailed = true;
-        needArchivingOK = true;
-        scheduleEndgame(shallow.tabId);
-        return;
-    }
-
-    function broken(reason, recoverable) {
-        markAsFailed(archiveURL, archivable, Date.now(), reason, recoverable);
-        scheduleEndgame(shallow.tabId);
-    }
-
-    function allok() {
-        retryFailedArchive(archiveURL, true);
-        reqresArchivedTotal += 1;
-        newArchivedOrFailed = true;
-        broadcast(["newArchived", [shallow]]);
-        scheduleEndgame(shallow.tabId);
+    let byErrorMap = reqresFailedToSubmit.get(archiveURL);
+    if (byErrorMap !== undefined) {
+        let recent = Array.from(byErrorMap.values()).filter((x) => (Date.now() - x.when) < 1000);
+        if (recent.length > 0) {
+            // this archiveURL had a recent error, fail this reqres immediately
+            let failed = recent[0];
+            recordByError(byErrorMap, "this server had recent errors", failed.recoverable, archivable, dumpSize);
+            newArchivedOrFailed = true;
+            wantArchiveDoneNotify = true;
+            return;
+        }
     }
 
     if (config.debugging)
-        console.log("trying to archive", shallow);
+        console.log("trying to archive", loggable);
 
-    const req = new XMLHttpRequest();
-    req.open("POST", archiveURL, true);
-    req.responseType = "text";
-    req.setRequestHeader("Content-Type", "application/cbor");
-    req.onabort = (event) => {
-        //console.log("archiving aborted", event);
-        broken(`a request to \n${archiveURL}\n was aborted by the browser`, true);
+    function broken(reason, recoverable) {
+        let v = cacheSingleton(reqresFailedToSubmit, archiveURL, () => new Map());
+        recordByError(v, reason, recoverable, archivable, dumpSize);
+        newArchivedOrFailed = true;
+        wantArchiveDoneNotify = true;
     }
-    req.onerror = (event) => {
-        //console.log("archiving error", event);
-        broken(`pWebArc can't establish a connection to the archive at\n${archiveURL}`, true);
+
+    let response;
+    try {
+        response = await fetch(archiveURL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/cbor",
+                "Content-Length": dump.byteLength.toString(),
+            },
+            body: dump,
+        });
+    } catch (err) {
+        broken(`pWebArc can't establish a connection to the archiving server: ${errorMessageOf(err)}`, true);
+        return;
     }
-    req.onload = (event) => {
-        //console.log("archiving loaded", event);
-        if (req.status == 200)
-            allok();
-        else
-            broken(`a request to\n${archiveURL}\nfailed with:\n${req.status} ${req.statusText}: ${req.responseText}`, false);
-    };
-    req.send(dump);
+
+    let responseText = await response.text();
+
+    if (response.status !== 200) {
+        broken(`request to the archiving server failed with ${response.status} ${response.statusText}: ${responseText}`, false);
+        return;
+    }
+
+    retryOneFailed(archiveURL, true);
+    globals.submittedHTTPTotal += 1;
+    globals.submittedHTTPSize += loggable.dumpSize;
+    newArchivedOrFailed = true;
+}
+
+async function processArchiving() {
+    while (config.archive && reqresQueue.length > 0) {
+        let archivable = reqresQueue.shift();
+        let [loggable, dump] = archivable;
+        try {
+            reqresQueueSize -= loggable.dumpSize;
+            await processOneArchiving(archivable);
+            await updateDisplay(true, loggable.tabId, 10);
+        } catch (err) {
+            logHandledError(err);
+            markAsErrored(err, archivable);
+        }
+    }
 }
 
 function getHeaderString(header) {
@@ -1332,9 +1518,7 @@ function encodeHeaders(headers) {
 let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
 
 // render reqres structure into a CBOR dump
-function renderReqres(reqres) {
-    let encoder = new CBOREncoder();
-
+function renderReqres(encoder, reqres) {
     // record URL as sent over the wire, i.e. without a #hash and with a
     // trailing slash instead of an empty path
     let url = normalizeURL(reqres.url);
@@ -1421,47 +1605,9 @@ function renderReqres(reqres) {
         allowNull: true,
         allowUndefined: false,
     });
-
-    return encoder.result()
 }
 
-function processFinishedReqres(info, collect, shallow, dump, newLog) {
-    shallow.in_limbo = false;
-    shallow.collected = collect;
-
-    if (collect) {
-        reqresQueue.push([shallow, dump]);
-        reqresQueueSize += dump.byteLength;
-        newQueued = true;
-        globals.collectedTotal += 1;
-        globals.collectedSize += dump.byteLength;
-        info.collectedTotal += 1;
-        info.collectedSize += dump.byteLength;
-    } else {
-        globals.discardedTotal += 1;
-        info.discardedTotal += 1;
-    }
-
-    if (true) {
-        reqresLog.push(shallow);
-        while (reqresLog.length > config.history)
-            reqresLog.shift();
-
-        if (newLog === undefined)
-            broadcast(["newLog", [shallow], true]);
-        else
-            newLog.push(shallow);
-    }
-}
-
-function processAlmostDone() {
-    if (reqresAlmostDone.length == 0)
-        return;
-
-    let reqres = reqresAlmostDone.shift()
-    if (reqres.tabId === undefined)
-        reqres.tabId = -1;
-
+async function processOneAlmostDone(reqres, newProblematic, newLimbo, newLog) {
     if (!useDebugger && reqres.responseComplete && reqres.errors.some(isIncompleteError))
         // Apparently, sometimes Firefox calls `filter.onstop` for aborted
         // requests as if nothing out of the ordinary happened. It is a
@@ -1473,6 +1619,32 @@ function processAlmostDone() {
         // We are doing that here instead of in `emitRequest` because the
         // `filter` is guaranteed to be finished here.
         reqres.responseComplete = false;
+
+    let lineProtocol;
+    let lineReason;
+    if (reqres.statusLine !== undefined) {
+        lineProtocol = reqres.statusLine.split(" ", 1)[0];
+        lineReason = "";
+        let pos = reqres.statusLine.indexOf(" ", lineProtocol.length + 1);
+        if (pos !== -1)
+            lineReason = reqres.statusLine.substr(pos + 1);
+    }
+
+    if (reqres.protocol === undefined) {
+        if (getHeaderValue(reqres.requestHeaders, ":authority") !== undefined)
+            reqres.protocol = "HTTP/2.0";
+        else if (lineProtocol !== undefined && lineProtocol !== "")
+            reqres.protocol = lineProtocol;
+        else
+            reqres.protocol = "HTTP/1.0";
+    }
+
+    if (reqres.reason === undefined) {
+        if (lineReason !== undefined)
+            reqres.reason = lineReason;
+        else
+            reqres.reason = "";
+    }
 
     let updatedTabId = reqres.tabId;
     let statusCode = reqres.statusCode;
@@ -1503,9 +1675,9 @@ function processAlmostDone() {
         state = "incomplete";
         problematic = config.markProblematicIncomplete;
         picked = config.archiveIncompleteResponse;
-    } else if (!useDebugger && statusCode === 200 && reqres.fromCache) {
+    } else if (!useDebugger && statusCode === 200 && reqres.fromCache && reqres.responseBody.byteLength == 0) {
         let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
-        if (clength !== undefined && clength != 0 && reqres.responseBody.byteLength == 0) {
+        if (clength !== undefined && clength !== 0) {
             // Under Firefox, filterResponseData filters will get empty response data for some
             // cached objects. We use a special state for these, as this is not really an error,
             // and reloading the page will not help in archiving that data, as those requests
@@ -1553,35 +1725,13 @@ function processAlmostDone() {
                        : config.markProblematicDroppedWithErrors);
     }
 
-    let lineProtocol;
-    let lineReason;
-    if (reqres.statusLine !== undefined) {
-        lineProtocol = reqres.statusLine.split(" ", 1)[0];
-        lineReason = "";
-        let pos = reqres.statusLine.indexOf(" ", lineProtocol.length + 1);
-        if (pos !== -1)
-            lineReason = reqres.statusLine.substr(pos + 1);
-    }
-
-    if (reqres.protocol === undefined) {
-        if (getHeaderValue(reqres.requestHeaders, ":authority") !== undefined)
-            reqres.protocol = "HTTP/2.0";
-        else if (lineProtocol !== undefined && lineProtocol !== "")
-            reqres.protocol = lineProtocol;
-        else
-            reqres.protocol = "HTTP/1.0";
-    }
-
-    if (reqres.reason === undefined) {
-        if (lineReason !== undefined)
-            reqres.reason = lineReason;
-        else
-            reqres.reason = "";
-    }
+    let in_limbo = picked && options.limbo || !picked && options.negLimbo;
 
     // dump it to console when debugging
     if (config.debugging)
-        console.log(picked ? "PICKED" : "DROPPED", reqres.requestId,
+        console.log(picked ? "PICKED" : "DROPPED",
+                    in_limbo ? "LIMBO" : "QUEUED",
+                    reqres.requestId,
                     "state", state,
                     reqres.protocol, reqres.method, reqres.url,
                     "tabId", updatedTabId,
@@ -1592,17 +1742,11 @@ function processAlmostDone() {
                     "profile", options.profile,
                     reqres);
 
-    let shallow = shallowCopyOfReqres(reqres);
-    shallow.net_state = state;
-    shallow.profile = options.profile;
-    shallow.was_problematic = shallow.problematic = problematic;
-    shallow.picked = picked;
-    shallow.was_in_limbo = shallow.in_limbo = false;
-
-    if (problematic) {
-        reqresProblematic.push(shallow);
-        info.problematicTotal += 1;
-    }
+    let loggable = makeLoggableReqres(reqres);
+    loggable.net_state = state;
+    loggable.was_problematic = loggable.problematic = problematic;
+    loggable.picked = picked;
+    loggable.was_in_limbo = loggable.in_limbo = in_limbo;
 
     if (picked) {
         globals.pickedTotal += 1;
@@ -1612,33 +1756,100 @@ function processAlmostDone() {
         info.droppedTotal += 1;
     }
 
-    if (picked || options.negLimbo) {
-        let dump = renderReqres(reqres);
+    let dump;
+    let dumpSize;
+    {
+        let encoder = new CBOREncoder();
+        renderReqres(encoder, reqres);
 
-        if (config.dumping)
-            dumpToConsole(dump);
+        if (in_limbo || picked) {
+            dump = encoder.result();
+            dumpSize = dump.byteLength;
 
-        if (picked && options.limbo || !picked && options.negLimbo) {
-            shallow.was_in_limbo = shallow.in_limbo = true;
-            reqresLimbo.push([shallow, dump]);
-            reqresLimboSize += dump.byteLength;
-            info.inLimboTotal += 1;
-            info.inLimboSize += dump.byteLength;
-            newLimbo = true;
-            broadcast(["newLimbo", [shallow]]);
-        } else
-            processFinishedReqres(info, true, shallow, dump);
+            if (config.dumping)
+                dumpToConsole(dump);
+        } else {
+            dump = null;
+            dumpSize = encoder.resultByteLength;
+        }
+    }
+
+    loggable.dumpSize = dumpSize;
+    let archivable = [loggable, dump];
+
+    if (in_limbo) {
+        reqresLimbo.push(archivable);
+        reqresLimboSize += dumpSize;
+        gotNewLimbo = true;
+        info.inLimboTotal += 1;
+        info.inLimboSize += dumpSize;
+        newLimbo.push(loggable);
     } else
-        processFinishedReqres(info, false, shallow, undefined);
+        processNonLimbo(picked, info, archivable, newLog);
 
     if (problematic) {
-        newProblematic = true;
-        broadcast(["newProblematic", [shallow]]);
+        reqresProblematic.push(archivable);
+        gotNewProblematic = true;
+        info.problematicTotal += 1;
+        newProblematic.push(loggable);
     }
 
     changedGlobals = true;
+}
 
-    scheduleEndgame(updatedTabId);
+function processNonLimbo(collect, info, archivable, newLog) {
+    let [loggable, dump] = archivable;
+    let dumpSize = loggable.dumpSize;
+    if (collect) {
+        loggable.collected = true;
+        reqresQueue.push(archivable);
+        reqresQueueSize += dumpSize;
+        gotNewQueued = true;
+
+        globals.collectedTotal += 1;
+        globals.collectedSize += dumpSize;
+        info.collectedTotal += 1;
+        info.collectedSize += dumpSize;
+    } else {
+        loggable.collected = false;
+        globals.discardedTotal += 1;
+        globals.discardedSize += dumpSize;
+        info.discardedTotal += 1;
+        info.discardedSize += dumpSize;
+    }
+
+    reqresLog.push(loggable);
+    newLog.push(loggable);
+}
+
+async function processAlmostDone() {
+    let newProblematic = [];
+    let newLimbo = [];
+    let newLog = [];
+
+    while (reqresAlmostDone.length > 0) {
+        let reqres = reqresAlmostDone.shift();
+        if (reqres.tabId === undefined)
+            // just in case
+            reqres.tabId = -1;
+        try {
+            await processOneAlmostDone(reqres, newProblematic, newLimbo, newLog);
+        } catch (err) {
+            logHandledError(err);
+            markAsErrored(err, [reqres, null]);
+        }
+        await updateDisplay(true, reqres.tabId, 10);
+    }
+
+    truncateLog();
+
+    broadcast(["resetInFlight", getInFlightLog()]);
+    if (newProblematic.length > 0)
+        broadcast(["newProblematic", newProblematic]);
+    if (newLimbo.length > 0)
+        broadcast(["newLimbo", newLimbo]);
+    if (newLog.length > 0)
+        broadcast(["newLog", newLog]);
 }
 
 async function snapshotOneTab(tabId, tabUrl) {
@@ -1945,6 +2156,20 @@ function shallowCopyOfReqres(reqres) {
     };
 }
 
+function addLoggableFields(loggable) {
+    // status in wrrarms
+    loggable.status = (loggable.requestComplete ? "C" : "I") +
+        (loggable.responded
+         ? loggable.statusCode.toString() + (loggable.responseComplete ? "C" : "I")
+         : "N");
+}
+
+function makeLoggableReqres(reqres) {
+    let loggable = shallowCopyOfReqres(reqres);
+    addLoggableFields(loggable);
+    return loggable;
+}
+
 // handlers
 
 let workaroundFirstRequest = true;
@@ -2119,7 +2344,7 @@ function handleBeforeRequest(e) {
     }
 
     reqresInFlight.set(requestId, reqres);
-    broadcast(["newInFlight", [shallowCopyOfReqres(reqres)]]);
+    broadcast(["newInFlight", [makeLoggableReqres(reqres)]]);
     updateDisplay(true, e.tabId);
 }
 
@@ -2248,7 +2473,7 @@ function handleErrorOccurred(e) {
 }
 
 function handleNotificationClicked(notificationId) {
-    if (reqresFailed.size === 0) return;
+    if (reqresFailedToArchive.size === 0) return;
 
     browser.tabs.create({
         url: browser.runtime.getURL("/page/help.html#errors"),
@@ -2377,8 +2602,8 @@ function handleMessage(request, sender, sendResponse) {
         if (useDebugger)
             syncDebuggersState();
 
-        if (oldConfig.archiving !== config.archiving && config.archiving)
-            retryFailed(true);
+        if (config.archive && oldConfig.archive !== config.archive)
+            scheduleRetryFailed(0, false);
 
         updateDisplay(true, null);
         broadcast(["updateConfig", config]);
@@ -2398,10 +2623,6 @@ function handleMessage(request, sender, sendResponse) {
         setOriginConfig(request[1], request[2], request[3]);
         sendResponse(null);
         break;
-    case "retryFailed":
-        retryFailed(false);
-        sendResponse(null);
-        break;
     case "getStats":
         sendResponse(getStats());
         break;
@@ -2411,15 +2632,8 @@ function handleMessage(request, sender, sendResponse) {
     case "getTabStats":
         sendResponse(getTabStats(request[1]));
         break;
-    case "getLog":
-        sendResponse(reqresLog);
-        break;
-    case "forgetHistory":
-        forgetHistory(request[1], request[2]);
-        sendResponse(null);
-        break;
     case "getProblematicLog":
-        sendResponse(reqresProblematic);
+        sendResponse(getProblematicLog());
         break;
     case "unmarkProblematic":
         unmarkProblematic(request[1], request[2], request[3]);
@@ -2445,6 +2659,24 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "rotateInLimbo":
         rotateInLimbo(request[1], request[2], request[3]);
+        sendResponse(null);
+        break;
+    case "getLog":
+        sendResponse(reqresLog);
+        break;
+    case "forgetHistory":
+        forgetHistory(request[1], request[2]);
+        sendResponse(null);
+        break;
+    case "retryFailed":
+        scheduleRetryFailed(0, true);
+        // technically, we need
+        //updateDisplay(true, null);
+        // here, but it would be useless, since timeout is 0
+        sendResponse(null);
+        break;
+    case "forgetErrored":
+        forgetErrored();
         sendResponse(null);
         break;
     case "snapshotTab":
@@ -2649,6 +2881,12 @@ function upgradeConfig(cfg) {
             cfg.markProblematicPickedWithErrors = true;
         rename("markProblematicWithErrors", "markProblematicDroppedWithErrors")
     case 4:
+        rename("archiving", "archive")
+        rename("archiveURLBase", "submitHTTPURLBase");
+        rename("archiveNotifyOK", "archiveDoneNotify")
+        rename("archiveNotifyFailed", "archiveFailedNotify")
+        rename("archiveNotifyDisabled", "archiveStuckNotify")
+    case 5:
         break;
     default:
         console.warn(`Bad old config version ${cfg.version}, reusing values as-is without updates`);
@@ -2775,6 +3013,8 @@ async function init() {
             type: "basic",
         }).catch(logError);
     }
+
+    scheduleComplaints(1000);
 }
 
 init();

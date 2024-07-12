@@ -95,7 +95,7 @@ label code {
     margin: 5px auto 0 auto;
 }
 
-.disabled-archiving .da,
+.disabled-archive .da,
 .disabled-collecting .dc,
 .disabled-collecting .dc input[type="checkbox"].toggle,
 .disabled-auto .dauto,
@@ -152,15 +152,17 @@ label code {
           <span id="stats.actions"></span>
         </span>
       </div>
-      <div id="div-stats.archived" data-help="At the moment, the numbers of reqres that were: successfully archived to the server / failed to be archived to the server.">
-        <span>Archived/Failed</span>
+      <div id="div-stats.submittedHTTP" data-help="From the last reset, the number of reqres that were successfully archived by being submitted to the archiving server (and the sum total of all sizes of their dumps) / at the moment, the number of reqres that failed to be archived to either the archiving server.">
+        <span>Submitted/Failed</span>
         <span>
           <input type="button" id="retryFailed" data-help="Move all failed to archive reqres to the archival queue. (Archivals that fail because of networking issues will be retried automatically every 60 seconds, others will not.) See the &quot;Help&quot; page for more info." value="Retry" />
         </span>
         <span>
-          <span id="stats.archive_ok">0</span>
+          <span id="stats.submittedHTTP">0</span>
+          (<span id="stats.submittedHTTP_size">0</span>)
           /
-          <span id="stats.archive_failed">0</span>
+          <span id="stats.failed">0</span>
+          (<span id="stats.failed_size">0</span>)
         </span>
       </div>
       <div id="div-stats.queued" data-help="At the moment, the number of reqres that are still in the archival queue (and the sum total of all sizes of their dumps).">
@@ -168,11 +170,11 @@ label code {
         <span>
         </span>
         <span>
-          <span id="stats.in_queue">0</span>
-          (<span id="stats.in_queue_size">0</span>)
+          <span id="stats.queued">0</span>
+          (<span id="stats.queued_size">0</span>)
         </span>
       </div>
-      <div id="div-stats.collected" data-help="From the last reset, the numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory.">
+      <div id="div-stats.collected" data-help="From the last reset, the numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory (and the sum total of all sizes of their dumps).">
         <span>Collected/Discarded</span>
         <span>
         </span>
@@ -181,6 +183,7 @@ label code {
           (<span id="stats.collected_size">0</span>)
           /
           <span id="stats.discarded">0</span>
+          (<span id="stats.discarded_size">0</span>)
         </span>
       </div>
       <div id="div-stats.in_limbo" data-help="At the moment, the number of finished reqres in limbo (and the sum total of all sizes of their dumps).">
@@ -194,7 +197,7 @@ label code {
           (<span id="stats.in_limbo_size">0</span>)
         </span>
       </div>
-      <div name="more" id="div-stats.picked" data-help="From the last reset, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
+      <div name="more" id="div-stats.picked" data-help="From the last reset, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (both at the moment each reqres in question `finished`).">
         <span>Picked/Dropped</span>
         <span>
         </span>
@@ -226,8 +229,8 @@ label code {
 
     <div name="more" class="opts">
     <ui id="config.collecting" type="boolean" class="prefer-on" data-help="Also known as &quot;Enable this add-on&quot;. Generate a new reqres and start tracking its progress when the browser makes a new HTTP request. Disabling this option will stop pWebArc from recording any new data. Already tracked reqres will still get tracked until they finish.">Track newly generated requests</ui>
-    <ui id="config.archiving" type="boolean" class="prefer-on" data-help="Archive collected reqres by submitting their dumps to the server at the following URL. Disabling this will stop pWebArc from trying to archive already collected data. Note that the archival queue is stored in memory, so you probably should not disable this unless you want to atomically change server-side profile settings or your server is temporarily down and you are annoyed by the error notifications.">Archive collected reqres</ui>
-    <ui id="config.archiveURLBase" type="string" class="da" data-help="URL of the server we are archiving to.">... to URL</ui>
+    <ui id="config.archive" type="boolean" class="prefer-on" data-help="What it says on the tin. Disabling this will keep them stuck in the archiving queue indefinitely, in which case restarting the browser or reloading the extension will loose them. Which is why you probably shouldn&#039;t disable this option, unless you want to disable this, atomically change some of the &quot;Profile&quot; settings below, and then enable this again.">Archive <code>collected</code> reqres</ui>
+    <ui id="config.submitHTTPURLBase" type="string" class="da ds" data-help="URL of the server we are archiving to.">... at URL</ui>
     </div>
 
     <div id="this-tab-options">
@@ -249,6 +252,7 @@ label code {
           (<span id="tabstats.collected_size">0</span>)
           /
           <span id="tabstats.discarded">0</span>
+          (<span id="tabstats.discarded_size">0</span>)
         </span>
       </div>
       <div id="div-tabstats.in_limbo" data-help="For this tab, the number of finished reqres in limbo (and the sum total of all sizes of their dumps).">
@@ -435,9 +439,9 @@ label code {
     <ui id="config.limboMaxNumber" type="number" class="dln" data-help="Start complaining when more than this number of reqres are in limbo.">... ... after #</ui>
     <ui id="config.limboMaxSize" type="number" class="dln" data-help="Start complaining when the total size of all dumps in limbo is larger than this many Megabytes.">... ... after MiB</ui>
     <ui id="config.autoNotify" type="boolean" data-help="Generate a notification when an automatic action was performed in background.">... automatic actions</ui>
-    <ui id="config.archiveNotifyDisabled" type="boolean" class="prefer-on" data-help="Complain when some reqres are stuck in the archival queue with archiving disabled.">... non-empty queue with archiving disabled</ui>
-    <ui id="config.archiveNotifyFailed" type="boolean" class="prefer-on" data-help="Complain when some reqres fail to be archived to the archival server.">... archival errors</ui>
-    <ui id="config.archiveNotifyOK" type="boolean" data-help="Generate an &quot;All OK&quot; notification when the queue becomes empty the very first time or after a previous archival failure. This exists mostly for on-boarding new users.">... first empty archival queue</ui>
+    <ui id="config.archiveStuckNotify" type="boolean" class="prefer-on" data-help="Complain when some reqres are stuck in the archival queue, i.e. when the queue is not empty but archiving is disabled.">... stuck archival queue</ui>
+    <ui id="config.archiveFailedNotify" type="boolean" class="prefer-on" data-help="Complain when some reqres fail to be archived to the archival server.">... archival errors</ui>
+    <ui id="config.archiveDoneNotify" type="boolean" data-help="Generate an &quot;All OK&quot; notification when the archival queue becomes empty the very first time or after a previous archival failure. This exists mostly for on-boarding new users.">... newly empty archival queue</ui>
     <!-- notifyMore -->
     </div>
     </div>
