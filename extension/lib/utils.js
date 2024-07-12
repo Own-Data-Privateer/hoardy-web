@@ -25,7 +25,7 @@
 "use strict";
 
 function logError(err) {
-    console.error("uncaught error", err);
+    console.error("Uncaught error:", err);
     console.trace();
 }
 
@@ -35,6 +35,11 @@ function logErrorExceptWhenStartsWith(prefix) {
             return;
         logError(err);
     };
+}
+
+function logHandledError(err) {
+    console.warn("Handled error:", err);
+    console.trace();
 }
 
 // turn all uncaught exceptions into console.error
