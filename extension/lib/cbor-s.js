@@ -60,6 +60,22 @@ class ChunkedBuffer extends Array {
             length += e.byteLength;
         return length;
     }
+
+    flattern() {
+        let len = 0;
+        for (let e of this)
+            len += e.byteLength;
+
+        const result = new Uint8Array(len);
+
+        let pos = 0;
+        for (let e of this) {
+            result.set(e, pos);
+            pos += e.byteLength;
+        }
+
+        return result;
+    }
 }
 
 class CBOREncoder {
@@ -276,19 +292,8 @@ class CBOREncoder {
     // return the resulting Uint8Array
     result() {
         this.flush();
-
-        let resbuf = new ArrayBuffer(this.chunks.byteLength);
-        let resarr = new Uint8Array(resbuf);
-
-        let resoffset = 0;
-        for (let chunk of this.chunks) {
-            let length = chunk.byteLength;
-            for (let i = 0; i < length; ++i) {
-                resarr[resoffset + i] = chunk[i];
-            }
-            resoffset += length;
-        }
-
-        return resarr;
+        const flat = this.chunks.flattern();
+        this.chunks = new ChunkedBuffer([flat]);
+        return flat;
     }
 }
