@@ -501,6 +501,14 @@ function getQueuedLog() {
     return getLoggables(reqresQueue, []);
 }
 
+function getFailedLog() {
+    let res = [];
+    for (let m of reqresFailedToArchive.values())
+        for (let f of m.values())
+            getLoggables(f.queue, res);
+    return res;
+}
+
 function getByErrorMap(archiveURL) {
     return cacheSingleton(reqresFailedToArchive, archiveURL, () => new Map());
 }
@@ -1247,6 +1255,7 @@ function retryFailed(unrecoverable) {
         retryOneFailed(archiveURL, unrecoverable);
 
     broadcast(["resetQueued", getQueuedLog()]);
+    broadcast(["resetFailed", getFailedLog()]);
 
     scheduleEndgame(null);
 }
@@ -1487,6 +1496,7 @@ async function processArchiving() {
     }
 
     broadcast(["resetQueued", getQueuedLog()]);
+    broadcast(["resetFailed", getFailedLog()]);
 }
 
 function getHeaderString(header) {
@@ -2694,6 +2704,9 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "getQueuedLog":
         sendResponse(getQueuedLog());
+        break;
+    case "getFailedLog":
+        sendResponse(getFailedLog());
         break;
     case "retryFailed":
         scheduleRetryFailed(0, true);

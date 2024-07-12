@@ -26,6 +26,7 @@ let rrfilters = {
     in_limbo: assignRec({}, rrfilterDefaults),
     log: assignRec({}, rrfilterDefaults),
     queued: assignRec({}, rrfilterDefaults),
+    failed: assignRec({}, rrfilterDefaults),
 };
 
 let thisSessionId;
@@ -195,6 +196,10 @@ function resetQueued(log_data) {
     resetDataNode("data_queued", log_data, (loggable) => isAcceptedBy(rrfilters.queued, loggable));
 }
 
+function resetFailed(log_data) {
+    resetDataNode("data_failed", log_data, (loggable) => isAcceptedBy(rrfilters.failed, loggable));
+}
+
 async function stateMain() {
     thisSessionId = await browser.runtime.sendMessage(["getSessionId"]);
     let thisTab = await getActiveTab();
@@ -238,6 +243,8 @@ async function stateMain() {
     buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, null, tabId, rrfilters.in_limbo]);
     buttonToMessage("stopAllInFlight",      () => ["stopAllInFlight", tabId]);
 
+    buttonToMessage("retryFailed");
+
     setUI(document, "rrfilters", rrfilters, (value, path) => {
         if (path.startsWith("rrfilters.problematic."))
             browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic).catch(logError);
@@ -247,6 +254,8 @@ async function stateMain() {
             browser.runtime.sendMessage(["getLog"]).then(resetLog).catch(logError);
         else if (path.startsWith("rrfilters.queued."))
             browser.runtime.sendMessage(["getQueuedLog"]).then(resetQueued).catch(logError);
+        else if (path.startsWith("rrfilters.failed."))
+            browser.runtime.sendMessage(["getFailedLog"]).then(resetFailed).catch(logError);
         else
             console.warn("unknown rrfilters update", path, value);
     });
@@ -277,6 +286,9 @@ async function stateMain() {
             break;
         case "resetQueued":
             resetQueued(data);
+            break;
+        case "resetFailed":
+            resetFailed(data);
             break;
         // incrementally add new rows
         case "newInFlight":
@@ -310,12 +322,15 @@ async function stateMain() {
         if (willReset()) return;
         let queuedLog = await browser.runtime.sendMessage(["getQueuedLog"]);
         if (willReset()) return;
+        let failedLog = await browser.runtime.sendMessage(["getFailedLog"]);
+        if (willReset()) return;
 
         resetInFlight(inFlightLog);
         resetProblematic(problematicLog);
         resetInLimbo(inLimboLog);
         resetLog(log);
         resetQueued(queuedLog);
+        resetFailed(failedLog);
     }));
 
     // show UI

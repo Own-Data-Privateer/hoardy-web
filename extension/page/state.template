@@ -172,6 +172,20 @@ td.long {
       <ui id="rrfilters.queued.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
     </div>
     <table><tbody id="data_queued"></tbody></table>
+
+    <h1 id="failed">Failed
+      <span class="right">
+        <input type="button" id="retryFailed" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake." value="Retry all" />
+      </span>
+    </h1>
+    <div class="controls">
+      <ui id="rrfilters.failed.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+      <ui id="rrfilters.failed.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+      <ui id="rrfilters.failed.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
+      <ui id="rrfilters.failed.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.failed.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+    </div>
+    <table><tbody id="data_failed"></tbody></table>
     </div>
 
     $for(libScript)$<script src="../lib/$libScript$"></script>$endfor$
