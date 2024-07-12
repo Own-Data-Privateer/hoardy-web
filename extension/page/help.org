@@ -199,9 +199,9 @@ pWebArc provides a bunch of keyboard and context menu shortcuts to allow using i
 pWebArc provides shortcuts to:
 
 - open [[./popup.html#showState][the "Internal State and Logs" page]], {{{shortcut(showState)}}};
-- open the "Internal State and Logs" page, scrolled to the bottom, {{{shortcut(showLog)}}};
+- open the "Internal State and Logs" page, scrolled to the end of the log, {{{shortcut(showLog)}}};
 - open [[./popup.html#showTabState][the "Internal State and Logs" page]] narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
-- open the "Internal State and Logs" page narrowed to the currently active tab's data, scrolled to the bottom, {{{shortcut(showTabLog)}}};
+- open the "Internal State and Logs" page narrowed to the currently active tab's data, scrolled to the end of the log, {{{shortcut(showTabLog)}}};
 - toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned HTTP requests in the currently active tab]] {{{shortcut(toggleTabConfigTracking)}}};
 - toggle [[./popup.html#div-tabconfig.children.collecting][tracking of newly spawned HTTP requests currently active tab's children]] {{{shortcut(toggleTabConfigChildrenTracking)}}};
 - toggle [[./popup.html#div-tabconfig.limbo][limbo mode in the currently active tab]], {{{shortcut(toggleTabConfigLimbo)}}};

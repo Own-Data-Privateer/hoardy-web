@@ -25,6 +25,7 @@ let rrfilters = {
     problematic: assignRec({}, rrfilterDefaults),
     in_limbo: assignRec({}, rrfilterDefaults),
     log: assignRec({}, rrfilterDefaults),
+    queued: assignRec({}, rrfilterDefaults),
 };
 
 let thisSessionId;
@@ -190,6 +191,10 @@ function resetLog(log_data) {
     resetDataNode("data_log", log_data, (loggable) => isAcceptedBy(rrfilters.log, loggable));
 }
 
+function resetQueued(log_data) {
+    resetDataNode("data_queued", log_data, (loggable) => isAcceptedBy(rrfilters.queued, loggable));
+}
+
 async function stateMain() {
     thisSessionId = await browser.runtime.sendMessage(["getSessionId"]);
     let thisTab = await getActiveTab();
@@ -240,6 +245,8 @@ async function stateMain() {
             browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo).catch(logError);
         else if (path.startsWith("rrfilters.log."))
             browser.runtime.sendMessage(["getLog"]).then(resetLog).catch(logError);
+        else if (path.startsWith("rrfilters.queued."))
+            browser.runtime.sendMessage(["getQueuedLog"]).then(resetQueued).catch(logError);
         else
             console.warn("unknown rrfilters update", path, value);
     });
@@ -268,6 +275,9 @@ async function stateMain() {
         case "resetLog":
             resetLog(data);
             break;
+        case "resetQueued":
+            resetQueued(data);
+            break;
         // incrementally add new rows
         case "newInFlight":
             appendToLog(document.getElementById("data_in_flight"), data);
@@ -280,6 +290,9 @@ async function stateMain() {
             break;
         case "newLog":
             appendToLog(document.getElementById("data_log"), data, (loggable) => isAcceptedBy(rrfilters.log, loggable));
+            break;
+        case "newQueued":
+            appendToLog(document.getElementById("data_queued"), data, (loggable) => isAcceptedBy(rrfilters.queued, loggable));
             break;
         default:
             await handleDefaultUpdate(update, thisTabId);
@@ -295,11 +308,14 @@ async function stateMain() {
         if (willReset()) return;
         let log = await browser.runtime.sendMessage(["getLog"]);
         if (willReset()) return;
+        let queuedLog = await browser.runtime.sendMessage(["getQueuedLog"]);
+        if (willReset()) return;
 
         resetInFlight(inFlightLog);
         resetProblematic(problematicLog);
         resetInLimbo(inLimboLog);
         resetLog(log);
+        resetQueued(queuedLog);
     }));
 
     // show UI

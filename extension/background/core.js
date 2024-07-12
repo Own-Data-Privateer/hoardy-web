@@ -497,6 +497,10 @@ function getInLimboLog() {
     return getLoggables(reqresLimbo, []);
 }
 
+function getQueuedLog() {
+    return getLoggables(reqresQueue, []);
+}
+
 function getByErrorMap(archiveURL) {
     return cacheSingleton(reqresFailedToArchive, archiveURL, () => new Map());
 }
@@ -805,6 +809,7 @@ function popInLimbo(collect, num, tabId, rrfilter) {
     // this is written as a separate loop to make it mostly atomic w.r.t. reqresLimbo
 
     let minusSize = 0;
+    let newQueued = [];
     let newLog = [];
     for (let archivable of popped) {
         let [loggable, dump] = archivable;
@@ -816,7 +821,7 @@ function popInLimbo(collect, num, tabId, rrfilter) {
             loggable.in_limbo = false;
             info.inLimboTotal -= 1;
             info.inLimboSize -= dumpSize;
-            processNonLimbo(collect, info, archivable, newLog);
+            processNonLimbo(collect, info, archivable, newQueued, newLog);
         } catch (err) {
             logHandledError(err);
             markAsErrored(err, archivable);
@@ -832,6 +837,8 @@ function popInLimbo(collect, num, tabId, rrfilter) {
         // also reset problematic, since reqres statuses have changed
         broadcast(["resetProblematicLog", getProblematicLog()]);
     broadcast(["resetInLimboLog", getInLimboLog()]);
+    if (newQueued.length > 0)
+        broadcast(["newQueued", newQueued]);
     broadcast(["newLog", newLog]);
 
     scheduleEndgame(tabId);
@@ -1238,6 +1245,9 @@ function retryOneFailed(archiveURL, unrecoverable) {
 function retryFailed(unrecoverable) {
     for (let archiveURL of Array.from(reqresFailedToArchive.keys()))
         retryOneFailed(archiveURL, unrecoverable);
+
+    broadcast(["resetQueued", getQueuedLog()]);
+
     scheduleEndgame(null);
 }
 
@@ -1475,6 +1485,8 @@ async function processArchiving() {
             markAsErrored(err, archivable);
         }
     }
+
+    broadcast(["resetQueued", getQueuedLog()]);
 }
 
 function getHeaderString(header) {
@@ -1609,7 +1621,7 @@ function renderReqres(encoder, reqres) {
     });
 }
 
-async function processOneAlmostDone(reqres, newProblematic, newLimbo, newLog) {
+async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued, newLog) {
     if (!useDebugger && reqres.responseComplete && reqres.errors.some(isIncompleteError))
         // Apparently, sometimes Firefox calls `filter.onstop` for aborted
         // requests as if nothing out of the ordinary happened. It is a
@@ -1787,7 +1799,7 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newLog) {
         info.inLimboSize += dumpSize;
         newLimbo.push(loggable);
     } else
-        processNonLimbo(picked, info, archivable, newLog);
+        processNonLimbo(picked, info, archivable, newQueued, newLog);
 
     if (problematic) {
         reqresProblematic.push(archivable);
@@ -1799,13 +1811,14 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newLog) {
     changedGlobals = true;
 }
 
-function processNonLimbo(collect, info, archivable, newLog) {
+function processNonLimbo(collect, info, archivable, newQueued, newLog) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
     if (collect) {
         loggable.collected = true;
         reqresQueue.push(archivable);
         reqresQueueSize += dumpSize;
+        newQueued.push(loggable);
         gotNewQueued = true;
 
         globals.collectedTotal += 1;
@@ -1827,6 +1840,7 @@ function processNonLimbo(collect, info, archivable, newLog) {
 async function processAlmostDone() {
     let newProblematic = [];
     let newLimbo = [];
+    let newQueued = [];
     let newLog = [];
 
     while (reqresAlmostDone.length > 0) {
@@ -1835,7 +1849,7 @@ async function processAlmostDone() {
             // just in case
             reqres.tabId = -1;
         try {
-            await processOneAlmostDone(reqres, newProblematic, newLimbo, newLog);
+            await processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued, newLog);
         } catch (err) {
             logHandledError(err);
             markAsErrored(err, [reqres, null]);
@@ -1850,6 +1864,8 @@ async function processAlmostDone() {
         broadcast(["newProblematic", newProblematic]);
     if (newLimbo.length > 0)
         broadcast(["newLimbo", newLimbo]);
+    if (newQueued.length > 0)
+        broadcast(["newQueued", newQueued]);
     if (newLog.length > 0)
         broadcast(["newLog", newLog]);
 }
@@ -2676,6 +2692,9 @@ function handleMessage(request, sender, sendResponse) {
         forgetHistory(request[1], request[2]);
         sendResponse(null);
         break;
+    case "getQueuedLog":
+        sendResponse(getQueuedLog());
+        break;
     case "retryFailed":
         scheduleRetryFailed(0, true);
         // technically, we need
@@ -2810,13 +2829,13 @@ async function handleCommand(command) {
         showState("", "top", tab.id);
         return;
     case "showLog":
-        showState("", "bottom", tab.id);
+        showState("", "tail", tab.id);
         return;
     case "showTabState":
         showState(`?tab=${tabId}`, "top", tab.id);
         return;
     case "showTabLog":
-        showState(`?tab=${tabId}`, "bottom", tab.id);
+        showState(`?tab=${tabId}`, "tail", tab.id);
         return;
     case "unmarkAllProblematic":
         unmarkProblematic(null, null);

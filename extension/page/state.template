@@ -161,7 +161,17 @@ td.long {
     </div>
     <table><tbody id="data_log"></tbody></table>
     <!-- This anchor goes here, because we usually want to see the tail of the log. -->
-    <span id="bottom"></span>
+    <span id="tail"></span>
+
+    <h1 id="queued">Queued</h1>
+    <div class="controls">
+      <ui id="rrfilters.queued.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+      <ui id="rrfilters.queued.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+      <ui id="rrfilters.queued.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
+      <ui id="rrfilters.queued.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.queued.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+    </div>
+    <table><tbody id="data_queued"></tbody></table>
     </div>
 
     $for(libScript)$<script src="../lib/$libScript$"></script>$endfor$
