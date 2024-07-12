@@ -268,6 +268,11 @@ class CBOREncoder {
         return this;
     }
 
+    // the length of the result
+    get resultByteLength() {
+        return this.chunks.byteLength + this.offset;
+    }
+
     // return the resulting Uint8Array
     result() {
         this.flush();
