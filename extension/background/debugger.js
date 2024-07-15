@@ -179,7 +179,7 @@ function handleDebugDetach(debuggee, reason) {
     if (tabId !== undefined) {
         tabsDebugging.delete(tabId);
         // Unfortunately, this means all debugReqresInFlight of this tab are broken now
-        forceEmitInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER");
+        emitTabInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER");
         if (config.collecting && reason !== "target_closed") {
             // In Chrome, it's pretty easy to click the notification or press
             // Escape while doing Control+F and detach the debugger, so let's
@@ -470,7 +470,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     }
 }
 
-function forceEmitInFlightDebug(tabId, reason) {
+function emitTabInFlightDebug(tabId, reason) {
     popSingletonTimeout(scheduledInternal, "debugFinishingUp");
 
     for (let [requestId, dreqres] of Array.from(debugReqresInFlight.entries())) {
@@ -478,6 +478,12 @@ function forceEmitInFlightDebug(tabId, reason) {
             emitDebugRequest(requestId, dreqres, false, "debugger::" + reason, true);
     }
 
+    // NB: Not `forcing` here because this is used in
+    // `handleDebugDetach`, and `handleDebugDetach` does not imply
+    // `forcing`!
+    //
+    // See `stopAllInFlight` instead, it does a separarate call to
+    // `processMatchFinishingUpWebRequestDebug(true)`.
     processMatchFinishingUpWebRequestDebug();
 }
 

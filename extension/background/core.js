@@ -426,7 +426,7 @@ function processRemoveTab(tabId) {
         resetSingletonTimeout(scheduledInternal, `forceStopDebugTab#${tabId}`, timeout, () => {
             if (config.debugging)
                 console.log("cleaning up debugReqresInFlight after tab", tabId);
-            forceEmitInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_CLOSED_TAB");
+            emitTabInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_CLOSED_TAB");
             processMatchFinishingUpWebRequestDebug();
             scheduleCleanupAfterTab(tabId, timeout);
             updateDisplay(true, tabId);
@@ -1997,7 +1997,7 @@ async function snapshotTab(tabIdNull) {
     scheduleEndgame(tabIdNull);
 }
 
-function forceEmitInFlightWebRequest(tabId, reason) {
+function emitTabInFlightWebRequest(tabId, reason) {
     for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
         if (tabId === null || reqres.tabId == tabId)
             emitRequest(requestId, reqres, "webRequest::" + reason, true);
@@ -2070,9 +2070,9 @@ function forceFinishingUpWebRequest(predicate) {
 
 function stopAllInFlight(tabId) {
     processFinishingUp(true);
-    forceEmitInFlightWebRequest(tabId, "pWebArc::EMIT_FORCED_BY_USER");
+    emitTabInFlightWebRequest(tabId, "pWebArc::EMIT_FORCED_BY_USER");
     if (useDebugger) {
-        forceEmitInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_USER");
+        emitTabInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_USER");
         processMatchFinishingUpWebRequestDebug(true);
         forceFinishingUpDebug((r) => tabId == null || r.tabId == tabId);
     }
