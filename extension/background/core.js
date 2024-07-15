@@ -2628,6 +2628,8 @@ function handleMessage(request, sender, sendResponse) {
         let oldConfig = config;
         config = updateFromRec(assignRec({}, oldConfig), request[1]);
 
+        fixConfig(config, oldConfig);
+
         if (!config.ephemeral && !equalRec(oldConfig, config))
             // save config after a little pause to give the user time to click
             // the same toggle again without torturing the SSD
@@ -2900,6 +2902,14 @@ async function handleCommand(command) {
     setOriginConfig(tabId, false, tabcfg);
 }
 
+function fixConfig(cfg, old) {
+    // these are mutually exclusive
+    if (cfg.autoPopInLimboCollect !== old.autoPopInLimboCollect)
+        cfg.autoPopInLimboDiscard = cfg.autoPopInLimboDiscard && !cfg.autoPopInLimboCollect;
+    else
+        cfg.autoPopInLimboCollect = cfg.autoPopInLimboCollect && !cfg.autoPopInLimboDiscard;
+}
+
 function upgradeConfig(cfg) {
     function rename(from, to) {
         let old = cfg[from];
@@ -3000,6 +3010,8 @@ async function init() {
             && tab.pendingUrl == "chrome://newtab/")
             chromiumResetRootTab(tab.id, tabcfg);
     }
+
+    fixConfig(config, config);
 
     console.log(`initialized pWebArc with source of '${sourceDesc}'`);
     console.log("runtime options are", { useSVGIcons, useBlocking, useDebugger });

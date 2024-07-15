@@ -188,14 +188,6 @@ async function popupMain() {
             config = await browser.runtime.sendMessage(["getConfig"]);
 
         setUI(document, "config", config, (newconfig, path) => {
-            switch (path) {
-            case "config.autoPopInLimboCollect":
-                newconfig.autoPopInLimboDiscard = newconfig.autoPopInLimboDiscard && !newconfig.autoPopInLimboCollect;
-                break;
-            case "config.autoPopInLimboDiscard":
-                newconfig.autoPopInLimboCollect = newconfig.autoPopInLimboCollect && !newconfig.autoPopInLimboDiscard;
-                break;
-            }
             browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
         });
 
