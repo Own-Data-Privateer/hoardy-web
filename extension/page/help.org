@@ -158,15 +158,25 @@ Note, however, that /problematic reqres/ will not get automatically elided from 
 To forget about them, you will have to unset the /problematic/ flag on the respective reqres via [[./popup.html#unmarkAllTabProblematic][this button]], or [[./popup.html#unmarkAllProblematic][that button]], or use similar buttons in the [[./popup.html#showState][log]].
 ** Step 4: Archival
 When [[./popup.html#div-config.archive]["Archive collected reqres" toggle]] is enabled, pWebArc will pop =collected= reqres from the archival queue one by one, serialize them into CBOR-formatted dumps, and then push those dumps to the archiving server at [[./popup.html#div-config.submitHTTPURLBase]["Archive collected reqres to URL" setting]] by turning each reqres into a POST HTTP request with the dump of the reqres as request body (which is denoted by =srvIO= state on the diagram).
-It will also specify =profile= query parameter to the POST request using the appropriate "Profile" setting, e.g.
+*** Buckets
+:PROPERTIES:
+:CUSTOM_ID: bucket
+:END:
 
-- [[./popup.html#div-tabconfig.profile][this one]] will be used for requests originating from the currently active tab,
-- [[./popup.html#div-tabconfig.children.profile][this one]] will be used for requests originating from new child tabs opened from the currently active tab (e.g. via middle mouse click, context menu, etc),
-- while [[./popup.html#div-config.root.profile][this one]] will be used for new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
+Sometimes you might want to split your archivals into separate /buckets/ to simplify future hoarding and sharing of collected archives.
+E.g., say, by default you might want to put everything into the "default" bucket, but then you might want to put reqres produced by a select tab where you just logged in into you personal account into the "private" bucket instead.
+
+To implement this, for each reqres in the archival queue, pWebArc computes a =bucket= parameter from the appropriate "Bucket" setting, e.g.
+
+- [[./popup.html#div-tabconfig.bucket][this one]] will be used for requests originating from the currently active tab,
+- [[./popup.html#div-tabconfig.children.bucket][this one]] will be used for requests originating from new child tabs opened from the currently active tab (e.g. via middle mouse click, context menu, etc),
+- while [[./popup.html#div-config.root.bucket][this one]] will be used for new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
 - and so forth for the others (press "?" symbols to see a tooltip explaining what each of them does).
 
-Evaluation of the =profile=  parameter is done just before the POST request is sent, so if the queue is not yet empty, and you disable [[./popup.html#div-config.archive]["Archive collected reqres"]], edit some of the "Profile" settings, and enable [[./popup.html#div-config.archive][it]] again, pWebArc will start using the new setting immediately.
+Evaluation of the =bucket= parameter is done just before each archival attempt, so if the queue is not yet empty, and you disable [[./popup.html#div-config.archive]["Archive =collected= reqres"]], edit some of the "Bucket" settings, and enable [[./popup.html#div-config.archive][it]] again, pWebArc will start using the new setting immediately.
 
+When submitting to an HTTP server, pWebArc will specify =bucket= as a query parameter (named "profile", for historical reasons) to each HTTP POST request.
+*** Failures
 If [[./popup.html#div-config.archiveFailedNotify][this option]] is enabled and some reqres failed to be archived, a new desktop notification will be generated.
 If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new desktop notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary

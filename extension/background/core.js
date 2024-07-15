@@ -119,21 +119,21 @@ let configDefaults = {
         collecting: true,
         limbo: false,
         negLimbo: false,
-        profile: "default",
+        bucket: "default",
     },
 
     extension: {
         collecting: false,
         limbo: false,
         negLimbo: false,
-        profile: "extension",
+        bucket: "extension",
     },
 
     background: {
         collecting: true,
         limbo: false,
         negLimbo: false,
-        profile: "background",
+        bucket: "background",
     },
 };
 // current config
@@ -1427,8 +1427,7 @@ async function processOneArchiving(archivable) {
     if (config.discardAll)
         return;
 
-    let options = getOriginConfig(loggable.tabId, loggable.fromExtension);
-    let archiveURL = config.submitHTTPURLBase + "?profile=" + encodeURIComponent(options.profile);
+    let archiveURL = config.submitHTTPURLBase + "?profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
 
     let byErrorMap = reqresFailedToSubmit.get(archiveURL);
     if (byErrorMap !== undefined) {
@@ -1487,6 +1486,7 @@ async function processArchiving() {
         let [loggable, dump] = archivable;
         try {
             reqresQueueSize -= loggable.dumpSize;
+            updateLoggable(loggable);
             await processOneArchiving(archivable);
             await updateDisplay(true, loggable.tabId, 10);
         } catch (err) {
@@ -1763,10 +1763,11 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
                     "res", reqres.responseComplete,
                     "result", statusCode, reqres.reason, reqres.statusLine,
                     "errors", reqres.errors,
-                    "profile", options.profile,
+                    "bucket", options.bucket,
                     reqres);
 
     let loggable = makeLoggableReqres(reqres);
+    loggable.bucket = options.bucket;
     loggable.net_state = state;
     loggable.was_problematic = loggable.problematic = problematic;
     loggable.picked = picked;
@@ -2198,6 +2199,14 @@ function makeLoggableReqres(reqres) {
     let loggable = shallowCopyOfReqres(reqres);
     addLoggableFields(loggable);
     return loggable;
+}
+
+function updateLoggable(loggable) {
+    if (loggable.sessionId !== sessionId)
+        return;
+
+    let options = getOriginConfig(loggable.tabId, loggable.fromExtension);
+    loggable.bucket = options.bucket;
 }
 
 // handlers
@@ -2936,6 +2945,10 @@ function upgradeConfig(cfg) {
         rename("archiveNotifyOK", "archiveDoneNotify")
         rename("archiveNotifyFailed", "archiveFailedNotify")
         rename("archiveNotifyDisabled", "archiveStuckNotify")
+
+        config.root.bucket = config.root.profile;
+        config.extension.bucket = config.extension.profile;
+        config.background.bucket = config.background.profile;
     case 5:
         break;
     default:

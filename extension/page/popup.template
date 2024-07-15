@@ -242,7 +242,7 @@ label code {
 
     <div name="more" class="opts">
     <ui id="config.collecting" type="boolean" class="prefer-on" data-help="Also known as &quot;Enable this add-on&quot;. Generate a new reqres and start tracking its progress when the browser makes a new HTTP request. Disabling this option will stop pWebArc from recording any new data. Already tracked reqres will still get tracked until they finish.">Track newly generated requests</ui>
-    <ui id="config.archive" type="boolean" class="prefer-on" data-help="What it says on the tin. Disabling this will keep them stuck in the archiving queue indefinitely, in which case restarting the browser or reloading the extension will loose them. Which is why you probably shouldn&#039;t disable this option, unless you want to disable this, atomically change some of the &quot;Profile&quot; settings below, and then enable this again.">Archive <code>collected</code> reqres</ui>
+    <ui id="config.archive" type="boolean" class="prefer-on" data-help="What it says on the tin. Disabling this will keep them stuck in the archiving queue indefinitely, in which case restarting the browser or reloading the extension will loose them. Which is why you probably shouldn&#039;t disable this option, unless you want to disable this, atomically change some of the &quot;Bucket&quot; settings below, and then enable this again.">Archive <code>collected</code> reqres</ui>
     <ui id="config.submitHTTPURLBase" type="string" class="da ds" data-help="URL of the server we are archiving to.">... at URL</ui>
     </div>
 
@@ -327,7 +327,7 @@ label code {
 
     <div name="more" class="opts">
     <ui id="tabconfig.negLimbo" type="boolean" class="prefer-off" data-help="For this tab, put newly `finished` reqres that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
-    <ui id="tabconfig.profile" type="string" class="da" data-help="Use this server-side profile when archiving reqres originating from this tab.">Profile</ui>
+    <ui id="tabconfig.bucket" type="string" class="da" data-help="Use this bucket when archiving reqres originating from this tab.">Bucket</ui>
     </div>
     <!-- thisTabOptions -->
     </div>
@@ -342,7 +342,7 @@ label code {
 
     <div name="more" class="opts">
     <ui id="tabconfig.children.negLimbo" type="boolean" class="prefer-off" data-help="Enable &quot;Drop into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Drop into limbo&quot;</ui>
-    <ui id="tabconfig.children.profile" type="string" class="da" data-help="Use this server-side profile when archiving reqres originating from new tabs opened from this tab (middle mouse click, context menu actions).">Profile</ui>
+    <ui id="tabconfig.children.bucket" type="string" class="da" data-help="Use this bucket when archiving reqres originating from new tabs opened from this tab (middle mouse click, context menu actions).">Bucket</ui>
     </div>
     <!-- thisTabChildrenOptions -->
     </div>
@@ -358,7 +358,7 @@ label code {
     <!-- smallMore -->
     <div class="opts">
     <ui id="config.root.negLimbo" type="boolean" class="prefer-off" data-help="Enable &quot;Drop into limbo&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Drop into limbo&quot;</ui>
-    <ui id="config.root.profile" type="string" class="da" data-help="Use this server-side profile when archiving reqres originating from new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Profile</ui>
+    <ui id="config.root.bucket" type="string" class="da" data-help="Use this bucket when archiving reqres originating from new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Bucket</ui>
     </div>
     <!-- smallMore -->
     </div>
@@ -375,7 +375,7 @@ label code {
     <ui id="config.background.collecting" type="boolean" class="prefer-on dc" data-help="Track new reqres originating from browser&#039;s background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this as browsers do link pre-fetching in background, and disabling this will miss that data.">Track new reqres</ui>
     <ui id="config.background.limbo" type="boolean" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
     <ui id="config.background.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
-    <ui id="config.background.profile" type="string" class="da" data-help="Use this server-side profile when archiving reqres originating from browser&#039;s background tasks (excluding those originating from extensions).">Profile</ui>
+    <ui id="config.background.bucket" type="string" class="da" data-help="Use this bucket when archiving reqres originating from browser&#039;s background tasks (excluding those originating from extensions).">Bucket</ui>
     </div>
     <!-- backgroundOptions -->
     </div>
@@ -387,7 +387,7 @@ label code {
     <ui id="config.extension.collecting" type="boolean" class="dc" data-help="Track new reqres originating from browser extensions.">Track new reqres</ui>
     <ui id="config.extension.limbo" type="boolean" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
     <ui id="config.extension.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
-    <ui id="config.extension.profile" type="string" class="da" data-help="Use this server-side profile when archiving reqres originating from browser extensions.">Profile</ui>
+    <ui id="config.extension.bucket" type="string" class="da" data-help="Use this bucket when archiving reqres originating from browser extensions.">Bucket</ui>
     </div>
     <!-- extensionOptions -->
     </div>
