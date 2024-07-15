@@ -175,14 +175,20 @@ label code {
           (<span id="stats.failed_size">0</span>)
         </span>
       </div>
-      <div id="div-stats.collected" data-help="From the last reset, the numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory (and the sum total of all sizes of their dumps).">
-        <span>Collected/Discarded</span>
+      <div id="div-stats.collected" data-help="From the last reset, the number of finished reqres that were collected for archival (and the sum total of all sizes of their dumps).">
+        <span>Collected</span>
         <span>
         </span>
         <span>
           <span id="stats.collected">0</span>
           (<span id="stats.collected_size">0</span>)
-          /
+        </span>
+      </div>
+      <div id="div-stats.discarded" data-help="From the last reset, the number of finished reqres that were NOT collected for archival and thus discarded from memory (and the sum total of all sizes of their dumps).">
+        <span>Discarded</span>
+        <span>
+        </span>
+        <span>
           <span id="stats.discarded">0</span>
           (<span id="stats.discarded_size">0</span>)
         </span>
@@ -198,17 +204,23 @@ label code {
           (<span id="stats.in_limbo_size">0</span>)
         </span>
       </div>
-      <div name="more" id="div-stats.picked" data-help="From the last reset, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (both at the moment each reqres in question `finished`).">
-        <span>Picked/Dropped</span>
+      <div name="more" id="div-stats.picked" data-help="From the last reset, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; conditions at the moment they `finished`.">
+        <span>Picked</span>
         <span>
         </span>
         <span>
           <span id="stats.picked">0</span>
-          /
+        </span>
+      </div>
+      <div name="more" id="div-stats.dropped" data-help="From the last reset, the number of reqres that did NOT satisfy &quot;Pick reqres for archival when they finish&quot; conditions at the moment they `finished`.">
+        <span>Dropped</span>
+        <span>
+        </span>
+        <span>
           <span id="stats.dropped">0</span>
         </span>
       </div>
-      <div id="div-stats.problematic" data-help="At the moment, the number of reqres that satisfied &quot;Mark reqres as problematic when they finish&quot; conditions (at the moment they `finished`).">
+      <div id="div-stats.problematic" data-help="At the moment, the number of reqres that satisfied &quot;Mark reqres as problematic when they finish&quot; conditions at the moment they `finished`.">
         <span>Problematic</span>
         <span>
           <input type="button" id="unmarkAllProblematic" data-shortcut="unmarkAllProblematic" data-help="Unmark all problematic reqres." value="Unmark" />
@@ -244,14 +256,20 @@ label code {
       </span>
     </h1>
     <div class="stats">
-      <div id="div-tabstats.collected" data-help="For this tab, the numbers of finished reqres that were collected for archival (and the sum total of all sizes of their dumps) / discarded from memory.">
-        <span>Collected/Discarded</span>
+      <div name="more" id="div-tabstats.collected" data-help="For this tab, the number of finished reqres that were collected for archival (and the sum total of all sizes of their dumps).">
+        <span>Collected</span>
         <span>
         </span>
         <span>
           <span id="tabstats.collected">0</span>
           (<span id="tabstats.collected_size">0</span>)
-          /
+        </span>
+      </div>
+      <div name="more" id="div-tabstats.discarded" data-help="For this tab, the number of finished reqres that were NOT collected for archival and thus were discarded from memory (and the sum total of all sizes of their dumps).">
+        <span>Discarded</span>
+        <span>
+        </span>
+        <span>
           <span id="tabstats.discarded">0</span>
           (<span id="tabstats.discarded_size">0</span>)
         </span>
@@ -267,17 +285,23 @@ label code {
           (<span id="tabstats.in_limbo_size">0</span>)
         </span>
       </div>
-      <div name="more" id="div-tabstats.picked" data-help="For this tab, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; / the number of those that did not (at the moment they `finished`).">
-        <span>Picked/Dropped</span>
+      <div name="more" id="div-tabstats.picked" data-help="For this tab, the number of reqres that satisfied &quot;Pick reqres for archival when they finish&quot; conditions at the moment they `finished`.">
+        <span>Picked</span>
         <span>
         </span>
         <span>
           <span id="tabstats.picked">0</span>
-          /
+        </span>
+      </div>
+      <div name="more" id="div-tabstats.dropped" data-help="For this tab, the number of reqres that did NOT satisfy &quot;Pick reqres for archival when they finish&quot; conditions at the moment they `finished`.">
+        <span>Dropped</span>
+        <span>
+        </span>
+        <span>
           <span id="tabstats.dropped">0</span>
         </span>
       </div>
-      <div id="div-tabstats.problematic" data-help="For this tab, the number of reqres that satisfied &quot;Mark reqres as problematic when they finish&quot; conditions (at the moment they `finished`).">
+      <div id="div-tabstats.problematic" data-help="For this tab, the number of reqres that satisfied &quot;Mark reqres as problematic when they finish&quot; conditions at the moment they `finished`.">
         <span>Problematic</span>
         <span>
           <input type="button" id="unmarkAllTabProblematic" data-shortcut="unmarkAllTabProblematic" data-help="For reqres of this tab, unmark all problematic reqres." value="Unmark" />

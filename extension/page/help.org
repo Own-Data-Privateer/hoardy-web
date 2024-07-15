@@ -118,12 +118,9 @@ The raw error strings reported by the browser for each reqres can be seen in the
 If [[./popup.html#div-config.problematicNotify][this option]] is enabled pWebArc will generate a desktop notification each time a new /problematic reqres/ get produced.
 If you don't care about the /problematic/ flag and it annoys you, you should disable that option, not options under [[./popup.html#problematic-options]["Mark reqres as problematic when they finish" settings]].
 *** Glossary
-Displayed on the [[./popup.html#div-tabstats.picked][Picked/Dropped reqres]] and similar [[./popup.html#div-stats.picked][global]] lines:
+- [[./popup.html#div-tabstats.picked][A /picked reqres/]] ([[./popup.html#div-stats.picked][globally]]) is a /finished reqres/ that satisfied the conditions controlled by [[./popup.html#pick-options]["Pick reqres for archival when they finish" settings]] on entering the =finished= state.
 
-- [[./popup.html#tabstats.picked][A /picked reqres/]] ([[./popup.html#stats.picked][globally]]) is a /finished reqres/ that satisfied the conditions controlled by [[./popup.html#pick-options]["Pick reqres for archival when they finish" settings]] on entering the =finished= state.
-- [[./popup.html#tabstats.dropped][A /dropped reqres/]] ([[./popup.html#stats.dropped][globally]]) is a /finished reqres/ that did /NOT/ satisfy the conditions controlled by [[./popup.html#pick-options]["Pick reqres for archival when they finish" settings]] on entering the =finished= state.
-
-On its own lines:
+- [[./popup.html#div-tabstats.dropped][A /dropped reqres/]] ([[./popup.html#div-stats.dropped][globally]]) is a /finished reqres/ that did /NOT/ satisfy the conditions controlled by [[./popup.html#pick-options]["Pick reqres for archival when they finish" settings]] on entering the =finished= state.
 
 - [[./popup.html#div-tabstats.problematic][A /problematic reqres/]] ([[./popup.html#div-stats.problematic][globally]]) is a /finished reqres/ that satisfies the conditions set by [[./popup.html#problematic-options]["Mark reqres as problematic when they finish" settings]].
 ** Step 3: Collection, Discarding, and Limbo
@@ -149,13 +146,8 @@ Similarly, for a /dropped reqres/ will be put into =in_limbo= when [[./popup.htm
 
 If [[./popup.html#div-config.limboNotify][this option]] is enabled and there are more than [[./popup.html#div-config.limboMaxNumber][this number]] reqres =in_limbo= or the total size of all dumps =in_limbo= is more than [[./popup.html#div-config.limboMaxSize][this size]] (in MiB), pWebArc will complain to remind you to /collect/ or /discard/ some of them so that your browser does not waste much memory and so that you won't loose too much data if something crashes.
 *** Glossary
-Displayed on the [[./popup.html#div-tabstats.collected][Collected/Discarded reqres]] and similar [[./popup.html#div-stats.collected][global]] lines:
-
-- [[./popup.html#tabstats.collected][A /collected reqres/]] ([[./popup.html#stats.collected][globally]]) is a reqres that was (either automatically or manually) sent to the =collected= state.
-- [[./popup.html#tabstats.discarded][A /discarded reqres/]] ([[./popup.html#stats.discarded][globally]]) is a reqres that was (either automatically or manually) sent to the =discarded=.
-
-On its own lines:
-
+- [[./popup.html#div-tabstats.collected][A /collected reqres/]] ([[./popup.html#div-stats.collected][globally]]) is a reqres that was (either automatically or manually) sent to the =collected= state.
+- [[./popup.html#div-tabstats.discarded][A /discarded reqres/]] ([[./popup.html#div-stats.discarded][globally]]) is a reqres that was (either automatically or manually) sent to the =discarded=.
 - [[./popup.html#div-tabstats.in_limbo][An /in-limbo reqres/]] ([[./popup.html#div-stats.in_limbo][globally]]) is a reqres that is being held =in_limbo= until you manually /collect/ or /discard/ it.
 ** Step 3.5: Logging
 On entering =collected= or =discarded= state, metadata of each reqres is copied into the recent reqres [[./popup.html#showTabState][history]]-[[./popup.html#showState][log]] and is kept there until the size of the log reaches [[./popup.html#div-config.history][this many elements]], at which point the older elements of the log start being elided automatically.
@@ -178,9 +170,7 @@ Evaluation of the =profile=  parameter is done just before the POST request is s
 If [[./popup.html#div-config.archiveFailedNotify][this option]] is enabled and some reqres failed to be archived, a new desktop notification will be generated.
 If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new desktop notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
-Displayed on the [[./popup.html#div-stats.queued][Queued reqres]] line:
-
-- [[./popup.html#stats.queued][A /queued reqres/]] is a =collected= reqres still =queued= for archival.
+- [[./popup.html#div-stats.queued][A /queued reqres/]] is a =collected= reqres still =queued= for archival.
 
 Displayed on the [[./popup.html#div-stats.submittedHTTP][Pushed/Failed reqres]] line:
 
