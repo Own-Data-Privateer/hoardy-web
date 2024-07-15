@@ -276,7 +276,7 @@ function setOriginConfig(tabId, fromExtension, tabcfg) {
         }
     }
 
-    updateDisplay(false, null);
+    scheduleUpdateDisplay(false, null);
 }
 
 function processNewTab(tabId, openerTabId) {
@@ -301,7 +301,7 @@ function processNewTab(tabId, openerTabId) {
     let tabcfg = prefillChildren(children);
     tabConfig.set(tabId, tabcfg);
 
-    updateDisplay(false, tabId);
+    scheduleUpdateDisplay(false, tabId);
 
     return tabcfg;
 }
@@ -405,7 +405,7 @@ function cleanupAfterTab(tabId) {
     }
 
     cleanupTabs();
-    updateDisplay(true, tabId);
+    scheduleUpdateDisplay(true, tabId);
 }
 
 function scheduleCleanupAfterTab(tabId, untimeout) {
@@ -429,9 +429,9 @@ function processRemoveTab(tabId) {
             emitTabInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_CLOSED_TAB");
             processMatchFinishingUpWebRequestDebug();
             scheduleCleanupAfterTab(tabId, timeout);
-            updateDisplay(true, tabId);
+            scheduleUpdateDisplay(true, tabId);
         });
-        updateDisplay(true);
+        scheduleUpdateDisplay(true);
     } else
         scheduleCleanupAfterTab(tabId, 0);
 }
@@ -887,7 +887,7 @@ function forgetHistory(tabId, rrfilter) {
 
     reqresLog = unpopped;
     broadcast(["resetLog", reqresLog]);
-    updateDisplay(true, tabId);
+    scheduleUpdateDisplay(true, tabId);
 }
 
 // browserAction state
@@ -900,7 +900,7 @@ let udEpisode = 1;
 // `updatedTabId === null` means "config changed or any tab could have been updated"
 // `updatedTabId === undefined` means "no tabs changed"
 // otherwise, it's a tabId of a changed tab
-async function updateDisplay(statsChanged, updatedTabId, episodic) {
+function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
     let changed = updatedTabId === null;
 
     // only run the rest every `episodic` updates, when it's set
@@ -912,6 +912,8 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
 
     let stats;
     let title;
+    let badge;
+    let color;
 
     if (statsChanged || udStats === null || changed) {
         stats = getStats();
@@ -926,8 +928,8 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
 
         broadcast(["updateStats", stats]);
 
-        let badge = "";
-        let color = 0;
+        badge = "";
+        color = 0;
         let chunks = [];
 
         if (stats.issues > 0)
@@ -1007,27 +1009,11 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
         if (udBadge !== badge) {
             changed = true;
             udBadge = badge;
-            await browser.browserAction.setBadgeText({ text: badge });
-            if (config.debugging)
-                console.log(`updated browserAction: badge "${badge}"`);
         }
 
         if (udColor !== color) {
             changed = true;
             udColor = color;
-            switch (color) {
-            case 0:
-                await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
-                await browser.browserAction.setBadgeBackgroundColor({ color: "#777777" });
-                break;
-            case 1:
-                await browser.browserAction.setBadgeTextColor({ color: "#000000" });
-                await browser.browserAction.setBadgeBackgroundColor({ color: "#e0e020" });
-                break;
-            default:
-                await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
-                await browser.browserAction.setBadgeBackgroundColor({ color: "#e02020" });
-            }
         }
 
         if (udTitle != title) {
@@ -1048,101 +1034,152 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
         updatedTabId = null;
     }
 
-    let tabs = await browser.tabs.query({ active: true });
-    for (let tab of tabs) {
-        let tabId = tab.id;
-        let stateTabId = getStateTabIdOrTabId(tab);
-
-        // skip updates for unchanged tabs, when specified
-        if (updatedTabId !== null && updatedTabId !== tabId && updatedTabId !== stateTabId)
-            continue;
-
-        let tabcfg = tabConfig.get(stateTabId);
-        if (tabcfg === undefined)
-            tabcfg = prefillChildren(config.root);
-        let tabstats = getTabStats(stateTabId);
-
-        let icon;
-
-        let isLimbo = tabcfg.limbo || tabcfg.children.limbo;
-        let isNegLimbo = tabcfg.negLimbo || tabcfg.children.negLimbo;
-        let isBothLimbo = isLimbo && isNegLimbo;
-        let isLimboSame = tabcfg.limbo === tabcfg.children.limbo;
-        let isNegLimboSame = tabcfg.negLimbo === tabcfg.children.negLimbo;
-
-        if (tabstats.in_flight > 0)
-            icon = "tracking";
-        else if (config.archive && stats.queued > 0)
-            icon = "archiving";
-        else if (stats.failed > 0)
-            icon = "error";
-        else if (tabstats.problematic > 0)
-            icon = "problematic";
-        else if (!config.collecting)
-            icon = "off";
-        else if (!tabcfg.collecting || !tabcfg.children.collecting) {
-            if (tabcfg.collecting === tabcfg.children.collecting)
-                icon = "off";
-            else if (isBothLimbo)
-                icon = "off-part-bothlimbo";
-            else if (isLimbo)
-                icon = "off-part-limbo";
-            else if (isNegLimbo)
-                icon = "off-part-neglimbo";
-            else
-                icon = "off-part";
-        } else if (isBothLimbo) {
-            if (isLimboSame && isNegLimboSame)
-                icon = "bothlimbo";
-            else
-                icon = "bothlimbo-mix";
-        } else if (isLimbo) {
-            if (tabcfg.limbo === tabcfg.children.limbo)
-                icon = "limbo";
-            else
-                icon = "limbo-part";
-        } else if (isNegLimbo) {
-            if (tabcfg.negLimbo === tabcfg.children.negLimbo)
-                icon = "neglimbo";
-            else
-                icon = "neglimbo-part";
-        } else
-            icon = "idle";
-
-        let tchunks = [];
-        if (!tabcfg.collecting)
-            tchunks.push("off");
-        if (tabstats.problematic > 0)
-            tchunks.push(`${tabstats.problematic} problematic reqres`);
-        if (tabstats.in_limbo > 0)
-            tchunks.push(`${tabstats.in_limbo} reqres in limbo`);
-        if (tabstats.in_flight > 0)
-            tchunks.push(`still tracking ${tabstats.in_flight} in-flight reqres`);
-
-        if (tabcfg.limbo && tabcfg.negLimbo)
-            tchunks.push("picking and dropping into limbo");
-        else if (tabcfg.limbo)
-            tchunks.push("picking into limbo");
-        else if (tabcfg.negLimbo)
-            tchunks.push("dropping into limbo");
-
-        let ttitle = title;
-        if (tchunks.length != 0)
-            ttitle += "; this tab: " + tchunks.join(", ");
-
-        if (useDebugger) {
-            // Chromium does not support per-window browserActions, so we have to update them per-tab.
-            await browser.browserAction.setIcon({ tabId, path: mkIcons(icon) }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
-            await browser.browserAction.setTitle({ tabId, title: ttitle }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
-        } else {
-            let windowId = tab.windowId;
-            await browser.browserAction.setIcon({ windowId, path: mkIcons(icon) }).catch(logError);
-            await browser.browserAction.setTitle({ windowId, title: ttitle }).catch(logError);
+    async function updateBrowserAction() {
+        if (badge !== undefined) {
+            await browser.browserAction.setBadgeText({ text: badge });
+            if (config.debugging)
+                console.log(`updated browserAction: badge "${badge}"`);
         }
 
-        if (config.debugging)
-            console.log(`updated browserAction: tabId ${tabId}: icon "${icon}", title "${ttitle}"`);
+        if (color !== undefined) {
+            switch (color) {
+            case 0:
+                await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
+                await browser.browserAction.setBadgeBackgroundColor({ color: "#777777" });
+                break;
+            case 1:
+                await browser.browserAction.setBadgeTextColor({ color: "#000000" });
+                await browser.browserAction.setBadgeBackgroundColor({ color: "#e0e020" });
+                break;
+            default:
+                await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
+                await browser.browserAction.setBadgeBackgroundColor({ color: "#e02020" });
+            }
+        }
+
+        let tabs = await browser.tabs.query({ active: true });
+        for (let tab of tabs) {
+            let tabId = tab.id;
+            let stateTabId = getStateTabIdOrTabId(tab);
+
+            // skip updates for unchanged tabs, when specified
+            if (updatedTabId !== null && updatedTabId !== tabId && updatedTabId !== stateTabId)
+                continue;
+
+            let tabcfg = tabConfig.get(stateTabId);
+            if (tabcfg === undefined)
+                tabcfg = prefillChildren(config.root);
+            let tabstats = getTabStats(stateTabId);
+
+            let icon;
+
+            let isLimbo = tabcfg.limbo || tabcfg.children.limbo;
+            let isNegLimbo = tabcfg.negLimbo || tabcfg.children.negLimbo;
+            let isBothLimbo = isLimbo && isNegLimbo;
+            let isLimboSame = tabcfg.limbo === tabcfg.children.limbo;
+            let isNegLimboSame = tabcfg.negLimbo === tabcfg.children.negLimbo;
+
+            if (tabstats.in_flight > 0)
+                icon = "tracking";
+            else if (config.archive && stats.queued > 0)
+                icon = "archiving";
+            else if (stats.failed > 0)
+                icon = "error";
+            else if (tabstats.problematic > 0)
+                icon = "problematic";
+            else if (!config.collecting)
+                icon = "off";
+            else if (!tabcfg.collecting || !tabcfg.children.collecting) {
+                if (tabcfg.collecting === tabcfg.children.collecting)
+                    icon = "off";
+                else if (isBothLimbo)
+                    icon = "off-part-bothlimbo";
+                else if (isLimbo)
+                    icon = "off-part-limbo";
+                else if (isNegLimbo)
+                    icon = "off-part-neglimbo";
+                else
+                    icon = "off-part";
+            } else if (isBothLimbo) {
+                if (isLimboSame && isNegLimboSame)
+                    icon = "bothlimbo";
+                else
+                    icon = "bothlimbo-mix";
+            } else if (isLimbo) {
+                if (tabcfg.limbo === tabcfg.children.limbo)
+                    icon = "limbo";
+                else
+                    icon = "limbo-part";
+            } else if (isNegLimbo) {
+                if (tabcfg.negLimbo === tabcfg.children.negLimbo)
+                    icon = "neglimbo";
+                else
+                    icon = "neglimbo-part";
+            } else
+                icon = "idle";
+
+            let tchunks = [];
+            if (!tabcfg.collecting)
+                tchunks.push("off");
+            if (tabstats.problematic > 0)
+                tchunks.push(`${tabstats.problematic} problematic reqres`);
+            if (tabstats.in_limbo > 0)
+                tchunks.push(`${tabstats.in_limbo} reqres in limbo`);
+            if (tabstats.in_flight > 0)
+                tchunks.push(`still tracking ${tabstats.in_flight} in-flight reqres`);
+
+            if (tabcfg.limbo && tabcfg.negLimbo)
+                tchunks.push("picking and dropping into limbo");
+            else if (tabcfg.limbo)
+                tchunks.push("picking into limbo");
+            else if (tabcfg.negLimbo)
+                tchunks.push("dropping into limbo");
+
+            let ttitle = title;
+            if (tchunks.length != 0)
+                ttitle += "; this tab: " + tchunks.join(", ");
+
+            if (useDebugger) {
+                // Chromium does not support per-window browserActions, so we have to update them per-tab.
+                await browser.browserAction.setIcon({ tabId, path: mkIcons(icon) }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
+                await browser.browserAction.setTitle({ tabId, title: ttitle }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
+            } else {
+                let windowId = tab.windowId;
+                await browser.browserAction.setIcon({ windowId, path: mkIcons(icon) }).catch(logError);
+                await browser.browserAction.setTitle({ windowId, title: ttitle }).catch(logError);
+            }
+
+            if (config.debugging)
+                console.log(`updated browserAction: tabId ${tabId}: icon "${icon}", title "${ttitle}"`);
+        }
     }
+
+    return updateBrowserAction;
+}
+
+async function updateDisplay(statsChanged, updatedTabId, episodic) {
+    let res = makeUpdateDisplay(statsChanged, updatedTabId, episodic);
+    if (res !== undefined)
+        await res();
+}
+
+let udStatsChanged = false;
+let udUpdatedTabId;
+
+async function scheduleUpdateDisplay(statsChanged, updatedTabId) {
+    udStatsChanged = udStatsChanged || statsChanged;
+    if (udUpdatedTabId === undefined)
+        udUpdatedTabId = updatedTabId;
+    else
+        // then merging more than one value, the result is `null`, i.e. a full
+        // update
+        udUpdatedTabId = null;
+
+    resetSingletonTimeout(scheduledInternal, "updateDisplay", 10, async () => {
+        await updateDisplay(udStatsChanged, udUpdatedTabId);
+        udStatsChanged = false;
+        udUpdatedTabId = undefined;
+    });
 }
 
 // schedule processFinishingUp
@@ -2385,7 +2422,7 @@ function handleBeforeRequest(e) {
 
     reqresInFlight.set(requestId, reqres);
     broadcast(["newInFlight", [makeLoggableReqres(reqres)]]);
-    updateDisplay(true, e.tabId);
+    scheduleUpdateDisplay(true, e.tabId);
 }
 
 function handleBeforeSendHeaders(e) {
@@ -2543,8 +2580,6 @@ function handleTabCreated(tab) {
             chromiumResetRootTab(tabId, tabcfg);
     } else
         processNewTab(tabId, tab.openerTabId);
-
-    updateDisplay(false, tabId);
 }
 
 function handleTabRemoved(tabId) {
@@ -2567,21 +2602,21 @@ function handleTabActivated(e) {
         // Chromium does not provide `browser.menus.onShown` event
         updateMenu(getOriginConfig(e.tabId));
     // Usually, this will not be enough, see `handleTabUpdated`.
-    updateDisplay(false, e.tabId);
+    scheduleUpdateDisplay(false, e.tabId);
 }
 
 function handleTabUpdated(tabId, changeInfo, tabInfo) {
     if (config.debugging)
         console.log("tab updated", tabId);
-    if (changeInfo.url !== undefined)
+    if (/* Firefox */ changeInfo.url !== undefined || /* Chromium */ useDebugger)
         // On Firefox, there's no `tab.pendingUrl`, so `updateDisplay` might
         // get confused about which icon to show for our internal pages
-        // until `tab.url` is set.
-        updateDisplay(false, tabId);
-    else if (useDebugger)
+        // narrowed to a tracked tab until `tab.url` is set. Hence, we need to
+        // run `scheduleUpdateDisplay` as soon as it is set.
+        //
         // On Chromium, Chromium resets the browserAction icon each time tab chages
         // state, so we have to update icons after each one.
-        updateDisplay(false, tabId);
+        scheduleUpdateDisplay(false, tabId);
 }
 
 // open client tab ports
@@ -2650,14 +2685,14 @@ function handleMessage(request, sender, sendResponse) {
         if (config.archive && oldConfig.archive !== config.archive)
             scheduleRetryFailed(0, false);
 
-        updateDisplay(true, null);
+        scheduleUpdateDisplay(true, null);
         broadcast(["updateConfig", config]);
         sendResponse(null);
         break;
     case "resetConfig":
         config = assignRec({}, configDefaults);
         scheduleSaveConfig();
-        updateDisplay(true, null);
+        scheduleUpdateDisplay(true, null);
         broadcast(["updateConfig", config]);
         sendResponse(null);
         break;
@@ -2722,7 +2757,7 @@ function handleMessage(request, sender, sendResponse) {
     case "retryFailed":
         scheduleRetryFailed(0, true);
         // technically, we need
-        //updateDisplay(true, null);
+        //scheduleUpdateDisplay(true, null);
         // here, but it would be useless, since timeout is 0
         sendResponse(null);
         break;
