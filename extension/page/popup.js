@@ -84,7 +84,7 @@ async function popupMain() {
         forgetHistory: "🧹",
         showState: "📜",
         runAllActions: "🟢",
-        cancelCleanupActions: "🟥",
+        cancelAllActions: "🟥",
         retryFailed: "♻",
         collectAllInLimbo: "✔",
         discardAllInLimbo: "✖",
@@ -152,7 +152,7 @@ async function popupMain() {
     buttonToMessage("stopAllTabInFlight",      () => ["stopAllInFlight", tabId]);
 
     buttonToMessage("runAllActions");
-    buttonToMessage("cancelCleanupActions");
+    buttonToMessage("cancelAllActions");
     buttonToMessage("forgetErrored");
     buttonToMessage("retryFailed");
 

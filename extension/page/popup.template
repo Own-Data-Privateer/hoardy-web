@@ -138,7 +138,7 @@ label code {
         <span>Scheduled</span>
         <span>
           <input type="button" id="runAllActions" class="smaller" data-help="Run all scheduled actions immediately." value="Run" />
-          <input type="button" id="cancelCleanupActions" class="smaller" data-help="Cancel all scheduled actions that can be canceled." value="Cancel" />
+          <input type="button" id="cancelAllActions" class="smaller" data-help="Cancel all scheduled actions that can be canceled." value="Cancel" />
         </span>
         <span>
           <span id="stats.scheduled">0</span>

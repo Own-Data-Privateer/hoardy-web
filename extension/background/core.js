@@ -175,7 +175,7 @@ function runAllActions() {
     scheduleEndgame(null);
 }
 
-function cancelCleanupActions() {
+function cancelAllActions() {
     runSynchronously(async () => {
         await popAllSingletonTimeouts(scheduledCancelable, false);
     });
@@ -2738,8 +2738,8 @@ function handleMessage(request, sender, sendResponse) {
         runAllActions();
         sendResponse(null);
         break;
-    case "cancelCleanupActions":
-        cancelCleanupActions();
+    case "cancelAllActions":
+        cancelAllActions();
         sendResponse(null);
         break;
     case "broadcast":
