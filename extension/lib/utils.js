@@ -707,12 +707,15 @@ function setUI(node, prefix, value, update) {
     }
 
     let el = node.getElementById(prefix);
-    if (el === null) {
-        el = node.getElementById(prefix + "-tristate");
-        if (el === null)
-            return;
-        typ = "tristate";
+    if (el === null)
+        return;
+
+    let div = node.getElementById("div-" + prefix);
+    if (div !== null) {
+        if (div.classList.contains("tristate"))
+            typ = "tristate";
     }
+
     //console.log("setting UI", prefix, typ, el, value);
 
     if (typ == "boolean" && el.tagName == "INPUT" && el.type == "checkbox") {
@@ -783,10 +786,10 @@ function makeUI(node) {
     res.classList.add(typ);
 
     let ne = document.createElement("input");
-    ne.id = id + (typ === "tristate" ? "-tristate" : "");
+    ne.id = id;
     ne.name = id;
     if (tabindex !== undefined)
-        ne.setAttribute("tabindex", tabindex)
+        ne.setAttribute("tabindex", tabindex);
 
     let lbl = document.createElement("label");
     lbl.innerHTML = node.innerHTML.replace("{}", `<span class="placeholder"></span>`);
@@ -795,10 +798,7 @@ function makeUI(node) {
 
     if (typ === "boolean" || typ === "tristate") {
         ne.type = "checkbox";
-        if (typ === "boolean")
-            ne.classList.add("toggle");
-        else
-            ne.classList.add("tristate");
+        ne.classList.add("toggle");
         ne.checked = false;
         appendByDefault = false;
     } else if (typ === "number" || typ === "string") {
