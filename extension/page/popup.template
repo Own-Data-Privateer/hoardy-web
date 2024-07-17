@@ -68,7 +68,7 @@ h2 input[type="button"] {
 }
 
 .stats .help-root > div > span:nth-child(3) {
-    min-width: 5em;
+    min-width: 10em;
     text-align: right;
 }
 
@@ -78,15 +78,6 @@ h2 input[type="button"] {
 
 .opts {
     margin-left: 0.6em;
-}
-
-.buttons,
-.buttons > span {
-    display: flex;
-}
-
-label code {
-    margin: 0 0.5em;
 }
 
 #showAll {
@@ -525,7 +516,7 @@ label code {
 
     <div id="destructive-actions">
     <h2>Potentially destructive actions</h2>
-    <div class="buttons"><span class="center">
+    <div class="flex"><span class="center">
       <input type="button" id="resetPersistentStats" data-help="Reset all persistent collected, discarded, picked, and dropped stats to zero." value="Reset stats!" />
       <input type="button" id="resetConfig" data-help="Reset all config options to their default values." value="Reset config!" />
     </span></div>
@@ -534,7 +525,7 @@ label code {
     <!-- uiMore -->
     </div>
 
-    <div class="buttons">
+    <div class="flex">
       <input type="button" id="showAll" tabindex=1 value="Show all" />
     </div>
 

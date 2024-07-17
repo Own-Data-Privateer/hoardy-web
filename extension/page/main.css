@@ -87,6 +87,13 @@ body {
     margin-left: auto;
 }
 
+h1 code,
+h2 code,
+label code {
+    margin: 0 0.5ch;
+}
+
+.flex,
 div.ui,
 div.ui label {
     display: flex;
@@ -95,8 +102,13 @@ div.ui label {
 div.ui label,
 div.ui label input[type="number"],
 div.ui label input[type="text"] {
-    flex: 1 0 auto;
+    flex: 1 1 auto;
     margin: auto 0;
+}
+
+div.ui label input[type="number"] {
+    width: 8ch;
+    max-width: 16ch;
 }
 
 div.ui label input[type="number"],
@@ -112,6 +124,12 @@ div.ui label input[type="text"]:nth-last-child(1) {
 
 div.ui label input[type="checkbox"]:nth-child(1) {
     margin-right: 1ch;
+}
+
+div.ui.c label input[type="number"],
+div.ui.c label input[type="text"],
+div.ui.c label input[type="checkbox"] {
+    margin: 0 1ch;
 }
 
 input[type="checkbox"].toggle,

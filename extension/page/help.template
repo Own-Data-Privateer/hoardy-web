@@ -20,7 +20,7 @@ body {
 
 iframe {
     max-height: 500px;
-    min-width: 400px;
+    min-width: 450px;
     overflow-y: scroll;
 }
     </style>
