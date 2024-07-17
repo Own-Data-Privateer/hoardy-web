@@ -776,50 +776,50 @@ function makeUI(node) {
     // copy other attributes
     for (let attr of node.attributes) {
         let name = attr.name;
-        if (name == "id" || name == "tabindex") continue;
+        if (name === "id" || name === "tabindex") continue;
         res.setAttribute(name, node.getAttribute(name))
     }
     res.classList.add("ui");
     res.classList.add(typ);
 
-    let sep = " "; // "<span class=\"sep\"> </span>";
+    let ne = document.createElement("input");
+    ne.id = id + (typ === "tristate" ? "-tristate" : "");
+    ne.name = id;
+    if (tabindex !== undefined)
+        ne.setAttribute("tabindex", tabindex)
 
-    if (typ == "boolean" || typ == "tristate") {
-        let ne = document.createElement("input");
-        ne.id = id + (typ == "tristate" ? "-tristate" : "");
-        ne.name = id;
-        if (tabindex !== undefined)
-            ne.setAttribute("tabindex", tabindex)
+    let lbl = document.createElement("label");
+    lbl.innerHTML = node.innerHTML.replace("{}", `<span class="placeholder"></span>`);
+
+    let appendByDefault = true;
+
+    if (typ === "boolean" || typ === "tristate") {
         ne.type = "checkbox";
-        if (typ == "boolean")
+        if (typ === "boolean")
             ne.classList.add("toggle");
         else
             ne.classList.add("tristate");
         ne.checked = false;
-
-        let lbl = document.createElement("label");
-        lbl.innerHTML = sep + node.innerHTML;
-        lbl.prepend(ne);
-        res.appendChild(lbl);
-    } else if (typ == "number" || typ == "string") {
-        let ne = document.createElement("input");
-        ne.id = id;
-        ne.name = id;
-        if (tabindex !== undefined)
-            ne.setAttribute("tabindex", tabindex)
-        if (typ == "number") {
+        appendByDefault = false;
+    } else if (typ === "number" || typ === "string") {
+        if (typ === "number") {
             ne.type = "number";
             ne.value = 0;
         } else {
             ne.type = "text";
             ne.value = "";
         }
-
-        let lbl = document.createElement("label");
-        lbl.innerHTML = node.innerHTML + sep;
-        lbl.appendChild(ne);
-        res.appendChild(lbl);
     }
+
+    let placeholder = lbl.getElementsByClassName("placeholder")[0];
+    if (placeholder !== undefined)
+        lbl.replaceChild(ne, placeholder);
+    else if (appendByDefault)
+        lbl.appendChild(ne);
+    else
+        lbl.prepend(ne);
+
+    res.appendChild(lbl);
 
     node.parentElement.replaceChild(res, node);
 }
