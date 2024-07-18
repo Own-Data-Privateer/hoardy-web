@@ -170,8 +170,17 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], Lo
                 raise Failure(gettext("failed to open `%s`"), path)
 
             try:
-                data = load_func(fobj, abs_path)
-                emit_func(abs_path, path, in_stat, data)
+                try:
+                    data = load_func(fobj, abs_path)
+                except Failure as exc:
+                    exc.elaborate(gettext("load"))
+                    raise exc
+
+                try:
+                    emit_func(abs_path, path, in_stat, data)
+                except Failure as exc:
+                    exc.elaborate(gettext("emit"))
+                    raise exc
             finally:
                 fobj.close()
         except Failure as exc:

@@ -29,6 +29,7 @@ import typing as _t
 import urllib.parse as _up
 
 from decimal import Decimal
+from gettext import gettext
 
 from kisstdlib.exceptions import *
 from kisstdlib.path import *
@@ -771,38 +772,39 @@ ReqresExpr_atoms.update({
 ReqresExpr_lookup = linst_custom_or_env(ReqresExpr_atoms)
 
 class WRRParsingError(Failure): pass
+class WRRTypeError(WRRParsingError): pass
 
-def _t_bool(x : _t.Any) -> bool:
+def _t_bool(n : str, x : _t.Any) -> bool:
     if isinstance(x, bool): return x
-    raise TypeError("wrong type: want %s, got %s", bool, type(x))
+    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "bool", type(x).__name__)
 
-def _t_bytes(x : _t.Any) -> bytes:
+def _t_bytes(n : str, x : _t.Any) -> bytes:
     if isinstance(x, bytes): return x
-    raise TypeError("wrong type: want %s, got %s", bytes, type(x))
+    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "bytes", type(x).__name__)
 
-def _t_str(x : _t.Any) -> str:
+def _t_str(n : str, x : _t.Any) -> str:
     if isinstance(x, str): return x
-    raise TypeError("wrong type: want %s, got %s", str, type(x))
+    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "str", type(x).__name__)
 
-def _t_bytes_or_str(x : _t.Any) -> bytes | str:
+def _t_bytes_or_str(n : str, x : _t.Any) -> bytes | str:
     if isinstance(x, bytes): return x
     if isinstance(x, str): return x
-    raise TypeError("wrong type: want %s or %s, got %s", bytes, str, type(x))
+    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s or %s, got %s"), n, "bytes", "str", type(x).__name__)
 
-def _t_int(x : _t.Any) -> int:
+def _t_int(n : str, x : _t.Any) -> int:
     if isinstance(x, int): return x
-    raise TypeError("wrong type: want %s, got %s", int, type(x))
+    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "int", type(x).__name__)
 
-def _t_epoch(x : _t.Any) -> Epoch:
-    return Epoch(Decimal(_t_int(x)) / 1000)
+def _t_epoch(n : str, x : _t.Any) -> Epoch:
+    return Epoch(Decimal(_t_int(n, x)) / 1000)
 
 def _f_epoch(x : Epoch) -> int:
     return int(x * 1000)
 
-def _t_headers(x : _t.Any) -> Headers:
+def _t_headers(n : str, x : _t.Any) -> Headers:
     if Headers.__instancecheck__(x):
         return _t.cast(Headers, x)
-    raise TypeError("wrong type: want %s, got %s", Headers, type(x))
+    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), "Headers", type(x).__name__)
 
 def wrr_load(fobj : _io.BufferedReader) -> Reqres:
     head = fobj.peek(2)[:2]
@@ -812,23 +814,33 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
     try:
         data = _cbor2.load(fobj)
     except _cbor2.CBORDecodeValueError:
-        raise WRRParsingError("can't decode CBOR data, not a CBOR file?")
+        raise WRRParsingError(gettext("CBOR parsing failure"))
 
     if type(data) != list or len(data) == 0:
-        raise WRRParsingError("can't parse CBOR data: wrong structure")
+        raise WRRParsingError(gettext("Reqres parsing failure: wrong spine"))
 
     if data[0] == "WEBREQRES/1":
         _, source, protocol, request_, response_, finished_at, extra = data
         rq_started_at, rq_method, rq_url, rq_headers, rq_complete, rq_body = request_
-        purl = parse_url(_t_str(rq_url))
+        purl = parse_url(_t_str("request.url", rq_url))
         if purl.scheme not in Reqres_url_schemes:
-            raise WRRParsingError("unsupported URL scheme `%s`", purl.scheme)
-        request = Request(_t_epoch(rq_started_at), _t_str(rq_method), purl, _t_headers(rq_headers), _t_bool(rq_complete), _t_bytes_or_str(rq_body))
+            raise WRRParsingError(gettext("Reqres field `request.url`: unsupported URL scheme `%s`"), purl.scheme)
+        request = Request(_t_epoch("request.started_at", rq_started_at),
+                          _t_str("request.method", rq_method),
+                          purl,
+                          _t_headers("request.headers", rq_headers),
+                          _t_bool("request.complete", rq_complete),
+                          _t_bytes_or_str("request.body", rq_body))
         if response_ is None:
             response = None
         else:
             rs_started_at, rs_code, rs_reason, rs_headers, rs_complete, rs_body = response_
-            response = Response(_t_epoch(rs_started_at), _t_int(rs_code), _t_str(rs_reason), _t_headers(rs_headers), _t_bool(rs_complete), _t_bytes_or_str(rs_body))
+            response = Response(_t_epoch("response.started_at", rs_started_at),
+                                _t_int("response.code", rs_code),
+                                _t_str("responese.reason", rs_reason),
+                                _t_headers("responese.headers", rs_headers),
+                                _t_bool("response.complete", rs_complete),
+                                _t_bytes_or_str("responese.body", rs_body))
 
         try:
             wsframes = extra["websocket"]
@@ -839,11 +851,14 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
             websocket = []
             for frame in wsframes:
                 sent_at, from_client, opcode, content = frame
-                websocket.append(WebSocketFrame(_t_epoch(sent_at), _t_bool(from_client), _t_int(opcode), _t_bytes(content)))
+                websocket.append(WebSocketFrame(_t_epoch("ws.sent_at", sent_at),
+                                                _t_bool("ws.from_client", from_client),
+                                                _t_int("ws.opcode", opcode),
+                                                _t_bytes("ws.content", content)))
 
-        return Reqres(1, source, protocol, request, response, _t_epoch(finished_at), extra, websocket)
+        return Reqres(1, source, protocol, request, response, _t_epoch("finished_at", finished_at), extra, websocket)
     else:
-        raise WRRParsingError("can't parse CBOR data: unknown format %s", data[0])
+        raise WRRParsingError(gettext("Reqres parsing failure: unknown format `%s`"), data[0])
 
 def wrr_load_expr(fobj : _io.BufferedReader, path : str | bytes) -> ReqresExpr:
     reqres = wrr_load(fobj)
