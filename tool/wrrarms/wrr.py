@@ -858,7 +858,21 @@ def wrr_load_raw(fobj : _io.BufferedReader) -> Reqres:
         raise WRRParsingError(gettext("Reqres parsing failure: unknown format `%s`"), data[0])
 
 def wrr_load(fobj : _io.BufferedReader) -> Reqres:
-    return wrr_load_raw(ungzip_fobj_maybe(fobj))
+    fobj = ungzip_fobj_maybe(fobj)
+    res = wrr_load_raw(fobj)
+    p = fobj.peek(16)
+    if p != b"":
+        # there's some junk after the end of the Reqres structure
+        raise WRRParsingError(gettext("expected EOF, got `%s`"), p)
+    return res
+
+def wrr_load_bundle(fobj : _io.BufferedReader, path : _t.AnyStr) -> _t.Iterator[Reqres]:
+    fobj = ungzip_fobj_maybe(fobj)
+    while True:
+        p = fobj.peek(16)
+        if p == b"": break
+        res = wrr_load_raw(fobj)
+        yield res
 
 def wrr_load_expr(fobj : _io.BufferedReader, path : str | bytes) -> ReqresExpr:
     reqres = wrr_load(fobj)

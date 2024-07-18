@@ -1250,7 +1250,7 @@ def cmd_organize(cargs : _t.Any) -> None:
             finally:
                 finish()
 
-def cmd_import_mitmproxy(cargs : _t.Any) -> None:
+def cmd_import_generic(cargs : _t.Any, load_wrrs : _t.Callable[[_io.BufferedReader, _t.AnyStr], _t.Iterator[Reqres]]) -> None:
     compile_filters(cargs)
     elaborate_output(cargs)
     handle_paths(cargs)
@@ -1258,26 +1258,32 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
     emit_one : _t.Callable[[SourcedBytes[_t.AnyStr], ReqresExpr], None]
     emit_one, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", make_DeferredFileWriteIntent(False))
 
-    def emit(abs_in_path : str, rel_in_path : str, in_stat : _os.stat_result, rr : _t.Iterator[Reqres]) -> None:
+    def emit(abs_in_path : _t.AnyStr, rel_in_path : _t.AnyStr, in_stat : _os.stat_result, rr : _t.Iterator[Reqres]) -> None:
         dev, ino = in_stat.st_dev, in_stat.st_ino
         n = 0
         for reqres in rr:
             if want_stop: raise KeyboardInterrupt()
 
             rrexpr = ReqresExpr(reqres, abs_in_path, [n])
-            emit_one(SourcedBytes(rrexpr.format_source(), wrr_dumps(rrexpr.reqres)), rrexpr)
+            # TODO: to fix this cast, make ReqresExpr a _t.Generic
+            emit_one(SourcedBytes(_t.cast(_t.AnyStr, rrexpr.format_source()), wrr_dumps(rrexpr.reqres)), rrexpr) # type: ignore
             n += 1
-
-    from .mitmproxy import load_as_wrrs
 
     global should_raise
     should_raise = False
 
     try:
         for path in cargs.paths:
-            load_map_orderly(load_as_wrrs, emit, path, ordering=cargs.walk_fs, errors=cargs.errors)
+            load_map_orderly(load_wrrs, emit, path, ordering=cargs.walk_fs, errors=cargs.errors)
     finally:
         finish()
+
+def cmd_import_bundle(cargs : _t.Any) -> None:
+    cmd_import_generic(cargs, wrr_load_bundle)
+
+def cmd_import_mitmproxy(cargs : _t.Any) -> None:
+    from .mitmproxy import load_as_wrrs
+    cmd_import_generic(cargs, load_as_wrrs)
 
 default_export_expr = "response.body|eb|scrub response +all_refs,-actions"
 def cmd_export_mirror(cargs : _t.Any) -> None:
@@ -1856,21 +1862,29 @@ for each source `PATH` file, the destination `--output` file will be replaced wi
     add_paths(cmd, "organize")
     cmd.set_defaults(func=cmd_organize)
 
+    def add_import_args(cmd : _t.Any) -> None:
+        add_errors(cmd)
+        add_filters(cmd, "import")
+        add_output(cmd)
+        add_memory(cmd, 0, 1024)
+        cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("destination directory"))
+        cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same as `{__package__} organize --output`, which see"""))
+        add_paths(cmd)
+
     # import
     supcmd = subparsers.add_parser("import", help=_("convert other HTTP archive formats into WRR"),
-                                   description = _(f"""Use specified parser to parse data in each `INPUT` `PATH` into reqres and dump them under `DESTINATION` with paths derived from their metadata.
-In short, this is `{__package__} organize --copy` but for non-WRR `INPUT` files."""))
+                                   description = _(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
+In short, this is `{__package__} organize --copy` for `INPUT` files that use different files formats."""))
     supsub = supcmd.add_subparsers(title="file formats")
 
+    cmd = supsub.add_parser("bundle", help=_("convert WRR-bundles into separate WRR files"),
+                            description = _(f"""Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of WRR-dumps) and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata."""))
+    add_import_args(cmd)
+    cmd.set_defaults(func=cmd_import_bundle)
+
     cmd = supsub.add_parser("mitmproxy", help=_("convert `mitmproxy` stream dumps into WRR files"),
-                            description = _(f"""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and dump them under `DESTINATION` with paths derived from their metadata."""))
-    add_errors(cmd)
-    add_filters(cmd, "import")
-    add_output(cmd)
-    add_memory(cmd, 0, 1024)
-    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("destination directory"))
-    cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same as `{__package__} organize --output`, which see"""))
-    add_paths(cmd)
+                            description = _(f"""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata."""))
+    add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_mitmproxy)
 
     # export

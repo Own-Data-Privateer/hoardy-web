@@ -887,17 +887,98 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
 
 ### wrrarms import
 
-Use specified parser to parse data in each `INPUT` `PATH` into reqres and dump them under `DESTINATION` with paths derived from their metadata.
-In short, this is `wrrarms organize --copy` but for non-WRR `INPUT` files.
+Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
+In short, this is `wrrarms organize --copy` for `INPUT` files that use different files formats.
 
 - file formats:
-  - `{mitmproxy}`
+  - `{bundle,mitmproxy}`
+    - `bundle`
+    : convert WRR-bundles into separate WRR files
     - `mitmproxy`
     : convert `mitmproxy` stream dumps into WRR files
 
+### wrrarms import bundle
+
+Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of WRR-dumps) and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
+
+- positional arguments:
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
+
+- options:
+  - `--dry-run`
+  : perform a trial run without actually performing any changes
+  - `-q, --quiet`
+  : don't log computed updates to stderr
+  - `-t DESTINATION, --to DESTINATION`
+  : destination directory
+  - `-o FORMAT, --output FORMAT`
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same as `wrrarms organize --output`, which see
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+
+- error handling:
+  - `--errors {fail,skip,ignore}`
+  : when an error occurs:
+    - `fail`: report failure and stop the execution (default)
+    - `skip`: report failure but skip the reqres that produced it from the output and continue
+    - `ignore`: `skip`, but don't report the failure
+
+- filters:
+  - `--or EXPR`
+  : only import reqres which match any of these expressions...
+  - `--and EXPR`
+  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+
+- output:
+  - `--no-output`
+  : don't print anything (default)
+  - `-l, --lf-terminated`
+  : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
+  - `-z, --zero-terminated`
+  : terminate output absolute paths of newly produced files with `\0` (NUL) bytes
+
+- caching, deferring, and batching:
+  - `--seen-number INT`
+  : track at most this many distinct generated `--output` values; default: `16384`;
+    making this larger improves disk performance at the cost of increased memory consumption;
+    setting it to zero will force force `wrrarms` to constantly re-check existence of `--output` files and force `wrrarms` to execute  all IO actions immediately, disregarding `--defer-number` setting
+  - `--cache-number INT`
+  : cache `stat(2)` information about this many files in memory; default: `8192`;
+    making this larger improves performance at the cost of increased memory consumption;
+    setting this to a too small number will likely force `wrrarms` into repeatedly performing lots of `stat(2)` system calls on the same files;
+    setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
+  - `--defer-number INT`
+  : defer at most this many IO actions; default: `0`;
+    making this larger improves performance at the cost of increased memory consumption;
+    setting it to zero will force all IO actions to be applied immediately
+  - `--batch-number INT`
+  : queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: 1024
+  - `--max-memory INT`
+  : the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `1024`;
+    making this larger improves performance;
+    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`
+  - `--lazy`
+  : sets all of the above options to positive infinity;
+    most useful when doing `wrrarms organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `wrrarms` needs to keep in memory is small, in which case it will force `wrrarms` to compute the desired file system state first and then perform all disk writes in a single batch
+
+- file system path ordering:
+  - `--paths-given-order`
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  - `--paths-sorted`
+  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
+  - `--paths-reversed`
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
+  - `--walk-fs-order`
+  : recursive file system walk is done in the order `readdir(2)` gives results
+  - `--walk-sorted`
+  : recursive file system walk is done in lexicographic order (default)
+  - `--walk-reversed`
+  : recursive file system walk is done in reverse lexicographic order
+
 ### wrrarms import mitmproxy
 
-Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and dump them under `DESTINATION` with paths derived from their metadata.
+Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
 
 - positional arguments:
   - `PATH`
