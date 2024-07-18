@@ -34,6 +34,7 @@ from gettext import gettext
 from kisstdlib.exceptions import *
 from kisstdlib.path import *
 
+from .util import *
 from .type import *
 from .linst import *
 from .mime import *
@@ -806,11 +807,7 @@ def _t_headers(n : str, x : _t.Any) -> Headers:
         return _t.cast(Headers, x)
     raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), "Headers", type(x).__name__)
 
-def wrr_load(fobj : _io.BufferedReader) -> Reqres:
-    head = fobj.peek(2)[:2]
-    if head == b"\037\213":
-        fobj = _t.cast(_io.BufferedReader, _gzip.GzipFile(fileobj=fobj, mode="rb"))
-
+def wrr_load_raw(fobj : _io.BufferedReader) -> Reqres:
     try:
         data = _cbor2.load(fobj)
     except _cbor2.CBORDecodeValueError:
@@ -860,6 +857,9 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
     else:
         raise WRRParsingError(gettext("Reqres parsing failure: unknown format `%s`"), data[0])
 
+def wrr_load(fobj : _io.BufferedReader) -> Reqres:
+    return wrr_load_raw(ungzip_fobj_maybe(fobj))
+
 def wrr_load_expr(fobj : _io.BufferedReader, path : str | bytes) -> ReqresExpr:
     reqres = wrr_load(fobj)
     res = ReqresExpr(reqres, path, [])
@@ -897,22 +897,10 @@ def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
 
     data : bytes = _cbor2.dumps(structure)
 
-    if not compress:
+    if compress:
+        return gzip_maybe(data)
+    else:
         return data
-
-    # gzip it, if it gzips
-    buf = _io.BytesIO()
-    with _gzip.GzipFile(fileobj=buf, filename="", mtime=0, mode="wb", compresslevel=9) as gz:
-        gz.write(data)
-    compressed_data = buf.getvalue()
-
-    if len(compressed_data) < len(data):
-        data = compressed_data
-
-    del buf
-    del compressed_data
-
-    return data
 
 def wrr_dump(fobj : _io.BufferedWriter, reqres : Reqres, compress : bool = True) -> None:
     data = wrr_dumps(reqres, compress)
