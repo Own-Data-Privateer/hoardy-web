@@ -70,6 +70,20 @@ function catchAll(func) {
     };
 }
 
+// based on https://stackoverflow.com/questions/13405129/create-and-save-a-file-with-javascript
+function saveAs(chunks, mime, fileName) {
+    var file = new Blob(chunks, { type: mime ? mime : "application/octet-stream" });
+    var fileURL = URL.createObjectURL(file);
+    var el = document.createElement("a");
+    el.href = fileURL;
+    if (fileName)
+        el.download = fileName;
+    el.dispatchEvent(new MouseEvent("click"));
+    setTimeout(function() {
+        URL.revokeObjectURL(fileURL);
+    }, 0);
+}
+
 function toNumber(x) {
     return Number(x).valueOf();
 }
