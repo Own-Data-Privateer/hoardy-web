@@ -20,9 +20,10 @@
 
   unpackPhase = ''
     ${pkgs.git}/bin/git clone $src source
+    ${pkgs.git}/bin/git clone $src/vendor/pako source/vendor/pako
     cp -a $src/extension/private source/extension || true
     patchShebangs source
-    find source | grep -vF 'source/.git/'
+    find source | grep -vF '/.git/'
   '';
 
 }

@@ -4,3 +4,6 @@
 [submodule "vendor/cbor2"]
 	path = vendor/cbor2
 	url = https://github.com/oxij/cbor2
+[submodule "vendor/pako"]
+	path = vendor/pako
+	url = https://github.com/nodeca/pako

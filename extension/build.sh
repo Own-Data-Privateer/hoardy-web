@@ -77,6 +77,7 @@ for target in "$@"; do
 
     install -d "$DEST"/lib
     install -C -t "$DEST"/lib lib/*.js
+    install -C -t "$DEST"/lib ../vendor/pako/dist/pako.js
 
     install -d "$DEST"/page
     install -C -t "$DEST"/page page/*.css page/*.js
