@@ -74,6 +74,10 @@ function toNumber(x) {
     return Number(x).valueOf();
 }
 
+function clamp(min, max, value) {
+    return Math.min(max, Math.max(min, toNumber(value)));
+}
+
 // convert milliseconds since UNIX epoch to "YYYY-mm-DD HH:MM:SS"
 function dateToString(epoch) {
     if (epoch === undefined || typeof epoch !== "number")
