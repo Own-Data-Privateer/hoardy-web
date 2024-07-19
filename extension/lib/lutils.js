@@ -156,6 +156,18 @@ function isNonTrivialError(error) {
     return true;
 }
 
+// archival status of a loggable
+
+const archivedViaExportAs = 1;
+const archivedViaSubmitHTTP = 2;
+
+function isArchivedVia(loggable, flag) {
+    if (loggable.archived === undefined)
+        loggable.archived = 0;
+
+    return (loggable.archived & flag) !== 0;
+}
+
 // filter expression
 let rrfilterDefaults = {
     picked: null,
@@ -165,6 +177,8 @@ let rrfilterDefaults = {
     in_limbo: null,
     collected: null,
     no_errors: null,
+    did_exportAs: null,
+    did_submitHTTP: null,
 };
 
 // loggable is accepted by the rrfilter
@@ -175,8 +189,12 @@ function isAcceptedBy(rrfilter, loggable) {
         || (rrfilter.was_in_limbo !== null && loggable.was_in_limbo !== rrfilter.was_in_limbo)
         || (rrfilter.in_limbo !== null && loggable.in_limbo !== rrfilter.in_limbo)
         || (rrfilter.collected !== null && loggable.collected !== rrfilter.collected)
-        || (rrfilter.no_errors === false && loggable.errors.length == 0)
-        || (rrfilter.no_errors === true && loggable.errors.length > 0))
+        || (rrfilter.no_errors === false && loggable.errors.length === 0)
+        || (rrfilter.no_errors === true && loggable.errors.length > 0)
+        || (rrfilter.did_exportAs === false && (loggable.archived & archivedViaExportAs) !== 0)
+        || (rrfilter.did_exportAs === true && (loggable.archived & archivedViaExportAs) === 0)
+        || (rrfilter.did_submitHTTP === false && (loggable.archived & archivedViaSubmitHTTP) !== 0)
+        || (rrfilter.did_submitHTTP === true && (loggable.archived & archivedViaSubmitHTTP) === 0))
         return false;
     return true;
 }

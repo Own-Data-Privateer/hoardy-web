@@ -85,6 +85,7 @@ async function popupMain() {
         showState: "📜",
         runAllActions: "🟢",
         cancelAllActions: "🟥",
+        exportAsAll: "💾",
         retryFailed: "♻",
         collectAllInLimbo: "✔",
         discardAllInLimbo: "✖",
@@ -138,6 +139,7 @@ async function popupMain() {
     buttonToAction("showState", catchAll(() => showState("", "top", tabId)));
     buttonToMessage("forgetHistory",           () => ["forgetHistory", null]);
     buttonToMessage("snapshotAll",             () => ["snapshotTab", null]);
+    buttonToMessage("exportAsAll",             () => ["exportAsAll", null]);
     buttonToMessage("collectAllInLimbo",       () => ["popInLimbo", true, null, null]);
     buttonToMessage("discardAllInLimbo",       () => ["popInLimbo", false, null, null]);
     buttonToMessage("unmarkAllProblematic",    () => ["unmarkProblematic", null, null]);
@@ -194,8 +196,10 @@ async function popupMain() {
         setConditionalClass(body, config.colorblind, "colorblind");
         setConditionalClass(body, config.pureText, "pure-text");
         resetPureText(config);
-        setConditionalClass(body, !config.archive, "disabled-archive");
         setConditionalClass(body, !config.collecting, "disabled-collecting");
+        setConditionalClass(body, !config.archive, "disabled-archive");
+        setConditionalClass(body, !config.archiveExportAs, "disabled-exportas");
+        setConditionalClass(body, !config.archiveSubmitHTTP, "disabled-submit");
         setConditionalClass(body, !config.autoUnmarkProblematic
                             && !config.autoPopInLimboCollect
                             && !config.autoPopInLimboDiscard, "disabled-auto");

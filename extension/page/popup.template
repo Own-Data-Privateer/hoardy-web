@@ -76,8 +76,8 @@ h2 input[type="button"] {
     padding: 0 1em;
 }
 
-.opts {
-    margin-left: 0.6em;
+.opts, .subopts {
+    padding-left: 0.6em;
 }
 
 #showAll {
@@ -86,17 +86,20 @@ h2 input[type="button"] {
     margin: 5px auto 0 auto;
 }
 
-.disabled-archive .da,
 .disabled-collecting .dc,
 .disabled-collecting .dc input[type="checkbox"].toggle,
+.disabled-archive .da,
+.disabled-exportas .dea,
+.disabled-submit .dsh,
 .disabled-auto .dauto,
 .disabled-problematic-notify .dpn,
 .disabled-limbo-notify .dln {
+    color: var(--text-inactive-color);
     --text-background: var(--text-inactive-background);
     --text-border-color: var(--text-inactive-border-color);
     --text-color: var(--text-inactive-color);
-    --toggle-background: var(--text-inactive-background);
-    --toggle-border-color: var(--text-inactive-border-color);
+    --toggle-dot-background: var(--untoggle-border-color);
+    --toggle-border-color: var(--untoggle-border-color);
 }
     </style>
   </head>
@@ -141,16 +144,6 @@ h2 input[type="button"] {
         </span>
         <span>
           <span id="stats.actions"></span>
-        </span>
-      </div>
-      <div id="div-stats.submittedHTTP" data-help="From the last reset, the number of reqres that were successfully archived by being submitted to the archiving server (and the sum total of all sizes of their dumps) / at the moment, the number of reqres that failed to be archived to either the archiving server.">
-        <span>Submitted/Failed</span>
-        <span>
-          <input type="button" id="retryFailed" data-help="Move all failed to archive reqres to the archival queue. (Archivals that fail because of networking issues will be retried automatically every 60 seconds, others will not.) See the &quot;Help&quot; page for more info." value="Retry" />
-        </span>
-        <span>
-          <span id="stats.submittedHTTP">0</span>
-          (<span id="stats.submittedHTTP_size">0</span>)
         </span>
       </div>
       <div id="div-stats.queued_failed" data-help="At the moment, the number of reqres that are waiting to be archived in the archival queue (and the sum total of all sizes of their dumps). / At the moment, the number of reqres that failed to be archived via one or more of the selected archiving methods (and the sum total of all sizes of their dumps).">
@@ -240,24 +233,57 @@ h2 input[type="button"] {
 
     <h1>Archiving</h1>
     <div class="stats">
-      <div id="div-stats.submitted" data-help="From the last reset, the number of reqres that were successfully archived by being submitted via HTTP to the archiving server (and the sum total of all sizes of their dumps).">
+      <div id="div-stats.exportedAs" data-help="From the last reset, the number of reqres that were successfully archived by being exported via `saveAs` mechanism as fake-Downloads (and the sum total of all sizes of their dumps).">
+        <span>Exported via <code>saveAs</code></span>
+        <span>
+        </span>
+        <span>
+          <span id="stats.exportedAs">0</span>
+          (<span id="stats.exportedAs_size">0</span>)
+        </span>
+      </div>
+      <div id="div-stats.bundledAs" data-help="At the moment, for all buckets, the total number of dumps that are ready to be exported via `saveAs` but are currently being delayed because of bundling (and the sum total of their sizes).">
+        <span>Bundled</span>
+        <span>
+          <input type="button" id="exportAsAll" data-help="For all buckets, export their bundles immediately." value="Export" />
+        </span>
+        <span>
+          <span id="stats.bundledAs">0</span>
+          (<span id="stats.bundledAs_size">0</span>)
+        </span>
+      </div>
+      <div id="div-stats.submittedHTTP" data-help="From the last reset, the number of reqres that were successfully archived by being submitted via HTTP to the archiving server (and the sum total of all sizes of their dumps).">
         <span>Submitted via HTTP</span>
         <span>
         </span>
         <span>
-          <span id="stats.submitted">0</span>
-          (<span id="stats.submitted_size">0</span>)
+          <span id="stats.submittedHTTP">0</span>
+          (<span id="stats.submittedHTTP_size">0</span>)
         </span>
       </div>
     </div>
 
     <div class="opts">
-    <ui id="config.archive" type="boolean" class="prefer-on" data-help="Automatically archive `queued` reqres into persistent storage using one or more of the following methods. Enabling more than one of the sub-options will archive the same reqres using all of the enabled methods. (If two identical copies of the same reqres ever reach `wrrarms organize`, it will deduplicate them.) Disabling this option will keep `queued` reqres stuck in the archiving queue indefinitely. Which is why you probably shouldn&#039;t disable this option, unless you want to disable this, atomically change some of the following sub-options or the &quot;Bucket&quot; settings below, and then enable this again.">Archive <code>collected</code> reqres</ui>
+    <ui id="config.archive" type="boolean" class="prefer-on" data-help="Automatically archive `queued` reqres into persistent storage using one or more of the following methods. Enabling more than one of the sub-options will archive the same reqres using all of the enabled methods. (If two identical copies of the same reqres ever reach `wrrarms organize`, it will deduplicate them.) Disabling this option will keep `queued` reqres stuck in the archiving queue indefinitely. If &quot;Stash `collected` reqres into local storage&quot; option above is enabled, restarting the browser or reloading the extension will not loose them, but they will still be taking up your browser&#039;s memory. Which is why you probably shouldn&#039;t disable this option, unless you want to disable this, atomically change some of the following sub-options or the &quot;Bucket&quot; settings below, and then enable this again.">Archive <code>collected</code> reqres by</ui>
+    <div id="sub-config.archive" class="subopts da">
+    <ui id="config.archiveExportAs" type="boolean" class="c" data-help="Archive collected reqres by generating in-browser fake-Downloads with their dumps. If the value of the above &quot;Bundle up to MiB&quot; option is larger than zero, pWebArc will export dumps in per-`bucket` bundles. I.e., while processing the archiving queue, it will continue to concatenate dumps belonging to the same `bucket` while the sum of their sizes is smaller than the value of that option and only then export the result. The values of `bucket` can be controlled by the &quot;Bucket&quot; settings below. See the &quot;Help&quot; page for more info.">... {} exporting them via <code>saveAs</code></ui>
+    <ui id="config.archiveSubmitHTTP" type="boolean" class="c" data-help="Archive collected reqres by submitting their dumps via HTTP by `POST`ing them to the archiving server at the URL set in the &quot;Server URL&quot; option. See the &quot;Help&quot; page for more info.">... {} submitting them via HTTP</ui>
+    <ui id="config.archiveSaveLS" type="boolean" class="c" data-help="Archive collected reqres by saving them into browser&#039;s local storage. See the &quot;Help&quot; page for more info.">... {} saving them into local storage</ui>
+    </div>
     </div>
 
     <h1>Archiving Options</h1>
     <div class="opts">
     <!-- internallySubOptions -->
+
+    <h2>Export via <code>saveAs</code></h2>
+    <div class="subopts da dea">
+    <ui id="config.exportAsMaxSize" type="number" class="c" data-help="When exporting, continue to bundle (concatenate) dumps until the resulting bundle contains this much data and only then generate a fake-Download containing the result. Generated bundles can be smaller than this size when the queue gets empty with no reqres still in flight, or when in-flight reqres get too long to finish. Generated exported files can be larger than this size when a single dump is larger than this size, in which case they will be exported as separate files. Set this to zero if you want all dumps to be exported as separate files. Though, doing that will slow down your browser&#039;s UI by a lot and will make it rather annoying, unless you &quot;Pick into limbo&quot; by default.">Bundle up to {} MiB</ui>
+    <ui id="config.exportAsTimeout" type="number" class="c" data-help="Delay export via `saveA` (generation of fake-Downloads) for this many seconds when no reqres are in flight, in the hopes that newly collected dumps will get respective bundles closer to their maximum sizes. Setting this to a higher value improves efficiency when using compression and lowers annoyance at the UI somewhat at the cost of making it easier to loose yet unexported data.">Delay bundles for {} seconds</ui>
+    <ui id="config.exportAsInFlightTimeout" type="number" class="c" data-help="Delay export via `saveAs` (generation of fake-Downloads) for this many seconds when some reqres are still in flight.">With <code>in_flight</code> delay for {} seconds</ui>
+    <ui id="config.exportAsHumanReadable" type="boolean" data-help="Generate fake-Downloads with long human-readable filenames. Enabled by default. Disabling this will generate shorter filenames similar to those generated by `pwebarc-dumb-dump-server`.">Generate human-readable filenames</ui>
+    <ui id="config.gzipExportAs" type="boolean" class="prefer-on" data-help="Try compressing each resulting bundle using GZip (with compression level 9) and use the compressed version as the output if its size is smaller than the size of non-compressed version, use the non-compressed version otherwise. Essentially, with this enabled, pWebArc will do what `pwebarc-dumb-dump-server` does, except slower, since this is done in JavaScript.">GZip results</ui>
+    </div>
 
     <h2>Submission via HTTP</h2>
     <div class="subopts dsh">

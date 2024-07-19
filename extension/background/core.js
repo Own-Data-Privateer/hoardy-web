@@ -62,7 +62,18 @@ let configDefaults = {
     // are we archiving? or temporarily paused
     archive: true,
 
-    // archiving to an archiving server
+    // archive how?
+
+    // export via exportAs
+    archiveExportAs: false,
+    exportAsHumanReadable: true,
+    exportAsMaxSize: 64,
+    exportAsTimeout: 3,
+    exportAsInFlightTimeout: 60,
+    gzipExportAs: true,
+
+    // via HTTP
+    archiveSubmitHTTP: true,
     submitHTTPURLBase: "http://127.0.0.1:3210/pwebarc/dump",
 
     // archiving notifications
@@ -325,17 +336,12 @@ function getUsedTabs() {
         usedTabs.add(v.tabId);
     for (let [v, _x] of reqresQueue)
         usedTabs.add(v.tabId);
-
-    function sub(f) {
+    for (let f of reqresErrored.values())
         for (let v of f.queue)
             usedTabs.add(v[0].tabId);
-    }
+    for (let v of reqresFailedToArchiveByArchivable.keys())
+        usedTabs.add(v[0].tabId);
 
-    for (let f of reqresErrored.values())
-        sub(f);
-    for (let m of reqresFailedToArchive.values())
-        for (let f of m.values())
-            sub(f);
     return usedTabs;
 }
 
@@ -454,10 +460,15 @@ let reqresLog = [];
 // archivables in the process of being archived
 let reqresQueue = [];
 let reqresQueueSize = 0;
+// dumps ready for export, indexed by bucket
+let reqresBundledAs = new Map();
 // archivables that failed to be processed in some way, indexed by error message
 let reqresErrored = new Map();
 // archivables that failed in server submission, indexed by archiveURL, then by error message
-let reqresFailedToArchive = new Map();
+let reqresFailedToArchiveByArchiveError = new Map();
+// map `archivables -> int`, the `int` is a count of how many times each archivable appears
+// in`reqresFailedToArchiveByArchiveError`
+let reqresFailedToArchiveByArchivable = new Map();
 
 function truncateLog() {
     while (reqresLog.length > config.history)
@@ -502,15 +513,11 @@ function getQueuedLog() {
 }
 
 function getFailedLog() {
-    let res = [];
-    for (let m of reqresFailedToArchive.values())
-        for (let f of m.values())
-            getLoggables(f.queue, res);
-    return res;
+    return getLoggables(reqresFailedToArchiveByArchivable.keys(), []);
 }
 
 function getByErrorMap(archiveURL) {
-    return cacheSingleton(reqresFailedToArchive, archiveURL, () => new Map());
+    return cacheSingleton(reqresFailedToArchiveByArchiveError, archiveURL, () => new Map());
 }
 
 function getByErrorMapRecord(byErrorMap, error) {
@@ -526,6 +533,11 @@ function recordByErrorTo(v, recoverable, archivable, size) {
     v.recoverable = v.recoverable && recoverable;
     v.queue.push(archivable);
     v.size += size;
+
+    let count = reqresFailedToArchiveByArchivable.get(archivable);
+    if (count === undefined)
+        count = 0;
+    reqresFailedToArchiveByArchivable.set(archivable, count + 1);
 }
 
 function recordByError(byErrorMap, error, recoverable, archivable, size) {
@@ -563,6 +575,8 @@ let persistentStatsDefaults = {
     discardedSize: 0,
     submittedHTTPTotal: 0,
     submittedHTTPSize: 0,
+    exportedAsTotal: 0,
+    exportedAsSize: 0,
 };
 // persistent global variables
 let globals = assignRec({
@@ -625,6 +639,7 @@ let gotNewProblematic = false;
 let gotNewErrored = false;
 
 // scheduleEndgame flags
+let gotNewExportedAs = false;
 let wantRetryFailed = false;
 
 function getNumberAndSizeFromQueues(m) {
@@ -637,18 +652,21 @@ function getNumberAndSizeFromQueues(m) {
     return [number, size];
 }
 
+function getNumberAndSizeFromKeys(m) {
+    let size = 0;
+    for (let v of m.keys())
+        size += v[0].dumpSize;
+    return [m.size, size];
+}
+
 // Compute total sizes of all queues and similar.
 // Used in the UI.
 function getStats() {
+    let [bundledAs, bundledAsSize] = getNumberAndSizeFromQueues(reqresBundledAs);
+
     let [errored, erroredSize] = getNumberAndSizeFromQueues(reqresErrored);
 
-    let archiveFailed = 0;
-    let archiveFailedSize = 0;
-    for (let m of reqresFailedToArchive.values()) {
-        let [x, y] = getNumberAndSizeFromQueues(m);
-        archiveFailed += x;
-        archiveFailedSize += y;
-    }
+    let [archiveFailed, archiveFailedSize] = getNumberAndSizeFromKeys(reqresFailedToArchiveByArchivable);
 
     let in_flight = reqresAlmostDone.length +
         Math.max(reqresInFlight.size, debugReqresInFlight.size) +
@@ -676,6 +694,10 @@ function getStats() {
         discarded_size: globals.discardedSize,
         queued: reqresQueue.length,
         queued_size: reqresQueueSize,
+        exportedAs: globals.exportedAsTotal,
+        exportedAs_size: globals.exportedAsSize,
+        bundledAs,
+        bundledAs_size: bundledAsSize,
         submittedHTTP: globals.submittedHTTPTotal,
         submittedHTTP_size: globals.submittedHTTPSize,
         failed: archiveFailed,
@@ -956,6 +978,11 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
         if (stats.queued > 0) {
             badge += "Q";
             chunks.push(`${stats.queued} reqres in queue`);
+        }
+        if (stats.bundledAs > 0) {
+            badge += "B";
+            color = 1;
+            chunks.push(`${stats.bundledAs} reqres bundled for export`);
         }
         if (!config.archive) {
             badge += "H";
@@ -1244,7 +1271,8 @@ function scheduleEndgame(updatedTabId) {
                 let boring = true;
                 if (savedGlobals === undefined
                     || (!haveInFlight && (savedGlobals.collectedTotal !== globals.collectedTotal
-                                          || savedGlobals.submittedHTTPTotal !== globals.submittedHTTPTotal)))
+                                          || savedGlobals.submittedHTTPTotal !== globals.submittedHTTPTotal
+                                          || savedGlobals.exportedAsTotal !== globals.exportedAsTotal)))
                     boring = false;
 
                 resetSingletonTimeout(scheduledSaveState, "saveGlobals", boring ? 90000 : 1000, async () => {
@@ -1253,9 +1281,18 @@ function scheduleEndgame(updatedTabId) {
                 });
             }
 
+            if (gotNewExportedAs) {
+                gotNewExportedAs = false;
+                // schedule exports
+                scheduleExportAsAll(haveInFlight
+                                    ? config.exportAsInFlightTimeout * 1000
+                                    : config.exportAsTimeout * 1000
+                                    , null);
+            }
+
             if (wantRetryFailed) {
                 wantRetryFailed = false;
-                if (config.archive && reqresFailedToArchive.size > 0)
+                if (config.archive && reqresFailedToArchiveByArchivable.size > 0)
                     // retry failed in 60s
                     scheduleRetryFailed(60000, false);
             }
@@ -1268,7 +1305,7 @@ function scheduleEndgame(updatedTabId) {
 }
 
 function retryOneFailed(archiveURL, unrecoverable) {
-    let byErrorMap = reqresFailedToArchive.get(archiveURL);
+    let byErrorMap = reqresFailedToArchiveByArchiveError.get(archiveURL);
     if (byErrorMap === undefined)
         return;
     for (let [reason, failed] of Array.from(byErrorMap.entries())) {
@@ -1277,18 +1314,25 @@ function retryOneFailed(archiveURL, unrecoverable) {
 
         for (let archivable of failed.queue) {
             let [loggable, dump] = archivable;
+            let dumpSize = loggable.dumpSize;
             reqresQueue.push(archivable);
-            reqresQueueSize += loggable.dumpSize;
+            reqresQueueSize += dumpSize;
+
+            let count = reqresFailedToArchiveByArchivable.get(archivable);
+            if (count > 1)
+                reqresFailedToArchiveByArchivable.set(archivable, count - 1);
+            else if (count !== undefined)
+                reqresFailedToArchiveByArchivable.delete(archivable);
         }
 
         byErrorMap.delete(reason);
     }
     if (byErrorMap.size === 0)
-        reqresFailedToArchive.delete(archiveURL);
+        reqresFailedToArchiveByArchiveError.delete(archiveURL);
 }
 
 function retryFailed(unrecoverable) {
-    for (let archiveURL of Array.from(reqresFailedToArchive.keys()))
+    for (let archiveURL of Array.from(reqresFailedToArchiveByArchiveError.keys()))
         retryOneFailed(archiveURL, unrecoverable);
 
     broadcast(["resetQueued", getQueuedLog()]);
@@ -1311,7 +1355,7 @@ function formatFailures(why, list) {
 async function doComplain() {
     // record the current state, because the rest of this chunk is async
     let rrErrored = Array.from(reqresErrored.entries());
-    let rrUnsubmitted = Array.from(reqresFailedToArchive.entries());
+    let rrUnsubmitted = Array.from(reqresFailedToArchiveByArchiveError.entries());
 
     if (gotNewErrored && rrErrored.length > 0) {
         gotNewErrored = false;
@@ -1360,7 +1404,11 @@ async function doComplain() {
         if (config.archiveFailedNotify) {
             // generate new ones
             for (let [archiveURL, byErrorMap] of rrUnsubmitted) {
-                let where = `Archiving server at ${archiveURL}`;
+                let where;
+                if (archiveURL === "exportAs")
+                    where = "Export via `saveAs`";
+                else
+                    where = `Archiving server at ${archiveURL}`;
                 await browser.notifications.create(`unsubmitted-${archiveURL}`, {
                     title: "pWebArc: FAILED",
                     message: `${where}:\n${formatFailures("Failed to archive", byErrorMap.entries())}`,
@@ -1451,42 +1499,183 @@ function scheduleComplaints(timeout) {
     resetSingletonTimeout(scheduledHidden, "complaints", timeout, doComplain);
 }
 
-
 // reqres archiving
 
-async function processOneArchiving(archivable) {
+function recordManyFailed(archiveURL, reason, recoverable, archivables, func) {
+    let m = getByErrorMap(archiveURL);
+    let v = getByErrorMapRecord(m, reason);
+
+    for (let archivable of archivables) {
+        let [loggable, dump] = archivable;
+        let dumpSize = loggable.dumpSize;
+        if (func !== undefined)
+            func(loggable);
+        recordByErrorTo(v, recoverable, archivable, dumpSize);
+    }
+
+    gotNewArchivedOrFailed = true;
+    wantArchiveDoneNotify = true;
+    wantRetryFailed = true;
+}
+
+function recordOneFailedTo(byErrorMap, reason, recoverable, archivable, dumpSize) {
+    recordByError(byErrorMap, reason, recoverable, archivable, dumpSize);
+    gotNewArchivedOrFailed = true;
+    wantArchiveDoneNotify = true;
+    wantRetryFailed = true;
+}
+
+function recordOneFailed(archiveURL, reason, recoverable, archivable, dumpSize) {
+    let m = getByErrorMap(archiveURL);
+    recordOneFailedTo(m, reason, recoverable, archivable, dumpSize);
+}
+
+function recordOneAssumedBroken(archiveURL, archivable, dumpSize) {
+    let byErrorMap = reqresFailedToArchiveByArchiveError.get(archiveURL);
+    if (byErrorMap !== undefined) {
+        let recent = Array.from(byErrorMap.entries()).filter(
+            (x) => (Date.now() - x[1].when) < 1000 && !x[0].endsWith(" (assumed)")
+        )[0];
+        if (recent !== undefined) {
+            // we had recent errors there, fail this reqres immediately
+            recordOneFailedTo(byErrorMap, recent[0] + " (assumed)", recent[1].recoverable, archivable, dumpSize);
+            return true;
+        }
+    }
+    return false;
+}
+
+let lastExportEpoch;
+let lastExportNum = 0;
+
+// export all reqresBundledAs as fake-"Download" with a WRR-bundle of their dumps
+function exportAsAll(bucket, ifGEQ) {
+    let res = reqresBundledAs.get(bucket);
+    if (res === undefined
+        || ifGEQ !== undefined && res.size < ifGEQ)
+        return;
+
+    try {
+        let mime;
+        let ext;
+        if (res.queue.length === 1) {
+            mime = "application/x-wrr";
+            ext = "wrr";
+        } else {
+            mime = "application/x-wrr-bundle";
+            ext = "wrrb";
+        }
+
+        let now = Date.now();
+        let epoch = Math.floor(now / 1000);
+        if (lastExportEpoch !== epoch)
+            lastExportNum = 0;
+        else
+            lastExportNum += 1;
+        lastExportEpoch = epoch;
+
+        let dataChunks;
+        if (config.gzipExportAs) {
+            dataChunks = deflateChunksMaybe(res.dumps, {
+                gzip: true,
+                level: 9,
+            }, logHandledError);
+        } else
+            dataChunks = res.dumps;
+
+        let dt;
+        if (config.exportAsHumanReadable)
+            dt = dateToString(now).replaceAll(":", "-").replaceAll(" ", "_");
+        else
+            dt = epoch;
+
+        saveAs(dataChunks, mime, `pWebArc-export-${bucket}-${dt}_${lastExportNum}.${ext}`);
+
+        globals.exportedAsTotal += res.queue.length;
+        globals.exportedAsSize += res.size;
+    } catch (err) {
+        recordManyFailed("exportAs", err, false, res.queue, (loggable) => {
+            loggable.exportedAs = false;
+        });
+    } finally {
+        reqresBundledAs.delete(bucket);
+    }
+}
+
+// schedule exportAsAll action
+function scheduleExportAsAll(timeout, bucketOrNull) {
+    if (reqresBundledAs.size === 0)
+        return;
+
+    let buckets;
+    if (bucketOrNull === null)
+        buckets = Array.from(reqresBundledAs.keys());
+    else
+        buckets = [ bucketOrNull ];
+
+    for (let bucket of buckets) {
+        resetSingletonTimeout(scheduledCancelable, `exportAsAll-${bucket}`, timeout, async () => {
+            exportAsAll(bucket);
+            scheduleEndgame(null);
+        });
+    }
+}
+
+async function exportAsOne(archivable) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
-    if (dump === null)
-        throw new Error("reqres dump is missing");
+    if (isArchivedVia(loggable, archivedViaExportAs))
+        return true;
 
-    if (config.discardAll)
-        return;
+    let archiveURL = "exportAs";
+    let bucket = loggable.bucket;
+    let maxSize = config.exportAsMaxSize * MEGABYTE;
+
+    // export if this dump will not fit
+    exportAsAll(bucket, maxSize - dumpSize);
+
+    // record it in the bundle
+    let u = cacheSingleton(reqresBundledAs, bucket, () => { return {
+        queue: [],
+        dumps: [],
+        size: 0,
+    }; });
+    u.queue.push(archivable);
+    u.dumps.push(dump);
+    u.size += dumpSize;
+
+    // remember this being done
+    loggable.archived |= archivedViaExportAs;
+
+    // try exporting again
+    exportAsAll(bucket, maxSize);
+
+    gotNewExportedAs = true;
+
+    return true;
+}
+
+// reqres archiving
+
+async function submitHTTPOne(archivable) {
+    let [loggable, dump] = archivable;
+    let dumpSize = loggable.dumpSize;
+
+    if (isArchivedVia(loggable, archivedViaSubmitHTTP))
+        return true;
 
     let archiveURL = config.submitHTTPURLBase + "?profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
 
-    let byErrorMap = reqresFailedToSubmit.get(archiveURL);
-    if (byErrorMap !== undefined) {
-        let recent = Array.from(byErrorMap.values()).filter((x) => (Date.now() - x.when) < 1000);
-        if (recent.length > 0) {
-            // this archiveURL had a recent error, fail this reqres immediately
-            let failed = recent[0];
-            recordByError(byErrorMap, "this server had recent errors", failed.recoverable, archivable, dumpSize);
-            newArchivedOrFailed = true;
-            wantArchiveDoneNotify = true;
-            return;
-        }
-    }
+    if (recordOneAssumedBroken(archiveURL, archivable, dumpSize))
+        return false;
 
     if (config.debugging)
         console.log("trying to archive", loggable);
 
     function broken(reason, recoverable) {
-        let v = cacheSingleton(reqresFailedToSubmit, archiveURL, () => new Map());
-        recordByError(v, reason, recoverable, archivable, dumpSize);
-        newArchivedOrFailed = true;
-        wantArchiveDoneNotify = true;
+        logHandledError(reason);
+        recordOneFailed(archiveURL, reason, recoverable, archivable, dumpSize);
     }
 
     let response;
@@ -1501,40 +1690,59 @@ async function processOneArchiving(archivable) {
         });
     } catch (err) {
         broken(`pWebArc can't establish a connection to the archiving server: ${errorMessageOf(err)}`, true);
-        return;
+        return false;
     }
 
     let responseText = await response.text();
 
     if (response.status !== 200) {
         broken(`request to the archiving server failed with ${response.status} ${response.statusText}: ${responseText}`, false);
-        return;
+        return false;
     }
 
     retryOneFailed(archiveURL, true);
     globals.submittedHTTPTotal += 1;
     globals.submittedHTTPSize += loggable.dumpSize;
-    newArchivedOrFailed = true;
+    loggable.archived |= archivedViaSubmitHTTP;
+
+    gotNewArchivedOrFailed = true;
+    return true;
 }
 
 async function processArchiving() {
     while (config.archive && reqresQueue.length > 0) {
         let archivable = reqresQueue.shift();
         let [loggable, dump] = archivable;
+        let dumpSize = loggable.dumpSize;
+        reqresQueueSize -= dumpSize;
+
+        if (config.discardAll) {
+            continue;
+        }
+
         try {
-            reqresQueueSize -= loggable.dumpSize;
             updateLoggable(loggable);
-            await processOneArchiving(archivable);
-            await updateDisplay(true, loggable.tabId, 10);
+
+            if (config.archiveExportAs)
+                await exportAsOne(archivable);
+
+            if (config.archiveSubmitHTTP)
+                await submitHTTPOne(archivable);
+
+            // other archival methods go here
         } catch (err) {
             logHandledError(err);
             markAsErrored(err, archivable);
         }
+
+        await updateDisplay(true, loggable.tabId, 10);
     }
 
     broadcast(["resetQueued", getQueuedLog()]);
     broadcast(["resetFailed", getFailedLog()]);
 }
+
+// tracking and capture
 
 function getHeaderString(header) {
     if (header.binaryValue !== undefined) {
@@ -2550,7 +2758,7 @@ function handleErrorOccurred(e) {
 }
 
 function handleNotificationClicked(notificationId) {
-    if (reqresFailedToArchive.size === 0) return;
+    if (reqresFailedToArchiveByArchivable.size === 0) return;
 
     browser.tabs.create({
         url: browser.runtime.getURL("/page/help.html#errors"),
@@ -2777,6 +2985,10 @@ function handleMessage(request, sender, sendResponse) {
         cancelAllActions();
         sendResponse(null);
         break;
+    case "exportAsAll":
+        scheduleExportAsAll(0, request[1]);
+        sendResponse(null);
+        break;
     case "broadcast":
         broadcast(request[1]);
         sendResponse(null);
@@ -2947,6 +3159,23 @@ async function handleCommand(command) {
 }
 
 function fixConfig(cfg, old) {
+    let anyA = cfg.archiveExportAs || cfg.archiveSubmitHTTP;
+    if (!anyA) {
+        // at lest one of these must be set
+        cfg.archiveExportAs = true;
+    }
+
+    // to prevent surprises
+    if (cfg.archive
+        && (reqresQueue.length > 0 || reqresFailedToArchiveByArchivable.size > 0)
+        && (cfg.archiveExportAs !== old.archiveExportAs
+         || cfg.archiveSubmitHTTP !== old.archiveSubmitHTTP))
+        cfg.archive = false;
+
+    // clamp
+    cfg.exportAsTimeout = clamp(0, 900, cfg.exportAsTimeout);
+    cfg.exportAsInFlightTimeout = clamp(cfg.exportAsTimeout, 900, cfg.exportAsInFlightTimeout);
+
     // these are mutually exclusive
     if (cfg.autoPopInLimboCollect !== old.autoPopInLimboCollect)
         cfg.autoPopInLimboDiscard = cfg.autoPopInLimboDiscard && !cfg.autoPopInLimboCollect;
