@@ -11,6 +11,7 @@ $for(libScript)$
 $endfor$
     <script src="../lib/cbor-s.js"></script>
     <script src="../lib/pako.js"></script>
+    <script src="../lib/pako-ext.js"></script>
     <script src="debugger.js"></script>
     <script src="core.js"></script>
   </body>
