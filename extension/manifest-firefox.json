@@ -18,6 +18,7 @@
         "menus",
         "notifications",
         "storage",
+        "unlimitedStorage",
         "tabs",
         "webRequest",
         "webRequestBlocking"

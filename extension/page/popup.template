@@ -88,9 +88,11 @@ h2 input[type="button"] {
 
 .disabled-collecting .dc,
 .disabled-collecting .dc input[type="checkbox"].toggle,
+.disabled-stash .ds,
 .disabled-archive .da,
 .disabled-exportas .dea,
 .disabled-submit .dsh,
+.disabled-localstorage .dls,
 .disabled-auto .dauto,
 .disabled-problematic-notify .dpn,
 .disabled-limbo-notify .dln {
@@ -231,6 +233,33 @@ h2 input[type="button"] {
     <div name="more" id="internally-options">
     <!-- internallyOptions -->
 
+    <h1>Stashing</h1>
+    <div class="stats">
+      <div id="div-stats.stashed" data-help="At the moment, the number of reqres that are currently stashed in browser&#039;s local storage and thus will not be lost on reload (and the sum total of all sizes of their dumps).">
+        <span>Stashed in LS</span>
+        <span>
+          <input type="button" id="stashAll" data-help="Stash all `queued`, `in_limbo`, and `failed` reqres into browser&#039;s local storage, regardless of &quot;Stash `collected` reqres into local storage&quot; and &quot;Stash `in_limbo` reqres&quot; options." value="Stash" />
+        </span>
+        <span>
+          <span id="stats.stashed">0</span>
+          (<span id="stats.stashed_size">0</span>)
+        </span>
+      </div>
+      <div id="div-stats.unstashed" data-help="At the moment, the number of reqres that failed to be stashed to local storage (and the sum total of all sizes of their dumps). Note that this number does not include reqres for which stashing was not even attempted, that number is not tracked at the moment.">
+        <span>Failed to Stash</span>
+        <span>
+          <input type="button" id="retryUnstashed" data-help="Retry stashing of all reqres that failed to be stashed to local storage." value="Retry" />
+        </span>
+        <span>
+          <span id="stats.unstashed">0</span>
+          (<span id="stats.unstashed_size">0</span>)
+        </span>
+      </div>
+    </div>
+    <div class="opts">
+    <ui id="config.stash" type="boolean" class="prefer-on" data-help="Automatically backup stuck `queued` and `failed` to archive reqres into browser&#039;s local storage. With this option enabled pWebArc will keep `collected` but not yet archived reqres across browser restarts and extension reloads. Note however, that even with this option enabled pWebArc will skip disk IO whenever possible: e.g., if both &quot;Archive `collected` reqres by&quot; and &quot;... submitting them via HTTP&quot; options are enabled, pWebArc will first try to archive each new `collected` reqres straight from memory to the archiving server and only if that process fails will it attempt stashing them to local storage instead. See also &quot;Stash `in_limbo` reqres&quot; options below.">Stash <code>collected</code> reqres into local storage</ui>
+    </div>
+
     <h1>Archiving</h1>
     <div class="stats">
       <div id="div-stats.exportedAs" data-help="From the last reset, the number of reqres that were successfully archived by being exported via `saveAs` mechanism as fake-Downloads (and the sum total of all sizes of their dumps).">
@@ -272,7 +301,7 @@ h2 input[type="button"] {
     </div>
     </div>
 
-    <h1>Archiving Options</h1>
+    <h1>Stashing and Archiving Options</h1>
     <div class="opts">
     <!-- internallySubOptions -->
 
@@ -289,6 +318,12 @@ h2 input[type="button"] {
     <div class="subopts dsh">
     <ui id="config.submitHTTPURLBase" type="string" data-help="URL of the archiving server we are submitting to.">Server URL</ui>
     <div>(Compression is done server-side.)</div>
+    </div>
+
+    <h2>Local Storage</h2>
+    <div class="subopts dls">
+    <ui id="config.preferIndexedDB" type="boolean" data-help="Prefer `IndexedDB` API to `storage.local` API for stashing and saving new reqres, if both are available. pWebArc uses less memory and disk IO when loading data back to memory via `IndexedDB` API. On Firefox, this option can not be enabled if `IndexedDB` API is unavailable, which will be the case if you enable &quot;Always use private browsing mode&quot; browser setting, unless you use a very recent non-ESR version of Firefox. Enabling private browsing mode on older Firefox versions will also make all the data stored in `IndexedDB` suddenly unavailable. On Chromium, at the moment, this option can not be disabled, since `storage.local` API there can not store `Uint8Array`s. Which is why this option is enabled by default on Chromium and disabled by default on Firefox.">Prefer <code>IndexedDB</code> API</ui>
+    <ui id="config.gzipLSDumps" type="boolean" class="prefer-on" data-help="Before writing each new dump to local storage, try compressing it with GZip and use the compressed version if its size is smaller than the size of non-compressed version. This applies universally, to both stashing and saving to local storage using any available API. Enabled by default since this saves a lot of disk space when archiving to local storage is enabled (see &quot;Archive `collected` reqres by ... saving them into local storage&quot; option above). You might want to disable this if you sometimes temporarily stash (see &quot;Stash `collected` reqres into local storage&quot; option above and &quot;Stash `in_limbo` reqres&quot; options below) but never archive data to local storage. Since, in that case, GZipping everything twice --- once when stashing, and then the second time when exporting and/or on the archiving server side --- is a waste of CPU cycles.">GZip new dumps</ui>
     </div>
 
     <!-- internallySubOptions -->
@@ -375,7 +410,8 @@ h2 input[type="button"] {
     <ui id="tabconfig.collecting" type="boolean" class="prefer-on dc" tabindex=2 data-shortcut="toggleTabConfigTracking" data-help="Track new reqres originating from this tab.">Track new reqres</ui>
     <ui id="tabconfig.limbo" type="boolean" tabindex=3 data-shortcut="toggleTabConfigLimbo" data-help="For this tab, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
     <ui name="more" id="tabconfig.negLimbo" type="boolean" class="prefer-off" data-help="For this tab, put newly `finished` reqres that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
-    <ui id="tabconfig.bucket" type="string" class="da" data-help="Use this bucket when archiving reqres originating from this tab.">Bucket</ui>
+    <ui name="more" id="tabconfig.stashLimbo" type="boolean" class="ds" data-help="For this tab, backup `in_limbo` reqres into browser&#039;s local storage. With this option enabled, pWebArc will keep `in_limbo` reqres across browser restarts and extension reloads. Enabled by default, but keeping this enabled if you have &quot;Pick into limbo&quot; option enabled yet almost never archive from limbo is a waste of disk IO, which is why this option exists. This option does nothing if &quot;Stash `collected` reqres into local storage&quot; is disabled.">Stash <code>in_limbo</code> reqres</ui>
+    <ui id="tabconfig.bucket" type="string" data-help="Use this bucket when archiving reqres originating from this tab.">Bucket</ui>
     </div>
     <!-- thisTabOptions -->
     </div>
@@ -387,7 +423,8 @@ h2 input[type="button"] {
     <ui id="tabconfig.children.collecting" type="boolean" tabindex=4 class="prefer-on dc" data-shortcut="toggleTabConfigChildrenTracking" data-help="Enable &quot;Track new reqres&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Track new reqres&quot;</ui>
     <ui id="tabconfig.children.limbo" type="boolean" tabindex=5 data-shortcut="toggleTabConfigChildrenLimbo" data-help="Enable &quot;Pick into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Pick into limbo&quot;</ui>
     <ui name="more" id="tabconfig.children.negLimbo" type="boolean" class="prefer-off" data-help="Enable &quot;Drop into limbo&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Drop into limbo&quot;</ui>
-    <ui id="tabconfig.children.bucket" type="string" class="da" data-help="Use this bucket when archiving reqres originating from new tabs opened from this tab (middle mouse click, context menu actions).">Bucket</ui>
+    <ui name="more" id="tabconfig.children.stashLimbo" type="boolean" class="ds" data-help="Enable &quot;Stash `in_limbo` reqres&quot; option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Enable &quot;Stash <code>in_limbo</code> reqres&quot;</ui>
+    <ui id="tabconfig.children.bucket" type="string" data-help="Use this bucket when archiving reqres originating from new tabs opened from this tab (middle mouse click, context menu actions).">Bucket</ui>
     </div>
     <!-- thisTabChildrenOptions -->
     </div>
@@ -399,7 +436,8 @@ h2 input[type="button"] {
     <ui id="config.root.collecting" type="boolean" class="prefer-on dc" tabindex=6 data-help="Enable &quot;Track new reqres&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Track new reqres&quot;</ui>
     <ui id="config.root.limbo" type="boolean" tabindex=7 data-help="Enable &quot;Pick into limbo&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Pick into limbo&quot;</ui>
     <ui name="more" id="config.root.negLimbo" type="boolean" class="prefer-off" data-help="Enable &quot;Drop into limbo&quot; option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Drop into limbo&quot;</ui>
-    <ui name="more" id="config.root.bucket" type="string" class="da" data-help="Use this bucket when archiving reqres originating from new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Bucket</ui>
+    <ui name="more" id="config.root.stashLimbo" type="boolean" class="ds" data-help="Enable &quot;Stash `in_limbo` reqres&quot; option in in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Enable &quot;Stash <code>in_limbo</code> reqres&quot;</ui>
+    <ui name="more" id="config.root.bucket" type="string" data-help="Use this bucket when archiving reqres originating from new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, Control+T, &quot;New Tab&quot; menu item). This setting also gets applied to all open tabs when pWebArc is (re)loaded.">Bucket</ui>
     </div>
     <!-- rootTabOptions -->
     </div>
@@ -414,7 +452,8 @@ h2 input[type="button"] {
     <ui id="config.background.collecting" type="boolean" class="prefer-on dc" data-help="Track new reqres originating from browser&#039;s background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this as browsers do link pre-fetching in background, and disabling this will miss that data.">Track new reqres</ui>
     <ui id="config.background.limbo" type="boolean" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
     <ui id="config.background.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
-    <ui id="config.background.bucket" type="string" class="da" data-help="Use this bucket when archiving reqres originating from browser&#039;s background tasks (excluding those originating from extensions).">Bucket</ui>
+    <ui id="config.background.stashLimbo" type="boolean" class="ds" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), backup `in_limbo` reqres into browser&#039;s local storage. This option does nothing if &quot;Stash `collected` reqres into local storage&quot; is disabled.">Stash <code>in_limbo</code> reqres</ui>
+    <ui id="config.background.bucket" type="string" data-help="Use this bucket when archiving reqres originating from browser&#039;s background tasks (excluding those originating from extensions).">Bucket</ui>
     </div>
     <!-- backgroundOptions -->
     </div>
@@ -426,7 +465,8 @@ h2 input[type="button"] {
     <ui id="config.extension.collecting" type="boolean" class="dc" data-help="Track new reqres originating from browser extensions.">Track new reqres</ui>
     <ui id="config.extension.limbo" type="boolean" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
     <ui id="config.extension.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that do NOT satisfy &quot;Pick reqres for archival when they finish&quot; settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
-    <ui id="config.extension.bucket" type="string" class="da" data-help="Use this bucket when archiving reqres originating from browser extensions.">Bucket</ui>
+    <ui id="config.extension.stashLimbo" type="boolean" class="ds" data-help="For reqres originating from browser&#039;s extensions/add-ons, backup `in_limbo` reqres into browser&#039;s local storage. This option does nothing if &quot;Stash `collected` reqres into local storage&quot; is disabled.">Stash <code>in_limbo</code> reqres</ui>
+    <ui id="config.extension.bucket" type="string" data-help="Use this bucket when archiving reqres originating from browser extensions.">Bucket</ui>
     </div>
     <!-- extensionOptions -->
     </div>
@@ -499,12 +539,12 @@ h2 input[type="button"] {
     <div name="more">
     <!-- notifyMore -->
     <ui id="config.problematicNotifyNumber" type="number" class="dpn c" data-help="Show no more than this many latest METHOD + URL lines in the generated problematic reqres notification.">... ... but no more than {} lines</ui>
-    <ui id="config.limboNotify" type="boolean" class="prefer-on c" data-help="Complain when too much stuff is being held in limbo.">... {} too much stuff in limbo</ui>
+    <ui id="config.limboNotify" type="boolean" class="c" data-help="Complain when too much stuff is being held in limbo. You can safely disable this or set the following sub-options to absurdly high values if &quot;Stash `collected` reqres into local storage&quot; and all &quot;Stash `in_limbo` reqres&quot; options are set.">... {} too much stuff in limbo</ui>
     <ui id="config.limboMaxNumber" type="number" class="dln c" data-help="Start complaining when more than this number of reqres are in limbo.">... ... after {} elements</ui>
     <ui id="config.limboMaxSize" type="number" class="dln c" data-help="Start complaining when the total size of all dumps in limbo is larger than this many Megabytes.">... ... or {} MiB</ui>
     <ui id="config.autoNotify" type="boolean" class="c" data-help="Generate a notification when an automatic action was performed in background.">... {} automatic actions</ui>
-    <ui id="config.archiveStuckNotify" type="boolean" class="prefer-on c" data-help="Complain when some reqres are stuck in the archival queue, i.e. when the queue is not empty but archiving is disabled.">... {} stuck archival queue</ui>
-    <ui id="config.archiveFailedNotify" type="boolean" class="prefer-on c" data-help="Complain when some reqres fail to be archived to the archival server.">... {} archival errors</ui>
+    <ui id="config.archiveStuckNotify" type="boolean" class="prefer-on c" data-help="Complain when the archival queue is not empty but both &quot;Archive `collected` reqres by&quot; and &quot;Stash `collected` reqres into local storage&quot; options are disabled.">... {} unstashed stuck archival queue</ui>
+    <ui id="config.archiveFailedNotify" type="boolean" class="prefer-on c" data-help="Complain when some reqres fail to be stashed or archived to persistent storage (browser&#039;s local storage, the archival server, etc).">... {} archival errors</ui>
     <ui id="config.archiveDoneNotify" type="boolean" class="c" data-help="Generate an &quot;All OK&quot; notification when the archival queue becomes empty the very first time or after a previous archival failure. This exists mostly for on-boarding new users.">... {} newly empty archival queue</ui>
     <!-- notifyMore -->
     </div>

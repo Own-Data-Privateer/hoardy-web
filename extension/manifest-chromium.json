@@ -15,6 +15,7 @@
         "debugger",
         "notifications",
         "storage",
+        "unlimitedStorage",
         "tabs",
         "webRequest",
         "webRequestBlocking"

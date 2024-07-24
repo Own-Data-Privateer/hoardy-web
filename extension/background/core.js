@@ -59,6 +59,14 @@ let configDefaults = {
     // are we collecting new data?
     collecting: true,
 
+    // prefer `IndexedDB` to `storage.local` for stashing and saving?
+    preferIndexedDB: useDebugger,
+    // GZip dumps written to local storage
+    gzipLSDumps: true,
+
+    // should we stash unarchived reqres to local storage?
+    stash: true,
+
     // are we archiving? or temporarily paused
     archive: true,
 
@@ -130,6 +138,7 @@ let configDefaults = {
         collecting: true,
         limbo: false,
         negLimbo: false,
+        stashLimbo: true,
         bucket: "default",
     },
 
@@ -137,6 +146,7 @@ let configDefaults = {
         collecting: false,
         limbo: false,
         negLimbo: false,
+        stashLimbo: true,
         bucket: "extension",
     },
 
@@ -144,6 +154,7 @@ let configDefaults = {
         collecting: true,
         limbo: false,
         negLimbo: false,
+        stashLimbo: true,
         bucket: "background",
     },
 };
@@ -339,6 +350,8 @@ function getUsedTabs() {
     for (let f of reqresErrored.values())
         for (let v of f.queue)
             usedTabs.add(v[0].tabId);
+    for (let v of reqresFailedToStashByArchivable.keys())
+        usedTabs.add(v[0].tabId);
     for (let v of reqresFailedToArchiveByArchivable.keys())
         usedTabs.add(v[0].tabId);
 
@@ -464,6 +477,10 @@ let reqresQueueSize = 0;
 let reqresBundledAs = new Map();
 // archivables that failed to be processed in some way, indexed by error message
 let reqresErrored = new Map();
+// archivables that failed to sync to indexedDB, indexed by error message
+let reqresFailedToStashByError = new Map();
+// same thing, but archivable as key, and `syncOne` args as values
+let reqresFailedToStashByArchivable = new Map();
 // archivables that failed in server submission, indexed by archiveURL, then by error message
 let reqresFailedToArchiveByArchiveError = new Map();
 // map `archivables -> int`, the `int` is a count of how many times each archivable appears
@@ -578,9 +595,13 @@ let persistentStatsDefaults = {
     exportedAsTotal: 0,
     exportedAsSize: 0,
 };
+let dbstatsDefaults = { number: 0, size: 0 };
 // persistent global variables
+let globalsVersion = 1;
 let globals = assignRec({
-    version: 1,
+    version: globalsVersion,
+    stashedLS: assignRec({}, dbstatsDefaults),
+    stashedIDB: assignRec({}, dbstatsDefaults),
 }, persistentStatsDefaults);
 // did it change recently?
 let changedGlobals = false;
@@ -625,6 +646,8 @@ function getOriginState(tabId, fromExtension) {
 }
 
 // scheduleComplaints flags
+// do we have a new failed to stash or save reqres
+let gotNewSyncedOrFailed = false;
 // do we have new failed to submit or new archived reqres?
 let gotNewArchivedOrFailed = false;
 // do we need to show empty queue notification?
@@ -666,6 +689,8 @@ function getStats() {
 
     let [errored, erroredSize] = getNumberAndSizeFromQueues(reqresErrored);
 
+    let [stashFailed, stashFailedSize] = getNumberAndSizeFromKeys(reqresFailedToStashByArchivable);
+
     let [archiveFailed, archiveFailedSize] = getNumberAndSizeFromKeys(reqresFailedToArchiveByArchivable);
 
     let in_flight = reqresAlmostDone.length +
@@ -694,6 +719,10 @@ function getStats() {
         discarded_size: globals.discardedSize,
         queued: reqresQueue.length,
         queued_size: reqresQueueSize,
+        stashed: globals.stashedLS.number + globals.stashedIDB.number,
+        stashed_size: globals.stashedLS.size + globals.stashedIDB.size,
+        unstashed: stashFailed,
+        unstashed_size: stashFailedSize,
         exportedAs: globals.exportedAsTotal,
         exportedAs_size: globals.exportedAsSize,
         bundledAs,
@@ -708,6 +737,7 @@ function getStats() {
             + reqresProblematic.length
             + reqresLimbo.length
             + reqresQueue.length
+            + stashFailed
             + archiveFailed
             + errored,
     };
@@ -785,6 +815,7 @@ function unmarkProblematic(num, tabId, rrfilter) {
         try {
             let info = getOriginState(loggable.tabId, loggable.fromExtension);
             loggable.problematic = false;
+            loggable.dirty = true;
             info.problematicTotal -= 1;
         } catch (err) {
             logHandledError(err);
@@ -849,6 +880,7 @@ function popInLimbo(collect, num, tabId, rrfilter) {
 
             let info = getOriginState(loggable.tabId, loggable.fromExtension);
             loggable.in_limbo = false;
+            loggable.dirty = true;
             info.inLimboTotal -= 1;
             info.inLimboSize -= dumpSize;
             processNonLimbo(collect, info, archivable, newQueued, newLog);
@@ -984,10 +1016,10 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
             color = 1;
             chunks.push(`${stats.bundledAs} reqres bundled for export`);
         }
-        if (!config.archive) {
+        if (!config.archive && !config.stash) {
             badge += "H";
             color = 1;
-            chunks.push("ephemeral mode (archiving is disabled)");
+            chunks.push("ephemeral mode (both archiving and stashing are disabled)");
         }
         if (config.autoPopInLimboDiscard || config.discardAll) {
             badge += "!";
@@ -998,6 +1030,11 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
             badge += "E";
             color = 2;
             chunks.push(`internal errors on ${stats.errored} reqres`);
+        }
+        if (stats.unstashed > 0) {
+            badge += "F";
+            color = 2;
+            chunks.push(`failed to stash ${stats.unstashed} reqres`);
         }
         if (stats.failed > 0) {
             badge += "F";
@@ -1272,7 +1309,9 @@ function scheduleEndgame(updatedTabId) {
                 if (savedGlobals === undefined
                     || (!haveInFlight && (savedGlobals.collectedTotal !== globals.collectedTotal
                                           || savedGlobals.submittedHTTPTotal !== globals.submittedHTTPTotal
-                                          || savedGlobals.exportedAsTotal !== globals.exportedAsTotal)))
+                                          || savedGlobals.exportedAsTotal !== globals.exportedAsTotal))
+                    || savedGlobals.stashedLS.number !== globals.stashedLS.number
+                    || savedGlobals.stashedIDB.number !== globals.stashedIDB.number)
                     boring = false;
 
                 resetSingletonTimeout(scheduledSaveState, "saveGlobals", boring ? 90000 : 1000, async () => {
@@ -1302,6 +1341,38 @@ function scheduleEndgame(updatedTabId) {
             await updateDisplay(true, updatedTabId);
         });
     }
+}
+
+async function doRetryAllUnstashed() {
+    let newByError = new Map();
+    let newByArchivable = new Map();
+    for (let [archivable, args] of reqresFailedToStashByArchivable.entries()) {
+        let [state, elide] = args;
+        await syncOne(archivable, state, elide, newByError, newByArchivable);
+    }
+    reqresFailedToStashByError = newByError;
+    reqresFailedToStashByArchivable = newByArchivable;
+    gotNewSyncedOrFailed = true;
+}
+
+function retryUnstashed() {
+    runSynchronously(doRetryAllUnstashed);
+    scheduleEndgame(null);
+}
+
+async function doStashAll(alsoLimbo) {
+    await doRetryAllUnstashed();
+    await syncMany(reqresQueue, 1, true);
+    if (alsoLimbo)
+        await syncMany(reqresLimbo, 1, true);
+    for (let m of reqresFailedToArchiveByArchiveError.values())
+        for (let f of m.values())
+            await syncMany(f.queue, 1, true);
+}
+
+function stashAll(alsoLimbo) {
+    runSynchronously(doStashAll, alsoLimbo);
+    scheduleEndgame(null);
 }
 
 function retryOneFailed(archiveURL, unrecoverable) {
@@ -1355,6 +1426,7 @@ function formatFailures(why, list) {
 async function doComplain() {
     // record the current state, because the rest of this chunk is async
     let rrErrored = Array.from(reqresErrored.entries());
+    let rrUnstashed = Array.from(reqresFailedToStashByError.entries());
     let rrUnsubmitted = Array.from(reqresFailedToArchiveByArchiveError.entries());
 
     if (gotNewErrored && rrErrored.length > 0) {
@@ -1373,17 +1445,33 @@ async function doComplain() {
     if (gotNewQueued && reqresQueue.length > 0) {
         gotNewQueued = false;
 
-        if (config.archiveStuckNotify && !config.archive &&) {
+        if (config.archiveStuckNotify && !config.archive && !config.stash) {
             await browser.notifications.create("notSaving", {
                 title: "pWebArc: WARNING",
-                message: "Some data is waiting in the archival queue, but archiving is disabled.",
+                message: "Some reqres are waiting in the archival queue, but both reqres stashing and archiving are disabled.",
                 iconUrl: iconURL("archiving", 128),
                 type: "basic",
             });
         }
-    } else if (config.archive)
+    } else if (config.archive || config.stash)
         // clear stale
         await browser.notifications.clear("notSaving");
+
+    if (gotNewSyncedOrFailed && rrUnstashed.length > 0) {
+        gotNewSyncedOrFailed = false;
+
+        if (config.archiveFailedNotify) {
+            // generate a new one
+            await browser.notifications.create("unstashed", {
+                title: "pWebArc: FAILED",
+                message: `For browser's local storage:\n${formatFailures("Failed to stash", rrUnstashed)}`,
+                iconUrl: iconURL("error", 128),
+                type: "basic",
+            });
+        }
+    } else if (rrUnstashed.length === 0)
+        // clear stale
+        await browser.notifications.clear("unstashed");
 
     if (gotNewArchivedOrFailed) {
         gotNewArchivedOrFailed = false;
@@ -1418,7 +1506,7 @@ async function doComplain() {
             }
         }
 
-        let isDone = rrUnsubmitted.length === 0;
+        let isDone = rrUnstashed.length === 0 && rrUnsubmitted.length === 0;
 
         if (wantArchiveDoneNotify && isDone && reqresQueue.length === 0) {
             wantArchiveDoneNotify = false;
@@ -1497,6 +1585,328 @@ async function doComplain() {
 
 function scheduleComplaints(timeout) {
     resetSingletonTimeout(scheduledHidden, "complaints", timeout, doComplain);
+}
+
+// reqres persistence
+
+let reqresIDB; // set in init
+
+async function dumpLS() {
+    await lslotDump();
+
+    if (reqresIDB !== undefined)
+        await idbDump(reqresIDB);
+}
+
+async function loadDump(archivable, unelide, allowNull) {
+    let [loggable, dump] = archivable;
+
+    let dumpId = loggable.dumpId;
+    if (dump === null && dumpId !== undefined) {
+        if (loggable.inLS) {
+            let res = await storageGetOne(browser.storage.local, lslotDataIdOf("dump", dumpId));
+            dump = res.dump;
+        } else if (reqresIDB !== undefined)
+            dump = await idbTransaction(reqresIDB, "readonly", ["dump"], async (transaction, dumpStore) => {
+                let res = await dumpStore.get(dumpId);
+                return res.dump;
+            });
+        else
+            throw new Error("IndexedDB is not available");
+
+        if (dump === undefined)
+            throw new Error("reqres dump is missing");
+
+        dump = inflateMaybe(dump, undefined, logHandledError);
+    }
+
+    if (dump === null) {
+        if (allowNull)
+            return dump;
+
+        throw new Error("reqres dump is null");
+    }
+
+    if (!(dump instanceof Uint8Array)) {
+        console.error("reqres dump is not Uint8Array", dump);
+        throw new Error("reqres dump is not Uint8Array");
+    }
+
+    if (unelide)
+        // remember it
+        archivable[1] = dump;
+
+    return dump;
+}
+
+function mkIDBTransaction (func) {
+    return idbTransaction(reqresIDB, "readwrite", ["dump", "stash", "save"], func);
+}
+
+function mkLSlotTransaction (func) {
+    return lslotTransaction(browser.storage.local, "readwrite", ["dump", "stash", "save"], func);
+}
+
+function selectTSS(inLS) {
+    let mkTransaction;
+    let stashStats;
+    let savedStats;
+    if (inLS) {
+        mkTransaction = mkLSlotTransaction;
+        stashStats = globals.stashedLS;
+        savedStats = globals.savedLS;
+    } else {
+        mkTransaction = mkIDBTransaction;
+        stashStats = globals.stashedIDB;
+        savedStats = globals.savedIDB;
+    }
+    return [mkTransaction, stashStats, savedStats];
+}
+
+async function syncWipeOne(tss, dumpSize, dumpId, stashId, saveId) {
+    let [mkTransaction, stashStats, savedStats] = tss;
+
+    await mkTransaction(async (transaction, dumpStore, stashStore, saveStore) => {
+        if (dumpId !== undefined)
+            await dumpStore.delete(dumpId);
+        if (stashId !== undefined)
+            await stashStore.delete(stashId);
+        if (saveId !== undefined)
+            await saveStore.delete(saveId);
+    });
+
+    if (stashId !== undefined) {
+        stashStats.number -= 1;
+        stashStats.size -= dumpSize;
+        changedGlobals = true;
+    }
+    if (saveId !== undefined) {
+        savedStats.number -= 1;
+        savedStats.size -= dumpSize;
+        changedGlobals = true;
+    }
+}
+
+async function syncWriteOne(tss, state, clean, dump, dumpSize, dumpId, stashId, saveId) {
+    let [mkTransaction, stashStats, savedStats] = tss;
+
+    await mkTransaction(async (transaction, dumpStore, stashStore, saveStore) => {
+        if (dumpId === undefined && dump !== null) {
+            if (config.gzipLSDumps)
+                dump = deflateMaybe(dump, {
+                    gzip: true,
+                    level: 9,
+                }, logHandledError);
+            clean.dumpId = await dumpStore.put({ dump });
+        } else if (dumpId !== undefined)
+            // reuse the old one
+            clean.dumpId = dumpId;
+
+        if (state === 1) {
+            clean.stashId = await stashStore.put(clean, stashId);
+            if (saveId !== undefined)
+                await saveStore.delete(saveId);
+        } else if (state === 2) {
+            clean.saveId = await saveStore.put(clean, saveId);
+            if (stashId !== undefined)
+                await stashStore.delete(stashId);
+        }
+    });
+
+    if (stashId === undefined && clean.stashId !== undefined) {
+        stashStats.number += 1;
+        stashStats.size += dumpSize;
+        changedGlobals = true;
+    } else if (stashId !== undefined && clean.stashId === undefined) {
+        stashStats.number -= 1;
+        stashStats.size -= dumpSize;
+        changedGlobals = true;
+    }
+    if (saveId === undefined && clean.saveId !== undefined) {
+        savedStats.number += 1;
+        savedStats.size += dumpSize;
+        changedGlobals = true;
+    } else if (saveId !== undefined && clean.saveId === undefined) {
+        savedStats.number -= 1;
+        savedStats.size -= dumpSize;
+        changedGlobals = true;
+    }
+}
+
+async function doSyncOne(archivable, state, elide) {
+    let [loggable, dump] = archivable;
+
+    // Is it in `storage.local` (`true`), in `indexedDB` (`false`), or neither (`undefined`)?
+    let inLS = loggable.inLS;
+    // Current values.
+    let dirty = loggable.dirty === true;
+    let dumpId = loggable.dumpId;
+    let stashId = loggable.stashId;
+    let saveId = loggable.saveId;
+
+    // Do we want it to be stored in `storage.local`?
+    let wantInLS = inLS === true || !config.preferIndexedDB || reqresIDB === undefined;
+
+    // Do we even have anything to do?
+    if (state === 0 && dumpId === undefined && stashId === undefined && saveId === undefined)
+        return;
+    else if ((dumpId !== undefined || dump === null)
+             && (
+              (state === 1 && stashId !== undefined && saveId === undefined)
+           || (state === 2 && stashId === undefined && saveId !== undefined)
+             )
+             && inLS === wantInLS
+             && !dirty)
+        return;
+
+    let dumpSize = loggable.dumpSize;
+
+    // Pristine version of loggable, which will be written to storage.
+    let clean = assignRec({}, loggable);
+    clean.version = 1;
+    delete clean["inLS"];
+    delete clean["dirty"];
+    delete clean["dumpId"];
+    delete clean["stashId"];
+    delete clean["saveId"];
+
+    if (state === 0)
+        // delete from the current store
+        await syncWipeOne(selectTSS(inLS !== false), dumpSize, dumpId, stashId, saveId);
+    else {
+        // because we don't want to save these
+        deleteLoggableFields(clean);
+
+        if (inLS === undefined || inLS === wantInLS)
+            // first write or overwrite to the same store
+            await syncWriteOne(selectTSS(wantInLS), state, clean, dump, dumpSize, dumpId, stashId, saveId);
+        else {
+            // we are moving the data from one store to the other
+            dump = await loadDump(archivable, true, true);
+            await syncWriteOne(selectTSS(wantInLS), state, clean, dump, dumpSize);
+            await syncWipeOne(selectTSS(inLS), dumpSize, dumpId, stashId, saveId);
+        }
+
+        clean.inLS = wantInLS;
+        // reuse old fields
+        copyLoggableFields(loggable, clean);
+    }
+
+    archivable[0] = clean;
+    if (elide)
+        // free memory
+        archivable[1] = null;
+
+    if (config.debugging)
+        console.warn(state === 0 ? "DELETED" : (state === 1 ? "STASHED" : "SAVED"),
+                     "elide", elide,
+                     "ids", dumpId, stashId, saveId,
+                     "clean", clean);
+}
+
+async function syncOne(archivable, state, elide, rrFailed, rrLast) {
+    if (rrFailed === undefined)
+        rrFailed = reqresFailedToStashByError;
+    if (rrLast === undefined)
+        rrLast = reqresFailedToStashByArchivable;
+
+    let [loggable, dump] = archivable;
+    let dumpSize = loggable.dumpSize;
+
+    try {
+        await doSyncOne(archivable, state, elide);
+    } catch (err) {
+        logHandledError(err);
+        recordByError(rrFailed, err, false, archivable, dumpSize);
+        rrLast.set(archivable, [state, elide]);
+        gotNewSyncedOrFailed = true;
+        return false;
+    }
+
+    gotNewSyncedOrFailed = true;
+    return true;
+}
+
+async function syncMany(archivables, state, elide) {
+    for (let archivable of archivables) {
+        let [loggable, dump] = archivable;
+        updateLoggable(loggable);
+
+        await syncOne(archivable, state, elide);
+        await updateDisplay(true, loggable.tabId, 100);
+    }
+}
+
+class StopIteration extends Error {}
+
+async function forEachSynced(storeName, func, limit) {
+    if (limit === undefined)
+        limit = null;
+
+    let storeStatsLS = assignRec({}, dbstatsDefaults);
+    let storeStatsIDB = assignRec({}, dbstatsDefaults);
+    let sn = storeName + "Id";
+    let loaded = 0;
+
+    function loopBody(loggable, side, key, storeStats) {
+        try {
+            loggable.inLS = side;
+            loggable[sn] = key;
+
+            let dumpSize = loggable.dumpSize;
+            storeStats.number += 1;
+            storeStats.size += dumpSize;
+
+            return func(loggable);
+        } catch (err) {
+            logHandledError(err);
+            markAsErrored(err, [loggable, null]);
+            return false;
+        }
+    }
+
+    await lslotTransaction(browser.storage.local, "readonly", [storeName], async (transaction, store) => {
+        try {
+            await store.forEach(async (loggable, slot) => {
+                if (limit !== null && loaded >= limit)
+                    throw new StopIteration();
+
+                if (loopBody(loggable, true, slot, storeStatsLS))
+                    loaded += 1;
+            });
+        } catch (err) {
+            if (!(err instanceof StopIteration))
+                throw err;
+        }
+    });
+
+    if (limit !== null && loaded >= limit)
+        return [undefined, undefined];
+
+    if (reqresIDB === undefined)
+        return [storeStatsLS, undefined];
+
+    await idbTransaction(reqresIDB, "readonly", ["dump", storeName], async (transaction, dumpStore, store) => {
+        let allKeys = await store.getAllKeys();
+        try {
+            for (let key of allKeys) {
+                if (limit !== null && loaded >= limit)
+                    throw new StopIteration();
+
+                let loggable = await store.get(key);
+                if (loopBody(loggable, false, key, storeStatsIDB))
+                    loaded += 1;
+            }
+        } catch (err) {
+            if (!(err instanceof StopIteration))
+                throw err;
+        }
+    });
+
+    if (limit !== null && loaded >= limit)
+        return [storeStatsLS, undefined];
+
+    return [storeStatsLS, storeStatsIDB];
 }
 
 // reqres archiving
@@ -1596,7 +2006,30 @@ function exportAsAll(bucket, ifGEQ) {
     } catch (err) {
         recordManyFailed("exportAs", err, false, res.queue, (loggable) => {
             loggable.exportedAs = false;
+            loggable.dirty = true;
         });
+        runSynchronously(syncMany, Array.from(res.queue), 1, true);
+        // NB: This is slightly fragile, consider the following sequence of
+        // events for a given archivable:
+        //
+        //  exportAsOne -> submitHTTPOne -> saveOne
+        //  -> ... -> exportAsAll, which fails -> recordFailed
+        //  -> syncMany
+        //
+        // It will work only if `runSynchronously` is run after `saveOne`
+        // (which is true, given how `scheduleEndgame` is written). Also,
+        // note, that it will first save the archivable, and then un-save it,
+        // this is by design, since, ideally, this this `catch` would never be
+        // run.
+        //
+        // Now consider this:
+        //
+        //  exportAsOne -> submitHTTPOne -> (no saveOne) -> syncOne(archivable, 0, ...)
+        //  -> ... -> exportAsAll, which fails -> recordFailed
+        //  -> syncMany
+        //
+        // Which will only work if that first `syncOne` does not elide the
+        // dump from memory, see (notEliding).
     } finally {
         reqresBundledAs.delete(bucket);
     }
@@ -1628,6 +2061,9 @@ async function exportAsOne(archivable) {
     if (isArchivedVia(loggable, archivedViaExportAs))
         return true;
 
+    // load the dump
+    dump = await loadDump(archivable, true, false);
+
     let archiveURL = "exportAs";
     let bucket = loggable.bucket;
     let maxSize = config.exportAsMaxSize * MEGABYTE;
@@ -1647,6 +2083,7 @@ async function exportAsOne(archivable) {
 
     // remember this being done
     loggable.archived |= archivedViaExportAs;
+    loggable.dirty = true;
 
     // try exporting again
     exportAsAll(bucket, maxSize);
@@ -1654,6 +2091,65 @@ async function exportAsOne(archivable) {
     gotNewExportedAs = true;
 
     return true;
+}
+
+// this is used as an argument to `forEachSynced`
+function loadOneStashed(loggable) {
+    addLoggableFields(loggable);
+
+    let info = getOriginState(loggable.tabId, loggable.fromExtension);
+    let dumpId = loggable.dumpId;
+    let dumpSize = loggable.dumpSize;
+
+    let archivable = [loggable, null];
+
+    if (loggable.problematic) {
+        reqresProblematic.push(archivable);
+        gotNewProblematic = true;
+        info.problematicTotal += 1;
+    }
+
+    if (loggable.in_limbo || loggable.collected) {
+        if (dumpId === undefined)
+            throw new Error("dumpId is not specified");
+
+        if (loggable.in_limbo) {
+            reqresLimbo.push(archivable);
+            reqresLimboSize += dumpSize;
+            gotNewLimbo = true;
+            info.inLimboTotal += 1;
+            info.inLimboSize += dumpSize;
+        } else if (loggable.collected) {
+            reqresQueue.push(archivable);
+            reqresQueueSize += dumpSize;
+            gotNewQueued = true;
+        }
+    } else
+        throw new Error("unknown reqres state");
+
+    return true;
+}
+
+async function loadStashed() {
+    let [newStashedLS, newStashedIDB] = await forEachSynced("stash", loadOneStashed);
+
+    // recover from wrong counts
+    if (newStashedLS !== undefined && !equalRec(globals.stashedLS, newStashedLS)) {
+        globals.stashedLS = newStashedLS;
+        changedGlobals = true;
+    }
+    if (newStashedIDB !== undefined && !equalRec(globals.stashedIDB, newStashedIDB)) {
+        globals.stashedIDB = newStashedIDB;
+        changedGlobals = true;
+    }
+}
+
+// this is used as an argument to `forEachSynced`
+function loadOneSaved(archivable) {
+    let [loggable, _dump] = archivable;
+    addLoggableFields(loggable);
+
+    console.log(loggable);
 }
 
 // reqres archiving
@@ -1664,6 +2160,8 @@ async function submitHTTPOne(archivable) {
 
     if (isArchivedVia(loggable, archivedViaSubmitHTTP))
         return true;
+
+    dump = await loadDump(archivable, true, false);
 
     let archiveURL = config.submitHTTPURLBase + "?profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
 
@@ -1704,6 +2202,7 @@ async function submitHTTPOne(archivable) {
     globals.submittedHTTPTotal += 1;
     globals.submittedHTTPSize += loggable.dumpSize;
     loggable.archived |= archivedViaSubmitHTTP;
+    loggable.dirty = true;
 
     gotNewArchivedOrFailed = true;
     return true;
@@ -1717,22 +2216,35 @@ async function processArchiving() {
         reqresQueueSize -= dumpSize;
 
         if (config.discardAll) {
+            await syncOne(archivable, 0, false);
             continue;
         }
 
         try {
             updateLoggable(loggable);
 
+            let allOK = true;
+
             if (config.archiveExportAs)
-                await exportAsOne(archivable);
+                allOK &&= await exportAsOne(archivable);
 
             if (config.archiveSubmitHTTP)
-                await submitHTTPOne(archivable);
+                allOK &&= await submitHTTPOne(archivable);
 
             // other archival methods go here
+
+            if (!allOK)
+                // it's in reqresFailedToArchiveByArchiveError now, stash it without
+                // recording it in reqresFailedToStashByError and
+                // reqresFailedToStashByArchivable
+                await doSyncOne(archivable, 1, true).catch(logError);
+            else
+                // (notEliding)
+                await syncOne(archivable, 0, false);
         } catch (err) {
             logHandledError(err);
             markAsErrored(err, archivable);
+            await syncOne(archivable, 1, true);
         }
 
         await updateDisplay(true, loggable.tabId, 10);
@@ -2054,6 +2566,8 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
         info.inLimboTotal += 1;
         info.inLimboSize += dumpSize;
         newLimbo.push(loggable);
+        if (config.stash && options.stashLimbo)
+            runSynchronously(syncOne, archivable, 1, true);
     } else
         processNonLimbo(picked, info, archivable, newQueued, newLog);
 
@@ -2081,12 +2595,24 @@ function processNonLimbo(collect, info, archivable, newQueued, newLog) {
         globals.collectedSize += dumpSize;
         info.collectedTotal += 1;
         info.collectedSize += dumpSize;
+
+        if (!config.archive && config.stash) {
+            if (loggable.was_in_limbo)
+                updateLoggable(loggable);
+
+            // stuck queue, stash it
+            runSynchronously(syncOne, archivable, 1, false);
+        }
     } else {
         loggable.collected = false;
         globals.discardedTotal += 1;
         globals.discardedSize += dumpSize;
         info.discardedTotal += 1;
         info.discardedSize += dumpSize;
+
+        if (loggable.was_in_limbo)
+            // in case it was stashed before
+            runSynchronously(syncOne, archivable, 0, false);
     }
 
     reqresLog.push(loggable);
@@ -2440,6 +2966,14 @@ function addLoggableFields(loggable) {
          : "N");
 }
 
+function copyLoggableFields(loggable, clean) {
+    clean.status = loggable.status;
+}
+
+function deleteLoggableFields(loggable) {
+    delete loggable["status"];
+}
+
 function makeLoggableReqres(reqres) {
     let loggable = shallowCopyOfReqres(reqres);
     addLoggableFields(loggable);
@@ -2451,7 +2985,10 @@ function updateLoggable(loggable) {
         return;
 
     let options = getOriginConfig(loggable.tabId, loggable.fromExtension);
-    loggable.bucket = options.bucket;
+    if (loggable.bucket !== options.bucket) {
+        loggable.bucket = options.bucket;
+        loggable.dirty = true;
+    }
 }
 
 // handlers
@@ -2890,6 +3427,12 @@ function handleMessage(request, sender, sendResponse) {
         if (useDebugger)
             syncDebuggersState();
 
+        if (oldConfig.archiveSubmitHTTP !== config.archiveSubmitHTTP)
+            wantArchiveDoneNotify = true;
+
+        if (config.stash && oldConfig.stash != config.stash)
+            stashAll(false);
+
         if (config.archive && oldConfig.archive !== config.archive)
             scheduleRetryFailed(0, false);
 
@@ -2971,6 +3514,14 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "forgetErrored":
         forgetErrored();
+        sendResponse(null);
+        break;
+    case "stashAll":
+        stashAll(true);
+        sendResponse(null);
+        break;
+    case "retryUnstashed":
+        retryUnstashed();
         sendResponse(null);
         break;
     case "snapshotTab":
@@ -3159,6 +3710,13 @@ async function handleCommand(command) {
 }
 
 function fixConfig(cfg, old) {
+    if (reqresIDB === undefined)
+        cfg.preferIndexedDB = false;
+    else if (useDebugger)
+        // can not be disabled on Chromium ATM, since serialization of
+        // Uint8Array to `storage.local` won't work there
+        cfg.preferIndexedDB = true;
+
     let anyA = cfg.archiveExportAs || cfg.archiveSubmitHTTP;
     if (!anyA) {
         // at lest one of these must be set
@@ -3287,6 +3845,19 @@ async function init() {
             && tab.pendingUrl == "chrome://newtab/")
             chromiumResetRootTab(tab.id, tabcfg);
     }
+
+    // try opening indexedDB
+    try {
+        reqresIDB = await idbOpen("pwebarc", 1, (db, oldVersion, newVersion) => {
+            db.createObjectStore("dump", { autoIncrement: true });
+            db.createObjectStore("stash", { autoIncrement: true });
+            db.createObjectStore("save", { autoIncrement: true });
+        });
+    } catch (err) {
+        logHandledError(err);
+    }
+
+    await loadStashed();
 
     fixConfig(config, config);
 

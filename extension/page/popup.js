@@ -87,6 +87,8 @@ async function popupMain() {
         cancelAllActions: "🟥",
         exportAsAll: "💾",
         retryFailed: "♻",
+        stashAll: "💾",
+        retryUnstashed: "♻",
         collectAllInLimbo: "✔",
         discardAllInLimbo: "✖",
         unmarkAllProblematic: "🧹",
@@ -157,6 +159,8 @@ async function popupMain() {
     buttonToMessage("cancelAllActions");
     buttonToMessage("forgetErrored");
     buttonToMessage("retryFailed");
+    buttonToMessage("stashAll");
+    buttonToMessage("retryUnstashed");
 
     buttonToAction("resetPersistentStats", catchAll(() => {
         if (!window.confirm("Really?"))
@@ -197,9 +201,11 @@ async function popupMain() {
         setConditionalClass(body, config.pureText, "pure-text");
         resetPureText(config);
         setConditionalClass(body, !config.collecting, "disabled-collecting");
+        setConditionalClass(body, !config.stash, "disabled-stash");
         setConditionalClass(body, !config.archive, "disabled-archive");
         setConditionalClass(body, !config.archiveExportAs, "disabled-exportas");
         setConditionalClass(body, !config.archiveSubmitHTTP, "disabled-submit");
+        setConditionalClass(body, !config.stash, "disabled-localstorage");
         setConditionalClass(body, !config.autoUnmarkProblematic
                             && !config.autoPopInLimboCollect
                             && !config.autoPopInLimboDiscard, "disabled-auto");
