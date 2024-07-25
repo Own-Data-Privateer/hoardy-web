@@ -708,7 +708,7 @@ function subscribeToExtensionSimple(name, showAllFunc, hideAllFunc) {
 function setUI(node, prefix, value, update) {
     let typ = typeof value;
 
-    if (typ == "object" && value !== null) {
+    if (typ === "object" && value !== null) {
         if (update === undefined) {
             for (let k of Object.keys(value)) {
                 setUI(node, prefix ? prefix + "." + k : k, value[k]);
@@ -732,17 +732,19 @@ function setUI(node, prefix, value, update) {
     if (div !== null) {
         if (div.classList.contains("tristate"))
             typ = "tristate";
+        else if (div.classList.contains("omega"))
+            typ = "omega";
     }
 
     //console.log("setting UI", prefix, typ, el, value);
 
-    if (typ == "boolean" && el.tagName == "INPUT" && el.type == "checkbox") {
+    if (typ === "boolean" && el.tagName === "INPUT" && el.type === "checkbox") {
         el.checked = value;
         if (update !== undefined)
             el.onchange = () => {
                 update(el.checked, prefix);
             };
-    } else if (typ == "tristate" && el.tagName == "INPUT" && el.type == "checkbox") {
+    } else if (typ === "tristate" && el.tagName === "INPUT" && el.type === "checkbox") {
         // emulating tristate using a checkbox:
         // - true -> true,
         // - false -> null,
@@ -763,18 +765,35 @@ function setUI(node, prefix, value, update) {
                     el.classList.add("false");
                 update(nvalue, prefix);
             };
-    } else if ((typ == "number" || typ == "string") && el.tagName == "INPUT"
-               && (el.type == "number" || el.type == "text" || el.type == "button")) {
+    } else if ((typ === "number" || typ === "string") && el.tagName === "INPUT"
+               && (el.type === "number" || el.type === "text" || el.type === "button")) {
         el.value  = value;
         if (update !== undefined && el.type != "button")
             el.onchange = () => {
                 let nvalue = el.value;
-                if (typ == "number")
+                if (typ === "number")
                     nvalue = Number(nvalue).valueOf();
-                else if (typ == "string")
+                else if (typ === "string")
                     nvalue = String(nvalue).valueOf();
                 update(nvalue, prefix);
             };
+    } else if (typ === "omega" && el.tagName === "INPUT" && el.type === "number") {
+        let checkbox = node.getElementById(prefix + "-omega");
+        checkbox.checked = value !== null;
+        el.disabled = value === null;
+        if (update !== undefined) {
+            let onchange = () => {
+                let isNull = !checkbox.checked;
+                if (isNull)
+                    div.classList.add("null");
+                else
+                    div.classList.remove("null");
+                el.disabled = isNull;
+                update(isNull ? null : Number(el.value).valueOf(), prefix);
+            };
+            checkbox.onchange = onchange;
+            el.onchange = onchange;
+        }
     } else
         el.innerText = value;
 }
@@ -791,51 +810,68 @@ function makeUI(node) {
     let id = node.getAttribute("id");
     let typ = node.getAttribute("type");
     let tabindex = node.getAttribute("tabindex");
+    let defvalue = node.getAttribute("data-default");
 
     let res = document.createElement("div");
     res.id = "div-" + id;
     // copy other attributes
     for (let attr of node.attributes) {
         let name = attr.name;
-        if (name === "id" || name === "tabindex") continue;
+        if (name === "id" || name === "tabindex" || name === "data-default") continue;
         res.setAttribute(name, node.getAttribute(name))
     }
     res.classList.add("ui");
     res.classList.add(typ);
 
-    let ne = document.createElement("input");
-    ne.id = id;
-    ne.name = id;
-    if (tabindex !== undefined)
-        ne.setAttribute("tabindex", tabindex);
-
     let lbl = document.createElement("label");
-    lbl.innerHTML = node.innerHTML.replace("{}", `<span class="placeholder"></span>`);
+    lbl.innerHTML = node.innerHTML.replaceAll("{}", `<span class="placeholder"></span>`);
+    let placeholders = lbl.getElementsByClassName("placeholder");
 
-    let appendByDefault = true;
+    function mk(tt, sub) {
+        let ne = document.createElement("input");
+        ne.id = id + sub;
+        ne.name = id;
+        if (tabindex !== undefined)
+            ne.setAttribute("tabindex", tabindex);
 
-    if (typ === "boolean" || typ === "tristate") {
-        ne.type = "checkbox";
-        ne.classList.add("toggle");
-        ne.checked = false;
-        appendByDefault = false;
-    } else if (typ === "number" || typ === "string") {
-        if (typ === "number") {
+        switch (tt) {
+        case "boolean":
+            ne.type = "checkbox";
+            ne.classList.add("toggle");
+            ne.checked = defvalue || false;
+            break;
+        case "number":
             ne.type = "number";
-            ne.value = 0;
-        } else {
+            ne.value = defvalue || 0;
+            break;
+        case "string":
             ne.type = "text";
-            ne.value = "";
+            ne.value = defvalue || "";
+            break;
         }
+
+        return ne;
     }
 
-    let placeholder = lbl.getElementsByClassName("placeholder")[0];
-    if (placeholder !== undefined)
-        lbl.replaceChild(ne, placeholder);
-    else if (appendByDefault)
-        lbl.appendChild(ne);
-    else
-        lbl.prepend(ne);
+    function place(i, tt, sub) {
+        let ne = mk(tt, sub);
+        let placeholder = placeholders[i];
+        if (placeholder !== undefined)
+            lbl.replaceChild(ne, placeholder);
+        else if (tt !== "boolean")
+            lbl.appendChild(ne);
+        else
+            lbl.prepend(ne);
+        return ne;
+    }
+
+    if (typ === "tristate")
+        place(0, "boolean", "");
+    else if (typ === "omega") {
+        place(1, "number", "");
+        place(0, "boolean", "-omega");
+    } else
+        place(0, typ, "");
 
     res.appendChild(lbl);
 
