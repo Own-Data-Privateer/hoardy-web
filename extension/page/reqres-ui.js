@@ -164,6 +164,18 @@ function resetDataNode(id, log_data, predicate) {
     tbody.parentElement.replaceChild(newtbody, tbody);
 }
 
+const headerHTML = `
+<th><span data-help="Source of this reqres: &quot;ext&quot; for reqres produced by extensions, &quot;bg&quot; for reqres produced by background tasks, &quot;tab #N&quot; for reqres produced by the tab with id \`N\`, optionally followed by &quot;of S&quot; where \`S\` is the last three digits of \`.sessionId\`. For tabs of the current session the label is a button which switches currently active tab to the tab in question. If the current page is not narrowed to a tab, then a button labled &quot;IS&quot; follows. That button opens this page narrowed to the tab in question.">Src</span></th>
+<th><span data-help="The \`.status\` this reqres will have in wrrarms: &quot;I&quot; or &quot;C&quot; character (for &quot;Incomplete&quot; and &quot;Complete&quot; respectively) representing the value of \`.request.complete\` flag followed by either &quot;N&quot; (for &quot;No response&quot;) or an HTTP status code (integer, e.g. &quot;200&quot;), followed by &quot;I&quot; or &quot;C&quot; representing the value of \`.response.complete\` flag.">WRR</span></th>
+<th><span data-help="The current reqres \`state\` followed by \`the final networking state\`, followed by &quot;redirected&quot; when this reqres is a redirect, followed by &quot;was_in_limbo&quot; when this reqres was ever in limbo, followed by either &quot;problematic!&quot; when this reqres is marked as problematic or &quot;was_problematic&quot; when this reqres was marked as problematic before (see the Help page for more info).">pWA</span></th>
+<th><span data-help="Timestamp of when the first byte of HTTP request headers was sent.">Request at</span></th>
+<th><span data-help="Protocol/version.">P</span></th>
+<th><span data-help="Protocol method.">M</span></th>
+<th><span data-help="Request URL, followed by &quot; -> &quot; and a redirect URL when this reqres is a redirect.">URL</span></th>
+<th><span data-help="Timestamp of when the first byte of HTTP response headers was received.">Response at</span></th>
+<th><span data-help="HTTP protocol response reason, if any. Note that the HTTP response code is displayed as a part of the &quot;WRR&quot; field.">Reason</span></th>
+`;
+
 async function commonMain() {
     thisSessionId = await browser.runtime.sendMessage(["getSessionId"]);
     let thisTab = await getActiveTab();
@@ -173,25 +185,29 @@ async function commonMain() {
     let body = document.body;
     makeUI(body);
 
+    function firstOrMake(el, tagName, addFunc) {
+        let res = el.getElementsByTagName(tagName)[0];
+        let created = false;
+        if (res === undefined) {
+            res = document.createElement(tagName);
+            created = true;
+        }
+
+        let tr = document.createElement("tr");
+        tr.innerHTML = headerHTML;
+        res.appendChild(tr);
+
+        if (created)
+            addFunc(res);
+    }
+
     for (let el of document.getElementsByTagName("table")) {
-        let thead = document.createElement("thead");
-        thead.innerHTML = `
-<tr>
-  <th><span data-help="Source of this reqres: &quot;ext&quot; for reqres produced by extensions, &quot;bg&quot; for reqres produced by background tasks, &quot;tab #N&quot; for reqres produced by the tab with id \`N\`, optionally followed by &quot;of S&quot; where \`S\` is the last three digits of \`.sessionId\`. For tabs of the current session the label is a button which switches currently active tab to the tab in question. If the current page is not narrowed to a tab, then a button labled &quot;IS&quot; follows. That button opens this page narrowed to the tab in question.">Src</span></th>
-  <th><span data-help="The \`.status\` this reqres will have in wrrarms: &quot;I&quot; or &quot;C&quot; character (for &quot;Incomplete&quot; and &quot;Complete&quot; respectively) representing the value of \`.request.complete\` flag followed by either &quot;N&quot; (for &quot;No response&quot;) or an HTTP status code (integer, e.g. &quot;200&quot;), followed by &quot;I&quot; or &quot;C&quot; representing the value of \`.response.complete\` flag.">WRR</span></th>
-  <th><span data-help="The current reqres \`state\` followed by \`the final networking state\`, followed by &quot;redirected&quot; when this reqres is a redirect, followed by &quot;was_in_limbo&quot; when this reqres was ever in limbo, followed by either &quot;problematic!&quot; when this reqres is marked as problematic or &quot;was_problematic&quot; when this reqres was marked as problematic before (see the Help page for more info).">pWA</span></th>
-  <th><span data-help="Timestamp of when the first byte of HTTP request headers was sent.">Request at</span></th>
-  <th><span data-help="Protocol/version.">P</span></th>
-  <th><span data-help="Protocol method.">M</span></th>
-  <th><span data-help="Request URL, followed by &quot; -> &quot; and a redirect URL when this reqres is a redirect.">URL</span></th>
-  <th><span data-help="Timestamp of when the first byte of HTTP response headers was received.">Response at</span></th>
-  <th><span data-help="HTTP protocol response reason, if any. Note that the HTTP response code is displayed as a part of the &quot;WRR&quot; field.">Reason</span></th>
-</tr>
-`;
-        el.insertBefore(thead, el.firstChild);
-        let tfoot = document.createElement("tfoot");
-        tfoot.innerHTML = thead.innerHTML;
-        el.appendChild(tfoot);
+        firstOrMake(el, "thead", (thead) => {
+            el.insertBefore(thead, el.firstChild);
+        });
+        firstOrMake(el, "tfoot", (tfoot) => {
+            el.appendChild(tfoot);
+        });
     }
 
     addHelp(body);
