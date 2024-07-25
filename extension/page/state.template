@@ -5,94 +5,7 @@
     <title>pWebArc: Internal State</title>
     <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
     <link rel="stylesheet" href="main.css?v=$cssVersion$">
-    <style>
-:root {
-    --log-in-flight: #ffffaa;
-    --log-picked: #eeffee;
-    --log-dropped: #ffeeee;
-    --log-collected: #aaffaa;
-    --log-discarded: #ffaaaa;
-}
-
-.colorblind {
-    --log-picked: #eeeeff;
-    --log-collected: #aaaaff;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --log-in-flight: #606020;
-        --log-picked: #446044;
-        --log-dropped: #604444;
-        --log-collected: #004000;
-        --log-discarded: #400000;
-    }
-
-    .colorblind {
-        --log-picked: #444460;
-        --log-collected: #000040;
-    }
-}
-
-h1 {
-    font-size: 200%;
-    margin: 5px 0 0 0;
-    display: flex;
-}
-
-div.controls,
-.right {
-    display: flex;
-}
-
-div.controls {
-    margin-top: 10px;
-}
-
-div.controls > span {
-    margin-right: 10px;
-}
-
-.right > span {
-    margin-left: 10px;
-}
-
-.help-tip {
-    max-width: 40em;
-}
-
-/* right-most help-tip sticks to the edge */
-.right *:nth-last-child(1) .help-tip {
-    right: 0;
-}
-
-table, th, td {
-    border: 1px solid black;
-}
-
-table {
-    margin: 10px 0;
-    width: 100%;
-}
-
-table tr td:nth-child(1) div {
-    display: flex;
-}
-
-table tr.errors td:nth-child(1) {
-    border: none;
-}
-
-td.long {
-    line-break: anywhere;
-}
-
-.in-flight { background: var(--log-in-flight); }
-.picked { background: var(--log-picked); }
-.dropped { background: var(--log-dropped); }
-.collected { background: var(--log-collected); }
-.discarded { background: var(--log-discarded); }
-    </style>
+    <link rel="stylesheet" href="reqres-ui.css?v=$cssVersion$">
   </head>
   <body>
     <div id="body_loading">
@@ -189,6 +102,7 @@ td.long {
     </div>
 
     $for(libScript)$<script src="../lib/$libScript$"></script>$endfor$
+    <script src="reqres-ui.js"></script>
     <script src="state.js"></script>
   </body>
 </html>
