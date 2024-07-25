@@ -265,7 +265,7 @@ function updateFromRec(target, value) {
     if (target === undefined || value === undefined)
         return target;
 
-    if (value === null)
+    if (target === null || value === null)
         return value;
 
     let typ = typeof value;
