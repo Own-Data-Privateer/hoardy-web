@@ -45,6 +45,10 @@ div.controls > span {
     margin-right: 10px;
 }
 
+div.controls .ui.number label input {
+    width: 8em;
+}
+
 .right > span {
     margin-left: 10px;
 }

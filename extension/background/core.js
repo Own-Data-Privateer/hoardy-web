@@ -81,8 +81,11 @@ let configDefaults = {
     gzipExportAs: true,
 
     // via HTTP
-    archiveSubmitHTTP: true,
+    archiveSubmitHTTP: false,
     submitHTTPURLBase: "http://127.0.0.1:3210/pwebarc/dump",
+
+    // to local storage
+    archiveSaveLS: true,
 
     // archiving notifications
     archiveDoneNotify: true,
@@ -602,6 +605,8 @@ let globals = assignRec({
     version: globalsVersion,
     stashedLS: assignRec({}, dbstatsDefaults),
     stashedIDB: assignRec({}, dbstatsDefaults),
+    savedLS: assignRec({}, dbstatsDefaults),
+    savedIDB: assignRec({}, dbstatsDefaults),
 }, persistentStatsDefaults);
 // did it change recently?
 let changedGlobals = false;
@@ -664,6 +669,7 @@ let gotNewErrored = false;
 // scheduleEndgame flags
 let gotNewExportedAs = false;
 let wantRetryFailed = false;
+let wantBroadcastSaved = false;
 
 function getNumberAndSizeFromQueues(m) {
     let number = 0;
@@ -729,6 +735,8 @@ function getStats() {
         bundledAs_size: bundledAsSize,
         submittedHTTP: globals.submittedHTTPTotal,
         submittedHTTP_size: globals.submittedHTTPSize,
+        saved: globals.savedLS.number + globals.savedIDB.number,
+        saved_size: globals.savedLS.size + globals.savedIDB.size,
         failed: archiveFailed,
         failed_size: archiveFailedSize,
         errored,
@@ -1296,6 +1304,11 @@ function scheduleEndgame(updatedTabId) {
         });
     } else /* if (!config.archive || reqresQueue.length == 0) */ {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+            if (wantBroadcastSaved) {
+                let log = await getSavedLog(savedFilters);
+                broadcast(["resetSaved", log]);
+            }
+
             cleanupTabs();
 
             // do we have some reqres in flight?
@@ -1311,7 +1324,9 @@ function scheduleEndgame(updatedTabId) {
                                           || savedGlobals.submittedHTTPTotal !== globals.submittedHTTPTotal
                                           || savedGlobals.exportedAsTotal !== globals.exportedAsTotal))
                     || savedGlobals.stashedLS.number !== globals.stashedLS.number
-                    || savedGlobals.stashedIDB.number !== globals.stashedIDB.number)
+                    || savedGlobals.stashedIDB.number !== globals.stashedIDB.number
+                    || savedGlobals.savedLS.number !== globals.savedLS.number
+                    || savedGlobals.savedIDB.number !== globals.savedIDB.number)
                     boring = false;
 
                 resetSingletonTimeout(scheduledSaveState, "saveGlobals", boring ? 90000 : 1000, async () => {
@@ -1495,6 +1510,8 @@ async function doComplain() {
                 let where;
                 if (archiveURL === "exportAs")
                     where = "Export via `saveAs`";
+                else if (archiveURL === "localStorage")
+                    where = "Browser's local storage";
                 else
                     where = `Archiving server at ${archiveURL}`;
                 await browser.notifications.create(`unsubmitted-${archiveURL}`, {
@@ -2093,6 +2110,35 @@ async function exportAsOne(archivable) {
     return true;
 }
 
+async function saveOne(archivable) {
+    let [loggable, dump] = archivable;
+    let dumpSize = loggable.dumpSize;
+
+    let archiveURL = "localStorage";
+    if (recordOneAssumedBroken(archiveURL, archivable, dumpSize))
+        return false;
+
+    // Prevent future calls to `doRetryAllUnstashed` from un-saving this
+    // archivable, which can happen with, e.g., the following sequence of
+    // events:
+    //   finished -> in_limbo -> syncOne -> out of disk space ->
+    //   the user fixes it -> popInLimbo ->
+    //   queued -> saveOne -> retryUnstashed
+    reqresFailedToStashByArchivable.delete(archivable);
+
+    try {
+        await doSyncOne(archivable, 2, true);
+    } catch (err) {
+        logHandledError(err);
+        recordOneFailed(archiveURL, err, false, archivable, dumpSize);
+        return false;
+    }
+
+    gotNewArchivedOrFailed = true;
+    wantBroadcastSaved = true;
+    return true;
+}
+
 // this is used as an argument to `forEachSynced`
 function loadOneStashed(loggable) {
     addLoggableFields(loggable);
@@ -2144,12 +2190,81 @@ async function loadStashed() {
     }
 }
 
-// this is used as an argument to `forEachSynced`
-function loadOneSaved(archivable) {
-    let [loggable, _dump] = archivable;
-    addLoggableFields(loggable);
+async function getSavedLog(rrfilter) {
+    if (rrfilter === undefined)
+        rrfilter = null;
 
-    console.log(loggable);
+    let res = [];
+    let [newSavedLS, newSavedIDB] = await forEachSynced("save", (loggable) => {
+        if (!isAcceptedLoggable(null, rrfilter, loggable))
+            return false;
+        addLoggableFields(loggable);
+        res.push(loggable);
+        return true;
+    }, rrfilter !== null ? rrfilter.limit : null);
+
+    // recover from wrong counts
+    if (newSavedLS !== undefined && !equalRec(globals.savedLS, newSavedLS)) {
+        globals.savedLS = newSavedLS;
+        changedGlobals = true;
+    }
+    if (newSavedIDB !== undefined && !equalRec(globals.savedIDB, newSavedIDB)) {
+        globals.savedIDB = newSavedIDB;
+        changedGlobals = true;
+    }
+
+    return res;
+}
+
+let savedFilters = assignRec({}, rrfilterDefaults);
+savedFilters.limit = 1024;
+
+function requeueSaved(reset) {
+    runSynchronously(async () => {
+        broadcast(["resetSaved", [null]]); // invalidate UI
+
+        let log = await getSavedLog(savedFilters);
+        for (let loggable of log) {
+            if (reset)
+                loggable.archived = 0;
+
+            let archivable = [loggable, null];
+
+            // yes, this is inefficient, but without this, calling this
+            // function twice in rapid succession can produce weird results
+            try {
+                await doSyncOne(archivable, 1, false);
+            } catch(err) {
+                logError(err);
+                continue;
+            }
+
+            reqresQueue.push(archivable);
+            reqresQueueSize += loggable.dumpSize;
+        }
+    });
+    wantBroadcastSaved = true;
+    scheduleEndgame(null);
+}
+
+function deleteSaved() {
+    runSynchronously(async () => {
+        broadcast(["resetSaved", [null]]); // invalidate UI
+
+        let log = await getSavedLog(savedFilters);
+        for (let loggable of log) {
+            let archivable = [loggable, null];
+
+            try {
+                await doSyncOne(archivable, 0, false);
+            } catch(err) {
+                logError(err);
+                continue;
+            }
+        }
+    });
+    wantBroadcastSaved = true;
+    scheduleEndgame(null);
 }
 
 // reqres archiving
@@ -2238,6 +2353,8 @@ async function processArchiving() {
                 // recording it in reqresFailedToStashByError and
                 // reqresFailedToStashByArchivable
                 await doSyncOne(archivable, 1, true).catch(logError);
+            else if (config.archiveSaveLS)
+                await saveOne(archivable);
             else
                 // (notEliding)
                 await syncOne(archivable, 0, false);
@@ -3512,6 +3629,25 @@ function handleMessage(request, sender, sendResponse) {
         // here, but it would be useless, since timeout is 0
         sendResponse(null);
         break;
+    case "getSavedFilters":
+        sendResponse(savedFilters);
+        break;
+    case "setSavedFilters":
+        savedFilters = updateFromRec(savedFilters, request[1]);
+        broadcast(["setSavedFilters", savedFilters]);
+        broadcast(["resetSaved", [null]]); // invalidate UI
+        wantBroadcastSaved = true;
+        scheduleEndgame(null);
+        sendResponse(null);
+        break;
+    case "requeueSaved":
+        requeueSaved(request[1]);
+        sendResponse(null);
+        break;
+    case "deleteSaved":
+        deleteSaved();
+        sendResponse(null);
+        break;
     case "forgetErrored":
         forgetErrored();
         sendResponse(null);
@@ -3717,17 +3853,21 @@ function fixConfig(cfg, old) {
         // Uint8Array to `storage.local` won't work there
         cfg.preferIndexedDB = true;
 
-    let anyA = cfg.archiveExportAs || cfg.archiveSubmitHTTP;
+    let anyA = cfg.archiveExportAs || cfg.archiveSubmitHTTP || cfg.archiveSaveLS;
     if (!anyA) {
         // at lest one of these must be set
-        cfg.archiveExportAs = true;
+        if (cfg.archiveSaveLS !== old.archiveSaveLS)
+            cfg.archiveExportAs = true;
+        else
+            cfg.archiveSaveLS = true;
     }
 
     // to prevent surprises
     if (cfg.archive
         && (reqresQueue.length > 0 || reqresFailedToArchiveByArchivable.size > 0)
         && (cfg.archiveExportAs !== old.archiveExportAs
-         || cfg.archiveSubmitHTTP !== old.archiveSubmitHTTP))
+         || cfg.archiveSubmitHTTP !== old.archiveSubmitHTTP
+         || cfg.archiveSaveLS !== old.archiveSaveLS))
         cfg.archive = false;
 
     // clamp
@@ -3762,6 +3902,10 @@ function upgradeConfig(cfg) {
             cfg.markProblematicPickedWithErrors = true;
         rename("markProblematicWithErrors", "markProblematicDroppedWithErrors")
     case 4:
+        // because that, essentially, was the default before, even though it is not now
+        cfg.archiveSubmitHTTP = true;
+        cfg.archiveSaveLS = false;
+
         rename("archiving", "archive")
         rename("archiveURLBase", "submitHTTPURLBase");
         rename("archiveNotifyOK", "archiveDoneNotify")

@@ -290,6 +290,16 @@ h2 input[type="button"] {
           (<span id="stats.submittedHTTP_size">0</span>)
         </span>
       </div>
+      <div id="div-stats.saved" data-help="At the moment, the number of reqres that were archived into browser&#039;s local storage (and the sum total of all sizes of their dumps).">
+        <span>Saved into LS</span>
+        <span>
+          <input type="button" id="showSaved" data-help="Show reqres currently saved in browser&#039;s local storage." value="Show" />
+        </span>
+        <span>
+          <span id="stats.saved">0</span>
+          (<span id="stats.saved_size">0</span>)
+        </span>
+      </div>
     </div>
 
     <div class="opts">

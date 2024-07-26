@@ -161,6 +161,7 @@ async function popupMain() {
     buttonToMessage("retryFailed");
     buttonToMessage("stashAll");
     buttonToMessage("retryUnstashed");
+    buttonToAction("showSaved",    catchAll(() => showSaved("", "top", tabId)));
 
     buttonToAction("resetPersistentStats", catchAll(() => {
         if (!window.confirm("Really?"))
@@ -205,7 +206,7 @@ async function popupMain() {
         setConditionalClass(body, !config.archive, "disabled-archive");
         setConditionalClass(body, !config.archiveExportAs, "disabled-exportas");
         setConditionalClass(body, !config.archiveSubmitHTTP, "disabled-submit");
-        setConditionalClass(body, !config.stash, "disabled-localstorage");
+        setConditionalClass(body, !config.stash && !config.archiveSaveLS, "disabled-localstorage");
         setConditionalClass(body, !config.autoUnmarkProblematic
                             && !config.autoPopInLimboCollect
                             && !config.autoPopInLimboDiscard, "disabled-auto");

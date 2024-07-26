@@ -150,10 +150,15 @@ function appendLoggable(el, loggable) {
 }
 
 function appendToLog(el, log_data, predicate) {
-    for (let loggable of log_data)
-        if ((tabId === null || loggable.tabId == tabId) &&
-            (predicate === undefined || predicate(loggable)))
+    for (let loggable of log_data) {
+        if (loggable === null) {
+            let tr = document.createElement("tr");
+            tr.innerHTML = `<td colspan=9><span class="flex"><span class="center">...</span></span></td>`;
+            el.appendChild(tr);
+        } else if ((tabId === null || loggable.tabId == tabId)
+                   && (predicate === undefined || predicate(loggable)))
             appendLoggable(el, loggable);
+    }
 }
 
 function resetDataNode(id, log_data, predicate) {

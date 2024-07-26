@@ -58,7 +58,7 @@ for target in "$@"; do
         pandoc -f $1 -t html --wrap=none --template="$2".template -M pagetitle="$2" "${pandocArgs[@]}" > "$destfile"
     }
 
-    for p in background/main page/popup page/state; do
+    for p in background/main page/popup page/state page/saved; do
         echo "  Building $p..."
         echo | runPandoc markdown "$p"
     done

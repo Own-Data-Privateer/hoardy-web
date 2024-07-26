@@ -86,6 +86,10 @@ function showState(suffix, id, tabId) {
     return showInternalPageAtNode("/page/state.html" + suffix, id, tabId);
 }
 
+function showSaved(suffix, id, tabId) {
+    return showInternalPageAtNode("/page/saved.html" + suffix, id, tabId);
+}
+
 function setPageLoaded() {
     document.getElementById("body_loading").style.display = "none";
     document.getElementById("body").style.display = "block";
@@ -170,6 +174,7 @@ function isArchivedVia(loggable, flag) {
 
 // filter expression
 let rrfilterDefaults = {
+    limit: null,
     picked: null,
     was_problematic: null,
     problematic: null,
@@ -179,6 +184,7 @@ let rrfilterDefaults = {
     no_errors: null,
     did_exportAs: null,
     did_submitHTTP: null,
+    in_ls: null,
 };
 
 // loggable is accepted by the rrfilter
@@ -194,7 +200,8 @@ function isAcceptedBy(rrfilter, loggable) {
         || (rrfilter.did_exportAs === false && (loggable.archived & archivedViaExportAs) !== 0)
         || (rrfilter.did_exportAs === true && (loggable.archived & archivedViaExportAs) === 0)
         || (rrfilter.did_submitHTTP === false && (loggable.archived & archivedViaSubmitHTTP) !== 0)
-        || (rrfilter.did_submitHTTP === true && (loggable.archived & archivedViaSubmitHTTP) === 0))
+        || (rrfilter.did_submitHTTP === true && (loggable.archived & archivedViaSubmitHTTP) === 0)
+        || (rrfilter.in_ls !== null && loggable.inLS !== rrfilter.in_ls))
         return false;
     return true;
 }
