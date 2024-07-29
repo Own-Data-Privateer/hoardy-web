@@ -933,6 +933,13 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     let origHelp = help;
     node.removeAttribute("data-help");
 
+    let classes = node.getAttribute("data-help-class");
+    if (classes !== null)
+        classes = classes.split(" ");
+    else
+        classes = [];
+    node.removeAttribute("data-help-class");
+
     if (shortcuts !== undefined) {
         let sname = node.getAttribute("data-shortcut");
         if (sname !== null) {
@@ -966,6 +973,8 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
 
     let root = document.createElement("span");
     root.classList.add("help-root");
+    for (let c of classes)
+        root.classList.add(c);
 
     node.parentElement.replaceChild(root, node);
 
