@@ -126,7 +126,7 @@ h2 input[type="button"] {
       <span class="right">
         <input type="button" id="snapshotAll" data-shortcut="snapshotAll" data-help="Take DOM snapshots of all frames of all open tabs for which &quot;Track new reqres&quot; setting is enabled." value="Snapshot" />
         <input type="button" id="forgetHistory" data-help="Forget recent history." value="Forget" />
-        <input type="button" id="showState" data-shortcut="showState" data-help="Show the internal state and history." value="State" />
+        <input type="button" id="showState" data-shortcut="showState" data-help="Show the internal state and reqres history logs." value="State" />
       </span>
     </h1>
     <div class="stats">
@@ -348,7 +348,7 @@ h2 input[type="button"] {
       <span class="right">
         <input type="button" id="snapshotTab" data-shortcut="snapshotTab" data-help="Take DOM snapshots of all frames of this tab, regardless of &quot;Track newly generated requests&quot; setting." value="Snapshot" />
         <input type="button" id="forgetTabHistory" data-help="For reqres of this tab, forget recent history." value="Forget" />
-        <input type="button" id="showTabState" data-shortcut="showTabState" data-help="For reqres of this tab, show the internal state and history." value="State" />
+        <input type="button" id="showTabState" data-shortcut="showTabState" data-help="For reqres of this tab, show the internal state and reqres history logs." value="State" />
       </span>
     </h1>
     <div class="stats">
