@@ -23,7 +23,7 @@
 
     <h1>Saved
       <span class="right">
-        <input type="button" id="requeueSaved" data-help="Put all reqres below back into the archiving queue. Note that for each given reqres and each archiving method pWebArc remembers if the reqres in question was ever successfully archived using that archiving method and will not re-archive it the second time." value="Re-queue" />
+        <input type="button" id="requeueSaved" data-help-class="help-tip-right" data-help="Put all reqres below back into the archiving queue. Note that for each given reqres and each archiving method pWebArc remembers if the reqres in question was ever successfully archived using that archiving method and will not re-archive it the second time." value="Re-queue" />
         <input type="button" id="rearchiveSaved" data-help="Re-queue, but reset all internal per-reqres per-archiving method status flags, forcing all these reqres to be archived again, regardless of any previous successes or failures." value="Re-archive" />
         <input type="button" id="deleteSaved" data-help="Delete all reqres below from local storage." value="Delete" />
       </span>

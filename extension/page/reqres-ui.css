@@ -26,6 +26,10 @@
     }
 }
 
+div.ui.omega input[type="number"]:disabled {
+    display: none;
+}
+
 h1 {
     font-size: 200%;
     margin: 5px 0 0 0;
@@ -58,7 +62,8 @@ div.controls .ui.number label input {
 }
 
 /* right-most help-tip sticks to the edge */
-.right *:nth-last-child(1) .help-tip {
+.right *:nth-last-child(1) .help-tip,
+.right .help-tip-right .help-tip {
     right: 0;
 }
 
