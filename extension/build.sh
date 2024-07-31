@@ -22,7 +22,7 @@ for target in "$@"; do
         -V libScript=compat.js \
         -V libScript=utils.js \
         -V libScript=lutils.js \
-        -V cssVersion=2 \
+        -V cssVersion=3 \
     )
 
     echo "  Preparing icons..."
