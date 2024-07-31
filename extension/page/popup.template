@@ -603,6 +603,10 @@ h2 input[type="button"] {
         </span>
       </div>
     </div>
+    <div class="flex"><span class="center">
+      <input type="button" id="resetConfig" data-help="Reset all config options to their default values." value="Reset config!" />
+      <input type="button" id="resetPersistentStats" data-help="Reset all persistent collected, discarded, picked, and dropped stats to zero." value="Reset stats!" />
+    </span></div>
     <div class="opts">
     <ui id="config.ephemeral" type="boolean" class="prefer-off" data-help="Make all changes to settings in this popup ephemeral from this point on. Restarting the browser or reloading the extension will reset config to the last state when this setting was off.">Ephemeral settings</ui>
     <ui id="config.debugging" type="boolean" class="prefer-off" data-help="Report lots of data into extension&#039;s debugging log (in Firefox: about:debugging; in Chromium: extension inspector). This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Verbose debugging log (SLOW!)</ui>
@@ -610,14 +614,6 @@ h2 input[type="button"] {
     <ui id="config.snapshotAny" type="boolean" class="prefer-off" data-help="Try capturing DOM snapshots for tabs and frames with all URLs, including `about:`, `data:`, `file:`, and extension pages. If you enable this, expect to see a lot of snapshot capture errors.">Capture snapshots of all URLs</ui>
     <ui id="config.discardAll" type="boolean" class="prefer-off" data-help="Automatically discard all reqres instead of archiving them. Useful for debugging most of the machinery of pWebArc without actually archiving anything. Do not enable unless you know what you are doing.">Discard all reqres just before archival</ui>
     </div>
-    </div>
-
-    <div id="destructive-actions">
-    <h2>Potentially destructive actions</h2>
-    <div class="flex"><span class="center">
-      <input type="button" id="resetPersistentStats" data-help="Reset all persistent collected, discarded, picked, and dropped stats to zero." value="Reset stats!" />
-      <input type="button" id="resetConfig" data-help="Reset all config options to their default values." value="Reset config!" />
-    </span></div>
     </div>
 
     <!-- uiMore -->
