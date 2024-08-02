@@ -4001,6 +4001,15 @@ async function init() {
         logHandledError(err);
     }
 
+    if (reqresIDB === undefined && (globals.stashedIDB.number > 0 || globals.savedIDB.number > 0)) {
+        browser.notifications.create("noIndexedDB", {
+            title: "pWebArc: ERROR",
+            message: `Failed to open/create a database via \`IndexedDB\` API, all data persistence will be done via \`storage.local\` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears pWebArc previously used \`IndexedDB\` for archiving and/or stashing reqres.\n\nSee the "Help" page for more info and instructions on how to fix this.`,
+            iconUrl: iconURL("error", 128),
+            type: "basic",
+        }).catch(logError);
+    }
+
     await loadStashed();
 
     fixConfig(config, config);

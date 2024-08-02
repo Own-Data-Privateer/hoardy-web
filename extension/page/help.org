@@ -465,6 +465,23 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   Some common reasons it could be failing:
   - No space left on the device you are archiving to.
   - It's a bug.
+- =Failed to open/create a database via `IndexedDB` API all data persistence will be done via `storage.local` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears pWebArc previously used `IndexedDB` for archiving and/or stashing reqres.=
+
+  So, it worked before, but why doesn't it work now?
+  The most likely reason is: you are running pWebArc under a browser based on an older version of Firefox and you have recently enabled "Always use private browsing mode" setting in your browser's config.
+  Older versions of Firefox forbid the use of =IndexedDB= API when that setting is set.
+
+  To make archives currently saved in =IndexedDB= accessible to pWebArc under "Always use private browsing mode" you need to:
+
+  - Disable "Always use private browsing mode" browser setting and restart the browser, thus allowing pWebArc access to =IndexedDB= again.
+  - Ensure [[./popup.html#div-config.preferIndexedDB]["Prefer =IndexedDB= API" setting]] is disabled.
+  - Ensure [[./popup.html#div-config.archiveSaveLS]["Archive =collected= reqres by ... saving them into local storage" option]] is enabled.
+  - Ensure [[./popup.html#div-config.archive]["Archive =collected= reqres by"]] is enabled.
+  - Open [[./popup.html#showSaved][the "Saved in Local Storage" page]].
+  - Press "Re-queue" button there to re-archive all those saved reqres from =IndexedDB= to =storage.local=.
+  - Now, you can re-enable the "Always use private browsing mode" browser setting and restart you browser again.
+
+  All old data should be available from [[./popup.html#showSaved][the "Saved in Local Storage" page]] now.
 ** Errors recorded in =reqres=, as seen in [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]]
 Most error codes are produced by attaching one of the following prefixes to the raw error code given by the browser:
 
