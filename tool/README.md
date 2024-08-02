@@ -25,9 +25,36 @@
   wrrarms --help
   ```
 
+## How to import `.wrrb` files produced by pWebArc browser add-on
+
+When using pWebArc extension in combination with [the dumb archiving server](../dumb_server/), the latter writes WRR-dumps pWebArc generates into separate `.wrr` files (aka WRR files) in its dumping directory.
+In the following examples, we assume that directory is `~/pwebarc/raw`.
+No further actions to use that data are required.
+
+The situation is similar if you instead use pWebArc extension with "Export via `saveAs`" option enabled but `saveAs`-bundling option disabled (set to zero).
+The only difference is that WRR files will be put into `~/Downloads` or similar.
+
+```bash
+ls ~/Downloads/pWebArc-export-*
+```
+
+However, if instead of using any of the above you use pWebArc extension with both "Export via `saveAs`" and bundling options enabled, then you will need to `import` those `.wrrb` files (aka WRR-bundles) into separate WRR files first:
+
+```bash
+wrrarms import --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*
+```
+
+Note that `.wrr` files can be parsed as single-dump `.wrrb` files, so the above will work even when some of the exported dumps are simple `.wrr` files (pWebArc can produce those when exporting large dumps).
+So, essentially, the above command is equivalent to
+
+```bash
+wrrarms organize --copy --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*.wrr
+wrrarms import --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*.wrrb
+```
+
 ## How to build a file system tree of latest versions of all hoarded URLs
 
-Assuming you keep your WRR dumps in `~/pwebarc/raw` you can generate a hierarchy of symlinks for each URL pointing from under `~/pwebarc/latest` to the most recent WRR file in `~/pwebarc/raw` via:
+Assuming you keep your WRR-dumps in `~/pwebarc/raw` you can generate a hierarchy of symlinks for each URL pointing from under `~/pwebarc/latest` to the most recent WRR file in `~/pwebarc/raw` via:
 
 ```bash
 wrrarms organize --symlink --latest --output hupq --to ~/pwebarc/latest --and "status|~= .200C" ~/pwebarc/raw
