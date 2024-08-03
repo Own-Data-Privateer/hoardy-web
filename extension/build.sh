@@ -70,6 +70,7 @@ for target in "$@"; do
     echo "  Building page/changelog..."
 
     cat ../CHANGELOG.md \
+        | sed -n '/^## /,$ p' | sed 's/^#\(#*\) /\1 /' \
         | sed 's%\./extension/page/help\.org%./help.html%g' \
         | runPandoc markdown page/changelog
 

@@ -1,4 +1,13 @@
-# extension-v1.12.0
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [extension-v1.12.0] - 2024-07-03
+
+### Changed
 
 - pWebArc will no longer automatically reload on updates, waiting for the browser to restart or for you to reload it explicitly instead.
 
@@ -22,14 +31,24 @@
 
 - Improved documentation.
 
-- Bugfixes.
+### Fixed
 
-# extension-v1.11.0
+- Various small bugfixes.
+
+## [extension-v1.11.0] - 2024-06-27
+
+### Added
 
 - Implemented DOM snapshots, their popup UI, keyboard shortcuts and documentation.
 
   - Popup UI now has buttons to snapshot a single tab (`snapshotTab`) and snapshot all open tabs (`snapshotAll`).
   - `Ctrl+Alt+S` runs `snapshotTab` by default now.
+
+- Added a bunch of new toolbar icons for various tab states.
+
+  In particular, `problematic` state as well as mixed-capture states (e.g., disabled in this tab, but enabled and with limbo mode in children tabs) now have their own special icons.
+
+### Changed
 
 - Changed some default keyboard shortcuts:
 
@@ -41,17 +60,15 @@
   - Improved layout.
   - Destructive actions will start asking for confirmations now.
 
-- Added a bunch of new toolbar icons for various tab states.
-
-  In particular, `problematic` state as well as mixed-capture states (e.g., disabled in this tab, but enabled and with limbo mode in children tabs) now have their own special icons.
-
 - All SVG icons were edited to not reference any fonts, since those are not guaranteed to be available on a user's system.
 
 - Improved behaviour of new tabs created by clicking buttons on the "Internal State" page.
 
 - Greatly improved documentation.
 
-# extension-v1.10.0
+## [extension-v1.10.0] - 2024-06-18
+
+### Added
 
 - Implemented dark mode theme.
   The extension will switch to it automatically when the browser asks (which it will if you switch your browser's theme to a dark one).
@@ -66,6 +83,20 @@
   - Added a bunch of tristate toggles for filtering the logs.
   - Added in-log buttons to open a narrowed page for reqres with an associated tab.
 
+- Added UI for internal scheduled/delayed actions/functions (e.g., saving of frequently changing stuff to persistent storage, automatic actions when a tab closes, canceling and reloading not-yet-debugged tabs on Chromium, etc):
+
+  - If some functions are still waiting to be run, the badge will have "\~" or "." in it and change its color, depending on the importance of the stuff that is waiting to be run.
+  - Popup UI has a new stat line showing the number of such delayed actions and buttons to run or cancel them immediately.
+
+- Added config options and popup UI toggles for picking and marking as problematic reqres with various HTTP status codes.
+
+- Implemented new config options and popup UI toggles for browser-specific workarounds.
+  In particular, on Chromium you can now set the URL new root tabs will be reset to (still `about:blank` by default).
+
+- Added more desktop notifications, added config options and popup UI toggles for them.
+
+### Changed
+
 - Improved keyboard shortcuts:
 
   - In popup UI, toggles and buttons with bound keyboard shortcuts will now get those shortcuts displayed in their tooltips.
@@ -78,22 +109,12 @@
     - `Alt+Shift+U` by default unmarks all problematic reqres globally now.
     - `Alt+Shift+S` and `Alt+Shift+W` by default respectively collect and discard all reqres in limbo globally now.
 
-- Added UI for internal scheduled/delayed actions/functions (e.g., saving of frequently changing stuff to persistent storage, automatic actions when a tab closes, canceling and reloading not-yet-debugged tabs on Chromium, etc):
-
-  - If some functions are still waiting to be run, the badge will have "\~" or "." in it and change its color, depending on the importance of the stuff that is waiting to be run.
-  - Popup UI has a new stat line showing the number of such delayed actions and buttons to run or cancel them immediately.
-
 - Much of the code working with Chromium's debugger was rewritten.
   Now it reports all the errors properly and no longer crashes when the debugger gets detached at inopportune time in the pipeline (which is quite common, unfortunately).
 
-- Added config options and popup UI toggles for picking and marking as problematic reqres with various HTTP status codes.
-
 - "Mark reqres as problematic when they finish ... with reqres errors" config option became "... with reqres errors and get `dropped`", i.e. it is now disjoint with "... with reqres errors and get `picked`".
 
-- Implemented new config options and popup UI toggles for browser-specific workarounds.
-  In particular, on Chromium you can now set the URL new root tabs will be reset to (still `about:blank` by default).
-
-- Improved desktop notifications, added some more of them, added config options and popup UI toggles for them.
+- Improved desktop notifications.
 
 - Popup UI, in its default rolled-up state, now exposes "Generate desktop notifications about ... new problematic reqres" option and has custom `tabindex`es set, for convenience.
 
@@ -102,13 +123,17 @@
 - Slightly improved performance in normal operation.
   Greatly improved performance when archiving large batches of reqres at once, e.g. when collecting a lot of stuff from limbo.
 
-- A lot of bugfixes.
-
 - Greatly improved documentation.
 
-# extension-v1.9.0
+### Fixed
 
-- Bugfixes. A whole ton of bugfixes.
+- Various small bugfixes.
+
+## [extension-v1.9.0] - 2024-06-07
+
+### Fixed
+
+- A whole ton of bugfixes.
 
   So many bugfixes that pWebArc on Chromium now actually works almost as well as on Firefox.
 
@@ -117,6 +142,35 @@
   `archiveweb.page` project appears to suffer from the same issues.
 
   Meanwhile, pWebArc continues to work exceptionally well on Firefox-based browsers.
+
+### Added
+
+- Implemented "negative limbo mode".
+
+  It does the same thing as limbo mode does, but for reqres that were dropped instead of picked.
+  (Which is why there is an arrow from `dropped` to `in_limbo` on the diagram below.)
+
+- Implemented optional automatic actions when a tab gets closed.
+
+  E.g., you can ask pWebArc to automatically unmark that tab's `problematic` reqres and/or collect and archive everything belonging to that tab from `limbo`.
+
+- Implemented a bunch of new desktop notifications.
+
+- Added a bunch of new configuration options.
+
+  This includes a bunch of them for controlling desktop notifications.
+
+- Added a bunch of new keyboard shortcuts.
+
+  Also, keyboard shortcuts now work properly in narrowed "Internal State" pages.
+
+- Implemented stat persistence between restarts.
+
+  You can brag about your archiving prowess to your friends by sharing popup UI screenshots now.
+
+- Added the "Changelog" page, which can be viewed by clicking the version number in the extension's popup.
+
+### Changed
 
 - pWebArc now follows the following state diagram:
 
@@ -148,34 +202,7 @@
 
   See [the "Help" page](./extension/page/help.org) for more info.
 
-  - A lot of changes to make pWebArc consistently use the above terminology --- both in the source and in the documentation --- were performed for this release.
-
-- New features:
-
-  - Implemented "negative limbo mode".
-
-    It does the same thing as limbo mode does, but for reqres that were dropped instead of picked.
-    (Which is why there is an arrow from `dropped` to `in_limbo` on the diagram above.)
-
-  - Implemented optional automatic actions when a tab gets closed.
-
-    E.g., you can ask pWebArc to automatically unmark that tab's `problematic` reqres and/or collect and archive everything belonging to that tab from `limbo`.
-
-  - Implemented a bunch of new desktop notifications.
-
-  - Added a bunch of new configuration options.
-
-    This includes a bunch of them for controlling desktop notifications.
-
-  - Added a bunch of new keyboard shortcuts.
-
-    Also, keyboard shortcuts now work properly in narrowed "Internal State" pages.
-
-  - Implemented stat persistence between restarts.
-
-    You can brag about your archiving prowess to your friends by sharing popup UI screenshots now.
-
-- Added the "Changelog" page, which can be viewed by clicking the version number in the extension's popup.
+- A lot of changes to make pWebArc consistently use the above terminology --- both in the source and in the documentation --- were performed for this release.
 
 - Improved visuals:
 
@@ -191,7 +218,16 @@
 
 - Improved documentation.
 
-# tool-v0.12.0
+## [tool-v0.12.0] - 2024-06-07
+
+### Added
+
+- `export mirror`: implemented `--no-overwrites`, `--partial`, and `--overwrite-dangerously` options.
+
+### Changed
+
+- `export mirror`: Switched the default from `--overwrite-dangerously` (which is what `export mirror` did before even if there was no option for it) to `--no-overwrites`.
+  This makes the default semantics consistent with that of `organize`.
 
 - Changed format of reqres `.status` to `<"C" or "I" for request.complete><"N" for no response or <response.code><"C" or "I" for response.complete> otherwise>` (yes, this changes most `--output` formats of `organize`, again).
 
@@ -199,20 +235,21 @@
 
   - Changed all documentation examples to do `~= .200C` instead of `== 200C` to reflect the above change.
 
-- `export mirror`: implemented `--no-overwrites`, `--partial`, and `--overwrite-dangerously` options.
-
-  Switched the default from `--overwrite-dangerously` (which is what `export mirror` did before even if there was no option for it) to `--no-overwrites`.
-  This makes the default semantics consistent with that of `organize`.
-
 - `organize`: renamed `--keep` -> `--no-overwrites` for consistency.
 
 - Improved documentation.
 
-# extension-v1.8.1
+## [extension-v1.8.1] - 2024-05-22
 
-- Tiny bugfix.
+### Fixed
 
-# extension-v1.8.0
+- A tiny bugfix.
+
+## [extension-v1.8.0] - 2024-05-20
+
+(Actually, this releases about half of the new changes in my local branches, so expect a new release soonish.)
+
+### Added
 
 - Implemented "problematic" reqres flag, its tracking, UI, and documentation.
 
@@ -223,36 +260,71 @@
 
 - Implemented currently active tab's limbo mode indication via the icon.
 
-- Added more shortcuts, changed defaults for others:
+- Added a separate state for reqres that are completed from cache: `complete_fc`.
 
-  - Added `toggle-tabconfig-limbo`, `toggle-tabconfig-children-limbo`, and `show-tab-state` shortcuts,
-
-  - Changed the default shortcut for `collect-all-tab-inlimbo` from `Alt+A` to `Alt+Shift+A` for uniformity.
+### Changed
 
 - Renamed reqres states:
 
   - `noresponse` -\> `no_response`,
   - `incomplete-fc` -\> `incomplete_fc`.
 
-- Added a separate state for reqres that are completed from cache: `complete_fc`.
+- pWebArc now follows the following state diagram:
 
-- Improved UI, the internal state/log page is much nicer now, but the popup UI in its default state might have become a bit too long...
+  ```
+  (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
+     |                           |                              |             |
+     |                           v                              v             v
+     |                     (no_response)                   (incomplete)   (complete)
+     |                           |                              |             |
+     |                           \                              |             |
+     |\---> (canceled) -----\     \                             |             |
+     |                       \     \                            \             |
+     |                        \     \                            \            v
+     |\-> (incomplete_fc) ----->----->---------------------------->-----> (finished)
+     |                        /                                            /  |
+     |                       /                                      /-----/   |
+     \--> (complete_fc) ----/        /------------- (collected) <--/          v
+                                     |                   |                (discarded)
+                                     v                   v                 /  |
+         (archived) <- (sIO) <--- (queued) <-------- (in_limbo) <---------/   |
+                         |           ^                   |                    |
+                         |           |                   |                    |
+                  /------/           \-----\             \----> (freeed) <----/
+                  |                        |
+                  \-> (failed to archive) -/
+  ```
+
+- Added more shortcuts, changed defaults for others:
+
+  - Added `toggle-tabconfig-limbo`, `toggle-tabconfig-children-limbo`, and `show-tab-state` shortcuts,
+
+  - Changed the default shortcut for `collect-all-tab-inlimbo` from `Alt+A` to `Alt+Shift+A` for uniformity.
+
+- Improved UI:
+
+  - The internal state/log page is much nicer now.
+  - But the popup UI in its default state might have become a bit too long...
 
 - Improved performance when using limbo mode.
 
 - Improved documentation.
 
-- Bugfixes.
+### Fixed
 
-(Actually, this releases about half of the new changes in my local branches, so expect a new release soonish.)
+- Various small bugfixes.
 
-# tool-v0.11.2
+## [tool-v0.11.2] - 2024-05-20
 
-- Bugfixes.
+### Fixed
 
-# extension-v1.7.0
+- `organize`: now works on Windows.
 
-- Implement "in limbo" reqres processing stage and toggles.
+## [extension-v1.7.0] - 2024-05-02
+
+### Added
+
+- Implemented "in limbo" reqres processing stage and toggles.
 
   "Limbo" is an optional pre-archival-queue stage for finished reqres that are ready to be archived but, unlike non-limbo reqres, are not to be archived automatically.
 
@@ -260,18 +332,50 @@
 
   E.g., you enable limbo mode, reload the page, notice there were no updates to the interesting parts of the page, and so you discard all of the reqres newly generated by that tab via appropriate button in the add-on popup, or via the new keyboard shortcut.
 
+### Changed
+
+- pWebArc now follows the following state diagram:
+
+  ```
+  (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
+     |                           |                              |             |
+     |                           v                              v             v
+     |                      (noresponse)                   (incomplete)   (complete)
+     |                           |                              |             |
+     |                           \                              |             |
+     |\---> (canceled) -----\     \                             |             |
+     |                       \     \                            \             |
+     |                        \     \                            \            v
+     \--> (incomplete-fc) ----->----->---------------------------->-----> (finished)
+                                                                           /  |
+                                                                    /-----/   |
+                                     /------------- (collected) <--/          v
+                                     |                   |                (discarded)
+                                     v                   v                 /  |
+         (archived) <- (sIO) <--- (queued) <-------- (in_limbo) <---------/   |
+                         |           ^                   |                    |
+                         |           |                   |                    |
+                  /------/           \-----\             \----> (freeed) <----/
+                  |                        |
+                  \-> (failed to archive) -/
+  ```
+
 - The "Log" page became the "Internal State" page, now shows in-flight and in-limbo reqres. It also allows narrowing to data belonging to a single tab now.
 
 - Improved UI.
 
 - Improved performance.
 
-# tool-v0.11.1
+## [tool-v0.11.1] - 2024-05-02
+
+### Changed
 
 - Improved default batching parameters.
 - Improved documentation.
 
-# tool-v0.11.0
+## [tool-v0.11.0] - 2024-04-03
+
+### Added
 
 - Implemented `scrub` `--expr` atom for rewriting links/references and wiping inner evils out from HTML, JavaScript, and CSS values.
 
@@ -281,17 +385,23 @@
 
 - Implemented `export mirror` subcommand generating static website mirrors from previously archived WRR files, kind of similar to what `wget -mpk` does, but offline and the outputs are properly `scrub`bed.
 
+### Changed
+
 - A bunch of `--expr` atoms were renamed, a bunch more were added.
 
 - A bunch of `--output` formats changed, most notably `flat` is now named `flat_ms`.
 
 - Improved performance.
 
-- Bugfixes.
-
 - Improved documentation.
 
-# tool-v0.9.0
+### Fixed
+
+- Various small bugfixes.
+
+## [tool-v0.9.0] - 2024-03-22
+
+### Changed
 
 - Updated `wrrarms` to build with newer `nixpkgs` and `cbor2` modules, the latter of which is now vendored, at least until upstream solves the custom encoders issue.
 
@@ -303,11 +413,21 @@
 
   - Dropped `shpq`, `hpq`, `shpq_msn`, and `hpq_msn` `--output` formats as they are now equivalent to their `hup` versions.
 
-- Bugfixed `--expr` option of `run`, and the `clock` line in `pprint`.
+- `run`: `--expr` option now uses the same semantics as `get --expr`.
 
 - Tiny improvements to performance.
 
-# tool-v0.8.1
+### Fixed
+
+- `pprint`: fixed `clock` line formatting a bit.
+
+## [tool-v0.8.1] - 2024-03-12
+
+### Added
+
+- Added `--output flat_n`.
+
+### Fixed
 
 - Bugfix #1:
 
@@ -319,15 +439,19 @@
 
   `organize --output` `num`bering is deterministic again, like it was in `tool-v0.6`.
 
-- Added `--output flat_n`.
+## [extension-v1.6.0] - 2024-03-08
 
-# extension-v1.6.0
+### Changed
 
 - Replaced icons with a cuter set.
 
-# tool-v0.8
+## [tool-v0.8] - 2024-03-08
+
+### Added
 
 - Implemented import for `mitmproxy` dumps.
+
+### Changed
 
 - Improved `net_url` normalization and components handling, added support for IDNA hostnames.
 
@@ -357,81 +481,181 @@ Paths produced by `wrrarms organize` are expected to change:
 
 - names of files generated by most other `--output` formats will change quite a lot, since the path abbreviation algorithm is much smarter now.
 
-# dumb_server-v1.6.0
+## [dumb_server-v1.6.0] - 2024-02-19
+
+### Added
 
 - Implemented `--uncompressed` option.
+
+### Changed
+
 - Renamed `--no-cbor` option to `--no-print-cbors`.
 
-# dumb_server-v1.5.5
+## [dumb_server-v1.5.5] - 2023-12-04
+
+### Changed
 
 - Improved documentation.
 
-# tool-v0.6
+## [tool-v0.6] - 2023-12-04
+
+### Added
 
 - `organize`: implemented `--quiet`, `--batch-number`, and `--lazy` options.
 - `organize`: implemented `--output flat` and improved other `--output` formats a bit.
 - `get` and `run` now allow multiple `--expr` arguments.
+
+### Changed
+
 - Improved performance.
 - Improved documentation.
 
-# tool-v0.5
+## [tool-v0.5] - 2023-11-22
+
+### Added
 
 - Initial public release.
 
-# dumb_server-v1.5
+## [dumb_server-v1.5] - 2023-10-25
 
-- Generated filenames for partial files now have `.part` extension.
-- Generated filenames now include PID to allow multiple process instances of this to dump to the same directory.
+### Added
+
 - Added `--default-profile` option, changed semantics of `--ignore-profiles` a bit.
 - Added `--no-cbor` option.
 - Packaged as both Python and Nix package.
 
-# extension-v1.5
+### Changed
 
-- Added keyboard shortcuts toggling tab-related config settings.
+- Generated filenames for partial files now have `.part` extension.
+- Generated filenames now include PID to allow multiple process instances of this to dump to the same directory.
+
+## [extension-v1.5] - 2023-10-22
+
+### Added
+
+- Added keyboard shortcuts for toggling tab-related config settings.
+
+### Changed
+
 - Improved UI.
 - Improved documentation.
-- Bugfixes.
 
-# extension-v1.4
+### Fixed
+
+- Various small bugfixes.
+
+## [extension-v1.4] - 2023-09-25
+
+### Added
 
 - Implemented context menu actions.
+
+### Changed
+
 - Improved UI.
 - Improved performance of dumping to CBOR.
 - Improved documentation.
 
-# extension-v1.3.5
+## [extension-v1.3.5] - 2023-09-13
+
+### Changed
 
 - Improved `document_url` and `origin_url` handling.
 - Improved documentation.
 
-# extension-v1.3
+## [extension-v1.3] - 2023-09-04
+
+### Added
 
 - Experimental Chromium support.
-- Improved UI.
-- Bugfixes
 
-# extension-v1.1
+### Changed
+
+- Improved UI.
+
+### Fixed
+
+- Various small bugfixes.
+
+## [extension-v1.1] - 2023-08-28
+
+### Changed
 
 - Improved handling of "304 Not Modified" responses.
 - Improved UI and the "Help" page.
-- Bugfixes.
 
-# dumb_server-v1.1
+### Fixed
+
+- Various small bugfixes.
+
+## [dumb_server-v1.1] - 2023-08-28
+
+### Added
 
 - Implemented `--ignore-profiles` option.
 
-# dumb_server-v1.0
+## [dumb_server-v1.0] - 2023-08-25
 
-- All planned features are complete now.
+### Added
 
-# extension-v1.0
+- It now prints the its own server URL at the start, for convenience.
+- Implemented gzipping before dumping to disk.
+- The extension can now specify a per-dump "profile", which is a suffix to be appended to the dumping directory.
+- Implemented optional printing of the head and the tail of the dumped data to the TTY.
+
+All planned features are complete now.
+
+## [extension-v1.0] - 2023-08-25
+
+### Changed
 
 - Improved popup UI.
 - Improved the "Help" page: it's much more helpful now.
 - Improved the "Log" page: it's an interactive page that gets updated automatically now.
-- Some small bugfixes.
 
-# extension-v0.1
+### Fixed
+
+- Various small bugfixes.
+
+## [extension-v0.1] - 2023-08-20
+
+### Added
 
 - Initial public release.
+
+## [dumb_server-v0.1] - 2023-08-20
+
+### Added
+
+- Initial public release.
+
+[extension-v1.12.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.11.0...extension-v1.12.0
+[extension-v1.11.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.10.0...extension-v1.11.0
+[extension-v1.10.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.9.0...extension-v1.10.0
+[extension-v1.9.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.8.1...extension-v1.9.0
+[tool-v0.12.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.11.2...tool-v0.12.0
+[extension-v1.8.1]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.8.0...extension-v1.8.1
+[tool-v0.11.2]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.11.1...tool-v0.11.2
+[extension-v1.8.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.7.0...extension-v1.8.0
+[extension-v1.7.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.6.0...extension-v1.7.0
+[tool-v0.11.1]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.11.0...tool-v0.11.1
+[tool-v0.11.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.9.0...tool-v0.11.0
+[tool-v0.9.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.8.1...tool-v0.9.0
+[tool-v0.8.1]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.8...tool-v0.8.1
+[extension-v1.6.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.5...extension-v1.6.0
+[tool-v0.8]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.6...tool-v0.8
+[dumb_server-v1.6.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/dumb_server-v1.5.5...dumb_server-v1.6.0
+[tool-v0.6]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.5...tool-v0.6
+[dumb_server-v1.5.5]: https://github.com/Own-Data-Privateer/pwebarc/compare/dumb_server-v1.5...dumb_server-v1.5.5
+[tool-v0.5]: https://github.com/Own-Data-Privateer/pwebarc/releases/tag/tool-v0.5
+[dumb_server-v1.5]: https://github.com/Own-Data-Privateer/pwebarc/compare/dumb_server-v1.1...dumb_server-v1.5
+[extension-v1.5]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.4...extension-v1.5
+[extension-v1.4]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.3.5...extension-v1.4
+[extension-v1.3.5]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.3...extension-v1.3.5
+[extension-v1.3]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.1...extension-v1.3
+[extension-v1.1]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.0...extension-v1.1
+[dumb_server-v1.1]: https://github.com/Own-Data-Privateer/pwebarc/compare/dumb_server-v1.0...dumb_server-v1.1
+[dumb_server-v1.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/dumb_server-v0.1...dumb_server-v1.0
+[extension-v1.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v0.1...extension-v1.0
+[extension-v0.1]: https://github.com/Own-Data-Privateer/pwebarc/releases/tag/extension-v0.1
+[dumb_server-v0.1]: https://github.com/Own-Data-Privateer/pwebarc/releases/tag/dumb_server-v0.1
