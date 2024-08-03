@@ -3,7 +3,7 @@
 
     "name": "pWebArc",
     "version": "1.12.0",
-    "description": "Personal Private Passive Web Archive is a suite of tools to collect, save, mirror, manage archives of (i.e. hoard), and view web pages and whole websites offline.",
+    "description": "Logs, captures, and archives dumps of HTTP requests and responses. Mainly, for later offline viewing. Lots of configuration options.",
 
     "author": "Jan Malakhovski",
     "homepage_url": "https://github.com/Own-Data-Privateer/pwebarc",
