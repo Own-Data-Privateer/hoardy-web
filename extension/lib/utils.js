@@ -462,14 +462,15 @@ function buttonToAction(id, action) {
         return;
     }
     el.onclick = action;
+    return el;
 }
 
 // make a DOM node with a given id emit a `browser.runtime.sendMessage` with the same id
 function buttonToMessage(id, func) {
     if (func === undefined)
-        buttonToAction(id, catchAll(() => browser.runtime.sendMessage([id])));
+        return buttonToAction(id, catchAll(() => browser.runtime.sendMessage([id])));
     else
-        buttonToAction(id, catchAll(() => browser.runtime.sendMessage(func())));
+        return buttonToAction(id, catchAll(() => browser.runtime.sendMessage(func())));
 }
 
 // activate a tab with a given document URL if exists, or open new if not
