@@ -2957,13 +2957,14 @@ function forceFinishingUpWebRequest(predicate) {
 }
 
 function stopAllInFlight(tabId) {
-    processFinishingUp(true);
-    emitTabInFlightWebRequest(tabId, "pWebArc::EMIT_FORCED_BY_USER");
-    if (useDebugger) {
+    if (useDebugger)
         emitTabInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_USER");
-        processMatchFinishingUpWebRequestDebug(true);
+    emitTabInFlightWebRequest(tabId, "pWebArc::EMIT_FORCED_BY_USER");
+
+    processFinishingUp(true);
+
+    if (useDebugger)
         forceFinishingUpDebug((r) => tabId == null || r.tabId == tabId);
-    }
     forceFinishingUpWebRequest((r) => tabId == null || r.tabId == tabId);
 
     scheduleEndgame(tabId);
