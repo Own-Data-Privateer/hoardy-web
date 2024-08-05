@@ -612,10 +612,10 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             let matching = [];
             let notMatching = [];
             for (let reqres of reqresFinishingUp) {
-                if (dreqres.tabId == reqres.tabId
+                if (dreqres.tabId === reqres.tabId
                     && dreqres.statusCode === reqres.statusCode
-                    && dreqres.method == reqres.method
-                    && nurl == normalizeURL(reqres.url))
+                    && dreqres.method === reqres.method
+                    && nurl === normalizeURL(reqres.url))
                     matching.push(reqres);
                 else
                     notMatching.push(reqres);
@@ -657,10 +657,10 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
         // NB: It is totally possible for a reqres to finish and get emitted
         // from reqresInFlight while the corresponding dreqres didn't even
         // start.
-
+        //
         // So, forcefully emitting `reqresFinishingUp` at this point is likely
         // to lose data.
-
+        //
         // However, `debugReqresFinishingUp` are safe to emit.
         if (debugReqresFinishingUp.length > 0)
             // This means Chromium generated some debug events without
