@@ -5,7 +5,7 @@ Personal Private Passive Web Archive (`pwebarc`) is a suite of tools to capture,
 In short, `pwebarc`'s main workflow is this: you install an extension/add-on into the browser of your choice (both Firefox- and Chromium-based browsers are supported) and just browse the web while it captures and archives **everything your browser fetches from the network** to your local file system in a way that can be used to reconstruct and replay your browsing session later (by default, the extension has lots of options controlling what data from which tabs should and should not be captured).
 
 - See ["Why"](#why) section for why you might want to do this.
-- See ["Features"](#features) section for a longer description of what `pwebarc` does and does not do.
+- See ["Highlights"](#highlights) section for a longer description of what `pwebarc` does and does not do.
 - See ["Alternatives"](#alternatives) for comparisons to alternatives.
 - See ["Frequently Asked Questions"](./extension/page/help.org#faq) for the answers to the frequently asked questions, including those about common quirks you can encounter while using `pwebarc`.
 - See ["Quickstart"](#quickstart) section for setup instructions.
@@ -69,11 +69,11 @@ Well, 25 years later ("RDF Model and Syntax Specification" was published in 1999
 
 Meanwhile, `pwebarc` provides some of the tools to help you build your own little local data paradise.
 
-# <span id="features"/>Features and technical details
+# <span id="highlights"/>Highlights
 
-Unlike most of [its alternatives](#alternatives), `pwebarc`'s main workflow
+`pwebarc`'s main workflow
 
-- is to passively collect and archive HTTP requests and responses (and, if you ask, also [DOM snapshots](./extension/page/help.org#faq-snapshot), i.e. the contents of the page after all JavaScript was run) directly from your browser as you browse the web instead of making you to ask some separate tool or web app to snapshot it for you or forcing you to explicitly snapshot/record separate browsing sessions/tabs, thus
+- is to passively collect and archive HTTP requests and responses (and, if you ask, also [DOM snapshots](./extension/page/help.org#faq-snapshot), i.e. the contents of the page after all JavaScript was run) directly from your browser as you browse the web, thus
 
 - allowing you to archive any HTTP data, not just the pages available via HTTP `GET` requests (e.g., it can archive answer pages of web search engines fetched via HTTP `POST`, JSON RPC/AJAX data, etc);
 
@@ -85,6 +85,22 @@ Unlike most of [its alternatives](#alternatives), `pwebarc`'s main workflow
 
 In other words, `pwebarc` is your own personal [Wayback Machine](https://web.archive.org/) which passively archives everything you see and, unlike the original Wayback Machine, also archives HTTP `POST` requests and responses, and most other HTTP-level data.
 
+Also, unless configured otherwise, [`pWebArc` (the extension)](./extension/) will dump and archive collected data immediately, to both prevent data loss and to free the used RAM as soon as possible, to keeping your browsing experience snappy even on ancient hardware.
+
+Unlike most of [its alternatives](#alternatives), `pwebarc` **DOES NOT**:
+
+- require you to capture and/or collect and/or archive and/or export recorded data explicitly one page/browsing session at a time (the default behaviour is to archive everything completely automatically, though the extension implements optional ["limbo mode"](./extension/page/help.org#faq-limbo) which delays archival of collected data and provides optional manual/semi-automatic control if you want it);
+
+- force you to use Chromium (you can use `pWebArc` with Firefox, Tor Browser, LibreWolf, etc, which is not a small thing, since if you tried using any of the close alternatives running under Chromium, you might have noticed that the experience there is pretty awful: it becomes even slower than usual, large files don't get captured, random stuff fails to be captured at random times because Chromium randomly detaches its debugger from its tabs... none of these problems exist on Firefox-based browsers because Firefox does not fight ad-blocking and hardcore ad-blocking extensions and `pWebArc` use the same browser APIs);
+
+- require you to download the data you want to archive twice or more (you'd be surprised how commonly other tools will either ask you to do that explicitly, or just do that silently when you ask them to save something);
+
+- require you to store all the things in browser's local storage where they can vanish at any moment;
+- require you to run a database server;
+- share your archived data with anyone by default;
+
+- require you to run a web browser to view the data you already archived (in fact, `wrrarms` comes with [a bunch of scripts](./tool/script/) which allow you to use other tools for that; e.g., a script to view HTML documents via `pandoc` piped into `less` in [your favorite tty emulator](https://st.suckless.org/)).
+
 Technically, `pwebarc` is most similar to
 
 - [archiveweb.page](https://github.com/webrecorder/archiveweb.page) project, but following "capture and archive everything with as little user input as needed now, figure out what to do with it later" philosophy, and not limited to Chromium;
@@ -95,22 +111,6 @@ Or, to summarize it another way, you can view `pwebarc` as an alternative for [m
 In fact, an unpublished and now irrelevant ancestor project of `pwebarc` was a tool to generate website mirrors from `mitmproxy` stream captures.
 [(By the way, if you want that, `pwebarc`'s `wrrarms` tool can do that for you. It can take `mitmproxy` dumps as inputs.)](./tool/#mitmproxy-mirror)
 But then I got annoyed by all the sites that don't work under `mitmproxy`, did some research into the alternatives, decided there were none I wanted to use, and so I made my own.
-
-## Highlights of differences when compared to [the alternatives](#alternatives)
-
-To highlight the main differences to its alternatives, `pwebarc` **DOES NOT**:
-
-- require you to capture and/or collect and/or archive and/or export recorded data explicitly one page/browsing session at a time (the default behaviour is to archive everything completely automatically, though the extension implements optional ["limbo mode"](./extension/page/help.org#faq-limbo) which delays archival of collected data and provides optional manual/semi-automatic control if you want it);
-
-- force you to use Chromium (and, yes, this point deserves repeating because you can use `pwebarc` with Firefox, Tor Browser, LibreWolf, etc, which is not a small thing, since if you tried using any of the alternatives running under Chromium, you might have noticed that the experience there is pretty awful: it becomes even slower than usual, large files don't get captured, random stuff fails to be captured at random times because Chromium randomly detaches its debugger from its tabs... none of these problems exist on Firefox-based browsers because Firefox does not fight ad-blocking and hardcore ad-blocking extensions and `pWebArc` use the same browser APIs);
-
-- require you to download the data you want to archive twice or more (you'd be surprised how commonly other tools will either ask you to do that explicitly, or just do that silently when you ask them to save something);
-
-- require you to store all the things in browser's local storage where they can vanish at any moment;
-- require you to run a database server;
-- share your archived data with anyone by default;
-
-- require you to run a web browser to view the data you already archived (in fact, `wrrarms` comes with [a bunch of scripts](./tool/script/) which allow you to use other tools for that; e.g., a script to view HTML documents via `pandoc` piped into `less` in [your favorite tty emulator](https://st.suckless.org/)).
 
 ## Parts and pieces
 
@@ -143,7 +143,7 @@ To highlight the main differences to its alternatives, `pwebarc` **DOES NOT**:
 
 Firstly, `pwebarc` is designed to be simple (as in adhering to the Keep It Stupid Simple principle) and efficient (as in running well on ancient hardware) while providing guarantees that all collected data gets actually written to disk:
 
-- [the `pWebArc` webextension add-on](./extension/) does almost no actual work, simply generating HTTP request+response dumps, archiving them, and then freeing the memory as soon as possible (unless you enable ["limbo mode"](./extension/page/help.org#faq-limbo), but then you asked for it), thus keeping your browsing experience snappy even on ancient hardware (if you ignore the code needed to support Chromium, the UI, and the workarounds for all the bugs in various browsers, the leftovers are also pretty small and simple source code-wise);
+- [the `pWebArc` webextension add-on](./extension/) does almost no actual work, simply generating HTTP request+response dumps, archiving them, and then freeing the memory as soon as possible (unless you enable ["limbo mode"](./extension/page/help.org#faq-limbo), but then you asked for it), thus keeping your browsing experience snappy even on ancient hardware;
 
 - the dumps are generated using [the simplest, trivially parsable with many third-party libraries, yet most space-efficient on-disk file format representing separate HTTP requests+responses there currently is (aka `Web Request+Response`, `WRR`)](./doc/data-on-disk.md), which is a file format that is both more general and more simple than WARC, much simpler than that `mitmproxy` uses, and much more efficient than HAR;
 
