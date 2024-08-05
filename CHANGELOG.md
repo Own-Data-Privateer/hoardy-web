@@ -5,6 +5,112 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [extension-v1.13.0] - 2024-08-05
+
+### Added
+
+- Implemented reqres persistence across restarts.
+
+  pWebArc can now save and reload `collected` but not archived reqres (including those `in_limbo`) by stashing them into browser's local storage.
+  This is now enabled by default, but it can be disabled globally, or per-tab.
+
+- As a consequence, pWebArc now tracks browsing sessions and shows when a reqres belongs to an older session on its "Internal State" page.
+
+- Implemented two new archiving methods, now making the total of three.
+  I.e. pWebArc can now archive `collected` reqres by
+
+  - generating fake-Downloads containing either separate dumps (one dump of an HTTP request+response per file) or bundles of them (many dumps in a single file, for convenience, to be later imported via `wrrarms import bundle`),
+
+  - archiving separate dumps to your own private archiving server (the old one, the previous default, inherited on extension update),
+  - archiving separate dumps to your browser's local storage (the new default on a new clean install).
+
+- As a consequence, pWebArc now has a new "Saved in Local Storage" page for displaying the latter.
+
+- Implemented display and filtering for `queued` and `failed` reqres on the "Internal State" page.
+
+- Implemented tracking of per-state size totals for reqres in most states after `finished`.
+
+- As a consequence, popup UI will now display those newly tracked sizes.
+
+- Introduced the `errored` reqres state.
+
+  With stashing to local storage enabled, pWebArc will not try its best not to loose any captured data even when its archiving code fails (bugs out) with an unexpected exception.
+  If it bugs out in the capture code, then all bets are off, unfortunately.
+
+### Changed
+
+- pWebArc will now track if an error is recoverable and will not retry actions with unrecoverable errors automatically by default.
+
+- pWebArc now follows the following state diagram:
+
+  ```
+  (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
+     |                           |                              |             |
+     |                           v                              v             v
+     |                     (no_response)                   (incomplete)   (complete)
+     |                           |                              |             |
+     |                           \                              |             |
+     |\---> (canceled) ----\      \                             |             |
+     |                      \      \                            \             |
+     |\-> (incomplete_fc) ---\      \                            \            v
+     |                        >------>---------------------------->-----> (finished)
+     |\--> (complete_fc) ----/                                             /  |
+     |                      /                                             /   |
+     \----> (snapshot) ----/       /- (collected) <--------- (picked) <--/    |
+                                  /        ^                     |            |
+                 (stashIO?) <----/         |                     v            v
+                     |                     \-- (in_limbo) <- (stashIO?) <- (dropped)
+                     v                              |                         |
+                  (queued) <------------------\     |                         |
+                  / |  ^ \                     \    \-----> (discarded) <-----/
+    (exported) <-/  |  |  \----------------\    \                ^
+        |           |  |                    \    \               |
+        |       /---/  \-----------------\   \    \              |
+        |       |                        |    \    \             |
+        |       v                        |     \    \            |
+        |\-> (srvIO) -> (stashIO?) -> (failed) |     \           |
+        |       |                        ^     /      \          |
+        |       v                        |    v        |         |
+        |   (sumbitted) --------------> (saveIO) --> (saved)     | {{!saving}}
+        |       \                                                |
+        \-------->-----------------------------------------------/
+  ```
+
+- Renamed all "Profile" settings into "Bucket", as this makes more sense.
+
+- Improved popup UI layout.
+
+- Changed toolbar icon's badge format a bit.
+
+- Improved debugging options.
+
+- A huge internal refactoring to solve constant sub-task scheduling issues once and for all.
+
+- Improved documentation.
+
+### Removed
+
+- Removed `config.logDiscarded` option as it is no longer needed (pWebArc has proper log filtering now).
+
+### Fixed
+
+- Various small bugfixes.
+
+## [tool-v0.13.0] - 2024-08-05
+
+### Added
+
+- Implemented `import bundle` sub-command which takes WRR-bundles (optionally gzipped concatenations of WRR-dumps) as inputs.
+  The next version of the extension will start (optionally) producing these.
+
+### Changed
+
+- Improved error handling and error messages.
+
+### Fixed
+
+- A tiny fix for `pprint` output formatting.
+
 ## [extension-v1.12.0] - 2024-07-03
 
 ### Changed
@@ -629,6 +735,8 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.13.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.12.0...extension-v1.13.0
+[tool-v0.13.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.12.0...tool-v0.13.0
 [extension-v1.12.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.11.0...extension-v1.12.0
 [extension-v1.11.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.10.0...extension-v1.11.0
 [extension-v1.10.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.9.0...extension-v1.10.0
