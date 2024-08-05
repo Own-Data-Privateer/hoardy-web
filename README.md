@@ -6,6 +6,7 @@ In short, `pwebarc`'s main workflow is this: you install an extension/add-on int
 
 - See ["Why"](#why) section for why you might want to do this.
 - See ["Features"](#features) section for a longer description of what `pwebarc` does and does not do.
+- See ["Alternatives"](#alternatives) for comparisons to alternatives.
 - See ["Frequently Asked Questions"](./extension/page/help.org#faq) for the answers to the frequently asked questions, including those about common quirks you can encounter while using `pwebarc`.
 - See ["Quickstart"](#quickstart) section for setup instructions.
 
@@ -491,7 +492,7 @@ Automating this away is on [the TODO list](#todo).
 
 Then, you can improve on this setup even more by running both the Tor Browser and `./pwebarc_dumb_dump_server.py` in separate containers/VMs.
 
-# <span id="alternatives"/>Alternatives and comparisons
+# <span id="alternatives"/>Alternatives
 
 "Cons" and "Pros" are in comparison to the main workflow of `pwebarc`.
 Most similar and easier to use projects first, harder to use and less similar projects later.
@@ -500,21 +501,22 @@ Most similar and easier to use projects first, harder to use and less similar pr
 
 Tools most similar to `pwebarc` in their implementation, though not in their philosophy and intended use.
 
-Cons:
-
-- Chromium-only;
-- you will have to manually enable `archiveweb.page` for each browser tab; and then
-- opening a link in a new tab will fail to archive the first page, as the archival is per-tab;
-- it also requires constant manual effort to export the data out.
-
 Pros:
 
-- its replay is much more mature than anything `pwebarc` currently has.
+- their replay is much more mature than anything `pwebarc` currently has.
+
+Cons:
+
+- they are Chromium-only;
+- to make it archive all of your web browsing like `pWebArc` does:
+  - you will have to manually enable `archiveweb.page` for each browser tab; and then
+  - opening a link in a new tab will fail to archive the first page, as the archival is per-tab;
+- `archiveweb.page` also requires constant manual effort to export the data out.
 
 Differences in design:
 
-- it captures whole browsing sessions (instead of capturing separate HTTP requests and responses, like `pWebArc`);
-- it implements ["Autopilot"](https://archiveweb.page/en/features/autopilot/), which [`pWebArc` will never get](./extension/page/help.org#faq-lazy) (if you want that, `pWebArc` expects you to use UserScripts instead).
+- `archiveweb.page` captures whole browsing sessions, while `pWebArc` captures separate HTTP requests and responses;
+- `archiveweb.page` implements ["Autopilot"](https://archiveweb.page/en/features/autopilot/), which [`pWebArc` will never get](./extension/page/help.org#faq-lazy) (if you want that, `pWebArc` expects you to use UserScripts instead).
 
 Same issues:
 
@@ -530,7 +532,7 @@ Same issues:
 
   Both `pWebArc` and `archiveweb.page` suffer from exactly the same issues, which --- if you know what to look for --- you can notice straight in the advertisement animation [on their "Usage" page](https://archiveweb.page/en/usage/).
 
-  Those issues have no workarounds known to me.
+  Those issues have no workarounds known to me (except for "switch to Firefox-based browser").
   But because they exists, I made `pWebArc` instead of forking `archiveweb.page`, trying to port it to Firefox, and making the fork follow my preferred workflow.
 
 ## [DiskerNet](https://github.com/dosyago/DownloadNet)
@@ -539,25 +541,73 @@ A self-hosted web app and web crawler written in `Node.js` most similar to `pweb
 
 `DiskerNet` does its web crawling by spawning a Chromium browser instance and attaching to it via its debug protocol, which is a bit weird, but it does work, and with exception of `pwebarc` it is the only other tool I know of that can archive everything passively as you browse, since you can just browse in that debugged Chromium window and it will archive the data it fetches.
 
-Cons:
-
-- Chromium-only;
-- uses a custom archive format but gives no tools to inspect or manage them;
-- you are expected to do everything from the web UI.
-
 Pros:
 
-- otherwise, it actually does most of what `pwebarc` aims to do on the basic level.
+- it's very similar to what `pwebarc` aims to do, except
+
+Cons:
+
+- it's Chromium-only;
+- it uses a custom archive format but gives no tools to inspect or manage them;
+- you are expected to do everything from the web UI.
 
 Same issues:
 
 - when run under Chromium, same [bugs](./extension/page/help.org#chromium-bugs) and [annoyances](./extension/page/help.org#faq-debugger) apply.
 
+## [SingleFile](https://github.com/gildas-lormeau/SingleFile) and [WebScrapBook](https://github.com/danny0838/webscrapbook)
+
+Browser add-ons that capture whole web pages by taking their DOM snapshots and saving all resources (images, media, etc) the captured page references.
+
+Pros:
+
+- very simple to use;
+- they implement annotations, which `pwebarc` currently does not.
+
+Cons:
+
+- to make them archive all of your web browsing like `pWebArc` does, you will have to manually capture each page you want to save;
+- they only captures web pages, you won't be able to save POST request data or JSONs fetched by web apps;
+- since they do not track and save HTTP requests and responses, capturing a page will make the browser re-download non-cached page resources a second time.
+
+Differences in design:
+
+- they capture DOM snapshots, while `pWebArc` captures HTTP requests and responses (though, it can capture DOM snapshots too).
+
+## [WorldBrain Memex](https://github.com/WorldBrain/Memex)
+
+A browser extension that implements an alternative mechanism to browser bookmarks.
+Saving a web page into Memex saves a DOM snapshot of the tab in question into an in-browser database.
+Memex then implements full-text search engine for saved snapshots and PDFs.
+
+Pros:
+
+- pretty, both in UI and in documentation;
+- it implements annotations, which `pwebarc` currently does not;
+- lots of other features.
+
+Cons:
+
+- to make it archive all of your web browsing like `pWebArc` does, you will have to manually save each page you visit;
+- it only captures web pages and PDFs, you won't be able to save POST request data or JSONs fetched by web apps;
+- compared to `pWebArc`, it is very fat --- it's `.xpi` is more than 40 times larger;
+- it takes about 7 times more RAM to do comparable things (measured via `about:performance`);
+- it is slow enough to be hard to use on an older or a very busy system;
+- it injects content scripts to every page you visit, making your whole browsing experience much less snappy;
+- it performs a lot of HTTP requests to third-party services in background (`pWebArc` does **none** of that);
+- you are expected to do everything from the web UI.
+
+Differences in design:
+
+- it captures DOM snapshots and PDFs, while `pWebArc` captures HTTP requests and responses (though, it can capture DOM snapshots too);
+- it has a builtin full-text search engine, while `pwebarc` expects you to do that with third-party tools;
+- it has a builtin synchronization between instances, while `pwebarc` expects you to use normal file backup tools for that.
+
 ## But you could just enable request logging in your browser's Network Monitor and manually save your data as HAR archives from time to time.
 
 Cons:
 
-- you will have to manually enable it for each browser tab;
+- to do what `pWebArc` does, you will have to manually enable it for each browser tab;
 - opening a link in a new tab will fail to archive the first page as you will not have Network Monitor open there yet; and then
 - you will have to check all your tabs for new data all the time and do \~5 clicks per tab to save it; and then
 - HARs are JSON, meaning all that binary data gets encoded indirectly, thus making resulting HAR archives very inefficient for long-term storage, even when compressed.
@@ -566,32 +616,37 @@ And then you still need something like this suite to look into the generated arc
 
 ## [mitmproxy](https://github.com/mitmproxy/mitmproxy)
 
+A Man-in-the-middle SSL proxy.
+
+Pros:
+
+- after you set it up, it will capture **absolutely everything completely automatically**;
+- including WebSockets data, which `pWebArc` add-on currently does not capture.
+
 Cons:
 
 - it is rather painful to setup, requiring you to install a custom SSL root certificate; and
 - websites using certificate pinning will stop working; and
 - some websites detect when you use it and fingerprint you for it or force you to solve CAPTCHAs; and
 - `mitmproxy` dump files are flat streams of HTTP requests and responses that use custom frequently changing between versions data format, so you'll have to re-parse them repeatedly using `mitmproxy`'s own parsers to get to the requests you want;
-- it provides no tools to use those dumped HTTP request+response streams as website mirrors.
+- it provides no tools to use those dumped HTTP request+response streams as website mirrors or some such.
+
+Though, the latter issue can be solved via [this project's `wrrarms` tool](./tool/) as it can take `mitmproxy` dumps as inputs.
+
+## But you could setup SSL keys dumping then use Wireshark to capture your web traffic.
 
 Pros:
 
-- everything is completely automated after you set it all up;
+- after you set it up, it will capture **absolutely everything completely automatically**;
 - it captures WebSockets data, which `pWebArc` add-on currently does not.
-
-## But you could setup SSL keys dumping then use Wireshark to capture your web traffic.
 
 Cons:
 
 - it is really painful to setup; and then
+- you are very likely to screw it up, loose/mismatch encryption keys, and make your captured data unusable; and even if you don't,
 - it takes a lot of effort to recover HTTP data from the PCAP dumps; and
 - PCAP dumps are IP packet-level, thus also inefficient for this use case; and
-- PCAP dumps of SSL traffic can not be compressed much.
-
-Pros:
-
-- things are mostly automated after you set it all up;
-- it captures WebSockets data, which `pWebArc` add-on currently does not.
+- PCAP dumps of SSL traffic can not be compressed much, thus storing the raw captures will take a lot of disk space.
 
 And then you still need something like this suite to look into the generated archives.
 
@@ -599,111 +654,98 @@ And then you still need something like this suite to look into the generated arc
 
 A web crawler and self-hosted web app into which you can feed the URLs for them to be archived.
 
-So to make it archive all of your web browsing like `pwebarc` does:
-
-Cons:
-
-- [it requires you](https://github.com/ArchiveBox/ArchiveBox/issues/577) to setup `mitmproxy` with [archivebox-proxy](https://codeberg.org/brunoschroeder/archivebox-proxy) plugin; or,
-  - alternatively, you can run [archivefox](https://github.com/layderv/archivefox) add-on and explicitly archive pages one-by-one via a button there;
-- in both cases, to archive a URL, ArchiveBox will have to download it by itself in parallel with your browser, thus making you download everything twice;
-- which is hacky and inefficient; and
-- websites can easily see, fingerprint, and then ban you for doing that;
-- and you won't be able to archive your HTTP `POST` requests with it.
-
 Pros:
 
-- written in Python, pretty lightweight;
-- produces archives in WARC format, which is a de-facto standard;
-- it has a nice web UI;
+- it's pretty lightweight and is written in Python;
+- it produces archives in WARC format, which is a de-facto standard;
+- it has a very nice web UI;
 - it it's an all-in-one archiving solution, also archiving YouTube videos with [yt-dlp](https://github.com/yt-dlp/yt-dlp), `git` repos, etc;
 - stable, well-tested, and well-supported.
 
-Still, probably the best of the self-hosted web-app-server kind of tools for this ATM.
-
-## [SingleFile](https://github.com/gildas-lormeau/SingleFile) and [WebScrapBook](https://github.com/danny0838/webscrapbook)
-
-Browser add-ons to capture whole web pages.
-
 Cons:
 
-- you will have to manually capture each page you want to save;
-- they only captures web pages, you won't be able to save POST request data or JSONs fetched by web apps.
+- to make it archive all of your web browsing like `pWebArc` does,
+  - [it requires you](https://github.com/ArchiveBox/ArchiveBox/issues/577) to setup `mitmproxy` with [archivebox-proxy](https://codeberg.org/brunoschroeder/archivebox-proxy) plugin;
+  - alternatively, you can run [archivefox](https://github.com/layderv/archivefox) add-on and explicitly archive pages one-by-one via a button there;
+- in both cases, to archive a URL, ArchiveBox will have to download it by itself in parallel with your browser, thus making you download everything twice, which is hacky and inefficient; and
+- websites can easily see, fingerprint, and then ban you for doing that;
+- and you won't be able to archive your HTTP `POST` requests with it.
 
-Pros:
-
-- very simple to use.
-
-Same:
-
-- `pWebArc` can capture DOM snapshots too.
+Still, probably the best of the self-hosted web-app-server kind of tools for this ATM.
 
 ## [reminiscence](https://github.com/kanishka-linux/reminiscence)
 
 A system similar to `ArchiveBox`, but has a bulit-in tagging system and archives pages as raw HTML + whole-page PNG rendering/screenshot --- which is a bit weird, but it has the advantage of not needing any replay machinery at all for re-viewing simple web pages, you only need a plain simple image viewer.
 
-Pros and Cons are almost identical to those of `ArchiveBox` above.
+Pros and Cons are almost identical to those of `ArchiveBox` above, except it has less third-party tools around it so less stuff can be automated easily.
 
 ## `wget -mpk` and `curl`
-
-Cons:
-
-- you will have to manually capture each page you want to save;
-- many websites will refuse to be archived with `wget` and making `wget` play pretend at being a normal web browser is basically impossible;
-- similarly with `curl`, `curl` also doesn't have the equivalent to `wget`'s `-mpk` options;
-- can't archive dynamic websites;
-- changing archival options will force you to re-download a lot.
 
 Pros:
 
 - both are probably already installed on your POSIX-compliant OS.
 
+Cons:
+
+- to do what `pWebArc` does, you will have to manually capture each page you want to save;
+- many websites will refuse to be archived with `wget` and making `wget` play pretend at being a normal web browser is basically impossible;
+- similarly with `curl`, `curl` also doesn't have the equivalent to `wget`'s `-mpk` options;
+- can't archive dynamic websites;
+- changing archival options will force you to re-download a lot.
+
 ## [wpull](https://github.com/ArchiveTeam/wpull)
 
 `wget -mpk` done right.
 
-Cons:
-
-- you will have to manually capture each page you want to save;
-- you won't be able to archive your HTTP `POST` requests with it;
-- does not have replay capabilities, just generates WARC files.
-
 Pros:
 
-- can pause and resume fetching;
-- can archive many dynamic websites via PhantomJS;
-- produces archives in WARC format, which is a de-facto standard and has a lot of tooling around it;
+- it can pause and resume fetching;
+- it can archive many dynamic websites via PhantomJS;
+- it produces archives in WARC format, which is a de-facto standard and has a lot of tooling around it;
 - stable, well-tested, and well-supported.
+
+Cons:
+
+- to do what `pWebArc` does, you will have to manually capture each page you want to save;
+- you won't be able to archive your HTTP `POST` requests with it;
+- does not have replay capabilities, just generates WARC files.
 
 ## [grab-site](https://github.com/ArchiveTeam/grab-site)
 
 A simple web crawler built on top of `wpull`, presented to you by the ArchiveTeam, a group associated with the [Internet Archive](https://web.archive.org/) which appears to be the source of archives for the most of the interesting pages I find there.
 
-Cons:
-
-- you will have to manually capture each page you want to save;
-- can't really archive dynamic websites;
-- you won't be able to archive your HTTP `POST` requests with it;
-- does not have replay capabilities, just generates WARC files.
-
 Pros:
 
-- produces archives in WARC format, which is a de-facto standard and has a lot of tooling around it;
+- it produces archives in WARC format, which is a de-facto standard and has a lot of tooling around it;
 - stable, well-tested, and well-supported.
-
-## [monolith](https://github.com/Y2Z/monolith) and [obelisk](https://github.com/go-shiori/obelisk)
-
-Stand-alone tools doing the same thing SingleFile add-on does: generate single-file HTMLs with bundled resources viewable directly in the browser.
 
 Cons:
 
-- you will have to manually capture each page you want to save;
-- can't really archive dynamic websites;
+- to do what `pWebArc` does, you will have to manually capture each page you want to save;
+- it can't really archive dynamic websites;
 - you won't be able to archive your HTTP `POST` requests with it;
-- changing archival options will force you to re-download everything again.
+- it does not have replay capabilities, just generates WARC files.
+
+## [monolith](https://github.com/Y2Z/monolith), and [obelisk](https://github.com/go-shiori/obelisk)
+
+Stand-alone tools doing the same thing SingleFile add-on does: generate single-file HTMLs with bundled resources viewable directly in the browser.
 
 Pros:
 
 - simple to use.
+
+Cons:
+
+- to make them archive all of your web browsing like `pWebArc` does, you will have to manually capture each page you want to save;
+- they can't really archive dynamic websites;
+- you won't be able to archive your HTTP `POST` requests using them;
+- changing archival options will force you to re-download everything again.
+
+## [single-file-cli](https://github.com/gildas-lormeau/single-file-cli)
+
+Stand-alone tool based on `SingleFile`, using a headless browser to capture pages.
+
+A more robust solution to do what `monolith` and `obelisk` do, if you don't mind `nodejs` and the need to run a headless browser.
 
 ## [heritrix](https://github.com/internetarchive/heritrix3)
 
@@ -711,16 +753,16 @@ The crawler behind the [Internet Archive](https://web.archive.org/).
 
 It's a self-hosted web app into which you can feed the URLs for them to be archived, so to make it archive all of your web browsing:
 
+Pros:
+
+- it produces archives in WARC format, which is a de-facto standard and has a lot of tooling around it;
+- stable, well-tested, and well-supported.
+
 Cons:
 
 - you have to run it, and it's a rather heavy Java app;
 - you'll need to write a separate browser plugin to redirect all links you click to your local instance's `/save/` REST API URLs (which is not hard, but I'm unaware if any such add-on exists);
 - and you won't be able to archive your HTTP `POST` requests with it.
-
-Pros:
-
-- produces archives in WARC format, which is a de-facto standard and has a lot of tooling around it;
-- stable, well-tested, and well-supported.
 
 ## [Archivy](https://github.com/archivy/archivy)
 
