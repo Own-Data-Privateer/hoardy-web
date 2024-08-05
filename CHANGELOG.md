@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Introduced the `errored` reqres state.
 
-  With stashing to local storage enabled, pWebArc will not try its best not to loose any captured data even when its archiving code fails (bugs out) with an unexpected exception.
+  With stashing to local storage enabled, pWebArc will now try its best not to loose any captured data even when its archiving code fails (bugs out) with an unexpected exception.
   If it bugs out in the capture code, then all bets are off, unfortunately.
 
 ### Changed
