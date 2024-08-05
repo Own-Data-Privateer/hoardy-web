@@ -11,7 +11,7 @@ In short, `pwebarc`'s main workflow is this: you install an extension/add-on int
 
 # Screenshots
 
-![Screenshot of Firefox's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.10.0-popup.png)
+![Screenshot of Firefox's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.13.0-popup.png)
 
 ![Screenshot of Chromium's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.10.0-chromium.png)
 

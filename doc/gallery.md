@@ -1,3 +1,7 @@
+# extension-v1.13.0
+
+![Screenshot of Firefox's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.13.0-popup.png)
+
 # extension-v1.10.0
 
 ![Screenshot of Firefox's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/pwebarc/extension-v1.10.0-popup.png)
