@@ -2911,7 +2911,7 @@ async function snapshotOneTab(tabId, tabUrl) {
     }
 }
 
-async function snapshotTab(tabIdNull) {
+async function snapshot(tabIdNull) {
     if (tabIdNull === null) {
         // snapshot all tabs
         let tabs = await browser.tabs.query({});
@@ -3733,8 +3733,8 @@ function handleMessage(request, sender, sendResponse) {
         retryUnstashed();
         sendResponse(null);
         break;
-    case "snapshotTab":
-        snapshotTab(request[1]);
+    case "snapshot":
+        snapshot(request[1]);
         sendResponse(null);
         break;
     case "runActions":
@@ -3893,10 +3893,10 @@ async function handleCommand(command) {
         popInLimbo(false, null, tabId);
         return;
     case "snapshotAll":
-        snapshotTab(null);
+        snapshot(null);
         return;
     case "snapshotTab":
-        snapshotTab(tabId);
+        snapshot(tabId);
         return;
     case "toggleTabConfigTracking":
         tabcfg = getOriginConfig(tabId);

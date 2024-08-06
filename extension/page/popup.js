@@ -168,7 +168,7 @@ async function popupMain() {
 
     buttonToAction("showState", catchAll(() => replaceWith(showState, "", "top")));
     buttonToMessage("forgetHistory",           () => ["forgetHistory", null]);
-    buttonToMessage("snapshotAll",             () => ["snapshotTab", null]);
+    buttonToMessage("snapshotAll",             () => ["snapshot", null]);
     buttonToMessage("exportAsAll",             () => ["exportAsAll", null]);
     buttonToMessage("collectAllInLimbo",       () => ["popInLimbo", true, null, null]);
     buttonToMessage("discardAllInLimbo",       () => ["popInLimbo", false, null, null]);
@@ -177,7 +177,7 @@ async function popupMain() {
 
     buttonToAction("showTabState", catchAll(() => replaceWith(showState, `?tab=${tabId}`, "top")));
     buttonToMessage("forgetTabHistory",        () => ["forgetHistory", tabId]);
-    buttonToMessage("snapshotTab",             () => ["snapshotTab", tabId]);
+    buttonToMessage("snapshotTab",             () => ["snapshot", tabId]);
     buttonToMessage("collectAllTabInLimbo",    () => ["popInLimbo", true, null, tabId]);
     buttonToMessage("discardAllTabInLimbo",    () => ["popInLimbo", false, null, tabId]);
     buttonToMessage("unmarkAllTabProblematic", () => ["unmarkProblematic", null, tabId]);
