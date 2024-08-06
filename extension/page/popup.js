@@ -96,8 +96,8 @@ async function popupMain() {
         snapshotAll: "📸",
         forgetHistory: "🧹",
         showState: "📜",
-        runAllActions: "🟢",
-        cancelAllActions: "🟥",
+        runActions: "🟢",
+        cancelActions: "🟥",
         exportAsAll: "💾",
         retryFailed: "♻",
         stashAll: "💾",
@@ -183,8 +183,8 @@ async function popupMain() {
     buttonToMessage("unmarkAllTabProblematic", () => ["unmarkProblematic", null, tabId]);
     buttonToMessage("stopTabInFlight",         () => ["stopInFlight", tabId]);
 
-    buttonToMessage("runAllActions");
-    buttonToMessage("cancelAllActions");
+    buttonToMessage("runActions");
+    buttonToMessage("cancelActions");
     buttonToMessage("forgetErrored");
     buttonToMessage("retryFailed");
     buttonToMessage("stashAll");

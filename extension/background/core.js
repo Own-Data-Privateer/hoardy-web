@@ -192,7 +192,7 @@ let scheduledSaveState = new Map();
 // scheduled functions hidden from the UI
 let scheduledHidden = new Map();
 
-function runAllActions() {
+function runActions() {
     runSynchronously(async () => {
         await popAllSingletonTimeouts(scheduledCancelable, true);
         await popAllSingletonTimeouts(scheduledInternal, true);
@@ -201,7 +201,7 @@ function runAllActions() {
     scheduleEndgame(null);
 }
 
-function cancelAllActions() {
+function cancelActions() {
     runSynchronously(async () => {
         await popAllSingletonTimeouts(scheduledCancelable, false);
     });
@@ -3737,12 +3737,12 @@ function handleMessage(request, sender, sendResponse) {
         snapshotTab(request[1]);
         sendResponse(null);
         break;
-    case "runAllActions":
-        runAllActions();
+    case "runActions":
+        runActions();
         sendResponse(null);
         break;
-    case "cancelAllActions":
-        cancelAllActions();
+    case "cancelActions":
+        cancelActions();
         sendResponse(null);
         break;
     case "exportAsAll":
