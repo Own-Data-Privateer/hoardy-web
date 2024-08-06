@@ -1351,10 +1351,10 @@ function scheduleEndgame(updatedTabId) {
             if (gotNewExportedAs) {
                 gotNewExportedAs = false;
                 // schedule exports
-                scheduleExportAsAll(haveInFlight
-                                    ? config.exportAsInFlightTimeout * 1000
-                                    : config.exportAsTimeout * 1000
-                                    , null);
+                scheduleExportAs(haveInFlight
+                                 ? config.exportAsInFlightTimeout * 1000
+                                 : config.exportAsTimeout * 1000
+                                 , null);
             }
 
             if (wantRetryFailed) {
@@ -1989,7 +1989,7 @@ let lastExportEpoch;
 let lastExportNum = 0;
 
 // export all reqresBundledAs as fake-"Download" with a WRR-bundle of their dumps
-function exportAsAll(bucket, ifGEQ) {
+function exportAs(bucket, ifGEQ) {
     let res = reqresBundledAs.get(bucket);
     if (res === undefined
         || ifGEQ !== undefined && res.size < ifGEQ)
@@ -2043,7 +2043,7 @@ function exportAsAll(bucket, ifGEQ) {
         // events for a given archivable:
         //
         //  exportAsOne -> submitHTTPOne -> saveOne
-        //  -> ... -> exportAsAll, which fails -> recordFailed
+        //  -> ... -> exportAs, which fails -> recordFailed
         //  -> syncMany
         //
         // It will work only if `runSynchronously` is run after `saveOne`
@@ -2055,7 +2055,7 @@ function exportAsAll(bucket, ifGEQ) {
         // Now consider this:
         //
         //  exportAsOne -> submitHTTPOne -> (no saveOne) -> syncOne(archivable, 0, ...)
-        //  -> ... -> exportAsAll, which fails -> recordFailed
+        //  -> ... -> exportAs, which fails -> recordFailed
         //  -> syncMany
         //
         // Which will only work if that first `syncOne` does not elide the
@@ -2065,8 +2065,8 @@ function exportAsAll(bucket, ifGEQ) {
     }
 }
 
-// schedule exportAsAll action
-function scheduleExportAsAll(timeout, bucketOrNull) {
+// schedule exportAs action
+function scheduleExportAs(timeout, bucketOrNull) {
     if (reqresBundledAs.size === 0)
         return;
 
@@ -2077,8 +2077,8 @@ function scheduleExportAsAll(timeout, bucketOrNull) {
         buckets = [ bucketOrNull ];
 
     for (let bucket of buckets) {
-        resetSingletonTimeout(scheduledCancelable, `exportAsAll-${bucket}`, timeout, async () => {
-            exportAsAll(bucket);
+        resetSingletonTimeout(scheduledCancelable, `exportAs-${bucket}`, timeout, async () => {
+            exportAs(bucket);
             scheduleEndgame(null);
         });
     }
@@ -2099,7 +2099,7 @@ async function exportAsOne(archivable) {
     let maxSize = config.exportAsMaxSize * MEGABYTE;
 
     // export if this dump will not fit
-    exportAsAll(bucket, maxSize - dumpSize);
+    exportAs(bucket, maxSize - dumpSize);
 
     // record it in the bundle
     let u = cacheSingleton(reqresBundledAs, bucket, () => { return {
@@ -2116,7 +2116,7 @@ async function exportAsOne(archivable) {
     loggable.dirty = true;
 
     // try exporting again
-    exportAsAll(bucket, maxSize);
+    exportAs(bucket, maxSize);
 
     gotNewExportedAs = true;
 
@@ -3745,8 +3745,8 @@ function handleMessage(request, sender, sendResponse) {
         cancelActions();
         sendResponse(null);
         break;
-    case "exportAsAll":
-        scheduleExportAsAll(0, request[1]);
+    case "exportAs":
+        scheduleExportAs(0, request[1]);
         sendResponse(null);
         break;
     case "broadcast":

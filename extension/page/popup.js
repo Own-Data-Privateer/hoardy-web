@@ -169,7 +169,7 @@ async function popupMain() {
     buttonToAction("showState", catchAll(() => replaceWith(showState, "", "top")));
     buttonToMessage("forgetHistory",           () => ["forgetHistory", null]);
     buttonToMessage("snapshotAll",             () => ["snapshot", null]);
-    buttonToMessage("exportAsAll",             () => ["exportAsAll", null]);
+    buttonToMessage("exportAsAll",             () => ["exportAs", null]);
     buttonToMessage("collectAllInLimbo",       () => ["popInLimbo", true, null, null]);
     buttonToMessage("discardAllInLimbo",       () => ["popInLimbo", false, null, null]);
     buttonToMessage("unmarkAllProblematic",    () => ["unmarkProblematic", null, null]);
