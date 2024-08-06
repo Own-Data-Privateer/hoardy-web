@@ -69,7 +69,7 @@ async function stateMain() {
     buttonToMessage("discardAllInLimbo",    () => ["popInLimbo", false, null, tabId, rrfilters.in_limbo]);
     buttonToMessage("collectOneInLimbo",    () => ["popInLimbo", true, 1, tabId, rrfilters.in_limbo]);
     buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, null, tabId, rrfilters.in_limbo]);
-    buttonToMessage("stopAllInFlight",      () => ["stopAllInFlight", tabId]);
+    buttonToMessage("stopAllInFlight",      () => ["stopInFlight", tabId]);
 
     buttonToMessage("retryFailed");
 

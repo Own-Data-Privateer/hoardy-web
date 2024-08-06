@@ -3005,7 +3005,7 @@ function forceFinishingUpWebRequest(predicate) {
     reqresFinishingUp = notFinished;
 }
 
-function stopAllInFlight(tabId) {
+function stopInFlight(tabId) {
     if (useDebugger)
         emitTabInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_USER");
     emitTabInFlightWebRequest(tabId, "pWebArc::EMIT_FORCED_BY_USER");
@@ -3667,8 +3667,8 @@ function handleMessage(request, sender, sendResponse) {
     case "getInFlightLog":
         sendResponse(getInFlightLog());
         break;
-    case "stopAllInFlight":
-        stopAllInFlight(request[1]);
+    case "stopInFlight":
+        stopInFlight(request[1]);
         sendResponse(null);
         break;
     case "getInLimboLog":

@@ -173,7 +173,7 @@ async function popupMain() {
     buttonToMessage("collectAllInLimbo",       () => ["popInLimbo", true, null, null]);
     buttonToMessage("discardAllInLimbo",       () => ["popInLimbo", false, null, null]);
     buttonToMessage("unmarkAllProblematic",    () => ["unmarkProblematic", null, null]);
-    buttonToMessage("stopAllInFlight",         () => ["stopAllInFlight", null]);
+    buttonToMessage("stopAllInFlight",         () => ["stopInFlight", null]);
 
     buttonToAction("showTabState", catchAll(() => replaceWith(showState, `?tab=${tabId}`, "top")));
     buttonToMessage("forgetTabHistory",        () => ["forgetHistory", tabId]);
@@ -181,7 +181,7 @@ async function popupMain() {
     buttonToMessage("collectAllTabInLimbo",    () => ["popInLimbo", true, null, tabId]);
     buttonToMessage("discardAllTabInLimbo",    () => ["popInLimbo", false, null, tabId]);
     buttonToMessage("unmarkAllTabProblematic", () => ["unmarkProblematic", null, tabId]);
-    buttonToMessage("stopAllTabInFlight",      () => ["stopAllInFlight", tabId]);
+    buttonToMessage("stopAllTabInFlight",      () => ["stopInFlight", tabId]);
 
     buttonToMessage("runAllActions");
     buttonToMessage("cancelAllActions");

@@ -491,7 +491,7 @@ function emitTabInFlightDebug(tabId, reason) {
     // `handleDebugDetach`, and `handleDebugDetach` does not imply
     // `forcing`!
     //
-    // See `stopAllInFlight` instead, it does a separarate call to
+    // See `stopInFlight` instead, it does a separarate call to
     // `processMatchFinishingUpWebRequestDebug(true)`.
     processMatchFinishingUpWebRequestDebug();
 }
