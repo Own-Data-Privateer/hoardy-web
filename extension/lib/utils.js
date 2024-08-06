@@ -702,7 +702,7 @@ function subscribeToExtension(processUpdate, completeRefresh, extensionId, conne
 }
 
 function subscribeToExtensionSimple(name, showAllFunc, hideAllFunc) {
-    return subscribeToExtension(catchAll((update) => handleDefaultUpdate(update, name)));
+    return subscribeToExtension(catchAll((update) => handleDefaultUpdate(update, name, showAllFunc, hideAllFunc)));
 }
 
 // set values of DOM elements from a given object
