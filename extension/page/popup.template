@@ -409,7 +409,7 @@ h2 input[type="button"] {
       <div id="div-tabstats.in_flight" data-help="For this tab, the number of in-flight reqres that have not finished yet. See the &quot;Help&quot; page for more info.">
         <span>In flight</span>
         <span>
-          <input type="button" id="stopAllTabInFlight" data-help="For reqres of this tab, stop tracking progress of all in-flight requests and either collect them for archival or fail them, depending on completion and &quot;Pick reqres for archival when they finish&quot; options." value="Stop" />
+          <input type="button" id="stopTabInFlight" data-help="For reqres of this tab, stop tracking progress of all in-flight requests and either collect them for archival or fail them, depending on completion and &quot;Pick reqres for archival when they finish&quot; options." value="Stop" />
         </span>
         <span>
           <span id="tabstats.in_flight">0</span>

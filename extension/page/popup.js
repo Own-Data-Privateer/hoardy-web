@@ -112,7 +112,7 @@ async function popupMain() {
         collectAllTabInLimbo: "✔",
         discardAllTabInLimbo: "✖",
         unmarkAllTabProblematic: "🧹",
-        stopAllTabInFlight: "⏹",
+        stopTabInFlight: "⏹",
     };
 
     // populate with the original values from the ./popup.html
@@ -181,7 +181,7 @@ async function popupMain() {
     buttonToMessage("collectAllTabInLimbo",    () => ["popInLimbo", true, null, tabId]);
     buttonToMessage("discardAllTabInLimbo",    () => ["popInLimbo", false, null, tabId]);
     buttonToMessage("unmarkAllTabProblematic", () => ["unmarkProblematic", null, tabId]);
-    buttonToMessage("stopAllTabInFlight",      () => ["stopInFlight", tabId]);
+    buttonToMessage("stopTabInFlight",         () => ["stopInFlight", tabId]);
 
     buttonToMessage("runAllActions");
     buttonToMessage("cancelAllActions");

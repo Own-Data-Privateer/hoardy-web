@@ -128,7 +128,7 @@ In principle, at reaching =finished= state the reqres can be serialized and save
   On Chromium, [[#chromium-bug-stuck][limitations of the Chromium's debugging interface mean a request can get stuck among the reqres represended by the first number above]].
   If the first number is zero, however, then the second should also rapidly become zero, at most after [[./popup.html#div-config.workaroundChromiumDebugTimeout][two times this many seconds]].
 
-  If some reqres got stuck in one of the =in_flight= states, you can forcefully move them out of that state using [[./popup.html#stopAllInFlight][this]] and/or [[./popup.html#stopAllTabInFlight][that]] popup buttons.
+  If some reqres got stuck in one of the =in_flight= states, you can forcefully move them out of that state using [[./popup.html#stopAllInFlight][this]] and/or [[./popup.html#stopTabInFlight][that]] popup buttons.
 
 - A /finished reqres/ is a reqres that reached the =finished= state.
 
@@ -530,7 +530,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   This usually happens when a request gets started and then canceled by a page's JavaScript, or when you navigate between pages too fast.
   @@html:</span>@@
 
-  In that case, pWebArc can't tell if a reqres is just slow at being loaded or if Chromium forgot about it, so those reqres will get stuck in the =in_flight= state indefinitely, at least until their originator tab gets closed, or until you press one of [[./popup.html#stopAllInFlight][this]] or [[./popup.html#stopAllTabInFlight][that]] buttons.
+  In that case, pWebArc can't tell if a reqres is just slow at being loaded or if Chromium forgot about it, so those reqres will get stuck in the =in_flight= state indefinitely, at least until their originator tab gets closed, or until you press one of [[./popup.html#stopAllInFlight][this]] or [[./popup.html#stopTabInFlight][that]] buttons.
 
   pWebArc might get another workaround for this bug later.
 * Error messages and codes
@@ -592,7 +592,7 @@ For instance:
 The exception to the above rule of keeping everything as raw as possible are =webRequest::pWebArc::= and =debugger::pWebArc::= prefixes which signify various errors produced by pWebArc itself in its =webRequest=- or =debugger=-handling code, respectively.
 In particular:
 
-- =webRequest::pWebArc::EMIT_FORCED_BY_USER= and =debugger::pWebArc::EMIT_FORCED_BY_USER= are produced when you forcefully advance a reqres from in-flight state by pressing [[./popup.html#stopAllTabInFlight][this]] or [[./popup.html#stopAllInFlight][that]] button;
+- =webRequest::pWebArc::EMIT_FORCED_BY_USER= and =debugger::pWebArc::EMIT_FORCED_BY_USER= are produced when you forcefully advance a reqres from in-flight state by pressing [[./popup.html#stopTabInFlight][this]] or [[./popup.html#stopAllInFlight][that]] button;
 
 - =debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER= is produced when Chromium debugger gets detached from its tab while a reqres inside that tab is still in flight;
 
