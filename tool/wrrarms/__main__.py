@@ -1608,19 +1608,23 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         grp.add_argument("--abridged", action="store_true", help=_("shorten long strings for brevity, useful when you want to visually scan through batch data dumps; default"))
         cmd.set_defaults(abridged = True)
 
-    def add_termsep(cmd : _t.Any, name : str, what : str = "output", whatval : str = "output values", allow_not : bool = True, allow_none : bool = False) -> None:
+    def add_termsep(cmd : _t.Any, name : str, what : str = "printing", whatval : str = "print values", allow_not : bool = True, allow_none : bool = False) -> None:
         agrp = cmd.add_argument_group(what)
         grp = agrp.add_mutually_exclusive_group()
         def_lf = "; " + _("default")
         def_val : bytes | None = b"\n"
+
         if allow_none:
-            grp.add_argument("--no-output", dest=f"{name}ator", action="store_const", const = None, help=_("don't print anything") + def_lf)
+            grp.add_argument("--no-print", dest=f"{name}ator", action="store_const", const = None, help=_("don't print anything") + def_lf)
             def_lf = ""
             def_val = None
+
         if allow_not:
-            grp.add_argument(f"--not-{name}ated", dest=f"{name}ator", action="store_const", const = b"", help=_(f"don't {name}ate {whatval} with anything, just concatenate them"))
-        grp.add_argument("-l", f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const = b"\n", help=_(f"{name}ate {whatval} with `\\n` (LF) newline characters") + def_lf)
-        grp.add_argument("-z", f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const = b"\0", help=_(f"{name}ate {whatval} with `\\0` (NUL) bytes"))
+            grp.add_argument(f"--not-{name}ated", dest=f"{name}ator", action="store_const", const = b"", help=_(f"{whatval} without {name}ating them with anything, just concatenate them"))
+
+        grp.add_argument("-l", f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const = b"\n", help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf)
+        grp.add_argument("-z", f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const = b"\0", help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"))
+
         if name == "termin":
             cmd.set_defaults(terminator = def_val)
         elif name == "separ":
@@ -1742,7 +1746,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     agrp = cmd.add_argument_group("expression evaluation")
     agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute, same expression format as `{__package__} get --expr` (which see); can be specified multiple times; the default is `.` which will dump the whole reqres structure'))
     add_remap(cmd)
-    add_terminator(cmd, "`--format=raw` output", "`--format=raw` output values")
+    add_terminator(cmd, "`--format=raw` output printing", "print `--format=raw` output values")
     add_paths(cmd)
     cmd.set_defaults(func=cmd_stream)
 
@@ -1750,8 +1754,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd = subparsers.add_parser("find", help=_("print paths of WRR files matching specified criteria"),
                                 description = _(f"""Print paths of WRR files matching specified criteria."""))
     add_errors(cmd)
-    add_filters(cmd, "output paths to")
-    add_terminator(cmd, whatval="output absolute paths of matching WRR files", allow_not=False)
+    add_filters(cmd, "print paths to")
+    add_terminator(cmd, "found files printing", "print absolute paths of matching WRR files", allow_not=False)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_find)
 
@@ -1760,7 +1764,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         grp.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
         grp.add_argument("-q", "--quiet", action="store_true", help=_("don't log computed updates to stderr"))
 
-        add_terminator(cmd, whatval="output absolute paths of newly produced files", allow_not=False, allow_none=True)
+        add_terminator(cmd, "new `--output`s printing", "print absolute paths of newly produced or replaced files", allow_not=False, allow_none=True)
 
     def add_memory(cmd : _t.Any, max_deferred : int = 1024, max_batch : int = 128) -> None:
         agrp = cmd.add_argument_group("caching, deferring, and batching")
@@ -1800,7 +1804,7 @@ E.g. `{__package__} organize --move` will not overwrite any files, which is why 
     grp.add_argument("--symlink", dest="action", action="store_const", const="symlink", help=_("create symlinks from source files to paths under `DESTINATION`"))
     cmd.set_defaults(action = "move")
 
-    agrp = cmd.add_argument_group("updates")
+    agrp = cmd.add_argument_group("updates to `--output`s")
     grp = agrp.add_mutually_exclusive_group()
     grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=_("""disallow overwrites and replacements any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default;
 `--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
@@ -1864,7 +1868,7 @@ In other words, this generates static offline website mirrors, producing results
     add_filters(cmd, "export")
     add_output(cmd)
 
-    agrp = cmd.add_argument_group("updates")
+    agrp = cmd.add_argument_group("updates to `--output`s")
     grp = agrp.add_mutually_exclusive_group()
     grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=_("""disallow overwrites of any existing `--output` files under `DESTINATION`; default;
 repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;

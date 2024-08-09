@@ -488,13 +488,13 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   - `--remap-void`
   : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
-- output:
+- printing:
   - `--not-separated`
-  : don't separate output values with anything, just concatenate them
+  : print values without separating them with anything, just concatenate them
   - `-l, --lf-separated`
-  : separate output values with `\n` (LF) newline characters; default
+  : print values separated with `\n` (LF) newline characters; default
   - `-z, --zero-separated`
-  : separate output values with `\0` (NUL) bytes
+  : print values separated with `\0` (NUL) bytes
 
 ### wrrarms run
 
@@ -522,13 +522,13 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   - `--remap-void`
   : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
-- output:
+- printing:
   - `--not-separated`
-  : don't separate output values with anything, just concatenate them
+  : print values without separating them with anything, just concatenate them
   - `-l, --lf-separated`
-  : separate output values with `\n` (LF) newline characters; default
+  : print values separated with `\n` (LF) newline characters; default
   - `-z, --zero-separated`
-  : separate output values with `\0` (NUL) bytes
+  : print values separated with `\0` (NUL) bytes
 
 ### wrrarms stream
 
@@ -575,13 +575,13 @@ Compute given expressions for each of given WRR files, encode them into a reques
   - `--remap-void`
   : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
-- `--format=raw` output:
+- `--format=raw` output printing:
   - `--not-terminated`
-  : don't terminate `--format=raw` output values with anything, just concatenate them
+  : print `--format=raw` output values without terminating them with anything, just concatenate them
   - `-l, --lf-terminated`
-  : terminate `--format=raw` output values with `\n` (LF) newline characters; default
+  : print `--format=raw` output values terminated with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
-  : terminate `--format=raw` output values with `\0` (NUL) bytes
+  : print `--format=raw` output values terminated with `\0` (NUL) bytes
 
 - file system path ordering:
   - `--paths-given-order`
@@ -618,15 +618,15 @@ Print paths of WRR files matching specified criteria.
 
 - filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
-  : only output paths to reqres which match any of these expressions
+  : only print paths to reqres which match any of these expressions
   - `--and EXPR`
-  : only output paths to reqres which match all of these expressions
+  : only print paths to reqres which match all of these expressions
 
-- output:
+- found files printing:
   - `-l, --lf-terminated`
-  : terminate output absolute paths of matching WRR files with `\n` (LF) newline characters; default
+  : print absolute paths of matching WRR files terminated with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
-  : terminate output absolute paths of matching WRR files with `\0` (NUL) bytes
+  : print absolute paths of matching WRR files terminated with `\0` (NUL) bytes
 
 - file system path ordering:
   - `--paths-given-order`
@@ -944,13 +944,13 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
   - `--and EXPR`
   : only work on reqres which match all of these expressions
 
-- output:
-  - `--no-output`
+- new `--output`s printing:
+  - `--no-print`
   : don't print anything; default
   - `-l, --lf-terminated`
-  : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
+  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
   - `-z, --zero-terminated`
-  : terminate output absolute paths of newly produced files with `\0` (NUL) bytes
+  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
 - action:
   - `--move`
@@ -962,7 +962,7 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
   - `--symlink`
   : create symlinks from source files to paths under `DESTINATION`
 
-- updates:
+- updates to `--output`s:
   - `--no-overwrites`
   : disallow overwrites and replacements any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default;
     `--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
@@ -1056,13 +1056,13 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
   - `--and EXPR`
   : only import reqres which match all of these expressions
 
-- output:
-  - `--no-output`
+- new `--output`s printing:
+  - `--no-print`
   : don't print anything; default
   - `-l, --lf-terminated`
-  : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
+  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
   - `-z, --zero-terminated`
-  : terminate output absolute paths of newly produced files with `\0` (NUL) bytes
+  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -1135,13 +1135,13 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `--and EXPR`
   : only import reqres which match all of these expressions
 
-- output:
-  - `--no-output`
+- new `--output`s printing:
+  - `--no-print`
   : don't print anything; default
   - `-l, --lf-terminated`
-  : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
+  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
   - `-z, --zero-terminated`
-  : terminate output absolute paths of newly produced files with `\0` (NUL) bytes
+  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -1225,15 +1225,15 @@ In other words, this generates static offline website mirrors, producing results
   - `--and EXPR`
   : only export reqres which match all of these expressions
 
-- output:
-  - `--no-output`
+- new `--output`s printing:
+  - `--no-print`
   : don't print anything; default
   - `-l, --lf-terminated`
-  : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
+  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
   - `-z, --zero-terminated`
-  : terminate output absolute paths of newly produced files with `\0` (NUL) bytes
+  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
-- updates:
+- updates to `--output`s:
   - `--no-overwrites`
   : disallow overwrites of any existing `--output` files under `DESTINATION`; default;
     repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
