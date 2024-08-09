@@ -16,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - As a consequence, pWebArc now tracks browsing sessions and shows when a reqres belongs to an older session on its "Internal State" page.
 
-- Implemented two new archiving methods, now making the total of three.
-  I.e. pWebArc can now archive `collected` reqres by
+- Implemented two new archiving methods.
+  pWebArc can now archive `collected` reqres by
 
   - generating fake-Downloads containing either separate dumps (one dump of an HTTP request+response per file) or bundles of them (many dumps in a single file, for convenience, to be later imported via `wrrarms import bundle`),
 
