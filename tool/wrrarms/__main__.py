@@ -307,9 +307,10 @@ def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
         assert False
     return stream
 
+default_stream_expr = "."
 def cmd_stream(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
-        cargs.exprs = ["."]
+        cargs.exprs = [default_stream_expr]
     compile_exprs(cargs)
     compile_filters(cargs)
     handle_paths(cargs)
@@ -1581,26 +1582,15 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         grp.add_argument("--and", dest="alls", metavar="EXPR", action="append", type=str, default = [],
                          help=_(f"only {do_what} reqres which match all of these expressions"))
 
-    def add_remap(cmd : _t.Any, kind : str = "get") -> None:
-        def_def = "; " + _("default")
-        if kind == "get":
-            def_id = def_def
-            def_all = ""
-        elif kind == "export":
-            def_id = ""
-            def_all = def_def
-        agrp = cmd.add_argument_group("URL remapping; used by `scrub` atom of `--expr`")
-        grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--remap-id", dest="remap_urls", action="store_const", const="id", help=_("remap all URLs with an identity function; i.e. don't remap anything") + def_id)
-        grp.add_argument("--remap-void", dest="remap_urls", action="store_const", const="void", help=_("remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained"))
-        if kind == "export":
-            grp.add_argument("--remap-open", "-k", "--convert-links", dest="remap_urls", action="store_const", const="open", help=_("point all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding output paths, remap all other URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`"))
-            grp.add_argument("--remap-closed", dest="remap_urls", action="store_const", const="closed", help=_("remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained"))
-            grp.add_argument("--remap-all", dest="remap_urls", action="store_const", const="all", help=_(f"remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `{__package__} export` to be used incrementally; `export`ed `mirror`s will be self-contained") + def_all)
-        if kind == "get":
-            cmd.set_defaults(remap_urls = "id")
-        else:
-            cmd.set_defaults(remap_urls = "all")
+    def add_pure(cmd : _t.Any, filter_what : str) -> None:
+        add_errors(cmd)
+        add_filters(cmd, filter_what)
+
+    def add_impure(cmd : _t.Any, filter_what : str) -> None:
+        add_pure(cmd, filter_what)
+        grp = cmd.add_mutually_exclusive_group()
+        grp.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
+        grp.add_argument("-q", "--quiet", action="store_true", help=_("don't log computed updates to stderr"))
 
     def add_abridged(cmd : _t.Any) -> None:
         grp = cmd.add_mutually_exclusive_group()
@@ -1611,13 +1601,16 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     def add_termsep(cmd : _t.Any, name : str, what : str = "printing", whatval : str = "print values", allow_not : bool = True, allow_none : bool = False) -> None:
         agrp = cmd.add_argument_group(what)
         grp = agrp.add_mutually_exclusive_group()
-        def_lf = "; " + _("default")
-        def_val : bytes | None = b"\n"
 
+        def_def = "; " + _("default")
+        def_val : bytes | None
         if allow_none:
-            grp.add_argument("--no-print", dest=f"{name}ator", action="store_const", const = None, help=_("don't print anything") + def_lf)
+            grp.add_argument("--no-print", dest=f"{name}ator", action="store_const", const = None, help=_("don't print anything") + def_def)
             def_lf = ""
             def_val = None
+        else:
+            def_lf = def_def
+            def_val = b"\n"
 
         if allow_not:
             grp.add_argument(f"--not-{name}ated", dest=f"{name}ator", action="store_const", const = b"", help=_(f"{whatval} without {name}ating them with anything, just concatenate them"))
@@ -1672,8 +1665,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     # pprint
     cmd = subparsers.add_parser("pprint", help=_("pretty-print given WRR files"),
                                 description = _("""Pretty-print given WRR files to stdout."""))
-    add_errors(cmd)
-    add_filters(cmd, "print")
+    add_pure(cmd, "print")
     add_abridged(cmd)
     agrp = cmd.add_argument_group("MIME type sniffing")
     grp = agrp.add_mutually_exclusive_group()
@@ -1683,24 +1675,23 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     add_paths(cmd)
     cmd.set_defaults(func=cmd_pprint)
 
-    def __(value : str, indent : int = 6) -> str:
-        prefix = " " * indent
-        lines = value.split("\n")
-        return f"\n{prefix}".join([_(line) for line in lines]).replace('%', '%%')
+    def add_expr(cmd : _t.Any, kind : str) -> None:
+        def __(value : str, indent : int = 6) -> str:
+            prefix = " " * indent
+            lines = value.split("\n")
+            return f"\n{prefix}".join([_(line) for line in lines]).replace('%', '%%')
 
-    # get
-    cmd = subparsers.add_parser("get", help=_("print values produced by computing given expressions on a given WRR file"),
-                                description = _(f"""Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified."""))
+        agrp = cmd.add_argument_group("expression evaluation")
 
-    agrp = cmd.add_argument_group("expression evaluation")
-    agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "output" options below; default: `{default_get_expr}`; each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following') + ":\n" + \
-        "- " + _("constants and functions:") + "\n" + \
-        "".join([f"  - `{name}`: {__(value[0])}\n" for name, value in ReqresExpr_atoms.items()]) + \
-        "- " + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:") + "\n" + \
-        "".join([f"  - `{name}`: {__(value)}\n" for name, value in Reqres_fields.items()]) + \
-        "- " + _("derived attributes:") + "\n" + \
-        "".join([f"  - `{name}`: {__(value)}\n" for name, value in Reqres_derived_attrs.items()]) + \
-        "- " + _("a compound expression built by piping (`|`) the above, for example") + __(f""":
+        if kind == "get":
+            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; default: `{default_get_expr}`; each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following') + ":\n" + \
+                "- " + _("constants and functions:") + "\n" + \
+                "".join([f"  - `{name}`: {__(value[0])}\n" for name, value in ReqresExpr_atoms.items()]) + \
+                "- " + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:") + "\n" + \
+                "".join([f"  - `{name}`: {__(value)}\n" for name, value in Reqres_fields.items()]) + \
+                "- " + _("derived attributes:") + "\n" + \
+                "".join([f"  - `{name}`: {__(value)}\n" for name, value in Reqres_derived_attrs.items()]) + \
+                "- " + _("a compound expression built by piping (`|`) the above, for example") + __(f""":
 - `{default_get_expr}` (the default for `get`) will print raw `response.body` or an empty byte string, if there was no response;
 - `{default_get_expr}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all action and resource reference URLs;
 - `{default_export_expr}` (the default for `export`) will remap all `href` jump-links and `src` resource references to local files while still censoring out all action URLs (since those don't make sense for a static mirror);
@@ -1710,8 +1701,49 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 - `net_url|to_ascii|sha256|take_prefix 4` will print the first 4 characters of the above;
 - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
 - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""", 2))
-    add_remap(cmd)
-    add_separator(cmd)
+        elif kind == "run":
+            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f"an expression to compute, same expression format as `{__package__} get --expr` (which see); can be specified multiple times; default: `{default_get_expr}`"))
+        elif kind == "stream":
+            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f"an expression to compute, same expression format as `{__package__} get --expr` (which see); can be specified multiple times; default: `{default_stream_expr}`, which will dump the whole reqres structure"))
+        elif kind == "export":
+            # TODO: make it a list too
+            agrp.add_argument("-e", "--expr", dest="expr", metavar="EXPR", type=str, default = default_export_expr, help=_(f"an expression to export, same expression format as `{__package__} get --expr` (which see); default: `%(default)s`"))
+        else:
+            assert False
+
+        def_def = "; " + _("default")
+        if kind != "export":
+            def_id = def_def
+            def_all = ""
+        else:
+            def_id = ""
+            def_all = def_def
+
+        agrp = cmd.add_argument_group("URL remapping; used by `scrub` atom of `--expr`")
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument("--remap-id", dest="remap_urls", action="store_const", const="id", help=_("remap all URLs with an identity function; i.e. don't remap anything") + def_id)
+        grp.add_argument("--remap-void", dest="remap_urls", action="store_const", const="void", help=_("remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained"))
+
+        if kind == "export":
+            grp.add_argument("--remap-open", "-k", "--convert-links", dest="remap_urls", action="store_const", const="open", help=_("point all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding output paths, remap all other URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`"))
+            grp.add_argument("--remap-closed", dest="remap_urls", action="store_const", const="closed", help=_("remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained"))
+            grp.add_argument("--remap-all", dest="remap_urls", action="store_const", const="all", help=_(f"remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `{__package__} export` to be used incrementally; `export`ed `mirror`s will be self-contained") + def_all)
+
+        if kind != "export":
+            cmd.set_defaults(remap_urls = "id")
+        else:
+            cmd.set_defaults(remap_urls = "all")
+
+        if kind == "stream":
+            add_terminator(cmd, "`--format=raw` output printing", "print `--format=raw` output values")
+        elif kind != "export":
+            add_separator(cmd)
+
+    # get
+    cmd = subparsers.add_parser("get", help=_("print values produced by computing given expressions on a given WRR file"),
+                                description = _(f"""Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified."""))
+
+    add_expr(cmd, "get")
 
     cmd.add_argument("path", metavar="PATH", type=str, help=_("input WRR file path"))
     cmd.set_defaults(func=cmd_get)
@@ -1720,10 +1752,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd = subparsers.add_parser("run", help=_("spawn a process with generated temporary files produced by given expressions computed on given WRR files as arguments"),
                                 description = _("""Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files terminating each value as specified, spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process."""))
 
-    agrp = cmd.add_argument_group("expression evaluation")
-    agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f"see `{__package__} get`"))
-    add_remap(cmd)
-    add_separator(cmd)
+    add_expr(cmd, "run")
 
     cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of `PATH`s; default: `%(default)s`"))
     cmd.add_argument("command", metavar="COMMAND", type=str, help=_("command to spawn"))
@@ -1734,8 +1763,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     # stream
     cmd = subparsers.add_parser("stream", help=_(f"produce a stream of structured lists containing values produced by computing given expressions on given WRR files, a generalized `{__package__} get`"),
                                 description = _("""Compute given expressions for each of given WRR files, encode them into a requested format, and print the result to stdout."""))
-    add_errors(cmd)
-    add_filters(cmd, "print")
+    add_pure(cmd, "print")
     add_abridged(cmd)
     cmd.add_argument("--format", choices=["py", "cbor", "json", "raw"], default="py", help=_("""generate output in:
 - py: Pythonic Object Representation aka `repr`; default
@@ -1743,28 +1771,17 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 - json: JavaScript Object Notation aka JSON; **binary data can't be represented, UNICODE replacement characters will be used**
 - raw: concatenate raw values; termination is controlled by `*-terminated` options
 """))
-    agrp = cmd.add_argument_group("expression evaluation")
-    agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute, same expression format as `{__package__} get --expr` (which see); can be specified multiple times; the default is `.` which will dump the whole reqres structure'))
-    add_remap(cmd)
-    add_terminator(cmd, "`--format=raw` output printing", "print `--format=raw` output values")
+    add_expr(cmd, "stream")
     add_paths(cmd)
     cmd.set_defaults(func=cmd_stream)
 
     # find
     cmd = subparsers.add_parser("find", help=_("print paths of WRR files matching specified criteria"),
                                 description = _(f"""Print paths of WRR files matching specified criteria."""))
-    add_errors(cmd)
-    add_filters(cmd, "print paths to")
+    add_pure(cmd, "print paths to")
     add_terminator(cmd, "found files printing", "print absolute paths of matching WRR files", allow_not=False)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_find)
-
-    def add_output(cmd : _t.Any) -> None:
-        grp = cmd.add_mutually_exclusive_group()
-        grp.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
-        grp.add_argument("-q", "--quiet", action="store_true", help=_("don't log computed updates to stderr"))
-
-        add_terminator(cmd, "new `--output`s printing", "print absolute paths of newly produced or replaced files", allow_not=False, allow_none=True)
 
     def add_memory(cmd : _t.Any, max_deferred : int = 1024, max_batch : int = 128) -> None:
         agrp = cmd.add_argument_group("caching, deferring, and batching")
@@ -1786,15 +1803,72 @@ the actual maximum whole-program memory consumption is `O(<size of the largest r
         agrp.add_argument("--lazy", action="store_true", help=_(f"""sets all of the above options to positive infinity;
 most useful when doing `{__package__} organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `{__package__}` needs to keep in memory is small, in which case it will force `{__package__}` to compute the desired file system state first and then perform all disk writes in a single batch"""))
 
+    def add_fileout(cmd : _t.Any, kind : str) -> None:
+        agrp = cmd.add_argument_group("file outputs")
+
+        if kind == "organize":
+            agrp.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("destination directory; when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`"))
+            agrp.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_("""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""") + "\n" + \
+                         "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
+                         "".join([f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`" + ("; the default" if name == "default" else "") + "\n" + output_example(name, 8) + "\n" for name, value in output_aliases.items()]) + \
+                         "- " + _("available substitutions:") + "\n" + \
+                         "  - " + _(f"all expressions of `{__package__} get --expr` (which see)") + ";\n" + \
+                         "  - `num`: " + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique"))
+        elif kind == "import" or kind == "export":
+            if kind != "export":
+                def_def = "default"
+            else:
+                def_def = "hupq"
+
+            agrp.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("destination directory"))
+            agrp.add_argument("-o", "--output", metavar="FORMAT", default=def_def, type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same expression format as `{__package__} organize --output` (which see); default: %(default)s"""))
+        else:
+            assert False
+
+        add_terminator(cmd, "new `--output`s printing", "print absolute paths of newly produced or replaced files", allow_not=False, allow_none=True)
+
+        if kind != "import":
+            agrp = cmd.add_argument_group("updates to `--output`s")
+            grp = agrp.add_mutually_exclusive_group()
+
+        def_disallow = _("disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default")
+
+        if kind == "organize":
+            grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
+                _("""`--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
+when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
+the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap source file names will still fail
+"""))
+            grp.add_argument("--latest", dest="allow_updates", action="store_const", const=True, help=_("""replace files under `DESTINATION` with their latest version;
+this is only allowed in combination with `--symlink` at the moment;
+for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
+"""))
+        # TODO: implement this
+        #elif kind == "import":
+        #    grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow)
+        elif kind == "export":
+            grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
+                _("""repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
+however, trying to overwrite existing `--output` files under `DESTINATION` with any new data will produce errors;
+this allows reusing the `DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
+"""))
+            grp.add_argument("--partial", dest="allow_updates", action="store_const", const="partial", help=_("""skip exporting of targets which have a corresponding `--output` file under `DESTINATION`;
+using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
+on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
+"""))
+            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("""export all targets and permit overwriting of old `--output` files under `DESTINATION`;
+DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
+"""))
+
+        cmd.set_defaults(allow_updates = False)
+
     # organize
     cmd = subparsers.add_parser("organize", help=_("programmatically rename/move/hardlink/symlink WRR files based on their contents"),
                                 description = _(f"""Parse given WRR files into their respective reqres and then rename/move/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
 
 Operations that could lead to accidental data loss are not permitted.
 E.g. `{__package__} organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`."""))
-    add_errors(cmd)
-    add_filters(cmd, "work on")
-    add_output(cmd)
+    add_impure(cmd, "work on")
 
     agrp = cmd.add_argument_group("action")
     grp = agrp.add_mutually_exclusive_group()
@@ -1804,39 +1878,16 @@ E.g. `{__package__} organize --move` will not overwrite any files, which is why 
     grp.add_argument("--symlink", dest="action", action="store_const", const="symlink", help=_("create symlinks from source files to paths under `DESTINATION`"))
     cmd.set_defaults(action = "move")
 
-    agrp = cmd.add_argument_group("updates to `--output`s")
-    grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=_("""disallow overwrites and replacements any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default;
-`--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
-when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
-the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap source file names will still fail
-"""))
-    grp.add_argument("--latest", dest="allow_updates", action="store_const", const=True, help=_("""replace files under `DESTINATION` with their latest version;
-this is only allowed in combination with `--symlink` at the moment;
-for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
-"""))
-    cmd.set_defaults(allow_updates = False)
-
+    add_fileout(cmd, "organize")
     add_memory(cmd)
-
-    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("destination directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`"))
-    cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_("""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""") + "\n" + \
-                     "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
-                     "".join([f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`" + ("; the default" if name == "default" else "") + "\n" + output_example(name, 8) + "\n" for name, value in output_aliases.items()]) + \
-                     "- " + _("available substitutions:") + "\n" + \
-                     "  - " + _(f"all expressions of `{__package__} get --expr` (which see)") + ";\n" + \
-                     "  - `num`: " + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique"))
 
     add_paths(cmd, "organize")
     cmd.set_defaults(func=cmd_organize)
 
     def add_import_args(cmd : _t.Any) -> None:
-        add_errors(cmd)
-        add_filters(cmd, "import")
-        add_output(cmd)
+        add_impure(cmd, "import")
+        add_fileout(cmd, "import")
         add_memory(cmd, 0, 1024)
-        cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("destination directory"))
-        cmd.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same as `{__package__} organize --output` (which see)"""))
         add_paths(cmd)
 
     # import
@@ -1864,36 +1915,14 @@ In short, this is `{__package__} organize --copy` for `INPUT` files that use dif
                             description = _(f"""Parse given WRR files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
 In short, this is a combination of `{__package__} organize --copy` followed by in-place `{__package__} get`.
 In other words, this generates static offline website mirrors, producing results similar to those of `wget -mpk`."""))
-    add_errors(cmd)
-    add_filters(cmd, "export")
-    add_output(cmd)
+    add_impure(cmd, "export")
+    add_expr(cmd, "export")
+    add_fileout(cmd, "export")
 
-    agrp = cmd.add_argument_group("updates to `--output`s")
-    grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=_("""disallow overwrites of any existing `--output` files under `DESTINATION`; default;
-repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
-however, trying to overwrite existing `--output` files under `DESTINATION` with any new data will produce errors;
-this allows reusing the `DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
-"""))
-    grp.add_argument("--partial", dest="allow_updates", action="store_const", const="partial", help=_("""skip exporting of targets which have a corresponding `--output` file under `DESTINATION`;
-using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
-on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
-"""))
-    grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("""export all targets and permit overwriting of old `--output` files under `DESTINATION`;
-DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
-"""))
-    cmd.set_defaults(allow_updates = False)
-
-    agrp = cmd.add_argument_group("expression evaluation")
-    agrp.add_argument("-e", "--expr", dest="expr", metavar="EXPR", type=str, default = default_export_expr, help=_(f"an expression to export, same expression format as `{__package__} get --expr` (which see); default: `%(default)s`"))
-
-    add_remap(cmd, "export")
-
-    cmd.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("target directory"))
-    cmd.add_argument("-o", "--output", metavar="FORMAT", default="hupq", type=str, help=_(f"format describing generated output paths, an alias name or a custom pythonic %%-substitution string; same as `{__package__} organize --output` (which see)"))
     agrp = cmd.add_argument_group("export targets")
     agrp.add_argument("-r", "--root", dest="roots", metavar="URL", action="append", type=str, default = [], help=_(f"recursion root; a URL which will be used as a root for recursive export; can be specified multiple times; if none are specified, then all (`net_url`) URLs available from input `PATH`s will be treated as roots"))
     agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `%(default)s`, which means "`--root` documents and their resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
+
     add_paths(cmd)
     cmd.set_defaults(func=cmd_export_mirror)
 

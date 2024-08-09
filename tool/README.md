@@ -342,7 +342,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "output" options below; default: `response.body|eb`; each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
+  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; default: `response.body|eb`; each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
     - constants and functions:
       - `es`: replace `None` value with an empty string `""`
       - `eb`: replace `None` value with an empty byte string `b""`
@@ -514,7 +514,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : see `wrrarms get`
+  : an expression to compute, same expression format as `wrrarms get --expr` (which see); can be specified multiple times; default: `response.body|eb`
 
 - URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
@@ -567,7 +567,7 @@ Compute given expressions for each of given WRR files, encode them into a reques
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format as `wrrarms get --expr` (which see); can be specified multiple times; the default is `.` which will dump the whole reqres structure
+  : an expression to compute, same expression format as `wrrarms get --expr` (which see); can be specified multiple times; default: `.`, which will dump the whole reqres structure
 
 - URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
@@ -658,8 +658,35 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
   : don't log computed updates to stderr
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+
+- error handling:
+  - `--errors {fail,skip,ignore}`
+  : when an error occurs:
+    - `fail`: report failure and stop the execution; default
+    - `skip`: report failure but skip the reqres that produced it from the output and continue
+    - `ignore`: `skip`, but don't report the failure
+
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+  - `--or EXPR`
+  : only work on reqres which match any of these expressions
+  - `--and EXPR`
+  : only work on reqres which match all of these expressions
+
+- action:
+  - `--move`
+  : move source files under `DESTINATION`; default
+  - `--copy`
+  : copy source files to files under `DESTINATION`
+  - `--hardlink`
+  : create hardlinks from source files to paths under `DESTINATION`
+  - `--symlink`
+  : create symlinks from source files to paths under `DESTINATION`
+
+- file outputs:
   - `-t DESTINATION, --to DESTINATION`
-  : destination directory, when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`
+  : destination directory; when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`
   - `-o FORMAT, --output FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
@@ -928,21 +955,6 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
     - available substitutions:
       - all expressions of `wrrarms get --expr` (which see);
       - `num`: number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique
-  - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
-
-- error handling:
-  - `--errors {fail,skip,ignore}`
-  : when an error occurs:
-    - `fail`: report failure and stop the execution; default
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
-
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only work on reqres which match any of these expressions
-  - `--and EXPR`
-  : only work on reqres which match all of these expressions
 
 - new `--output`s printing:
   - `--no-print`
@@ -952,19 +964,9 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
   - `-z, --zero-terminated`
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
-- action:
-  - `--move`
-  : move source files under `DESTINATION`; default
-  - `--copy`
-  : copy source files to files under `DESTINATION`
-  - `--hardlink`
-  : create hardlinks from source files to paths under `DESTINATION`
-  - `--symlink`
-  : create symlinks from source files to paths under `DESTINATION`
-
 - updates to `--output`s:
   - `--no-overwrites`
-  : disallow overwrites and replacements any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default;
+  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default;
     `--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
     when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
     the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap source file names will still fail
@@ -1036,10 +1038,6 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
   : don't log computed updates to stderr
-  - `-t DESTINATION, --to DESTINATION`
-  : destination directory
-  - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same as `wrrarms organize --output` (which see)
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
@@ -1055,6 +1053,12 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
   : only import reqres which match any of these expressions
   - `--and EXPR`
   : only import reqres which match all of these expressions
+
+- file outputs:
+  - `-t DESTINATION, --to DESTINATION`
+  : destination directory
+  - `-o FORMAT, --output FORMAT`
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `wrrarms organize --output` (which see); default: default
 
 - new `--output`s printing:
   - `--no-print`
@@ -1115,10 +1119,6 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
   : don't log computed updates to stderr
-  - `-t DESTINATION, --to DESTINATION`
-  : destination directory
-  - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same as `wrrarms organize --output` (which see)
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
@@ -1134,6 +1134,12 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   : only import reqres which match any of these expressions
   - `--and EXPR`
   : only import reqres which match all of these expressions
+
+- file outputs:
+  - `-t DESTINATION, --to DESTINATION`
+  : destination directory
+  - `-o FORMAT, --output FORMAT`
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `wrrarms organize --output` (which see); default: default
 
 - new `--output`s printing:
   - `--no-print`
@@ -1205,10 +1211,6 @@ In other words, this generates static offline website mirrors, producing results
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
   : don't log computed updates to stderr
-  - `-t DESTINATION, --to DESTINATION`
-  : target directory
-  - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or a custom pythonic %-substitution string; same as `wrrarms organize --output` (which see)
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
@@ -1225,28 +1227,6 @@ In other words, this generates static offline website mirrors, producing results
   - `--and EXPR`
   : only export reqres which match all of these expressions
 
-- new `--output`s printing:
-  - `--no-print`
-  : don't print anything; default
-  - `-l, --lf-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
-  - `-z, --zero-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
-
-- updates to `--output`s:
-  - `--no-overwrites`
-  : disallow overwrites of any existing `--output` files under `DESTINATION`; default;
-    repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
-    however, trying to overwrite existing `--output` files under `DESTINATION` with any new data will produce errors;
-    this allows reusing the `DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
-  - `--partial`
-  : skip exporting of targets which have a corresponding `--output` file under `DESTINATION`;
-    using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
-    on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
-  - `--overwrite-dangerously`
-  : export all targets and permit overwriting of old `--output` files under `DESTINATION`;
-    DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
-
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
   : an expression to export, same expression format as `wrrarms get --expr` (which see); default: `response.body|eb|scrub response +all_refs,-actions`
@@ -1262,6 +1242,34 @@ In other words, this generates static offline website mirrors, producing results
   : remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained
   - `--remap-all`
   : remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `wrrarms export` to be used incrementally; `export`ed `mirror`s will be self-contained; default
+
+- file outputs:
+  - `-t DESTINATION, --to DESTINATION`
+  : destination directory
+  - `-o FORMAT, --output FORMAT`
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `wrrarms organize --output` (which see); default: hupq
+
+- new `--output`s printing:
+  - `--no-print`
+  : don't print anything; default
+  - `-l, --lf-terminated`
+  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
+  - `-z, --zero-terminated`
+  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
+
+- updates to `--output`s:
+  - `--no-overwrites`
+  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default;
+    repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
+    however, trying to overwrite existing `--output` files under `DESTINATION` with any new data will produce errors;
+    this allows reusing the `DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
+  - `--partial`
+  : skip exporting of targets which have a corresponding `--output` file under `DESTINATION`;
+    using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
+    on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
+  - `--overwrite-dangerously`
+  : export all targets and permit overwriting of old `--output` files under `DESTINATION`;
+    DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
 
 - export targets:
   - `-r URL, --root URL`
