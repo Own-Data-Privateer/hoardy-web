@@ -54,7 +54,7 @@ let configDefaults = {
     pureText: false,
 
     // log settings
-    history: 1000,
+    history: 1024,
 
     // are we collecting new data?
     collecting: true,
