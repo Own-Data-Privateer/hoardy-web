@@ -383,7 +383,7 @@ pWebArc provides context menu actions to:
   But if you want to force everything on the page to be archived, you can reload the page without the cache with =Control+F5=.
 
 - Firefox fails to run =onstop= method for =webRequest.filterResponseData= filter for the very first HTTP/2 request the browser makes after you start it, thus making the reqres of that request =incomplete=.
-  If [[./popup.html#div-config.workaroundFirefoxFirstRequest][this option]] is enabled, pWebArc transparently works around this bug by redirecting the very first navigation request to =about:blank= and then reloading the tab with its original URL.
+  If [[./popup.html#div-config.workaroundFirefoxFirstRequest][this option]] is enabled, pWebArc will transparently work around this bug by redirecting the very first navigation request to =about:blank= and then reloading the tab with its original URL.
 
 - Firefox-based browsers provide no API for archiving WebSockets data at the moment, unfortunately.
 ** Relevant issues of Chromium, Chrome, etc
@@ -432,7 +432,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
 
 - Similarly to unpatched Firefox, Chromium-based browsers do not supply contents of files in POST request data.
   They do, however, provide a way to see if files were present in the request, so pWebArc will mark such and only such requests as having a "partial request body".
-  There is no patch for Chromium to fix this, nor does the author plan to make one (feel free to contribute one, though).
+  There is no patch for Chromium to fix this, nor do I plan to make one (feel free to contribute one, though).
 
   As with Firefox, disabling [[./popup.html#div-config.archivePartialRequest][this toggle]] will disable archiving of such broken requests.
   This is not recommended, however, as archiving some data is usually better than archiving none.

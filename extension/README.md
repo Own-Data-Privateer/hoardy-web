@@ -48,7 +48,7 @@ See ["Technical Philosophy"](../README.md#philosophy) and ["I have questions"](.
 
 ### Install as a temporary add-on
 
-If you are [building from source](#build), this is a nice way to do development, since to reload the add-on on after making a new build will require a single click.
+If you are [building from source](#build), this is a nice way to do development, since to reload the add-on after making a new build will require a single click.
 
 - In the browser, go to `about:debugging#/runtime/this-firefox`, click "Load Temporary Add-on" button, and select `./extension/dist/pWebArc-firefox-v*/manifest.json`.
 - Then you might need to go into `about:addons` and enable "Run in Private Windows" for `pWebArc` if your Firefox is running in Private-Windows-only mode.

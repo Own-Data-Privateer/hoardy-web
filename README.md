@@ -85,7 +85,7 @@ Meanwhile, `pwebarc` provides some of the tools to help you build your own littl
 
 In other words, `pwebarc` is your own personal [Wayback Machine](https://web.archive.org/) which passively archives everything you see and, unlike the original Wayback Machine, also archives HTTP `POST` requests and responses, and most other HTTP-level data.
 
-Also, unless configured otherwise, [`pWebArc` (the extension)](./extension/) will dump and archive collected data immediately, to both prevent data loss and to free the used RAM as soon as possible, to keeping your browsing experience snappy even on ancient hardware.
+Also, unless configured otherwise, [`pWebArc` (the extension)](./extension/) will dump and archive collected data immediately, to both prevent data loss and to free the used RAM as soon as possible, keeping your browsing experience snappy even on ancient hardware.
 
 Unlike most of [its alternatives](#alternatives), `pwebarc` **DOES NOT**:
 
@@ -149,7 +149,9 @@ Firstly, `pwebarc` is designed to be simple (as in adhering to the Keep It Stupi
 
 - `pWebArc` extension can write the dumps it produces to disk by itself by generating fake-Dowloads containing bundles of WRR-dumps, but because of limitations of browser APIs, `pWebArc` can't tell if a file generated this way succeeds at being written to disk;
 
-- which is why, for users who want write guarantees and error reporting, the extension has other archival methods, which includes archival by submission via HTTP; server-side part of submission via HTTP uses [the dumb archiving server](./dumb_server/), which is tiny (less than 200 lines of code) pure-Python script that provides an HTTP interface for archival of dumps given via HTTP POST requests, it simply (optionally) compresses those dumps with gzip and saves them to disk as-is while properly reporting any errors;
+- which is why, for users who want write guarantees and error reporting, the extension has other archival methods, which includes archival by submission via HTTP;
+
+  server-side part of submission via HTTP uses [the dumb archiving server](./dumb_server/), which is tiny (less than 200 lines of code) pure-Python script that provides an HTTP interface for archival of dumps given via HTTP POST requests, it simply (optionally) compresses those dumps with gzip and saves them to disk as-is while properly reporting any errors;
 
 - anything that is remotely computationally expensive is delegated to [the `wrrarms` CLI tool](./tool/).
 
@@ -214,7 +216,7 @@ Also, as far as I'm aware, `wrrarms` is a tool that can do more useful stuff to 
 
   - See [the TODO list](#todo) below for the list of things that are not implemented/ready yet.
 
-  - See [CHANGELOG](./CHANGELOG.md) for the progress log and human-readable description of recent changes (which is much shorter and more comprehensible than the commit log).
+  - See [CHANGELOG.md](./CHANGELOG.md) for the progress log and human-readable description of recent changes (which is much shorter and more comprehensible than the commit log).
 
 - If you want to learn to use `wrrarms` tool, see [its README](./tool/README.md), which has a bunch of extended and explained usage examples.
 
@@ -726,7 +728,7 @@ Cons:
 - you won't be able to archive your HTTP `POST` requests with it;
 - it does not have replay capabilities, just generates WARC files.
 
-## [monolith](https://github.com/Y2Z/monolith), and [obelisk](https://github.com/go-shiori/obelisk)
+## [monolith](https://github.com/Y2Z/monolith) and [obelisk](https://github.com/go-shiori/obelisk)
 
 Stand-alone tools doing the same thing SingleFile add-on does: generate single-file HTMLs with bundled resources viewable directly in the browser.
 
