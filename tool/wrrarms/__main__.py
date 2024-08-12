@@ -1547,7 +1547,7 @@ wrrarms organize --symlink --output hupq_msn --to ~/pwebarc/pointers ~/pwebarc/o
     fmt.add_code(f"{__package__} stream -ue . ../dumb_server/pwebarc-dump")
     fmt.end_section()
 
-    fmt.start_section(_("Produce a JSON list of `[<file path>, <time it finished loading in milliseconds since UNIX epoch>, <URL>]` tuples (one per reqres) and pipe it into `jq` for indented and colored output"))
+    fmt.start_section(_("Produce a JSON list of `[<file path>, <time it finished loading in seconds since UNIX epoch>, <URL>]` tuples (one per reqres) and pipe it into `jq` for indented and colored output"))
     fmt.add_code(f"{__package__} stream --format=json -ue fs_path -e finished_at -e request.url ../dumb_server/pwebarc-dump | jq .")
     fmt.end_section()
 

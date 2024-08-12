@@ -41,7 +41,7 @@ ls ~/Downloads/pWebArc-export-*
 However, if instead of using any of the above you use pWebArc extension with both "Export via `saveAs`" and bundling options enabled, then you will need to `import` those `.wrrb` files (aka WRR-bundles) into separate WRR files first:
 
 ```bash
-wrrarms import --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*
+wrrarms import bundle --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*
 ```
 
 Note that `.wrr` files can be parsed as single-dump `.wrrb` files, so the above will work even when some of the exported dumps are simple `.wrr` files (pWebArc can produce those when exporting large dumps).
@@ -49,7 +49,7 @@ So, essentially, the above command is equivalent to
 
 ```bash
 wrrarms organize --copy --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*.wrr
-wrrarms import --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*.wrrb
+wrrarms import bundle --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*.wrrb
 ```
 
 ## How to build a file system tree of latest versions of all hoarded URLs
@@ -1319,7 +1319,7 @@ In other words, this generates static offline website mirrors, producing results
   wrrarms stream -ue . ../dumb_server/pwebarc-dump
   ```
 
-- Produce a JSON list of `[<file path>, <time it finished loading in milliseconds since UNIX epoch>, <URL>]` tuples (one per reqres) and pipe it into `jq` for indented and colored output:
+- Produce a JSON list of `[<file path>, <time it finished loading in seconds since UNIX epoch>, <URL>]` tuples (one per reqres) and pipe it into `jq` for indented and colored output:
   ```
   wrrarms stream --format=json -ue fs_path -e finished_at -e request.url ../dumb_server/pwebarc-dump | jq .
   ```
