@@ -1494,42 +1494,6 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f"{__package__} organize --dry-run ../dumb_server/pwebarc-dump/default")
     fmt.end_section()
 
-    fmt.start_section(_(f"The output of `{__package__} organize --zero-terminated` can be piped into `{__package__} organize --stdin0` to perform complex updates. E.g. the following will rename new reqres from `../dumb_server/pwebarc-dump` to `~/pwebarc/raw` renaming them with `--output default`, the `for` loop is there to preserve profiles"))
-    fmt.add_code(f"""for arg in ../dumb_server/pwebarc-dump/* ; do
-  wrrarms organize --zero-terminated --to ~/pwebarc/raw/"$(basename "$arg")" "$arg"
-done > changes""")
-    fmt.add_text(_("then, we can reuse `changes` to symlink all new files from `~/pwebarc/raw` to `~/pwebarc/all` using `--output hupq_msn`, which would show most of the URL in the file name:"))
-    fmt.add_code(f"""wrrarms organize --stdin0 --symlink --to ~/pwebarc/all --output hupq_msn < changes""")
-    fmt.add_text(_("and then, we can reuse `changes` again and use them to update `~/pwebarc/latest`, filling it with symlinks pointing to the latest `200 OK` complete reqres from `~/pwebarc/raw`, similar to what `wget -r` would produce (except `wget` would do network requests and produce responce bodies, while this will build a file system tree of symlinks to WRR files in `/pwebarc/raw`):"))
-    fmt.add_code(f"""wrrarms organize --stdin0 --symlink --latest --to ~/pwebarc/latest --output hupq --and "status|~= .200C" < changes""")
-    fmt.end_section()
-
-    fmt.start_section(_(f"`{__package__} organize --move` is de-duplicating when possible, while `--copy`, `--hardlink`, and `--symlink` are non-duplicating when possible, i.e."))
-    fmt.add_code(f"""wrrarms organize --copy     --to ~/pwebarc/copy1 ~/pwebarc/original
-wrrarms organize --copy     --to ~/pwebarc/copy2 ~/pwebarc/original
-wrrarms organize --hardlink --to ~/pwebarc/copy3 ~/pwebarc/original
-
-# noops
-wrrarms organize --copy     --to ~/pwebarc/copy1 ~/pwebarc/original
-wrrarms organize --hardlink --to ~/pwebarc/copy1 ~/pwebarc/original
-wrrarms organize --copy     --to ~/pwebarc/copy2 ~/pwebarc/original
-wrrarms organize --hardlink --to ~/pwebarc/copy2 ~/pwebarc/original
-wrrarms organize --copy     --to ~/pwebarc/copy3 ~/pwebarc/original
-wrrarms organize --hardlink --to ~/pwebarc/copy3 ~/pwebarc/original
-
-# de-duplicate
-wrrarms organize --move --to ~/pwebarc/all ~/pwebarc/original ~/pwebarc/copy1 ~/pwebarc/copy2 ~/pwebarc/copy3
-""")
-    fmt.add_text(_("will produce `~/pwebarc/all` which has each duplicated file stored only once. Similarly,"))
-    fmt.add_code(f"""wrrarms organize --symlink --output hupq_msn --to ~/pwebarc/pointers ~/pwebarc/original
-wrrarms organize --symlink --output shupq_msn --to ~/pwebarc/schemed ~/pwebarc/original
-
-# noop
-wrrarms organize --symlink --output hupq_msn --to ~/pwebarc/pointers ~/pwebarc/original ~/pwebarc/schemed
-""")
-    fmt.add_text(_("will produce `~/pwebarc/pointers` which has each symlink only once."))
-    fmt.end_section()
-
     fmt.add_text(_("# Advanced examples"))
 
     fmt.start_section(_("Pretty-print all reqres in `../dumb_server/pwebarc-dump` by dumping their whole structure into an abridged Pythonic Object Representation (repr)"))

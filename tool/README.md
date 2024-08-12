@@ -25,26 +25,29 @@
   wrrarms --help
   ```
 
-## How to import `.wrrb` files produced by pWebArc browser add-on
+## Supported input file formats
 
-When using pWebArc extension in combination with [the dumb archiving server](../dumb_server/), the latter writes WRR-dumps pWebArc generates into separate `.wrr` files (aka WRR files) in its dumping directory.
-In the following examples, we assume that directory is `~/pwebarc/raw`.
+### Simple WRR-dumps (`*.wrr`)
+
+When you use [the `pWebArc` extension](../extension/) together with [the dumb archiving server](../dumb_server/), the latter writes [WRR-dumps pWebArc generates](../doc/data-on-disk.md) into separate `.wrr` files (aka "WRR files") in its dumping directory.
 No further actions to use that data are required.
 
-The situation is similar if you instead use pWebArc extension with "Export via `saveAs`" option enabled but `saveAs`-bundling option disabled (set to zero).
+The situation is similar if you instead use `pWebArc` extension with "Export via `saveAs`" option enabled but `saveAs`-bundling option disabled (max bundle size set to zero).
 The only difference is that WRR files will be put into `~/Downloads` or similar.
 
 ```bash
 ls ~/Downloads/pWebArc-export-*
 ```
 
-However, if instead of using any of the above you use pWebArc extension with both "Export via `saveAs`" and bundling options enabled, then you will need to `import` those `.wrrb` files (aka WRR-bundles) into separate WRR files first:
+### Bundles of WRR-dumps (`*.wrrb`)
+
+However, if instead of using any of the above you use `pWebArc` extension with both "Export via `saveAs`" and bundling options enabled, then, at the moment, you will need to `import` those `.wrrb` files (aka WRR-bundles) into separate WRR files first:
 
 ```bash
 wrrarms import bundle --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*
 ```
 
-Note that `.wrr` files can be parsed as single-dump `.wrrb` files, so the above will work even when some of the exported dumps are simple `.wrr` files (pWebArc can produce those when exporting large dumps).
+Note that `wrrarms` can parse `.wrr` files as single-dump `.wrrb` files, so the above will work even when some of the exported dumps are simple `.wrr` files (`pWebArc` generates those when exporting an only available per-bucket dump or when exporting dumps larger than set maximum bundle size).
 So, essentially, the above command is equivalent to
 
 ```bash
@@ -52,9 +55,84 @@ wrrarms organize --copy --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*.wrr
 wrrarms import bundle --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*.wrrb
 ```
 
+### Other file formats
+
+`wrrarms` can also use some other file formats as inputs.
+See the documentation of the `wrrarms import` sub-command below for more info.
+
+## How to merge multiple archive directories
+
+To merge multiple input directories into one you can simply `wrrarms organize` them `--to` a new directory.
+`wrrarms` will automatically deduplicate all the files in the generated result.
+
+That is to say, for `wrrarms organize` (see the documentation below for more info):
+
+- `--move` is de-duplicating when possible,
+- while `--copy`, `--hardlink`, and `--symlink` are non-duplicating when possible.
+
+For example, if you duplicate an input directory via `--copy` or `--hardlink`:
+
+```bash
+wrrarms organize --copy     --to ~/pwebarc/copy1 ~/pwebarc/original
+wrrarms organize --hardlink --to ~/pwebarc/copy2 ~/pwebarc/original
+```
+
+(In real-life use different copies usually end up on in different backup drives or some such.)
+
+Then, repeating the same command would a noop:
+
+```bash
+# noops
+wrrarms organize --copy     --to ~/pwebarc/copy1 ~/pwebarc/original
+wrrarms organize --hardlink --to ~/pwebarc/copy2 ~/pwebarc/original
+```
+
+And running the opposite command would also be a noop:
+
+```bash
+# noops
+wrrarms organize --hardlink --to ~/pwebarc/copy1 ~/pwebarc/original
+wrrarms organize --copy     --to ~/pwebarc/copy2 ~/pwebarc/original
+```
+
+And copying between copies is also a noop:
+
+```bash
+# noops
+wrrarms organize --hardlink --to ~/pwebarc/copy2 ~/pwebarc/copy1
+wrrarms organize --copy     --to ~/pwebarc/copy2 ~/pwebarc/copy1
+```
+
+But doing `wrrarms organize --move` while supplying directories that have the same data will deduplicate the results:
+
+```bash
+wrrarms organize --move --to ~/pwebarc/all ~/pwebarc/copy1 ~/pwebarc/copy2
+# `~/pwebarc/all` will have each file only once
+find ~/pwebarc/copy1 ~/pwebarc/copy2 -type f
+# the output will be empty
+
+wrrarms organize --move --to ~/pwebarc/original ~/pwebarc/all
+# `~/pwebarc/original` will not change iff it is already organized using `--output default`
+# otherwise, some files there will be duplicated
+find ~/pwebarc/all -type f
+# the output will be empty
+```
+
+Similarly, `wrrarms organize --symlink` resolves its input symlinks and deduplicates its output symlinks:
+
+```bash
+wrrarms organize --symlink --output hupq_msn --to ~/pwebarc/pointers ~/pwebarc/original
+wrrarms organize --symlink --output shupq_msn --to ~/pwebarc/schemed ~/pwebarc/original
+
+# noop
+wrrarms organize --symlink --output hupq_msn --to ~/pwebarc/pointers ~/pwebarc/original ~/pwebarc/schemed
+```
+
+I.e. the above will produce `~/pwebarc/pointers` with unique symlinks pointing to each file in `~/pwebarc/original` only once.
+
 ## How to build a file system tree of latest versions of all hoarded URLs
 
-Assuming you keep your WRR-dumps in `~/pwebarc/raw` you can generate a hierarchy of symlinks for each URL pointing from under `~/pwebarc/latest` to the most recent WRR file in `~/pwebarc/raw` via:
+Assuming you keep your WRR-dumps in `~/pwebarc/raw` you can generate a hierarchy of symlinks for each URL pointing from under `~/pwebarc/latest` to the most recent WRR file that contains `200 OK` response in `~/pwebarc/raw` via:
 
 ```bash
 wrrarms organize --symlink --latest --output hupq --to ~/pwebarc/latest --and "status|~= .200C" ~/pwebarc/raw
@@ -63,11 +141,34 @@ wrrarms organize --symlink --latest --output hupq --to ~/pwebarc/latest --and "s
 Personally, I prefer `flat_mhs` (see the documentation of the `--output` below) format as I dislike deep file hierarchies, using it also simplifies filtering in my `ranger` file browser, so I do this:
 
 ```bash
-wrrarms organize --symlink --latest --output flat_mhs --to ~/pwebarc/latest --and "status|~= .200C" ~/pwebarc/raw
+wrrarms organize --symlink --latest --output flat_mhs --and "status|~= .200C" --to ~/pwebarc/latest ~/pwebarc/raw
 ```
 
-These commands rescan the whole of `~/pwebarc/raw` and so take a while to complete.
-If you have a lot of WRR files and you want to keep your symlink tree updated in real-time you can use a two-stage `--stdin0` pipeline shown in the [examples section](#examples) below.
+### Update the tree incrementally, in real time
+
+The above commands rescan the whole contents of `~/pwebarc/raw` and so can take a while to complete.
+
+If you have a lot of WRR files and you want to keep your symlink tree updated in near-real-time you will need to use a two-stage pipeline by giving the output of `wrrarms organize --zero-terminated` to `wrrarms organize --stdin0` to perform complex updates.
+
+E.g. the following will rename new reqres from `../dumb_server/pwebarc-dump` to `~/pwebarc/raw` renaming them with `--output default` (the `for` loop is there to preserve buckets/profiles):
+
+```bash
+for arg in ../dumb_server/pwebarc-dump/* ; do
+  wrrarms organize --zero-terminated --to ~/pwebarc/raw/"$(basename "$arg")" "$arg"
+done > changes
+```
+
+Then, you can reuse the paths saved in `changes` file to update the symlink tree, like in the above:
+
+```
+wrrarms organize --stdin0 --symlink --latest --output flat_mhs --and "status|~= .200C" --to ~/pwebarc/latest ~/pwebarc/raw < changes
+```
+
+Then, optionally, you can reuse `changes` file again to symlink all new files from `~/pwebarc/raw` to `~/pwebarc/all`, showing all URL versions, by using `--output hupq_msn` format:
+
+```bash
+wrrarms organize --stdin0 --symlink --output hupq_msn --to ~/pwebarc/all < changes
+```
 
 ## <span id="mirror"/>How to generate a local offline website mirror like `wget -mpk`
 
@@ -79,7 +180,7 @@ wrrarms export mirror --to ~/pwebarc/mirror1 ~/pwebarc/latest/archiveofourown.or
 
 on completion `~/pwebarc/mirror1` will contain a bunch of interlinked minimized HTML files, their resources, and everything else available from WRR files living under `~/pwebarc/latest/archiveofourown.org`.
 
-By default, *all* the links in exported HTML files will be remapped to local files (even if source WRR files for those would-be exported files are missing in `~/pwebarc/latest/archiveofourown.org`), and those HTML files will also be stripped of all JavaScript, CSS, and other stuff of various levels of evil (see documentation for the `scrub` function below).
+By default, *all* the links in exported HTML files will be remapped to local files (even if source WRR files for those would-be exported files are missing in `~/pwebarc/latest/archiveofourown.org`, see the documentation for the `--remap-*` options below for more info), and those HTML files will also be stripped of all JavaScript, CSS, and other stuff of various levels of evil (see the documentation for the `scrub` function below for more info).
 
 On the plus side, the result will be completely self-contained and safe to view with a dumb unconfigured browser.
 
@@ -1238,55 +1339,6 @@ In other words, this generates static offline website mirrors, producing results
   ```
   wrrarms organize --dry-run ../dumb_server/pwebarc-dump/default
   ```
-
-- The output of `wrrarms organize --zero-terminated` can be piped into `wrrarms organize --stdin0` to perform complex updates. E.g. the following will rename new reqres from `../dumb_server/pwebarc-dump` to `~/pwebarc/raw` renaming them with `--output default`, the `for` loop is there to preserve profiles:
-  ```
-  for arg in ../dumb_server/pwebarc-dump/* ; do
-    wrrarms organize --zero-terminated --to ~/pwebarc/raw/"$(basename "$arg")" "$arg"
-  done > changes
-  ```
-
-  then, we can reuse `changes` to symlink all new files from `~/pwebarc/raw` to `~/pwebarc/all` using `--output hupq_msn`, which would show most of the URL in the file name:
-
-  ```
-  wrrarms organize --stdin0 --symlink --to ~/pwebarc/all --output hupq_msn < changes
-  ```
-
-  and then, we can reuse `changes` again and use them to update `~/pwebarc/latest`, filling it with symlinks pointing to the latest `200 OK` complete reqres from `~/pwebarc/raw`, similar to what `wget -r` would produce (except `wget` would do network requests and produce responce bodies, while this will build a file system tree of symlinks to WRR files in `/pwebarc/raw`):
-
-  ```
-  wrrarms organize --stdin0 --symlink --latest --to ~/pwebarc/latest --output hupq --and "status|~= .200C" < changes
-  ```
-
-- `wrrarms organize --move` is de-duplicating when possible, while `--copy`, `--hardlink`, and `--symlink` are non-duplicating when possible, i.e.:
-  ```
-  wrrarms organize --copy     --to ~/pwebarc/copy1 ~/pwebarc/original
-  wrrarms organize --copy     --to ~/pwebarc/copy2 ~/pwebarc/original
-  wrrarms organize --hardlink --to ~/pwebarc/copy3 ~/pwebarc/original
-
-  # noops
-  wrrarms organize --copy     --to ~/pwebarc/copy1 ~/pwebarc/original
-  wrrarms organize --hardlink --to ~/pwebarc/copy1 ~/pwebarc/original
-  wrrarms organize --copy     --to ~/pwebarc/copy2 ~/pwebarc/original
-  wrrarms organize --hardlink --to ~/pwebarc/copy2 ~/pwebarc/original
-  wrrarms organize --copy     --to ~/pwebarc/copy3 ~/pwebarc/original
-  wrrarms organize --hardlink --to ~/pwebarc/copy3 ~/pwebarc/original
-
-  # de-duplicate
-  wrrarms organize --move --to ~/pwebarc/all ~/pwebarc/original ~/pwebarc/copy1 ~/pwebarc/copy2 ~/pwebarc/copy3
-  ```
-
-  will produce `~/pwebarc/all` which has each duplicated file stored only once. Similarly,
-
-  ```
-  wrrarms organize --symlink --output hupq_msn --to ~/pwebarc/pointers ~/pwebarc/original
-  wrrarms organize --symlink --output shupq_msn --to ~/pwebarc/schemed ~/pwebarc/original
-
-  # noop
-  wrrarms organize --symlink --output hupq_msn --to ~/pwebarc/pointers ~/pwebarc/original ~/pwebarc/schemed
-  ```
-
-  will produce `~/pwebarc/pointers` which has each symlink only once.
 
 ## Advanced examples
 
