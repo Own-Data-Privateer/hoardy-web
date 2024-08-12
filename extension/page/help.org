@@ -10,13 +10,16 @@ Doing that will make this page interactive: the settings popup will be displayed
 See [[../../doc/gallery.md][screenshots]] if you want to see how it will look.
 
 You can still read this page outside of the extension's UI, but be prepared for all links pointing to =popup.html= to be useless.
+Also, [[https://oxij.org/software/pwebarc/tree/master/extension/page/help.org][the version hosted on the author's web site]] is superior to what GitHub's web UI renders (this pages is written in =org-mode= markup language, converting it to GitHub Markdown will make things much harder, since it uses a lot of advanced markup features of =org-mode= to simplify things, and GitHub does not render =org-mode= files very well at the moment).
 #+BEGIN_EXPORT html
 </div>
 #+END_EXPORT
 * What?
 =pWebArc= (Personal Private Passive Web Archive) is a browser extension (add-on) that passively captures and collects dumps of HTTP requests and responses (see [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/doc/data-on-disk.md][there]], or [[https://oxij.org/software/pwebarc/tree/master/doc/data-on-disk.md][there]]) as you browse the web, and then archives them using one or more of the following methods:
 
-- by generating fake-Downloads containing either separate dumps (one dump of an HTTP request+response per file) or bundles of them (many dumps in a single file),
+- by generating fake-Downloads containing either
+  - separate dumps (one dump of an HTTP request+response per file) or
+  - bundles of them (many dumps in a single file),
 - by archiving separate dumps to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the dumb archiving server]], also [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][there]]), or
 - by archiving separate dumps to your browser's local storage.
 ** Glossary
@@ -73,19 +76,42 @@ Disabling any of these toggles does not stop tracking of already initiated reque
 As shown on the above diagram, a new reqres proceeds through the following networking states:
 
 - =start=: the starting state;
+
 - =request sent=, (response) =headers received=, (response) =body recived=: these are the normal HTTP request stages (stages of [[https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest][=webRequest= sub-API of =WebExtensions= API]]);
+
 - =nIO=: normal network IO performed by the browser in between HTTP request stages;
-- =canceled=: request was canceled before it was sent (by you, by the browser itself --- e.g. when rewriting an =http://= URL to an =https://= URL in HTTPS-only mode ---, by an ad-blocking extension like "uBlock Origin", etc);
-  =unsent= would have probably been a better name for this, but all browsers call it =canceled=, so pWebArc follows;
-- =no_response=: request was sent, but no response was received (connection to the server was rejected, you canceled it manually via the "Stop" button before it got a response, the server decided to ignore the request completely, network timeout was reached, etc);
+
+- =canceled=: request was canceled before it was sent
+  - by you, the user,
+  - by the browser when redirecting an =http://= URL to an =https://= URL in HTTPS-only mode,
+  - by an ad-blocking extension like "uBlock Origin",
+  - etc;
+
+  =unsent= would have probably been a better name for this, but all browsers call it =canceled= internally, so pWebArc follows that convention;
+
+- =no_response=: request was sent, but no response was received:
+  - connection to the server was rejected,
+  - you canceled it manually via the "Stop" button before it got a response,
+  - the server decided to ignore the request completely,
+  - network timeout was reached,
+  - etc;
+
 - =incomplete=: request was sent, response headers were received, but then the loading was interrupted before all of the response body was received;
-- =incomplete_fc=: only on Firefox-based browsers: the browser loaded the response data of this reqres directly from its cache, but did not give it to pWebArc; this is just how Firefox handles things sometimes (usually, for images); this is a separate state, because usually this means this URL was successfully archived before (if it was not, reload the page with =Control+F5=);
+
+- =incomplete_fc=: only on Firefox-based browsers: the browser loaded the response data of this reqres directly from its cache, but did not give it to pWebArc;
+
+  this is just how Firefox handles things sometimes (usually, for images);
+  this is a separate state, because usually this means this URL was successfully archived before (if it was not, reload the page with =Control+F5=);
+
 - =complete=: request was completed successfully;
+
 - =complete_fc=: request was completed successfully from browser's cache;
+
 - =snapshot=: this reqres was produced by taking a DOM (Document Object Model) snapshot (using one of the [[./popup.html#snapshotAll][appropriate]]-[[./popup.html#snapshotTab][buttons]] in the popup), i.e. it was produced by capturing a raw HTML/XML of the current state of the tab/frame, not by capturing a network request;
+
 - =finished=: the terminal state of this step, no new events for this reqres will come from the browser.
 
-In principle, at reaching =finished= state the reqres can be serialized and saved to disk, but pWebArc provides more states and UI for convenience.
+In principle, at reaching =finished= state the reqres can be serialized and saved to disk, but pWebArc provides more states and UI for convenience and to workaround limitations of various browser APIs (a =WebExtensions= API function call that writes a data to a file on a local file system while reporting out-of-disk-space errors does not exists).
 *** Glossary
 - [[./popup.html#div-stats.in_flight][An /in-flight reqres/]] ([[./popup.html#div-tabstats.in_flight][current tab]]) is a reqres that did not reach the =finished= state yet, in the UI such reqres will be shown to be in =in_flight= state.
   If some reqres get stuck in one of the =in_flight= states, the UI has buttons ([[./popup.html#stopAllInFlight][this]] and [[./popup.html#stopAllTabInFlight][this]] in the popup) to force them out of the current state as if an error occurred.
@@ -141,41 +167,28 @@ This way you could then still see the number of =problematic= reqres in extensio
 - [[./popup.html#div-stats.dropped][A /dropped reqres/]] ([[./popup.html#div-tabstats.dropped][current tab]]) is a /finished reqres/ that did /NOT/ satisfy the conditions controlled by [[./popup.html#pick-options]["Pick reqres for archival when they finish" settings]] on entering the =finished= state.
 
 - [[./popup.html#div-stats.problematic][A /problematic reqres/]] ([[./popup.html#div-tabstats.problematic][current tab]]) is a /finished reqres/ that satisfies the conditions set by [[./popup.html#problematic-options]["Mark reqres as problematic when they finish" settings]].
-** Step 3: Collection, Discarding, Stash, and Limbo
-Normally, /picked reqres/ proceed to the =collected= state while /dropped reqres/ proceed to being =discarded= from memory.
-
-However, just before entering the =collected= state (both from =picked= and from =in_limbo= states, the latter of which will be discussed below), each reqres gets split into
+** Step 3: Collection, Discarding, and Limbo
+On exit from the =finished= state each reqres gets split into
 
 - a =loggable=, which is a hollow =reqres= structure without any request or response data, i.e. it only keeps the metadata used by [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]], and
 - a =dump=, which is a serialized CBOR-formatted dump of the original =reqres= structure.
 
-The resulting tuples of =(loggable, dump)= then proceed to being =queued= for archival.
-
 Since those tuples can be reconstructed back into the original =reqres= structures, the following will continue to refer to them as if nothing changed when the fact they are now being internally represented by those tuples is not relevant.
 
+Normally, /picked reqres/ proceed to the =collected= state and get =queued= for archival while /dropped reqres/ proceed to being =discarded= from memory.
+
 When [[./popup.html#div-config.archive]["Archive =collected= reqres by" toggle]] is enabled, those =queued= reqres proceed directly to the next step.
-*** Stash
-:PROPERTIES:
-:CUSTOM_ID: stash
-:END:
-
-However, when [[./popup.html#div-config.archive]["Archive =collected= reqres by" option]] is disabled but [[./popup.html#div-config.stash]["Stash =collected= reqres into local storage" option]] is enabled, then those =queued= tuples instead get /stashed/ into browser's local storage.
-
-(If both [[./popup.html#div-config.archive]["Archive =collected= reqres by" option]] and [[./popup.html#div-config.stash]["Stash =collected= reqres into local storage" option]] are disabled, then pWebArc will generate desktop notifications complaining about it, unless [[./popup.html#div-config.archiveStuckNotify][this option]] is disabled too.)
-
-The =stashed= reqres status is, essentially, a flag that says this reqres was temporarily backed up to browser's local storage.
-Stashing exists to prevent loss of previously successfully captured data in situations where your computer unexpectedly looses power, your browser crashes, you close it before everything gets archived, or pWebArc crashes or gets reloaded unexpectedly.
 *** Limbo mode
 :PROPERTIES:
 :CUSTOM_ID: limbo
 :END:
 
-Sometimes you might want to actually look at a web page before deciding if you want to archive it or not.
-The naive way to do it would be to load a page with [[./popup.html#div-tabconfig.collecting][capture]] disabled first, look at it, and then, if you want to save it, enable [[./popup.html#div-tabconfig.collecting][it]], and reload the page with =Control+F5= again (and it has to be =Control+F5=, not just =F5=, because otherwise some URLs, on Firefox, might produce reqres in =incomplete_fc= state, on Chromium, their fetching could be silently skipped).
+However, sometimes you might want to actually look at a web page before deciding if you want to archive it or not.
+The naive way to do it would be to load a page with [[./popup.html#div-tabconfig.collecting][capture]] disabled first, look at it, and then, if you want to save it, enable [[./popup.html#div-tabconfig.collecting][it]], and reload the page again with browser's cache disabled via =Control+F5= (and it has to be =Control+F5=, not just =F5=, because otherwise some URLs, on Firefox, might produce reqres in =incomplete_fc= state, on Chromium, their fetching could be silently skipped).
 
 Obviously, this is both annoying and will force you to fetch everything twice.
 
-Which is why "limbo mode" exists.
+Which is why pWebArc implements "limbo mode".
 With one of the "limbo mode" options enabled, pWebArc will instead capture everything as normal, but then, instead of sending the reqres in question to =collected= or =discarded= states immediately, it will put them into =in_limbo= state where they would linger until you /collect/ it or /discard/ them manually by pressing the [[./popup.html#div-stats.in_limbo][appropriate]]-[[./popup.html#div-tabstats.in_limbo][buttons]], or until [[./popup.html#closed-auto-options]["Automatic actions for recently closed tabs" options]] make a decision semi-automatically for you.
 
 A /picked reqres/ will be put into =in_limbo= when [[./popup.html#div-tabconfig.limbo]["Pick into limbo" setting]] is enabled in the currently active tab or when [[./popup.html#div-tabconfig.children.limbo][one]]-[[./popup.html#div-config.root.limbo][of]]-[[./popup.html#div-config.background.limbo][the]]-[[./popup.html#div-config.extension.limbo][other]] settings is enabled for other reqres sources.
@@ -183,40 +196,70 @@ A /picked reqres/ will be put into =in_limbo= when [[./popup.html#div-tabconfig.
 Similarly, a /dropped reqres/ will be put into =in_limbo= when [[./popup.html#div-tabconfig.negLimbo]["Drop into limbo" setting]] is enabled in the currently active tab or when [[./popup.html#div-tabconfig.children.negLimbo][one]]-[[./popup.html#div-config.root.negLimbo][of]]-[[./popup.html#div-config.background.negLimbo][the]]-[[./popup.html#div-config.extension.negLimbo][other]] settings is enabled for other reqres sources.
 (This latter option mainly exists for debugging.)
 
-When both [[./popup.html#div-config.stash]["Stash =collected= reqres into local storage" option]] and [[./popup.html#div-tabconfig.stashLimbo]["Stash =in_limbo= reqres" option]] (or [[./popup.html#div-tabconfig.children.stashLimbo][one]]-[[./popup.html#div-config.root.stashLimbo][of]]-[[./popup.html#div-config.background.stashLimbo][the]]-[[./popup.html#div-config.extension.stashLimbo][other]] similar options) is enabled, then those newly generated reqres also get temporarily /stashed/ into browser's local storage.
-
-If [[./popup.html#div-config.limboNotify][this option]] is enabled and there are more than [[./popup.html#div-config.limboMaxNumber][this number]] reqres =in_limbo= or the total size of all dumps =in_limbo= is more than [[./popup.html#div-config.limboMaxSize][this size]] (in MiB), pWebArc will complain to remind you to /collect/ or /discard/ some of them so that your browser does not waste much memory (and so that you won't loose too much data if something crashes while [[./popup.html#div-config.stash]["Stash =collected= reqres into local storage" option]] is disabled).
+If [[./popup.html#div-config.limboNotify][this option]] is enabled and there are more than [[./popup.html#div-config.limboMaxNumber][this number]] reqres =in_limbo= or the total size of all dumps =in_limbo= is more than [[./popup.html#div-config.limboMaxSize][this size]] (in MiB), pWebArc will complain to remind you to /collect/ or /discard/ some of them so that your browser does not waste too much memory (and so that you won't loose too much data if something crashes while [[./popup.html#div-config.stash]["Stash =collected= reqres into local storage" option]] discussed below is disabled).
 *** Glossary
 - [[./popup.html#div-stats.collected][A /collected reqres/]] ([[./popup.html#div-tabstats.collected][current tab]]) is a reqres that was (either automatically or manually) sent to the =collected= state.
 
-- [[./popup.html#div-stats.discarded][A /discarded reqres/]] ([[./popup.html#div-tabstats.discarded][current tab]]) is a reqres that was (either automatically or manually) sent to the =discarded=.
+- [[./popup.html#div-stats.discarded][A /discarded reqres/]] ([[./popup.html#div-tabstats.discarded][current tab]]) is a reqres that was (either automatically or manually) sent to the =discarded= state.
 
 - [[./popup.html#div-stats.in_limbo][An /in-limbo reqres/]] ([[./popup.html#div-tabstats.in_limbo][current tab]]) is a reqres that is being held =in_limbo= until you manually /collect/ or /discard/ it.
 
 - [[./popup.html#stats.queued][A /queued reqres/]] (displayed on the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line) is a =collected= reqres that is still =queued= for archival.
+** Step 3.5: Stashing
+:PROPERTIES:
+:CUSTOM_ID: stash
+:END:
 
+The =stashed= reqres status is, essentially, a flag that says this reqres was temporarily backed up to browser's local storage.
+
+When [[./popup.html#div-config.archive]["Archive =collected= reqres by" option]] is disabled but [[./popup.html#div-config.stash]["Stash =collected= reqres into local storage" option]] is enabled, instead of archiving newly =queued= reqres, pWebArc will /stash/ their =(loggable, dump)= tuples into browser's local storage.
+
+Similarly, when both [[./popup.html#div-config.stash]["Stash =collected= reqres into local storage" option]] and [[./popup.html#div-tabconfig.stashLimbo]["Stash =in_limbo= reqres" option]] (or [[./popup.html#div-tabconfig.children.stashLimbo][one]]-[[./popup.html#div-config.root.stashLimbo][of]]-[[./popup.html#div-config.background.stashLimbo][the]]-[[./popup.html#div-config.extension.stashLimbo][other]] similar options) is enabled, then newly generated =in_limbo= reqres will also get immediately stashed into browser's local storage.
+
+Moreover, the following section will discuss how pWebArc will also stash most =failed= to archive reqres into browser's local storage.
+
+In other words, stashing exists to prevent loss of successfully captured but yet unarchived data in situations where
+
+- you quit or restart your browser, or
+- pWebArc crashes or gets reloaded unexpectedly,
+- your computer unexpectedly looses power,
+
+before you =collected= or =discarded= everything from =in_limbo= or pWebArc has successfully archived everything from its archived queue.
+
+Note however, that even with [[./popup.html#div-config.stash][stashing]] enabled pWebArc will skip disk IO whenever possible: e.g., if both [[./popup.html#div-config.archive]["Archive =collected= reqres by"]] and [[./popup.html#div-config.archiveSubmitHTTP]["Archive =collected= reqres by ... submitting them via HTTP"]] options discussed below are enabled, pWebArc will first try to archive each new =collected= reqres straight from memory to the archiving server and only if that process fails will it attempt stashing them to local storage instead.
+
+Meaning that
+
+- stashing of non-=in_limbo= reqres is usually completely free and so you should probably keep [[./popup.html#div-config.stash][that option]] always enabled;
+- which implies that, technically, stashing is not a silver bullet against data loss (to make it such would mean unconditional immediate stashing of all captured data, which would waste a lot of disk IO on most pWebArc configurations);
+- stashing of =in_limbo= reqres [[./popup.html#div-tabconfig.stashLimbo][via]]-[[./popup.html#div-tabconfig.children.stashLimbo][one]]-[[./popup.html#div-config.root.stashLimbo][of]]-[[./popup.html#div-config.background.stashLimbo][the]]-[[./popup.html#div-config.extension.stashLimbo][those]] options is not free, keeping these options enabled if you have [[./popup.html#div-tabconfig.limbo]["Pick into limbo" option]] enabled yet almost never archive from limbo is a waste of disk IO, so you might want to disable some of those options in that case,
+
+When both [[./popup.html#div-config.archive]["Archive =collected= reqres by" option]] and [[./popup.html#div-config.stash]["Stash =collected= reqres into local storage" option]] are disabled, then, when new reqres get =queued=, pWebArc will generate new desktop notifications complaining about them, unless [[./popup.html#div-config.archiveStuckNotify][that option]] is disabled too.
+
+You can also forcefully stash all currently =queued=, =in_limbo=, and =failed= reqres by pressing [[./popup.html#stashAll][this button]].
+It stashes everything immediately and unconditionally, ignoring all other stashing settings.
+*** Glossary
 - A /stuck queued reqres/ is a =queued= reqres that got stuck in the archival queue, e.g. because it got queued while [[./popup.html#div-config.archive]["Archive =collected= reqres by" option]] was disabled.
 
 - [[./popup.html#div-stats.stashed][A /stashed reqres/]] is a reqres that was temporarily =stashed= (backed-up) into browser's local storage while it is still being kept in pWebArc's memory.
   I.e., the stash is a persistent on-disk backup for in-memory reqres.
-
-  When [[./popup.html#div-config.stash]["Stash =collected= reqres into local storage" option]] is enabled all new stuck =queued= reqres, as well as all new =failed= reqres (discussed below) will be =stashed=.
-
-  When both [[./popup.html#div-config.stash]["Stash =collected= reqres into local storage" option]] and [[./popup.html#div-tabconfig.stashLimbo]["Stash =in_limbo= reqres"]] (or [[./popup.html#div-tabconfig.children.stashLimbo][one]]-[[./popup.html#div-config.root.stashLimbo][of]]-[[./popup.html#div-config.background.stashLimbo][the]]-[[./popup.html#div-config.extension.stashLimbo][other]] similar options) is set, then all new =in_limbo= reqres for that tab/source will be stashed.
-
-  You can also forcefully stash all =queued=, =in_limbo=, and =failed= reqres by pressing [[./popup.html#stashAll][this button]].
-** Step 3.5: Logging
+** Step 3.75: Logging
 On entering =collected= or =discarded= state, =loggable= metadata of each reqres is copied into the recent reqres [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]] and is kept there until the size of the log reaches [[./popup.html#div-config.history][this many elements]], at which point the older elements of the log start being elided automatically.
 
 You can also ask pWebArc to forget all history manually by pressing [[./popup.html#forgetHistory][this button]], or to forget history of reqres generated by the currently active tab by pressing [[./popup.html#forgetTabHistory][that button]] instead, or do the same by using similar buttons in [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]].
-Using [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]] will also allow the use of reqres filtering options for doing this, allowing you to selectively forget some filtered parts of history.
+Using [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]] will also allow the use of reqres filtering options for doing this, allowing you to selectively forget parts of history.
 
 Note, however, that /problematic reqres/ will not get automatically elided from the log, nor forgotten by using the above buttons.
 To forget about them, you will have to unset the /problematic/ flag on the respective reqres via [[./popup.html#unmarkAllProblematic][this button]], or [[./popup.html#unmarkAllTabProblematic][that button]], or use similar buttons in [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]].
 ** Step 4: Archival
 When [[./popup.html#div-config.archive]["Archive =collected= reqres by" toggle]] is enabled, pWebArc will pop =queued= reqres from the archival queue one by one and then perform one or more of the following (in order they are listed):
 
-- if [[./popup.html#div-config.archiveExportAs]["Archive =collected= reqres by ... exporting them using =saveAs=" option]] is enabled, pWebArc will append the =dump=, as a byte string, to a (per-=bucket=, see below) =bundle= and then, if the =bundle= gets larger than [[./popup.html#div-config.exportAsMaxSize][this]] or if all elements of the queue got processed without reaching that limit, after a delay controlled by [[./popup.html#div-config.exportAsTimeout][this]] and [[./popup.html#div-config.exportAsInFlightTimeout][that]] options, export the resulting =bundle= as a fake-Download;
+- if [[./popup.html#div-config.archiveExportAs]["Archive =collected= reqres by ... exporting them using =saveAs=" option]] is enabled, pWebArc will
+  - append the =dump=, as a byte string, to a (per-=bucket=, see below) =bundle=,
+  - and then
+    - if the =bundle= gets larger than [[./popup.html#div-config.exportAsMaxSize][this]], or
+    - after a delay controlled by [[./popup.html#div-config.exportAsTimeout][this]] and [[./popup.html#div-config.exportAsInFlightTimeout][that]] options,
+    export the resulting =bundle= via browser's =saveAs= mechanism (i.e. generate a fake-Download);
 
 - if [[./popup.html#div-config.archiveSubmitHTTP]["Archive =collected= reqres by ... submitting them via HTTP" option]] is enabled, pWebArc will submit the =dump= to the archiving server at [[./popup.html#div-config.submitHTTPURLBase]["Server URL" setting]] by making an HTTP POST request with the =dump= as request body (which is denoted by =srvIO= states on the diagram above);
 
@@ -237,12 +280,12 @@ When [[./popup.html#div-config.archive]["Archive =collected= reqres by" toggle]]
 - finally, if [[./popup.html#div-config.archiveSaveLS]["Archive =collected= reqres by ... saving them into local storage" option]] is disabled or if saving to local storage succeeds, pWebArc will discard the reqres from memory.
 
 You can enable more than one [[./popup.html#sub-config.archive][archival method]] at the same time.
-For a given =loggable=, pWebArc will remember and skip previously successful archival methods if the =loggable= ever returns to the archival queue again (e.g., when one of the archival methods fails and you later ask pWebArc to retry the archival, or when you re-load a reqres from local storage).
+For a given =loggable=, pWebArc will remember and skip previously successful archival methods if the =loggable= ever returns to the archival queue again (e.g., when one of the archival methods fails and you later ask pWebArc to retry the archival, or when you re-queue a reqres from local storage from [[./popup.html#showSaved][the "Saved in Local Storage" page]]).
 
 Note the difference between /stashed/ and /saved/ reqres:
 
 - /stashed/ reqres are kept in memory until they get successfully archived by all configured [[./popup.html#sub-config.archive][archival methods]] (or until you manually discard them, in case they were stashed =in_limbo=);
-- /saved/ reqres get dumped into browser's local storage and, if that succeeds, discarded from memory (until you manually load them back from there).
+- /saved/ reqres get dumped into browser's local storage and, if that succeeds, discarded from memory (until you manually load them back from [[./popup.html#showSaved][there]]).
 *** Buckets
 :PROPERTIES:
 :CUSTOM_ID: bucket
@@ -261,24 +304,12 @@ To implement this, for each reqres in the archival queue, pWebArc computes a =bu
 Evaluation of the =bucket= parameter is done just before each archival attempt, so if the queue is not yet empty, and you disable [[./popup.html#div-config.archive]["Archive =collected= reqres by"]], edit some of the "Bucket" settings, and enable [[./popup.html#div-config.archive][it]] again, pWebArc will start using the new setting immediately.
 
 When exporting via =saveAs=, =bucket= value will be used in the file name of the generated fake-Download =.wrrb= file and the dumps will be split into separate fake-Download files by said =bucket=.
-I.e., internally, the =bundle= discussed above is actually a set bundles, and exporting code uses the per-=bucket= one.
+I.e., internally, the =bundle= discussed above is actually a set of per-=bucket= =bundle='s.
 
 When submitting to an HTTP server, pWebArc will specify =bucket= as a query parameter (named "profile", for historical reasons) to each HTTP POST request.
 
 When stashing or saving to local storage, pWebArc will record the value of =bucket= into each =loggable= before saving data to disk.
 If you restart your browser, thus starting a new pWebArc session, pWebArc will use the old stashed/saved =bucket= values for all new attempted archivals of old reqres generated by previous sessions.
-*** Failures
-As noted above, if any of the [[./popup.html#sub-config.archive][archival methods]] fail, the reqres in question will be moved into the =failed= state.
-
-Submissions of reqres that =failed= because of networking issues will be retried automatically every 60 seconds.
-Archivals of reqres' rejected by the archiving server or those that failed to be saved to browser's local storage will not be retried automatically as those usually happen when there is no space left on the device you are archiving to.
-
-You can retry all failed archivals by pressing [[./popup.html#retryFailed][this button]].
-You can also use it to nudge the archiving sub-process awake if some things got stuck in the queue by accident.
-E.g., after the extension got reloaded with a non-empty queue, or if you previously closed your browser before everything was archived.
-
-If [[./popup.html#div-config.archiveFailedNotify][this option]] is enabled and a new reqres recently moved to the =failed= state, a new desktop notification will be generated.
-If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new desktop notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
 - [[./popup.html#div-stats.exportedAs][An /exported reqres/]] is a reqres that was successfully =exported= by generating a fake-Download containing its =dump=.
 
@@ -286,9 +317,21 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
 
 - [[./popup.html#div-stats.saved][A /saved reqres/]] is a reqres that was successfully =saved= by being archived into browser's local storage.
 
-- [[./popup.html#stats.failed][A /failed to archive reqres/]] (displayed on the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line) is a reqres that =failed= to be archived by one of the enabled [[./popup.html#sub-config.archive][archival methods]].
-
 - /An archived reqres/ is either /exported/, /submitted/, or /saved/ reqres.
+** Handling of Failures
+As noted above, if any of the [[./popup.html#sub-config.archive][archival methods]] fail, the reqres in question will be moved into the =failed= state.
+
+Submissions of reqres that =failed= because of networking issues will be retried automatically every 60 seconds.
+Archivals of reqres rejected by the archiving server or those that failed to be saved to browser's local storage will not be retried automatically as those usually happen when there is no space left on the device you are archiving to.
+
+You can retry all failed archivals by pressing [[./popup.html#retryFailed][this button]].
+You can also use it to nudge the archiving sub-process awake if some things got stuck in the queue by accident.
+E.g., after the extension got reloaded with a non-empty queue, or if you previously quit your browser before everything was archived.
+
+If [[./popup.html#div-config.archiveFailedNotify][this option]] is enabled and a new reqres recently moved to the =failed= state, a new desktop notification will be generated.
+If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new desktop notification will be generated when the archival queue gets empty the very first time or after any failures.
+*** Glossary
+- [[./popup.html#stats.failed][A /failed to archive reqres/]] (displayed on the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line) is a reqres that =failed= to be archived by one of the enabled [[./popup.html#sub-config.archive][archival methods]].
 * Shortcuts
 pWebArc provides a bunch of keyboard and context menu shortcuts to allow using it in more efficient ways.
 
@@ -484,6 +527,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   - Ensure [[./popup.html#div-config.archiveSaveLS]["Archive =collected= reqres by ... saving them into local storage" option]] is enabled.
   - Ensure [[./popup.html#div-config.archive]["Archive =collected= reqres by"]] is enabled.
   - Open [[./popup.html#showSaved][the "Saved in Local Storage" page]].
+  - Set "In =storage.local=" filter there to =false= (red).
   - Press "Re-queue" button there to re-archive all those saved reqres from =IndexedDB= to =storage.local=.
   - Now, you can re-enable the "Always use private browsing mode" browser setting and restart you browser again.
 
@@ -495,7 +539,7 @@ Most error codes are produced by attaching one of the following prefixes to the 
 
 - =debugger::= prefix is prepended to errors produced by the code working with Chromium's Debugger API;
 
-- =filterResponseData::= prefix is prepended to errors produced by =webRequest.filterResponseData= API (these can usually be ignored, since Firefox generates normal =webRequest::= codes for those reqres too, when it was an actual error, but pWebArc still collects them, adhering to "collect everything as browser gives it, when possible" philosophy).
+- =filterResponseData::= prefix is prepended to errors produced by =webRequest.filterResponseData= API (these can usually be ignored, since Firefox generates normal =webRequest::= codes for those reqres too, when it was an actual error; but pWebArc still collects them, adhering to "collect everything as browser gives it, when possible" philosophy).
 
 In particular, =webRequest::NS_= prefix on Firefox, and =webRequest::net::= and =debugger::net::= prefixes on Chromium signify various issues produced by the networking stacks of those browsers.
 For instance:
@@ -528,14 +572,23 @@ In particular:
 :PROPERTIES:
 :CUSTOM_ID: faq
 :END:
-** Does pWebArc send any of my captured web browsing data to any third-parties?
-No.
-pWebArc only ever sends data to the [[./popup.html#div-config.submitHTTPURLBase][archiving server URL]] you specify.
+** Does pWebArc send any of my captured web browsing data anywhere?
+pWebArc only ever sends your data to [[./popup.html#div-config.submitHTTPURLBase][the archiving "Server URL"]] you specify when [[./popup.html#div-config.archiveSubmitHTTP][the "Archive =collected= reqres by ... submitting them via HTTP" option]] is enabled.
+
+Nowhere else.
+Never else.
 ** Does pWebArc collect and send any telemetry anywhere?
+For your convenience, pWebArc saves some global stats across restarts (e.g., the [[./popup.html#div-stats.collected][Collected]], [[./popup.html#div-stats.discarded][Discarded]], [[./popup.html#div-stats.picked][Picked]], and [[./popup.html#div-stats.dropped][Dropped]] lines).
+
+However, none of those are ever sent anywhere and [[./popup.html#resetPersistentStats][you can reset them]] at any time.
+** Will the answers to the above two questions ever change in a future version of pWebArc?
 No.
-Note, however, that pWebArc does persist some global stat numbers across restarts --- e.g., [[./popup.html#div-stats.collected][Collected/Discarded reqres]] --- for convenience.
-But those are never sent anywhere and [[./popup.html#resetPersistentStats][you can reset them]] at any time.
-** =pWebArc= asks for a lot of permissions, what does it use all those permissions for?
+I (the author) hate non-consensual data collection.
+
+In fact, as you might have noticed, pWebArc, unlike most other browser extensions, is almost trivial to reproducible-build from source on a POSIX-compliant system with a Nix package manager installed, and it has [[https://oxij.org/software/pwebarc/][a privately operated source code mirror]].
+
+This is by design, I expect a chunk of pWebArc users to be paranoid enough to only ever build it from source and install the results manually into their LibreWolf or some such, leaving zero telemetry fingerprints anywhere.
+** pWebArc asks for a lot of permissions, what does it use all those permissions for?
 
 - =<all_urls>= permission is used so that pWebArc could capture all URLs.
 - =webRequest= and =webRequestBlocking= permissions are used to track and capture HTTP requests and responses; on Chromium the latter also requires the =debugger= permission, which pWebArc also asks for there.
@@ -597,7 +650,7 @@ Doing that will generate and capture snapshots of raw HTML/XMLs for each frame c
 (Reqres-wise they will be "200 OK" responses, but with =protocol= set to ="SNAPSHOT"= and =method= set to ="DOM"=.)
 
 You can also do that for all open tabs at once by pressing [[./popup.html#snapshotAll][that button]].
-** How do I properly archive a web page completely, especially when parts of it are loaded lazily?
+** How do I properly capture a web page completely, especially when parts of it are loaded lazily?
 :PROPERTIES:
 :CUSTOM_ID: faq-lazy
 :END:
@@ -621,17 +674,23 @@ All images will start being loaded eagerly after that.
 :CUSTOM_ID: faq-unsafe
 :END:
 
-Archival by exporting using =saveAs= (generation of fake-Downloads) can fail and **lose a bit of your collected data at a time** if you press a wrong button in you browser's UI, mis-reconfigure your browser a bit, or your disk gets out of space unexpectedly.
+Archival [[./popup.html#div-config.archiveExportAs][by exporting using =saveAs=]] (generation of fake-Downloads) can fail and **lose a bit of your collected data at a time** if you press a wrong button in you browser's UI, mis-reconfigure your browser a bit, or your disk gets out of space unexpectedly.
 
-Archival to browser's local storage (which is what pWebArc is doing by default) can **loose all your collected data at the same time** if you uninstall the extension by accident.
+Archival [[./popup.html#div-config.archiveSaveLS][to browser's local storage]] (which is what pWebArc is doing by default) can **loose all your collected data at the same time** if you uninstall the extension by accident.
 
-Meanwhile, archival by submission via HTTP has none of these problems: pWebArc will keep reqres in memory until the archival server reports them being written and =fsync=-ed to disk, the archiving server will not loose any of your data unless you go to its directory and delete some of it yourself (or your disk dies, or file system gets corrupted, but that problem is solved by regular backups).
+Meanwhile, archival [[./popup.html#div-config.archiveSubmitHTTP][by submission via HTTP]] has none of these problems:
 
-Archival to browser's local storage was added because it was very easy to implement after [[#stash][the stash]] was added.
+- pWebArc will keep each reqres in memory until the archiving server responds with =200 OK= for that reqres;
+- the archiving will only respond with =200 OK= response to pWebArc after the dump is written and =fsync=-ed to disk;
+- the archiving server never deletes any of your archived data;
+  by using an archiving server, you can only loose your archived data if you go to its directory and delete some of it yourself, or if your disk dies, or if your file system gets corrupted;
+  all of those problems are solved by regular backups.
+
+Archival [[./popup.html#div-config.archiveSaveLS][to browser's local storage]] was added because it was very easy to implement after [[#stash][the stash]] was added.
 It is the default because it usually works fine, it properly reports errors, has the most consistent behaviour across all browsers, and does not require the user to install any Python code, which helps with on-boarding.
 
-In the ideal world, browsers would provide a better =saveAs= API which would have a less annoying UI for the user and would return out-of-disk-space errors to the extension, in which case exporting via =saveAs= would be the default.
+In the ideal world, browsers would provide a better =saveAs= API which would have a less annoying UI for the user and would return out-of-disk-space errors to the extension, in which case [[./popup.html#div-config.archiveExportAs][exporting via =saveAs=]] would be the default.
 
-As it is now, the only way to be absolutely sure you data is properly forever saved to disk when the extension reports it archived is to use submission via HTTP.
+As it is now, the only way to be absolutely sure you data is properly forever saved to disk when the extension reports it archived is to use [[./popup.html#div-config.archiveSubmitHTTP][submission via HTTP]].
 ** This page does not answer my question. What do I do?
 If the whole content of this page (not just this section, did you try searching for stuff with =Control+F=? there's a lot of info here) does not explain your problem, [[https://github.com/Own-Data-Privateer/pwebarc/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]].

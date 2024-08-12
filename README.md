@@ -7,7 +7,7 @@ In short, `pwebarc`'s main workflow is this: you install an extension/add-on int
 - See ["Why"](#why) section for why you might want to do this.
 - See ["Highlights"](#highlights) section for a longer description of what `pwebarc` does and does not do.
 - See ["Alternatives"](#alternatives) for comparisons to alternatives.
-- See ["Frequently Asked Questions"](./extension/page/help.org#faq) for the answers to the frequently asked questions, including those about common quirks you can encounter while using `pwebarc`.
+- See ["Frequently Asked Questions"](./extension/page/help.org#faq) for the answers to those, including the questions about common quirks you can encounter while using `pwebarc`.
 - See ["Quickstart"](#quickstart) section for setup instructions.
 
 # Screenshots
@@ -283,7 +283,8 @@ After adding each new feature to [the `wrrarms` tool](./tool/), as a rule, I fee
   I'm glad you asked!
   I'm not a lawyer, but to me it looks like `pWebArc` violates [Chrome Web Store's "Terms of Use"](https://web.archive.org/web/20240604062520/https://developer.chrome.com/docs/webstore/program-policies/terms).
   Specifically, the "enables the unauthorized download of streaming content or media" clause.
-  In my personal opinion, any content you web browser downloads while you are browsing the web normally you are "authorized" to download, but given the context of that clause in that document, I feel like Google would disagree.
+  In my personal opinion, any content you web browser fetches while you are browsing the web normally you are "authorized" to download, but given the context of that clause in that document, I feel like Google would disagree.
+  Even though, technically speaking, separation between "streamed" and "downloaded" content or media is a complete delusion.
 
   Meanwhile, `pWebArc` tries its best to collect all web traffic you browser generates, which, obviously, includes streaming content.
 
@@ -524,7 +525,7 @@ Same issues:
 
 - Both `pWebArc` and `archiveweb.page` store captured data internally in the browser's local storage/IndexedDB by default.
 
-  This is both convenient for on-boarding new users and helps in preserving the captured data when your computer looses power unexpectedly, your browser crashes, you close it before everything gets archived, or the extension crashes or gets reloaded unexpectedly.
+  This is both convenient for on-boarding new users and helps in preserving the captured data when your computer looses power unexpectedly, your browser crashes, you quit from it before everything gets archived, or the extension crashes or gets reloaded unexpectedly.
 
   On the other hand, this is both inefficient and dangerous for long-term preservation of said data, since [it is very easy to accidentally loose data archived to browser's local storage (e.g., by uninstalling the extension)](./extension/page/help.org#faq-unsafe).
 

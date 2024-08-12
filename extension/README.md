@@ -14,19 +14,15 @@ If you do not care about archival, you can also use this extension to log and la
 By default, this extension will save all captured data into browser's local storage (though, it implements other archiving methods if you want them), so it can be used standalone.
 However, at the moment, if you want to properly view your collected data you need to install at the very least the accompanying [`wrrarms`](../tool/) tool.
 
-See [higher-level README](../README.md) if the above makes little sense or if you want more docs, or if you want to see in-depth comparisons to `archiveweb.page` and other similar and related software.
-
-`pWebArc` DOES NOT send any of your captured web browsing data to any third-parties.
-
-`pWebArc` DOES NOT send any telemetry anywhere.
-
 # Screenshots
 
 See [the gallery](../doc/gallery.md).
 
 # What does it do exactly? I have questions.
 
-See ["Technical Philosophy"](../README.md#philosophy) and ["I have questions"](../README.md#more-docs) sections of the higher-level README.
+- See [the "Frequently Asked Questions" section](./page/help.org#faq) for answers for those.
+- See [the rest of the "Help" page](./page/help.org) and [higher-level README](../README.md) if you want more info.
+  In the latter, in particular, see ["Technical Philosophy"](../README.md#philosophy) and the sections that follow.
 
 # Installation
 
