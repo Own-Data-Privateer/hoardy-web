@@ -305,9 +305,9 @@ pWebArc provides shortcuts to:
 - open the "Internal State and Logs" page, scrolled to the end of the log, {{{shortcut(showLog)}}};
 - open [[./popup.html#showTabState][the "Internal State and Logs" page]] narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
 - open the "Internal State and Logs" page narrowed to the currently active tab's data, scrolled to the end of the log, {{{shortcut(showTabLog)}}};
-- toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned HTTP requests in the currently active tab]] {{{shortcut(toggleTabConfigTracking)}}};
-- toggle [[./popup.html#div-tabconfig.children.collecting][tracking of newly spawned HTTP requests currently active tab's children]] {{{shortcut(toggleTabConfigChildrenTracking)}}};
-- toggle [[./popup.html#div-tabconfig.limbo][limbo mode in the currently active tab]], {{{shortcut(toggleTabConfigLimbo)}}};
+- toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned HTTP requests in the currently active tab]] and set [[./popup.html#div-tabconfig.children.collecting][tracking in its children]] to the same value at the same time, {{{shortcut(toggleTabConfigTracking)}}};
+- toggle [[./popup.html#div-tabconfig.children.collecting][tracking of newly spawned HTTP requests currently active tab's children]], {{{shortcut(toggleTabConfigChildrenTracking)}}};
+- toggle [[./popup.html#div-tabconfig.limbo][limbo mode in the currently active tab]] and set [[./popup.html#div-tabconfig.children.limbo][limbo mode in its children]] to the same value at the same time, {{{shortcut(toggleTabConfigLimbo)}}};
 - toggle [[./popup.html#div-tabconfig.children.limbo][limbo mode in currently active tab's children]], {{{shortcut(toggleTabConfigChildrenLimbo)}}};
 - [[./popup.html#unmarkAllProblematic][unmark all problematic reqres]], {{{shortcut(unmarkAllProblematic)}}};
 - [[./popup.html#unmarkAllTabProblematic][unmark all current tab's problematic reqres]], {{{shortcut(unmarkAllTabProblematic)}}};
@@ -342,11 +342,6 @@ pWebArc provides context menu actions to:
 :CUSTOM_ID: bugs
 :END:
 ** Known extension issues
-- At the moment, reqres =in_limbo= and =collected= reqres in the archival queue are only stored in memory, so if you close the browser or reload the extension before all the queued reqres finish archiving, or if you forget about some reqres =in_limbo=, you will lose some data.
-
-  This is not an issue under normal conditions, as limbo is disabled by default and archiving a reqres takes milliseconds, meaning that the queue will stay empty almost all of the time.
-  But this is technically a bug that might get fixed later.
-
 - When the extension is (re-)loaded, all tabs inherit the values of [[./popup.html#root-tab-options][these settings]].
 
 - pWebArc does not implement collection of WebSockets data on any of the supported browsers.
@@ -358,6 +353,10 @@ pWebArc provides context menu actions to:
   Also, capturing and archiving a DOM snapshot will free you from needing to run any JavaScript at all when you decide to return to view the archived page later, which is nice.
 
 - On Chromium, response data of background requests and requests made by other extensions does not get collected, since there's no tab to attach a debugger to, and I have not figured out how to attach debugger to other things yet.
+** Relevant issues of all browsers
+- On all supported browsers, if an HTTP server supplies the same header multiple times --- which happens sometimes, most commonly with =Set-Cookie= headers --- then the archived response headers will usually become weird, with multiple headers squished into a single value, separated by newline symbols.
+
+  This is just the way both Firefox (usually) and Chromium (always) supply those headers to extensions and pWebArc does not try to undo it.
 ** Relevant issues of Firefox, Tor Browser, LibreWolf, etc
 :PROPERTIES:
 :CUSTOM_ID: firefox-bugs
@@ -375,7 +374,7 @@ pWebArc provides context menu actions to:
 
 - =If-Modified-Since= and =If-None-Match= headers never get archived, because the browser never supplies them to the extensions. Thus, you can get "304 Not Modified" reqres response to a seemingly normal "GET" request.
 
-- Reqres of already cached media files (images, audio, video, except for svg and favicons) will end in =incomplete= state because =webRequest.filterResponseData= API does not provide response bodies for such requests.
+- Reqres of already cached media files (images, audio, video, except for svg and favicons) will end in =incomplete_fc= state because =webRequest.filterResponseData= API does not provide response bodies for such requests.
   [[./popup.html#div-config.archiveIncompleteResponse][This toggle]] controls if such reqres should be =picked=.
 
   By default, pWebArc will =drop= them.
@@ -437,8 +436,6 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   As with Firefox, disabling [[./popup.html#div-config.archivePartialRequest][this toggle]] will disable archiving of such broken requests.
   This is not recommended, however, as archiving some data is usually better than archiving none.
 
-- If the server supplies the same header multiple times (which happens sometimes, most commonly with =Set-Cookie=) then archived response headers will either be weird (with multiple headers squished into a single value, separated by a newline symbol) or incomplete, as Chromium's =Network.responseReceived= debugging API event provides a dictionary of headers, not a list.
-
 - Chromium fails to provide =openerTabId= to tabs created with =chrome.tabs.create= API so in the unlikely case of opening two or more new tabs/windows in rapid succession via pWebArc context menu actions and not giving them time to initialize pWebArc could end up mixing up settings between the newly created tabs/windows.
   This bug is impossible to trigger unless your system is very slow or you are clicking things with automation tools like =AutoHotKey= or =xnee=.
 
@@ -447,7 +444,16 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   Therefore, pWebArc tracks reqres generated by both sets of APIs separately and then matches those two lists against each other heuristically, merging matching reqres together.
   Which is ugly enough.
   But then Chromium sometimes generates debugging API events and forgets to produce the corresponding =webRequest= API events, or vice versa, thus leaving some of those reqres unmatched.
-  To work around that, pWebArc waits [[./popup.html#div-config.workaroundChromiumDebugTimeout][this many seconds]] for new events to arrive, and if none do, forcefully finishes all unmatched in-flight reqres.
+
+  To work around that, pWebArc waits [[./popup.html#div-config.workaroundChromiumDebugTimeout][this many seconds]] for new events to arrive, and if none do, forcefully finishes all unmatched but network-complete =in_flight= reqres.
+  Yes, this means that some minor metadata fields (like =document_url=) of those reqres might be missing, but waiting more time usually won't fix it, so pWebArc can't do anything else there.
+
+- However, sometimes Chromium forgets to generate both =loading complete= and =loading failed= debugging events.
+  This usually happens when a request gets started and then canceled by a page's JavaScript, or when you navigate between pages too fast.
+
+  In that case, pWebArc can't tell if a reqres is just slow at being loaded or if Chromium forgot about it, so those reqres will get stuck in the =in_flight= state indefinitely, at least until their originator tab gets closed, or until you press one of [[./popup.html#stopAllInFlight][this]] or [[./popup.html#stopAllTabInFlight][that]] buttons.
+
+  pWebArc might get another workaround for this bug later.
 * Error messages and codes
 :PROPERTIES:
 :CUSTOM_ID: errors
@@ -465,7 +471,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   Some common reasons it could be failing:
   - No space left on the device you are archiving to.
   - It's a bug.
-- =Failed to open/create a database via `IndexedDB` API all data persistence will be done via `storage.local` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears pWebArc previously used `IndexedDB` for archiving and/or stashing reqres.=
+- =Failed to open/create a database via `IndexedDB` API, all data persistence will be done via `storage.local` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears pWebArc previously used `IndexedDB` for archiving and/or stashing reqres.=
 
   So, it worked before, but why doesn't it work now?
   The most likely reason is: you are running pWebArc under a browser based on an older version of Firefox and you have recently enabled "Always use private browsing mode" setting in your browser's config.
