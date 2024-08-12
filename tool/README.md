@@ -194,22 +194,22 @@ Pretty-print given WRR files to stdout.
   - `-u, --unabridged`
   : print all data in full
   - `--abridged`
-  : shorten long strings for brevity (useful when you want to visually scan through batch data dumps) (default)
+  : shorten long strings for brevity, useful when you want to visually scan through batch data dumps; default
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution (default)
+    - `fail`: report failure and stop the execution; default
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
-  : only print reqres which match any of these expressions...
+  : only print reqres which match any of these expressions
   - `--and EXPR`
-  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+  : only print reqres which match all of these expressions
 
 - MIME type sniffing:
   - `--naive`
@@ -219,7 +219,7 @@ Pretty-print given WRR files to stdout.
 
 - file system path ordering:
   - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
   - `--paths-sorted`
   : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
   - `--paths-reversed`
@@ -227,7 +227,7 @@ Pretty-print given WRR files to stdout.
   - `--walk-fs-order`
   : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order (default)
+  : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
@@ -241,7 +241,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "output" options below; (default: `response.body|eb`); each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
+  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "output" options below; default: `response.body|eb`; each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
     - constants and functions:
       - `es`: replace `None` value with an empty string `""`
       - `eb`: replace `None` value with an empty byte string `b""`
@@ -381,9 +381,9 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
       - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;
 
-- URL remapping, used by `scrub` `--expr` atom:
+- URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
-  : remap all URLs with an identity function; i.e. don't remap anything (default)
+  : remap all URLs with an identity function; i.e. don't remap anything; default
   - `--remap-void`
   : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
@@ -391,7 +391,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   - `--not-separated`
   : don't separate output values with anything, just concatenate them
   - `-l, --lf-separated`
-  : separate output values with `\n` (LF) newline characters (default)
+  : separate output values with `\n` (LF) newline characters; default
   - `-z, --zero-separated`
   : separate output values with `\0` (NUL) bytes
 
@@ -409,15 +409,15 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
 
 - options:
   - `-n NUM, --num-args NUM`
-  : number of `PATH`s (default: `1`)
+  : number of `PATH`s; default: `1`
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
   : see `wrrarms get`
 
-- URL remapping, used by `scrub` `--expr` atom:
+- URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
-  : remap all URLs with an identity function; i.e. don't remap anything (default)
+  : remap all URLs with an identity function; i.e. don't remap anything; default
   - `--remap-void`
   : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
@@ -425,7 +425,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   - `--not-separated`
   : don't separate output values with anything, just concatenate them
   - `-l, --lf-separated`
-  : separate output values with `\n` (LF) newline characters (default)
+  : separate output values with `\n` (LF) newline characters; default
   - `-z, --zero-separated`
   : separate output values with `\0` (NUL) bytes
 
@@ -441,10 +441,10 @@ Compute given expressions for each of given WRR files, encode them into a reques
   - `-u, --unabridged`
   : print all data in full
   - `--abridged`
-  : shorten long strings for brevity (useful when you want to visually scan through batch data dumps) (default)
+  : shorten long strings for brevity, useful when you want to visually scan through batch data dumps; default
   - `--format {py,cbor,json,raw}`
   : generate output in:
-    - py: Pythonic Object Representation aka `repr` (default)
+    - py: Pythonic Object Representation aka `repr`; default
     - cbor: CBOR (RFC8949)
     - json: JavaScript Object Notation aka JSON; **binary data can't be represented, UNICODE replacement characters will be used**
     - raw: concatenate raw values; termination is controlled by `*-terminated` options
@@ -454,23 +454,23 @@ Compute given expressions for each of given WRR files, encode them into a reques
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution (default)
+    - `fail`: report failure and stop the execution; default
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
-  : only print reqres which match any of these expressions...
+  : only print reqres which match any of these expressions
   - `--and EXPR`
-  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+  : only print reqres which match all of these expressions
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, see `wrrarms get --expr` for more info on expression format; can be specified multiple times; the default is `.` which will dump the whole reqres structure
+  : an expression to compute, same expression format as `wrrarms get --expr` (which see); can be specified multiple times; the default is `.` which will dump the whole reqres structure
 
-- URL remapping, used by `scrub` `--expr` atom:
+- URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
-  : remap all URLs with an identity function; i.e. don't remap anything (default)
+  : remap all URLs with an identity function; i.e. don't remap anything; default
   - `--remap-void`
   : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
@@ -478,13 +478,13 @@ Compute given expressions for each of given WRR files, encode them into a reques
   - `--not-terminated`
   : don't terminate `--format=raw` output values with anything, just concatenate them
   - `-l, --lf-terminated`
-  : terminate `--format=raw` output values with `\n` (LF) newline characters (default)
+  : terminate `--format=raw` output values with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
   : terminate `--format=raw` output values with `\0` (NUL) bytes
 
 - file system path ordering:
   - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
   - `--paths-sorted`
   : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
   - `--paths-reversed`
@@ -492,7 +492,7 @@ Compute given expressions for each of given WRR files, encode them into a reques
   - `--walk-fs-order`
   : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order (default)
+  : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
@@ -511,25 +511,25 @@ Print paths of WRR files matching specified criteria.
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution (default)
+    - `fail`: report failure and stop the execution; default
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
-  : only output paths to reqres which match any of these expressions...
+  : only output paths to reqres which match any of these expressions
   - `--and EXPR`
-  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+  : only output paths to reqres which match all of these expressions
 
 - output:
   - `-l, --lf-terminated`
-  : terminate output absolute paths of matching WRR files with `\n` (LF) newline characters (default)
+  : terminate output absolute paths of matching WRR files with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
   : terminate output absolute paths of matching WRR files with `\0` (NUL) bytes
 
 - file system path ordering:
   - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
   - `--paths-sorted`
   : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
   - `--paths-reversed`
@@ -537,7 +537,7 @@ Print paths of WRR files matching specified criteria.
   - `--walk-fs-order`
   : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order (default)
+  : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
@@ -562,7 +562,7 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
   - `-o FORMAT, --output FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
-      - `default`     : `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s.%(num)d` (default)
+      - `default`     : `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s.%(num)d`; the default
             - `https://example.org` -> `1970/01/01/001640000_0_GET_50d7_C200C_example.org.0`
             - `https://example.org/` -> `1970/01/01/001640000_0_GET_8198_C200C_example.org.0`
             - `https://example.org/index.html` -> `1970/01/01/001640000_0_GET_f0dc_C200C_example.org.0`
@@ -825,27 +825,27 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index_GET_4f11_C200C.0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index_GET_c4ae_C200C.0.htm`
     - available substitutions:
+      - all expressions of `wrrarms get --expr` (which see);
       - `num`: number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique
-      - all expressions of `wrrarms get --expr`, which see
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution (default)
+    - `fail`: report failure and stop the execution; default
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
-  : only work on reqres which match any of these expressions...
+  : only work on reqres which match any of these expressions
   - `--and EXPR`
-  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+  : only work on reqres which match all of these expressions
 
 - output:
   - `--no-output`
-  : don't print anything (default)
+  : don't print anything; default
   - `-l, --lf-terminated`
   : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
   - `-z, --zero-terminated`
@@ -853,7 +853,7 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
 
 - action:
   - `--move`
-  : move source files under `DESTINATION` (default)
+  : move source files under `DESTINATION`; default
   - `--copy`
   : copy source files to files under `DESTINATION`
   - `--hardlink`
@@ -863,12 +863,10 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
 
 - updates:
   - `--no-overwrites`
-  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION` (default);
-    each source `PATH` file will be `--move`d, `--copy`ed, `--hardlink`ed, or `--symlink`ed to a non-existing `--output` file under `DESTINATION`;
-    operations producing the same `--output` file will be allowed and reduced to noops;
-    broken symlinks will be considered to be non-existent files and will be allowed to be replaced;
-    when source and target directories are the same, files can still be renamed into previously non-existing `--output` names;
-    all other updates will produce errors
+  : disallow overwrites and replacements any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default;
+    `--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
+    when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
+    the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap source file names will still fail
   - `--latest`
   : replace files under `DESTINATION` with their latest version;
     this is only allowed in combination with `--symlink` at the moment;
@@ -900,17 +898,17 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
 
 - file system path ordering:
   - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default when `--keep`)
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default when `--keep`
   - `--paths-sorted`
   : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
   - `--paths-reversed`
-  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order (default when `--latest`)
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order; default when `--latest`
   - `--walk-fs-order`
   : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order (default when `--keep`)
+  : recursive file system walk is done in lexicographic order; default when `--keep`
   - `--walk-reversed`
-  : recursive file system walk is done in reverse lexicographic order (default when `--latest`)
+  : recursive file system walk is done in reverse lexicographic order; default when `--latest`
 
 ### wrrarms import
 
@@ -940,26 +938,26 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
   - `-t DESTINATION, --to DESTINATION`
   : destination directory
   - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same as `wrrarms organize --output`, which see
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same as `wrrarms organize --output` (which see)
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution (default)
+    - `fail`: report failure and stop the execution; default
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
-  : only import reqres which match any of these expressions...
+  : only import reqres which match any of these expressions
   - `--and EXPR`
-  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+  : only import reqres which match all of these expressions
 
 - output:
   - `--no-output`
-  : don't print anything (default)
+  : don't print anything; default
   - `-l, --lf-terminated`
   : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
   - `-z, --zero-terminated`
@@ -991,7 +989,7 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
 
 - file system path ordering:
   - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
   - `--paths-sorted`
   : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
   - `--paths-reversed`
@@ -999,7 +997,7 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
   - `--walk-fs-order`
   : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order (default)
+  : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
@@ -1019,26 +1017,26 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `-t DESTINATION, --to DESTINATION`
   : destination directory
   - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same as `wrrarms organize --output`, which see
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same as `wrrarms organize --output` (which see)
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution (default)
+    - `fail`: report failure and stop the execution; default
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
-  : only import reqres which match any of these expressions...
+  : only import reqres which match any of these expressions
   - `--and EXPR`
-  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+  : only import reqres which match all of these expressions
 
 - output:
   - `--no-output`
-  : don't print anything (default)
+  : don't print anything; default
   - `-l, --lf-terminated`
   : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
   - `-z, --zero-terminated`
@@ -1070,7 +1068,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
 
 - file system path ordering:
   - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
   - `--paths-sorted`
   : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
   - `--paths-reversed`
@@ -1078,7 +1076,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `--walk-fs-order`
   : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order (default)
+  : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
@@ -1109,26 +1107,26 @@ In other words, this generates static offline website mirrors, producing results
   - `-t DESTINATION, --to DESTINATION`
   : target directory
   - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or a custom pythonic %-substitution string; same as `wrrarms organize --output`, which see
+  : format describing generated output paths, an alias name or a custom pythonic %-substitution string; same as `wrrarms organize --output` (which see)
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - error handling:
   - `--errors {fail,skip,ignore}`
   : when an error occurs:
-    - `fail`: report failure and stop the execution (default)
+    - `fail`: report failure and stop the execution; default
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
-  : only export reqres which match any of these expressions...
+  : only export reqres which match any of these expressions
   - `--and EXPR`
-  : ... and all of these expressions, both can be specified multiple times, both use the same expression format as `wrrarms get --expr`, which see
+  : only export reqres which match all of these expressions
 
 - output:
   - `--no-output`
-  : don't print anything (default)
+  : don't print anything; default
   - `-l, --lf-terminated`
   : terminate output absolute paths of newly produced files with `\n` (LF) newline characters
   - `-z, --zero-terminated`
@@ -1136,7 +1134,7 @@ In other words, this generates static offline website mirrors, producing results
 
 - updates:
   - `--no-overwrites`
-  : disallow overwrites of any existing `--output` files under `DESTINATION` (default);
+  : disallow overwrites of any existing `--output` files under `DESTINATION`; default;
     repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
     however, trying to overwrite existing `--output` files under `DESTINATION` with any new data will produce errors;
     this allows reusing the `DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
@@ -1150,9 +1148,9 @@ In other words, this generates static offline website mirrors, producing results
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to export, see `wrrarms get --expr` for more info on expression format (default: `response.body|eb|scrub response +all_refs,-actions`)
+  : an expression to export, same expression format as `wrrarms get --expr` (which see); default: `response.body|eb|scrub response +all_refs,-actions`
 
-- URL remapping, used by `scrub` `--expr` atom:
+- URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
   : remap all URLs with an identity function; i.e. don't remap anything
   - `--remap-void`
@@ -1162,17 +1160,17 @@ In other words, this generates static offline website mirrors, producing results
   - `--remap-closed`
   : remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained
   - `--remap-all`
-  : remap all reachable URLs like `--remap-open` does, point other URLs to paths produced by the current `--output` format for a corresponding trivial `GET <URL> -> 200 OK` reqres; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this allows `wrrarms export` to be used incrementally; `export`ed `mirror`s will be self-contained (default)
+  : remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `wrrarms export` to be used incrementally; `export`ed `mirror`s will be self-contained; default
 
-- export targets (default: `net_url`s of all input `PATH`s):
+- export targets:
   - `-r URL, --root URL`
-  : recursion root; a URL which will be used as a root for recursive export; can be specified multiple times; if none are specified, then all URLs available from `PATH`s are treated as roots
+  : recursion root; a URL which will be used as a root for recursive export; can be specified multiple times; if none are specified, then all (`net_url`) URLs available from input `PATH`s will be treated as roots
   - `-d DEPTH, --depth DEPTH`
   : maximum recursion depth level; the default is `0`, which means "`--root` documents and their resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
 
 - file system path ordering:
   - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given (default)
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
   - `--paths-sorted`
   : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
   - `--paths-reversed`
@@ -1180,7 +1178,7 @@ In other words, this generates static offline website mirrors, producing results
   - `--walk-fs-order`
   : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order (default)
+  : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
