@@ -11,15 +11,25 @@ Generate a plain text preview of a WRR file containing an HTML document using \`
 
   --help                print this message and exit
 
+  --raw-url             print the raw URL stored in the WRR_FILE
+  --net-url             format the URL using on-the-wire representation
+  --pretty-url          format the URL prettily; default
+  --normalized-url      normalize the URL removing empty query parameters, and then format the URL prettily
+
 # Example:
 
   $0 path/to/wrr/file/containing/html.wrr
 EOF
 }
 
+kind=pretty_url
 while (($# > 0)); do
     case "$1" in
     --help) usage; exit 0 ;;
+    --raw-url) kind=raw_url ;;
+    --net-url) kind=net_url ;;
+    --pretty-url) kind=pretty_url ;;
+    --normalized-url) kind=pretty_nurl ;;
     *) break ;;
     esac
     shift
@@ -28,8 +38,7 @@ done
 (($# > 0)) || { echo "error: need a WRR_FILE"; echo; usage; exit 1; } >&2
 
 wrrarms get -l \
-        -e "net_url|add_prefix '# url: '" \
-        -e "pretty_url|add_prefix '# pretty: '" \
-        -e "pretty_nurl|add_prefix '# normalized: '" -- "$1"
+        -e "$kind|add_prefix '# url: '" \
+        -- "$1"
 echo
 wrrarms run -- w3m -T text/html -dump "$1"
