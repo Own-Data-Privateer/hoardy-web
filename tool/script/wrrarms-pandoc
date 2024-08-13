@@ -16,6 +16,9 @@ Generate a plain text preview of a WRR file containing an HTML document using \`
   --pretty-url          format the URL prettily; default
   --normalized-url      normalize the URL removing empty query parameters, and then format the URL prettily
 
+  -t FORMAT, --to FORMAT
+                        \`pandoc\` output format: default: \`plain\`
+
 # Example:
 
   $0 path/to/wrr/file/containing/html.wrr
@@ -23,6 +26,7 @@ EOF
 }
 
 kind=pretty_url
+to=plain
 while (($# > 0)); do
     case "$1" in
     --help) usage; exit 0 ;;
@@ -30,6 +34,7 @@ while (($# > 0)); do
     --net-url) kind=net_url ;;
     --pretty-url) kind=pretty_url ;;
     --normalized-url) kind=pretty_nurl ;;
+    --to) to="$2"; shift ;;
     *) break ;;
     esac
     shift
@@ -41,4 +46,4 @@ wrrarms get -l \
         -e "$kind|add_prefix '# url: '" \
         -- "$1"
 echo
-wrrarms run -- pandoc -f html -t org --wrap=none "$1"
+wrrarms run -- pandoc -f html -t "$to" --wrap=none "$1"
