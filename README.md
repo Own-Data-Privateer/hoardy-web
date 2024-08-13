@@ -222,7 +222,7 @@ Also, as far as I'm aware, `wrrarms` is a tool that can do more useful stuff to 
 
   - Also, a lot of info on that page can be seen by running `wrrarms --help`.
 
-  - See [example scripts](./tool/script/README.md) to learn how to do various interesting things with your archived data.
+  - See [example scripts](./tool/script/) to learn how to do various interesting things with your archived data.
 
 - In the unlikely case you have problems with the dumb archiving server, see [its README](./dumb_server/README.md).
   Or you can read `pwebarc-dumb-dump-server --help` instead.

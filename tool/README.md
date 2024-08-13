@@ -246,7 +246,7 @@ wrrarms export mirror --to ~/pwebarc/mirror ~/pwebarc/mitmproxy
 
 ## How to generate previews for WRR files, listen to them via TTS, open them with `xdg-open`, etc
 
-See [`script` sub-directory](./script/README.md) for examples that show how to use `pandoc` and/or `w3m` to turn WRR files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
+See [`script` sub-directory](./script/) for examples that show how to use `pandoc` and/or `w3m` to turn WRR files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
 
 # Usage
 

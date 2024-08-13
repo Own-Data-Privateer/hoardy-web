@@ -1,0 +1,164 @@
+#+TITLE: Example scripts using wrrarms
+
+This directory contains a bunch of example scripts built on top of =wrrarms=.
+
+* [[./wrrarms-xdg-open]]
+
+#+BEGIN_SRC shell :results output :exports both
+./wrrarms-xdg-open --help
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+usage: ./wrrarms-xdg-open [--help] WRR_FILE
+
+Open `response.body` of the given WRR file with `xdg-open`.
+
+This script only works for Debian's `xdg-open`, which waits for the child process to finish.
+
+# Options:
+
+  --help                print this message and exit
+
+# Example:
+
+  ./wrrarms-xdg-open path/to/wrr/file.wrr
+#+end_example
+
+* [[./wrrarms-xdg-open-mimi]]
+
+#+BEGIN_SRC shell :results output :exports both
+./wrrarms-xdg-open-mimi --help
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+usage: ./wrrarms-xdg-open-mimi [--help] WRR_FILE
+
+Open `response.body` of the given WRR file using Mimi's `xdg-open`.
+
+This will also work for other similar `xdg-open` scripts that do not wait for their child process to finish unless you specify `--wait`.
+
+# Options:
+
+  --help                print this message and exit
+
+# Example:
+
+  ./wrrarms-xdg-open-mimi path/to/wrr/file.wrr
+#+end_example
+
+* [[./wrrarms-w3m]]
+
+#+BEGIN_SRC shell :results output :exports both
+./wrrarms-w3m --help
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+usage: ./wrrarms-w3m [--help] WRR_FILE
+
+Generate a plain text preview of a WRR file containing an HTML document using `w3m`.
+
+# Options:
+
+  --help                print this message and exit
+
+  --raw-url             print the raw URL stored in the WRR_FILE
+  --net-url             format the URL using on-the-wire representation
+  --pretty-url          format the URL prettily; default
+  --normalized-url      normalize the URL removing empty query parameters, and then format the URL prettily
+
+# Example:
+
+  ./wrrarms-w3m path/to/wrr/file/containing/html.wrr
+#+end_example
+
+* [[./wrrarms-pandoc]]
+
+#+BEGIN_SRC shell :results output :exports both
+./wrrarms-pandoc --help
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+usage: ./wrrarms-pandoc [--help] WRR_FILE
+
+Generate a plain text preview of a WRR file containing an HTML document using `pandoc`.
+
+# Options:
+
+  --help                print this message and exit
+
+  --raw-url             print the raw URL stored in the WRR_FILE
+  --net-url             format the URL using on-the-wire representation
+  --pretty-url          format the URL prettily; default
+  --normalized-url      normalize the URL removing empty query parameters, and then format the URL prettily
+
+  -t FORMAT, --to FORMAT
+                        `pandoc` output format: default: `plain`
+
+# Example:
+
+  ./wrrarms-pandoc path/to/wrr/file/containing/html.wrr
+#+end_example
+
+* [[./wrrarms-spd-say]]
+
+#+BEGIN_SRC shell :results output :exports both
+./wrrarms-spd-say --help
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+usage: ./wrrarms-spd-say [--help] [--dry-run] [-s pattern] [-e pattern] [WRRFILE ...]
+
+Feed (a part of) an HTML document containted in a given WRR file to a text-to-speech (TTS) engine.
+
+This depends on `pandoc`, `sed`, and `spd-say` of `speech-dispatcher`.
+
+The latter of which is a speech server that provides a single common API for whole lot of different TTS engines.
+Configuring your `speech-dispatcher` is out of scope of this script, look it up elsewhere.
+
+# Options:
+
+  --help                print this message and exit
+
+  -s PATTER, --start PATTERN
+                        start speaking starting from this PATTERN
+
+  -e PATTER, --end PATTERN
+                        stop speaking at this PATTERN
+
+  --dry-run             just print the text that would be fed to the TTS to
+                        stdout, without actually running `spd-say`
+
+# Note:
+
+`--start` and `--end` essentially run `sed -n "$start,$ p"`.
+
+Which is why see `man 1 sed` for more info about PATTERN syntax.
+
+# Examples:
+
+- Skip first 5 lines, then feed the next 100 lines to the TTS:
+
+  ./wrrarms-spd-say -s 5 -e +100 path/to/wrr/file/containing/html.wrr
+
+- Feed the whole document to the TTS:
+
+  ./wrrarms-spd-say path/to/wrr/file/containing/html.wrr
+
+- Start speaking aloud starting from the first `<hr>` element:
+
+  ./wrrarms-spd-say -s "/^-----/" path/to/wrr/file/containing/html.wrr
+
+- Feed everything between the first two `<hr>` elements to the TTS:
+
+  ./wrrarms-spd-say -s "/^-----/" -e "/^-----/" path/to/wrr/file/containing/html.wrr
+
+- Feed everything between the first "Chapter" header and the following "Next Chapter" link to the TTS:
+
+  ./wrrarms-spd-say -s "/^Chapter [0-9]/" -e "/^Next Chapter/" path/to/wrr/file/containing/html.wrr
+
+#+end_example
