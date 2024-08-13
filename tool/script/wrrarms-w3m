@@ -1,5 +1,31 @@
-#!/bin/sh -e
-# purpose: generate a plain text preview of a WRR file via `w3m`
+#!/usr/bin/env bash
+set -e
+
+usage() {
+    cat << EOF
+usage: $0 [--help] WRR_FILE
+
+Generate a plain text preview of a WRR file containing an HTML document using \`w3m\`.
+
+# Options:
+
+  --help                print this message and exit
+
+# Example:
+
+  $0 path/to/wrr/file/containing/html.wrr
+EOF
+}
+
+while (($# > 0)); do
+    case "$1" in
+    --help) usage; exit 0 ;;
+    *) break ;;
+    esac
+    shift
+done
+
+(($# > 0)) || { echo "error: need a WRR_FILE"; echo; usage; exit 1; } >&2
 
 wrrarms get -l \
         -e "net_url|add_prefix '# url: '" \

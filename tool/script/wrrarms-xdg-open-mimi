@@ -1,4 +1,32 @@
-#!/bin/sh -e
-# like `wrrarms-xdg-open`, but for `mimi`'s `xdg-open`
+#!/usr/bin/env bash
+set -e
+
+usage() {
+    cat << EOF
+usage: $0 [--help] WRR_FILE
+
+Open \`response.body\` of the given WRR file using Mimi's \`xdg-open\`.
+
+This will also work for other similar \`xdg-open\` scripts that do not wait for their child process to finish unless you specify \`--wait\`.
+
+# Options:
+
+  --help                print this message and exit
+
+# Example:
+
+  $0 path/to/wrr/file.wrr
+EOF
+}
+
+while (($# > 0)); do
+    case "$1" in
+    --help) usage; exit 0 ;;
+    *) break ;;
+    esac
+    shift
+done
+
+(($# > 0)) || { echo "error: need a WRR_FILE"; echo; usage; exit 1; } >&2
 
 exec wrrarms run -- xdg-open --wait "$1"

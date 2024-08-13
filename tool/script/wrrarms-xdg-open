@@ -1,5 +1,32 @@
-#!/bin/sh -e
-# purpose: open `response.body` of the given WRR file with `xdg-open`
-# this works for Debian's `xdg-open`, which waits for the child process to finish, will probably fail otherwise
+#!/usr/bin/env bash
+set -e
 
-exec wrrarms run -- xdg-open "$1"
+usage() {
+    cat << EOF
+usage: $0 [--help] WRR_FILE
+
+Open \`response.body\` of the given WRR file with \`xdg-open\`.
+
+This script only works for Debian's \`xdg-open\`, which waits for the child process to finish.
+
+# Options:
+
+  --help                print this message and exit
+
+# Example:
+
+  $0 path/to/wrr/file.wrr
+EOF
+}
+
+while (($# > 0)); do
+    case "$1" in
+    --help) usage; exit 0 ;;
+    *) break ;;
+    esac
+    shift
+done
+
+(($# > 0)) || { echo "error: need a WRR_FILE"; echo; usage; exit 1; } >&2
+
+exec wrrarms run -- xdg-open "$@"
