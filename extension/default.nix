@@ -7,7 +7,7 @@ with pkgs;
 
 stdenv.mkDerivation rec {
   pname = "pwebarc-extension";
-  version = "1.13.0";
+  version = "1.13.1";
 
   inherit (source) src unpackPhase;
   sourceRoot = "${src.name}/extension";

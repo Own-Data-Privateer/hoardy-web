@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [extension-v1.13.1] - 2024-08-13
+
+### Fixed
+
+- Fixed a lot of places where the documentation was misaligned with current reality.
+
+### Changed
+
+- Improved documentation, especially the "Help" page.
+- Tiny improvement in popup UI HTML layout.
+- Changed `config.history` default value.
+
 ## [extension-v1.13.0] - 2024-08-05
 
 ### Added
@@ -735,6 +747,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.13.1]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.13.0...extension-v1.13.1
 [extension-v1.13.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.12.0...extension-v1.13.0
 [tool-v0.13.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.12.0...tool-v0.13.0
 [extension-v1.12.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.11.0...extension-v1.12.0
