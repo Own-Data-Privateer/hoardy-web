@@ -74,19 +74,15 @@ def handle_signals() -> None:
     _signal.signal(_signal.SIGINT, sig_handler)
     _signal.signal(_signal.SIGTERM, sig_handler)
 
+def compile_filter(expr : str) -> tuple[str, LinstFunc]:
+    return (expr, linst_compile(expr, linst_atom_or_env))
+
+def compile_expr(expr : str) -> tuple[str, LinstFunc]:
+    return (expr, linst_compile(expr, ReqresExpr_lookup))
+
 def compile_filters(cargs : _t.Any) -> None:
-    cargs.alls = list(map(lambda expr: (expr, linst_compile(expr, linst_atom_or_env)), cargs.alls))
-    cargs.anys = list(map(lambda expr: (expr, linst_compile(expr, linst_atom_or_env)), cargs.anys))
-
-def compile_exprs(cargs : _t.Any) -> None:
-    cargs.exprs = list(map(lambda expr: (expr, linst_compile(expr, ReqresExpr_lookup)), cargs.exprs))
-
-    if cargs.remap_urls == "id":
-        cargs.remap_url_func = remap_url_id
-    elif cargs.remap_urls == "void":
-        cargs.remap_url_func = remap_url_into_void
-    else:
-        assert False
+    cargs.alls = list(map(compile_filter, cargs.alls))
+    cargs.anys = list(map(compile_filter, cargs.anys))
 
 def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr) -> bool:
     def eval_it(expr : str, func : LinstFunc) -> bool:
@@ -122,6 +118,14 @@ def elaborate_output(cargs : _t.Any) -> None:
             cargs.output_format = output_aliases[cargs.output]
         except KeyError:
             raise CatastrophicFailure(gettext('unknown `--output` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), cargs.output)
+
+def compile_remap(cargs : _t.Any) -> None:
+    if cargs.remap_urls == "id":
+        cargs.remap_url_func = remap_url_id
+    elif cargs.remap_urls == "void":
+        cargs.remap_url_func = remap_url_into_void
+    else:
+        assert False
 
 def elaborate_paths(cargs : _t.Any) -> None:
     for i in range(0, len(cargs.paths)):
@@ -246,20 +250,22 @@ def print_exprs(rrexpr : ReqresExpr, exprs : list[tuple[str, LinstFunc]],
 
 default_get_expr = "response.body|eb"
 def cmd_get(cargs : _t.Any) -> None:
-    if len(cargs.exprs) == 0:
-        cargs.exprs = [default_get_expr]
-    compile_exprs(cargs)
+    if len(cargs.mexprs) == 0:
+        cargs.mexprs = { stdout: [compile_expr(default_get_expr)] }
+    compile_remap(cargs)
 
     abs_path = _os.path.abspath(_os.path.expanduser(cargs.path))
     rrexpr = wrr_loadf_expr(abs_path)
     rrexpr.items["remap_url"] = cargs.remap_url_func
 
-    print_exprs(rrexpr, cargs.exprs, cargs.separator, stdout)
+    for fobj, exprs in cargs.mexprs.items():
+        print_exprs(rrexpr, exprs, cargs.separator, fobj)
+        fobj.flush()
 
 def cmd_run(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
-        cargs.exprs = [default_get_expr]
-    compile_exprs(cargs)
+        cargs.exprs = [compile_expr(default_get_expr)]
+    compile_remap(cargs)
 
     if cargs.num_args < 1:
         raise Failure(gettext("`run` sub-command requires at least one PATH"))
@@ -309,10 +315,10 @@ def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
 
 default_stream_expr = "."
 def cmd_stream(cargs : _t.Any) -> None:
-    if len(cargs.exprs) == 0:
-        cargs.exprs = [default_stream_expr]
-    compile_exprs(cargs)
     compile_filters(cargs)
+    if len(cargs.exprs) == 0:
+        cargs.exprs = [compile_expr(default_stream_expr)]
+    compile_remap(cargs)
     handle_paths(cargs)
 
     stream = get_StreamEncoder(cargs)
@@ -1675,6 +1681,29 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     add_paths(cmd)
     cmd.set_defaults(func=cmd_pprint)
 
+    class AddExpr(argparse.Action):
+        def __call__(self, parser : _t.Any, cfg : argparse.Namespace, value : _t.Any, option_string : _t.Optional[str] = None) -> None:
+            cfg.exprs.append(compile_expr(value))
+
+    fd_fobj = {0: stdin, 1: stdout, 2: stderr}
+
+    class AddExprFd(argparse.Action):
+        def __call__(self, parser : _t.Any, cfg : argparse.Namespace, value : _t.Any, option_string : _t.Optional[str] = None) -> None:
+            fileno = cfg.expr_fd
+            try:
+                fobj = fd_fobj[fileno]
+            except KeyError:
+                fobj = TIOWrappedWriter(_os.fdopen(fileno, "wb"))
+                fd_fobj[fileno] = fobj
+
+            try:
+                els = cfg.mexprs[fobj]
+            except KeyError:
+                els = []
+                cfg.mexprs[fobj] = els
+
+            els.append(compile_expr(value))
+
     def add_expr(cmd : _t.Any, kind : str) -> None:
         def __(value : str, indent : int = 6) -> str:
             prefix = " " * indent
@@ -1684,7 +1713,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         agrp = cmd.add_argument_group("expression evaluation")
 
         if kind == "get":
-            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; default: `{default_get_expr}`; each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following') + ":\n" + \
+            agrp.add_argument("--expr-fd", metavar="INT", type=int, default = 1, help=_(f"file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `%(default)s`, i.e. `stdout`"))
+            agrp.add_argument("-e", "--expr", dest="mexprs", metavar="EXPR", action=AddExprFd, type=str, default = {}, help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; default: `{default_get_expr}`; each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following') + ":\n" + \
                 "- " + _("constants and functions:") + "\n" + \
                 "".join([f"  - `{name}`: {__(value[0])}\n" for name, value in ReqresExpr_atoms.items()]) + \
                 "- " + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:") + "\n" + \
@@ -1702,9 +1732,9 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
 - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""", 2))
         elif kind == "run":
-            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f"an expression to compute, same expression format as `{__package__} get --expr` (which see); can be specified multiple times; default: `{default_get_expr}`"))
+            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action=AddExpr, type=str, default = [], help=_(f"an expression to compute, same expression format as `{__package__} get --expr` (which see); can be specified multiple times; default: `{default_get_expr}`"))
         elif kind == "stream":
-            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action="append", type=str, default = [], help=_(f"an expression to compute, same expression format as `{__package__} get --expr` (which see); can be specified multiple times; default: `{default_stream_expr}`, which will dump the whole reqres structure"))
+            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action=AddExpr, type=str, default = [], help=_(f"an expression to compute, same expression format as `{__package__} get --expr` (which see); can be specified multiple times; default: `{default_stream_expr}`, which will dump the whole reqres structure"))
         elif kind == "export":
             # TODO: make it a list too
             agrp.add_argument("-e", "--expr", dest="expr", metavar="EXPR", type=str, default = default_export_expr, help=_(f"an expression to export, same expression format as `{__package__} get --expr` (which see); default: `%(default)s`"))

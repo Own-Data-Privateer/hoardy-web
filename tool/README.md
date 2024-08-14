@@ -341,6 +341,8 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   : input WRR file path
 
 - expression evaluation:
+  - `--expr-fd INT`
+  : file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `1`, i.e. `stdout`
   - `-e EXPR, --expr EXPR`
   : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; default: `response.body|eb`; each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
     - constants and functions:
