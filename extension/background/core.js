@@ -2506,6 +2506,10 @@ function renderReqres(encoder, reqres) {
 }
 
 async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued, newLog) {
+    if (reqres.tabId === undefined)
+        // just in case
+        reqres.tabId = -1;
+
     if (!useDebugger && reqres.responseComplete && reqres.errors.some(isIncompleteError))
         // Apparently, sometimes Firefox calls `filter.onstop` for aborted
         // requests as if nothing out of the ordinary happened. It is a
@@ -2744,9 +2748,6 @@ async function processAlmostDone() {
 
     while (reqresAlmostDone.length > 0) {
         let reqres = reqresAlmostDone.shift();
-        if (reqres.tabId === undefined)
-            // just in case
-            reqres.tabId = -1;
         try {
             await processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued, newLog);
         } catch (err) {
