@@ -2533,10 +2533,10 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
     }
 
     if (reqres.protocol === undefined) {
-        if (getHeaderValue(reqres.requestHeaders, ":authority") !== undefined)
-            reqres.protocol = "HTTP/2.0";
-        else if (lineProtocol !== undefined && lineProtocol !== "")
+        if (lineProtocol !== undefined && lineProtocol !== "")
             reqres.protocol = lineProtocol;
+        else if (getHeaderValue(reqres.requestHeaders, ":authority") !== undefined)
+            reqres.protocol = "HTTP/2.0";
         else
             reqres.protocol = "HTTP/1.0";
     }
