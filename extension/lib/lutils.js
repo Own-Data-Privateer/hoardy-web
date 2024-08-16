@@ -128,6 +128,7 @@ function isUnknownError(error) {
                            || error === "webRequest::NS_ERROR_NET_ON_RESOLVED"
                            || error === "webRequest::NS_ERROR_UNKNOWN_HOST"
                            || error === "webRequest::NS_ERROR_NET_ON_SENDING_TO"
+                           || error === "webRequest::NS_ERROR_NET_PARTIAL_TRANSFER"
                            || error === "webRequest::NS_ERROR_UNEXPECTED"
                            || error === "webRequest::NS_IMAGELIB_ERROR_FAILURE"
                            || error === "webRequest::pWebArc::EMIT_FORCED_BY_USER"
@@ -141,6 +142,7 @@ function isIncompleteError(error) {
     if (!useDebugger && (error === "webRequest::NS_ERROR_ABORT"
                       || error === "webRequest::NS_BINDING_ABORTED"
                       || error === "webRequest::NS_ERROR_NET_ON_SENDING_TO"
+                      || error === "webRequest::NS_ERROR_NET_PARTIAL_TRANSFER"
                       || error === "webRequest::NS_ERROR_UNEXPECTED"))
         // Firefox
         return true;
