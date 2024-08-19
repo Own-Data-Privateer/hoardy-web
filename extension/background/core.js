@@ -2617,7 +2617,7 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
         // a weird status code, mark it!
         problematic = true;
 
-    if (reqres.errors.some(isNonTrivialError)) {
+    if (!reqres.errors.every(isTrivialError)) {
         // it had some potentially problematic errors
         picked = picked && config.archiveWithErrors;
         problematic = problematic

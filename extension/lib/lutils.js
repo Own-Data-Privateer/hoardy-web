@@ -155,11 +155,11 @@ function isImportantError(error) {
     return false;
 }
 
-function isNonTrivialError(error) {
+function isTrivialError(error) {
     if (!useDebugger && error === "filterResponseData::Channel redirected")
         // Firefox
-        return false;
-    return true;
+        return true;
+    return false;
 }
 
 // archival status of a loggable
