@@ -2472,6 +2472,10 @@ function renderReqres(encoder, reqres) {
     if (reqres.fake)
         rest.fake = true;
 
+    // The response was genererated by another extension or a service/shared worker.
+    if (reqres.generated)
+        rest.generated = true;
+
     let response = null;
     if (reqres.responded) {
         response = [
@@ -2509,6 +2513,33 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
     if (reqres.tabId === undefined)
         // just in case
         reqres.tabId = -1;
+
+    if (!useDebugger && reqres.generated && !reqres.responded) {
+        if (reqres.errors.length === 1 && reqres.errors[0].startsWith("webRequest::NS_ERROR_NET_ON_")) {
+            // (raceCondition)
+            //
+            // This happens when the networking code in Firefox gets
+            // interrupted by a service/shared worker fulfilling the request.
+            //
+            // See the top of
+            // `devtools/shared/network-observer/NetworkObserver.sys.mjs` and
+            // `activityErrorsMap` function in
+            // `toolkit/components/extensions/webrequest/WebRequest.sys.mjs` in
+            // Firefox sources for how those error codes get emitted.
+            //
+            // Ideally, `onErrorOccurred` would simply specify all the fields
+            // `onCompleted` does in this case, but it does not, so we have to
+            // handle it specially here.
+            reqres.responded = true;
+            reqres.statusCode = 200;
+            reqres.reason = "Assumed OK";
+            // so that it would be marked as problematic, since actual metatada is not available
+            reqres.errors.push("webRequest::pWebArc::RESPONSE::BROKEN");
+        } else
+            // This was a normal error, not a race between the response
+            // generator and the networking code.
+            reqres.generated = false;
+    }
 
     if (!useDebugger && reqres.responseComplete && reqres.errors.some(isIncompleteError))
         // Apparently, sometimes Firefox calls `filter.onstop` for aborted
@@ -3323,10 +3354,10 @@ function completedCopyOfReqres(reqres) {
 function fillResponse(reqres, e) {
     reqres.responded = true;
     reqres.responseTimeStamp = e.timeStamp;
+    reqres.fromCache = e.fromCache;
     reqres.statusCode = e.statusCode;
     reqres.statusLine = e.statusLine;
     reqres.responseHeaders = e.responseHeaders;
-    reqres.fromCache = e.fromCache;
 }
 
 function handleHeadersRecieved(e) {
@@ -3360,18 +3391,21 @@ function handleBeforeRedirect(e) {
     logEvent("BeforeRedirect", e, reqres);
 
     if (!reqres.responded) {
-        // this happens when a request gets redirected right after
-        // handleBeforeRequest by another extension
-        fillResponse(reqres, e);
-
-        if (!useDebugger && reqres.statusCode === 0) {
+        // This happens when a request gets redirected right after
+        // `handleBeforeRequest`, e.g. by another extension or a
+        // service/shared worker.
+        if (!useDebugger && e.statusCode === 0) {
             // workaround internal Firefox redirects giving no codes and statuses
+            reqres.responded = true;
+            reqres.responseTimeStamp = e.timeStamp;
+            reqres.fromCache = false;
             reqres.statusCode = 307;
-            reqres.statusLine = "HTTP/1.0 307 Internal Redirect";
+            reqres.reason = "Internal Redirect";
             reqres.responseHeaders = [
                 { name: "Location", value: e.redirectUrl }
             ];
-        }
+        } else
+            fillResponse(reqres, e);
     }
 
     reqres.responseComplete = true;
@@ -3402,6 +3436,14 @@ function handleCompleted(e) {
     if (reqres === undefined) return;
 
     logEvent("Completed", e, reqres);
+
+    if (!reqres.responded) {
+        // This happens when a request gets fulfilled by another extension or
+        // a service/shared worker.
+        reqres.generated = true;
+        fillResponse(reqres, e);
+    }
+
     emitRequest(e.requestId, reqres);
 }
 
@@ -3410,6 +3452,18 @@ function handleErrorOccurred(e) {
     if (reqres === undefined) return;
 
     logEvent("ErrorOccured", e, reqres);
+
+    if (!reqres.responded) {
+        // This happens when a request gets started as normal, but then the
+        // loading gets interrupted by another extension or a service/shared
+        // worker.
+        reqres.generated = true;
+        // NB: not setting reqres.responded
+        reqres.responseTimeStamp = e.timeStamp;
+        reqres.fromCache = e.fromCache;
+        // NB: This then continues to (raceCondition).
+    }
+
     emitRequest(e.requestId, reqres, "webRequest::" + e.error);
 }
 
@@ -4030,7 +4084,7 @@ async function init() {
     browser.webRequest.onHeadersReceived.addListener(catchAll(handleHeadersRecieved), {urls: ["<all_urls>"]}, ["responseHeaders"]);
     browser.webRequest.onBeforeRedirect.addListener(catchAll(handleBeforeRedirect), {urls: ["<all_urls>"]}, ["responseHeaders"]);
     browser.webRequest.onAuthRequired.addListener(catchAll(handleAuthRequired), {urls: ["<all_urls>"]});
-    browser.webRequest.onCompleted.addListener(catchAll(handleCompleted), {urls: ["<all_urls>"]});
+    browser.webRequest.onCompleted.addListener(catchAll(handleCompleted), {urls: ["<all_urls>"]}, ["responseHeaders"]);
     browser.webRequest.onErrorOccurred.addListener(catchAll(handleErrorOccurred), {urls: ["<all_urls>"]});
 
     browser.notifications.onClicked.addListener(catchAll(handleNotificationClicked));
