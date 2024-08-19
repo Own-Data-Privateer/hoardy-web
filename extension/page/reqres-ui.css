@@ -41,6 +41,12 @@ div.controls,
     display: flex;
 }
 
+h1 code,
+div.controls code,
+.right code {
+    margin: auto 0.5ch;
+}
+
 div.controls {
     margin-top: 10px;
 }

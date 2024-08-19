@@ -34,6 +34,11 @@ h2 {
     display: flex;
 }
 
+h1 code,
+h2 code {
+    margin: auto 0.5ch;
+}
+
 h1 span.right,
 h2 span.right {
     display: flex;

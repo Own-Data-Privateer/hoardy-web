@@ -87,12 +87,6 @@ body {
     margin-left: auto;
 }
 
-h1 code,
-h2 code,
-label code {
-    margin: 0 0.5ch;
-}
-
 .flex,
 div.ui,
 div.ui label {
@@ -129,7 +123,12 @@ div.ui label input[type="checkbox"]:nth-child(1) {
 div.ui.c label input[type="number"],
 div.ui.c label input[type="text"],
 div.ui.c label input[type="checkbox"] {
-    margin: 0 1ch;
+    margin: auto 1ch;
+}
+
+.flex code,
+div.ui label code {
+    margin: auto 0.5ch;
 }
 
 input[type="checkbox"].toggle {
