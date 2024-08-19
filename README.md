@@ -320,7 +320,7 @@ In practice, though, your will probably want to install at least [the dumb archi
 
 Or, alternatively, you can use the combination of archiving by saving of data to browser's local storage (the default) followed by manual export into WRR-bundles [as described below in the section on using `pWebArc` together with Tor Browser](#in-tb).
 
-Or, alternatively, you can switch to "Archive `collected` reqres by ... exporting them via `saveAs`" mode by default and simply accept the resulting slightly more annoying UI and the facts that [you can now lose some data if your disk ever gets out of space or if you accidentally mis-click a button in your browser's "Downloads" UI](./extension/page/help.org#faq-unsafe).
+Or, alternatively, you can switch to "Archive `collected` reqres by ... exporting them via `saveAs`" mode by default and simply accept the resulting slightly more annoying UI ([on Firefox, it can be fixed with a small `about:config` change](./extension/page/help.org#faq-firefox-saveas)) and the facts that [you can now lose some data if your disk ever gets out of space or if you accidentally mis-click a button in your browser's "Downloads" UI](./extension/page/help.org#faq-unsafe).
 
 ## Recommended next steps
 
@@ -459,11 +459,12 @@ and then
 
 Yes, this is slightly annoying, but this is [the only absolutely safe way to export data out of pWebArc without using submission via HTTP](./extension/page/help.org#faq-unsafe), and you don't need to do this at the end of each and every browsing session.
 
-### Simpler, but slightly unsafe and with slightly annoying UI
+### Simpler, but slightly unsafe
 
 You can also simply switch to using "Archive `collected` reqres by ... exporting them via `saveAs`" by default instead.
 
-I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [this is unsafe](./extension/page/help.org#faq-unsafe), and browser's UI will be slightly annoying, since pWebArc will be generating new "Downloads" all the time.
+I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [this is unsafe](./extension/page/help.org#faq-unsafe).
+Also, by default, browser's UI will be slightly annoying, since pWebArc will be generating new "Downloads" all the time, but that issue [can be fixed with a small `about:config` change](./extension/page/help.org#faq-firefox-saveas).
 
 ### Most convenient, less paranoid
 

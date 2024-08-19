@@ -708,5 +708,11 @@ It is the default because it usually works fine, it properly reports errors, has
 In the ideal world, browsers would provide a better =saveAs= API which would have a less annoying UI for the user and would return out-of-disk-space errors to the extension, in which case [[./popup.html#div-config.archiveExportAs][exporting via =saveAs=]] would be the default.
 
 As it is now, the only way to be absolutely sure you data is properly forever saved to disk when the extension reports it archived is to use [[./popup.html#div-config.archiveSubmitHTTP][submission via HTTP]].
+** On a Firefox, enabling [[./popup.html#div-config.archiveExportAs][export via =saveAs=]] makes the browser's UI quite annoying. Can it be fixed?
+:PROPERTIES:
+:CUSTOM_ID: faq-firefox-saveas
+:END:
+
+Yes, go to =about:config= and toggle =browser.download.alwaysOpenPanel= to =false=.
 ** This page does not answer my question. What do I do?
 If the whole content of this page (not just this section, did you try searching for stuff with =Control+F=? there's a lot of info here) does not explain your problem, [[https://github.com/Own-Data-Privateer/pwebarc/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]].
