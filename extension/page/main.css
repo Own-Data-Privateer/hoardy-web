@@ -64,6 +64,11 @@
         --help-tip-text: #ffffff;
         --attention-background-2: #000000;
     }
+
+    body {
+        color: #fff;
+        background-color: #0c0b12;
+    }
 }
 
 body {
