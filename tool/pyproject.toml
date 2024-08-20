@@ -34,7 +34,7 @@ keywords = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "kisstdlib",
+    "kisstdlib==0.0.4",
     "cbor2",
     "idna",
     "html5lib",

@@ -154,16 +154,13 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], Lo
             return
         seen_paths.add(abs_dir_or_file_path)
 
-    for path in walk_orderly(dir_or_file_path,
-                             include_directories = False,
-                             ordering = ordering,
-                             follow_symlinks = follow_symlinks,
-                             handle_error = None if errors == "fail" else _logging.error):
+    for path, _ in walk_orderly(dir_or_file_path,
+                                include_files = with_extension_not_in([".part", b".part"]),
+                                include_directories = False,
+                                ordering = ordering,
+                                follow_symlinks = follow_symlinks,
+                                handle_error = None if errors == "fail" else _logging.error):
         if want_stop: raise KeyboardInterrupt()
-
-        if (isinstance(path, str) and path.endswith(".part")) or \
-           (isinstance(path, bytes) and path.endswith(b".part")):
-            continue
 
         abs_path = _os.path.abspath(path)
         try:
