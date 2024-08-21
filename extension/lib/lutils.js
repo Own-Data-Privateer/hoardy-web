@@ -98,7 +98,22 @@ function setPageLoaded() {
 function setPageError(error) {
     logError(error);
     document.getElementById("body_loading").style.display = "none";
-    document.getElementById("body_error").style.display = "block";
+    let be = document.getElementById("body_error");
+    be.innerHTML = `
+      <h1>This page failed to initialize</h1>
+      <div id="body_exception"><h2>Exception</h2></div>
+      <h2>To see more details</h2>
+      <ul>
+        <li>On Firefox-based browser: go to <code>about:debugging#/runtime/this-firefox</code>, click &quot;Inspect&quot; button on &quot;pWebArc&quot;, select &quot;Console&quot;</li>
+        <li>On Chromium-based browser: go to <code>chrome://extensions/</code>, click &quot;Inspect views&quot; link on &quot;pWebArc&quot;, select &quot;Console&quot;</li>
+      </ul>
+    `;
+
+    let p = document.createElement("pre");
+    p.innerText = errorMessageOf(error);
+    document.getElementById("body_exception").appendChild(p);
+
+    be.style.display = "block";
 }
 
 function isUnknownError(error) {
