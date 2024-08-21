@@ -26,10 +26,11 @@ See [the gallery](../doc/gallery.md).
 
 # Installation
 
-## <span id="install-firefox"/>On Firefox, Tor Browser, LibreWolf, etc
+## <span id="install-firefox"/>On Firefox, Tor Browser, LibreWolf, Fennix aka Firefox for Android, Fennec, Mull, etc
 
 - [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/).
-  Then press "Extensions" toolbar button and pin "pWebArc".
+  Then, in a desktop browser, press "Extensions" toolbar button and pin "pWebArc".
+  (In mobile browsers there is are no customizable toolbars, unfortunately.)
 
 - Alternatively, download the latest `pWebArc-firefox-v*.xpi` from Releases, and then [follow "Install as an unsigned XPI" instructions below](#unsigned-xpi).
 
@@ -37,7 +38,7 @@ See [the gallery](../doc/gallery.md).
 
 ### <span id="unsigned-xpi"/>Install as an unsigned XPI
 
-- Make sure your browser [supports installation of unsigned add-ons](https://wiki.mozilla.org/Add-ons/Extension_Signing) (Firefox ESR, Nightly, Developer Edition, and Tor Browser do).
+- Make sure your browser [supports installation of unsigned add-ons](https://wiki.mozilla.org/Add-ons/Extension_Signing) (Firefox ESR, Nightly, Developer Edition, and Tor Browser do, vanilla Firefox and its mobile versions do not).
 - Go to `about:config`, set `xpinstall.signatures.required` to `false`.
 - Go to `about:addons`, click the gear button, select "Install Add-on from File", and select the XPI file in `./extension/dist` directory (or do `File > Open File` from the menu and then select the XPI file, or drag-and-drop the XPI file into the browser window).
 - Then press "Extensions" toolbar button and pin "pWebArc".
