@@ -1014,11 +1014,11 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
         if (stats.in_limbo > 0) {
             badge += "L";
             color = 1;
-            chunks.push(`${stats.in_limbo} reqres in limbo`);
+            chunks.push(`${stats.in_limbo} in-limbo reqres`);
         }
         if (stats.queued > 0) {
             badge += "Q";
-            chunks.push(`${stats.queued} reqres in queue`);
+            chunks.push(`${stats.queued} queued reqres`);
         }
         if (stats.bundledAs > 0) {
             badge += "B";
@@ -1074,10 +1074,14 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
             chunks.push(`${stats.scheduled_low} low-priority scheduled actions`);
         }
 
-        if (chunks.length > 0)
-            title = "pWebArc: " + chunks.join(", ");
+        if (stats.in_flight === 0) {
+            chunks.push("idle");
+        }
+
+        if (badge.length > 0)
+            title = `pWebArc: ${badge}: ` + chunks.join(", ");
         else
-            title = "pWebArc: idle";
+            title = "pWebArc: " + chunks.join(", ");
 
         if (udBadge !== badge) {
             changed = true;
