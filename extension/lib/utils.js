@@ -899,6 +899,9 @@ function helpMarkupToHTML(text) {
 }
 
 async function getShortcuts() {
+    if (browser.commands === undefined)
+        return {};
+
     let shortcuts = await browser.commands.getAll();
     let res = {};
     for (let s of shortcuts)

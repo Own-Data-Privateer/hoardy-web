@@ -17,6 +17,10 @@
         "default_popup": "page/popup.html"
     },
 
+    "options_ui": {
+        "page": "page/popup.html#options"
+    },
+
     "commands": {
         "showState": {
             "suggested_key": {

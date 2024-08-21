@@ -55,9 +55,20 @@ function present(obj) {
 }
 
 async function popupMain() {
-    let tab = await getActiveTab();
-    let windowId = tab.windowId;
-    let tabId = getStateTabIdOrTabId(tab);
+    let hash = document.location.hash.substr(1);
+    let tabId;
+    let windowId;
+
+    let tabbing = false;
+    if (hash !== "options") {
+        let tab = await getActiveTab();
+        windowId = tab.windowId;
+        tabId = getStateTabIdOrTabId(tab);
+        tabbing = true;
+    } else {
+        document.getElementById("this-tab-options").style.display = "none";
+        document.getElementById("this-tab-children-options").style.display = "none";
+    }
 
     // start recording tabId changes
     async function recordTabId(event) {
@@ -68,7 +79,9 @@ async function popupMain() {
         tabId = getStateTabIdOrTabId(tab);
     }
     let recordTabIdFunc = catchAll(recordTabId);
-    browser.tabs.onActivated.addListener(recordTabIdFunc);
+
+    if (tabbing)
+        browser.tabs.onActivated.addListener(recordTabIdFunc);
 
     // generate UI
     let body = document.getElementById("body");
@@ -123,22 +136,37 @@ async function popupMain() {
         pureTextState = config.pureText;
     }
 
-    async function resetAndOpen(reset, open) {
+    async function replaceWith(open, prefix, id) {
+        await open(prefix, id, tabId);
+        if (isMobile) {
+            let config = await browser.runtime.sendMessage(["getConfig"]);
+            if (config.invisibleUINotify)
+                // Firefox on Android does not switch to new tabs opened from the settings
+                browser.notifications.create("pageSpawnedAway", {
+                    title: "pWebArc: REMINDER",
+                    message: `The newly spawned page might be hidden. See the list of open tabs.`,
+                    iconUrl: iconURL("main", 128),
+                    type: "basic",
+                }).catch(logError);
+        } else
+            window.close();
+    }
+
+    async function resetAndReplace(reset, open) {
         // reset given config setting
         await browser.runtime.sendMessage(["setConfig", reset]);
-        // and then open this
-        await open("", "", tabId);
-        window.close();
+        // and then replace this page with
+        await replaceWith(open, "", "");
     }
 
     let versionButton = document.getElementById("version");
     versionButton.value = "v" + manifest.version;
-    versionButton.onclick = catchAll(() => resetAndOpen({ seenChangelog: true }, showChangelog));
+    versionButton.onclick = catchAll(() => resetAndReplace({ seenChangelog: true }, showChangelog));
 
     let helpButton = document.getElementById("help");
-    helpButton.onclick = catchAll(() => resetAndOpen({ seenHelp: true }, showHelp));
+    helpButton.onclick = catchAll(() => resetAndReplace({ seenHelp: true }, showHelp));
 
-    buttonToAction("showState", catchAll(() => showState("", "top", tabId)));
+    buttonToAction("showState", catchAll(() => replaceWith(showState, "", "top")));
     buttonToMessage("forgetHistory",           () => ["forgetHistory", null]);
     buttonToMessage("snapshotAll",             () => ["snapshotTab", null]);
     buttonToMessage("exportAsAll",             () => ["exportAsAll", null]);
@@ -147,7 +175,7 @@ async function popupMain() {
     buttonToMessage("unmarkAllProblematic",    () => ["unmarkProblematic", null, null]);
     buttonToMessage("stopAllInFlight",         () => ["stopAllInFlight", null]);
 
-    buttonToAction("showTabState", catchAll(() => showState(`?tab=${tabId}`, "top", tabId)));
+    buttonToAction("showTabState", catchAll(() => replaceWith(showState, `?tab=${tabId}`, "top")));
     buttonToMessage("forgetTabHistory",        () => ["forgetHistory", tabId]);
     buttonToMessage("snapshotTab",             () => ["snapshotTab", tabId]);
     buttonToMessage("collectAllTabInLimbo",    () => ["popInLimbo", true, null, tabId]);
@@ -184,12 +212,6 @@ async function popupMain() {
         setUI(document, "stats", present(stats));
     }
 
-    async function updateTabStats(tabstats) {
-        if (tabstats === undefined)
-            tabstats = await browser.runtime.sendMessage(["getTabStats", tabId]);
-        setUI(document, "tabstats", present(tabstats));
-    }
-
     async function updateConfig(config) {
         if (config === undefined)
             config = await browser.runtime.sendMessage(["getConfig"]);
@@ -214,6 +236,12 @@ async function popupMain() {
         setConditionalClass(body, !config.limboNotify, "disabled-limbo-notify");
         setConditionalClass(versionButton, !config.seenChangelog, "attention");
         setConditionalClass(helpButton, !config.seenHelp, "attention");
+    }
+
+    async function updateTabStats(tabstats) {
+        if (tabstats === undefined)
+            tabstats = await browser.runtime.sendMessage(["getTabStats", tabId]);
+        setUI(document, "tabstats", present(tabstats));
     }
 
     async function updateTabConfig(tabconfig) {
@@ -241,11 +269,13 @@ async function popupMain() {
         await updateTabStats();
         await updateTabConfig();
     }
-    browser.tabs.onActivated.removeListener(recordTabIdFunc);
-    browser.tabs.onActivated.addListener(catchAll(recordUpdateTabId));
+
+    if (tabbing) {
+        browser.tabs.onActivated.removeListener(recordTabIdFunc);
+        browser.tabs.onActivated.addListener(catchAll(recordUpdateTabId));
+    }
 
     // set default UI state
-    let hash = document.location.hash.substr(1);
     if (hash)
         showAll();
     else
@@ -256,13 +286,14 @@ async function popupMain() {
         switch (what) {
         case "updateStats":
             await updateStats(data);
-            await updateTabStats();
+            if (tabbing)
+                await updateTabStats();
             break;
         case "updateConfig":
             await updateConfig(data);
             break;
         case "updateOriginConfig":
-            if (data == tabId)
+            if (tabbing && data == tabId)
                 await updateTabConfig(update[2]);
             break;
         default:
@@ -272,9 +303,11 @@ async function popupMain() {
 
     await subscribeToExtension(catchAll(processUpdate), catchAll(async () => {
         await updateStats();
-        await updateTabStats();
         await updateConfig();
-        await updateTabConfig();
+        if (tabbing) {
+            await updateTabStats();
+            await updateTabConfig();
+        }
     }));
 
     // show UI

@@ -143,4 +143,7 @@ for target in "$@"; do
     fi
 done
 
+# for `web-ext --watch-file`
+touch dist/build-done
+
 echo "Done."

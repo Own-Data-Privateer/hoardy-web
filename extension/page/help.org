@@ -405,7 +405,7 @@ pWebArc provides context menu actions to:
 - On all supported browsers, if an HTTP server supplies the same header multiple times --- which happens sometimes, most commonly with =Set-Cookie= headers --- then the archived response headers will usually become weird, with multiple headers squished into a single value, separated by newline symbols.
 
   This is just the way both Firefox (usually) and Chromium (always) supply those headers to extensions and pWebArc does not try to undo it.
-** Relevant issues of Firefox, Tor Browser, LibreWolf, etc
+** Relevant issues of Firefox-based desktop browsers: Firefox, Tor Browser, LibreWolf, etc
 :PROPERTIES:
 :CUSTOM_ID: firefox-bugs
 :END:
@@ -433,7 +433,19 @@ pWebArc provides context menu actions to:
   If [[./popup.html#div-config.workaroundFirefoxFirstRequest][this option]] is enabled, pWebArc will transparently work around this bug by redirecting the very first navigation request to =about:blank= and then reloading the tab with its original URL.
 
 - Firefox-based browsers provide no API for archiving WebSockets data at the moment, unfortunately.
-** Relevant issues of Chromium, Chrome, etc
+** Relevant issues of Firefox-based mobile browsers: Firefox Android aka Fennix, Fennec, Mull, etc
+:PROPERTIES:
+:CUSTOM_ID: firefoxa-android-bugs
+:END:
+
+[[#firefox-bugs][All of the above]] apply, moreover:
+
+- Archival [[./popup.html#div-config.archiveExportAs][by exporting using =saveAs=]] is not supported at the moment because of [[https://bugzilla.mozilla.org/show_bug.cgi?id=1914360][this bug]].
+
+- Pressing most buttons in the add-on's "Settings" UI will spawn new tabs into background, which makes the UI quite confusing.
+  Which is why pWebArc will generate new notifications about such events.
+  You can disable [[./popup.html#div-config.invisibleUINotify][this option]] if they annoy you.
+** Relevant issues of Chromium-based desktop browsers: Chromium, Chrome, etc
 :PROPERTIES:
 :CUSTOM_ID: chromium-bugs
 :END:

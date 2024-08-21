@@ -28,6 +28,9 @@
         "gecko": {
             "id": "pwebarc@oxij.org",
             "strict_min_version": "68.0"
+        },
+        "gecko_android": {
+            "strict_min_version": "102.0"
         }
     },
 

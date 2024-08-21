@@ -52,6 +52,7 @@ let configDefaults = {
     seenHelp: false,
     colorblind: false,
     pureText: false,
+    invisibleUINotify: true,
 
     // log settings
     history: 1024,
@@ -3761,6 +3762,9 @@ let menuIcons = {
 let menuOldState = true;
 
 function updateMenu(tabcfg) {
+    if (browser.menus === undefined)
+        return;
+
     let newState = !tabcfg.children.collecting;
 
     if (menuOldState === newState) return;
@@ -3776,6 +3780,9 @@ function updateMenu(tabcfg) {
 }
 
 function initMenus() {
+    if (browser.menus === undefined)
+        return;
+
     browser.menus.create({
         id: "open-not-tab",
         contexts: ["link"],
@@ -3912,6 +3919,18 @@ function fixConfig(cfg, old) {
         // can not be disabled on Chromium ATM, since serialization of
         // Uint8Array to `storage.local` won't work there
         cfg.preferIndexedDB = true;
+
+    if (isMobile && isFirefox && cfg.archiveExportAs) {
+        cfg.archiveExportAs = false;
+
+        // Firefox on Android does not switch to new tabs opened from the settings
+        browser.notifications.create("configNotSupported", {
+            title: "pWebArc: REMINDER",
+            message: `"Export via \`saveAs\` is not supported on Firefox-based mobile browsers. See the "Help" page for more info.`,
+            iconUrl: iconURL("main", 128),
+            type: "basic",
+        }).catch(logError);
+    }
 
     let anyA = cfg.archiveExportAs || cfg.archiveSubmitHTTP || cfg.archiveSaveLS;
     if (!anyA) {
@@ -4099,7 +4118,8 @@ async function init() {
     browser.tabs.onActivated.addListener(catchAll(handleTabActivated));
     browser.tabs.onUpdated.addListener(catchAll(handleTabUpdated));
 
-    browser.commands.onCommand.addListener(catchAll(handleCommand));
+    if (browser.commands !== undefined)
+        browser.commands.onCommand.addListener(catchAll(handleCommand));
 
     browser.runtime.onMessage.addListener(catchAll(handleMessage));
     browser.runtime.onConnect.addListener(catchAll(handleConnect));
