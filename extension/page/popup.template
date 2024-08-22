@@ -213,13 +213,15 @@ h2 input[type="button"] {
           <span id="stats.problematic">0</span>
         </span>
       </div>
-      <div id="div-stats.in_flight" data-help="At the moment, the number of reqres that have not finished yet.">
+      <div id="div-stats.in_flight" data-help="At the moment, the number of reqres that have not finished yet. See the &quot;Help&quot; page for more info.">
         <span>In flight</span>
         <span>
           <input type="button" id="stopAllInFlight" data-help="Stop tracking progress of all in-flight reqres and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options." value="Stop" />
         </span>
         <span>
           <span id="stats.in_flight">0</span>
+          +
+          <span id="stats.finishing_up">0</span>
         </span>
       </div>
     </div>
@@ -404,13 +406,15 @@ h2 input[type="button"] {
           <span id="tabstats.problematic">0</span>
         </span>
       </div>
-      <div id="div-tabstats.in_flight" data-help="For this tab, the number of in-flight reqres that have not finished yet.">
+      <div id="div-tabstats.in_flight" data-help="For this tab, the number of in-flight reqres that have not finished yet. See the &quot;Help&quot; page for more info.">
         <span>In flight</span>
         <span>
           <input type="button" id="stopAllTabInFlight" data-help="For reqres of this tab, stop tracking progress of all in-flight requests and either collect them for archival or fail them, depending on completion and &quot;Pick reqres for archival when they finish&quot; options." value="Stop" />
         </span>
         <span>
           <span id="tabstats.in_flight">0</span>
+          +
+          <span id="tabstats.finishing_up">0</span>
         </span>
       </div>
     </div>

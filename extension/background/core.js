@@ -700,9 +700,9 @@ function getStats() {
 
     let [archiveFailed, archiveFailedSize] = getNumberAndSizeFromKeys(reqresFailedToArchiveByArchivable);
 
-    let in_flight = reqresAlmostDone.length +
-        Math.max(reqresInFlight.size, debugReqresInFlight.size) +
-        Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length);
+    let in_flight = Math.max(reqresInFlight.size, debugReqresInFlight.size);
+
+    let finishing_up = Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length) + reqresAlmostDone.length;
 
     let actions = [];
     forEachSingletonTimeout(scheduledCancelable, (key) => actions.push(key));
@@ -715,6 +715,7 @@ function getStats() {
         scheduled: actions.length + synchronousClosures.length,
         actions,
         in_flight,
+        finishing_up,
         problematic: reqresProblematic.length,
         picked: globals.pickedTotal,
         dropped: globals.droppedTotal,
@@ -743,6 +744,7 @@ function getStats() {
         errored,
         errored_size: erroredSize,
         issues: in_flight
+            + finishing_up
             + reqresProblematic.length
             + reqresLimbo.length
             + reqresQueue.length
@@ -783,9 +785,8 @@ function getTabStats(tabId) {
             almost_done += 1;
 
     return {
-        in_flight: almost_done +
-            Math.max(in_flight, in_flight_debug) +
-            Math.max(finishing_up, finishing_up_debug),
+        in_flight: Math.max(in_flight, in_flight_debug),
+        finishing_up: Math.max(finishing_up, finishing_up_debug) + almost_done,
         problematic: info.problematicTotal,
         picked: info.pickedTotal,
         dropped: info.droppedTotal,
@@ -1004,7 +1005,12 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
         if (stats.in_flight > 0) {
             badge += "T";
             color = 1;
-            chunks.push(`still tracking ${stats.in_flight} in-flight reqres`);
+            chunks.push(`${stats.in_flight} in-flight reqres`);
+        }
+        if (stats.finishing_up > 0) {
+            badge += "T";
+            color = 1;
+            chunks.push(`${stats.finishing_up} finishing-up reqres`);
         }
         if (stats.problematic > 0) {
             badge += "P";
@@ -1074,7 +1080,7 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
             chunks.push(`${stats.scheduled_low} low-priority scheduled actions`);
         }
 
-        if (stats.in_flight === 0) {
+        if (stats.in_flight + stats.finishing_up === 0) {
             chunks.push("idle");
         }
 
@@ -1156,7 +1162,7 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
             let isLimboSame = tabcfg.limbo === tabcfg.children.limbo;
             let isNegLimboSame = tabcfg.negLimbo === tabcfg.children.negLimbo;
 
-            if (tabstats.in_flight > 0)
+            if (tabstats.in_flight + tabstats.finishing_up > 0)
                 icon = "tracking";
             else if (config.archive && stats.queued > 0)
                 icon = "archiving";
@@ -1202,8 +1208,10 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
                 tchunks.push(`${tabstats.problematic} problematic reqres`);
             if (tabstats.in_limbo > 0)
                 tchunks.push(`${tabstats.in_limbo} reqres in limbo`);
-            if (tabstats.in_flight > 0)
-                tchunks.push(`still tracking ${tabstats.in_flight} in-flight reqres`);
+            if (stats.in_flight > 0)
+                tchunks.push(`${tabstats.in_flight} in-flight reqres`);
+            if (stats.finishing_up > 0)
+                tchunks.push(`${tabstats.finishing_up} finishing-up reqres`);
 
             if (tabcfg.limbo && tabcfg.negLimbo)
                 tchunks.push("picking and dropping into limbo");

@@ -116,8 +116,19 @@ As shown on the above diagram, a new reqres proceeds through the following netwo
 
 In principle, at reaching =finished= state the reqres can be serialized and saved to disk, but pWebArc provides more states and UI for convenience and to workaround limitations of various browser APIs (a =WebExtensions= API function call that writes a data chunk into a file on a local file system while reporting out-of-disk-space errors does not exists).
 *** Glossary
-- [[./popup.html#div-stats.in_flight][An /in-flight reqres/]] ([[./popup.html#div-tabstats.in_flight][current tab]]) is a reqres that did not reach the =finished= state yet, in the UI such reqres will be shown to be in =in_flight= state.
-  If some reqres get stuck in one of the =in_flight= states, the UI has buttons ([[./popup.html#stopAllInFlight][this]] and [[./popup.html#stopAllTabInFlight][this]] in the popup) to force them out of the current state as if an error occurred.
+- [[./popup.html#div-stats.in_flight][An /in-flight reqres/]] ([[./popup.html#div-tabstats.in_flight][current tab]]) is a reqres that did not reach the =finished= state yet, in [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]] such reqres will be shown to be in =in_flight= state.
+
+  These two stats are represented as sums of two numbers:
+
+  - the number of reqres that are still being tracked via =webRequest= or =debugger= API; and
+  - the number of reqres that have finished being tracked and are now waiting for all their events to finish processing.
+
+  On Firefox, nothing should ever get stuck, if something seems to be stuck in =in_flight= state, it's probably still loading.
+
+  On Chromium, limitations of the Chromium's debugging interface mean a request can get stuck among the reqres represended by the first number above.
+  If the first number is zero, however, then the second should also rapidly become zero, at most after [[./popup.html#div-config.workaroundChromiumDebugTimeout][two times this many seconds]].
+
+  If some reqres got stuck in one of the =in_flight= states, you can forcefully move them out of that state using [[./popup.html#stopAllInFlight][this]] and/or [[./popup.html#stopAllTabInFlight][that]] popup buttons.
 
 - A /finished reqres/ is a reqres that reached the =finished= state.
 
