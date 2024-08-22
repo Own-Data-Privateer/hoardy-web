@@ -125,7 +125,7 @@ In principle, at reaching =finished= state the reqres can be serialized and save
 
   On Firefox, nothing should ever get stuck, if something seems to be stuck in =in_flight= state, it's probably still loading.
 
-  On Chromium, limitations of the Chromium's debugging interface mean a request can get stuck among the reqres represended by the first number above.
+  On Chromium, [[#chromium-bug-stuck][limitations of the Chromium's debugging interface mean a request can get stuck among the reqres represended by the first number above]].
   If the first number is zero, however, then the second should also rapidly become zero, at most after [[./popup.html#div-config.workaroundChromiumDebugTimeout][two times this many seconds]].
 
   If some reqres got stuck in one of the =in_flight= states, you can forcefully move them out of that state using [[./popup.html#stopAllInFlight][this]] and/or [[./popup.html#stopAllTabInFlight][that]] popup buttons.
@@ -421,7 +421,8 @@ pWebArc provides context menu actions to:
 :CUSTOM_ID: firefox-bugs
 :END:
 
-- On Firefox-based browsers, without the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/firefox/][patch]] (also [[https://oxij.org/software/pwebarc/tree/master/firefox/][there]]), the browser only supplies =formData= to =webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a POST request.
+- @@html:<span id="firefox-bug-no-post">@@ On Firefox-based browsers, without the [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/firefox/][patch]] (also [[https://oxij.org/software/pwebarc/tree/master/firefox/][there]]), the browser only supplies =formData= to =webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a POST request.
+  @@html:</span>@@
 
   pWebArc will mark such requests as having a "partial request body" and try its best to recover the data from =formData= structure, but if a POST request was uploading files, they won't be recoverable from =formData= (in fact, it is not even possible to tell if there were any files attached there), and so your archived request data will be incomplete even after pWebArc did its best.
 
@@ -466,14 +467,16 @@ This makes things a bit tricky, for instance:
 
 - With [[./popup.html#div-config.collecting][pWebArc]] and [[./popup.html#div-config.workaroundChromiumResetRootTab][this option]] enabled, new tabs will be reset to [[./popup.html#div-config.workaroundChromiumResetRootTabURL][this value]] (=about:blank= by default) because the default of =chrome://newtab/= does not allow attaching debugger to the tabs with =chrome:= URLs.
 
-- Requests made before the debugger is attached will get canceled by pWebArc.
+- @@html:<span id="chromium-quirk-reload">@@ Requests made before the debugger is attached will get canceled by pWebArc.
   So, for instance, when you middle-click a link, Chromium will open a new tab, but pWebArc will block the requests from there until the debugger gets attached and then automatically reload the tab after.
   As side-effect of this, Chromium will show "Request blocked" page until the debugger is attached and the page is reloaded, meaning it will get visually stuck on "Request blocked" page if fetching the request ended up spawning a download instead of showing a page.
   The download will proceed as normal, though.
+  @@html:</span>@@
 
-- You will get an annoying notification bar constantly displayed in the browser while [[./popup.html#div-config.collecting][pWebArc is enabled]].
+- @@html:<span id="chromium-bug-detach">@@ You will get an annoying notification bar constantly displayed in the browser while [[./popup.html#div-config.collecting][pWebArc is enabled]].
   Closing that notification will detach the debugger.
   pWebArc will reattach it immediately because it assumes you don't want to lose data and closing that notification on accident is, unfortunately, quite easy.
+  @@html:</span>@@
 
   *However, closing the notification will make all in-flight requests lose their response data.*
 
@@ -483,26 +486,30 @@ This makes things a bit tricky, for instance:
 
 Moreover, Chromium has the following long-standing issues/bugs making things difficult:
 
-- Chromium will automatically detach a debugger from a tab if it tries to save too much data into its debugger state.
+- @@html:<span id="chromium-bug-no-large-files">@@ Chromium will automatically detach a debugger from a tab if it tries to save too much data into its debugger state.
   Which means that a tab that loads too much data too fast will get its debugger detached.
   Chromium does this to try and save memory, but this, among other issues, means that large images will fail to be properly archived, and any page that loads such files is likely to fail to be archived too.
+  @@html:</span>@@
 
   This is a design limitation of Chromium debugging interface, there appears to be no work-around for this at the moment.
 
   Meanwhile, on Firefox, pWebArc uses =webRequest.filterResponseData= API (not available no Chromium, because it greatly enhances browser's ad-blocking capabilities) which does not suffer from this problem.
 
-- Chromium will occasionally detach debuggers from some tabs at random.
+- @@html:<span id="chromium-bug-autodetach">@@ Chromium will occasionally detach debuggers from some tabs at random.
   It just happens.
   Fortunately, pWebArc will mark the resulting broken reqres as [[#problematic][problematic]] by default as they match the conditions of at least one of [[./popup.html#div-config.markProblematicNoResponse][this]], [[./popup.html#div-config.markProblematicIncomplete][this]], or [[./popup.html#div-config.markProblematicPickedWithErrors][that]] options.
+  @@html:</span>@@
 
-- Chromium handling of media files (audio and video) within its debugging interface is very strange.
+- @@html:<span id="chromium-bug-no-media">@@ Chromium handling of media files (audio and video) within its debugging interface is very strange.
   When Chromium encounters a media file, it immediately loads a first few frames of it, then cancels the rest of the download, generates a networking error debugging event, but forgets to give the already loaded data to it, and then, when the user clicks the play button, continues the download by requesting the rest of the file as normal.
   Thus, on Chromium, for media files pWebArc will only ever get "206 Partial Content" HTTP responses with the first few kilobytes of file data missing.
   This bug has no good workaround, all alternatives to pWebArc that work with Chromium work it around by silently re-downloading the file the second time in background.
+  @@html:</span>@@
 
-- Similarly to unpatched Firefox, Chromium-based browsers do not supply contents of files in POST request data.
+- @@html:<span id="chromium-bug-no-post">@@ Similarly to unpatched Firefox, Chromium-based browsers do not supply contents of files in POST request data.
   They do, however, provide a way to see if files were present in the request, so pWebArc will mark such and only such requests as having a "partial request body".
   There is no patch for Chromium to fix this, nor do I plan to make one (feel free to contribute one, though).
+  @@html:</span>@@
 
   As with Firefox, disabling [[./popup.html#div-config.archivePartialRequest][this toggle]] will disable archiving of such broken requests.
   This is not recommended, however, as archiving some data is usually better than archiving none.
@@ -519,8 +526,9 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   To work around that, pWebArc waits [[./popup.html#div-config.workaroundChromiumDebugTimeout][this many seconds]] for new events to arrive, and if none do, forcefully finishes all unmatched but network-complete =in_flight= reqres.
   Yes, this means that some minor metadata fields (like =document_url=) of those reqres might be missing, but waiting more time usually won't fix it, so pWebArc can't do anything else there.
 
-- However, sometimes Chromium forgets to generate both =loading complete= and =loading failed= debugging events.
+- @@html:<span id="chromium-bug-stuck">@@ However, sometimes Chromium forgets to generate both =loading-complete= and =loading-failed= debugging events.
   This usually happens when a request gets started and then canceled by a page's JavaScript, or when you navigate between pages too fast.
+  @@html:</span>@@
 
   In that case, pWebArc can't tell if a reqres is just slow at being loaded or if Chromium forgot about it, so those reqres will get stuck in the =in_flight= state indefinitely, at least until their originator tab gets closed, or until you press one of [[./popup.html#stopAllInFlight][this]] or [[./popup.html#stopAllTabInFlight][that]] buttons.
 
@@ -593,7 +601,7 @@ In particular:
 - =debugger::pWebArc::NO_RESPONSE_BODY::= is a prefix for errors produced when getting request's response body from Chromium's debugger fails for various reasons;
 
 - =webRequest::pWebArc::NO_DEBUGGER::CANCELED= is produced when a non-main-frame request is canceled by pWebArc because no debugger is available to capture it;
-  in the case of a main frame request, pWebArc will cancel the request and reload the tab, [[#chromium-bugs][as discussed above]], so this error will not be produced;
+  in the case of a main frame request, pWebArc will cancel the request and reload the tab, [[#chromium-quirk-reload][as discussed above]], so this error will not be produced;
   but it can happen if a page tries to load a sub-frame (like =iframe=) while the debugger for the tab (and, thus, the main frame) did not attach yet (which only happens for pages where Chromium disallows debugging, or when pWebArc gets enabled after the page in question already started loading, e.g. the very first page after the browser starts);
   also, this can happen when the debugger gets detached after the main frame was captured but its resources are still loading.
 
@@ -638,9 +646,9 @@ Did you read the notes on [[#bugs][the bugs of the browser you are using]] above
 
 Most notably:
 
-- both Chromium- and Firefox-based browsers in their default builds fail to properly supply POST request data to their extensions; for Firefox-based browsers there exists a [[#firefox-bugs][patch]] that fixes it, mostly; Chromium users are out of luck at the moment;
+- both Firefox- and Chromium-based browsers in their default builds [[#firefox-bug-no-post][fail]] to [[#chromium-bug-no-post][properly]] supply POST request data to their extensions; for Firefox-based browsers there exists a [[#firefox-bug-no-post][patch]] that fixes it, mostly; Chromium users are out of luck at the moment;
 
-- on a Chromium-based browser, because of [[#chromium-bugs][limitations of the Chromium's debugging interface]], it is impossible to properly capture media files (both audio and video) and large files in general; this issue has no good work-around and, AFAIK, all alternatives to pWebArc running on Chromium-based browser suffer from it (and work around it by silently re-downloading said files the second time in background); try using pWebArc under a Firefox-based browser instead.
+- on a Chromium-based browser, because of limitations of the Chromium's debugging interface, [[#chromium-bug-no-media][it is impossible to properly capture media files (both audio and video)]] and [[#chromium-bug-no-large-files][large files in general]]; this issue has no good work-around and, AFAIK, all alternatives to pWebArc running on Chromium-based browser suffer from it (and work around it by silently re-downloading said files the second time in background); try using pWebArc under a Firefox-based browser instead.
 ** On Chromium, a lot of my captures fail with =debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER=, =debugger::pWebArc::NO_RESPONSE_BODY::DETACHED_DEBUGGER=, and =webRequest::pWebArc::NO_DEBUGGER::CANCELED= errors. What do I do?
 :PROPERTIES:
 :CUSTOM_ID: faq-debugger
@@ -648,9 +656,9 @@ Most notably:
 
 You are either
 
-- pressing the "Cancel" or "Close" (cross) buttons in the Chromium's popup-toolbar telling you about the debugger being enabled, and so Chromium detaches it, breaking everything ([[#chromium-bugs][see above]]);
+- pressing the "Cancel" or "Close" (cross) buttons in the Chromium's popup-toolbar telling you about the debugger being enabled, and so Chromium detaches it, breaking everything ([[#chromium-bug-detach][see above]]);
 
-- pressing =Space= or =Escape= keyboard keys when doing things in Chromium's UI, but nothing at that particular moment reacts to the key you pressed, except there is that popup-toolbar... and so Chromium decides it must mean you want to press "Cancel" button there ... and detaches the debugger, breaking everything ([[#chromium-bugs][again]]);
+- pressing =Space= or =Escape= keyboard keys when doing things in Chromium's UI, but nothing at that particular moment reacts to the key you pressed, except there is that popup-toolbar... and so Chromium decides it must mean you want to press "Cancel" button there ... and detaches the debugger, breaking everything ([[#chromium-bug-detach][again]]);
 
   yes, this is really annoying, and this is a common problem for me, since I usually page-down using =Space= and press =Escape= a lot (usually to cancel selection, but sometimes also as a trauma of a long-time Vim user);
 
@@ -659,7 +667,9 @@ You are either
 
   even then, Chromium will detach debuggers from time to time seemingly at random, but at least it will be rare enough that you won't need to reload much;
 
-- trying to capture large or media files; [[#chromium-bugs][as discussed above]], this has no workaround, run pWebArc under Firefox instead.
+- trying to capture large or media files; [[#chromium-bug-no-large-files][as discussed above]], this has no workaround, run pWebArc under Firefox instead.
+
+Also, [[#chromium-bug-autodetach][Chromium will occasionally detach its debugger at random]], it just happens.
 ** On Firefox, some of my captures fail with =webRequest::pWebArc::RESPONSE::BROKEN=. What do I do?
 :PROPERTIES:
 :CUSTOM_ID: faq-disable-sw
