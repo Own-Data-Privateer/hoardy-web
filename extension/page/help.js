@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             let id = `link-${num_links}`;
             num_links += 1;
             el.id = id;
-            el.classList.add("pointer");
+            el.classList.add("internal");
             el.href = "javascript:void(0)";
             el.onclick = (event) => {
                 event.cancelBubble = true;
@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             };
         } else if (el.href.startsWith(popupURL + "#")) {
             let target = el.href.substr(popupURL.length + 1);
-            el.classList.add("pointer");
+            el.classList.add("external");
             el.href = "javascript:void(0)";
             el.onclick = (event) => {
                 event.cancelBubble = true;

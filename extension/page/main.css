@@ -29,10 +29,12 @@
     --help-tip-background:  #fffffa;
     --help-tip-border-color: #aaaaaa;
     --help-tip-text: #000000;
+    --target-color: #ffffff;
     --target-background-1: #ffaa00;
     --target-background-2: #ffaa0080;
     --target-border-color: var(--target-background-1);
-    --target-pointer: #aa4400;
+    --target-internal: #aa2222;
+    --target-external: #aa4400;
     --attention-background-1: #e02020;
     --attention-background-2: #ffffff;
     --attention-border-color: var(--attention-background-1);
@@ -259,11 +261,24 @@ div.help-tip {
     white-space: pre-line;
 }
 
+/* pointer to the .target on the same page in the docs */
+.internal {
+    color: var(--target-internal);
+    text-decoration: dotted underline;
+}
+
+/* pointer to the .target on another page in the docs */
+.external {
+    color: var(--target-external);
+    text-decoration: underline;
+}
+
 /* HTML node highlighter, can't use :target because some nodes are
    procedurally generated */
 .target {
     border: 1px solid var(--target-border-color);
     border-radius: 5px;
+    color: var(--target-color);
     background: var(--target-background);
     animation-name: highlight;
     animation-duration: 2s;
@@ -283,13 +298,7 @@ div.help-tip {
     }
 }
 
-/* pointer to the .target in the docs */
-.pointer {
-    color: var(--target-pointer);
-    text-decoration: dotted underline;
-}
-
-/* similar .target, but for things needing user's attention at some
+/* similar to .target, but for things needing user's attention at some
    later point in time */
 .attention {
     border: 5px solid var(--attention-border-color);
