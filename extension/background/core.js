@@ -2962,9 +2962,13 @@ if (useDebugger)
 
 // flush reqresFinishingUp into the reqresAlmostDone, interrupting filters
 function forceFinishingUpWebRequest(predicate) {
+    let notFinished = [];
+
     for (let reqres of reqresFinishingUp) {
-        if (predicate !== undefined && !predicate(reqres))
+        if (predicate !== undefined && !predicate(reqres)) {
+            notFinished.push(reqres);
             continue;
+        }
 
         // disconnect the filter, if not disconnected already
         if (reqres.filter !== undefined) {
@@ -2985,7 +2989,7 @@ function forceFinishingUpWebRequest(predicate) {
         reqresAlmostDone.push(reqres);
     }
 
-    reqresFinishingUp = [];
+    reqresFinishingUp = notFinished;
 }
 
 function stopAllInFlight(tabId) {

@@ -488,10 +488,14 @@ function emitTabInFlightDebug(tabId, reason) {
 }
 
 function forceFinishingUpDebug(predicate) {
+    let notFinished = [];
+
     // Emit these by making up fake webRequest counterparts for them
     for (let dreqres of debugReqresFinishingUp) {
-        if (predicate !== undefined && !predicate(reqres))
+        if (predicate !== undefined && !predicate(dreqres)) {
+            notFinished.push(dreqres);
             continue;
+        }
 
         if (config.debugging)
             console.warn("UNSTUCK debugRequest drequestId", dreqres.requestId,
@@ -502,7 +506,8 @@ function forceFinishingUpDebug(predicate) {
         dreqresToReques(dreqres);
         reqresAlmostDone.push(dreqres);
     }
-    debugReqresFinishingUp = [];
+
+    debugReqresFinishingUp = notFinished;
 }
 
 function debugHeadersMatchScore(reqres, dreqres) {
