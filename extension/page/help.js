@@ -25,6 +25,7 @@ for (let node of document.getElementsByName("less"))
     node.style.display = "none";
 
 document.addEventListener("DOMContentLoaded", async () => {
+    let selfURL = browser.runtime.getURL("/page/help.html");
     let popupURL = browser.runtime.getURL("/page/popup.html");
 
     // show settings as iframe
@@ -33,25 +34,56 @@ document.addEventListener("DOMContentLoaded", async () => {
     iframe.setAttribute("title", "The Settings Popup.");
     document.body.appendChild(iframe);
 
-    // a flag making the highlight stick around
+    // setup history navigation
+    window.onpopstate = (event) => {
+        if (event.state === null)
+            return;
+        let id = event.state.id;
+        if (id !== undefined)
+            focusNode(id);
+    };
+
+    // allow to un-highlight currently highlighted node
+    document.body.onclick = (event) => {
+        highlightNode(null);
+    };
+
+    // a flag making the highlight in popup stick around
     let sticky = false;
+    // number of rewritten internal links
+    let num_links = 0;
 
     // broadcast highlight messages on mouseovers over links to popup.html
     for (let el of document.getElementsByTagName("a")) {
-        if (!el.href.startsWith(popupURL + "#")) continue;
-        let target = el.href.substr(popupURL.length + 1);
-        el.classList.add("pointer");
-        el.href = "javascript:void(0)";
-        el.onclick = (event) => {
-            sticky = !sticky;
-        };
-        el.onmouseover = (event) => {
-            broadcast(["focusNode", "popup", target]);
-        };
-        el.onmouseleave = (event) => {
-            if (!sticky)
-                broadcast(["focusNode", "popup", null]);
-        };
+        if (el.href.startsWith(selfURL + "#")) {
+            let target = el.href.substr(selfURL.length + 1);
+            let id = `link-${num_links}`;
+            num_links += 1;
+            el.id = id;
+            el.classList.add("pointer");
+            el.href = "javascript:void(0)";
+            el.onclick = (event) => {
+                event.cancelBubble = true;
+                history.pushState({ id }, "", selfURL + `#${id}`);
+                history.pushState({ id: target }, "", selfURL + `#${target}`);
+                focusNode(target);
+            };
+        } else if (el.href.startsWith(popupURL + "#")) {
+            let target = el.href.substr(popupURL.length + 1);
+            el.classList.add("pointer");
+            el.href = "javascript:void(0)";
+            el.onclick = (event) => {
+                event.cancelBubble = true;
+                sticky = !sticky;
+            };
+            el.onmouseover = (event) => {
+                broadcast(["focusNode", "popup", target]);
+            };
+            el.onmouseleave = (event) => {
+                if (!sticky)
+                    broadcast(["focusNode", "popup", null]);
+            };
+        }
     }
 
     // resize elements to window
