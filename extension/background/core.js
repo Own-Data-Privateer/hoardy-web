@@ -497,19 +497,19 @@ function truncateLog() {
 
 function getInFlightLog() {
     let res = [];
-    for (let v of reqresAlmostDone)
-        res.push(makeLoggableReqres(v));
-    for (let v of reqresFinishingUp)
-        res.push(makeLoggableReqres(v));
-    for (let v of debugReqresFinishingUp)
-        res.push(makeLoggableReqres(v));
-    for (let [k, v] of reqresInFlight.entries())
-        res.push(makeLoggableReqres(v));
     for (let [k, v] of debugReqresInFlight.entries()) {
         // `.url` can be unset, see (veryEarly) in `emitDebugRequest`.
         if (v.url !== undefined && !isBoringURL(v.url))
             res.push(makeLoggableReqres(v));
     }
+    for (let [k, v] of reqresInFlight.entries())
+        res.push(makeLoggableReqres(v));
+    for (let v of debugReqresFinishingUp)
+        res.push(makeLoggableReqres(v));
+    for (let v of reqresFinishingUp)
+        res.push(makeLoggableReqres(v));
+    for (let v of reqresAlmostDone)
+        res.push(makeLoggableReqres(v));
     return res;
 }
 
