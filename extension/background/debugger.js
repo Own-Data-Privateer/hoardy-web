@@ -687,17 +687,24 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             // as described in the NB above, but those webRequests will get
             // their debug events generated later. However, when a webRequest
             // is an in-browser redirect (like when uBlock Origin redirecting
-            // a Google Analytics .js URL to its own version) no debug events
+            // a Google Analytics .js URL to its own version) or gets
+            // canceled, or just at random times sometimes, no debug events
             // will be emmited for it. So, to get these out of in-flight
-            // state, we run following `forceFinishingUpWebRequest` limited to
-            // the unsent requests only (and delayed for 10s because of the NB
-            // above, it should not really make a difference, but we pause
-            // just in case Chromium decides to emit some of those debug
-            // events after all).
-            resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000, () => {
-                forceFinishingUpWebRequest((r) => !r.sent);
+            // state, we run following.
+            resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000 + 500, () => {
+                // First, finish up unsent requests (which are usually redirects).
+                let olderThan1 = Date.now() - config.workaroundChromiumDebugTimeout * 1000;
+                forceFinishingUpWebRequest((r) => !r.sent && r.emitTimeStamp <= olderThan1);
                 scheduleUpdateDisplay(true, null);
                 scheduleEndgame();
+
+                // Then, eventually, finish up the rest.
+                resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 2000 + 500, () => {
+                    let olderThan2 = Date.now() - config.workaroundChromiumDebugTimeout * 2000;
+                    forceFinishingUpWebRequest((r) => r.emitTimeStamp <= olderThan2);
+                    scheduleUpdateDisplay(true, null);
+                    scheduleEndgame();
+                });
             });
             // NB: not doing scheduleUpdateDisplay here, because scheduleEndgame
             // below (or the function `forcing` this one) will
