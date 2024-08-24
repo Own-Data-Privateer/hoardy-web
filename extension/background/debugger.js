@@ -245,10 +245,10 @@ function mergeInHeaders(headers, dheaders) {
 // handlers
 
 function handleDebugRequestWillBeSent(nonExtra, e) {
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
-
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
+
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
 
     logDebugEvent("requestWillBeSent", nonExtra, e, undefined);
 
@@ -305,14 +305,15 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         dreqres.requestHeadersDebugExtra = e.headers;
     }
 
+    scheduleProcessMatchFinishingUpWebRequestDebug();
     scheduleUpdateDisplay(true, e.tabId);
 }
 
 function handleDebugResponseRecieved(nonExtra, e) {
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
-
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
+
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
 
     logDebugEvent("responseReceived", nonExtra, e, dreqres);
 
@@ -331,6 +332,7 @@ function handleDebugResponseRecieved(nonExtra, e) {
         dreqres.statusCode = e.response.status;
         dreqres.reason = e.response.statusText;
         dreqres.responseHeadersDebug = e.response.headers;
+        scheduleProcessMatchFinishingUpWebRequestDebug();
     } else {
         if (dreqres.responseTimeStamp === undefined)
             dreqres.responseTimeStamp = Date.now();
@@ -343,6 +345,8 @@ function handleDebugResponseRecieved(nonExtra, e) {
             // there would be neither nonExtra, nor handleDebugCompleted event
             // for it
             emitDebugRequest(e.requestId, dreqres, false);
+        else
+            scheduleProcessMatchFinishingUpWebRequestDebug();
         // can't do the same for 304 Not Modified, because it needs to
         // accumulate both extra and non-extra data first to match to
         // reqresFinishingUp requests, and it does get handleDebugCompleted
@@ -350,21 +354,23 @@ function handleDebugResponseRecieved(nonExtra, e) {
 }
 
 function handleRequestServedFromCache(e) {
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
-
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
+
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
 
     logDebugEvent("requestServedFromCache", true, e, dreqres);
 
     dreqres.fromCache = true;
+
+    scheduleProcessMatchFinishingUpWebRequestDebug();
 }
 
 function handleDebugCompleted(e) {
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
-
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
+
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
 
     logDebugEvent("loadingFinished", true, e, dreqres);
 
@@ -372,10 +378,10 @@ function handleDebugCompleted(e) {
 }
 
 function handleDebugErrorOccuried(e) {
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
-
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
+
+    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
 
     logDebugEvent("loadingFailed", true, e, dreqres);
 
@@ -397,8 +403,11 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     // Also see (veryEarly) in `getInFlightLog`.
     //
     // Second case: ignore data, file, end extension URLs.
-    if (dreqres.url === undefined || isBoringURL(dreqres.url))
+    if (dreqres.url === undefined || isBoringURL(dreqres.url)) {
+        if (!dontFinishUp)
+            processMatchFinishingUpWebRequestDebug();
         return;
+    }
     // NB: We do this here, instead of any other place because Chromium
     // generates debug events in different orders for different request types.
 
@@ -603,8 +612,6 @@ function mergeInDebugReqres(reqres, dreqres) {
 }
 
 function processMatchFinishingUpWebRequestDebug(forcing) {
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
-
     if (debugReqresFinishingUp.length > 0 && reqresFinishingUp.length > 0) {
         // match elements from debugReqresFinishingUp to elements from
         // reqresFinishingUp, attach the former to the best-matching latter,
@@ -708,4 +715,9 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
         return;
 
     scheduleEndgame();
+}
+
+function scheduleProcessMatchFinishingUpWebRequestDebug() {
+    resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000,
+                          processMatchFinishingUpWebRequestDebug);
 }
