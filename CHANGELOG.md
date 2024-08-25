@@ -4,6 +4,60 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [extension-v1.14.0] - 2024-08-25
+
+### Added
+
+- pWebArc now runs under Fennix aka Firefox-for-Android-based browsers, including at least Fennec and Mull.
+
+  Thought, "Export via `saveAs`" archival method is broken there, because of [a bug in Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=1914360).
+  Other methods do work, though.
+
+- The above change also added a settings page (aka `options_ui`).
+
+  At the moment, the settings page is simply an unrolled by default version of popup UI, with per-tabs settings removed.
+
+  This is need because on mobile browsers the main screen of the browser is not a tab and there's no toolbar, so there's no popup UI button there, and so the extension UI becomes really confusing without a separate settings page.
+
+### Changed
+
+- Split `in_flight` stat into a sum of two numbers.
+
+  This makes things less confusing on Chromium, the "Help" page explains it in more detail.
+
+- Added toolbar button's badge as a prefix to its title, changed its format a bit.
+
+  This is needed because Fennix-based browsers do not display the badge at all, so this change helps immensely there.
+  Meanwhile, on desktop browsers this does not hurt.
+
+- Improved styling and dark mode contrast of the popup UI.
+
+- Improved documentation.
+
+  In particular, among other things, added a lot of new anchors to the "Help" page, most internal links referencing some fact discussed in another section now point directly to the relevant paragraph instead of pointing to its section header.
+
+### Fixed
+
+On Firefox:
+
+- Fixed capture of responses produced by service/shared workers.
+
+  Also, added a new error code for when it (very rarely) fails because of a race condition inherent in `webRequest` API and documented all of it on the "Help" page.
+
+- Fixed HTTP protocol version detection, requests fetched via `HTTP/3` will now be marked as such.
+
+- Added yet another `webRequest` API error to a list of those that mark reqres response data as incomplete.
+
+On Chromium:
+
+- Fixed more edge cases where reqres could get stuck in `in_flight` state indefinitely.
+
+Generally:
+
+- Fixed navigation with browser's "Back" and "Forward" buttons to work properly on the "Help" page.
+
+- Fixed a bug where force-stopping all in-flight reqres in a single tab could also drop some of the others.
+
 ## [extension-v1.13.1] - 2024-08-13
 
 ### Fixed
@@ -746,6 +800,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.14.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.13.1...extension-v1.14.0
 [extension-v1.13.1]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.13.0...extension-v1.13.1
 [extension-v1.13.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.12.0...extension-v1.13.0
 [tool-v0.13.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.12.0...tool-v0.13.0

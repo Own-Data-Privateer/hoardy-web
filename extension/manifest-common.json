@@ -2,7 +2,7 @@
     "manifest_version": 2,
 
     "name": "pWebArc",
-    "version": "1.13.1",
+    "version": "1.14.0",
     "description": "Logs, captures, and archives dumps of HTTP requests and responses. Mainly, for indexing and later offline viewing. Very low memory footprint, lots of configuration options.",
 
     "author": "Jan Malakhovski",
