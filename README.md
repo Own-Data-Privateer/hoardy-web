@@ -274,7 +274,7 @@ After adding each new feature to [the `wrrarms` tool](./tool/), as a rule, I fee
 
 ## Install `pWebArc` browser extension/add-on
 
-- On Firefox, Tor Browser, LibreWolf, Fennix aka Firefox for Android, Fennec, Mull, etc: [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Build from source for Firefox/Tor Browser/LibreWolf/Fennix aka Firefox for Android/Fennec/Mull/etc](./extension/README.md#build).
+- On Firefox, Tor Browser, LibreWolf, (and soon, but not yet, on Fennix aka Firefox for Android, Fennec, Mull), etc: [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Build from source for Firefox/Tor Browser/LibreWolf/Fennix aka Firefox for Android/Fennec/Mull/etc](./extension/README.md#build).
 
 - On Chromium, Chrome, etc: See [Installing on Chromium/Chrome](./extension/README.md#install-chromium) or [Build from source for Chromium/Chrome/etc](./extension/README.md#build).
 

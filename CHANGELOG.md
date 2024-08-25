@@ -13,6 +13,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   Thought, "Export via `saveAs`" archival method is broken there, because of [a bug in Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=1914360).
   Other methods do work, though.
 
+  (Also, it is not marked as compatible with Firefox on Android on addons.mozilla.org at the moment, it probably will be in the next version.)
+
 - The above change also added a settings page (aka `options_ui`).
 
   At the moment, the settings page is simply an unrolled by default version of popup UI, with per-tabs settings removed.
