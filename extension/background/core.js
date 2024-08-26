@@ -891,8 +891,10 @@ function popInLimbo(collect, num, tabId, rrfilter) {
             let info = getOriginState(loggable.tabId, loggable.fromExtension);
             loggable.in_limbo = false;
             loggable.dirty = true;
-            info.inLimboTotal -= 1;
-            info.inLimboSize -= dumpSize;
+            if (loggable.sessionId === sessionId) {
+                info.inLimboTotal -= 1;
+                info.inLimboSize -= dumpSize;
+            }
             processNonLimbo(collect, info, archivable, newQueued, newLog);
         } catch (err) {
             logHandledError(err);
@@ -2176,8 +2178,10 @@ function loadOneStashed(loggable) {
             reqresLimbo.push(archivable);
             reqresLimboSize += dumpSize;
             gotNewLimbo = true;
-            info.inLimboTotal += 1;
-            info.inLimboSize += dumpSize;
+            if (loggable.sessionId === sessionId) {
+                info.inLimboTotal += 1;
+                info.inLimboSize += dumpSize;
+            }
         } else if (loggable.collected) {
             reqresQueue.push(archivable);
             reqresQueueSize += dumpSize;
