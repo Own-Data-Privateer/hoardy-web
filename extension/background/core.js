@@ -1229,8 +1229,9 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
             if (tchunks.length != 0)
                 ttitle += "; this tab: " + tchunks.join(", ");
 
-            if (useDebugger) {
+            if (useDebugger || isMobile) {
                 // Chromium does not support per-window browserActions, so we have to update them per-tab.
+                // Fenix does support them, but updates appear to be rather inconsistent, while this works perfectly.
                 await browser.browserAction.setIcon({ tabId, path: mkIcons(icon) }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
                 await browser.browserAction.setTitle({ tabId, title: ttitle }).catch(logErrorExceptWhenStartsWith("No tab with id:"));
             } else {
