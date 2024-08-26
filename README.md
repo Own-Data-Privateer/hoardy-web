@@ -91,7 +91,7 @@ Unlike most of [its alternatives](#alternatives), `pwebarc` **DOES NOT**:
 
 - require you to capture and/or collect and/or archive and/or export recorded data explicitly one page/browsing session at a time (the default behaviour is to archive everything completely automatically, though the extension implements optional ["limbo mode"](./extension/page/help.org#faq-limbo) which delays archival of collected data and provides optional manual/semi-automatic control if you want it);
 
-- force you to use Chromium (you can use `pWebArc` with Firefox, Tor Browser, LibreWolf, Fennix aka Firefox for Android, Fennec, Mull, etc, which is not a small thing, since if you tried using any of the close alternatives running under Chromium, you might have noticed that the experience there is pretty awful: it becomes even slower than usual, large files don't get captured, random stuff fails to be captured at random times because Chromium randomly detaches its debugger from its tabs... none of these problems exist on Firefox-based browsers because Firefox does not fight ad-blocking and hardcore ad-blocking extensions and `pWebArc` use the same browser APIs);
+- force you to use Chromium (you can use `pWebArc` with Firefox, Tor Browser, LibreWolf, Fenix aka Firefox for Android, Fennec, Mull, etc, which is not a small thing, since if you tried using any of the close alternatives running under Chromium, you might have noticed that the experience there is pretty awful: it becomes even slower than usual, large files don't get captured, random stuff fails to be captured at random times because Chromium randomly detaches its debugger from its tabs... none of these problems exist on Firefox-based browsers because Firefox does not fight ad-blocking and hardcore ad-blocking extensions and `pWebArc` use the same browser APIs);
 
 - require you to download the data you want to archive twice or more (you'd be surprised how commonly other tools will either ask you to do that explicitly, or just do that silently when you ask them to save something);
 
@@ -274,7 +274,7 @@ After adding each new feature to [the `wrrarms` tool](./tool/), as a rule, I fee
 
 ## Install `pWebArc` browser extension/add-on
 
-- On Firefox, Tor Browser, LibreWolf, (and soon, but not yet, on Fennix aka Firefox for Android, Fennec, Mull), etc: [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Build from source for Firefox/Tor Browser/LibreWolf/Fennix aka Firefox for Android/Fennec/Mull/etc](./extension/README.md#build).
+- On Firefox, Tor Browser, LibreWolf, (and soon, but not yet, on Fenix aka Firefox for Android, Fennec, Mull), etc: [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Build from source for Firefox/Tor Browser/LibreWolf/Fenix aka Firefox for Android/Fennec/Mull/etc](./extension/README.md#build).
 
 - On Chromium, Chrome, etc: See [Installing on Chromium/Chrome](./extension/README.md#install-chromium) or [Build from source for Chromium/Chrome/etc](./extension/README.md#build).
 

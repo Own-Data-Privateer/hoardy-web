@@ -8,7 +8,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- pWebArc now runs under Fennix aka Firefox-for-Android-based browsers, including at least Fennec and Mull.
+- pWebArc now runs under Fenix aka Firefox-for-Android-based browsers, including at least Fennec and Mull.
 
   Thought, "Export via `saveAs`" archival method is broken there, because of [a bug in Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=1914360).
   Other methods do work, though.
@@ -29,7 +29,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Added toolbar button's badge as a prefix to its title, changed its format a bit.
 
-  This is needed because Fennix-based browsers do not display the badge at all, so this change helps immensely there.
+  This is needed because Fenix-based browsers do not display the badge at all, so this change helps immensely there.
   Meanwhile, on desktop browsers this does not hurt.
 
 - Improved styling and dark mode contrast of the popup UI.

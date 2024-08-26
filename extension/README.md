@@ -26,7 +26,7 @@ See [the gallery](../doc/gallery.md).
 
 # Installation
 
-## <span id="install-firefox"/>On Firefox, Tor Browser, LibreWolf, Fennix aka Firefox for Android, Fennec, Mull, etc
+## <span id="install-firefox"/>On Firefox, Tor Browser, LibreWolf, Fenix aka Firefox for Android, Fennec, Mull, etc
 
 - [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/).
   Then, in a desktop browser, press "Extensions" toolbar button and pin "pWebArc".

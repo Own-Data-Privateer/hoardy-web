@@ -445,7 +445,7 @@ pWebArc provides context menu actions to:
   If [[./popup.html#div-config.workaroundFirefoxFirstRequest][this option]] is enabled, pWebArc will transparently work around this bug by redirecting the very first navigation request to =about:blank= and then reloading the tab with its original URL.
 
 - Firefox-based browsers provide no API for archiving WebSockets data at the moment, unfortunately.
-** Relevant issues of Firefox-based mobile browsers: Firefox Android aka Fennix, Fennec, Mull, etc
+** Relevant issues of Firefox-based mobile browsers: Firefox Android aka Fenix, Fennec, Mull, etc
 :PROPERTIES:
 :CUSTOM_ID: firefoxa-android-bugs
 :END:
