@@ -94,9 +94,14 @@ for target in "$@"; do
         (
             cd "dist"
             if [[ ! -e "manifest-chromium-key.json" ]]; then
-                echo "  Generating Chromium key and ID..."
+                echo "  Generating Chromium ID..."
                 mkdir -p "../private"
-                ../bin/gen-chromium-keys.sh "../private/chromium.key.pem" "manifest-chromium"
+                res=$(../bin/gen-chromium-key.sh "../private/chromium.key.pem" "manifest-chromium")
+                if [[ -n "$res" ]]; then
+                    echo -e "\e[1;31m"
+                    echo "    $res"
+                    echo -e "\e[0m"
+                fi
             fi
         )
     fi

@@ -8,7 +8,7 @@ key=${1:-chromium.key.pem}
 output=${2:-manifest-chromium}
 
 if [[ ! -e "$key" ]]; then
-    echo "Generating a new key!"
+    echo "Generating a new Chromium key!"
     openssl genrsa 2048 | openssl pkcs8 -topk8 -nocrypt -out "$key"
 fi
 
