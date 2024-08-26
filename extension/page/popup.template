@@ -570,6 +570,7 @@ h2 input[type="button"] {
     <div id="ui-options">
     <h1>User Interface and Accessibility</h1>
     <div class="opts">
+    <ui id="config.verbose" type="boolean" data-help="Produce more verbose desktop notifications. Enabled by default for on-boarding new users. You can safely disable this if you are aware that almost anything pWebArc dose can be changed by one of its settings, and/or if long notifications annoy you by taking a lot of screen area and/or speech time of you TTS engine.">Verbose notifications</ui>
     <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
     <ui id="config.pureText" type="boolean" data-help="Do not use emojis in UI labels. Makes screen readers happier.">Pure text labels</ui>
     </div>

@@ -46,10 +46,13 @@ let configDefaults = {
     snapshotAny: false, // snapshot isBoringURL
     discardAll: false,
 
-    // UI
+    // meta-UI
     lastSeenVersion: manifest.version,
     seenChangelog: true,
     seenHelp: false,
+
+    // UI
+    verbose: true,
     colorblind: false,
     pureText: false,
     invisibleUINotify: true,
@@ -1547,7 +1550,7 @@ async function doComplain() {
                 // generate a new one
                 await browser.notifications.create("done", {
                     title: "pWebArc: OK",
-                    message: "Archiving appears to work OK!\n\nThis message won't be repeated unless something breaks.",
+                    message: "Archiving appears to work OK!\n\nThis message won't be repeated unless something breaks." + annoyingNotification(config, "Generate desktop notifications about > ... newly empty archival queue"),
                     iconUrl: iconURL("idle", 128),
                     type: "basic",
                 });
@@ -1565,7 +1568,7 @@ async function doComplain() {
             // generate a new one
             await browser.notifications.create("fatLimbo", {
                 title: "pWebArc: WARNING",
-                message: `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.`,
+                message: `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.` + annoyingNotification(config, "Generate desktop notifications about > ... too much stuff in limbo"),
                 iconUrl: iconURL("limbo", 128),
                 type: "basic",
             });
@@ -1605,7 +1608,7 @@ async function doComplain() {
             latestDesc.reverse();
             await browser.notifications.create("problematic", {
                 title: "pWebArc: WARNING",
-                message: `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n"),
+                message: `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate desktop notifications about > ... new problematic reqres"),
                 iconUrl: iconURL("problematic", 128),
                 type: "basic",
             });
