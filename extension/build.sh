@@ -93,10 +93,10 @@ for target in "$@"; do
     if [[ "$target" =~ chromium-* ]]; then
         (
             cd "dist"
-            if [[ ! -e "manifest-chromium-id.json" ]]; then
+            if [[ ! -e "manifest-chromium-key.json" ]]; then
                 echo "  Generating Chromium key and ID..."
                 mkdir -p "../private"
-                ../bin/gen-chromium-keys.sh "../private/chromium.key.pem" "manifest-chromium-id.json"
+                ../bin/gen-chromium-keys.sh "../private/chromium.key.pem" "manifest-chromium"
             fi
         )
     fi
@@ -106,7 +106,7 @@ for target in "$@"; do
     if [[ "$target" == firefox ]]; then
         jq -s --indent 4 '.[0] * .[1]' manifest-common.json "manifest-$target.json" > "$DEST"/manifest.json
     else
-        jq -s --indent 4 '.[0] * .[1] * .[2]' manifest-common.json "dist/manifest-chromium-id.json" "manifest-$target.json" > "$DEST"/manifest.json
+        jq -s --indent 4 '.[0] * .[1] * .[2]' manifest-common.json "dist/manifest-chromium-key.json" "manifest-$target.json" > "$DEST"/manifest.json
     fi
 
     find "$DEST" -exec touch --date="$timestamp" {} \;
@@ -139,6 +139,21 @@ for target in "$@"; do
                 ../../bin/crx.sh "../$NAME" "$key"
             fi
         )
+
+        chromium_id=$(cat "dist/manifest-chromium-id.txt")
+        chromium_crx_url="https://github.com/Own-Data-Privateer/pwebarc/releases/download/extension-v${version}/pWebArc-$target-v$version.crx"
+
+        echo "  Making update.xml..."
+
+        sed "
+s%@VERSION@%${version}%g
+s%@ID@%${chromium_id}%g
+s%@CRX_URL@%${chromium_crx_url}%g
+" gupdate.xml.template > "dist/update-$target.xml"
+
+        if [[ -d ../metadata ]]; then
+            cp "dist/update-$target.xml" ../metadata/
+        fi
     fi
 done
 

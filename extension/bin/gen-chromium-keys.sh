@@ -5,7 +5,7 @@
 set -e
 
 key=${1:-chromium.key.pem}
-output=${2:-manifest-chromium-id.json}
+output=${2:-manifest-chromium}
 
 if [[ ! -e "$key" ]]; then
     echo "Generating a new key!"
@@ -14,12 +14,10 @@ fi
 
 {
     echo "{"
-    #echo -n '"id": "'
-    #openssl rsa -in "$key" -pubout -outform DER 2>/dev/null | shasum -a 256 | head -c32 | tr 0-9a-f a-p
-    #echo '",'
-
     echo -n '"key": "'
     openssl rsa -in "$key" -pubout -outform DER 2>/dev/null | openssl base64 -A
     echo '"'
     echo "}"
-} > "$output"
+} > "$output-key.json"
+
+openssl rsa -in "$key" -pubout -outform DER 2>/dev/null | sha256sum | head -c32 | tr 0-9a-f a-p > "$output-id.txt"
