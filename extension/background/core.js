@@ -1253,11 +1253,9 @@ async function updateDisplay(statsChanged, updatedTabId, episodic) {
         await res();
 }
 
-let udStatsChanged = false;
 let udUpdatedTabId;
 
-async function scheduleUpdateDisplay(statsChanged, updatedTabId) {
-    udStatsChanged = udStatsChanged || statsChanged;
+async function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic) {
     if (udUpdatedTabId === undefined)
         udUpdatedTabId = updatedTabId;
     else
@@ -1265,10 +1263,12 @@ async function scheduleUpdateDisplay(statsChanged, updatedTabId) {
         // update
         udUpdatedTabId = null;
 
-    resetSingletonTimeout(scheduledInternal, "updateDisplay", 10, async () => {
-        await updateDisplay(udStatsChanged, udUpdatedTabId);
-        udStatsChanged = false;
+    let res = makeUpdateDisplay(statsChanged, updatedTabId, episodic);
+
+    resetSingletonTimeout(scheduledHidden, "updateDisplay", 100, async () => {
         udUpdatedTabId = undefined;
+        if (res !== undefined)
+            await res();
     });
 }
 
