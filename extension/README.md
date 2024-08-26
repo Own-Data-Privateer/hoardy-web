@@ -76,7 +76,7 @@ So, installation on Chromium-based browsers requires a little bit of work.
 - `cd extension`.
 - Optionally: run `nix-shell ./default.nix` to get the exact build environment I use.
 - For Firefox, Tor Browser, LibreWolf, etc: build by running `./build.sh clean firefox` from this directory.
-- For Chromium/Chrome/etc: build by running `./build.sh clean chromium` from this directory.
+- For Chromium/Chrome/etc: build by running `./build.sh clean chromium-mv2` from this directory.
 - All outputs can then be found in the `dist` directory.
 
 # Debugging

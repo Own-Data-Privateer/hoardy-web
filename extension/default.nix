@@ -15,7 +15,7 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [ git jq pandoc zip imagemagick vim.xxd ];
 
   buildPhase = ''
-    ./build.sh clean firefox chromium
+    ./build.sh clean firefox chromium-mv2
   '';
 
   installPhase = ''

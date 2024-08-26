@@ -90,13 +90,13 @@ for target in "$@"; do
 
     install -C -t "$DEST" ../LICENSE.txt
 
-    if [[ "$target" == chromium ]]; then
+    if [[ "$target" =~ chromium-* ]]; then
         (
             cd "dist"
-            if [[ ! -e "manifest-$target-id.json" ]]; then
+            if [[ ! -e "manifest-chromium-id.json" ]]; then
                 echo "  Generating Chromium key and ID..."
                 mkdir -p "../private"
-                ../bin/gen-chromium-keys.sh "../private/$target.key.pem" "manifest-$target-id.json"
+                ../bin/gen-chromium-keys.sh "../private/chromium.key.pem" "manifest-chromium-id.json"
             fi
         )
     fi
@@ -106,7 +106,7 @@ for target in "$@"; do
     if [[ "$target" == firefox ]]; then
         jq -s --indent 4 '.[0] * .[1]' manifest-common.json "manifest-$target.json" > "$DEST"/manifest.json
     else
-        jq -s --indent 4 '.[0] * .[1] * .[2]' manifest-common.json "dist/manifest-$target-id.json" "manifest-$target.json" > "$DEST"/manifest.json
+        jq -s --indent 4 '.[0] * .[1] * .[2]' manifest-common.json "dist/manifest-chromium-id.json" "manifest-$target.json" > "$DEST"/manifest.json
     fi
 
     find "$DEST" -exec touch --date="$timestamp" {} \;
@@ -128,7 +128,7 @@ for target in "$@"; do
         echo "  Making CRX..."
 
         (
-            key=$(readlink -f "./private/$target.key.pem")
+            key=$(readlink -f "./private/chromium.key.pem")
 
             cd "$DEST"
 
