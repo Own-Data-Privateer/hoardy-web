@@ -189,7 +189,7 @@ async function popupMain() {
     buttonToMessage("retryFailed");
     buttonToMessage("stashAll");
     buttonToMessage("retryUnstashed");
-    buttonToAction("showSaved",    catchAll(() => showSaved("", "top", tabId)));
+    buttonToAction("showSaved",    catchAll(() => replaceWith(showSaved, "", "top")));
 
     buttonToAction("resetPersistentStats", catchAll(() => {
         if (!window.confirm("Really?"))
