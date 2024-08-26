@@ -144,7 +144,7 @@ async function popupMain() {
                 // Firefox on Android does not switch to new tabs opened from the settings
                 browser.notifications.create("pageSpawnedAway", {
                     title: "pWebArc: REMINDER",
-                    message: "The newly spawned page might be hidden. See the list of open tabs." + annoyingNotification(config, "Generate desktop notifications about > ... actions invisible in the UI"),
+                    message: "The newly spawned page might be hidden. See the list of open tabs or the list open private tabs, depending on the browser's mode." + annoyingNotification(config, "Generate desktop notifications about > ... actions invisible in the UI"),
                     iconUrl: iconURL("main", 128),
                     type: "basic",
                 }).catch(logError);
