@@ -181,9 +181,9 @@ async function saveConfig() {
 function scheduleSaveConfig() {
     resetSingletonTimeout(scheduledSaveState, "saveConfig", 1000, async () => {
         await saveConfig();
-        await updateDisplay(true);
+        scheduleUpdateDisplay(true);
     });
-    // NB: needs updateDisplay afterwards
+    // NB: needs scheduleUpdateDisplay afterwards
 }
 
 // scheduled internal functions
@@ -223,11 +223,11 @@ async function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
                 if (actionFunc !== undefined)
                     await actionFunc(tabId, r);
             } finally {
-                await updateDisplay(true, tabId);
+                scheduleUpdateDisplay(true, tabId);
             }
         }, priority);
     }, priority);
-    await updateDisplay(true, tabId);
+    scheduleUpdateDisplay(true, tabId);
 }
 
 function resetAndNavigateTab(tabId, url, priority) {
@@ -630,7 +630,7 @@ async function saveGlobals() {
 async function resetPersistentStats() {
     globals = updateFromRec(globals, persistentStatsDefaults);
     await saveGlobals();
-    await updateDisplay(true);
+    scheduleUpdateDisplay(true);
 }
 
 // per-source globals.pickedTotal, globals.droppedTotal, etc
@@ -1247,12 +1247,6 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
     return updateBrowserAction;
 }
 
-async function updateDisplay(statsChanged, updatedTabId, episodic) {
-    let res = makeUpdateDisplay(statsChanged, updatedTabId, episodic);
-    if (res !== undefined)
-        await res();
-}
-
 let udUpdatedTabId;
 
 async function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic) {
@@ -1274,8 +1268,8 @@ async function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic) {
 
 // schedule processFinishingUp
 function scheduleFinishingUp() {
-    resetSingletonTimeout(scheduledInternal, "finishingUp", 100, async () => {
-        await updateDisplay(true);
+    resetSingletonTimeout(scheduledInternal, "finishingUp", 100, () => {
+        scheduleUpdateDisplay(true);
         processFinishingUp();
     });
 }
@@ -1304,19 +1298,19 @@ function runSynchronously(func, ...args) {
 function scheduleEndgame(updatedTabId) {
     if (synchronousClosures.length > 0) {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
-            await updateDisplay(true, updatedTabId);
+            scheduleUpdateDisplay(true, updatedTabId);
             await evalSynchronousClosures(synchronousClosures);
             scheduleEndgame(null);
         });
     } else if (config.archive && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
-            await updateDisplay(true, updatedTabId);
+            scheduleUpdateDisplay(true, updatedTabId);
             await processArchiving();
             scheduleEndgame(null);
         });
     } else if (reqresAlmostDone.length > 0) {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
-            await updateDisplay(true, updatedTabId);
+            scheduleUpdateDisplay(true, updatedTabId);
             await processAlmostDone();
             scheduleEndgame(null);
         });
@@ -1349,7 +1343,7 @@ function scheduleEndgame(updatedTabId) {
 
                 resetSingletonTimeout(scheduledSaveState, "saveGlobals", boring ? 90000 : 1000, async () => {
                     await saveGlobals();
-                    await updateDisplay(true);
+                    scheduleUpdateDisplay(true);
                 });
             }
 
@@ -1371,7 +1365,7 @@ function scheduleEndgame(updatedTabId) {
 
             scheduleComplaints(1000);
 
-            await updateDisplay(true, updatedTabId);
+            scheduleUpdateDisplay(true, updatedTabId);
         });
     }
 }
@@ -1868,7 +1862,7 @@ async function syncMany(archivables, state, elide) {
         updateLoggable(loggable);
 
         await syncOne(archivable, state, elide);
-        await updateDisplay(true, loggable.tabId, 100);
+        scheduleUpdateDisplay(true, loggable.tabId, 100);
     }
 }
 
@@ -2384,7 +2378,7 @@ async function processArchiving() {
             await syncOne(archivable, 1, true);
         }
 
-        await updateDisplay(true, loggable.tabId, 10);
+        scheduleUpdateDisplay(true, loggable.tabId, 10);
     }
 
     broadcast(["resetQueued", getQueuedLog()]);
@@ -2805,7 +2799,7 @@ async function processAlmostDone() {
             logHandledError(err);
             markAsErrored(err, [reqres, null]);
         }
-        await updateDisplay(true, reqres.tabId, 10);
+        scheduleUpdateDisplay(true, reqres.tabId, 10);
     }
 
     truncateLog();
@@ -3551,7 +3545,7 @@ function handleTabUpdated(tabId, changeInfo, tabInfo) {
     if (config.debugging)
         console.log("tab updated", tabId);
     if (/* Firefox */ changeInfo.url !== undefined || /* Chromium */ useDebugger)
-        // On Firefox, there's no `tab.pendingUrl`, so `updateDisplay` might
+        // On Firefox, there's no `tab.pendingUrl`, so `scheduleUpdateDisplay` might
         // get confused about which icon to show for our internal pages
         // narrowed to a tracked tab until `tab.url` is set. Hence, we need to
         // run `scheduleUpdateDisplay` as soon as it is set.
@@ -4148,7 +4142,7 @@ async function init() {
     if (useDebugger)
         await initDebugger(tabs);
 
-    await updateDisplay(true, null);
+    scheduleUpdateDisplay(true, null);
 
     console.log("pWebArc is ready!");
 
