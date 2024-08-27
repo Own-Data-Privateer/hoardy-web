@@ -78,12 +78,18 @@ h2 input[type="button"] {
     text-align: right;
 }
 
-.stats .help-root > div > span:nth-child(3) > span.target {
-    padding: 0 1em;
-}
-
 .opts, .subopts {
     padding-left: 0.6em;
+}
+
+div.target {
+    padding: 0.5em;
+}
+
+span.target,
+input.target {
+    display: inline-block;
+    padding: 1em;
 }
 
 #showAll {

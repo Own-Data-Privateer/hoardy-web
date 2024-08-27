@@ -6,6 +6,11 @@
     <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
     <link rel="stylesheet" href="main.css?v=$cssVersion$">
     <style>
+#body {
+    max-width: 72em;
+    margin: auto;
+}
+
 h1 {
     font-size: 200%;
 }
@@ -18,12 +23,12 @@ h3 {
     font-size: 110%;
 }
 
-#body > p,
-#body > ul {
+p {
     margin-left: 1em;
 }
 
-#body > ul {
+ul {
+    margin-left: 1em;
     padding-left: 1em;
 }
     </style>

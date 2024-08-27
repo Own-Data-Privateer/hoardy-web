@@ -6,6 +6,7 @@
     --text-inactive-background: var(--untoggle-background);
     --text-inactive-border-color: var(--untoggle-border-color);
     --text-inactive-color: inherit;
+    --code-background:  #00000010;
     --untoggle-background: #cfcfd855;
     --untoggle-border-color: #cfcfd8;
     --untoggle-background-good: #94f89455;
@@ -32,7 +33,6 @@
     --target-color: #ffffff;
     --target-background-1: #ffaa00;
     --target-background-2: #ffaa0080;
-    --target-border-color: var(--target-background-1);
     --target-internal: #aa2222;
     --target-external: #aa4400;
     --attention-background-1: #e02020;
@@ -53,6 +53,7 @@
         --text-inactive-background: inherit;
         --text-inactive-border-color: #505050;
         --text-inactive-color: #505050;
+        --code-background:  #ffffff20;
         --untoggle-background: #515138;
         --untoggle-background-good: #94f894;
         --untoggle-background-bad: #f89494;
@@ -276,7 +277,7 @@ div.help-tip {
 /* HTML node highlighter, can't use :target because some nodes are
    procedurally generated */
 .target {
-    border: 1px solid var(--target-border-color);
+    border: 0px solid black;
     border-radius: 5px;
     color: var(--target-color);
     background: var(--target-background);
@@ -321,4 +322,19 @@ div.help-tip {
     to {
         background-color: var(--attention-background-1);
     }
+}
+
+a, code {
+    overflow-wrap: anywhere;
+}
+
+code {
+    background: var(--code-background);
+    border-radius: 5px;
+}
+
+pre code {
+    display: inline-block;
+    max-width: 100%;
+    overflow: scroll;
 }
