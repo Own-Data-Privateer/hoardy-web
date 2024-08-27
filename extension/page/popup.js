@@ -144,7 +144,7 @@ async function popupMain() {
         pureTextState = config.pureText;
     }
 
-    async function replaceWith(open, prefix, id) {
+    async function replaceWith(open, prefix, id, isHelp) {
         if (isMobile) {
             let config = await browser.runtime.sendMessage(["getConfig"]);
             let spawn = config.spawnNewTabs;
@@ -154,6 +154,14 @@ async function popupMain() {
                 browser.notifications.create("pageSpawnedAway", {
                     title: "pWebArc: REMINDER",
                     message: "The newly spawned page might be hidden. See the list of open tabs or the list open private tabs, depending on the browser's mode." + annoyingNotification(config, "Generate desktop notifications about > ... actions invisible in the UI"),
+                    iconUrl: iconURL("main", 128),
+                    type: "basic",
+                }).catch(logError);
+            else if (!spawn && isHelp && config.hintNotify)
+                // Firefox on Android does not switch to new tabs opened from the settings
+                browser.notifications.create("pageNotSpawnedAway", {
+                    title: "pWebArc: HINT",
+                    message: `To make the search work on the "Help" page, enable "User Interface and Accessibility > Spawn internal pages in new tabs" option, open the "Help" page again, and then switch to the newly spawned tab.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
                     iconUrl: iconURL("main", 128),
                     type: "basic",
                 }).catch(logError);
@@ -175,7 +183,7 @@ async function popupMain() {
     versionButton.onclick = catchAll(() => resetAndReplace({ seenChangelog: true }, showChangelog, "", ""));
 
     let helpButton = document.getElementById("help");
-    helpButton.onclick = catchAll(() => resetAndReplace({ seenHelp: true }, showHelp, "", ""));
+    helpButton.onclick = catchAll(() => resetAndReplace({ seenHelp: true }, showHelp, "", "", true));
     // NB: `spawn = true` here because otherwise on Fenix a large chunk of the
     // page will be taken by the navigation toolbar and there will be no
     // search function, which is very useful there.
