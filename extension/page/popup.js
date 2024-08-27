@@ -349,6 +349,9 @@ async function popupMain() {
     // highlight current target
     // NB: not using showAll and hideAll here, so that unhighlight will not shrink the UI
     focusHashNode();
+
+    // notify the others we are done here
+    broadcast(["popupResized"]);
 }
 
 document.addEventListener("DOMContentLoaded", () => popupMain().catch(setPageError), setPageError);

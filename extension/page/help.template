@@ -2,31 +2,18 @@
 <html>
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>pWebArc: Help</title>
     <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
     <link rel="stylesheet" href="main.css?v=$cssVersion$">
     <style>
 body {
-    display: flex;
     margin: 0 0.5em;
-}
-
-#body {
-    display: inline-block;
-    width: auto;
-    max-height: 500px;
-    overflow-y: scroll;
-}
-
-iframe {
-    max-height: 500px;
-    min-width: 450px;
-    overflow-y: scroll;
 }
     </style>
   </head>
   <body>
-    <div id="body">
+    <div id="body" style="display: none">
       $body$
     </div>
     $for(libScript)$<script src="../lib/$libScript$"></script>$endfor$

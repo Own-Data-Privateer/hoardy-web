@@ -21,12 +21,12 @@
 
 "use strict";
 
-for (let node of document.getElementsByName("less"))
-    node.style.display = "none";
-
 document.addEventListener("DOMContentLoaded", async () => {
     let selfURL = browser.runtime.getURL("/page/help.html");
     let popupURL = browser.runtime.getURL("/page/popup.html");
+
+    for (let node of document.getElementsByName("less"))
+        node.style.display = "none";
 
     // show settings as iframe
     let iframe = document.createElement("iframe");
@@ -46,20 +46,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     // allow to un-highlight currently highlighted node
     document.body.onclick = (event) => {
         highlightNode(null);
+        broadcast(["highlightNode", "popup", null]);
     };
 
-    // a flag making the highlight in popup stick around
-    let sticky = false;
     // number of rewritten internal links
     let num_links = 0;
 
     // broadcast highlight messages on mouseovers over links to popup.html
     for (let el of document.getElementsByTagName("a")) {
+        let id = `link-${num_links}`;
+        num_links += 1;
+        el.id = id;
+
         if (el.href.startsWith(selfURL + "#")) {
             let target = el.href.substr(selfURL.length + 1);
-            let id = `link-${num_links}`;
-            num_links += 1;
-            el.id = id;
             el.classList.add("internal");
             el.href = "javascript:void(0)";
             el.onclick = (event) => {
@@ -68,34 +68,69 @@ document.addEventListener("DOMContentLoaded", async () => {
                 history.pushState({ id: target }, "", selfURL + `#${target}`);
                 focusNode(target);
             };
+            el.onmouseover = (event) => {
+                broadcast(["highlightNode", "popup", null]);
+            };
         } else if (el.href.startsWith(popupURL + "#")) {
             let target = el.href.substr(popupURL.length + 1);
             el.classList.add("external");
             el.href = "javascript:void(0)";
             el.onclick = (event) => {
                 event.cancelBubble = true;
-                sticky = !sticky;
+                if (isMobile) {
+                    history.pushState({ id }, "", selfURL + `#${id}`);
+                    history.pushState({}, "", popupURL + `#${target}`);
+                }
+                broadcast(["focusNode", "popup", target]);
             };
             el.onmouseover = (event) => {
                 broadcast(["focusNode", "popup", target]);
             };
-            el.onmouseleave = (event) => {
-                if (!sticky)
-                    broadcast(["focusNode", "popup", null]);
-            };
         }
     }
 
-    // resize elements to window
-    // have to do this because we want body and settings iframe to have independent scroll
+    // Resize elements to window. We have to do this because we want body and
+    // settings iframe to have independent scroll on Desktop browsers.
     let body = document.getElementById("body");
-    function resize() {
-        let h = window.innerHeight - 5;
-        body.style.setProperty("max-height", `${h}px`)
-        iframe.style.setProperty("max-height", `${h}px`)
+
+    if (isMobile) {
+        iframe.style["border"] = "0px solid black";
+        iframe.style["width"] = "100%";
+    } else {
+        document.body.style["display"] = "flex";
+
+        body.style["width"] = "auto";
+        body.style["max-height"] = "500px";
+        body.style["overflow-y"] = "scroll";
+
+        iframe.style["max-height"] = "500px";
+        iframe.style["min-width"] = "450px";
+        iframe.style["overflow-y"] = "scroll";
     }
+
+    // show UI
+    if (isMobile)
+        body.style["display"] = "block";
+    else
+        body.style["display"] = "inline-block";
+
+    function resize() {
+        if (isMobile) {
+            // to prevent internal scroll
+            let h = iframe.contentDocument.body.scrollHeight + 20;
+            iframe.style["min-height"] = `${h}px`;
+        } else {
+            // to prevent external scroll
+            let h = window.innerHeight - 5;
+            body.style["max-height"] = `${h}px`;
+            iframe.style["max-height"] = `${h}px`;
+        }
+    }
+
     resize();
-    window.onresize = (event) => resize();
+
+    if (!isMobile)
+        window.onresize = (event) => resize();
 
     // expand shortcut macros
     let shortcuts = await getShortcuts();
@@ -117,8 +152,20 @@ document.addEventListener("DOMContentLoaded", async () => {
             return `unbound (= default)`;
     });
 
+
+    async function processUpdate(update) {
+        let [what, data] = update;
+        switch (what) {
+        case "popupResized":
+            if (isMobile)
+                resize();
+        default:
+            await handleDefaultUpdate(update, "help");
+        }
+    }
+
     // add default handlers
-    subscribeToExtensionSimple("help");
+    await subscribeToExtension(catchAll(processUpdate));
 
     // highlight current target
     focusHashNode();
