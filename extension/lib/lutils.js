@@ -41,9 +41,9 @@ let selfURL = browser.runtime.getURL("/");
 
 function iconPath(name, size) {
     if (useSVGIcons)
-        return `/icon/${name}.svg`;
+        return `/icon/${name}.svg?v=${manifest.version}`;
     else
-        return `/icon/${size}/${name}.png`;
+        return `/icon/${size}/${name}.png?v=${manifest.version}`;
 }
 
 function iconURL(name, size) {
