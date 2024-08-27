@@ -3931,10 +3931,19 @@ async function handleCommand(command) {
 function fixConfig(cfg, old) {
     if (reqresIDB === undefined)
         cfg.preferIndexedDB = false;
-    else if (useDebugger)
+    else if (useDebugger && !cfg.preferIndexedDB) {
         // can not be disabled on Chromium ATM, since serialization of
         // Uint8Array to `storage.local` won't work there
         cfg.preferIndexedDB = true;
+
+        if (config.hintNotify)
+            browser.notifications.create("configNotSupported-preferIndexedDB", {
+                title: "pWebArc: HINT",
+                message: `"Prefer \`IndexedDB\` API" can not be disabled on a Chromium-based browser. See the description of that option for more info.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
+                iconUrl: iconURL("main", 128),
+                type: "basic",
+            }).catch(logError);
+    }
 
     if (isMobile && isFirefox && cfg.archiveExportAs) {
         cfg.archiveExportAs = false;
@@ -3975,8 +3984,17 @@ function fixConfig(cfg, old) {
         && (reqresQueue.length > 0 || reqresFailedToArchiveByArchivable.size > 0)
         && (cfg.archiveExportAs !== old.archiveExportAs
          || cfg.archiveSubmitHTTP !== old.archiveSubmitHTTP
-         || cfg.archiveSaveLS !== old.archiveSaveLS))
+         || cfg.archiveSaveLS !== old.archiveSaveLS)) {
         cfg.archive = false;
+
+        if (config.hintNotify)
+            browser.notifications.create("notArchivingNow", {
+                title: "pWebArc: HINT",
+                message: `"Archive \`collected\` reqres by" option was disabled because the archival queue and/or the list of failed reqres are non-empty.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
+                iconUrl: iconURL("off", 128),
+                type: "basic",
+            }).catch(logError);
+    }
 
     // clamp
     cfg.exportAsTimeout = clamp(0, 900, cfg.exportAsTimeout);
