@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <title>pWebArc: Saved in Local Storage</title>
     <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
-    <link rel="stylesheet" href="main.css?v=$cssVersion$">
-    <link rel="stylesheet" href="reqres-ui.css?v=$cssVersion$">
+    <link rel="stylesheet" href="main.css?v=$version$">
+    <link rel="stylesheet" href="reqres-ui.css?v=$version$">
   </head>
   <body>
     <div id="body_loading"></div>

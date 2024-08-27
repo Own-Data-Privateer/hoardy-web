@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>pWebArc: Settings</title>
     <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
-    <link rel="stylesheet" href="main.css?v=$cssVersion$">
+    <link rel="stylesheet" href="main.css?v=$version$">
     <style>
 body {
     min-width: 300px;

@@ -19,10 +19,10 @@ for target in "$@"; do
     mkdir -p "$DEST"
 
     pandocArgs=( \
+        -V version=$version \
         -V libScript=compat.js \
         -V libScript=utils.js \
         -V libScript=lutils.js \
-        -V cssVersion=4 \
     )
 
     echo "  Preparing icons..."
