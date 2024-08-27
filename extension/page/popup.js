@@ -280,6 +280,9 @@ async function popupMain() {
             case "tabconfig.negLimbo":
                 newtabconfig.children.negLimbo = newtabconfig.negLimbo;
                 break;
+            case "tabconfig.stashLimbo":
+                newtabconfig.children.stashLimbo = newtabconfig.stashLimbo;
+                break;
             }
             browser.runtime.sendMessage(["setOriginConfig", tabId, false, newtabconfig]).catch(logError);
         });
