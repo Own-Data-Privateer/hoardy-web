@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="reqres-ui.css?v=$cssVersion$">
   </head>
   <body>
-    <div id="body_loading"><p>Loading...</p></div>
+    <div id="body_loading"></div>
     <div id="body_error" style="display: none"></div>
     <div id="body" style="display: none">
     <span id="top"></span>

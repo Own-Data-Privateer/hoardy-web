@@ -633,7 +633,7 @@ async function connectToExtension(init, uninit, extensionId, connectInfo) {
         ready = true;
 }
 
-function subscribeToExtension(processUpdate, completeRefresh, extensionId, connectInfo) {
+function subscribeToExtension(processUpdate, completeRefresh, markLoading, markSettling, extensionId, connectInfo) {
     // onMessage will not wait for an Promises. Thus, multiple updates could
     // race, so we have to run them synchronously here.
     let updateQueue = [];
@@ -673,6 +673,18 @@ function subscribeToExtension(processUpdate, completeRefresh, extensionId, conne
         }
         portToExtension.onMessage.addListener(rememberToReset);
 
+        let markLoadingTID = null;
+        if (markLoading !== undefined)
+            markLoadingTID = setTimeout(markLoading, 300);
+
+        function clearLoading() {
+            if (markLoadingTID === undefined)
+                return;
+
+            clearTimeout(markLoadingTID);
+            markLoadingTID = undefined;
+        }
+
         while (true) {
             // start processing updates
             updateQueue = [];
@@ -691,8 +703,16 @@ function subscribeToExtension(processUpdate, completeRefresh, extensionId, conne
 
             // stop processing updates
             portToExtension.onMessage.removeListener(processUpdateSync);
+
+            if (markSettling !== undefined) {
+                clearLoading();
+                markSettling();
+            }
+
             await sleep(1000);
         }
+
+        clearLoading();
 
         // cleanup
         portToExtension.onMessage.removeListener(rememberToReset);

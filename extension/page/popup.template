@@ -112,7 +112,7 @@ h2 input[type="button"] {
     </style>
   </head>
   <body>
-    <div id="body_loading"><p>Loading...</p></div>
+    <div id="body_loading"></div>
     <div id="body_error" style="display: none"></div>
     <div id="body" style="display: none">
     <!-- idBody -->

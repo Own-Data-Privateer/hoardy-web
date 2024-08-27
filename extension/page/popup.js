@@ -308,7 +308,7 @@ async function popupMain() {
             await updateTabStats();
             await updateTabConfig();
         }
-    }));
+    }), setPageLoading, setPageSettling);
 
     // show UI
     setPageLoaded();

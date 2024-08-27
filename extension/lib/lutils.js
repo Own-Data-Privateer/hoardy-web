@@ -90,6 +90,14 @@ function showSaved(suffix, id, tabId) {
     return showInternalPageAtNode("/page/saved.html" + suffix, id, tabId);
 }
 
+function setPageLoading() {
+    document.getElementById("body_loading").innerHTML = "<p>Loading...</p>";
+}
+
+function setPageSettling() {
+    document.getElementById("body_loading").innerHTML = "<p>Waiting for the core to settle...</p>";
+}
+
 function setPageLoaded() {
     document.getElementById("body_loading").style.display = "none";
     document.getElementById("body").style.display = "block";
@@ -97,7 +105,9 @@ function setPageLoaded() {
 
 function setPageError(error) {
     logError(error);
+
     document.getElementById("body_loading").style.display = "none";
+
     let be = document.getElementById("body_error");
     be.innerHTML = `
       <h1>This page failed to initialize</h1>
@@ -108,11 +118,9 @@ function setPageError(error) {
         <li>On Chromium-based browser: go to <code>chrome://extensions/</code>, click &quot;Inspect views&quot; link on &quot;pWebArc&quot;, select &quot;Console&quot;</li>
       </ul>
     `;
-
     let p = document.createElement("pre");
     p.innerText = errorMessageOf(error);
     document.getElementById("body_exception").appendChild(p);
-
     be.style.display = "block";
 }
 

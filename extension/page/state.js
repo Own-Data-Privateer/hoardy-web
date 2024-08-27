@@ -159,7 +159,7 @@ async function stateMain() {
         resetLog(log);
         resetQueued(queuedLog);
         resetFailed(failedLog);
-    }));
+    }), setPageLoading, setPageSettling);
 
     // show UI
     setPageLoaded();
