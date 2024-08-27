@@ -62,8 +62,16 @@ async function popupMain() {
     let tabbing = false;
     if (hash !== "options") {
         let tab = await getActiveTab();
-        windowId = tab.windowId;
-        tabId = getStateTabIdOrTabId(tab);
+        if (tab !== null) {
+            windowId = tab.windowId;
+            tabId = getStateTabIdOrTabId(tab);
+        } else {
+            // This happens when the user open the "Help" page from the
+            // settings menu on Fenix. Disabling `tabbing` will make the page
+            // useless, so we fake these values instead.
+            windowId = 1;
+            tabId = 1;
+        }
         tabbing = true;
     } else {
         document.getElementById("this-tab-options").style.display = "none";
@@ -137,10 +145,11 @@ async function popupMain() {
     }
 
     async function replaceWith(open, prefix, id) {
-        await open(prefix, id, tabId);
         if (isMobile) {
             let config = await browser.runtime.sendMessage(["getConfig"]);
-            if (config.invisibleUINotify)
+            let spawn = config.spawnNewTabs;
+            await open(prefix, id, tabId, spawn);
+            if (spawn && config.invisibleUINotify)
                 // Firefox on Android does not switch to new tabs opened from the settings
                 browser.notifications.create("pageSpawnedAway", {
                     title: "pWebArc: REMINDER",
@@ -148,23 +157,28 @@ async function popupMain() {
                     iconUrl: iconURL("main", 128),
                     type: "basic",
                 }).catch(logError);
-        } else
+        } else {
+            await open(prefix, id, tabId);
             window.close();
+        }
     }
 
-    async function resetAndReplace(reset, open) {
+    async function resetAndReplace(reset, open, ...args) {
         // reset given config setting
         await browser.runtime.sendMessage(["setConfig", reset]);
         // and then replace this page with
-        await replaceWith(open, "", "");
+        await replaceWith(open, ...args);
     }
 
     let versionButton = document.getElementById("version");
     versionButton.value = "v" + manifest.version;
-    versionButton.onclick = catchAll(() => resetAndReplace({ seenChangelog: true }, showChangelog));
+    versionButton.onclick = catchAll(() => resetAndReplace({ seenChangelog: true }, showChangelog, "", ""));
 
     let helpButton = document.getElementById("help");
-    helpButton.onclick = catchAll(() => resetAndReplace({ seenHelp: true }, showHelp));
+    helpButton.onclick = catchAll(() => resetAndReplace({ seenHelp: true }, showHelp, "", ""));
+    // NB: `spawn = true` here because otherwise on Fenix a large chunk of the
+    // page will be taken by the navigation toolbar and there will be no
+    // search function, which is very useful there.
 
     buttonToAction("showState", catchAll(() => replaceWith(showState, "", "top")));
     buttonToMessage("forgetHistory",           () => ["forgetHistory", null]);

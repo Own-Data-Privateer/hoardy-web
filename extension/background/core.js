@@ -55,6 +55,7 @@ let configDefaults = {
     verbose: true,
     colorblind: false,
     pureText: false,
+    spawnNewTabs: !isMobile,
     invisibleUINotify: true,
 
     // log settings
@@ -3941,6 +3942,17 @@ function fixConfig(cfg, old) {
         browser.notifications.create("configNotSupported", {
             title: "pWebArc: REMINDER",
             message: `"Export via \`saveAs\` is not supported on Firefox-based mobile browsers. See the "Help" page for more info.`,
+            iconUrl: iconURL("main", 128),
+            type: "basic",
+        }).catch(logError);
+    }
+
+    if (!isMobile && !cfg.spawnNewTabs) {
+        cfg.spawnNewTabs = true;
+
+        browser.notifications.create("configNotSupported-spawnNewTabs", {
+            title: "pWebArc: REMINDER",
+            message: `"Spawn internal pages in new tabs" can not be disabled on a desktop browser. See the description of that option for more info.`,
             iconUrl: iconURL("main", 128),
             type: "basic",
         }).catch(logError);

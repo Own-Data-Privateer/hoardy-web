@@ -184,7 +184,10 @@ const headerHTML = `
 async function commonMain() {
     thisSessionId = await browser.runtime.sendMessage(["getSessionId"]);
     let thisTab = await getActiveTab();
-    thisTabId = thisTab.id;
+    if (thisTab !== null)
+        thisTabId = thisTab.id;
+    else
+        thisTabId = null;
 
     // generate UI
     let body = document.body;

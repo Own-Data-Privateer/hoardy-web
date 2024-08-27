@@ -74,20 +74,20 @@ function getStateTabIdOrTabId(tab) {
     return getMapURLParam(stateURL, "tab", new URL(getTabURL(tab, "")), toNumber, tab.id, tab.id);
 }
 
-function showChangelog(suffix, id, tabId) {
-    return showInternalPageAtNode("/page/changelog.html" + suffix, id, tabId);
+function showChangelog(suffix, ...args) {
+    return showInternalPageAtNode("/page/changelog.html" + suffix, ...args);
 }
 
-function showHelp(suffix, id, tabId) {
-    return showInternalPageAtNode("/page/help.html" + suffix, id, tabId);
+function showHelp(suffix, ...args) {
+    return showInternalPageAtNode("/page/help.html" + suffix, ...args);
 }
 
-function showState(suffix, id, tabId) {
-    return showInternalPageAtNode("/page/state.html" + suffix, id, tabId);
+function showState(suffix, ...args) {
+    return showInternalPageAtNode("/page/state.html" + suffix, ...args);
 }
 
-function showSaved(suffix, id, tabId) {
-    return showInternalPageAtNode("/page/saved.html" + suffix, id, tabId);
+function showSaved(suffix, ...args) {
+    return showInternalPageAtNode("/page/saved.html" + suffix, ...args);
 }
 
 function setPageLoading() {

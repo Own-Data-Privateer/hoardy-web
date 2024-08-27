@@ -571,6 +571,7 @@ h2 input[type="button"] {
     <h1>User Interface and Accessibility</h1>
     <div class="opts">
     <ui id="config.verbose" type="boolean" data-help="Produce more verbose desktop notifications. Enabled by default for on-boarding new users. You can safely disable this if you are aware that almost anything pWebArc dose can be changed by one of its settings, and/or if long notifications annoy you by taking a lot of screen area and/or speech time of you TTS engine.">Verbose notifications</ui>
+    <ui id="config.spawnNewTabs" type="boolean" data-help="Open the other pages of this extension in newly created tabs instead of reusing the current window. This is enabled by default and can not disabled when pWebArc runs on a desktop browser. This is disabled by default when pWebArc runs on a mobile browser.">Spawn internal pages in new tabs</ui>
     <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
     <ui id="config.pureText" type="boolean" data-help="Do not use emojis in UI labels. Makes screen readers happier.">Pure text labels</ui>
     </div>

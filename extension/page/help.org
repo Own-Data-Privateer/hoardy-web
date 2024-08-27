@@ -453,10 +453,6 @@ pWebArc provides context menu actions to:
 [[#firefox-bugs][All of the above]] apply, moreover:
 
 - Archival [[./popup.html#div-config.archiveExportAs][by exporting using =saveAs=]] is not supported at the moment because of [[https://bugzilla.mozilla.org/show_bug.cgi?id=1914360][this bug]].
-
-- Pressing most buttons in the add-on's "Settings" UI will spawn new tabs into background, which makes the UI quite confusing.
-  Which is why pWebArc will generate new notifications about such events.
-  You can disable [[./popup.html#div-config.invisibleUINotify][this option]] if they annoy you.
 ** Relevant issues of Chromium-based desktop browsers: Chromium, Chrome, etc
 :PROPERTIES:
 :CUSTOM_ID: chromium-bugs

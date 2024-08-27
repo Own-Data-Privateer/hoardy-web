@@ -493,18 +493,23 @@ async function openOrActivateTab(target, createProperties, currentWindow) {
     return res;
 }
 
-async function showInternalPageAtNode(url, id, tabId, scrollIntoViewOptions) {
+async function showInternalPageAtNode(url, id, tabId, spawn, scrollIntoViewOptions) {
     let rurl = browser.runtime.getURL(url + (id ? "#" + id : ""));
-    let tab;
-    try {
-        tab = await openOrActivateTab(rurl, { openerTabId: tabId });
-    } catch (e) {
-        // in case tabId points to a dead tab
-        tab = await openOrActivateTab(rurl);
+    if (spawn === false) {
+        window.location = rurl;
+        return null;
+    } else {
+        let tab;
+        try {
+            tab = await openOrActivateTab(rurl, { openerTabId: tabId });
+        } catch (e) {
+            // in case tabId points to a dead tab
+            tab = await openOrActivateTab(rurl);
+        }
+        if (id !== undefined)
+            broadcast(["viewNode", tab.id, id, scrollIntoViewOptions]);
+        return tab.id;
     }
-    if (id !== undefined)
-        broadcast(["viewNode", tab.id, id, scrollIntoViewOptions]);
-    return tab;
 }
 
 // add or remove class based on condition
