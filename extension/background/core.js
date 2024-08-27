@@ -3980,10 +3980,8 @@ function fixConfig(cfg, old) {
     cfg.exportAsInFlightTimeout = clamp(cfg.exportAsTimeout, 900, cfg.exportAsInFlightTimeout);
 
     // these are mutually exclusive
-    if (cfg.autoPopInLimboCollect !== old.autoPopInLimboCollect)
-        cfg.autoPopInLimboDiscard = cfg.autoPopInLimboDiscard && !cfg.autoPopInLimboCollect;
-    else
-        cfg.autoPopInLimboCollect = cfg.autoPopInLimboCollect && !cfg.autoPopInLimboDiscard;
+    if (cfg.autoPopInLimboCollect && cfg.autoPopInLimboDiscard)
+        cfg.autoPopInLimboDiscard = false;
 }
 
 function upgradeConfig(cfg) {
