@@ -137,13 +137,13 @@ But then I got annoyed by all the sites that don't work under `mitmproxy`, did s
 
 - [A patch for Firefox](./firefox/) to allow `pWebArc` extension to collect request POST data as-is. This is not required and even without that patch `pWebArc` will collect everything in most cases, but it could be useful if you want to correctly capture POST requests that upload files.
 
-  See "Quirks and Bugs" section of [extension's "Help" page](./extension/page/help.org) for more info.
+  See "Quirks and Bugs" section of [extension's `Help` page](./extension/page/help.org) for more info.
 
 ## <span id="philosophy"/>Technical Philosophy
 
 Firstly, `pwebarc` is designed to be simple (as in adhering to the Keep It Stupid Simple principle) and efficient (as in running well on ancient hardware) while providing guarantees that all collected data gets actually written to disk:
 
-- [the `pWebArc` webextension add-on](./extension/) does almost no actual work, simply generating HTTP request+response dumps, archiving them, and then freeing the memory as soon as possible (unless you enable ["limbo mode"](./extension/page/help.org#faq-limbo), but then you asked for it), thus keeping your browsing experience snappy even on ancient hardware;
+- [the `pWebArc` webextension add-on](./extension/) does almost no actual work, simply generating HTTP request+response dumps, archiving them, and then freeing the memory as soon as possible (unless you enable [limbo mode](./extension/page/help.org#faq-limbo), but then you asked for it), thus keeping your browsing experience snappy even on ancient hardware;
 
 - the dumps are generated using [the simplest, trivially parsable with many third-party libraries, yet most space-efficient on-disk file format representing separate HTTP requests+responses there currently is (aka `Web Request+Response`, `WRR`)](./doc/data-on-disk.md), which is a file format that is both more general and more simple than WARC, much simpler than that `mitmproxy` uses, and much more efficient than HAR;
 
@@ -200,13 +200,13 @@ Also, as far as I'm aware, `wrrarms` is a tool that can do more useful stuff to 
 
 ## <span id="more-docs"/>What does it do, exactly? I have questions.
 
-- See [extension's "Help" page](./extension/page/help.org) (or the "Help" button in the extension's UI, which will make it interactive) for a long detailed description of what the extension does step-by-step.
+- See [extension's `Help` page](./extension/page/help.org) (or the `Help` button in the extension's UI, which will make it interactive) for a long detailed description of what the extension does step-by-step.
 
-    It is a must-read, though instead of reading that file raw I highly recommend you read it via the "Help" button of the extension's UI, since doing that will make the whole thing pretty interactive.
+    It is a must-read, though instead of reading that file raw I highly recommend you read it via the `Help` button of the extension's UI, since doing that will make the whole thing pretty interactive.
 
-  - See [the "Frequently Asked Questions" section of extension's "Help" page](./extension/page/help.org#faq) for the answers to the frequently asked questions, including those about common quirks you can encounter while using it.
+  - See [the "Frequently Asked Questions" section of extension's `Help` page](./extension/page/help.org#faq) for the answers to the frequently asked questions, including those about common quirks you can encounter while using it.
 
-  - See [the "Quirks and Bugs" section of extension's "Help" page](./extension/page/help.org#bugs) for more info on quirks and limitations of `pWebArc` when used on different browsers.
+  - See [the "Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for more info on quirks and limitations of `pWebArc` when used on different browsers.
 
 - See [below](#alternatives) for a long list of comparisons to its alternatives.
 
@@ -247,8 +247,8 @@ After adding each new feature to [the `wrrarms` tool](./tool/), as a rule, I fee
 - Improved UI:
 
   - Roll/unroll popup UI in steps, a-la uBlock Origin.
-    The number of settings pWebArc now has is kind of ridiculous (and I still want more), I find it hard to find stuff in there myself now, so.
-    Alternatively, make a separate "Settings" page, but I kind of dislike that idea, I like having everything on a single page which can be `Control+F`ed.
+    The number of settings `pWebArc` now has is kind of ridiculous (and I still want more), I find it hard to find stuff in there myself now, so.
+    Alternatively, make a separate `Settings` page, but I kind of dislike that idea, I like having everything on a single page which can be `Control+F`ed.
 
   - Track navigations and allow to use them as boundaries between batches of reqres saved in limbo mode.
 
@@ -316,17 +316,17 @@ It took me about 6 months before I had to refer back to previously archived data
 So, I recommend you start collecting immediately and be lazy about the rest.
 Also, I learned a lot about nefarious things some of the websites I visit do in the background while doing that, now you are going to learn the same.
 
-In practice, though, your will probably want to install at least [the dumb archiving server](./dumb_server/) (see below for instructions) and switch `pWebArc` to "Archive `collected` reqres by ... submitting them via HTTP" mode pretty soon [**because it is very easy to accidentally loose data using other archival methods**](./extension/page/help.org#faq-unsafe) and, assuming you have Python installed on your computer, it is also the most convenient archival method there is.
+In practice, though, your will probably want to install at least [the dumb archiving server](./dumb_server/) (see below for instructions) and switch `pWebArc` to `Archive 'collected' reqres by > ... submitting them via HTTP` mode pretty soon [**because it is very easy to accidentally loose data using other archival methods**](./extension/page/help.org#faq-unsafe) and, assuming you have Python installed on your computer, it is also the most convenient archival method there is.
 
 Or, alternatively, you can use the combination of archiving by saving of data to browser's local storage (the default) followed by manual export into WRR-bundles [as described below in the section on using `pWebArc` together with Tor Browser](#in-tb).
 
-Or, alternatively, you can switch to "Archive `collected` reqres by ... exporting them via `saveAs`" mode by default and simply accept the resulting slightly more annoying UI ([on Firefox, it can be fixed with a small `about:config` change](./extension/page/help.org#faq-firefox-saveas)) and the facts that [you can now lose some data if your disk ever gets out of space or if you accidentally mis-click a button in your browser's "Downloads" UI](./extension/page/help.org#faq-unsafe).
+Or, alternatively, you can switch to `Archive 'collected' reqres by > ... exporting them via 'saveAs'` mode by default and simply accept the resulting slightly more annoying UI ([on Firefox, it can be fixed with a small `about:config` change](./extension/page/help.org#faq-firefox-saveas)) and the facts that [you can now lose some data if your disk ever gets out of space or if you accidentally mis-click a button in your browser's `Downloads` UI](./extension/page/help.org#faq-unsafe).
 
 ## Recommended next steps
 
-Next, you should read [extension's "Help" page](./extension/page/help.org).
+Next, you should read [extension's `Help` page](./extension/page/help.org).
 It has lots of useful details about how it works and quirks of different browsers.
-If you open it by clicking the "Help" button in the extension's UI, then hovering over or clicking on links in there will highlight relevant settings.
+If you open it by clicking the `Help` button in the extension's UI, then hovering over or clicking on links in there will highlight relevant settings.
 
 See ["Setup recommendations"](#setup) section for best practices for configuring your system and browsers to be used with `pwebarc`.
 
@@ -421,7 +421,7 @@ Install and see the docs of [the `wrrarms` tool](./tool/).
 
 - It is highly recommended you make separate browser profiles for anonymous and logged-in browsing with separate extension instances pointing to separate archiving server instances dumping data to different directories on disk.
 
-  Set the "anonymous" browser profile to always run in "Private Browsing" mode to prevent login persistence there.
+  Set the "anonymous" browser profile to always run in `Private Browsing` mode to prevent login persistence there.
   If you do accidentally login in "anonymous" profile, move those dumps out of the "anonymous" directory immediately.
 
   This way you can easily share dumps from the "anonymous" instance without worrying about leaking your private data or login credentials.
@@ -436,16 +436,16 @@ So, in the mostly convenient yet sufficiently paranoid setup, you would only eve
 
 You can do that by
 
-- enabling "Archive `collected` reqres by ... exporting them via `saveAs`" option,
-- while keeping the "Archive `collected` reqres by ... saving them into local storage" option set, for safety,
+- enabling `Archive 'collected' reqres by > ... exporting them via 'saveAs'` option,
+- while keeping the `Archive 'collected' reqres by > ... saving them into local storage` option set, for safety,
 - and then exporting everything saved in local storage and wiping the exported data out.
 
 To do the latter:
 
-- press the "Show" button on "Saved into LS" line in the main popup to open the "Saved in Local Storage" page;
-- set "Exported via `saveAs`" filter there to `false` (red) to make it only display reqres that were not exported yet;
-- press the "Re-queue" button there;
-- wait for pWebArc to generate new fake-Downloads containing all that data;
+- press the `Show` button on `Saved into LS` line in the main popup to open the `Saved in Local Storage` page;
+- set `Exported via 'saveAs'` filter there to `false` (red) to make it only display reqres that were not exported yet;
+- press the `Re-queue` button there;
+- wait for `pWebArc` to generate new fake-Downloads containing all that data;
 - wait for the browser to save the resulting WRR-bundles;
 - (if you are running on a truly ancient hardware and the above is slow, you can disable all GZip compression options);
 - confirm the file was properly saved (i.e. you did not run out of disk space);
@@ -453,22 +453,22 @@ To do the latter:
 
 and then
 
-- set "Exported via `saveAs`" filter there to `true` (green);
-- press the "Delete" button there;
+- set `Exported via 'saveAs'` filter there to `true` (green);
+- press the `Delete` button there;
 - repeat until everything is deleted.
 
-Yes, this is slightly annoying, but this is [the only absolutely safe way to export data out of pWebArc without using submission via HTTP](./extension/page/help.org#faq-unsafe), and you don't need to do this at the end of each and every browsing session.
+Yes, this is slightly annoying, but this is [the only absolutely safe way to export data out of `pWebArc` without using submission via HTTP](./extension/page/help.org#faq-unsafe), and you don't need to do this at the end of each and every browsing session.
 
 ### Simpler, but slightly unsafe
 
-You can also simply switch to using "Archive `collected` reqres by ... exporting them via `saveAs`" by default instead.
+You can also simply switch to using `Archive 'collected' reqres by > ... exporting them via 'saveAs'` by default instead.
 
 I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [this is unsafe](./extension/page/help.org#faq-unsafe).
-Also, by default, browser's UI will be slightly annoying, since pWebArc will be generating new "Downloads" all the time, but that issue [can be fixed with a small `about:config` change](./extension/page/help.org#faq-firefox-saveas).
+Also, by default, browser's UI will be slightly annoying, since `pWebArc` will be generating new "Downloads" all the time, but that issue [can be fixed with a small `about:config` change](./extension/page/help.org#faq-firefox-saveas).
 
 ### Most convenient, less paranoid
 
-In theory, running `./pwebarc_dumb_dump_server.py` listening on a loopback IP address should prevent any web pages from accessing it, since the browsers disallow such cross-origin requests, thus making the normal "Archive `collected` reqres by ... submitting them via HTTP" mode setup quite viable.
+In theory, running `./pwebarc_dumb_dump_server.py` listening on a loopback IP address should prevent any web pages from accessing it, since the browsers disallow such cross-origin requests, thus making the normal `Archive 'collected' reqres by > ... submitting them via HTTP` mode setup quite viable.
 However, Tor Browser is configured to proxy everything via the TOR network by default, so you need to configure it to exclude the requests to `./pwebarc_dumb_dump_server.py` from being proxied.
 
 A slightly more paranoid than normal way to do this is:
@@ -530,7 +530,7 @@ Same issues:
 
   On the other hand, this is both inefficient and dangerous for long-term preservation of said data, since [it is very easy to accidentally loose data archived to browser's local storage (e.g., by uninstalling the extension)](./extension/page/help.org#faq-unsafe).
 
-  Which is why [`pWebArc`](./extension/) has "Archive `collected` reqres by ... submitting them via HTTP" mode which will automatically submit your dumps to [the dumb archiving server](./dumb_server/) instead.
+  Which is why [`pWebArc`](./extension/) has `Archive 'collected' reqres by > ... submitting them via HTTP` mode which will automatically submit your dumps to [the dumb archiving server](./dumb_server/) instead.
 
 - When `pWebArc` extension is run under Chromium, [a bunch of Chromium's bugs](./extension/page/help.org#chromium-bugs) make many things [pretty annoying](./extension/page/help.org#faq-debugger).
 

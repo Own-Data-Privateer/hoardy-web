@@ -20,8 +20,8 @@ See [the gallery](../doc/gallery.md).
 
 # What does it do exactly? I have questions.
 
-- See [the "Frequently Asked Questions" section](./page/help.org#faq) for answers for those.
-- See [the rest of the "Help" page](./page/help.org) and [higher-level README](../README.md) if you want more info.
+- See [the "Frequently Asked Questions" section of the `Help` page](./page/help.org#faq) for answers for those.
+- See [the rest of the `Help` page](./page/help.org) and [higher-level README](../README.md) if you want more info.
   In the latter, in particular, see ["Technical Philosophy"](../README.md#philosophy) and the sections that follow.
 
 # Installation
@@ -29,7 +29,7 @@ See [the gallery](../doc/gallery.md).
 ## <span id="install-firefox"/>On Firefox, Tor Browser, LibreWolf, Fenix aka Firefox for Android, Fennec, Mull, etc
 
 - [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/).
-  Then, in a desktop browser, press "Extensions" toolbar button and pin "pWebArc".
+  Then, in a desktop browser, press `Extensions` toolbar button and pin `pWebArc`.
   (In mobile browsers there is are no customizable toolbars, unfortunately.)
 
 - Alternatively, download the latest `pWebArc-firefox-v*.xpi` from Releases, and then [follow "Install as an unsigned XPI" instructions below](#unsigned-xpi).
@@ -40,15 +40,15 @@ See [the gallery](../doc/gallery.md).
 
 - Make sure your browser [supports installation of unsigned add-ons](https://wiki.mozilla.org/Add-ons/Extension_Signing) (Firefox ESR, Nightly, Developer Edition, and Tor Browser do, vanilla Firefox and its mobile versions do not).
 - Go to `about:config`, set `xpinstall.signatures.required` to `false`.
-- Go to `about:addons`, click the gear button, select "Install Add-on from File", and select the XPI file in `./extension/dist` directory (or do `File > Open File` from the menu and then select the XPI file, or drag-and-drop the XPI file into the browser window).
-- Then press "Extensions" toolbar button and pin "pWebArc".
+- Go to `about:addons`, click the gear button, select `Install Add-on from File`, and select the XPI file in `./extension/dist` directory (or do `File > Open File` from the menu and then select the XPI file, or drag-and-drop the XPI file into the browser window).
+- Then press `Extensions` toolbar button and pin `pWebArc`.
 
 ### Install as a temporary add-on
 
 If you are [building from source](#build), this is a nice way to do development, since to reload the add-on after making a new build will require a single click.
 
-- In the browser, go to `about:debugging#/runtime/this-firefox`, click "Load Temporary Add-on" button, and select `./extension/dist/pWebArc-firefox-v*/manifest.json`.
-- Then you might need to go into `about:addons` and enable "Run in Private Windows" for `pWebArc` if your Firefox is running in Private-Windows-only mode.
+- In the browser, go to `about:debugging#/runtime/this-firefox`, click `Load Temporary Add-on` button, and select `./extension/dist/pWebArc-firefox-*/manifest.json`.
+- Then you might need to go into `about:addons` and enable `Run in Private Windows` for `pWebArc` if your Firefox is running in Private-Windows-only mode.
 
 ## <span id="install-chromium"/>On Chromium, Chrome, etc
 
