@@ -3268,12 +3268,16 @@ function handleBeforeRequest(e) {
         fromCache: false,
     };
 
-    if (isDefinedURL(e.documentUrl))
+    if (isDefinedURL(e.documentUrl)
+        && !e.documentUrl.startsWith(selfURL)) // just in case
         reqres.documentUrl = e.documentUrl;
 
-    if (isDefinedURL(e.originUrl))
+    if (isDefinedURL(e.originUrl)
+        && !e.originUrl.startsWith(selfURL)) // do not leak extension id when using config.workaroundFirefoxFirstRequest
         reqres.originUrl = e.originUrl; // Firefox
-    else if (isDefinedURL(e.initiator) && e.initiator !== "null")
+    else if (isDefinedURL(e.initiator)
+             && e.initiator !== "null"
+             && !e.originUrl.startsWith(selfURL)) // just in case
         reqres.originUrl = e.initiator; // Chromium
 
     if (e.requestBody !== undefined && e.requestBody !== null) {
