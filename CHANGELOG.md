@@ -10,7 +10,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - pWebArc now runs under Fenix aka Firefox-for-Android-based browsers, including at least Fennec and Mull.
 
-  Thought, "Export via `saveAs`" archival method is broken there, because of [a bug in Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=1914360).
+  Thought, `Export via 'saveAs'` archival method is broken there, because of [a bug in Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=1914360).
   Other methods do work, though.
 
   (Also, it is not marked as compatible with Firefox on Android on addons.mozilla.org at the moment, it probably will be in the next version.)
@@ -25,7 +25,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Split `in_flight` stat into a sum of two numbers.
 
-  This makes things less confusing on Chromium, the "Help" page explains it in more detail.
+  This makes things less confusing on Chromium, the `Help` page explains it in more detail.
 
 - Added toolbar button's badge as a prefix to its title, changed its format a bit.
 
@@ -36,7 +36,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Improved documentation.
 
-  In particular, among other things, added a lot of new anchors to the "Help" page, most internal links referencing some fact discussed in another section now point directly to the relevant paragraph instead of pointing to its section header.
+  In particular, among other things, added a lot of new anchors to the `Help` page, most internal links referencing some fact discussed in another section now point directly to the relevant paragraph instead of pointing to its section header.
 
 ### Fixed
 
@@ -44,7 +44,7 @@ On Firefox:
 
 - Fixed capture of responses produced by service/shared workers.
 
-  Also, added a new error code for when it (very rarely) fails because of a race condition inherent in `webRequest` API and documented all of it on the "Help" page.
+  Also, added a new error code for when it (very rarely) fails because of a race condition inherent in `webRequest` API and documented all of it on the `Help` page.
 
 - Fixed HTTP protocol version detection, requests fetched via `HTTP/3` will now be marked as such.
 
@@ -56,7 +56,7 @@ On Chromium:
 
 Generally:
 
-- Fixed navigation with browser's "Back" and "Forward" buttons to work properly on the "Help" page.
+- Fixed navigation with browser's `Back` and `Forward` buttons to work properly on the `Help` page.
 
 - Fixed a bug where force-stopping all in-flight reqres in a single tab could also drop some of the others.
 
@@ -68,7 +68,7 @@ Generally:
 
 ### Changed
 
-- Improved documentation, especially the "Help" page.
+- Improved documentation, especially the `Help` page.
 - Tiny improvement in popup UI HTML layout.
 - Changed `config.history` default value.
 
@@ -81,7 +81,7 @@ Generally:
   pWebArc can now save and reload `collected` but not archived reqres (including those `in_limbo`) by stashing them into browser's local storage.
   This is now enabled by default, but it can be disabled globally, or per-tab.
 
-- As a consequence, pWebArc now tracks browsing sessions and shows when a reqres belongs to an older session on its "Internal State" page.
+- As a consequence, pWebArc now tracks browsing sessions and shows when a reqres belongs to an older session on its `Internal State` page.
 
 - Implemented two new archiving methods.
   pWebArc can now archive `collected` reqres by
@@ -91,9 +91,9 @@ Generally:
   - archiving separate dumps to your own private archiving server (the old one, the previous default, inherited on extension update),
   - archiving separate dumps to your browser's local storage (the new default on a new clean install).
 
-- As a consequence, pWebArc now has a new "Saved in Local Storage" page for displaying the latter.
+- As a consequence, pWebArc now has a new `Saved in Local Storage` page for displaying the latter.
 
-- Implemented display and filtering for `queued` and `failed` reqres on the "Internal State" page.
+- Implemented display and filtering for `queued` and `failed` reqres on the `Internal State` page.
 
 - Implemented tracking of per-state size totals for reqres in most states after `finished`.
 
@@ -143,7 +143,7 @@ Generally:
         \-------->-----------------------------------------------/
   ```
 
-- Renamed all "Profile" settings into "Bucket", as this makes more sense.
+- Renamed all `Profile` settings into `Bucket`, as this makes more sense.
 
 - Improved popup UI layout.
 
@@ -190,15 +190,15 @@ Generally:
 
 - Popup UI:
 
-  - Reverted the split between "Globally" and "This session".
+  - Reverted the split between `Globally` and `This session`.
 
     Implementing that split properly will make future things much harder, so, simple is best.
 
-  - "Queued" stat moved to a separate line again.
+  - `Queued` stat moved to a separate line again.
 
     It also shows the sum total of sizes of all dumps now.
 
-  - Added "Scheduled ... actions" stat line, showing the names of actions that are scheduled.
+  - Added `Scheduled ... actions` stat line, showing the names of actions that are scheduled.
 
     It is hidden by default, because watching it closely while pWebArc is very busy can probably cause seizures in some people.
 
@@ -235,7 +235,7 @@ Generally:
 
 - All SVG icons were edited to not reference any fonts, since those are not guaranteed to be available on a user's system.
 
-- Improved behaviour of new tabs created by clicking buttons on the "Internal State" page.
+- Improved behaviour of new tabs created by clicking buttons on the `Internal State` page.
 
 - Greatly improved documentation.
 
@@ -258,7 +258,7 @@ Generally:
 
 - Added UI for internal scheduled/delayed actions/functions (e.g., saving of frequently changing stuff to persistent storage, automatic actions when a tab closes, canceling and reloading not-yet-debugged tabs on Chromium, etc):
 
-  - If some functions are still waiting to be run, the badge will have "\~" or "." in it and change its color, depending on the importance of the stuff that is waiting to be run.
+  - If some functions are still waiting to be run, the badge will have `~` or `.` in it and change its color, depending on the importance of the stuff that is waiting to be run.
   - Popup UI has a new stat line showing the number of such delayed actions and buttons to run or cancel them immediately.
 
 - Added config options and popup UI toggles for picking and marking as problematic reqres with various HTTP status codes.
@@ -273,7 +273,7 @@ Generally:
 - Improved keyboard shortcuts:
 
   - In popup UI, toggles and buttons with bound keyboard shortcuts will now get those shortcuts displayed in their tooltips.
-  - [The "Keyboard shortcuts" section of the "Help" page](./extension/page/help.org#keyboard-shortcuts) will now show currently active shortcuts (when viewed via the "Help" button from the extension UI).
+  - [The "Keyboard shortcuts" section of the `Help` page](./extension/page/help.org#keyboard-shortcuts) will now show currently active shortcuts (when viewed via the `Help` button from the extension UI).
   - The changes to the code there mean all the shortcuts will be reset to their default keys, but it makes stuff much cleaner internally, so.
   - Collecting all reqres from currently active tab's limbo is bound to `Alt+S` by default now (similarly to how `Ctrl+S` saves the page).
   - Discarding all reqres from currently active tab's limbo is bound to `Alt+W` by default now (similarly to how `Ctrl+W` closes the tab).
@@ -285,11 +285,11 @@ Generally:
 - Much of the code working with Chromium's debugger was rewritten.
   Now it reports all the errors properly and no longer crashes when the debugger gets detached at inopportune time in the pipeline (which is quite common, unfortunately).
 
-- "Mark reqres as problematic when they finish ... with reqres errors" config option became "... with reqres errors and get `dropped`", i.e. it is now disjoint with "... with reqres errors and get `picked`".
+- `Mark reqres as 'problematic' when they finish > ... with reqres errors` config option became `> ... with reqres errors and get 'dropped'`, i.e. it is now disjoint with `> ... with reqres errors and get 'picked'`.
 
 - Improved desktop notifications.
 
-- Popup UI, in its default rolled-up state, now exposes "Generate desktop notifications about ... new problematic reqres" option and has custom `tabindex`es set, for convenience.
+- Popup UI, in its default rolled-up state, now exposes `Generate desktop notifications about > ... new problematic reqres` option and has custom `tabindex`es set, for convenience.
 
 - Changed some config option defaults (your existing config will not get affected).
 
@@ -335,13 +335,13 @@ Generally:
 
 - Added a bunch of new keyboard shortcuts.
 
-  Also, keyboard shortcuts now work properly in narrowed "Internal State" pages.
+  Also, keyboard shortcuts now work properly in narrowed `Internal State` pages.
 
 - Implemented stat persistence between restarts.
 
   You can brag about your archiving prowess to your friends by sharing popup UI screenshots now.
 
-- Added the "Changelog" page, which can be viewed by clicking the version number in the extension's popup.
+- Added the `Changelog` page, which can be viewed by clicking the version number in the extension's popup.
 
 ### Changed
 
@@ -373,7 +373,7 @@ Generally:
 
   Terminology-wise, most notably, `picked` and `dropped` now mean what `collected` and `discarded` meant before.
 
-  See [the "Help" page](./extension/page/help.org) for more info.
+  See [the `Help` page](./extension/page/help.org) for more info.
 
 - A lot of changes to make pWebArc consistently use the above terminology --- both in the source and in the documentation --- were performed for this release.
 
@@ -381,11 +381,11 @@ Generally:
 
   - Extension's toolbar button icon, badge, and title are much more informative and consistent in their behaviour now.
 
-  - The version number button in the popup (which opens the "Changelog") will now get highlighted on major updates.
+  - The version number button in the popup (which opens the `Changelog`) will now get highlighted on major updates.
 
-  - Similarly, the "Help" button will now get highlighted when that page gets updated.
+  - Similarly, the `Help` button will now get highlighted when that page gets updated.
 
-  - The popup, the "Help" page, the "Internal State" aka the "Log" page all had their UI improved greatly.
+  - The popup, the `Help` page, the `Internal State` aka the `Log` page all had their UI improved greatly.
 
   - All the toggles in the popup are now color-coded with their expected values, so if something looks red(-dish), you might want to check the help string in question just in case.
 
@@ -424,10 +424,10 @@ Generally:
 
 ### Added
 
-- Implemented "problematic" reqres flag, its tracking, UI, and documentation.
+- Implemented `problematic` reqres flag, its tracking, UI, and documentation.
 
-  This flag gets set for "no_response" and "incomplete" reqres by default but, unlike "Archive reqres with" settings, it does not influence archival.
-  Instead pWebArc displays "error" as its icon and its badge gets "!" at the end.
+  This flag gets set for `no_response` and `incomplete` reqres by default but, unlike `Archive reqres with` settings, it does not influence archival.
+  Instead pWebArc displays "archival failure" as its icon and its badge gets `!` at the end.
 
   This is needed because, normally, browsers provide no indication when some parts of the page failed to load properly --- they expect you to actually look at the page with your eyes to notice something looking broken instead --- which is not a proper way to do this when you want to be sure that the whole page with all its resources was archived.
 
@@ -497,7 +497,7 @@ Generally:
 
 ### Added
 
-- Implemented "in limbo" reqres processing stage and toggles.
+- Implemented "limbo" reqres processing stage and toggles.
 
   "Limbo" is an optional pre-archival-queue stage for finished reqres that are ready to be archived but, unlike non-limbo reqres, are not to be archived automatically.
 
@@ -533,7 +533,7 @@ Generally:
                   \-> (failed to archive) -/
   ```
 
-- The "Log" page became the "Internal State" page, now shows in-flight and in-limbo reqres. It also allows narrowing to data belonging to a single tab now.
+- The `Log` page became the `Internal State` page, now shows in-flight and in-limbo reqres. It also allows narrowing to data belonging to a single tab now.
 
 - Improved UI.
 
@@ -754,8 +754,8 @@ Paths produced by `wrrarms organize` are expected to change:
 
 ### Changed
 
-- Improved handling of "304 Not Modified" responses.
-- Improved UI and the "Help" page.
+- Improved handling of `304 Not Modified` responses.
+- Improved UI and the `Help` page.
 
 ### Fixed
 
@@ -773,7 +773,7 @@ Paths produced by `wrrarms organize` are expected to change:
 
 - It now prints the its own server URL at the start, for convenience.
 - Implemented gzipping before dumping to disk.
-- The extension can now specify a per-dump "profile", which is a suffix to be appended to the dumping directory.
+- The extension can now specify a per-dump `profile`, which is a suffix to be appended to the dumping directory.
 - Implemented optional printing of the head and the tail of the dumped data to the TTY.
 
 All planned features are complete now.
@@ -783,8 +783,8 @@ All planned features are complete now.
 ### Changed
 
 - Improved popup UI.
-- Improved the "Help" page: it's much more helpful now.
-- Improved the "Log" page: it's an interactive page that gets updated automatically now.
+- Improved the `Help` page: it's much more helpful now.
+- Improved the `Log` page: it's an interactive page that gets updated automatically now.
 
 ### Fixed
 
