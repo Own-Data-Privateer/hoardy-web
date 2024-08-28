@@ -26,13 +26,13 @@ See [the gallery](../doc/gallery.md).
 
 # Installation
 
-## <span id="install-firefox"/>On Firefox, Tor Browser, LibreWolf, Fenix aka Firefox for Android, Fennec, Mull, etc
+## <span id="install-firefox"/>On Firefox-based browsers (Firefox, Tor Browser, LibreWolf, Fenix aka Firefox for Android, Fennec, Mull, etc)
 
 - [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/).
   Then, in a desktop browser, press `Extensions` toolbar button and pin `pWebArc`.
   (In mobile browsers there is are no customizable toolbars, unfortunately.)
 
-- Alternatively, download the latest `pWebArc-firefox-v*.xpi` from Releases, and then [follow "Install as an unsigned XPI" instructions below](#unsigned-xpi).
+- Alternatively, download the latest `pWebArc-firefox-*.xpi` from [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases), and then [follow "Install as an unsigned XPI" instructions below](#unsigned-xpi).
 
 - Alternatively, [build it from source](#build) and then follow those same instructions.
 
@@ -50,41 +50,134 @@ If you are [building from source](#build), this is a nice way to do development,
 - In the browser, go to `about:debugging#/runtime/this-firefox`, click `Load Temporary Add-on` button, and select `./extension/dist/pWebArc-firefox-*/manifest.json`.
 - Then you might need to go into `about:addons` and enable `Run in Private Windows` for `pWebArc` if your Firefox is running in Private-Windows-only mode.
 
-## <span id="install-chromium"/>On Chromium, Chrome, etc
+## <span id="install-chromium"/>On Chromium-based browsers (Chromium, Google Chrome, Ungoogled Chromium, Brave, etc)
 
-Why isn't `pWebArc` on Chrome Web Store?
-Because Google appears to dislike the idea of things like `pWebArc` very much, and so `pWebArc` violates their "Terms of Use", see [higher-level README](../README.md#quickstart) for more info.
+`pWebArc` isn't on [Chrome Web Store](https://chromewebstore.google.com/) because `pWebArc` appears to violate [its "Terms of Use"](https://web.archive.org/web/20240604062520/https://developer.chrome.com/docs/webstore/program-policies/terms).
+Specifically, the "enables the unauthorized download of streaming content or media" clause.
+See [higher-level README](../README.md#quickstart) for more info and discussion.
 
-So, installation on Chromium-based browsers requires a little bit of work.
-
-- Download the latest `pWebArc-chromium-v*.zip` from Releases, unpack it, it's packed with a single directory named `pWebArc-chromium-v*` inside for convenience, then [follow "Install as an unpacked extension" instructions below](#unpacked-zip).
-
-- Alternatively, [build it from source](#build) and then follow those same instructions.
+So, installation on Chromium-based browsers (aka "Chromium forks") requires a little bit of work.
+There are several ways you can do it.
+**I recommend you read all of the following subsections first**, and then decide what you want to actually try doing.
+Do not rush.
 
 ### <span id="unpacked-zip"/>Install as an unpacked extension
 
-- Go to `Extensions > Manage Extensions` in the menu, enable "Developer mode" toggle, press "Load Unpacked", and select `./extension/dist/pWebArc-chromium-v*` directory (or the directory the unpacking of the `.zip` file produced, if you are using the pre-built `.zip`), it should have `manifest.json` file in it, just navigate to that directory select it and then press the "Open" button (or navigate into that directory and then press the "Open" button, that will work too).
-- Then press "Extensions" toolbar button and pin "pWebArc".
+This is the simplest method that will work on all Chromium forks, but `pWebArc` will not get automatic updates.
+I.e., you will have to check the [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases) page periodically, download, and install new releases manually to update.
 
-### Install the CRX
+- Download the latest `pWebArc-chromium-*.zip` from [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases).
+- Unpack it.
+  It's packed with a single directory named `pWebArc-chromium-*` inside for convenience.
+- Go to `Extensions > Manage Extensions` in the menu of your browser and enable `Developer mode` toggle.
+- On the same page, press `Load Unpacked` and select the directory the unpacking of the `.zip` file produced.
+  It should have `manifest.json` file in it, just navigate to that directory select it and then press the `Open` button (or navigate into that directory and then press the `Open` button, that will work too).
+- Then press `Extensions` toolbar button and pin `pWebArc`.
 
-- [The build](#build) will build it, and you can try installing it, but installing the CRX manually does not appear work in modern version of Chromium/Chrome.
+Apparently, if you are using Google Chrome, you will get annoying warnings about side-loaded extensions.
+But you can also whitelist your extensions to prevent it, [see the second answer of this stackoverflow question](https://stackoverflow.com/questions/24577024/install-chrome-extension-form-outside-the-chrome-web-store).
+For a `pWebArc` downloaded from [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases) here, its Chromium extension ID is `amklkmnfmgjmofkjifjgngdnajpbpefp`.
 
-# <span id="build"/>Build it from source
+### Install as an unpacked extension built from source
+
+Alternatively, you can [build it from source](#build) and then follow those same instructions above, except use `./dist/pWebArc-chromium-*` directory after pressing `Load Unpacked` button in the browser's UI.
+
+Similarly, there will be no automatic updates.
+
+In case you need to whitelist your build, the Chromium extension ID of your build will be written to `./dist/manifest-chromium-id.txt`.
+That ID is derived from a public key, which is derived from a private key, which is generated by the [`gen-chromium-key.sh` script](./bin/gen-chromium-key.sh) called by [`build.sh` script](./build.sh) when you build the extension the very first time.
+The result then gets stored in `./private/chromium.key.pem` and reused between builds.
+
+### Install a CRX directly
+
+If your Chromium fork supports installation of third-party CRX files (not fetched from [Chrome Web Store](https://chromewebstore.google.com/)), you can do this:
+
+- Go to `chrome://flags`.
+- Search for the `#extension-mime-request-handling` flag and set it to `Always prompt for install`.
+- (If you did not find such a thing there, then you Chromium fork does not support installations of third-party CRX files.)
+- Then, download the latest `pWebArc-chromium-*.crx` from [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases).
+- The browser should prompt you if you want to install `pWebArc`.
+- Confirm the install.
+
+There may or may not be automatic updates for `pWebArc`, depending of what your Chromium fork comes with.
+If it supports updates for third-party extensions, you will get updates, if it does not, you will not.
+The vanilla mainline Chromium comes without any such support.
+See below for how to fix it.
+
+### Install a CRX via drag-and-drop
+
+If your Chromium fork supports installation of third-party CRX files fetched manually:
+
+- Download the latest `pWebArc-chromium-*.crx` from [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases).
+- Drag-and-drop the resulting CRX file from your `Downloads` folder into your browser's window.
+- The browser should either prompt you if you want to install `pWebArc` or just install it silently.
+- (If it does not, then you browser does not support that too.)
+- Confirm the install or check you extensions list to confirm it's there.
+
+The updates situation will be exactly the same as above.
+
+### How to make `pWebArc` (and other indie extensions) automatically update on Chromium forks that do not support auto-updates for third-party extensions
+
+- Install `pWebArc` using one of the above methods.
+
+- Install [`chromium-web-store`](https://github.com/NeverDecaf/chromium-web-store) extension using one of the above methods.
+
+  It exists to help you to install extensions from [Chrome Web Store](https://chromewebstore.google.com/) and other similar WebExtensions repositories on Chromium forks that do not come with builtin support for WebExtension stores.
+  More importantly, however, it can periodically check all your extensions that have an `update_url` field set in their `manifest.json` for updates and notify you about them.
+  (`pWebArc`, of course, comes with `update_url` set.)
+
+  So, the simplest way to do this on a most limited Chromium fork is to run
+
+  ```bash
+  git clone https://github.com/NeverDecaf/chromium-web-store
+  ```
+
+  and then simply `Load Unpacked` the `./chromium-web-store/src` directory in your Chromium fork.
+
+Then you can:
+
+- Go to `Extensions > Manage Extensions` in the menu of your browser.
+- Press the `Details` button on `Chromium Web Store` extension.
+- Press the `Extension options` (should be near the bottom) there.
+- And edit those options to your liking.
+
+E.g., you might want to:
+
+- change hourly update checks to daily by setting the interval to `1440`,
+- ask it to ignore some of your extensions you don't want to ever update,
+- disable `Enable Chrome Web Store Integration`,
+- etc, see there for more info.
+
+Congratulations, from now on `pWebArc` --- or any other extension that has `update_url` field set in its `manifest.json`, regardless of its availability at [Chrome Web Store](https://chromewebstore.google.com/) --- will get checked for updates periodically.
+
+- If you installed `pWebArc` (or another extension which has `update_url` field set) via a CRX, then `chromium-web-store` can even automatically update it for you.
+- If you installed `pWebArc` (or another extension) via `Load Unpacked`, you will have to manually re-install it from [a new release](https://github.com/Own-Data-Privateer/pwebarc/releases) on updates, but you will at least get notified about it updating without you needing to check manually.
+
+See [`chromium-web-store`'s README](https://github.com/NeverDecaf/chromium-web-store) for more info and instructions, especially if you get `CRX_REQUIRED_PROOF_MISSING` or `Apps, extensions and user scripts cannot be added from this website` errors.
+
+# Recommended next steps
+
+- Open `pWebArc`'s popup and press the `Help` button there.
+  Read the contents of that page.
+
+- Eventually, install and see the docs of [the `wrrarms` tool](../tool/).
+
+# Development
+
+## <span id="build"/>Build it from source
 
 - `git clone` this repository.
 - `cd extension`.
 - Optionally: run `nix-shell ./default.nix` to get the exact build environment I use.
-- For Firefox, Tor Browser, LibreWolf, etc: build by running `./build.sh clean firefox` from this directory.
-- For Chromium/Chrome/etc: build by running `./build.sh clean chromium-mv2` from this directory.
+- Build by running `./build.sh clean firefox chromium-mv2` from this directory.
 - All outputs can then be found in the `dist` directory.
 
-# Debugging
+## Debugging
 
-## On Firefox, Tor Browser, LibreWolf, etc
+### On Firefox-based browsers
 
-- To get the debugger console go to `about:debugging` and press extension's "Inspect" button.
+- To get the debugger console go to `about:debugging#/runtime/this-firefox` and press extension's `Inspect` button.
 
-## On Chromium, Chrome, etc
+### On Chromium-based browsers
 
-- To get the debugger console go to `Extensions > Manage Extensions` and press "Inspect views" link after the extension's ID.
+- To get the debugger console go to `Extensions > Manage Extensions` and press `Inspect views` link after the extension's ID.

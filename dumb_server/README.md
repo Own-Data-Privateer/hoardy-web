@@ -1,12 +1,14 @@
 # What is `pwebarc-dumb-dump-server`?
 
-`pwebarc_dumb_dump_server.py`: a very ~~dumb~~ simple archiving server for [Personal Private Passive Web Archive (pwebarc)](https://github.com/Own-Data-Privateer/pwebarc/) (also [there](https://oxij.org/software/pwebarc/)) [pWebArc browser extension](https://github.com/Own-Data-Privateer/pwebarc/tree/master/extension/) (also [there](https://oxij.org/software/pwebarc/tree/master/extension/)).
+`pwebarc_dumb_dump_server.py`: a very simple archiving server for the [Personal Private Passive Web Archive aka pwebarc project](https://github.com/Own-Data-Privateer/pwebarc/) (also [there](https://oxij.org/software/pwebarc/)).
+I.e. this is the thing you run and then paste the URL of into `Server URL` setting of the [`pWebArc` browser extension](https://github.com/Own-Data-Privateer/pwebarc/tree/master/extension/) (also [there](https://oxij.org/software/pwebarc/tree/master/extension/)) to get fast and reliable archiving of your captured data.
+
 This thing is less than 200 lines of pure Python that only uses the Python\'s standard library and nothing else.
 You could be running it already.
 
 # Why does `pwebarc-dumb-dump-server` exists?
 
-This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/pwebarc/tree/master/README.md#quickstart) (also [there](https://oxij.org/software/pwebarc/tree/master/README.md#quickstart)).
+This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/pwebarc/tree/master/README.md#quickstart) (also [there](https://oxij.org/software/pwebarc/tree/master/README.md#quickstart)) that also [does reliable archiving](https://oxij.org/software/pwebarc/tree/master/extension/page/help.org#faq-unsafe).
 
 Normally, you would use something smarter than this (when I publish it), but this will work fine as a starting point.
 

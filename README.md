@@ -2,13 +2,16 @@
 
 Personal Private Passive Web Archive (`pwebarc`) is a suite of tools to capture, collect, save, mirror, manage archives of (i.e. hoard), and view web pages and whole websites offline.
 
-In short, `pwebarc`'s main workflow is this: you install an extension/add-on into the browser of your choice (desktop versions of both Firefox- and Chromium-based browsers are supported, as well as Firefox-for-Android-based browsers) and just browse the web while it captures and archives **everything your browser fetches from the network** to your local file system in a way that can be used to reconstruct and replay your browsing session later (by default, the extension has lots of options controlling what data from which tabs should and should not be captured).
+In short, `pwebarc`'s main workflow is this: you install an extension/add-on into the browser of your choice (desktop versions of both Firefox- and Chromium-based browsers as well as Firefox-for-Android-based browsers are supported) and just browse the web while it captures and archives **everything your browser fetches from the network** to your local file system or (optionally) a remote archiving server in a way that can be used to reconstruct and replay your browsing session later (by default, the extension has lots of options controlling what data from which tabs should and should not be captured).
 
 - See ["Why"](#why) section for why you might want to do this.
 - See ["Highlights"](#highlights) section for a longer description of what `pwebarc` does and does not do.
 - See ["Alternatives"](#alternatives) for comparisons to alternatives.
 - See ["Frequently Asked Questions"](./extension/page/help.org#faq) for the answers to those, including the questions about common quirks you can encounter while using `pwebarc`.
 - See ["Quickstart"](#quickstart) section for setup instructions.
+
+If you are reading this on GitHub, be aware that this repository is [a mirror of a repository on the author's web site](https://oxij.org/software/pwebarc/).
+In author's humble opinion, the rendering of the documentation pages there is superior to what can be seen on GitHub (its implemented via [`pandoc`](https://pandoc.org/) there).
 
 # Screenshots
 
@@ -89,9 +92,9 @@ Also, unless configured otherwise, [`pWebArc` (the extension)](./extension/) wil
 
 Unlike most of [its alternatives](#alternatives), `pwebarc` **DOES NOT**:
 
-- require you to capture and/or collect and/or archive and/or export recorded data explicitly one page/browsing session at a time (the default behaviour is to archive everything completely automatically, though the extension implements optional ["limbo mode"](./extension/page/help.org#faq-limbo) which delays archival of collected data and provides optional manual/semi-automatic control if you want it);
+- require you to capture and/or collect and/or archive and/or export recorded data explicitly one page/browsing session at a time (the default behaviour is to archive everything completely automatically, though the extension implements optional [limbo mode](./extension/page/help.org#faq-limbo) which delays archival of collected data and provides optional manual/semi-automatic control if you want it);
 
-- force you to use Chromium (you can use `pWebArc` with Firefox, Tor Browser, LibreWolf, Fenix aka Firefox for Android, Fennec, Mull, etc, which is not a small thing, since if you tried using any of the close alternatives running under Chromium, you might have noticed that the experience there is pretty awful: it becomes even slower than usual, large files don't get captured, random stuff fails to be captured at random times because Chromium randomly detaches its debugger from its tabs... none of these problems exist on Firefox-based browsers because Firefox does not fight ad-blocking and hardcore ad-blocking extensions and `pWebArc` use the same browser APIs);
+- force you to use a Chromium-based browser (you can use `pWebArc` with [Firefox](https://www.mozilla.org/en-US/firefox/all/), [Tor Browser](https://www.torproject.org/download/), [LibreWolf](https://librewolf.net/installation/), [Fenix aka Firefox for Android](https://www.mozilla.org/en-US/firefox/browsers/mobile/android/), [Fennec](https://f-droid.org/en/packages/org.mozilla.fennec_fdroid/), [Mull](https://f-droid.org/packages/us.spotco.fennec_dos/), etc, which is not a small thing, since if you tried using any of the close alternatives running under Chromium-based browsers, you might have noticed that the experience there is pretty awful: the browser becomes even slower than usual, large files don't get captured, random stuff fails to be captured at random times because Chromium randomly detaches its debugger from its tabs... none of these problems exist on Firefox-based browsers because Firefox does not fight ad-blocking and hardcore ad-blocking extensions and `pWebArc` use the same browser APIs);
 
 - require you to download the data you want to archive twice or more (you'd be surprised how commonly other tools will either ask you to do that explicitly, or just do that silently when you ask them to save something);
 
@@ -118,19 +121,27 @@ But then I got annoyed by all the sites that don't work under `mitmproxy`, did s
 
 - [The `pWebArc` browser extension](./extension/) that captures all HTTP requests and responses (and [DOM snapshots](./extension/page/help.org#faq-snapshot)) your browser fetches, dumps them [into `WRR` format](./doc/data-on-disk.md), and then exports them by generating fake-Downloads containing bundles of those dumps, submits them to the specified archiving server (by `POST`ing them to the specified URL), or saves the to browser's local storage.
 
-  The extension is to be considered *stable* for both Firefox- and Chromium-based browsers (though, it is tested much less on Chromium than on Firefox).
+  The extension is
+
+  - *stable* while running under desktop versions of both Firefox- and Chromium-based browsers;
+
+  - *beta* while running under Fenix-based (Firefox-for-Android-based) browsers.
+
+  See [the "Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for known issues.
+  Also, `pWebArc` is tested much less on Chromium than on Firefox.
 
 ### Optional, but convenient
 
 - [The dumb archiving server](./dumb_server/) that simply dumps everything the `pWebArc` extension submits to it to disk, one file per HTTP request+response.
 
-  The dumb archiving server is to be considered *stable* (it's so simple there hardly could be any bugs there).
+  The dumb archiving server is *stable* (it's so simple there hardly could be any bugs there).
 
 ### Optional, but almost always required at some point
 
 - [The `wrrarms` tool](./tool/) that allows you to display, search, organize, and manipulate archived data.
 
-  `wrrarms` tool is beta software, it does about 70% of the stuff I want it to do ATM.
+  `wrrarms` tool is deep in its *beta* stage.
+  At the moment, it does about 70% of the stuff I want it to do, and the things it does it does not do as well as I'd like.
   See [the TODO list](#todo) for more info.
 
 ### Optional, but useful
@@ -274,16 +285,18 @@ After adding each new feature to [the `wrrarms` tool](./tool/), as a rule, I fee
 
 ## Install `pWebArc` browser extension/add-on
 
-- On Firefox, Tor Browser, LibreWolf, (and soon, but not yet, on Fenix aka Firefox for Android, Fennec, Mull), etc: [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Build from source for Firefox/Tor Browser/LibreWolf/Fenix aka Firefox for Android/Fennec/Mull/etc](./extension/README.md#build).
+- On Firefox, Tor Browser, LibreWolf, Fenix aka Firefox for Android, Fennec, Mull, etc: [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/) or see [Build from source](./extension/README.md#build).
 
-- On Chromium, Chrome, etc: See [Installing on Chromium/Chrome](./extension/README.md#install-chromium) or [Build from source for Chromium/Chrome/etc](./extension/README.md#build).
+- On Chromium, Google Chrome, Ungoogled Chromium, Brave, etc: See [Installing on Chromium-based browser](./extension/README.md#install-chromium) or [Build from source](./extension/README.md#build).
 
-  Unfortunately, this requires a bit more work than clicking "Install" on [Chrome Web Store](https://chromewebstore.google.com/), yes.
+  Unfortunately, this requires a bit more work than clicking `Install` button on [Chrome Web Store](https://chromewebstore.google.com/), yes.
+
   "Why isn't `pWebArc` on Chrome Web Store?"
-  I'm glad you asked!
   I'm not a lawyer, but to me it looks like `pWebArc` violates [Chrome Web Store's "Terms of Use"](https://web.archive.org/web/20240604062520/https://developer.chrome.com/docs/webstore/program-policies/terms).
   Specifically, the "enables the unauthorized download of streaming content or media" clause.
-  In my personal opinion, any content you web browser fetches while you are browsing the web normally you are "authorized" to download, but given the context of that clause in that document, I feel like Google would disagree.
+  In my personal opinion, any content you web browser fetches while you are browsing the web normally you are "authorized" to download.
+  This is especially true for `pWebArc` since, unlike most of [its alternatives](#alternatives), *does not generate any requests itself*, it only ever captures the data that a web page in question generates by itself while you browse it.
+  But given the context of that clause in that document, I feel like Google would disagree with my the interpretation above.
   Even though, technically speaking, separation between "streamed" and "downloaded" content or media is a complete delusion.
 
   Meanwhile, `pWebArc` tries its best to collect all web traffic you browser generates, which, obviously, includes streaming content.
