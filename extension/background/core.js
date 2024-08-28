@@ -2576,7 +2576,8 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
         // it's a snapshot
         state = "snapshot";
     } else if (!reqres.sent) {
-        // it failed somewhere before handleSendHeaders
+        // it failed somewhere before handleSendHeaders or was redirected
+        // internally (e.g. by an extension)
         state = "canceled";
         problematic = config.markProblematicCanceled;
         picked = config.archiveCanceled;
@@ -3381,12 +3382,22 @@ function handleBeforeRedirect(e) {
 
     logEvent("BeforeRedirect", e, reqres);
 
+    reqres.redirectUrl = e.redirectUrl;
+    reqres.responseComplete = true;
+
     if (!reqres.responded) {
         // This happens when a request gets redirected right after
-        // `handleBeforeRequest`, e.g. by another extension or a
-        // service/shared worker.
-        if (!useDebugger && e.statusCode === 0) {
-            // workaround internal Firefox redirects giving no codes and statuses
+        // `handleBeforeRequest` by the browser itself, by another extension,
+        // or a service/shared worker.
+        let firefoxInternalRedirect = !useDebugger && e.statusCode === 0;
+        let firefoxExtensionRedirectToSelf = !useDebugger && (e.statusCode < 300 || e.statusCode >= 400) && isExtensionURL(e.redirectUrl);
+        if (firefoxInternalRedirect || firefoxExtensionRedirectToSelf) {
+
+            // Work around internal Firefox redirects giving no codes and
+            // statuses or extensions redirecting to their local files under
+            // Firefox.
+
+            reqres.generated = true;
             reqres.responded = true;
             reqres.responseTimeStamp = e.timeStamp;
             reqres.fromCache = false;
@@ -3395,12 +3406,13 @@ function handleBeforeRedirect(e) {
             reqres.responseHeaders = [
                 { name: "Location", value: e.redirectUrl }
             ];
+
+            // these give no data, usually
+            if (firefoxExtensionRedirectToSelf)
+                reqres.responseComplete = false;
         } else
             fillResponse(reqres, e);
     }
-
-    reqres.responseComplete = true;
-    reqres.redirectUrl = e.redirectUrl;
 
     emitRequest(e.requestId, reqres);
 
