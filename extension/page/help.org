@@ -63,7 +63,7 @@ Reqres change their internal states according to the following state diagram (wh
 ** Step 1: Tracking
 pWebArc attaches to your browser's runtime and tracks progress of HTTP requests and their responses, capturing both their request and response headers and data at appropriate times in the browser's request and response processing pipeline.
 
-Whether pWebArc will track a given request depends on the "Track new reqres" toggles (or checkboxes, if you are using a browser without support for the needed CSS) in the settings popup, e.g:
+Whether pWebArc will track a given request depends on the "Track new reqres" toggles in the settings popup, e.g:
 
 - [[./popup.html#div-config.collecting][this toggle]] allows you to disable tracking of newly spawned HTTP requests globally, thus essentially disabling pWebArc,
 - [[./popup.html#div-tabconfig.collecting][this one]] controls whether pWebArc will track new reqres originating from the currently active tab,
