@@ -635,6 +635,57 @@ This is by design, I expect a chunk of =pWebArc= users to be paranoid enough to 
 - =unlimitedStorage= permission is used for archival of captured data to browser's local storage.
 - =menus= (=contextMenus= on Chromium) permission is used to add [[#context-menu-shortcuts][context-menu shortcut actions for links]].
 - =notifications= permission is used to send desktop notifications, which mostly used for reporting various issues.
+** Can I capture web pages while running my browser with JavaScript disabled?
+Yes.
+** Can I capture web pages that use a lot of JavaScript?
+=pWebArc= will capture everything your browser fetches as you browse, except for, at the moment, WebSockets data.
+
+In the most general case, "from scratch" replay of pages dynamically generated via JavaScript is not guaranteed.
+E.g. consider a web page where its JavaScript generates a random number, then queries its server with that number, and renders the result.
+Obviously, this can not be replayed "from scratch", since it will generate a new random number and the archive won't have a server's response for it.
+Which is why [[./popup.html#snapshotTab][DOM snapshots]] exist, see the following question.
+** Can I capture a web page as it currently is, after all JavaScript was run, not as it was when it was last fetched from the network?
+:PROPERTIES:
+:CUSTOM_ID: faq-snapshot
+:END:
+
+Yes, you can capture DOM (Document Object Model) snapshots of all frames of the currently active tab by pressing [[./popup.html#snapshotTab][this button]] in the popup.
+
+Doing that will generate and capture snapshots of raw HTML/XMLs for each frame contained in the currently active tab.
+(Reqres-wise they will be =200 OK= responses, but with =protocol= set to =SNAPSHOT= and =method= set to =DOM=.)
+
+You can also do that for all open tabs at once by pressing [[./popup.html#snapshotAll][that button]].
+** How do I properly capture a web page completely, especially when parts of it are loaded lazily?
+:PROPERTIES:
+:CUSTOM_ID: faq-lazy
+:END:
+
+In the most general case, you will have to scroll the page around and click random buttons and media elements.
+
+=pWebArc= has no "autopilot" for doing this, nor will it ever get one, at least as part of =pWebArc= extension, since "autopiloting" is very website-specific.
+So, at the moment, the most general semi-automated solution is to run a website-specific UserScript via [[https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/][Tampermonkey]] or some such, wait until everything finishes loading, and then take a [[./popup.html#snapshotTab][snapshot]].
+(=pWebArc= will get an integration for automating that, eventually.)
+
+On the other hand, if you
+
+- run =pWebArc= under Firefox,
+- just want to load all lazily-loaded images the page already has (NOT load more stuff), and
+- the page in question uses modern HTML5 lazy loading attributes instead of using JavaScript to do the same,
+
+then you can simply go to =about:config= and toggle =dom.image-lazy-loading.enabled= to =false=.
+All images will start being loaded eagerly after that.
+** Can I capture a web page without archiving it, look at it, decide if I want to save it, and archive it only if I do, all without reloading the page a second time?
+:PROPERTIES:
+:CUSTOM_ID: faq-limbo
+:END:
+
+Yes. This is why [[./popup.html#div-tabconfig.limbo][=Pick into limbo= setting]] exists.
+See [[#limbo][above]] for more info.
+
+In combination with [[./popup.html#closed-auto-options][=Automatic actions for recently closed tabs= options]] you can implement any of the following workflows:
+
+- archive everything by default, but allow to exclude some things by manually discarding them from limbo;
+- only archive things that are explicitly manually collected, discard everything else by default.
 ** Why do pages under [[https://addons.mozilla.org/]] and [[https://chromewebstore.google.com/]] can not be captured?
 Browsers prevent extensions from running on extension store pages to prevent them from manipulating ratings, reviews, and etc such things.
 However, you can archive [[https://addons.mozilla.org/]] pages by running =pWebArc= under Chromium and [[https://chromewebstore.google.com/]] pages by running =pWebArc= under Firefox.
@@ -678,48 +729,6 @@ Usually, you can ignore this error, since loading another related page is likely
 
 However, if this happens a lot to you, or if it annoys you, you can go to =about:config=, toggle =dom.serviceWorkers.enabled= to =false=, and restart the browser.
 Alternatively, you can use =NoScript= or some such extension to disable JavaScript, and thus the offending service/shared workers, on the page in question.
-** Can I capture a web page without archiving it, look at it, decide if I want to save it, and archive it only if I do, all without reloading the page a second time?
-:PROPERTIES:
-:CUSTOM_ID: faq-limbo
-:END:
-
-Yes. This is why [[./popup.html#div-tabconfig.limbo][=Pick into limbo= setting]] exists.
-See [[#limbo][above]] for more info.
-
-In combination with [[./popup.html#closed-auto-options][=Automatic actions for recently closed tabs= options]] you can implement any of the following workflows:
-
-- archive everything by default, but allow to exclude some things by manually discarding them from limbo;
-- only archive things that are explicitly manually collected, discard everything else by default.
-** Can I capture a web page/tab/frame as it currently is, after all JavaScript was run, not as it was when it was last fetched from the network?
-:PROPERTIES:
-:CUSTOM_ID: faq-snapshot
-:END:
-
-Yes, you can capture DOM (Document Object Model) snapshots for the currently active tab by pressing [[./popup.html#snapshotTab][this button]] in the popup.
-
-Doing that will generate and capture snapshots of raw HTML/XMLs for each frame contained in the currently active tab.
-(Reqres-wise they will be =200 OK= responses, but with =protocol= set to =SNAPSHOT= and =method= set to =DOM=.)
-
-You can also do that for all open tabs at once by pressing [[./popup.html#snapshotAll][that button]].
-** How do I properly capture a web page completely, especially when parts of it are loaded lazily?
-:PROPERTIES:
-:CUSTOM_ID: faq-lazy
-:END:
-
-In the most general case, you will have to scroll the page around and click random buttons and media elements.
-
-=pWebArc= has no "autopilot" for doing this, nor will it ever get one, at least as part of =pWebArc= extension, since "autopiloting" is very website-specific.
-So, at the moment, the most general semi-automated solution is to run a website-specific UserScript via [[https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/][Tampermonkey]] or some such, wait until everything finishes loading, and then take a [[./popup.html#snapshotTab][snapshot]].
-(=pWebArc= will get an integration for automating that, eventually.)
-
-On the other hand, if you
-
-- run =pWebArc= under Firefox,
-- just want to load all lazily-loaded images the page already has (NOT load more stuff), and
-- the page in question uses modern HTML5 lazy loading attributes instead of using JavaScript to do the same,
-
-then you can simply go to =about:config= and toggle =dom.image-lazy-loading.enabled= to =false=.
-All images will start being loaded eagerly after that.
 ** The documentation claims that archival methods other than submission via HTTP are unsafe. Why?
 :PROPERTIES:
 :CUSTOM_ID: faq-unsafe
