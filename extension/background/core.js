@@ -2665,14 +2665,6 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
     loggable.picked = picked;
     loggable.was_in_limbo = loggable.in_limbo = in_limbo;
 
-    if (picked) {
-        globals.pickedTotal += 1;
-        info.pickedTotal += 1;
-    } else {
-        globals.droppedTotal += 1;
-        info.droppedTotal += 1;
-    }
-
     let dump;
     let dumpSize;
     {
@@ -2693,6 +2685,14 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
 
     loggable.dumpSize = dumpSize;
     let archivable = [loggable, dump];
+
+    if (picked) {
+        globals.pickedTotal += 1;
+        info.pickedTotal += 1;
+    } else {
+        globals.droppedTotal += 1;
+        info.droppedTotal += 1;
+    }
 
     if (in_limbo) {
         reqresLimbo.push(archivable);
