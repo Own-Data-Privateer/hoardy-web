@@ -70,7 +70,11 @@ for target in "$@"; do
     echo "  Building page/changelog..."
 
     cat ../CHANGELOG.md \
-        | sed 's%\./extension/page/help\.org%./help.html%g' \
+        | sed '
+s%(\./extension/page/help\.org\([^)]*\))%(./help.html\1)%g ; t end
+s%(\./\([^)]*\))%(https://oxij.org/software/pwebarc/tree/master/\1)%g
+: end
+' \
         | runPandoc markdown page/changelog
 
     echo "  Copying files..."
