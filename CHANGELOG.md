@@ -4,6 +4,58 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [extension-v1.15.0] - 2024-08-27
+
+### Added
+
+- `pWebArc` is now officially supported on Fenix (Firefox for Android). It is quite usable there now, so go forth and test it.
+
+- Chromium version now has a `update_url` set in the `manifest.json`, so if you use [`chromium-web-store`](https://github.com/NeverDecaf/chromium-web-store) or some such, it can be updated semi-automatically now, see [the extension's `README.md`](./extension/README.md) for more info.
+
+- Implemented `User Interface and Accessibility > Verbose` option.
+
+  From now on, by default, `pWebArc` will have its most common but annoying notifications mention they can be disabled and explain how.
+
+  This is mostly for Fenix users, where these things are not obvious, but it could also be useful for new users elsewhere.
+
+- Implemented `User Interface and Accessibility > Spawn internal pages in new tabs` option which controls if internal pages should be spawned in new tabs or reuse the current window.
+
+  It can not be disabled on desktop browsers at the moment, but is disabled by default on mobile browsers.
+
+- Implemented a bunch of new notifications about automatic fixes applied to `config`.
+
+  I.e., it will now not just fix your `config` for you, but also complain if you try to set an invalid combinations of options.
+
+- Implemented `Generate desktop notifications about ... > UI hints` option to allow you to disable the above notifications.
+
+### Changed
+
+- `pWebArc` will CBOR-dump all reqres fields completely raw from now on.
+
+  `wrrarms` learned to handle this properly quite a while ago.
+
+  This simplifies the parsing of the results and makes the implementation adhere to the stated technical philosophy more closely.
+
+  The dumps will grow in size a tiny bit, but this is negligible, since they are compressed by default by all the archival methods now.
+
+Moreover:
+
+- A lot of UI improvements, mainly for Fenix.
+- From now on, per-tab `Stash 'in_limbo' reqres` option is being inherited by children tabs like the rest of similar options do.
+- Renamed `build.sh` `chromium` target to `chromium-mv2` in preparation for eventual `chromium-mv3` support.
+- Advanced minimum browser versions to Firefox v102, and Fenix v113.
+- Improved performance.
+- Improved documentation and installation instructions.
+
+### Fixed
+
+- Fixed wrong "In limbo" counts after the extension gets reloaded.
+- Fixed race conditions in `browserAction` updates.
+- Worked around `browserAction` title updates being flaky on Fenix.
+  I.e. you can stare at the `Extensions > pWebArc` line in the browser's UI now while the browser fetches some stuff and it will be properly interactively updated.
+- On Firefox, fixed the id of the extension leaking into `origin_url` field of the very first dump of each session when `Workarounds for Firefox bugs > Restart the very first request` is enabled (which is the default).
+- Fixed some typos.
+
 ## [extension-v1.14.0] - 2024-08-25
 
 ### Added
@@ -802,6 +854,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.15.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.14.0...extension-v1.15.0
 [extension-v1.14.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.13.1...extension-v1.14.0
 [extension-v1.13.1]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.13.0...extension-v1.13.1
 [extension-v1.13.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.12.0...extension-v1.13.0
