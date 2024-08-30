@@ -52,7 +52,7 @@ def _run_pipe(pipe : list[LinstFunc]) -> LinstFunc:
 
 _compile_cache : dict[str, LinstFunc] = {}
 
-def linst_compile(expr : str, lookup : _t.Callable[[str], LinstAtom] = linst_unknown_atom) -> LinstFunc:
+def _linst_compile(expr : str, lookup : _t.Callable[[str], LinstAtom]) -> LinstFunc:
     if expr == "":
         return lambda e, v: v
 
@@ -89,6 +89,13 @@ def linst_compile(expr : str, lookup : _t.Callable[[str], LinstAtom] = linst_unk
 
     _compile_cache[expr] = res
     return res
+
+def linst_compile(expr : str, lookup : _t.Callable[[str], LinstAtom] = linst_unknown_atom) -> LinstFunc:
+    try:
+        return _linst_compile(expr, lookup)
+    except Failure as exc:
+        exc.elaborate("while compiling `%s`", expr)
+        raise exc
 
 def linst_cast(typ : type, arg : _t.Any) -> _t.Any:
     atyp = type(arg)
