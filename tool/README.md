@@ -1070,6 +1070,13 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
   - `-z, --zero-terminated`
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
+- updates to `--output`s:
+  - `--no-overwrites`
+  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default
+  - `--overwrite-dangerously`
+  : permit overwriting of old `--output` files under `DESTINATION`;
+    DANGEROUS! not recommended, importing to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
+
 - caching, deferring, and batching:
   - `--seen-number INT`
   : track at most this many distinct generated `--output` values; default: `16384`;
@@ -1150,6 +1157,13 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
   - `-z, --zero-terminated`
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
+
+- updates to `--output`s:
+  - `--no-overwrites`
+  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default
+  - `--overwrite-dangerously`
+  : permit overwriting of old `--output` files under `DESTINATION`;
+    DANGEROUS! not recommended, importing to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -1278,7 +1292,7 @@ In other words, this generates static offline website mirrors, producing results
     using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
     on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
   - `--overwrite-dangerously`
-  : export all targets and permit overwriting of old `--output` files under `DESTINATION`;
+  : export all targets while permitting overwriting of old `--output` files under `DESTINATION`;
     DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
 
 - export targets:

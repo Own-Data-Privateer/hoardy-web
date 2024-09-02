@@ -1263,7 +1263,7 @@ def cmd_import_generic(cargs : _t.Any, load_wrrs : _t.Callable[[_io.BufferedRead
     handle_paths(cargs)
 
     emit_one : _t.Callable[[SourcedBytes[_t.AnyStr], ReqresExpr], None]
-    emit_one, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", make_DeferredFileWriteIntent(False))
+    emit_one, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", make_DeferredFileWriteIntent(cargs.allow_updates))
 
     def emit(abs_in_path : _t.AnyStr, rel_in_path : _t.AnyStr, in_stat : _os.stat_result, rr : _t.Iterator[Reqres]) -> None:
         dev, ino = in_stat.st_dev, in_stat.st_ino
@@ -1468,7 +1468,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 raise
 
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
-    _ = gettext
+    _ : _t.Callable[[str], str] = gettext
 
     fmt.add_text(_("# Examples"))
 
@@ -1559,7 +1559,7 @@ class ArgumentParser(argparse.BetterArgumentParser):
         die(2, "%s", message)
 
 def main() -> None:
-    _ = gettext
+    _ : _t.Callable[[str], str] = gettext
 
     parser = ArgumentParser(
         prog=__package__,
@@ -1877,11 +1877,13 @@ most useful when doing `{__package__} organize --symlink --latest --output flat`
 
         add_terminator(cmd, "new `--output`s printing", "print absolute paths of newly produced or replaced files", allow_not=False, allow_none=True)
 
-        if kind != "import":
-            agrp = cmd.add_argument_group("updates to `--output`s")
-            grp = agrp.add_mutually_exclusive_group()
+        agrp = cmd.add_argument_group("updates to `--output`s")
+        grp = agrp.add_mutually_exclusive_group()
 
         def_disallow = _("disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default")
+
+        def def_dangerous(what : str) -> str:
+            return _(f"DANGEROUS! not recommended, {what} to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this")
 
         if kind == "organize":
             grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
@@ -1893,9 +1895,9 @@ the `dirname` of a source file and the `--to` target directories can be the same
 this is only allowed in combination with `--symlink` at the moment;
 for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
 """))
-        # TODO: implement this
-        #elif kind == "import":
-        #    grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow)
+        elif kind == "import":
+            grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow)
+            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("permit overwriting of old `--output` files under `DESTINATION`") + ";\n" + def_dangerous("importing"))
         elif kind == "export":
             grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
                 _("""repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
@@ -1906,9 +1908,7 @@ this allows reusing the `DESTINATION` between unrelated exports and between expo
 using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
 on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
 """))
-            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("""export all targets and permit overwriting of old `--output` files under `DESTINATION`;
-DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
-"""))
+            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("export all targets while permitting overwriting of old `--output` files under `DESTINATION`") + ";\n" + def_dangerous("exporting"))
 
         cmd.set_defaults(allow_updates = False)
 
