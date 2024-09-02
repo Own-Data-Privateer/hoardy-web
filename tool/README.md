@@ -344,7 +344,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   - `--expr-fd INT`
   : file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `1`, i.e. `stdout`
   - `-e EXPR, --expr EXPR`
-  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; default: `response.body|eb`; each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
+  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; default: `response.body|eb`, which will dump the HTTP response body; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
     - constants and functions:
       - `es`: replace `None` value with an empty string `""`
       - `eb`: replace `None` value with an empty byte string `b""`
@@ -516,7 +516,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format as `wrrarms get --expr` (which see); can be specified multiple times; default: `response.body|eb`
+  : an expression to compute, same expression format and semantics as `wrrarms get --expr` (which see); can be specified multiple times; default: `response.body|eb`, which will dump the HTTP response body
 
 - URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
@@ -569,7 +569,7 @@ Compute given expressions for each of given WRR files, encode them into a reques
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format as `wrrarms get --expr` (which see); can be specified multiple times; default: `.`, which will dump the whole reqres structure
+  : an expression to compute, same expression format and semantics as `wrrarms get --expr` (which see); can be specified multiple times; default: `.`, which will dump the whole reqres structure
 
 - URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
@@ -1231,7 +1231,7 @@ In other words, this generates static offline website mirrors, producing results
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to export, same expression format as `wrrarms get --expr` (which see); default: `response.body|eb|scrub response +all_refs,-actions`
+  : an expression to compute, same expression format and semantics as `wrrarms get --expr` (which see); can be specified multiple times; default: `response.body|eb|scrub response +all_refs,-actions`, which will export safe scrubbed versions of all files
 
 - URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
@@ -1244,6 +1244,14 @@ In other words, this generates static offline website mirrors, producing results
   : remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained
   - `--remap-all`
   : remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `wrrarms export` to be used incrementally; `export`ed `mirror`s will be self-contained; default
+
+- exporting:
+  - `--not-separated`
+  : export values without separating them with anything, just concatenate them
+  - `--lf-separated`
+  : export values separated with `\n` (LF) newline characters; default
+  - `--zero-separated`
+  : export values separated with `\0` (NUL) bytes
 
 - file outputs:
   - `-t DESTINATION, --to DESTINATION`

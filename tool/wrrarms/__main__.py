@@ -1294,8 +1294,9 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
 
 default_export_expr = "response.body|eb|scrub response +all_refs,-actions"
 def cmd_export_mirror(cargs : _t.Any) -> None:
-    expr_func = linst_compile(cargs.expr, ReqresExpr_lookup)
     compile_filters(cargs)
+    if len(cargs.exprs) == 0:
+        cargs.exprs = [compile_expr(default_export_expr)]
     elaborate_output(cargs)
     handle_paths(cargs)
 
@@ -1453,7 +1454,11 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             rrexpr.items["remap_url"] = remap_url_func_maker(queue, enqueue, stime, _os.path.dirname(abs_out_path))
 
             try:
-                data = get_bytes(expr_func(rrexpr, None))
+                data : bytes
+                with TIOWrappedWriter(_io.BytesIO()) as f:
+                    print_exprs(rrexpr, cargs.exprs, cargs.separator, f)
+                    data = f.fobj.getvalue()
+
                 if exists and file_content_equals(abs_out_path, data):
                     # this is a noop overwrite, skip it
                     continue
@@ -1604,7 +1609,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         grp.add_argument("--abridged", action="store_true", help=_("shorten long strings for brevity, useful when you want to visually scan through batch data dumps; default"))
         cmd.set_defaults(abridged = True)
 
-    def add_termsep(cmd : _t.Any, name : str, what : str = "printing", whatval : str = "print values", allow_not : bool = True, allow_none : bool = False) -> None:
+    def add_termsep(cmd : _t.Any, name : str, what : str = "printing", whatval : str = "print values", allow_not : bool = True, allow_none : bool = False, short : bool = True) -> None:
         agrp = cmd.add_argument_group(what)
         grp = agrp.add_mutually_exclusive_group()
 
@@ -1621,8 +1626,12 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         if allow_not:
             grp.add_argument(f"--not-{name}ated", dest=f"{name}ator", action="store_const", const = b"", help=_(f"{whatval} without {name}ating them with anything, just concatenate them"))
 
-        grp.add_argument("-l", f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const = b"\n", help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf)
-        grp.add_argument("-z", f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const = b"\0", help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"))
+        if short:
+            grp.add_argument("-l", f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const = b"\n", help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf)
+            grp.add_argument("-z", f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const = b"\0", help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"))
+        else:
+            grp.add_argument(f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const = b"\n", help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf)
+            grp.add_argument(f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const = b"\0", help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"))
 
         if name == "termin":
             cmd.set_defaults(terminator = def_val)
@@ -1714,7 +1723,12 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 
         if kind == "get":
             agrp.add_argument("--expr-fd", metavar="INT", type=int, default = 1, help=_(f"file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `%(default)s`, i.e. `stdout`"))
-            agrp.add_argument("-e", "--expr", dest="mexprs", metavar="EXPR", action=AddExprFd, type=str, default = {}, help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; default: `{default_get_expr}`; each EXPR describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following') + ":\n" + \
+
+            def_expr = f"`{default_get_expr}`, which will dump the HTTP response body"
+            agrp.add_argument("-e", "--expr", dest="mexprs", metavar="EXPR", action=AddExprFd, type=str, default = {}, help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below') + \
+                "; " + \
+                _("default: %s") % (def_expr,) + "; " + \
+                _("each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following") + ":\n" + \
                 "- " + _("constants and functions:") + "\n" + \
                 "".join([f"  - `{name}`: {__(value[0])}\n" for name, value in ReqresExpr_atoms.items()]) + \
                 "- " + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:") + "\n" + \
@@ -1731,15 +1745,19 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 - `net_url|to_ascii|sha256|take_prefix 4` will print the first 4 characters of the above;
 - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
 - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""", 2))
-        elif kind == "run":
-            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action=AddExpr, type=str, default = [], help=_(f"an expression to compute, same expression format as `{__package__} get --expr` (which see); can be specified multiple times; default: `{default_get_expr}`"))
-        elif kind == "stream":
-            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action=AddExpr, type=str, default = [], help=_(f"an expression to compute, same expression format as `{__package__} get --expr` (which see); can be specified multiple times; default: `{default_stream_expr}`, which will dump the whole reqres structure"))
-        elif kind == "export":
-            # TODO: make it a list too
-            agrp.add_argument("-e", "--expr", dest="expr", metavar="EXPR", type=str, default = default_export_expr, help=_(f"an expression to export, same expression format as `{__package__} get --expr` (which see); default: `%(default)s`"))
         else:
-            assert False
+            if kind == "run":
+                def_expr = f"`{default_get_expr}`, which will dump the HTTP response body"
+            elif kind == "stream":
+                def_expr = f"`{default_stream_expr}`, which will dump the whole reqres structure"
+            elif kind == "export":
+                def_expr = f"`{default_export_expr}`, which will export safe scrubbed versions of all files"
+            else:
+                assert False
+
+            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action=AddExpr, type=str, default = [], help=_(f"an expression to compute, same expression format and semantics as `{__package__} get --expr` (which see); can be specified multiple times") + \
+                              "; " + \
+                              _("default: %s") % (def_expr,))
 
         def_def = "; " + _("default")
         if kind != "export":
@@ -1768,6 +1786,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
             add_terminator(cmd, "`--format=raw` output printing", "print `--format=raw` output values")
         elif kind != "export":
             add_separator(cmd)
+        else:
+            add_separator(cmd, "exporting", "export values", short = False)
 
     # get
     cmd = subparsers.add_parser("get", help=_("print values produced by computing given expressions on a given WRR file"),
