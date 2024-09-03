@@ -244,7 +244,7 @@ Also, as far as I'm aware, `wrrarms` is a tool that can do more useful stuff to 
 
 - If your questions are not unanswered by these, then [open an issue on GitHub](https://github.com/Own-Data-Privateer/pwebarc/issues) or [get in touch otherwise](https://oxij.org/#contact).
 
-# Does the author eats what he cooks?
+# Does the author eat what he cooks?
 
 Yes, as of September 2024, I archive all of my web traffic using `pwebarc`, without any interruptions, since October 2023.
 Before that my preferred tool was [mitmproxy](https://github.com/mitmproxy/mitmproxy).

@@ -72,7 +72,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Implemented `User Interface and Accessibility > Spawn internal pages in new tabs` option which controls if internal pages should be spawned in new tabs or reuse the current window.
 
-  It can not be disabled on desktop browsers at the moment, but is disabled by default on mobile browsers.
+  It can not be disabled on desktop browsers at the moment, but it is disabled by default on mobile browsers.
 
 - Implemented a bunch of new notifications about automatic fixes applied to `config`.
 
