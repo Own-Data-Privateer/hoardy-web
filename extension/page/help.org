@@ -22,6 +22,8 @@ Also, [[https://oxij.org/software/pwebarc/tree/master/extension/page/help.org][t
   - bundles of them (many dumps in a single file),
 - by archiving separate dumps to your own private archiving server (like [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/dumb_server/][the dumb archiving server]], also [[https://oxij.org/software/pwebarc/tree/master/dumb_server/][there]]), or
 - by archiving separate dumps to your browser's local storage.
+
+To view/replay your collected data, see the accompanying [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/tool][=wrrarms= tool]] (also [[https://oxij.org/software/pwebarc/tree/master/tool/][there]]).
 ** Glossary
 - A /reqres/ (/REQuest/ + /RESponse/) is a =pWebArc=-internal object containing captured information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
 * General operation
@@ -412,6 +414,8 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
   Also, capturing and archiving a DOM snapshot will free you from needing to run any JavaScript at all when you decide to return to view the archived page later, which is nice.
 
 - On Chromium, response data of background requests and requests made by other extensions does not get collected, since there's no tab to attach a debugger to, and I have not figured out how to attach debugger to other things yet.
+
+- On Firefox, fetches that spawn new downloads will be marked as =problematic= by default, since Firefox's implementation of =webRequest.filterResponseData= API does not provide their contents to the extension and I have not figured out how to distinguish them from other fetches yet.
 ** Relevant issues of all browsers
 - On all supported browsers, if an HTTP server supplies the same header multiple times --- which happens sometimes, most commonly with =Set-Cookie= headers --- then the archived response headers will usually become weird, with multiple headers squished into a single value, separated by newline symbols.
 
@@ -635,16 +639,18 @@ This is by design, I expect a chunk of =pWebArc= users to be paranoid enough to 
 - =unlimitedStorage= permission is used for archival of captured data to browser's local storage.
 - =menus= (=contextMenus= on Chromium) permission is used to add [[#context-menu-shortcuts][context-menu shortcut actions for links]].
 - =notifications= permission is used to send desktop notifications, which mostly used for reporting various issues.
-** Can I capture web pages while running my browser with JavaScript disabled?
+** Can I use =pWebArc= to capture web pages while my browser runs with JavaScript disabled?
 Yes.
-** Can I capture web pages that use a lot of JavaScript?
-=pWebArc= will capture everything your browser fetches as you browse, except for, at the moment, WebSockets data.
+** Can I use =pWebArc= to capture web pages that use a lot of JavaScript?
+This is why [[./popup.html#snapshotTab][DOM]]-[[./popup.html#snapshotAll][snapshot]] buttons exist, see the following question.
 
-In the most general case, "from scratch" replay of pages dynamically generated via JavaScript is not guaranteed.
-E.g. consider a web page where its JavaScript generates a random number, then queries its server with that number, and renders the result.
-Obviously, this can not be replayed "from scratch", since it will generate a new random number and the archive won't have a server's response for it.
-Which is why [[./popup.html#snapshotTab][DOM snapshots]] exist, see the following question.
-** Can I capture a web page as it currently is, after all JavaScript was run, not as it was when it was last fetched from the network?
+In principle, =pWebArc= will capture everything your browser fetches from the network as you browse the web, except for, at the moment, WebSockets data.
+So, web pages using only simple UI-related JavaScript code will work fine when you start replaying them "from scratch" via [[https://github.com/Own-Data-Privateer/pwebarc/tree/master/tool][=wrrarms export mirror=]] (also [[https://oxij.org/software/pwebarc/tree/master/tool/][there]]) or some such.
+
+However, in the most general case, "from scratch" replay of pages dynamically generated via JavaScript is not guaranteed.
+For example, consider a web page with a JavaScript code that generates a random number, then queries a remote server with that number, and then renders the result somehow.
+Obviously, such a web page can not be replayed "from scratch" since it will generate a new random number and your archive probably won't have the corresponding server's response for it.
+** Can I use =pWebArc= to capture a web page as it currently is, after all JavaScript was run, not as it was when it was last fetched from the network?
 :PROPERTIES:
 :CUSTOM_ID: faq-snapshot
 :END:
@@ -655,7 +661,7 @@ Doing that will generate and capture snapshots of raw HTML/XMLs for each frame c
 (Reqres-wise they will be =200 OK= responses, but with =protocol= set to =SNAPSHOT= and =method= set to =DOM=.)
 
 You can also do that for all open tabs at once by pressing [[./popup.html#snapshotAll][that button]].
-** How do I properly capture a web page completely, especially when parts of it are loaded lazily?
+** How can I make =pWebArc= capture a web page completely, especially when parts of it are loaded lazily?
 :PROPERTIES:
 :CUSTOM_ID: faq-lazy
 :END:
@@ -674,7 +680,7 @@ On the other hand, if you
 
 then you can simply go to =about:config= and toggle =dom.image-lazy-loading.enabled= to =false=.
 All images will start being loaded eagerly after that.
-** Can I capture a web page without archiving it, look at it, decide if I want to save it, and archive it only if I do, all without reloading the page a second time?
+** Can I use =pWebArc= to capture a web page without archiving it, look at it, decide if I want to save it, and archive it only if I do, all without reloading the page a second time?
 :PROPERTIES:
 :CUSTOM_ID: faq-limbo
 :END:
@@ -686,18 +692,10 @@ In combination with [[./popup.html#closed-auto-options][=Automatic actions for r
 
 - archive everything by default, but allow to exclude some things by manually discarding them from limbo;
 - only archive things that are explicitly manually collected, discard everything else by default.
-** Why do pages under [[https://addons.mozilla.org/]] and [[https://chromewebstore.google.com/]] can not be captured?
+** Why do pages under [[https://addons.mozilla.org/]] and [[https://chromewebstore.google.com/]] can not be captured by =pWebArc=?
 Browsers prevent extensions from running on extension store pages to prevent them from manipulating ratings, reviews, and etc such things.
 However, you can archive [[https://addons.mozilla.org/]] pages by running =pWebArc= under Chromium and [[https://chromewebstore.google.com/]] pages by running =pWebArc= under Firefox.
-** Why does a (specific) URL or some part of it fails to be properly captured?
-Did you read the notes on [[#bugs][the bugs of the browser you are using]] above?
-
-Most notably:
-
-- both Firefox- and Chromium-based browsers in their default builds [[#firefox-bug-no-post][fail]] to [[#chromium-bug-no-post][properly]] supply POST request data to their extensions; for Firefox-based browsers there exists a [[#firefox-bug-no-post][patch]] that fixes it, mostly; Chromium users are out of luck at the moment;
-
-- on a Chromium-based browser, because of limitations of the Chromium's debugging interface, [[#chromium-bug-no-media][it is impossible to properly capture media files (both audio and video)]] and [[#chromium-bug-no-large-files][large files in general]]; this issue has no good work-around and, AFAIK, all alternatives to =pWebArc= running on Chromium-based browser suffer from it (and work around it by silently re-downloading said files the second time in background); try using =pWebArc= under a Firefox-based browser instead.
-** On Chromium, a lot of my captures fail with =debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER=, =debugger::pWebArc::NO_RESPONSE_BODY::DETACHED_DEBUGGER=, and =webRequest::pWebArc::NO_DEBUGGER::CANCELED= errors. What do I do?
+** When running =pWebArc= under Chromium, a lot of my captures fail with =debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER=, =debugger::pWebArc::NO_RESPONSE_BODY::DETACHED_DEBUGGER=, =webRequest::pWebArc::NO_DEBUGGER::CANCELED=, and similar errors. What do I do?
 :PROPERTIES:
 :CUSTOM_ID: faq-debugger
 :END:
@@ -718,7 +716,7 @@ You are either
 - trying to capture large or media files; [[#chromium-bug-no-large-files][as discussed above]], this has no workaround, run =pWebArc= under Firefox instead.
 
 Also, [[#chromium-bug-autodetach][Chromium will occasionally detach its debugger at random]], it just happens.
-** On Firefox, some of my captures fail with =webRequest::pWebArc::RESPONSE::BROKEN=. What do I do?
+** When running =pWebArc= under Firefox, some of my captures fail with =webRequest::pWebArc::RESPONSE::BROKEN=. What do I do?
 :PROPERTIES:
 :CUSTOM_ID: faq-disable-sw
 :END:
@@ -729,7 +727,15 @@ Usually, you can ignore this error, since loading another related page is likely
 
 However, if this happens a lot to you, or if it annoys you, you can go to =about:config=, toggle =dom.serviceWorkers.enabled= to =false=, and restart the browser.
 Alternatively, you can use =NoScript= or some such extension to disable JavaScript, and thus the offending service/shared workers, on the page in question.
-** The documentation claims that archival methods other than submission via HTTP are unsafe. Why?
+** Why does a (specific) URL or some part of it fails to be properly captured by =pWebArc=?
+Did you read the notes on [[#bugs][the bugs of the browser you are using]] above?
+
+Most notably:
+
+- both Firefox- and Chromium-based browsers in their default builds [[#firefox-bug-no-post][fail]] to [[#chromium-bug-no-post][properly]] supply POST request data to their extensions; for Firefox-based browsers there exists a [[#firefox-bug-no-post][patch]] that fixes it, mostly; Chromium users are out of luck at the moment;
+
+- on a Chromium-based browser, because of limitations of the Chromium's debugging interface, [[#chromium-bug-no-media][it is impossible to properly capture media files (both audio and video)]] and [[#chromium-bug-no-large-files][large files in general]]; this issue has no good work-around and, AFAIK, all alternatives to =pWebArc= running on Chromium-based browser suffer from it (and work around it by silently re-downloading said files the second time in background); try using =pWebArc= under a Firefox-based browser instead.
+** The documentation claims that all =pWebArc= archival methods except for [[./popup.html#div-config.archiveSubmitHTTP][submission via HTTP]] are unsafe. Why?
 :PROPERTIES:
 :CUSTOM_ID: faq-unsafe
 :END:
@@ -752,7 +758,7 @@ It is the default because it usually works fine, it properly reports errors, has
 In the ideal world, browsers would provide a better =saveAs= API which would have a less annoying UI for the user and would return out-of-disk-space errors to the extension, in which case [[./popup.html#div-config.archiveExportAs][exporting via =saveAs=]] would be the default.
 
 As it is now, the only way to be absolutely sure you data is properly forever saved to disk when the extension reports it archived is to use [[./popup.html#div-config.archiveSubmitHTTP][submission via HTTP]].
-** On a Firefox, enabling [[./popup.html#div-config.archiveExportAs][export via =saveAs=]] makes the browser's UI quite annoying. Can it be fixed?
+** When running =pWebArc= under Firefox, enabling [[./popup.html#div-config.archiveExportAs][export via =saveAs=]] makes the browser's UI quite annoying. Can it be fixed?
 :PROPERTIES:
 :CUSTOM_ID: faq-firefox-saveas
 :END:
