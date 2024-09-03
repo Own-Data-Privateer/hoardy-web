@@ -211,7 +211,9 @@ On the plus side, the result will be completely self-contained and safe to view 
 If you are unhappy with this behaviour and, for instance, want to keep the CSS and produce human-readable HTML, run the following instead:
 
 ```bash
-wrrarms export mirror -e 'response.body|eb|scrub response +all_refs,-actions,+styles,+pretty' --to ~/pwebarc/mirror2 ~/pwebarc/latest/archiveofourown.org
+wrrarms export mirror \
+  -e 'response.body|eb|scrub response +all_refs,-actions,+styles,+pretty' \
+  --to ~/pwebarc/mirror2 ~/pwebarc/latest/archiveofourown.org
 ```
 
 Note, however, that CSS resource filtering and remapping is not implemented yet.
@@ -219,7 +221,10 @@ Note, however, that CSS resource filtering and remapping is not implemented yet.
 If you also want to keep links that point to not yet hoarded Internet URLs to still point those URLs in the exported files instead of them pointing to non-existent local files, similarly to what `wget -mpk` does, run `wrrarms export mirror` with `--remap-open`, e.g.:
 
 ```bash
-wrrarms export mirror -e 'response.body|eb|scrub response +all_refs,-actions,+styles,+pretty' --remap-open --to ~/pwebarc/mirror3 ~/pwebarc/latest/archiveofourown.org
+wrrarms export mirror \
+  -e 'response.body|eb|scrub response +all_refs,-actions,+styles,+pretty' \
+  --remap-open \
+  --to ~/pwebarc/mirror3 ~/pwebarc/latest/archiveofourown.org
 ```
 
 Finally, if you want a mirror made of raw files without any content censorship or link conversions, run:
@@ -235,10 +240,10 @@ The later command will render your mirror pretty quickly, but the other above-me
 As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of WRR files into `wrrarms`'s memory but then `export mirror` only select URLs (and all resources needed to properly render those pages) by running something like:
 
 ```
-wrrarms export mirror --to ~/pwebarc/mirror4 \
+wrrarms export mirror \
   --root 'https://archiveofourown.org/works/3733123?view_adult=true&view_full_work=true' \
   --root 'https://archiveofourown.org/works/30186441?view_adult=true&view_full_work=true' \
-  ~/pwebarc/raw/*/2023
+  --to ~/pwebarc/mirror4 ~/pwebarc/raw/*/2023
 ```
 
 (`wrrarms` loads (indexes) WRR files pretty fast, so if you are running from an SSD, you can totally feed it years of WRR files and then only export a couple of URLs, and it will take a couple of seconds to finish anyway.)
