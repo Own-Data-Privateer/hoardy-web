@@ -392,6 +392,7 @@ output_aliases = {
     "rhupnq_mhsn":"%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s",
 
     "flat":       "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s%(filepath_ext)s",
+    "flat_n":     "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s.%(num)d%(filepath_ext)s",
     "flat_ms":    "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s%(filepath_ext)s",
     "flat_msn":   "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s.%(num)d%(filepath_ext)s",
     "flat_mhs":   "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s",
@@ -732,6 +733,15 @@ flat:         example.org/view__index?one=1&two=2&three=3.htm
 flat:         königsgäßchen.example.org/index.html
 flat:         ジャジェメント.ですの.example.org/испытание__is__index.htm
 flat:         ==
+flat_n:       example.org/index.0.htm
+flat_n:       ==
+flat_n:       example.org/index.0.html
+flat_n:       example.org/media__index.0.htm
+flat_n:       ==
+flat_n:       example.org/view__index?one=1&two=2&three=3.0.htm
+flat_n:       königsgäßchen.example.org/index.0.html
+flat_n:       ジャジェメント.ですの.example.org/испытание__is__index.0.htm
+flat_n:       ==
 flat_ms:      example.org/index_GET_C200C.htm
 flat_ms:      ==
 flat_ms:      example.org/index_GET_C200C.html

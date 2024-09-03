@@ -922,6 +922,13 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index.htm`
+      - `flat_n`      : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s.%(num)d%(filepath_ext)s`
+            - `https://example.org`, `https://example.org/` -> `example.org/index.0.htm`
+            - `https://example.org/index.html` -> `example.org/index.0.html`
+            - `https://example.org/media`, `https://example.org/media/` -> `example.org/media__index.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3.0.htm`
+            - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.0.html`
+            - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index.0.htm`
       - `flat_ms`     : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(status)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index_GET_C200C.htm`
             - `https://example.org/index.html` -> `example.org/index_GET_C200C.html`
