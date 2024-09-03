@@ -1450,10 +1450,10 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 stdout.flush()
                 continue
 
-            rrexpr = wrr_loadf_expr(abs_in_path)
-            rrexpr.items["remap_url"] = remap_url_func_maker(queue, enqueue, stime, _os.path.dirname(abs_out_path))
-
             try:
+                rrexpr = wrr_loadf_expr(abs_in_path)
+                rrexpr.items["remap_url"] = remap_url_func_maker(queue, enqueue, stime, _os.path.dirname(abs_out_path))
+
                 data : bytes
                 with TIOWrappedWriter(_io.BytesIO()) as f:
                     print_exprs(rrexpr, cargs.exprs, cargs.separator, f)
@@ -1463,6 +1463,14 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                     # this is a noop overwrite, skip it
                     continue
                 undeferred_write(data, abs_out_path, None, allow_updates)
+            except Failure as exc:
+                if cargs.errors == "ignore":
+                    continue
+                exc.elaborate(gettext(f"while processing `%s`"), abs_in_path)
+                if cargs.errors != "fail":
+                    _logging.error("%s", str(exc))
+                    continue
+                raise CatastrophicFailure("%s", str(exc))
             except Exception:
                 error(gettext("while processing `%s`"), abs_in_path)
                 raise
