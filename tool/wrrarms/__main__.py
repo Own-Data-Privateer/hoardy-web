@@ -354,11 +354,11 @@ def cmd_find(cargs : _t.Any) -> None:
     map_wrr_paths(emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
 
 output_aliases = {
-    "default":    "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s.%(num)d",
-    "short":      "%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s.%(num)d",
+    "default":    "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s_%(num)d",
+    "short":      "%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s_%(num)d",
 
     "surl":       "%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s",
-    "surl_msn":   "%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d",
+    "surl_msn":   "%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d",
 
     "shupq":      "%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s",
     "shupq_n":    "%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(num)d%(filepath_ext)s",
@@ -379,7 +379,7 @@ output_aliases = {
     "srhupnq_mhsn":"%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s.%(num)d%(filepath_ext)s",
 
     "url":        "%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s",
-    "url_msn":    "%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s_%(method)s_%(status)s.%(num)d",
+    "url_msn":    "%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d",
 
     "hupq":       "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s",
     "hupq_n":     "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(num)d%(filepath_ext)s",
@@ -462,16 +462,16 @@ def test_outputs_aliases() -> None:
     print(res)
 
     assert res + "\n" == """
-default:      1970/01/01/001640000_0_GET_50d7_C200C_example.org.0
-default:      1970/01/01/001640000_0_GET_8198_C200C_example.org.0
-default:      1970/01/01/001640000_0_GET_f0dc_C200C_example.org.0
-default:      1970/01/01/001640000_0_GET_086d_C200C_example.org.0
-default:      1970/01/01/001640000_0_GET_3fbb_C200C_example.org.0
-default:      1970/01/01/001640000_0_GET_5658_C200C_example.org.0
-default:      1970/01/01/001640000_0_GET_4f11_C200C_königsgäßchen.example.org.0
-default:      1970/01/01/001640000_0_GET_c4ae_C200C_ジャジェメント.ですの.example.org.0
+default:      1970/01/01/001640000_0_GET_50d7_C200C_example.org_0
+default:      1970/01/01/001640000_0_GET_8198_C200C_example.org_0
+default:      1970/01/01/001640000_0_GET_f0dc_C200C_example.org_0
+default:      1970/01/01/001640000_0_GET_086d_C200C_example.org_0
+default:      1970/01/01/001640000_0_GET_3fbb_C200C_example.org_0
+default:      1970/01/01/001640000_0_GET_5658_C200C_example.org_0
+default:      1970/01/01/001640000_0_GET_4f11_C200C_königsgäßchen.example.org_0
+default:      1970/01/01/001640000_0_GET_c4ae_C200C_ジャジェメント.ですの.example.org_0
 default:      ==
-short:        1970/01/01/1000000_0.0
+short:        1970/01/01/1000000_0_0
 short:        ==
 short:        ==
 short:        ==
@@ -489,14 +489,14 @@ surl:         https/example.org/view?one=1&two=2&three&three=3
 surl:         https/königsgäßchen.example.org/index.html
 surl:         https/ジャジェメント.ですの.example.org/испытание/is
 surl:         ==
-surl_msn:     https/example.org/_GET_C200C.0
+surl_msn:     https/example.org/__GET_C200C_0
 surl_msn:     ==
-surl_msn:     https/example.org/index.html_GET_C200C.0
-surl_msn:     https/example.org/media_GET_C200C.0
+surl_msn:     https/example.org/index.html__GET_C200C_0
+surl_msn:     https/example.org/media__GET_C200C_0
 surl_msn:     ==
-surl_msn:     https/example.org/view?one=1&two=2&three&three=3_GET_C200C.0
-surl_msn:     https/königsgäßchen.example.org/index.html_GET_C200C.0
-surl_msn:     https/ジャジェメント.ですの.example.org/испытание/is_GET_C200C.0
+surl_msn:     https/example.org/view?one=1&two=2&three&three=3__GET_C200C_0
+surl_msn:     https/königsgäßchen.example.org/index.html__GET_C200C_0
+surl_msn:     https/ジャジェメント.ですの.example.org/испытание/is__GET_C200C_0
 surl_msn:     ==
 shupq:        https/example.org/index.htm
 shupq:        ==
@@ -651,14 +651,14 @@ url:          example.org/view?one=1&two=2&three&three=3
 url:          königsgäßchen.example.org/index.html
 url:          ジャジェメント.ですの.example.org/испытание/is
 url:          ==
-url_msn:      example.org/_GET_C200C.0
+url_msn:      example.org/__GET_C200C_0
 url_msn:      ==
-url_msn:      example.org/index.html_GET_C200C.0
-url_msn:      example.org/media_GET_C200C.0
+url_msn:      example.org/index.html__GET_C200C_0
+url_msn:      example.org/media__GET_C200C_0
 url_msn:      ==
-url_msn:      example.org/view?one=1&two=2&three&three=3_GET_C200C.0
-url_msn:      königsgäßchen.example.org/index.html_GET_C200C.0
-url_msn:      ジャジェメント.ですの.example.org/испытание/is_GET_C200C.0
+url_msn:      example.org/view?one=1&two=2&three&three=3__GET_C200C_0
+url_msn:      königsgäßchen.example.org/index.html__GET_C200C_0
+url_msn:      ジャジェメント.ですの.example.org/испытание/is__GET_C200C_0
 url_msn:      ==
 hupq:         example.org/index.htm
 hupq:         ==
