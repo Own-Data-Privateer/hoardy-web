@@ -233,7 +233,7 @@ function isAcceptedBy(rrfilter, loggable) {
 
 function annoyingNotification(config, what) {
     if (config.verbose)
-        return `\n\nYou can disable this notification by toggling the "${what}" option in the settings.\nYou can also toggle "User Interface and Accessibily > Verbose notifications" there to make these notifications less verbose.`;
+        return `\n\nYou can disable this notification by toggling the "${what}" option in the settings.\nYou can also toggle "User Interface and Accessibily > Verbose notifications" there to make this and similar notifications less verbose.`;
     else
         return "";
 }
