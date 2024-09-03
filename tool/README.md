@@ -1350,7 +1350,7 @@ In other words, this generates static offline website mirrors, producing results
     repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
     however, trying to overwrite existing `--output` files under `DESTINATION` with any new data will produce errors;
     this allows reusing the `DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
-  - `--partial`
+  - `--skip-existing, --partial`
   : skip exporting of targets which have a corresponding `--output` file under `DESTINATION`;
     using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
     on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
