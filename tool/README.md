@@ -180,6 +180,30 @@ wrrarms export mirror --to ~/pwebarc/mirror1 ~/pwebarc/latest/archiveofourown.or
 
 on completion `~/pwebarc/mirror1` will contain a bunch of interlinked minimized HTML files, their resources, and everything else available from WRR files living under `~/pwebarc/latest/archiveofourown.org`.
 
+The above command might fail if the set of WRR-dumps you are trying to export contains two or more dumps with distinct URLs that map to the same `--output` path.
+This will produce an error since `wrrarms` does not permit file overwrites.
+With the default `--output hupq` format this can happen, for instance, when the URLs recorded in the reqres are long and so they end up truncated into the same file system paths.
+
+In this case you can either switch to a more verbose `--output` format
+
+```bash
+wrrarms export mirror --output hupq_n --to ~/pwebarc/mirror1 ~/pwebarc/latest/archiveofourown.org
+```
+
+or skip all reqres that would cause overwrites
+
+```bash
+wrrarms export mirror --skip-existing --to ~/pwebarc/mirror1 ~/pwebarc/latest/archiveofourown.org
+```
+
+or, almost equivalently for this use case, skip all export errors (which includes "no overwrites allowed" error)
+
+```bash
+wrrarms export mirror --errors skip --to ~/pwebarc/mirror1 ~/pwebarc/latest/archiveofourown.org
+```
+
+The latter command would also skip reqres that fail to be exported for other reasons.
+
 By default, *all* the links in exported HTML files will be remapped to local files (even if source WRR files for those would-be exported files are missing in `~/pwebarc/latest/archiveofourown.org`, see the documentation for the `--remap-*` options below for more info), and those HTML files will also be stripped of all JavaScript, CSS, and other stuff of various levels of evil (see the documentation for the `scrub` function below for more info).
 
 On the plus side, the result will be completely self-contained and safe to view with a dumb unconfigured browser.
