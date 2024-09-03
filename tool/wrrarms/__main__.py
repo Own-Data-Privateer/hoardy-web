@@ -1519,13 +1519,14 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             if want_stop: raise KeyboardInterrupt()
 
             n += 1
+            n100 = 100 * n
             n_total = prev_total + len(queue)
             stime, abs_in_path, abs_out_path = index[net_url]
             exists = _os.path.exists(abs_out_path)
 
             if stdout.isatty:
                 stdout.write_bytes(b"\033[32m")
-            stdout.write_str_ln(gettext("exporting %d of %d (%.2f%%, %.2f%% of %d indexed)") % (n, n_total, 100 * n / n_total, 100 * n / index_total, index_total))
+            stdout.write_str_ln(gettext("exporting #%d, %.2f%% of %d (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / index_total, index_total))
             if stdout.isatty:
                 stdout.write_bytes(b"\033[0m")
             stdout.write_str_ln(gettext("URL %s\nsrc %s\ndst %s") % (net_url, abs_in_path, abs_out_path))
