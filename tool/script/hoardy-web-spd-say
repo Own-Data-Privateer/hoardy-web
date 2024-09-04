@@ -56,7 +56,7 @@ EOF
 }
 
 start=0
-end="$"
+end='$'
 dry=
 while (($# > 0)); do
     case "$1" in
@@ -70,7 +70,9 @@ while (($# > 0)); do
 done
 
 play() {
-    sed -n "$start,$ p" | sed "$end,$ d"  | {
+    { [[ "$start" != '0' ]] && sed -n "$start"',$ p' || cat - ; } | \
+    { [[ "$end" != '$' ]] && sed "$end"',$ d' || cat - ; } | \
+    {
         if [[ -z "$dry" ]]; then
             spd-say -ew
         else
