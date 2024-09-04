@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# A very simple archiving server for pWebArc.
+# A very simple archiving server for Hoardy-Web.
 #
 # Copyright (c) 2023 Jan Malakhovski <oxij@oxij.org>
 #
@@ -152,7 +152,7 @@ def main():
     global cbor2
 
     parser = argparse.ArgumentParser(prog=__package__,
-                                     description="Simple archiving server for pWebArc. Dumps each request to `<ROOT>/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
+                                     description="Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
                                      add_help = False)
     parser.add_argument("-h", "--help", action="store_true", help="show this help message and exit")
     parser.add_argument("--version", action="version", version=f"{__package__} {version}")

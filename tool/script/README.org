@@ -1,16 +1,16 @@
-#+TITLE: Example scripts using wrrarms
+#+TITLE: Example scripts using hoardy
 
-This directory contains a bunch of example scripts built on top of =wrrarms=.
+This directory contains a bunch of example scripts built on top of =hoardy=.
 
-* [[./wrrarms-xdg-open]]
+* [[./hoardy-web-xdg-open]]
 
 #+BEGIN_SRC shell :results output :exports both
-./wrrarms-xdg-open --help
+./hoardy-web-xdg-open --help
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-usage: ./wrrarms-xdg-open [--help] WRR_FILE
+usage: ./hoardy-web-xdg-open [--help] WRR_FILE
 
 Open `response.body` of the given WRR file with `xdg-open`.
 
@@ -22,18 +22,18 @@ This script only works for Debian's `xdg-open`, which waits for the child proces
 
 # Example:
 
-  ./wrrarms-xdg-open path/to/wrr/file.wrr
+  ./hoardy-web-xdg-open path/to/wrr/file.wrr
 #+end_example
 
-* [[./wrrarms-xdg-open-mimi]]
+* [[./hoardy-web-xdg-open-mimi]]
 
 #+BEGIN_SRC shell :results output :exports both
-./wrrarms-xdg-open-mimi --help
+./hoardy-web-xdg-open-mimi --help
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-usage: ./wrrarms-xdg-open-mimi [--help] WRR_FILE
+usage: ./hoardy-web-xdg-open-mimi [--help] WRR_FILE
 
 Open `response.body` of the given WRR file using Mimi's `xdg-open`.
 
@@ -45,18 +45,18 @@ This will also work for other similar `xdg-open` scripts that do not wait for th
 
 # Example:
 
-  ./wrrarms-xdg-open-mimi path/to/wrr/file.wrr
+  ./hoardy-web-xdg-open-mimi path/to/wrr/file.wrr
 #+end_example
 
-* [[./wrrarms-w3m]]
+* [[./hoardy-web-view-w3m]]
 
 #+BEGIN_SRC shell :results output :exports both
-./wrrarms-w3m --help
+./hoardy-web-view-w3m --help
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-usage: ./wrrarms-w3m [--help] WRR_FILE
+usage: ./hoardy-web-view-w3m [--help] WRR_FILE
 
 Generate a plain text preview of a WRR file containing an HTML document using `w3m`.
 
@@ -71,18 +71,18 @@ Generate a plain text preview of a WRR file containing an HTML document using `w
 
 # Example:
 
-  ./wrrarms-w3m path/to/wrr/file/containing/html.wrr
+  ./hoardy-web-view-w3m path/to/wrr/file/containing/html.wrr
 #+end_example
 
-* [[./wrrarms-pandoc]]
+* [[./hoardy-web-view-pandoc]]
 
 #+BEGIN_SRC shell :results output :exports both
-./wrrarms-pandoc --help
+./hoardy-web-view-pandoc --help
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-usage: ./wrrarms-pandoc [--help] WRR_FILE
+usage: ./hoardy-web-view-pandoc [--help] WRR_FILE
 
 Generate a plain text preview of a WRR file containing an HTML document using `pandoc`.
 
@@ -100,18 +100,18 @@ Generate a plain text preview of a WRR file containing an HTML document using `p
 
 # Example:
 
-  ./wrrarms-pandoc path/to/wrr/file/containing/html.wrr
+  ./hoardy-web-view-pandoc path/to/wrr/file/containing/html.wrr
 #+end_example
 
-* [[./wrrarms-spd-say]]
+* [[./hoardy-web-spd-say]]
 
 #+BEGIN_SRC shell :results output :exports both
-./wrrarms-spd-say --help
+./hoardy-web-spd-say --help
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-usage: ./wrrarms-spd-say [--help] [--dry-run] [-s pattern] [-e pattern] [WRRFILE ...]
+usage: ./hoardy-web-spd-say [--help] [--dry-run] [-s pattern] [-e pattern] [WRRFILE ...]
 
 Feed (a part of) an HTML document containted in a given WRR file to a text-to-speech (TTS) engine.
 
@@ -143,22 +143,22 @@ Which is why see `man 1 sed` for more info about PATTERN syntax.
 
 - Skip first 5 lines, then feed the next 100 lines to the TTS:
 
-  ./wrrarms-spd-say -s 5 -e +100 path/to/wrr/file/containing/html.wrr
+  ./hoardy-web-spd-say -s 5 -e +100 path/to/wrr/file/containing/html.wrr
 
 - Feed the whole document to the TTS:
 
-  ./wrrarms-spd-say path/to/wrr/file/containing/html.wrr
+  ./hoardy-web-spd-say path/to/wrr/file/containing/html.wrr
 
 - Start speaking aloud starting from the first `<hr>` element:
 
-  ./wrrarms-spd-say -s "/^-----/" path/to/wrr/file/containing/html.wrr
+  ./hoardy-web-spd-say -s "/^-----/" path/to/wrr/file/containing/html.wrr
 
 - Feed everything between the first two `<hr>` elements to the TTS:
 
-  ./wrrarms-spd-say -s "/^-----/" -e "/^-----/" path/to/wrr/file/containing/html.wrr
+  ./hoardy-web-spd-say -s "/^-----/" -e "/^-----/" path/to/wrr/file/containing/html.wrr
 
 - Feed everything between the first "Chapter" header and the following "Next Chapter" link to the TTS:
 
-  ./wrrarms-spd-say -s "/^Chapter [0-9]/" -e "/^Next Chapter/" path/to/wrr/file/containing/html.wrr
+  ./hoardy-web-spd-say -s "/^Chapter [0-9]/" -e "/^Next Chapter/" path/to/wrr/file/containing/html.wrr
 
 #+end_example

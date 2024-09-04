@@ -1,6 +1,6 @@
 # Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
 #
-# This file is a part of pwebarc project.
+# This file is a part of `hoardy-web` project.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -369,7 +369,7 @@ def make_scrubber(opts : ScrubOpts) \
 
         def emit_censored(what : str) -> _t.Iterator[HTML5Token]:
             if opts.verbose:
-                yield {"type": "Comment", "data": f"wrrarms censored out a {what} from here"}
+                yield {"type": "Comment", "data": f"hoardy censored out a {what} from here"}
 
         for token in walker:
             typ = token["type"]

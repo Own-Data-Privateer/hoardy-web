@@ -12,7 +12,7 @@ let mycbor2 = cbor2; in
 with pkgs.python3Packages;
 
 buildPythonApplication (rec {
-  pname = "pwebarc-wrrarms";
+  pname = "hoardy-web";
   version = "0.14.0";
   format = "pyproject";
 
@@ -30,7 +30,7 @@ buildPythonApplication (rec {
 
   postInstall = ''
     patchShebangs script
-    install -m 755 -t $out/bin script/wrrarms-*
+    install -m 755 -t $out/bin script/hoardy-*
   '';
 
 } // lib.optionalAttrs debug {

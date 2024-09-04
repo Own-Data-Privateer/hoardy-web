@@ -1,12 +1,12 @@
 /*
- * The core code of pWebArc.
+ * The core code of `Hoardy-Web`.
  *
  * Contains HTTP request+response capture via browser's WebRequest API and
- * some middle-ware APIs used by the UI parts of pWebArc.
+ * some middle-ware APIs used by the UI parts of `Hoardy-Web`.
  *
  * Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
  *
- * This file is a part of pwebarc project.
+ * This file is a part of `hoardy-web` project.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -425,7 +425,7 @@ function cleanupAfterTab(tabId) {
         }
 
         browser.notifications.create(`cleaned-${tabId}`, {
-            title: "pWebArc: AUTO",
+            title: "Hoardy-Web: AUTO",
             message,
             iconUrl: iconURL(icon, 128),
             type: "basic",
@@ -1092,9 +1092,9 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
         }
 
         if (badge.length > 0)
-            title = `pWebArc: ${badge}: ` + chunks.join(", ");
+            title = `Hoardy-Web: ${badge}: ` + chunks.join(", ");
         else
-            title = "pWebArc: " + chunks.join(", ");
+            title = "Hoardy-Web: " + chunks.join(", ");
 
         if (udBadge !== badge) {
             changed = true;
@@ -1463,7 +1463,7 @@ async function doComplain() {
         gotNewErrored = false;
 
         await browser.notifications.create("errors", {
-            title: "pWebArc: ERROR",
+            title: "Hoardy-Web: ERROR",
             message: `Some internal errors:\n${formatFailures("Failed to process", rrErrored)}`,
             iconUrl: iconURL("error", 128),
             type: "basic",
@@ -1477,7 +1477,7 @@ async function doComplain() {
 
         if (config.archiveStuckNotify && !config.archive && !config.stash) {
             await browser.notifications.create("notSaving", {
-                title: "pWebArc: WARNING",
+                title: "Hoardy-Web: WARNING",
                 message: "Some reqres are waiting in the archival queue, but both reqres stashing and archiving are disabled.",
                 iconUrl: iconURL("archiving", 128),
                 type: "basic",
@@ -1493,7 +1493,7 @@ async function doComplain() {
         if (config.archiveFailedNotify) {
             // generate a new one
             await browser.notifications.create("unstashed", {
-                title: "pWebArc: FAILED",
+                title: "Hoardy-Web: FAILED",
                 message: `For browser's local storage:\n${formatFailures("Failed to stash", rrUnstashed)}`,
                 iconUrl: iconURL("error", 128),
                 type: "basic",
@@ -1530,7 +1530,7 @@ async function doComplain() {
                 else
                     where = `Archiving server at ${archiveURL}`;
                 await browser.notifications.create(`unsubmitted-${archiveURL}`, {
-                    title: "pWebArc: FAILED",
+                    title: "Hoardy-Web: FAILED",
                     message: `${where}:\n${formatFailures("Failed to archive", byErrorMap.entries())}`,
                     iconUrl: iconURL("error", 128),
                     type: "basic",
@@ -1546,7 +1546,7 @@ async function doComplain() {
             if (config.archiveDoneNotify) {
                 // generate a new one
                 await browser.notifications.create("done", {
-                    title: "pWebArc: OK",
+                    title: "Hoardy-Web: OK",
                     message: "Archiving appears to work OK!\n\nThis message won't be repeated unless something breaks." + annoyingNotification(config, "Generate desktop notifications about > ... newly empty archival queue"),
                     iconUrl: iconURL("idle", 128),
                     type: "basic",
@@ -1564,7 +1564,7 @@ async function doComplain() {
         if (config.limboNotify) {
             // generate a new one
             await browser.notifications.create("fatLimbo", {
-                title: "pWebArc: WARNING",
+                title: "Hoardy-Web: WARNING",
                 message: `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.` + annoyingNotification(config, "Generate desktop notifications about > ... too much stuff in limbo"),
                 iconUrl: iconURL("limbo", 128),
                 type: "basic",
@@ -1604,7 +1604,7 @@ async function doComplain() {
             }
             latestDesc.reverse();
             await browser.notifications.create("problematic", {
-                title: "pWebArc: WARNING",
+                title: "Hoardy-Web: WARNING",
                 message: `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate desktop notifications about > ... new problematic reqres"),
                 iconUrl: iconURL("problematic", 128),
                 type: "basic",
@@ -2031,7 +2031,7 @@ function exportAs(bucket, ifGEQ) {
         else
             dt = epoch;
 
-        saveAs(dataChunks, mime, `pWebArc-export-${bucket}-${dt}_${lastExportNum}.${ext}`);
+        saveAs(dataChunks, mime, `Hoardy-Web-export-${bucket}-${dt}_${lastExportNum}.${ext}`);
 
         globals.exportedAsTotal += res.queue.length;
         globals.exportedAsSize += res.size;
@@ -2319,7 +2319,7 @@ async function submitHTTPOne(archivable) {
             body: dump,
         });
     } catch (err) {
-        broken(`pWebArc can't establish a connection to the archiving server: ${errorMessageOf(err)}`, true);
+        broken(`\`Hoardy-Web\` can't establish a connection to the archiving server: ${errorMessageOf(err)}`, true);
         return false;
     }
 
@@ -2430,7 +2430,7 @@ function encodeHeaders(headers) {
     return result;
 }
 
-let sourceDesc = browser.nameVersion + "+pWebArc/" + manifest.version;
+let sourceDesc = browser.nameVersion + "+Hoardy-Web/" + manifest.version;
 
 // render reqres structure into a CBOR dump
 function renderReqres(encoder, reqres) {
@@ -2874,7 +2874,7 @@ async function snapshotOneTab(tabId, tabUrl) {
     } finally {
         if (allErrors.length > 0)
             await browser.notifications.create(`snapshot-${tabId}`, {
-                title: "pWebArc: ERROR",
+                title: "Hoardy-Web: ERROR",
                 message: `While taking DOM snapshot of tab #${tabId} (${tabUrl.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`,
                 iconUrl: iconURL("error", 128),
                 type: "basic",
@@ -3097,7 +3097,7 @@ function shallowCopyOfReqres(reqres) {
 }
 
 function addLoggableFields(loggable) {
-    // status in wrrarms
+    // status in `hoardy`
     loggable.status = (loggable.requestComplete ? "C" : "I") +
         (loggable.responded
          ? loggable.statusCode.toString() + (loggable.responseComplete ? "C" : "I")
@@ -3920,7 +3920,7 @@ function fixConfig(cfg, old) {
 
         if (config.hintNotify)
             browser.notifications.create("configNotSupported-preferIndexedDB", {
-                title: "pWebArc: HINT",
+                title: "Hoardy-Web: HINT",
                 message: `"Prefer \`IndexedDB\` API" can not be disabled on a Chromium-based browser. See the description of that option for more info.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
                 iconUrl: iconURL("main", 128),
                 type: "basic",
@@ -3933,7 +3933,7 @@ function fixConfig(cfg, old) {
         // Firefox on Android does not switch to new tabs opened from the settings
         if (config.hintNotify)
             browser.notifications.create("configNotSupported-archiveExportAs", {
-                title: "pWebArc: HINT",
+                title: "Hoardy-Web: HINT",
                 message: `"Export via \`saveAs\` is not supported on Firefox-based mobile browsers. See the "Help" page for more info.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
                 iconUrl: iconURL("main", 128),
                 type: "basic",
@@ -3945,7 +3945,7 @@ function fixConfig(cfg, old) {
 
         if (config.hintNotify)
             browser.notifications.create("configNotSupported-spawnNewTabs", {
-                title: "pWebArc: HINT",
+                title: "Hoardy-Web: HINT",
                 message: `"Spawn internal pages in new tabs" can not be disabled on a desktop browser. See the description of that option for more info.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
                 iconUrl: iconURL("main", 128),
                 type: "basic",
@@ -3971,7 +3971,7 @@ function fixConfig(cfg, old) {
 
         if (config.hintNotify)
             browser.notifications.create("notArchivingNow", {
-                title: "pWebArc: HINT",
+                title: "Hoardy-Web: HINT",
                 message: `"Archive \`collected\` reqres by" option was disabled because the archival queue and/or the list of failed reqres are non-empty.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
                 iconUrl: iconURL("off", 128),
                 type: "basic",
@@ -4109,8 +4109,8 @@ async function init() {
 
     if (reqresIDB === undefined && (globals.stashedIDB.number > 0 || globals.savedIDB.number > 0)) {
         browser.notifications.create("noIndexedDB", {
-            title: "pWebArc: ERROR",
-            message: `Failed to open/create a database via \`IndexedDB\` API, all data persistence will be done via \`storage.local\` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears pWebArc previously used \`IndexedDB\` for archiving and/or stashing reqres.\n\nSee the "Help" page for more info and instructions on how to fix this.`,
+            title: "Hoardy-Web: ERROR",
+            message: `Failed to open/create a database via \`IndexedDB\` API, all data persistence will be done via \`storage.local\` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears \`Hoardy-Web\` previously used \`IndexedDB\` for archiving and/or stashing reqres.\n\nSee the "Help" page for more info and instructions on how to fix this.`,
             iconUrl: iconURL("error", 128),
             type: "basic",
         }).catch(logError);
@@ -4120,7 +4120,7 @@ async function init() {
 
     fixConfig(config, config);
 
-    console.log(`initialized pWebArc with source of '${sourceDesc}'`);
+    console.log(`initialized Hoardy-Web with source of '${sourceDesc}'`);
     console.log("runtime options are", { useSVGIcons, useBlocking, useDebugger });
     console.log("config is", config);
     console.log("globals are", globals);
@@ -4158,7 +4158,7 @@ async function init() {
 
     scheduleUpdateDisplay(true, null);
 
-    console.log("pWebArc is ready!");
+    console.log("Ready to Hoard the Web!");
 
     if (config.autoPopInLimboDiscard || config.discardAll) {
         let what = [];
@@ -4167,7 +4167,7 @@ async function init() {
         if (config.discardAll)
             what.push(`"Discard all reqres just before archival"`);
         browser.notifications.create("autoDiscard", {
-            title: "pWebArc: REMINDER",
+            title: "Hoardy-Web: REMINDER",
             message: `Some auto-discarding options are enabled: ${what.join(", ")}.`,
             iconUrl: iconURL("limbo", 128),
             type: "basic",

@@ -18,15 +18,15 @@ rm CHANGELOG.spine.*
 {
     emit() {
         if [[ -z $2 ]]; then
-            echo "[$1]: https://github.com/Own-Data-Privateer/pwebarc/releases/tag/$1"
+            echo "[$1]: https://github.com/Own-Data-Privateer/hoardy-web/releases/tag/$1"
         else
-            echo "[$1]: https://github.com/Own-Data-Privateer/pwebarc/compare/$2...$1"
+            echo "[$1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/$2...$1"
         fi
     }
 
     prev_extension=
     prev_tool=
-    prev_dumb_server=
+    prev_simple_server=
     git tag --sort=taggerdate --format '%(refname:short)' | while IFS= read -r -d $'\n' refname ; do
         case "$refname" in
         extension-*)
@@ -37,9 +37,9 @@ rm CHANGELOG.spine.*
             emit "$refname" "$prev_tool"
             prev_tool="$refname"
             ;;
-        dumb_server-*)
-            emit "$refname" "$prev_dumb_server"
-            prev_dumb_server="$refname"
+        dumb_server-*|simple_server-*)
+            emit "$refname" "$prev_simple_server"
+            prev_simple_server="$refname"
             ;;
         esac
     done

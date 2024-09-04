@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>pWebArc: Internal State</title>
+    <title>Hoardy-Web: Internal State</title>
     <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
     <link rel="stylesheet" href="main.css?v=$version$">
     <link rel="stylesheet" href="reqres-ui.css?v=$version$">

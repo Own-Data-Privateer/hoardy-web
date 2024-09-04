@@ -1,6 +1,6 @@
 # Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
 #
-# This file is a part of pwebarc project.
+# This file is a part of `hoardy-web` project.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

@@ -6,12 +6,12 @@
 with pkgs;
 
 python3Packages.buildPythonApplication rec {
-  pname = "pwebarc-dumb-dump-server";
+  pname = "hoardy-web-sas";
   version = "1.6.0";
   format = "pyproject";
 
   inherit (source) src unpackPhase;
-  sourceRoot = "${src.name}/dumb_server";
+  sourceRoot = "${src.name}/simple_server";
 
   propagatedBuildInputs = with python3Packages; [
     setuptools

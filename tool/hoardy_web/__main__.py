@@ -1,6 +1,6 @@
 # Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
 #
-# This file is a part of pwebarc project.
+# This file is a part of `hoardy-web` project.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -41,6 +41,8 @@ from kisstdlib.logging import *
 from .wrr import *
 from .output import *
 from .io import *
+
+__prog__ = "hoardy-web"
 
 def issue(pattern : str, *args : _t.Any) -> None:
     message = pattern % args
@@ -287,7 +289,7 @@ def cmd_run(cargs : _t.Any) -> None:
             rrexpr.items["remap_url"] = cargs.remap_url_func
 
             # TODO: extension guessing
-            fileno, tmp_path = _tempfile.mkstemp(prefix = "wrrarms_run_", suffix = ".tmp")
+            fileno, tmp_path = _tempfile.mkstemp(prefix = "hoardy_wrr_run_", suffix = ".tmp")
             tmp_paths.append(tmp_path)
 
             with TIOWrappedWriter(_os.fdopen(fileno, "wb")) as f:
@@ -1571,86 +1573,86 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
 
     fmt.add_text(_("# Examples"))
 
-    fmt.start_section(_("Pretty-print all reqres in `../dumb_server/pwebarc-dump` using an abridged (for ease of reading and rendering) verbose textual representation"))
-    fmt.add_code(f"{__package__} pprint ../dumb_server/pwebarc-dump")
+    fmt.start_section(_("Pretty-print all reqres in `../simple_server/pwebarc-dump` using an abridged (for ease of reading and rendering) verbose textual representation"))
+    fmt.add_code(f"{__prog__} pprint ../simple_server/pwebarc-dump")
     fmt.end_section()
 
     fmt.start_section(_("Pipe raw response body from a given WRR file to stdout"))
-    fmt.add_code(f'{__package__} get ../dumb_server/pwebarc-dump/path/to/file.wrr')
+    fmt.add_code(f'{__prog__} get ../simple_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
     fmt.start_section(_(f"Pipe response body scrubbed of dynamic content from a given WRR file to stdout"))
-    fmt.add_code(f'{__package__} get -e "response.body|eb|scrub response defaults" ../dumb_server/pwebarc-dump/path/to/file.wrr')
+    fmt.add_code(f'{__prog__} get -e "response.body|eb|scrub response defaults" ../simple_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
     fmt.start_section(_("Get first 4 characters of a hex digest of sha256 hash computed on the URL without the fragment/hash part"))
-    fmt.add_code(f'{__package__} get -e "net_url|to_ascii|sha256|take_prefix 4" ../dumb_server/pwebarc-dump/path/to/file.wrr')
+    fmt.add_code(f'{__prog__} get -e "net_url|to_ascii|sha256|take_prefix 4" ../simple_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
     fmt.start_section(_("Pipe response body from a given WRR file to stdout, but less efficiently, by generating a temporary file and giving it to `cat`"))
-    fmt.add_code(f"{__package__} run cat ../dumb_server/pwebarc-dump/path/to/file.wrr")
-    fmt.add_text(_(f"Thus `{__package__} run` can be used to do almost anything you want, e.g."))
-    fmt.add_code(f"{__package__} run less ../dumb_server/pwebarc-dump/path/to/file.wrr")
-    fmt.add_code(f"{__package__} run -- sort -R ../dumb_server/pwebarc-dump/path/to/file.wrr")
-    fmt.add_code(f"{__package__} run -n 2 -- diff -u ../dumb_server/pwebarc-dump/path/to/file-v1.wrr ../dumb_server/pwebarc-dump/path/to/file-v2.wrr")
+    fmt.add_code(f"{__prog__} run cat ../simple_server/pwebarc-dump/path/to/file.wrr")
+    fmt.add_text(_(f"Thus `{__prog__} run` can be used to do almost anything you want, e.g."))
+    fmt.add_code(f"{__prog__} run less ../simple_server/pwebarc-dump/path/to/file.wrr")
+    fmt.add_code(f"{__prog__} run -- sort -R ../simple_server/pwebarc-dump/path/to/file.wrr")
+    fmt.add_code(f"{__prog__} run -n 2 -- diff -u ../simple_server/pwebarc-dump/path/to/file-v1.wrr ../simple_server/pwebarc-dump/path/to/file-v2.wrr")
     fmt.end_section()
 
-    fmt.start_section(_(f"List paths of all WRR files from `../dumb_server/pwebarc-dump` that contain only complete `200 OK` responses with bodies larger than 1K"))
-    fmt.add_code(f"""wrrarms find --and "status|~= .200C" --and "response.body|len|> 1024" ../dumb_server/pwebarc-dump""")
+    fmt.start_section(_(f"List paths of all WRR files from `../simple_server/pwebarc-dump` that contain only complete `200 OK` responses with bodies larger than 1K"))
+    fmt.add_code(f"""{__prog__} find --and "status|~= .200C" --and "response.body|len|> 1024" ../simple_server/pwebarc-dump""")
     fmt.end_section()
 
-    fmt.start_section(_(f"Rename all WRR files in `../dumb_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `{__package__} organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic)"))
-    fmt.add_code(f"{__package__} organize ../dumb_server/pwebarc-dump/default")
+    fmt.start_section(_(f"Rename all WRR files in `../simple_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `{__prog__} organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic)"))
+    fmt.add_code(f"{__prog__} organize ../simple_server/pwebarc-dump/default")
     fmt.add_text(_("alternatively, just show what would be done"))
-    fmt.add_code(f"{__package__} organize --dry-run ../dumb_server/pwebarc-dump/default")
+    fmt.add_code(f"{__prog__} organize --dry-run ../simple_server/pwebarc-dump/default")
     fmt.end_section()
 
     fmt.add_text(_("# Advanced examples"))
 
-    fmt.start_section(_("Pretty-print all reqres in `../dumb_server/pwebarc-dump` by dumping their whole structure into an abridged Pythonic Object Representation (repr)"))
-    fmt.add_code(f"{__package__} stream --expr . ../dumb_server/pwebarc-dump")
-    fmt.add_code(f"{__package__} stream -e . ../dumb_server/pwebarc-dump")
+    fmt.start_section(_("Pretty-print all reqres in `../simple_server/pwebarc-dump` by dumping their whole structure into an abridged Pythonic Object Representation (repr)"))
+    fmt.add_code(f"{__prog__} stream --expr . ../simple_server/pwebarc-dump")
+    fmt.add_code(f"{__prog__} stream -e . ../simple_server/pwebarc-dump")
     fmt.end_section()
 
-    fmt.start_section(_("Pretty-print all reqres in `../dumb_server/pwebarc-dump` using the unabridged verbose textual representation"))
-    fmt.add_code(f"{__package__} pprint --unabridged ../dumb_server/pwebarc-dump")
-    fmt.add_code(f"{__package__} pprint -u ../dumb_server/pwebarc-dump")
+    fmt.start_section(_("Pretty-print all reqres in `../simple_server/pwebarc-dump` using the unabridged verbose textual representation"))
+    fmt.add_code(f"{__prog__} pprint --unabridged ../simple_server/pwebarc-dump")
+    fmt.add_code(f"{__prog__} pprint -u ../simple_server/pwebarc-dump")
     fmt.end_section()
 
-    fmt.start_section(_("Pretty-print all reqres in `../dumb_server/pwebarc-dump` by dumping their whole structure into the unabridged Pythonic Object Representation (repr) format"))
-    fmt.add_code(f"{__package__} stream --unabridged --expr . ../dumb_server/pwebarc-dump")
-    fmt.add_code(f"{__package__} stream -ue . ../dumb_server/pwebarc-dump")
+    fmt.start_section(_("Pretty-print all reqres in `../simple_server/pwebarc-dump` by dumping their whole structure into the unabridged Pythonic Object Representation (repr) format"))
+    fmt.add_code(f"{__prog__} stream --unabridged --expr . ../simple_server/pwebarc-dump")
+    fmt.add_code(f"{__prog__} stream -ue . ../simple_server/pwebarc-dump")
     fmt.end_section()
 
     fmt.start_section(_("Produce a JSON list of `[<file path>, <time it finished loading in seconds since UNIX epoch>, <URL>]` tuples (one per reqres) and pipe it into `jq` for indented and colored output"))
-    fmt.add_code(f"{__package__} stream --format=json -ue fs_path -e finished_at -e request.url ../dumb_server/pwebarc-dump | jq .")
+    fmt.add_code(f"{__prog__} stream --format=json -ue fs_path -e finished_at -e request.url ../simple_server/pwebarc-dump | jq .")
     fmt.end_section()
 
     fmt.start_section(_("Similarly, but produce a CBOR output"))
-    fmt.add_code(f"{__package__} stream --format=cbor -ue fs_path -e finished_at -e request.url ../dumb_server/pwebarc-dump | less")
+    fmt.add_code(f"{__prog__} stream --format=cbor -ue fs_path -e finished_at -e request.url ../simple_server/pwebarc-dump | less")
     fmt.end_section()
 
-    fmt.start_section(_("Concatenate all response bodies of all the requests in `../dumb_server/pwebarc-dump`"))
-    fmt.add_code(f'{__package__} stream --format=raw --not-terminated -ue "response.body|es" ../dumb_server/pwebarc-dump | less')
+    fmt.start_section(_("Concatenate all response bodies of all the requests in `../simple_server/pwebarc-dump`"))
+    fmt.add_code(f'{__prog__} stream --format=raw --not-terminated -ue "response.body|es" ../simple_server/pwebarc-dump | less')
     fmt.end_section()
 
     fmt.start_section(_("Print all unique visited URLs, one per line"))
-    fmt.add_code(f"{__package__} stream --format=raw --lf-terminated -ue request.url ../dumb_server/pwebarc-dump | sort | uniq")
+    fmt.add_code(f"{__prog__} stream --format=raw --lf-terminated -ue request.url ../simple_server/pwebarc-dump | sort | uniq")
     fmt.end_section()
 
     fmt.start_section(_("Same idea, but using NUL bytes while processing, and prints two URLs per line"))
-    fmt.add_code(f"{__package__} stream --format=raw --zero-terminated -ue request.url ../dumb_server/pwebarc-dump | sort -z | uniq -z | xargs -0 -n2 echo")
+    fmt.add_code(f"{__prog__} stream --format=raw --zero-terminated -ue request.url ../simple_server/pwebarc-dump | sort -z | uniq -z | xargs -0 -n2 echo")
     fmt.end_section()
 
     fmt.add_text(_("## How to handle binary data"))
 
-    fmt.add_text(_(f"Trying to use response bodies produced by `{__package__} stream --format=json` is likely to result garbled data as JSON can't represent raw sequences of bytes, thus binary data will have to be encoded into UNICODE using replacement characters:"))
-    fmt.add_code(f"{__package__} stream --format=json -ue . ../dumb_server/pwebarc-dump/path/to/file.wrr | jq .")
+    fmt.add_text(_(f"Trying to use response bodies produced by `{__prog__} stream --format=json` is likely to result garbled data as JSON can't represent raw sequences of bytes, thus binary data will have to be encoded into UNICODE using replacement characters:"))
+    fmt.add_code(f"{__prog__} stream --format=json -ue . ../simple_server/pwebarc-dump/path/to/file.wrr | jq .")
     fmt.add_text(_("The most generic solution to this is to use `--format=cbor` instead, which would produce a verbose CBOR representation equivalent to the one used by `--format=json` but with binary data preserved as-is:"))
-    fmt.add_code(f"{__package__} stream --format=cbor -ue . ../dumb_server/pwebarc-dump/path/to/file.wrr | less")
+    fmt.add_code(f"{__prog__} stream --format=cbor -ue . ../simple_server/pwebarc-dump/path/to/file.wrr | less")
     fmt.add_text(_("Or you could just dump raw response bodies separately:"))
-    fmt.add_code(f"{__package__} stream --format=raw -ue response.body ../dumb_server/pwebarc-dump/path/to/file.wrr | less")
-    fmt.add_code(f"{__package__} get ../dumb_server/pwebarc-dump/path/to/file.wrr | less")
+    fmt.add_code(f"{__prog__} stream --format=raw -ue response.body ../simple_server/pwebarc-dump/path/to/file.wrr | less")
+    fmt.add_code(f"{__prog__} get ../simple_server/pwebarc-dump/path/to/file.wrr | less")
 
 class ArgumentParser(argparse.BetterArgumentParser):
     def error(self, message : str) -> _t.NoReturn:
@@ -1661,8 +1663,8 @@ def main() -> None:
     _ : _t.Callable[[str], str] = gettext
 
     parser = ArgumentParser(
-        prog=__package__,
-        description=_("A tool to pretty-print, compute and print values from, search, organize (programmatically rename/move/symlink/hardlink files), import, export, (WIP: check, deduplicate, and edit) pWebArc WRR (WEBREQRES, Web REQuest+RESponse) archive files.") + "\n\n" +
+        prog=__prog__,
+        description=_("A tool to pretty-print, compute and print values from, search, organize (programmatically rename/move/symlink/hardlink files), import, export, (WIP: check, deduplicate, and edit) `Hoardy-Web`'s WRR (Web Request+Response) archive files.") + "\n\n" +
 _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing HTTP request+response pair with some additional metadata."),
         additional_sections = [add_doc],
         allow_abbrev = False,
@@ -1686,7 +1688,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 - `ignore`: `skip`, but don't report the failure"""))
 
     def add_filters(cmd : _t.Any, do_what : str) -> None:
-        grp = cmd.add_argument_group(f"filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `{__package__} get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s")
+        grp = cmd.add_argument_group(f"filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `{__prog__} get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s")
         grp.add_argument("--or", dest="anys", metavar="EXPR", action="append", type=str, default = [],
                          help=_(f"only {do_what} reqres which match any of these expressions"))
         grp.add_argument("--and", dest="alls", metavar="EXPR", action="append", type=str, default = [],
@@ -1783,8 +1785,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     add_abridged(cmd)
     agrp = cmd.add_argument_group("MIME type sniffing")
     grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--naive", dest="paranoid", action="store_const", const=False, help=_(f"""populate "potentially" lists like `{__package__} (get|run|export) --expr '(request|response).body|eb|scrub \\2 defaults'` does; default"""))
-    grp.add_argument("--paranoid", dest="paranoid", action="store_const", const=True, help=_(f"""populate "potentially" lists in the output using paranoid MIME type sniffing like `{__package__} (get|run|export) --expr '(request|response).body|eb|scrub \\2 +paranoid'` does; this exists to answer "Hey! Why did it censor out my data?!" questions"""))
+    grp.add_argument("--naive", dest="paranoid", action="store_const", const=False, help=_(f"""populate "potentially" lists like `{__prog__} (get|run|export) --expr '(request|response).body|eb|scrub \\2 defaults'` does; default"""))
+    grp.add_argument("--paranoid", dest="paranoid", action="store_const", const=True, help=_(f"""populate "potentially" lists in the output using paranoid MIME type sniffing like `{__prog__} (get|run|export) --expr '(request|response).body|eb|scrub \\2 +paranoid'` does; this exists to answer "Hey! Why did it censor out my data?!" questions"""))
     grp.set_defaults(paranoid = False)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_pprint)
@@ -1854,7 +1856,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
             else:
                 assert False
 
-            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action=AddExpr, type=str, default = [], help=_(f"an expression to compute, same expression format and semantics as `{__package__} get --expr` (which see); can be specified multiple times") + \
+            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action=AddExpr, type=str, default = [], help=_(f"an expression to compute, same expression format and semantics as `{__prog__} get --expr` (which see); can be specified multiple times") + \
                               "; " + \
                               _("default: %s") % (def_expr,))
 
@@ -1874,7 +1876,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         if kind == "export":
             grp.add_argument("--remap-open", "-k", "--convert-links", dest="remap_urls", action="store_const", const="open", help=_("point all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding output paths, remap all other URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`"))
             grp.add_argument("--remap-closed", dest="remap_urls", action="store_const", const="closed", help=_("remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained"))
-            grp.add_argument("--remap-all", dest="remap_urls", action="store_const", const="all", help=_(f"remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `{__package__} export` to be used incrementally; `export`ed `mirror`s will be self-contained") + def_all)
+            grp.add_argument("--remap-all", dest="remap_urls", action="store_const", const="all", help=_(f"remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `{__prog__} export` to be used incrementally; `export`ed `mirror`s will be self-contained") + def_all)
 
         if kind != "export":
             cmd.set_defaults(remap_urls = "id")
@@ -1910,7 +1912,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd.set_defaults(func=cmd_run)
 
     # stream
-    cmd = subparsers.add_parser("stream", help=_(f"produce a stream of structured lists containing values produced by computing given expressions on given WRR files, a generalized `{__package__} get`"),
+    cmd = subparsers.add_parser("stream", help=_(f"produce a stream of structured lists containing values produced by computing given expressions on given WRR files, a generalized `{__prog__} get`"),
                                 description = _("""Compute given expressions for each of given WRR files, encode them into a requested format, and print the result to stdout."""))
     add_pure(cmd, "print")
     add_abridged(cmd)
@@ -1936,10 +1938,10 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         agrp = cmd.add_argument_group("caching, deferring, and batching")
         agrp.add_argument("--seen-number", metavar = "INT", dest="max_seen", type=int, default=16384, help=_(f"""track at most this many distinct generated `--output` values; default: `%(default)s`;
 making this larger improves disk performance at the cost of increased memory consumption;
-setting it to zero will force force `{__package__}` to constantly re-check existence of `--output` files and force `{__package__}` to execute  all IO actions immediately, disregarding `--defer-number` setting"""))
+setting it to zero will force force `{__prog__}` to constantly re-check existence of `--output` files and force `{__prog__}` to execute  all IO actions immediately, disregarding `--defer-number` setting"""))
         agrp.add_argument("--cache-number", metavar = "INT", dest="max_cached", type=int, default=8192, help=_(f"""cache `stat(2)` information about this many files in memory; default: `%(default)s`;
 making this larger improves performance at the cost of increased memory consumption;
-setting this to a too small number will likely force `{__package__}` into repeatedly performing lots of `stat(2)` system calls on the same files;
+setting this to a too small number will likely force `{__prog__}` into repeatedly performing lots of `stat(2)` system calls on the same files;
 setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
 """))
         agrp.add_argument("--defer-number", metavar = "INT", dest="max_deferred", type=int, default=max_deferred, help=_("""defer at most this many IO actions; default: `%(default)s`;
@@ -1950,7 +1952,7 @@ setting it to zero will force all IO actions to be applied immediately"""))
 making this larger improves performance;
 the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`"""))
         agrp.add_argument("--lazy", action="store_true", help=_(f"""sets all of the above options to positive infinity;
-most useful when doing `{__package__} organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `{__package__}` needs to keep in memory is small, in which case it will force `{__package__}` to compute the desired file system state first and then perform all disk writes in a single batch"""))
+most useful when doing `{__prog__} organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `{__prog__}` needs to keep in memory is small, in which case it will force `{__prog__}` to compute the desired file system state first and then perform all disk writes in a single batch"""))
 
     def add_fileout(cmd : _t.Any, kind : str) -> None:
         agrp = cmd.add_argument_group("file outputs")
@@ -1961,7 +1963,7 @@ most useful when doing `{__package__} organize --symlink --latest --output flat`
                          "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
                          "".join([f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`" + ("; the default" if name == "default" else "") + "\n" + output_example(name, 8) + "\n" for name, value in output_aliases.items()]) + \
                          "- " + _("available substitutions:") + "\n" + \
-                         "  - " + _(f"all expressions of `{__package__} get --expr` (which see)") + ";\n" + \
+                         "  - " + _(f"all expressions of `{__prog__} get --expr` (which see)") + ";\n" + \
                          "  - `num`: " + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique"))
         elif kind == "import" or kind == "export":
             if kind != "export":
@@ -1970,7 +1972,7 @@ most useful when doing `{__package__} organize --symlink --latest --output flat`
                 def_def = "hupq"
 
             agrp.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("destination directory"))
-            agrp.add_argument("-o", "--output", metavar="FORMAT", default=def_def, type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same expression format as `{__package__} organize --output` (which see); default: %(default)s"""))
+            agrp.add_argument("-o", "--output", metavar="FORMAT", default=def_def, type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same expression format as `{__prog__} organize --output` (which see); default: %(default)s"""))
         else:
             assert False
 
@@ -2016,7 +2018,7 @@ on the other hand, this is quite useful when growing a partial mirror generated 
                                 description = _(f"""Parse given WRR files into their respective reqres and then rename/move/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
 
 Operations that could lead to accidental data loss are not permitted.
-E.g. `{__package__} organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`."""))
+E.g. `{__prog__} organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`."""))
     add_impure(cmd, "work on")
 
     agrp = cmd.add_argument_group("action")
@@ -2042,7 +2044,7 @@ E.g. `{__package__} organize --move` will not overwrite any files, which is why 
     # import
     supcmd = subparsers.add_parser("import", help=_("convert other HTTP archive formats into WRR"),
                                    description = _(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
-In short, this is `{__package__} organize --copy` for `INPUT` files that use different files formats."""))
+In short, this is `{__prog__} organize --copy` for `INPUT` files that use different files formats."""))
     supsub = supcmd.add_subparsers(title="file formats")
 
     cmd = supsub.add_parser("bundle", help=_("convert WRR-bundles into separate WRR files"),
@@ -2062,7 +2064,7 @@ In short, this is `{__package__} organize --copy` for `INPUT` files that use dif
 
     cmd = supsub.add_parser("mirror", help=_("convert given WRR files into a local website mirror stored in interlinked plain files"),
                             description = _(f"""Parse given WRR files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
-In short, this is a combination of `{__package__} organize --copy` followed by in-place `{__package__} get`.
+In short, this is a combination of `{__prog__} organize --copy` followed by in-place `{__prog__} get`.
 In other words, this generates static offline website mirrors, producing results similar to those of `wget -mpk`."""))
     add_impure(cmd, "export")
     add_expr(cmd, "export")

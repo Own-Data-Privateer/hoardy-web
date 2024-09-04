@@ -5,9 +5,9 @@
 let packages = import ./packages.nix { inherit pkgs debug; }; in
 
 pkgs.buildEnv {
-  name = "pwebarc-20240805";
+  name = "hoardy-web-env-20240904";
   paths = with packages; [
-    dumb_server
+    simple_server
     extension
     tool
   ];

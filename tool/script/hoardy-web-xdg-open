@@ -29,4 +29,4 @@ done
 
 (($# > 0)) || { echo "error: need a WRR_FILE"; echo; usage; exit 1; } >&2
 
-exec wrrarms run -- xdg-open "$@"
+exec hoardy-web run -- xdg-open "$@"

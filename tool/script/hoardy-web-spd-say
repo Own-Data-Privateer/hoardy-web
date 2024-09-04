@@ -86,6 +86,6 @@ trap '[[ -z "$ok" ]] && spd-say -S' 0
 
 for file in "$@"; do
     echo "reading $file aloud from $start to $end"
-    wrrarms run -- pandoc -f html -t plain "$file" | play
+    hoardy-web run -- pandoc -f html -t plain "$file" | play
 done
 ok=1

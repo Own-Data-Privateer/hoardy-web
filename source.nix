@@ -14,7 +14,7 @@
       && (baseName != "__pycache__")
       && (baseName != ".mypy_cache")
       && (baseName != ".pytest_cache")
-      && (builtins.match ".*/dumb_server/pwebarc-dump.*" name == null)
+      && (builtins.match ".*/simple_server/pwebarc-dump.*" name == null)
       ;
   };
 

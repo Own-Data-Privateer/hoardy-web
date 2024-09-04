@@ -1,12 +1,12 @@
 /*
- * Some utility functions and constants specific to pWebArc.
+ * Some utility functions and constants specific to `Hoardy-Web`.
  *
  * This file exists to prevent duplication between the core and the UI
- * parts of pWebArc.
+ * parts of `Hoardy-Web`.
  *
  * Copyright (c) 2024 Jan Malakhovski <oxij@oxij.org>
  *
- * This file is a part of pwebarc project.
+ * This file is a part of `hoardy-web` project.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -114,8 +114,8 @@ function setPageError(error) {
       <div id="body_exception"><h2>Exception</h2></div>
       <h2>To see more details</h2>
       <ul>
-        <li>On Firefox-based browser: go to <code>about:debugging#/runtime/this-firefox</code>, click &quot;Inspect&quot; button on &quot;pWebArc&quot;, select &quot;Console&quot;</li>
-        <li>On Chromium-based browser: go to <code>chrome://extensions/</code>, click &quot;Inspect views&quot; link on &quot;pWebArc&quot;, select &quot;Console&quot;</li>
+        <li>On Firefox-based browser: go to <code>about:debugging#/runtime/this-firefox</code>, click &quot;Inspect&quot; button on &quot;Hoardy-Web&quot;, select &quot;Console&quot;</li>
+        <li>On Chromium-based browser: go to <code>chrome://extensions/</code>, click &quot;Inspect views&quot; link on &quot;Hoardy-Web&quot;, select &quot;Console&quot;</li>
       </ul>
     `;
     let p = document.createElement("pre");

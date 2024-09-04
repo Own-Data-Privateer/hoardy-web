@@ -1,19 +1,19 @@
 {
     "manifest_version": 2,
 
-    "name": "pWebArc",
+    "name": "Hoardy-Web",
     "version": "1.15.1",
     "description": "Log, capture, and archive dumps of HTTP requests and responses. Mainly, for indexing and later offline viewing. Very low memory footprint, lots of configuration options.",
 
     "author": "Jan Malakhovski",
-    "homepage_url": "https://github.com/Own-Data-Privateer/pwebarc",
+    "homepage_url": "https://github.com/Own-Data-Privateer/hoardy-web",
 
     "background": {
         "page": "background/main.html"
     },
 
     "browser_action": {
-        "default_title": "pWebArc",
+        "default_title": "Hoardy-Web",
         "default_popup": "page/popup.html"
     },
 

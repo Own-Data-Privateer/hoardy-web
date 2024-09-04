@@ -14,7 +14,7 @@ iconTheme=privateer
 for target in "$@"; do
     echo "Building $target..."
 
-    NAME="pWebArc-$target-v${version}"
+    NAME="Hoardy-Web-$target-v${version}"
     DEST="dist/$NAME"
     mkdir -p "$DEST"
 
@@ -72,7 +72,7 @@ for target in "$@"; do
     cat ../CHANGELOG.md \
         | sed '
 s%(\./extension/page/help\.org\([^)]*\))%(./help.html\1)%g ; t end
-s%(\./\([^)]*\))%(https://oxij.org/software/pwebarc/tree/master/\1)%g
+s%(\./\([^)]*\))%(https://oxij.org/software/hoardy-web/tree/master/\1)%g
 : end
 ' \
         | runPandoc markdown page/changelog
@@ -150,7 +150,7 @@ s%(\./\([^)]*\))%(https://oxij.org/software/pwebarc/tree/master/\1)%g
         )
 
         chromium_id=$(cat "dist/manifest-chromium-id.txt")
-        chromium_crx_url="https://github.com/Own-Data-Privateer/pwebarc/releases/download/extension-v${version}/pWebArc-$target-v$version.crx"
+        chromium_crx_url="https://github.com/Own-Data-Privateer/hoardy-web/releases/download/extension-v${version}/Hoardy-Web-$target-v$version.crx"
 
         echo "  Making update.xml..."
 

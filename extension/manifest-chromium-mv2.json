@@ -21,5 +21,5 @@
         "webRequestBlocking"
     ],
 
-    "update_url": "https://raw.githubusercontent.com/Own-Data-Privateer/pwebarc/metadata/update-chromium-mv2.xml"
+    "update_url": "https://raw.githubusercontent.com/Own-Data-Privateer/hoardy-web/metadata/update-chromium-mv2.xml"
 }

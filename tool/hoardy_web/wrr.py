@@ -1,6 +1,6 @@
 # Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
 #
-# This file is a part of pwebarc project.
+# This file is a part of `hoardy-web` project.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -579,7 +579,7 @@ def trivial_Reqres(url : ParsedURL,
                    stime : Epoch = Epoch(1000),
                    ftime : Epoch = Epoch(2000),
                    content_type : bytes = b"text/html") -> Reqres:
-    return Reqres(1, "wrrarms-test/1", "HTTP/1.1",
+    return Reqres(1, "hoardy-test/1", "HTTP/1.1",
                   Request(qtime, "GET", url, [], True, b""),
                   Response(stime, 200, "OK", [("Content-Type", content_type)], True, b""),
                   ftime,
@@ -733,7 +733,7 @@ def linst_scrub() -> LinstAtom:
                 censor.append("Unknown Data")
             if len(censor) > 0:
                 what = ", or ".join(censor)
-                return f"/* wrrarms censored out {what} blob ({mime}) from here */\n" if scrub_opts.verbose else b""
+                return f"/* hoardy censored out {what} blob ({mime}) from here */\n" if scrub_opts.verbose else b""
 
             if "html" not in essence:
                 # no scrubbing needed

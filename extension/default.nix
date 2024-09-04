@@ -6,7 +6,7 @@
 with pkgs;
 
 stdenv.mkDerivation rec {
-  pname = "pwebarc-extension";
+  pname = "hoardy-web-extension";
   version = "1.15.1";
 
   inherit (source) src unpackPhase;
@@ -20,7 +20,7 @@ stdenv.mkDerivation rec {
 
   installPhase = ''
     mkdir -p $out
-    git archive --format tar.gz -o $out/pWebArc-source-v${version}.tar.gz extension-v${version}
+    git archive --format tar.gz -o $out/Hoardy-Web-source-v${version}.tar.gz extension-v${version}
     cd dist
     cp -at $out *.xpi *.zip *.crx
   '';

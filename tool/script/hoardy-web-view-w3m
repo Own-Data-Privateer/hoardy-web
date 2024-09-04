@@ -38,9 +38,9 @@ done
 (($# > 0)) || { echo "error: need a WRR_FILE"; echo; usage; exit 1; } >&2
 
 trap '[[ -n "$tmp" ]] && rm -f "$tmp"' 0
-tmp=$(mktemp wrrarms-w3m.XXXXXXXX.html)
+tmp=$(mktemp hoardy-web-view-w3m.XXXXXXXX.html)
 
-wrrarms get -l \
+hoardy-web get -l \
         -e "$kind|add_prefix '# url: '" \
         --expr-fd 3 \
         -e "response.body|eb" \

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
  *
- * This file is a part of pwebarc project.
+ * This file is a part of `hoardy-web` project.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ let rrfilters = {
 
 let tabId = getMapURLParam(stateURL, "tab", document.location, toNumber, null, null);
 if (tabId !== null)
-    document.title = `pWebArc: tab ${tabId}: Internal State`;
+    document.title = `Hoardy-Web: tab ${tabId}: Internal State`;
 
 function resetInFlight(log_data) {
     resetDataNode("data_in_flight", log_data);

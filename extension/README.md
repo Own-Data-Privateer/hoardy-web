@@ -1,8 +1,8 @@
-# What is `pWebArc` browser extension/add-on?
+# What is `Hoardy-Web` WebExtension?
 
-`pWebArc` (Personal Private Passive Web Archive) is a browser extension (add-on) that passively captures and collects dumps of HTTP requests and responses (see [`WRR` file format](../doc/data-on-disk.md)) as you browse the web, and then archives them to your `Downloads` directory, your own private archiving server (like [the dumb archiving server](../dumb_server/)), or your browser's local storage.
+`Hoardy-Web` WebExtension is a browser extension (add-on) that passively captures and collects dumps of HTTP requests and responses (see [`WRR` file format](../doc/data-on-disk.md)) as you browse the web, and then archives them to your `Downloads` directory, your own private archiving server (like [`hoardy-web-sas`](../simple_server/)), or your browser's local storage.
 
-`pWebArc` is most similar to [archiveweb.page](https://github.com/webrecorder/archiveweb.page) and [DiskerNet](https://github.com/dosyago/DownloadNet) projects, but it works both on Firefox- and Chromium-based browsers, and it follows [its own design philosophy](../README.md#philosophy), which makes the experience of using it is very different.
+`Hoardy-Web` is most similar to [archiveweb.page](https://github.com/webrecorder/archiveweb.page) and [DiskerNet](https://github.com/dosyago/DownloadNet) projects, but it works both on Firefox- and Chromium-based browsers, and it follows [its own design philosophy](../README.md#philosophy), which makes the experience of using it is very different.
 
 Mainly, this is useful for archiving your HTTP traffic for later offline viewing and/or indexing.
 I.e. this extension implements an in-browser half of your own personal private passive [Wayback Machine](https://web.archive.org/) that archives everything you see, including HTTP POST requests and responses (e.g. answer pages of web search engines), as well as most other HTTP-level data (JSON RPC/AJAX/etc).
@@ -13,7 +13,7 @@ If you do not care about archival, you can also use this extension to log and la
 
 By default, this extension will save all captured data into browser's local storage (though, it implements other archiving methods if you want them), so it can be used standalone.
 
-However, to view/replay your collected data you will need to use the accompanying [`wrrarms` tool](https://github.com/Own-Data-Privateer/pwebarc/tree/master/tool) (also [there](https://oxij.org/software/pwebarc/tree/master/tool/)).
+However, to view/replay your collected data you will need to use the accompanying [`hoardy` tool](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool) (also [there](https://oxij.org/software/hoardy-web/tree/master/tool/)).
 
 # Screenshots
 
@@ -29,11 +29,11 @@ See [the gallery](../doc/gallery.md).
 
 ## <span id="install-firefox"/>On Firefox-based browsers (Firefox, Tor Browser, LibreWolf, Fenix aka Firefox for Android, Fennec, Mull, etc)
 
-- [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/pwebarc/).
-  Then, in a desktop browser, press `Extensions` toolbar button and pin `pWebArc`.
+- [![](https://oxij.org/asset/img/software/amo/get-the-addon-small.png) Install the extension from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/hoardy-web/).
+  Then, in a desktop browser, press `Extensions` toolbar button and pin `Hoardy-Web`.
   (In mobile browsers there is are no customizable toolbars, unfortunately.)
 
-- Alternatively, download the latest `pWebArc-firefox-*.xpi` from [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases), and then [follow "Install as an unsigned XPI" instructions below](#unsigned-xpi).
+- Alternatively, download the latest `Hoardy-Web-firefox-*.xpi` from [Releases](https://github.com/Own-Data-Privateer/hoardy-web/releases), and then [follow "Install as an unsigned XPI" instructions below](#unsigned-xpi).
 
 - Alternatively, [build it from source](#build) and then follow those same instructions.
 
@@ -42,18 +42,18 @@ See [the gallery](../doc/gallery.md).
 - Make sure your browser [supports installation of unsigned add-ons](https://wiki.mozilla.org/Add-ons/Extension_Signing) (Firefox ESR, Nightly, Developer Edition, and Tor Browser do, vanilla Firefox and its mobile versions do not).
 - Go to `about:config`, set `xpinstall.signatures.required` to `false`.
 - Go to `about:addons`, click the gear button, select `Install Add-on from File`, and select the XPI file in `./extension/dist` directory (or do `File > Open File` from the menu and then select the XPI file, or drag-and-drop the XPI file into the browser window).
-- Then press `Extensions` toolbar button and pin `pWebArc`.
+- Then press `Extensions` toolbar button and pin `Hoardy-Web`.
 
 ### Install as a temporary add-on
 
 If you are [building from source](#build), this is a nice way to do development, since to reload the add-on after making a new build will require a single click.
 
-- In the browser, go to `about:debugging#/runtime/this-firefox`, click `Load Temporary Add-on` button, and select `./extension/dist/pWebArc-firefox-*/manifest.json`.
-- Then you might need to go into `about:addons` and enable `Run in Private Windows` for `pWebArc` if your Firefox is running in Private-Windows-only mode.
+- In the browser, go to `about:debugging#/runtime/this-firefox`, click `Load Temporary Add-on` button, and select `./extension/dist/Hoardy-Web-firefox-*/manifest.json`.
+- Then you might need to go into `about:addons` and enable `Run in Private Windows` for `Hoardy-Web` if your Firefox is running in Private-Windows-only mode.
 
 ## <span id="install-chromium"/>On Chromium-based browsers (Chromium, Google Chrome, Ungoogled Chromium, Brave, etc)
 
-`pWebArc` isn't on [Chrome Web Store](https://chromewebstore.google.com/) because `pWebArc` appears to violate [its "Terms of Use"](https://web.archive.org/web/20240604062520/https://developer.chrome.com/docs/webstore/program-policies/terms).
+`Hoardy-Web` isn't on [Chrome Web Store](https://chromewebstore.google.com/) because `Hoardy-Web` appears to violate [its "Terms of Use"](https://web.archive.org/web/20240604062520/https://developer.chrome.com/docs/webstore/program-policies/terms).
 Specifically, the "enables the unauthorized download of streaming content or media" clause.
 See [higher-level README](../README.md#quickstart) for more info and discussion.
 
@@ -64,24 +64,24 @@ Do not rush.
 
 ### <span id="unpacked-zip"/>Install as an unpacked extension
 
-This is the simplest method that will work on all Chromium forks, but `pWebArc` will not get automatic updates.
-I.e., you will have to check the [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases) page periodically, download, and install new releases manually to update.
+This is the simplest method that will work on all Chromium forks, but `Hoardy-Web` will not get automatic updates.
+I.e., you will have to check the [Releases](https://github.com/Own-Data-Privateer/hoardy-web/releases) page periodically, download, and install new releases manually to update.
 
-- Download the latest `pWebArc-chromium-*.zip` from [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases).
+- Download the latest `Hoardy-Web-chromium-*.zip` from [Releases](https://github.com/Own-Data-Privateer/hoardy-web/releases).
 - Unpack it.
-  It's packed with a single directory named `pWebArc-chromium-*` inside for convenience.
+  It's packed with a single directory named `Hoardy-Web-chromium-*` inside for convenience.
 - Go to `Extensions > Manage Extensions` in the menu of your browser and enable `Developer mode` toggle.
 - On the same page, press `Load Unpacked` and select the directory the unpacking of the `.zip` file produced.
   It should have `manifest.json` file in it, just navigate to that directory select it and then press the `Open` button (or navigate into that directory and then press the `Open` button, that will work too).
-- Then press `Extensions` toolbar button and pin `pWebArc`.
+- Then press `Extensions` toolbar button and pin `Hoardy-Web`.
 
 Apparently, if you are using Google Chrome, you will get annoying warnings about side-loaded extensions.
 But you can also whitelist your extensions to prevent it, [see the second answer of this stackoverflow question](https://stackoverflow.com/questions/24577024/install-chrome-extension-form-outside-the-chrome-web-store).
-For a `pWebArc` downloaded from [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases) here, its Chromium extension ID is `amklkmnfmgjmofkjifjgngdnajpbpefp`.
+For a `Hoardy-Web` downloaded from [Releases](https://github.com/Own-Data-Privateer/hoardy-web/releases) here, its Chromium extension ID is `amklkmnfmgjmofkjifjgngdnajpbpefp`.
 
 ### Install as an unpacked extension built from source
 
-Alternatively, you can [build it from source](#build) and then follow those same instructions above, except use `./dist/pWebArc-chromium-*` directory after pressing `Load Unpacked` button in the browser's UI.
+Alternatively, you can [build it from source](#build) and then follow those same instructions above, except use `./dist/Hoardy-Web-chromium-*` directory after pressing `Load Unpacked` button in the browser's UI.
 
 Similarly, there will be no automatic updates.
 
@@ -96,11 +96,11 @@ If your Chromium fork supports installation of third-party CRX files (not fetche
 - Go to `chrome://flags`.
 - Search for the `#extension-mime-request-handling` flag and set it to `Always prompt for install`.
 - (If you did not find such a thing there, then you Chromium fork does not support installations of third-party CRX files.)
-- Then, download the latest `pWebArc-chromium-*.crx` from [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases).
-- The browser should prompt you if you want to install `pWebArc`.
+- Then, download the latest `Hoardy-Web-chromium-*.crx` from [Releases](https://github.com/Own-Data-Privateer/hoardy-web/releases).
+- The browser should prompt you if you want to install `Hoardy-Web`.
 - Confirm the install.
 
-There may or may not be automatic updates for `pWebArc`, depending of what your Chromium fork comes with.
+There may or may not be automatic updates for `Hoardy-Web`, depending of what your Chromium fork comes with.
 If it supports updates for third-party extensions, you will get updates, if it does not, you will not.
 The vanilla mainline Chromium comes without any such support.
 See below for how to fix it.
@@ -109,23 +109,23 @@ See below for how to fix it.
 
 If your Chromium fork supports installation of third-party CRX files fetched manually:
 
-- Download the latest `pWebArc-chromium-*.crx` from [Releases](https://github.com/Own-Data-Privateer/pwebarc/releases).
+- Download the latest `Hoardy-Web-chromium-*.crx` from [Releases](https://github.com/Own-Data-Privateer/hoardy-web/releases).
 - Drag-and-drop the resulting CRX file from your `Downloads` folder into your browser's window.
-- The browser should either prompt you if you want to install `pWebArc` or just install it silently.
+- The browser should either prompt you if you want to install `Hoardy-Web` or just install it silently.
 - (If it does not, then you browser does not support that too.)
 - Confirm the install or check you extensions list to confirm it's there.
 
 The updates situation will be exactly the same as above.
 
-### How to make `pWebArc` (and other indie extensions) automatically update on Chromium forks that do not support auto-updates for third-party extensions
+### How to make `Hoardy-Web` (and other indie extensions) automatically update on Chromium forks that do not support auto-updates for third-party extensions
 
-- Install `pWebArc` using one of the above methods.
+- Install `Hoardy-Web` using one of the above methods.
 
 - Install [`chromium-web-store`](https://github.com/NeverDecaf/chromium-web-store) extension using one of the above methods.
 
   It exists to help you to install extensions from [Chrome Web Store](https://chromewebstore.google.com/) and other similar WebExtensions repositories on Chromium forks that do not come with builtin support for WebExtension stores.
   More importantly, however, it can periodically check all your extensions that have an `update_url` field set in their `manifest.json` for updates and notify you about them.
-  (`pWebArc`, of course, comes with `update_url` set.)
+  (`Hoardy-Web`, of course, comes with `update_url` set.)
 
   So, the simplest way to do this on a most limited Chromium fork is to run
 
@@ -149,19 +149,19 @@ E.g., you might want to:
 - disable `Enable Chrome Web Store Integration`,
 - etc, see there for more info.
 
-Congratulations, from now on `pWebArc` --- or any other extension that has `update_url` field set in its `manifest.json`, regardless of its availability at [Chrome Web Store](https://chromewebstore.google.com/) --- will get checked for updates periodically.
+Congratulations, from now on `Hoardy-Web` --- or any other extension that has `update_url` field set in its `manifest.json`, regardless of its availability at [Chrome Web Store](https://chromewebstore.google.com/) --- will get checked for updates periodically.
 
-- If you installed `pWebArc` (or another extension which has `update_url` field set) via a CRX, then `chromium-web-store` can even automatically update it for you.
-- If you installed `pWebArc` (or another extension) via `Load Unpacked`, you will have to manually re-install it from [a new release](https://github.com/Own-Data-Privateer/pwebarc/releases) on updates, but you will at least get notified about it updating without you needing to check manually.
+- If you installed `Hoardy-Web` (or another extension which has `update_url` field set) via a CRX, then `chromium-web-store` can even automatically update it for you.
+- If you installed `Hoardy-Web` (or another extension) via `Load Unpacked`, you will have to manually re-install it from [a new release](https://github.com/Own-Data-Privateer/hoardy-web/releases) on updates, but you will at least get notified about it updating without you needing to check manually.
 
 See [`chromium-web-store`'s README](https://github.com/NeverDecaf/chromium-web-store) for more info and instructions, especially if you get `CRX_REQUIRED_PROOF_MISSING` or `Apps, extensions and user scripts cannot be added from this website` errors.
 
 # Recommended next steps
 
-- Open `pWebArc`'s popup and press the `Help` button there.
+- Open `Hoardy-Web`'s popup and press the `Help` button there.
   Read the contents of that page.
 
-- Eventually, install and see the docs of [the `wrrarms` tool](../tool/).
+- Eventually, install and see the docs of [the `hoardy` tool](../tool/).
 
 # Development
 

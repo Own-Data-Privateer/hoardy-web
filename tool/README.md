@@ -1,6 +1,6 @@
-# What?
+# What is `hoardy-web`?
 
-`wrrarms` (`pwebarc-wrrarms`) is a tool for displaying, programmatically manipulating, organizing, importing, and exporting [Personal Private Passive Web Archive (pwebarc)](https://github.com/Own-Data-Privateer/pwebarc/) (also [there](https://oxij.org/software/pwebarc/)) Web Request+Response (WRR) files produced by [pWebArc browser extension](https://github.com/Own-Data-Privateer/pwebarc/tree/master/extension/) (also [there](https://oxij.org/software/pwebarc/tree/master/extension/)).
+`hoardy-web` is a tool for displaying, programmatically manipulating, organizing, importing, and exporting Web Request+Response (WRR) files produced by [`Hoardy-Web` WebExtension](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/) (also [there](https://oxij.org/software/hoardy-web/tree/master/)).
 
 # Quickstart
 
@@ -8,64 +8,64 @@
 
 - Install with:
   ```bash
-  pip install pwebarc-wrrarms
+  pip install hoardy-web
   ```
   and run as
   ```bash
-  wrrarms --help
+  hoardy-web --help
   ```
 - Alternatively, install it via Nix
   ```bash
   nix-env -i -f ./default.nix
-  wrrarms --help
+  hoardy-web --help
   ```
 - Alternatively, run without installing:
   ```bash
-  alias wrrarms="python3 -m wrrarms"
-  wrrarms --help
+  alias hoardy-web="python3 -m hoardy_web"
+  hoardy-web --help
   ```
 
 ## Supported input file formats
 
 ### Simple WRR-dumps (`*.wrr`)
 
-When you use [the `pWebArc` extension](../extension/) together with [the dumb archiving server](../dumb_server/), the latter writes [WRR-dumps pWebArc generates](../doc/data-on-disk.md) into separate `.wrr` files (aka "WRR files") in its dumping directory.
+When you use [the `Hoardy-Web` WebExtension](../extension/) together with [`hoardy-web-sas` archiving server](../simple_server/), the latter writes [WRR-dumps `Hoardy-Web` WebExtension generates](../doc/data-on-disk.md) into separate `.wrr` files (aka "WRR files") in its dumping directory.
 No further actions to use that data are required.
 
-The situation is similar if you instead use `pWebArc` extension with "Export via `saveAs`" option enabled but `saveAs`-bundling option disabled (max bundle size set to zero).
+The situation is similar if you instead use `Hoardy-Web` WebExtension with "Export via `saveAs`" option enabled but `saveAs`-bundling option disabled (max bundle size set to zero).
 The only difference is that WRR files will be put into `~/Downloads` or similar.
 
 ```bash
-ls ~/Downloads/pWebArc-export-*
+ls ~/Downloads/Hoardy-Web-export-*
 ```
 
 ### Bundles of WRR-dumps (`*.wrrb`)
 
-However, if instead of using any of the above you use `pWebArc` extension with both "Export via `saveAs`" and bundling options enabled, then, at the moment, you will need to `import` those `.wrrb` files (aka WRR-bundles) into separate WRR files first:
+However, if instead of using any of the above you use `Hoardy-Web` WebExtension with both "Export via `saveAs`" and bundling options enabled, then, at the moment, you will need to `import` those `.wrrb` files (aka WRR-bundles) into separate WRR files first:
 
 ```bash
-wrrarms import bundle --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*
+hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
 ```
 
-Note that `wrrarms` can parse `.wrr` files as single-dump `.wrrb` files, so the above will work even when some of the exported dumps are simple `.wrr` files (`pWebArc` generates those when exporting an only available per-bucket dump or when exporting dumps larger than set maximum bundle size).
+Note that `hoardy-web` can parse `.wrr` files as single-dump `.wrrb` files, so the above will work even when some of the exported dumps are simple `.wrr` files (`Hoardy-Web` generates those when exporting an only available per-bucket dump or when exporting dumps larger than set maximum bundle size).
 So, essentially, the above command is equivalent to
 
 ```bash
-wrrarms organize --copy --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*.wrr
-wrrarms import bundle --to ~/pwebarc/raw ~/Downloads/pWebArc-export-*.wrrb
+hoardy-web organize --copy --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.wrr
+hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.wrrb
 ```
 
 ### Other file formats
 
-`wrrarms` can also use some other file formats as inputs.
-See the documentation of the `wrrarms import` sub-command below for more info.
+`hoardy-web` can also use some other file formats as inputs.
+See the documentation of the `hoardy-web import` sub-command below for more info.
 
 ## How to merge multiple archive directories
 
-To merge multiple input directories into one you can simply `wrrarms organize` them `--to` a new directory.
-`wrrarms` will automatically deduplicate all the files in the generated result.
+To merge multiple input directories into one you can simply `hoardy-web organize` them `--to` a new directory.
+`hoardy-web` will automatically deduplicate all the files in the generated result.
 
-That is to say, for `wrrarms organize` (see the documentation below for more info):
+That is to say, for `hoardy-web organize` (see the documentation below for more info):
 
 - `--move` is de-duplicating when possible,
 - while `--copy`, `--hardlink`, and `--symlink` are non-duplicating when possible.
@@ -73,8 +73,8 @@ That is to say, for `wrrarms organize` (see the documentation below for more inf
 For example, if you duplicate an input directory via `--copy` or `--hardlink`:
 
 ```bash
-wrrarms organize --copy     --to ~/pwebarc/copy1 ~/pwebarc/original
-wrrarms organize --hardlink --to ~/pwebarc/copy2 ~/pwebarc/original
+hoardy-web organize --copy     --to ~/hoardy-web/copy1 ~/hoardy-web/original
+hoardy-web organize --hardlink --to ~/hoardy-web/copy2 ~/hoardy-web/original
 ```
 
 (In real-life use different copies usually end up on in different backup drives or some such.)
@@ -83,91 +83,91 @@ Then, repeating the same command would a noop:
 
 ```bash
 # noops
-wrrarms organize --copy     --to ~/pwebarc/copy1 ~/pwebarc/original
-wrrarms organize --hardlink --to ~/pwebarc/copy2 ~/pwebarc/original
+hoardy-web organize --copy     --to ~/hoardy-web/copy1 ~/hoardy-web/original
+hoardy-web organize --hardlink --to ~/hoardy-web/copy2 ~/hoardy-web/original
 ```
 
 And running the opposite command would also be a noop:
 
 ```bash
 # noops
-wrrarms organize --hardlink --to ~/pwebarc/copy1 ~/pwebarc/original
-wrrarms organize --copy     --to ~/pwebarc/copy2 ~/pwebarc/original
+hoardy-web organize --hardlink --to ~/hoardy-web/copy1 ~/hoardy-web/original
+hoardy-web organize --copy     --to ~/hoardy-web/copy2 ~/hoardy-web/original
 ```
 
 And copying between copies is also a noop:
 
 ```bash
 # noops
-wrrarms organize --hardlink --to ~/pwebarc/copy2 ~/pwebarc/copy1
-wrrarms organize --copy     --to ~/pwebarc/copy2 ~/pwebarc/copy1
+hoardy-web organize --hardlink --to ~/hoardy-web/copy2 ~/hoardy-web/copy1
+hoardy-web organize --copy     --to ~/hoardy-web/copy2 ~/hoardy-web/copy1
 ```
 
-But doing `wrrarms organize --move` while supplying directories that have the same data will deduplicate the results:
+But doing `hoardy-web organize --move` while supplying directories that have the same data will deduplicate the results:
 
 ```bash
-wrrarms organize --move --to ~/pwebarc/all ~/pwebarc/copy1 ~/pwebarc/copy2
-# `~/pwebarc/all` will have each file only once
-find ~/pwebarc/copy1 ~/pwebarc/copy2 -type f
+hoardy-web organize --move --to ~/hoardy-web/all ~/hoardy-web/copy1 ~/hoardy-web/copy2
+# `~/hoardy-web/all` will have each file only once
+find ~/hoardy-web/copy1 ~/hoardy-web/copy2 -type f
 # the output will be empty
 
-wrrarms organize --move --to ~/pwebarc/original ~/pwebarc/all
-# `~/pwebarc/original` will not change iff it is already organized using `--output default`
+hoardy-web organize --move --to ~/hoardy-web/original ~/hoardy-web/all
+# `~/hoardy-web/original` will not change iff it is already organized using `--output default`
 # otherwise, some files there will be duplicated
-find ~/pwebarc/all -type f
+find ~/hoardy-web/all -type f
 # the output will be empty
 ```
 
-Similarly, `wrrarms organize --symlink` resolves its input symlinks and deduplicates its output symlinks:
+Similarly, `hoardy-web organize --symlink` resolves its input symlinks and deduplicates its output symlinks:
 
 ```bash
-wrrarms organize --symlink --output hupq_msn --to ~/pwebarc/pointers ~/pwebarc/original
-wrrarms organize --symlink --output shupq_msn --to ~/pwebarc/schemed ~/pwebarc/original
+hoardy-web organize --symlink --output hupq_msn --to ~/hoardy-web/pointers ~/hoardy-web/original
+hoardy-web organize --symlink --output shupq_msn --to ~/hoardy-web/schemed ~/hoardy-web/original
 
 # noop
-wrrarms organize --symlink --output hupq_msn --to ~/pwebarc/pointers ~/pwebarc/original ~/pwebarc/schemed
+hoardy-web organize --symlink --output hupq_msn --to ~/hoardy-web/pointers ~/hoardy-web/original ~/hoardy-web/schemed
 ```
 
-I.e. the above will produce `~/pwebarc/pointers` with unique symlinks pointing to each file in `~/pwebarc/original` only once.
+I.e. the above will produce `~/hoardy-web/pointers` with unique symlinks pointing to each file in `~/hoardy-web/original` only once.
 
 ## How to build a file system tree of latest versions of all hoarded URLs
 
-Assuming you keep your WRR-dumps in `~/pwebarc/raw` you can generate a hierarchy of symlinks for each URL pointing from under `~/pwebarc/latest` to the most recent WRR file that contains `200 OK` response in `~/pwebarc/raw` via:
+Assuming you keep your WRR-dumps in `~/hoardy-web/raw` you can generate a hierarchy of symlinks for each URL pointing from under `~/hoardy-web/latest` to the most recent WRR file that contains `200 OK` response in `~/hoardy-web/raw` via:
 
 ```bash
-wrrarms organize --symlink --latest --output hupq --to ~/pwebarc/latest --and "status|~= .200C" ~/pwebarc/raw
+hoardy-web organize --symlink --latest --output hupq --to ~/hoardy-web/latest --and "status|~= .200C" ~/hoardy-web/raw
 ```
 
 Personally, I prefer `flat_mhs` (see the documentation of the `--output` below) format as I dislike deep file hierarchies, using it also simplifies filtering in my `ranger` file browser, so I do this:
 
 ```bash
-wrrarms organize --symlink --latest --output flat_mhs --and "status|~= .200C" --to ~/pwebarc/latest ~/pwebarc/raw
+hoardy-web organize --symlink --latest --output flat_mhs --and "status|~= .200C" --to ~/hoardy-web/latest ~/hoardy-web/raw
 ```
 
 ### Update the tree incrementally, in real time
 
-The above commands rescan the whole contents of `~/pwebarc/raw` and so can take a while to complete.
+The above commands rescan the whole contents of `~/hoardy-web/raw` and so can take a while to complete.
 
-If you have a lot of WRR files and you want to keep your symlink tree updated in near-real-time you will need to use a two-stage pipeline by giving the output of `wrrarms organize --zero-terminated` to `wrrarms organize --stdin0` to perform complex updates.
+If you have a lot of WRR files and you want to keep your symlink tree updated in near-real-time you will need to use a two-stage pipeline by giving the output of `hoardy-web organize --zero-terminated` to `hoardy-web organize --stdin0` to perform complex updates.
 
-E.g. the following will rename new reqres from `../dumb_server/pwebarc-dump` to `~/pwebarc/raw` renaming them with `--output default` (the `for` loop is there to preserve buckets/profiles):
+E.g. the following will rename new reqres from `../simple_server/pwebarc-dump` to `~/hoardy-web/raw` renaming them with `--output default` (the `for` loop is there to preserve buckets/profiles):
 
 ```bash
-for arg in ../dumb_server/pwebarc-dump/* ; do
-  wrrarms organize --zero-terminated --to ~/pwebarc/raw/"$(basename "$arg")" "$arg"
+for arg in ../simple_server/pwebarc-dump/* ; do
+  hoardy-web organize --zero-terminated --to ~/hoardy-web/raw/"$(basename "$arg")" "$arg"
 done > changes
 ```
 
 Then, you can reuse the paths saved in `changes` file to update the symlink tree, like in the above:
 
 ```
-wrrarms organize --stdin0 --symlink --latest --output flat_mhs --and "status|~= .200C" --to ~/pwebarc/latest ~/pwebarc/raw < changes
+hoardy-web organize --stdin0 --symlink --latest --output flat_mhs --and "status|~= .200C" --to ~/hoardy-web/latest ~/hoardy-web/raw < changes
 ```
 
-Then, optionally, you can reuse `changes` file again to symlink all new files from `~/pwebarc/raw` to `~/pwebarc/all`, showing all URL versions, by using `--output hupq_msn` format:
+Then, optionally, you can reuse `changes` file again to symlink all new files from `~/hoardy-web/raw` to `~/hoardy-web/all`, showing all URL versions, by using `--output hupq_msn` format:
 
 ```bash
-wrrarms organize --stdin0 --symlink --output hupq_msn --to ~/pwebarc/all < changes
+hoardy-web organize --stdin0 --symlink --output hupq_msn --to ~/hoardy-web/all < changes
 ```
 
 ## <span id="mirror"/>How to generate a local offline website mirror like `wget -mpk`
@@ -175,78 +175,78 @@ wrrarms organize --stdin0 --symlink --output hupq_msn --to ~/pwebarc/all < chang
 If you want to render your WRR files into a local offline website mirror containing interlinked HTML files and their resources a-la `wget -mpk` (`wget --mirror --page-requisites --convert-links`), run one of the above `--symlink --latest` commands, and then do something like this:
 
 ```bash
-wrrarms export mirror --to ~/pwebarc/mirror1 ~/pwebarc/latest/archiveofourown.org
+hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/latest/archiveofourown.org
 ```
 
-on completion `~/pwebarc/mirror1` will contain a bunch of interlinked minimized HTML files, their resources, and everything else available from WRR files living under `~/pwebarc/latest/archiveofourown.org`.
+on completion `~/hoardy-web/mirror1` will contain a bunch of interlinked minimized HTML files, their resources, and everything else available from WRR files living under `~/hoardy-web/latest/archiveofourown.org`.
 
 The above command might fail if the set of WRR-dumps you are trying to export contains two or more dumps with distinct URLs that map to the same `--output` path.
-This will produce an error since `wrrarms` does not permit file overwrites.
+This will produce an error since `hoardy` does not permit file overwrites.
 With the default `--output hupq` format this can happen, for instance, when the URLs recorded in the reqres are long and so they end up truncated into the same file system paths.
 
 In this case you can either switch to a more verbose `--output` format
 
 ```bash
-wrrarms export mirror --output hupq_n --to ~/pwebarc/mirror1 ~/pwebarc/latest/archiveofourown.org
+hoardy-web export mirror --output hupq_n --to ~/hoardy-web/mirror1 ~/hoardy-web/latest/archiveofourown.org
 ```
 
 or skip all reqres that would cause overwrites
 
 ```bash
-wrrarms export mirror --skip-existing --to ~/pwebarc/mirror1 ~/pwebarc/latest/archiveofourown.org
+hoardy-web export mirror --skip-existing --to ~/hoardy-web/mirror1 ~/hoardy-web/latest/archiveofourown.org
 ```
 
 or, almost equivalently for this use case, skip all export errors (which includes "no overwrites allowed" error)
 
 ```bash
-wrrarms export mirror --errors skip --to ~/pwebarc/mirror1 ~/pwebarc/latest/archiveofourown.org
+hoardy-web export mirror --errors skip --to ~/hoardy-web/mirror1 ~/hoardy-web/latest/archiveofourown.org
 ```
 
 The latter command would also skip reqres that fail to be exported for other reasons.
 
-By default, *all* the links in exported HTML files will be remapped to local files (even if source WRR files for those would-be exported files are missing in `~/pwebarc/latest/archiveofourown.org`, see the documentation for the `--remap-*` options below for more info), and those HTML files will also be stripped of all JavaScript, CSS, and other stuff of various levels of evil (see the documentation for the `scrub` function below for more info).
+By default, *all* the links in exported HTML files will be remapped to local files (even if source WRR files for those would-be exported files are missing in `~/hoardy-web/latest/archiveofourown.org`, see the documentation for the `--remap-*` options below for more info), and those HTML files will also be stripped of all JavaScript, CSS, and other stuff of various levels of evil (see the documentation for the `scrub` function below for more info).
 
 On the plus side, the result will be completely self-contained and safe to view with a dumb unconfigured browser.
 
 If you are unhappy with this behaviour and, for instance, want to keep the CSS and produce human-readable HTML, run the following instead:
 
 ```bash
-wrrarms export mirror \
+hoardy-web export mirror \
   -e 'response.body|eb|scrub response +all_refs,-actions,+styles,+pretty' \
-  --to ~/pwebarc/mirror2 ~/pwebarc/latest/archiveofourown.org
+  --to ~/hoardy-web/mirror2 ~/hoardy-web/latest/archiveofourown.org
 ```
 
 Note, however, that CSS resource filtering and remapping is not implemented yet.
 
-If you also want to keep links that point to not yet hoarded Internet URLs to still point those URLs in the exported files instead of them pointing to non-existent local files, similarly to what `wget -mpk` does, run `wrrarms export mirror` with `--remap-open`, e.g.:
+If you also want to keep links that point to not yet hoarded Internet URLs to still point those URLs in the exported files instead of them pointing to non-existent local files, similarly to what `wget -mpk` does, run `hoardy-web export mirror` with `--remap-open`, e.g.:
 
 ```bash
-wrrarms export mirror \
+hoardy-web export mirror \
   -e 'response.body|eb|scrub response +all_refs,-actions,+styles,+pretty' \
   --remap-open \
-  --to ~/pwebarc/mirror3 ~/pwebarc/latest/archiveofourown.org
+  --to ~/hoardy-web/mirror3 ~/hoardy-web/latest/archiveofourown.org
 ```
 
 Finally, if you want a mirror made of raw files without any content censorship or link conversions, run:
 
 ```bash
-wrrarms export mirror -e 'response.body|eb' --to ~/pwebarc/mirror-raw ~/pwebarc/latest/archiveofourown.org
+hoardy-web export mirror -e 'response.body|eb' --to ~/hoardy-web/mirror-raw ~/hoardy-web/latest/archiveofourown.org
 ```
 
-The later command will render your mirror pretty quickly, but the other above-mentioned commands will call the `scrub` function, and that will be pretty slow (as in avg ~5Mb, ~3 files per second on my 2013-era laptop), mostly because `html5lib` that `wrrarms` uses for paranoid HTML parsing and filtering is fairly slow.
+The later command will render your mirror pretty quickly, but the other above-mentioned commands will call the `scrub` function, and that will be pretty slow (as in avg ~5Mb, ~3 files per second on my 2013-era laptop), mostly because `html5lib` that `hoardy-web` uses for paranoid HTML parsing and filtering is fairly slow.
 
 ### Using `--root` and `--depth`
 
-As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of WRR files into `wrrarms`'s memory but then `export mirror` only select URLs (and all resources needed to properly render those pages) by running something like:
+As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of WRR files into `hoardy-web`'s memory but then `export mirror` only select URLs (and all resources needed to properly render those pages) by running something like:
 
 ```
-wrrarms export mirror \
+hoardy-web export mirror \
   --root 'https://archiveofourown.org/works/3733123?view_adult=true&view_full_work=true' \
   --root 'https://archiveofourown.org/works/30186441?view_adult=true&view_full_work=true' \
-  --to ~/pwebarc/mirror4 ~/pwebarc/raw/*/2023
+  --to ~/hoardy-web/mirror4 ~/hoardy-web/raw/*/2023
 ```
 
-(`wrrarms` loads (indexes) WRR files pretty fast, so if you are running from an SSD, you can totally feed it years of WRR files and then only export a couple of URLs, and it will take a couple of seconds to finish anyway.)
+(`hoardy-web` loads (indexes) WRR files pretty fast, so if you are running from an SSD, you can totally feed it years of WRR files and then only export a couple of URLs, and it will take a couple of seconds to finish anyway.)
 
 There is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root`s and then `export mirror` all those URLs (and their resources) too.
 
@@ -264,13 +264,13 @@ mitmdump -w +mitmproxy.001.dump
 at some point, you can generate website mirrors from them by first importing them all to WRR
 
 ```bash
-wrrarms import mitmproxy --to ~/pwebarc/mitmproxy mitmproxy.*.dump
+hoardy-web import mitmproxy --to ~/hoardy-web/mitmproxy mitmproxy.*.dump
 ```
 
 and then `export mirror` like above, e.g. to generate mirrors for all URLs:
 
 ```bash
-wrrarms export mirror --to ~/pwebarc/mirror ~/pwebarc/mitmproxy
+hoardy-web export mirror --to ~/hoardy-web/mirror ~/hoardy-web/mitmproxy
 ```
 
 ## How to generate previews for WRR files, listen to them via TTS, open them with `xdg-open`, etc
@@ -279,9 +279,9 @@ See [`script` sub-directory](./script/) for examples that show how to use `pando
 
 # Usage
 
-## wrrarms
+## hoardy-web
 
-A tool to pretty-print, compute and print values from, search, organize (programmatically rename/move/symlink/hardlink files), import, export, (WIP: check, deduplicate, and edit) pWebArc WRR (WEBREQRES, Web REQuest+RESponse) archive files.
+A tool to pretty-print, compute and print values from, search, organize (programmatically rename/move/symlink/hardlink files), import, export, (WIP: check, deduplicate, and edit) `Hoardy-Web`'s WRR (Web Request+Response) archive files.
 
 Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing HTTP request+response pair with some additional metadata.
 
@@ -302,7 +302,7 @@ Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a struct
     - `run`
     : spawn a process with generated temporary files produced by given expressions computed on given WRR files as arguments
     - `stream`
-    : produce a stream of structured lists containing values produced by computing given expressions on given WRR files, a generalized `wrrarms get`
+    : produce a stream of structured lists containing values produced by computing given expressions on given WRR files, a generalized `hoardy-web get`
     - `find`
     : print paths of WRR files matching specified criteria
     - `organize`
@@ -312,7 +312,7 @@ Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a struct
     - `export`
     : convert WRR archives into other formats
 
-### wrrarms pprint
+### hoardy-web pprint
 
 Pretty-print given WRR files to stdout.
 
@@ -335,7 +335,7 @@ Pretty-print given WRR files to stdout.
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
   : only print reqres which match any of these expressions
   - `--and EXPR`
@@ -343,9 +343,9 @@ Pretty-print given WRR files to stdout.
 
 - MIME type sniffing:
   - `--naive`
-  : populate "potentially" lists like `wrrarms (get|run|export) --expr '(request|response).body|eb|scrub \2 defaults'` does; default
+  : populate "potentially" lists like `hoardy-web (get|run|export) --expr '(request|response).body|eb|scrub \2 defaults'` does; default
   - `--paranoid`
-  : populate "potentially" lists in the output using paranoid MIME type sniffing like `wrrarms (get|run|export) --expr '(request|response).body|eb|scrub \2 +paranoid'` does; this exists to answer "Hey! Why did it censor out my data?!" questions
+  : populate "potentially" lists in the output using paranoid MIME type sniffing like `hoardy-web (get|run|export) --expr '(request|response).body|eb|scrub \2 +paranoid'` does; this exists to answer "Hey! Why did it censor out my data?!" questions
 
 - file system path ordering:
   - `--paths-given-order`
@@ -361,7 +361,7 @@ Pretty-print given WRR files to stdout.
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
-### wrrarms get
+### hoardy-web get
 
 Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified.
 
@@ -527,7 +527,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   - `-z, --zero-separated`
   : print values separated with `\0` (NUL) bytes
 
-### wrrarms run
+### hoardy-web run
 
 Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files terminating each value as specified, spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process.
 
@@ -545,7 +545,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format and semantics as `wrrarms get --expr` (which see); can be specified multiple times; default: `response.body|eb`, which will dump the HTTP response body
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; default: `response.body|eb`, which will dump the HTTP response body
 
 - URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
@@ -561,7 +561,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   - `-z, --zero-separated`
   : print values separated with `\0` (NUL) bytes
 
-### wrrarms stream
+### hoardy-web stream
 
 Compute given expressions for each of given WRR files, encode them into a requested format, and print the result to stdout.
 
@@ -590,7 +590,7 @@ Compute given expressions for each of given WRR files, encode them into a reques
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
   : only print reqres which match any of these expressions
   - `--and EXPR`
@@ -598,7 +598,7 @@ Compute given expressions for each of given WRR files, encode them into a reques
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format and semantics as `wrrarms get --expr` (which see); can be specified multiple times; default: `.`, which will dump the whole reqres structure
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; default: `.`, which will dump the whole reqres structure
 
 - URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
@@ -628,7 +628,7 @@ Compute given expressions for each of given WRR files, encode them into a reques
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
-### wrrarms find
+### hoardy-web find
 
 Print paths of WRR files matching specified criteria.
 
@@ -647,7 +647,7 @@ Print paths of WRR files matching specified criteria.
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
   : only print paths to reqres which match any of these expressions
   - `--and EXPR`
@@ -673,12 +673,12 @@ Print paths of WRR files matching specified criteria.
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
-### wrrarms organize
+### hoardy-web organize
 
 Parse given WRR files into their respective reqres and then rename/move/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
 
 Operations that could lead to accidental data loss are not permitted.
-E.g. `wrrarms organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
+E.g. `hoardy-web organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
 
 - positional arguments:
   - `PATH`
@@ -699,7 +699,7 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
   : only work on reqres which match any of these expressions
   - `--and EXPR`
@@ -1047,7 +1047,7 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_4f11_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index.GET_c4ae_C200C_0.htm`
     - available substitutions:
-      - all expressions of `wrrarms get --expr` (which see);
+      - all expressions of `hoardy-web get --expr` (which see);
       - `num`: number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique
 
 - new `--output`s printing:
@@ -1073,11 +1073,11 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
   - `--seen-number INT`
   : track at most this many distinct generated `--output` values; default: `16384`;
     making this larger improves disk performance at the cost of increased memory consumption;
-    setting it to zero will force force `wrrarms` to constantly re-check existence of `--output` files and force `wrrarms` to execute  all IO actions immediately, disregarding `--defer-number` setting
+    setting it to zero will force force `hoardy-web` to constantly re-check existence of `--output` files and force `hoardy-web` to execute  all IO actions immediately, disregarding `--defer-number` setting
   - `--cache-number INT`
   : cache `stat(2)` information about this many files in memory; default: `8192`;
     making this larger improves performance at the cost of increased memory consumption;
-    setting this to a too small number will likely force `wrrarms` into repeatedly performing lots of `stat(2)` system calls on the same files;
+    setting this to a too small number will likely force `hoardy-web` into repeatedly performing lots of `stat(2)` system calls on the same files;
     setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
   - `--defer-number INT`
   : defer at most this many IO actions; default: `1024`;
@@ -1091,7 +1091,7 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
     the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`
   - `--lazy`
   : sets all of the above options to positive infinity;
-    most useful when doing `wrrarms organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `wrrarms` needs to keep in memory is small, in which case it will force `wrrarms` to compute the desired file system state first and then perform all disk writes in a single batch
+    most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
 
 - file system path ordering:
   - `--paths-given-order`
@@ -1107,10 +1107,10 @@ E.g. `wrrarms organize --move` will not overwrite any files, which is why the de
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order; default when `--latest`
 
-### wrrarms import
+### hoardy-web import
 
 Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
-In short, this is `wrrarms organize --copy` for `INPUT` files that use different files formats.
+In short, this is `hoardy-web organize --copy` for `INPUT` files that use different files formats.
 
 - file formats:
   - `{bundle,mitmproxy}`
@@ -1119,7 +1119,7 @@ In short, this is `wrrarms organize --copy` for `INPUT` files that use different
     - `mitmproxy`
     : convert `mitmproxy` stream dumps into WRR files
 
-### wrrarms import bundle
+### hoardy-web import bundle
 
 Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of WRR-dumps) and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
 
@@ -1142,7 +1142,7 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
   : only import reqres which match any of these expressions
   - `--and EXPR`
@@ -1152,7 +1152,7 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
   - `-t DESTINATION, --to DESTINATION`
   : destination directory
   - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `wrrarms organize --output` (which see); default: default
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: default
 
 - new `--output`s printing:
   - `--no-print`
@@ -1173,11 +1173,11 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
   - `--seen-number INT`
   : track at most this many distinct generated `--output` values; default: `16384`;
     making this larger improves disk performance at the cost of increased memory consumption;
-    setting it to zero will force force `wrrarms` to constantly re-check existence of `--output` files and force `wrrarms` to execute  all IO actions immediately, disregarding `--defer-number` setting
+    setting it to zero will force force `hoardy-web` to constantly re-check existence of `--output` files and force `hoardy-web` to execute  all IO actions immediately, disregarding `--defer-number` setting
   - `--cache-number INT`
   : cache `stat(2)` information about this many files in memory; default: `8192`;
     making this larger improves performance at the cost of increased memory consumption;
-    setting this to a too small number will likely force `wrrarms` into repeatedly performing lots of `stat(2)` system calls on the same files;
+    setting this to a too small number will likely force `hoardy-web` into repeatedly performing lots of `stat(2)` system calls on the same files;
     setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
   - `--defer-number INT`
   : defer at most this many IO actions; default: `0`;
@@ -1191,7 +1191,7 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
     the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`
   - `--lazy`
   : sets all of the above options to positive infinity;
-    most useful when doing `wrrarms organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `wrrarms` needs to keep in memory is small, in which case it will force `wrrarms` to compute the desired file system state first and then perform all disk writes in a single batch
+    most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
 
 - file system path ordering:
   - `--paths-given-order`
@@ -1207,7 +1207,7 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
-### wrrarms import mitmproxy
+### hoardy-web import mitmproxy
 
 Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
 
@@ -1230,7 +1230,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
   : only import reqres which match any of these expressions
   - `--and EXPR`
@@ -1240,7 +1240,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `-t DESTINATION, --to DESTINATION`
   : destination directory
   - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `wrrarms organize --output` (which see); default: default
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: default
 
 - new `--output`s printing:
   - `--no-print`
@@ -1261,11 +1261,11 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `--seen-number INT`
   : track at most this many distinct generated `--output` values; default: `16384`;
     making this larger improves disk performance at the cost of increased memory consumption;
-    setting it to zero will force force `wrrarms` to constantly re-check existence of `--output` files and force `wrrarms` to execute  all IO actions immediately, disregarding `--defer-number` setting
+    setting it to zero will force force `hoardy-web` to constantly re-check existence of `--output` files and force `hoardy-web` to execute  all IO actions immediately, disregarding `--defer-number` setting
   - `--cache-number INT`
   : cache `stat(2)` information about this many files in memory; default: `8192`;
     making this larger improves performance at the cost of increased memory consumption;
-    setting this to a too small number will likely force `wrrarms` into repeatedly performing lots of `stat(2)` system calls on the same files;
+    setting this to a too small number will likely force `hoardy-web` into repeatedly performing lots of `stat(2)` system calls on the same files;
     setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
   - `--defer-number INT`
   : defer at most this many IO actions; default: `0`;
@@ -1279,7 +1279,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
     the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`
   - `--lazy`
   : sets all of the above options to positive infinity;
-    most useful when doing `wrrarms organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `wrrarms` needs to keep in memory is small, in which case it will force `wrrarms` to compute the desired file system state first and then perform all disk writes in a single batch
+    most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
 
 - file system path ordering:
   - `--paths-given-order`
@@ -1295,7 +1295,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
-### wrrarms export
+### hoardy-web export
 
 Parse given WRR files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata.
 
@@ -1304,10 +1304,10 @@ Parse given WRR files into their respective reqres, convert to another file form
     - `mirror`
     : convert given WRR files into a local website mirror stored in interlinked plain files
 
-### wrrarms export mirror
+### hoardy-web export mirror
 
 Parse given WRR files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
-In short, this is a combination of `wrrarms organize --copy` followed by in-place `wrrarms get`.
+In short, this is a combination of `hoardy-web organize --copy` followed by in-place `hoardy-web get`.
 In other words, this generates static offline website mirrors, producing results similar to those of `wget -mpk`.
 
 - positional arguments:
@@ -1329,7 +1329,7 @@ In other words, this generates static offline website mirrors, producing results
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `wrrarms get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
   : only export reqres which match any of these expressions
   - `--and EXPR`
@@ -1337,7 +1337,7 @@ In other words, this generates static offline website mirrors, producing results
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format and semantics as `wrrarms get --expr` (which see); can be specified multiple times; default: `response.body|eb|scrub response +all_refs,-actions`, which will export safe scrubbed versions of all files
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; default: `response.body|eb|scrub response +all_refs,-actions`, which will export safe scrubbed versions of all files
 
 - URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
@@ -1349,7 +1349,7 @@ In other words, this generates static offline website mirrors, producing results
   - `--remap-closed`
   : remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained
   - `--remap-all`
-  : remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `wrrarms export` to be used incrementally; `export`ed `mirror`s will be self-contained; default
+  : remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `hoardy-web export` to be used incrementally; `export`ed `mirror`s will be self-contained; default
 
 - exporting:
   - `--not-separated`
@@ -1363,7 +1363,7 @@ In other words, this generates static offline website mirrors, producing results
   - `-t DESTINATION, --to DESTINATION`
   : destination directory
   - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `wrrarms organize --output` (which see); default: hupq
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: hupq
 
 - new `--output`s printing:
   - `--no-print`
@@ -1409,136 +1409,136 @@ In other words, this generates static offline website mirrors, producing results
 
 ## Examples
 
-- Pretty-print all reqres in `../dumb_server/pwebarc-dump` using an abridged (for ease of reading and rendering) verbose textual representation:
+- Pretty-print all reqres in `../simple_server/pwebarc-dump` using an abridged (for ease of reading and rendering) verbose textual representation:
   ```
-  wrrarms pprint ../dumb_server/pwebarc-dump
+  hoardy-web pprint ../simple_server/pwebarc-dump
   ```
 
 - Pipe raw response body from a given WRR file to stdout:
   ```
-  wrrarms get ../dumb_server/pwebarc-dump/path/to/file.wrr
+  hoardy-web get ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
 
 - Pipe response body scrubbed of dynamic content from a given WRR file to stdout:
   ```
-  wrrarms get -e "response.body|eb|scrub response defaults" ../dumb_server/pwebarc-dump/path/to/file.wrr
+  hoardy-web get -e "response.body|eb|scrub response defaults" ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
 
 - Get first 4 characters of a hex digest of sha256 hash computed on the URL without the fragment/hash part:
   ```
-  wrrarms get -e "net_url|to_ascii|sha256|take_prefix 4" ../dumb_server/pwebarc-dump/path/to/file.wrr
+  hoardy-web get -e "net_url|to_ascii|sha256|take_prefix 4" ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
 
 - Pipe response body from a given WRR file to stdout, but less efficiently, by generating a temporary file and giving it to `cat`:
   ```
-  wrrarms run cat ../dumb_server/pwebarc-dump/path/to/file.wrr
+  hoardy-web run cat ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
 
-  Thus `wrrarms run` can be used to do almost anything you want, e.g.
+  Thus `hoardy-web run` can be used to do almost anything you want, e.g.
 
   ```
-  wrrarms run less ../dumb_server/pwebarc-dump/path/to/file.wrr
-  ```
-
-  ```
-  wrrarms run -- sort -R ../dumb_server/pwebarc-dump/path/to/file.wrr
+  hoardy-web run less ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
 
   ```
-  wrrarms run -n 2 -- diff -u ../dumb_server/pwebarc-dump/path/to/file-v1.wrr ../dumb_server/pwebarc-dump/path/to/file-v2.wrr
+  hoardy-web run -- sort -R ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
 
-- List paths of all WRR files from `../dumb_server/pwebarc-dump` that contain only complete `200 OK` responses with bodies larger than 1K:
   ```
-  wrrarms find --and "status|~= .200C" --and "response.body|len|> 1024" ../dumb_server/pwebarc-dump
+  hoardy-web run -n 2 -- diff -u ../simple_server/pwebarc-dump/path/to/file-v1.wrr ../simple_server/pwebarc-dump/path/to/file-v2.wrr
   ```
 
-- Rename all WRR files in `../dumb_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `wrrarms organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic):
+- List paths of all WRR files from `../simple_server/pwebarc-dump` that contain only complete `200 OK` responses with bodies larger than 1K:
   ```
-  wrrarms organize ../dumb_server/pwebarc-dump/default
+  hoardy-web find --and "status|~= .200C" --and "response.body|len|> 1024" ../simple_server/pwebarc-dump
+  ```
+
+- Rename all WRR files in `../simple_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `hoardy-web organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic):
+  ```
+  hoardy-web organize ../simple_server/pwebarc-dump/default
   ```
 
   alternatively, just show what would be done
 
   ```
-  wrrarms organize --dry-run ../dumb_server/pwebarc-dump/default
+  hoardy-web organize --dry-run ../simple_server/pwebarc-dump/default
   ```
 
 ## Advanced examples
 
-- Pretty-print all reqres in `../dumb_server/pwebarc-dump` by dumping their whole structure into an abridged Pythonic Object Representation (repr):
+- Pretty-print all reqres in `../simple_server/pwebarc-dump` by dumping their whole structure into an abridged Pythonic Object Representation (repr):
   ```
-  wrrarms stream --expr . ../dumb_server/pwebarc-dump
-  ```
-
-  ```
-  wrrarms stream -e . ../dumb_server/pwebarc-dump
-  ```
-
-- Pretty-print all reqres in `../dumb_server/pwebarc-dump` using the unabridged verbose textual representation:
-  ```
-  wrrarms pprint --unabridged ../dumb_server/pwebarc-dump
+  hoardy-web stream --expr . ../simple_server/pwebarc-dump
   ```
 
   ```
-  wrrarms pprint -u ../dumb_server/pwebarc-dump
+  hoardy-web stream -e . ../simple_server/pwebarc-dump
   ```
 
-- Pretty-print all reqres in `../dumb_server/pwebarc-dump` by dumping their whole structure into the unabridged Pythonic Object Representation (repr) format:
+- Pretty-print all reqres in `../simple_server/pwebarc-dump` using the unabridged verbose textual representation:
   ```
-  wrrarms stream --unabridged --expr . ../dumb_server/pwebarc-dump
+  hoardy-web pprint --unabridged ../simple_server/pwebarc-dump
   ```
 
   ```
-  wrrarms stream -ue . ../dumb_server/pwebarc-dump
+  hoardy-web pprint -u ../simple_server/pwebarc-dump
+  ```
+
+- Pretty-print all reqres in `../simple_server/pwebarc-dump` by dumping their whole structure into the unabridged Pythonic Object Representation (repr) format:
+  ```
+  hoardy-web stream --unabridged --expr . ../simple_server/pwebarc-dump
+  ```
+
+  ```
+  hoardy-web stream -ue . ../simple_server/pwebarc-dump
   ```
 
 - Produce a JSON list of `[<file path>, <time it finished loading in seconds since UNIX epoch>, <URL>]` tuples (one per reqres) and pipe it into `jq` for indented and colored output:
   ```
-  wrrarms stream --format=json -ue fs_path -e finished_at -e request.url ../dumb_server/pwebarc-dump | jq .
+  hoardy-web stream --format=json -ue fs_path -e finished_at -e request.url ../simple_server/pwebarc-dump | jq .
   ```
 
 - Similarly, but produce a CBOR output:
   ```
-  wrrarms stream --format=cbor -ue fs_path -e finished_at -e request.url ../dumb_server/pwebarc-dump | less
+  hoardy-web stream --format=cbor -ue fs_path -e finished_at -e request.url ../simple_server/pwebarc-dump | less
   ```
 
-- Concatenate all response bodies of all the requests in `../dumb_server/pwebarc-dump`:
+- Concatenate all response bodies of all the requests in `../simple_server/pwebarc-dump`:
   ```
-  wrrarms stream --format=raw --not-terminated -ue "response.body|es" ../dumb_server/pwebarc-dump | less
+  hoardy-web stream --format=raw --not-terminated -ue "response.body|es" ../simple_server/pwebarc-dump | less
   ```
 
 - Print all unique visited URLs, one per line:
   ```
-  wrrarms stream --format=raw --lf-terminated -ue request.url ../dumb_server/pwebarc-dump | sort | uniq
+  hoardy-web stream --format=raw --lf-terminated -ue request.url ../simple_server/pwebarc-dump | sort | uniq
   ```
 
 - Same idea, but using NUL bytes while processing, and prints two URLs per line:
   ```
-  wrrarms stream --format=raw --zero-terminated -ue request.url ../dumb_server/pwebarc-dump | sort -z | uniq -z | xargs -0 -n2 echo
+  hoardy-web stream --format=raw --zero-terminated -ue request.url ../simple_server/pwebarc-dump | sort -z | uniq -z | xargs -0 -n2 echo
   ```
 
 ### How to handle binary data
 
-Trying to use response bodies produced by `wrrarms stream --format=json` is likely to result garbled data as JSON can't represent raw sequences of bytes, thus binary data will have to be encoded into UNICODE using replacement characters:
+Trying to use response bodies produced by `hoardy-web stream --format=json` is likely to result garbled data as JSON can't represent raw sequences of bytes, thus binary data will have to be encoded into UNICODE using replacement characters:
 
 ```
-wrrarms stream --format=json -ue . ../dumb_server/pwebarc-dump/path/to/file.wrr | jq .
+hoardy-web stream --format=json -ue . ../simple_server/pwebarc-dump/path/to/file.wrr | jq .
 ```
 
 The most generic solution to this is to use `--format=cbor` instead, which would produce a verbose CBOR representation equivalent to the one used by `--format=json` but with binary data preserved as-is:
 
 ```
-wrrarms stream --format=cbor -ue . ../dumb_server/pwebarc-dump/path/to/file.wrr | less
+hoardy-web stream --format=cbor -ue . ../simple_server/pwebarc-dump/path/to/file.wrr | less
 ```
 
 Or you could just dump raw response bodies separately:
 
 ```
-wrrarms stream --format=raw -ue response.body ../dumb_server/pwebarc-dump/path/to/file.wrr | less
+hoardy-web stream --format=raw -ue response.body ../simple_server/pwebarc-dump/path/to/file.wrr | less
 ```
 
 ```
-wrrarms get ../dumb_server/pwebarc-dump/path/to/file.wrr | less
+hoardy-web get ../simple_server/pwebarc-dump/path/to/file.wrr | less
 ```
 
