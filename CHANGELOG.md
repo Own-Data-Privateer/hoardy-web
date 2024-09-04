@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [extension-v1.15.1] - 2024-09-04
+
+### Fixed
+
+- Fixed some typos.
+
+### Changed
+
+- Improved notifications.
+- Improved documentation.
+
 ## [tool-v0.14.0] - 2024-09-04
 
 ### Added
@@ -906,6 +917,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.15.1]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.15.0...extension-v1.15.1
 [tool-v0.14.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.13.0...tool-v0.14.0
 [extension-v1.15.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.14.0...extension-v1.15.0
 [extension-v1.14.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.13.1...extension-v1.14.0
