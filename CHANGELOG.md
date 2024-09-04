@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [tool-v0.14.1] - 2024-09-04
+
+- Rename `wrrarms` -> `hoardy-web`.
+
+## [simple_server-v1.6.1] - 2024-09-04
+
+- Rename `dumb-dump-server` -> `hoardy-web-sas`.
+
 ## [extension-v1.15.1] - 2024-09-04
 
 ### Fixed
@@ -917,6 +925,8 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.14.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.14.0...tool-v0.14.1
+[simple_server-v1.6.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/dumb_server-v1.6.0...simple_server-v1.6.1
 [extension-v1.15.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.15.0...extension-v1.15.1
 [tool-v0.14.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.13.0...tool-v0.14.0
 [extension-v1.15.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.14.0...extension-v1.15.0

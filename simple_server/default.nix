@@ -7,7 +7,7 @@ with pkgs;
 
 python3Packages.buildPythonApplication rec {
   pname = "hoardy-web-sas";
-  version = "1.6.0";
+  version = "1.6.1";
   format = "pyproject";
 
   inherit (source) src unpackPhase;
