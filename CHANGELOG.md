@@ -4,6 +4,58 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [tool-v0.14.0] - 2024-09-04
+
+### Added
+
+- Improved all the `script`s by adding usage descriptions and `--help` options to all of them.
+
+- Added `--to` option to `wrrarms-pandoc` script.
+  It allows you to change the output format it will use.
+
+- Added `wrrarms-spd-say` script, which can feed contents of an archived HTML document, extracted from HTML via `pandoc -t plain`, to `speech-dispatcher`'s `spd-say`, i.e. to your preferred TTS engine.
+
+- Added `--*-url` options to `wrrarms-w3m` and `wrrarms-pandoc` scripts.
+  They allow you to control how to print the document's URL in the output.
+
+- `get`: implemented `--expr-fd` option, which allows you to extracts multiple `--expr` values from the same input file to different output file descriptors in a single `wrrarms` call.
+
+- Modified `wrrarms-w3m` and `wrrarms-pandoc` scripts to use `--expr-fd` option, making them ~2x faster.
+
+- `export mirror`: implemented support for multiple `--expr` arguments.
+
+- `import`: implemented `--override-dangerously` option.
+
+- Added more `--output` formats.
+
+### Changed
+
+- Renamed all `--no-output` options to `--no-print`.
+
+- Edited `--output` formats, making them more consistent with their expected usage:
+
+  - Edited the `default`, `short`, `surl_msn`, and `url_msn` `--output` formats, replacing a "." before the `num` field with a "\_".
+    Because these formats do not mention any file extensions.
+
+  - Edited `surl_msn` and `url_msn` `--output` formats, replacing  and a "\_" before the `method` with "\_\_".
+    To make these `--output` formats useful in programmatic usage.
+
+  - Edited most other`--output` formats, replacing a "\_" before the `method` field with a "." and a "." before the non-standalone `num` with a "\_".
+    Since these `--output` formats do use file extensions, this turns the whole `wrrarms`-specific suffix into a sub-extension.
+
+- `wrrarms-pandoc` uses `plain` text `--to` output format by default now.
+  The previous default was `org`-mode.
+
+- Improved error messages.
+
+- Improved documentation.
+
+### Fixed
+
+- `export mirror` now respects the given `--errors` option value not only while indexing inputs, but also while rendering and writing out outputs.
+
+- Resurrected `flat_n` `--output` format.
+
 ## [extension-v1.15.0] - 2024-08-29
 
 ### Added
@@ -854,6 +906,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.14.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/tool-v0.13.0...tool-v0.14.0
 [extension-v1.15.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.14.0...extension-v1.15.0
 [extension-v1.14.0]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.13.1...extension-v1.14.0
 [extension-v1.13.1]: https://github.com/Own-Data-Privateer/pwebarc/compare/extension-v1.13.0...extension-v1.13.1
