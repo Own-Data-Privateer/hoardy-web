@@ -23,10 +23,9 @@ classifiers = [
     "Environment :: Console",
 ]
 keywords = [
-    "HTTP",
-    "HTTPS",
-    "archive",
-    "wayback machine",
+    "HTTP", "HTTPS",
+    "web", "archive", "download",
+    "wayback", "wayback machine",
     "download",
 ]
 dependencies = [

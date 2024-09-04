@@ -26,11 +26,9 @@ classifiers = [
     "Environment :: Console",
 ]
 keywords = [
-    "HTTP",
-    "HTTPS",
-    "archive",
-    "wayback machine",
-    "download",
+    "HTTP", "HTTPS",
+    "web", "archive", "download",
+    "wayback", "wayback machine",
 ]
 requires-python = ">=3.10"
 dependencies = [
