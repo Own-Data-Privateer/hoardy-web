@@ -589,23 +589,23 @@ For instance:
 
   - =webRequest::NS_ERROR_NET= prefix on Firefox and =webRequest::net::ERR_FAILED= error on Chromium signify various networking issues.
 
-The exception to the above rule of keeping everything as raw as possible are =webRequest::pWebArc::= and =debugger::pWebArc::= prefixes which signify various errors produced by =Hoardy-Web= itself in its =webRequest=- or =debugger=-handling code, respectively.
+The exception to the above rule of keeping everything as raw as possible are =webRequest::capture::= and =debugger::capture::= prefixes which signify various errors produced by =Hoardy-Web= itself in its =webRequest=- or =debugger=-handling code, respectively.
 In particular:
 
-- =webRequest::pWebArc::EMIT_FORCED_BY_USER= and =debugger::pWebArc::EMIT_FORCED_BY_USER= are produced when you forcefully advance a reqres from in-flight state by pressing [[./popup.html#stopTabInFlight][this]] or [[./popup.html#stopAllInFlight][that]] button;
+- =webRequest::capture::EMIT_FORCED::BY_USER= and =debugger::capture::EMIT_FORCED::BY_USER= are produced when you forcefully advance a reqres from in-flight state by pressing [[./popup.html#stopTabInFlight][this]] or [[./popup.html#stopAllInFlight][that]] button;
 
-- =debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER= is produced when Chromium debugger gets detached from its tab while a reqres inside that tab is still in flight;
+- =debugger::capture::EMIT_FORCED::BY_DETACHED_DEBUGGER= is produced when Chromium debugger gets detached from its tab while a reqres inside that tab is still in flight;
 
-- =debugger::pWebArc::EMIT_FORCED_BY_CLOSED_TAB= is produced when a tab gets closed while a reqres inside of it is still in flight;
+- =debugger::capture::EMIT_FORCED::BY_CLOSED_TAB= is produced when a tab gets closed while a reqres inside of it is still in flight;
 
-- =debugger::pWebArc::NO_RESPONSE_BODY::= is a prefix for errors produced when getting request's response body from Chromium's debugger fails for various reasons;
+- =debugger::capture::NO_RESPONSE_BODY::= is a prefix for errors produced when getting request's response body from Chromium's debugger fails for various reasons;
 
-- =webRequest::pWebArc::NO_DEBUGGER::CANCELED= is produced when a non-main-frame request is canceled by =Hoardy-Web= because no debugger is available to capture it;
+- =webRequest::capture::CANCELED::NO_DEBUGGER= is produced when a non-main-frame request is canceled by =Hoardy-Web= because no debugger is available to capture it;
   in the case of a main frame request, =Hoardy-Web= will cancel the request and reload the tab, [[#chromium-quirk-reload][as discussed above]], so this error will not be produced;
   but it can happen if a page tries to load a sub-frame (like =iframe=) while the debugger for the tab (and, thus, the main frame) did not attach yet (which only happens for pages where Chromium disallows debugging, or when =Hoardy-Web= gets enabled after the page in question already started loading, e.g. the very first page after the browser starts);
   also, this can happen when the debugger gets detached after the main frame was captured but its resources are still loading.
 
-- @@html:<span id="error-race">@@ =webRequest::pWebArc::RESPONSE::BROKEN= is produced when some response metadata is unavailable.
+- @@html:<span id="error-race">@@ =webRequest::capture::RESPONSE::BROKEN= is produced when some response metadata is unavailable.
   @@html:</span>@@
 
   At the moment, this only appears to happen on Firefox when a request gets fulfilled by a service or shared worker after Firefox had already sent it to the server.
@@ -695,7 +695,7 @@ In combination with [[./popup.html#closed-auto-options][=Automatic actions for r
 ** Why do pages under [[https://addons.mozilla.org/]] and [[https://chromewebstore.google.com/]] can not be captured by =Hoardy-Web=?
 Browsers prevent extensions from running on extension store pages to prevent them from manipulating ratings, reviews, and etc such things.
 However, you can archive [[https://addons.mozilla.org/]] pages by running =Hoardy-Web= under Chromium and [[https://chromewebstore.google.com/]] pages by running =Hoardy-Web= under Firefox.
-** When running =Hoardy-Web= under Chromium, a lot of my captures fail with =debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER=, =debugger::pWebArc::NO_RESPONSE_BODY::DETACHED_DEBUGGER=, =webRequest::pWebArc::NO_DEBUGGER::CANCELED=, and similar errors. What do I do?
+** When running =Hoardy-Web= under Chromium, a lot of my captures fail with =debugger::capture::EMIT_FORCED::BY_DETACHED_DEBUGGER=, =debugger::capture::NO_RESPONSE_BODY::DETACHED_DEBUGGER=, =webRequest::capture::CANCELED::NO_DEBUGGER=, and similar errors. What do I do?
 :PROPERTIES:
 :CUSTOM_ID: faq-debugger
 :END:
@@ -716,7 +716,7 @@ You are either
 - trying to capture large or media files; [[#chromium-bug-no-large-files][as discussed above]], this has no workaround, run =Hoardy-Web= under Firefox instead.
 
 Also, [[#chromium-bug-autodetach][Chromium will occasionally detach its debugger at random]], it just happens.
-** When running =Hoardy-Web= under Firefox, some of my captures fail with =webRequest::pWebArc::RESPONSE::BROKEN=. What do I do?
+** When running =Hoardy-Web= under Firefox, some of my captures fail with =webRequest::capture::RESPONSE::BROKEN=. What do I do?
 :PROPERTIES:
 :CUSTOM_ID: faq-disable-sw
 :END:

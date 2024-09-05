@@ -130,18 +130,18 @@ function isUnknownError(error) {
                      || error === "webRequest::net::ERR_FAILED"
                      || error === "webRequest::net::ERR_BLOCKED_BY_CLIENT"
                      || error === "webRequest::net::ERR_CONNECTION_CLOSED"
-                     || error === "webRequest::pWebArc::NO_DEBUGGER::CANCELED"
+                     || error === "webRequest::capture::CANCELED::NO_DEBUGGER"
                      || error === "debugger::net::ERR_ABORTED"
                      || error === "debugger::net::ERR_CANCELED"
                      || error === "debugger::net::ERR_FAILED"
                      || error === "debugger::net::ERR_BLOCKED_BY_CLIENT"
                      || error === "debugger::net::ERR_CONNECTION_CLOSED"
-                     || error === "debugger::pWebArc::EMIT_FORCED_BY_USER"
-                     || error === "debugger::pWebArc::EMIT_FORCED_BY_CLOSED_TAB"
-                     || error === "debugger::pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER"
-                     || error === "debugger::pWebArc::NO_RESPONSE_BODY::DETACHED_DEBUGGER"
-                     || error === "debugger::pWebArc::NO_RESPONSE_BODY::ACCESS_DENIED"
-                     || error === "debugger::pWebArc::NO_RESPONSE_BODY::OTHER"
+                     || error === "debugger::capture::EMIT_FORCED::BY_USER"
+                     || error === "debugger::capture::EMIT_FORCED::BY_CLOSED_TAB"
+                     || error === "debugger::capture::EMIT_FORCED::BY_DETACHED_DEBUGGER"
+                     || error === "debugger::capture::NO_RESPONSE_BODY::DETACHED_DEBUGGER"
+                     || error === "debugger::capture::NO_RESPONSE_BODY::ACCESS_DENIED"
+                     || error === "debugger::capture::NO_RESPONSE_BODY::OTHER"
                      || error.startsWith("debugger::net::ERR_BLOCKED::")))
         // Chromium
         return false;
@@ -154,7 +154,7 @@ function isUnknownError(error) {
                            || error === "webRequest::NS_ERROR_NET_PARTIAL_TRANSFER"
                            || error === "webRequest::NS_ERROR_UNEXPECTED"
                            || error === "webRequest::NS_IMAGELIB_ERROR_FAILURE"
-                           || error === "webRequest::pWebArc::EMIT_FORCED_BY_USER"
+                           || error === "webRequest::capture::EMIT_FORCED::BY_USER"
                            || error === "filterResponseData::Channel redirected"))
         // Firefox
         return false;
@@ -173,7 +173,7 @@ function isIncompleteError(error) {
 }
 
 function isImportantError(error) {
-    if (error.startsWith("webRequest::pWebArc::") || error.startsWith("debugger::pWebArc::"))
+    if (error.startsWith("webRequest::capture::") || error.startsWith("debugger::capture::"))
         return true;
     return false;
 }

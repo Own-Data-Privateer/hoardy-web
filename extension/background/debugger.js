@@ -179,7 +179,7 @@ function handleDebugDetach(debuggee, reason) {
     if (tabId !== undefined) {
         tabsDebugging.delete(tabId);
         // Unfortunately, this means all debugReqresInFlight of this tab are broken now
-        emitTabInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_DETACHED_DEBUGGER");
+        emitTabInFlightDebug(tabId, "capture::EMIT_FORCED::BY_DETACHED_DEBUGGER");
         if (config.collecting && reason !== "target_closed") {
             // In Chrome, it's pretty easy to click the notification or press
             // Escape while doing Control+F and detach the debugger, so let's
@@ -447,14 +447,14 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
             if (typeof err === "string") {
                 if (err.startsWith("Debugger is not attached to the tab with id:")
                     || err.startsWith("Detached while handling command.")) {
-                    dreqres.errors.push("debugger::pWebArc::NO_RESPONSE_BODY::DETACHED_DEBUGGER");
+                    dreqres.errors.push("debugger::capture::NO_RESPONSE_BODY::DETACHED_DEBUGGER");
                     return;
                 } else if (err.startsWith("Cannot access contents of url")) {
-                    dreqres.errors.push("debugger::pWebArc::NO_RESPONSE_BODY::ACCESS_DENIED");
+                    dreqres.errors.push("debugger::capture::NO_RESPONSE_BODY::ACCESS_DENIED");
                     return;
                 }
             }
-            dreqres.errors.push("debugger::pWebArc::NO_RESPONSE_BODY::OTHER");
+            dreqres.errors.push("debugger::capture::NO_RESPONSE_BODY::OTHER");
             logError(err);
         }).finally(() => {
             debugReqresFinishingUp.push(dreqres);

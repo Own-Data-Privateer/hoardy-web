@@ -454,7 +454,7 @@ function processRemoveTab(tabId) {
         resetSingletonTimeout(scheduledInternal, `forceStopDebugTab#${tabId}`, timeout, () => {
             if (config.debugging)
                 console.log("cleaning up debugReqresInFlight after tab", tabId);
-            emitTabInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_CLOSED_TAB");
+            emitTabInFlightDebug(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
             processMatchFinishingUpWebRequestDebug();
             scheduleCleanupAfterTab(tabId, timeout);
             scheduleUpdateDisplay(true, tabId);
@@ -2517,7 +2517,7 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
             reqres.statusCode = 200;
             reqres.reason = "Assumed OK";
             // so that it would be marked as problematic, since actual metatada is not available
-            reqres.errors.push("webRequest::pWebArc::RESPONSE::BROKEN");
+            reqres.errors.push("webRequest::capture::RESPONSE::BROKEN");
         } else
             // This was a normal error, not a race between the response
             // generator and the networking code.
@@ -2978,8 +2978,8 @@ function forceFinishingUpWebRequest(predicate) {
 
 function stopInFlight(tabId) {
     if (useDebugger)
-        emitTabInFlightDebug(tabId, "pWebArc::EMIT_FORCED_BY_USER");
-    emitTabInFlightWebRequest(tabId, "pWebArc::EMIT_FORCED_BY_USER");
+        emitTabInFlightDebug(tabId, "capture::EMIT_FORCED::BY_USER");
+    emitTabInFlightWebRequest(tabId, "capture::EMIT_FORCED::BY_USER");
 
     processFinishingUp(true);
 
@@ -3267,7 +3267,7 @@ function handleBeforeRequest(e) {
     }
 
     if (reject) {
-        reqres.errors.push("webRequest::pWebArc::NO_DEBUGGER::CANCELED")
+        reqres.errors.push("webRequest::capture::CANCELED::NO_DEBUGGER")
         reqresAlmostDone.push(reqres);
         scheduleEndgame(e.tabId);
         return { cancel: true };
