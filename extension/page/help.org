@@ -15,15 +15,15 @@ Also, [[https://oxij.org/software/hoardy-web/tree/master/extension/page/help.org
 </div>
 #+END_EXPORT
 * What?
-=Hoardy-Web= (Personal Private Passive Web Archive) is a browser extension (add-on) that passively captures and collects dumps of HTTP requests and responses (see [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/doc/data-on-disk.md][there]], or [[https://oxij.org/software/hoardy-web/tree/master/doc/data-on-disk.md][there]]) as you browse the web, and then archives them using one or more of the following methods:
+=Hoardy-Web= is a browser extension (add-on) that passively captures and collects dumps of HTTP requests and responses as you browse the web, and then archives them using one or more of the following methods:
 
 - by generating fake-Downloads containing either
-  - separate dumps (one dump of an HTTP request+response per file) or
+  - separate dumps ([[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/doc/data-on-disk.md][one dump of an HTTP request+response per file]], also [[https://oxij.org/software/hoardy-web/tree/master/doc/data-on-disk.md][there]]) or
   - bundles of them (many dumps in a single file),
-- by archiving separate dumps to your own private archiving server (like [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/simple_server/][the simple archiving server]], also [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][there]]), or
+- by archiving separate dumps to your own private archiving server (like [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/simple_server/][the =hoardy-web-sas= simple archiving server]], also [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][there]]), or
 - by archiving separate dumps to your browser's local storage.
 
-To view/replay your collected data, see the accompanying [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool][=hoardy= tool]] (also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]).
+To view your archived data, see [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool][the accompanying =hoardy-web= CLI tool]] (also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]).
 ** Glossary
 - A /reqres/ (/REQuest/ + /RESponse/) is an internal object containing captured information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
 * General operation
@@ -115,7 +115,7 @@ As shown on the above diagram, a new reqres proceeds through the following netwo
 - =snapshot=: this reqres was produced by taking a DOM (Document Object Model) snapshot (using one of the [[./popup.html#snapshotAll][appropriate]]-[[./popup.html#snapshotTab][buttons]] in the popup), i.e. it was produced by capturing a raw HTML/XML of the current state of the tab/frame, not by capturing a network request;
 
 - =finished=: the terminal state of this step, no new events for this reqres will come from the browser.
-
+*** The states after the =finished= state
 In principle, at reaching =finished= state the reqres can be serialized and saved to disk, but =Hoardy-Web= provides more states and UI for convenience and to workaround limitations of various browser APIs (a =WebExtensions= API function call that writes a data chunk into a file on a local file system while reporting out-of-disk-space errors does not exists).
 *** Glossary
 - [[./popup.html#div-stats.in_flight][An /in-flight reqres/]] ([[./popup.html#div-tabstats.in_flight][current tab]]) is a reqres that did not reach the =finished= state yet, in [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]] such reqres will be shown to be in =in_flight= state.
@@ -125,7 +125,7 @@ In principle, at reaching =finished= state the reqres can be serialized and save
   - the number of reqres that are still being tracked via =webRequest= or =debugger= API; and
   - the number of reqres that have finished being tracked and are now waiting for all their events to finish processing.
 
-  On Firefox, nothing should ever get stuck, if something seems to be stuck in =in_flight= state, it's probably still loading.
+  On Firefox, nothing should ever get stuck, if something seems to be stuck in =in_flight= state, it's probably still loading (or it is a bug in the browser, which does happen, very rarely).
 
   On Chromium, [[#chromium-bug-stuck][limitations of the Chromium's debugging interface mean a request can get stuck among the reqres represended by the first number above]].
   If the first number is zero, however, then the second should also rapidly become zero, at most after [[./popup.html#div-config.workaroundChromiumDebugTimeout][two times this many seconds]].
@@ -449,7 +449,7 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
   If [[./popup.html#div-config.workaroundFirefoxFirstRequest][this option]] is enabled, =Hoardy-Web= will transparently work around this bug by redirecting the very first navigation request to =about:blank= and then reloading the tab with its original URL.
 
 - Firefox-based browsers provide no API for archiving WebSockets data at the moment, unfortunately.
-** Relevant issues of Firefox-based mobile browsers: Firefox Android aka Fenix, Fennec, Mull, etc
+** Relevant issues of Firefox-based mobile browsers: Fenix aka Firefox for Android, Fennec, Mull, etc
 :PROPERTIES:
 :CUSTOM_ID: firefoxa-android-bugs
 :END:
@@ -645,7 +645,7 @@ Yes.
 This is why [[./popup.html#snapshotTab][DOM]]-[[./popup.html#snapshotAll][snapshot]] buttons exist, see the following question.
 
 In principle, =Hoardy-Web= will capture everything your browser fetches from the network as you browse the web, except for, at the moment, WebSockets data.
-So, web pages using only simple UI-related JavaScript code will work fine when you start replaying them "from scratch" via [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool][=hoardy export mirror=]] (also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]) or some such.
+So, web pages using only simple UI-related JavaScript code will work fine when you start replaying them "from scratch" via [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool][=hoardy-web export mirror=]] (also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]) or some such.
 
 However, in the most general case, "from scratch" replay of pages dynamically generated via JavaScript is not guaranteed.
 For example, consider a web page with a JavaScript code that generates a random number, then queries a remote server with that number, and then renders the result somehow.

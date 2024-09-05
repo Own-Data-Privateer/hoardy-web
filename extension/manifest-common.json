@@ -3,7 +3,7 @@
 
     "name": "Hoardy-Web",
     "version": "1.15.1",
-    "description": "Log, capture, and archive dumps of HTTP requests and responses. Mainly, for indexing and later offline viewing. Very low memory footprint, lots of configuration options.",
+    "description": "Passively capture, archive, and hoard your web browsing history, including the contents of the pages you visit, for later offline viewing, mirroring, and/or indexing. Low memory footprint, lots of configuration options. Previously known as pWebArc.",
 
     "author": "Jan Malakhovski",
     "homepage_url": "https://github.com/Own-Data-Privateer/hoardy-web",
