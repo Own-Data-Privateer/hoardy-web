@@ -372,47 +372,62 @@ Install and see the docs of [the `hoardy-web` CLI tool](./tool/).
 
 ## Installing the Pythonic parts
 
-### <span id="quickstart-with-python"/>On a system with Python installed
+### Install `Python 3`
 
-- Download [the `hoardy-web-sas` simple archiving server `hoardy_web_sas.py` script](./simple_server/hoardy_web_sas.py) and run it, it has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python.
+- On Windows: [Download Python from the official website](https://www.python.org/downloads/windows/).
+- On a POSIX system (Linux/MacOS X/etc): Install `python3` via your package manager. Realistically, who am I kidding, it probably is installed already.
+
+### Install `hoardy-web-sas`
+
+- Download [the `hoardy-web-sas` simple archiving server `hoardy_web_sas.py` script](./simple_server/hoardy_web_sas.py) and run it as:
+
+  ``` bash
+  ./hoardy_web_sas.py
+  ```
+
+  It has no dependencies except Python itself, and it's source code is less than 200 lines of pure Python.
   It will start saving data into `pwebarc-dump` directory wherever you run it from.
+  See [there](./simple_server/) for more info.
 
-  Alternatively, install via
+- Alternatively, on a POSIX system or on a Windows system with configured `PATH` environment variable, install it with:
 
   ``` bash
   pip install hoardy-web-sas
   ```
-
   and run as
-
   ``` bash
   hoardy-web-sas
   ```
 
-  See [there](./simple_server/) for more info.
+- Alternatively, on a Windows system with unconfigured `PATH`, install with:
 
-- Install [the `hoardy-web` tool](./tool/):
+  ``` bash
+  pip install hoardy-web-sas
+  ```
+  and run as
+  ``` bash
+  python3 -m hoardy_web_sas
+  ```
+
+### Install `hoardy-web`
+
+- Install [the `hoardy-web` CLI tool](./tool/):
 
   ```bash
   pip install hoardy-web
   ```
-
   and run as
-
   ```bash
   hoardy-web --help
+  ```
+  or
+  ``` bash
+  python3 -m hoardy_web --help
   ```
 
   See [there](./tool/) for more info.
 
-### On a system with no Python installed
-
-- Install Python:
-  - On Windows: [Download Python from the official website](https://www.python.org/downloads/windows/).
-  - On Linux/etc: Install via your package manager. Realistically, who am I kidding, it probably is installed already.
-- Go back to [Quickstart with Python installed](#quickstart-with-python).
-
-### On a system with [Nix package manager](https://nixos.org/nix/)
+### Alternatively, on a system with [Nix package manager](https://nixos.org/nix/)
 
 - Install by running
 
