@@ -315,7 +315,7 @@ After adding each new feature to [the `hoardy-web` tool](./tool/), as a rule, I 
   I'm not a lawyer, but to me it looks like `Hoardy-Web` violates [Chrome Web Store's "Terms of Use"](https://web.archive.org/web/20240604062520/https://developer.chrome.com/docs/webstore/program-policies/terms).
   Specifically, the "enables the unauthorized download of streaming content or media" clause.
   In my personal opinion, any content you web browser fetches while you are browsing the web normally you are "authorized" to download.
-  This is especially true for `Hoardy-Web` since, unlike most of [its alternatives](#alternatives), *does not generate any requests itself*, it only captures the data that a web page in question generates by itself while you browse it.
+  This is especially true for `Hoardy-Web` since, unlike most of [its alternatives](#alternatives), *it does not generate any requests itself*, it only captures the data that a web page in question generates by itself while you browse it.
   But given the context of that clause in that document, I feel like Google would disagree with my the interpretation above.
   Even though, technically speaking, separation between "streamed" and "downloaded" content or media is a complete delusion.
 
@@ -323,7 +323,7 @@ After adding each new feature to [the `hoardy-web` tool](./tool/), as a rule, I 
 
   On Chromium (but not on Firefox), technically, at the moment, `Hoardy-Web` does fail to collect streaming media properly because Chromium has a bug that prevents collection of the first few KiB of all audio and video files, and its API design prevents collection of large files in general, but if we are talking about YouTube, then most of the data of those streaming media files Chromium will fetch while you watch a video there will, in fact, get collected even on Chromium.
 
-  So, in principle, to conform to those terms, `Hoardy-Web` would need to either disallow archival of all embedded media, or come bundled with a blacklist of URLs Google would claim you would be "unauthorized" to save to disk, and forcefully disallow archival for those.
+  So, in principle, to conform to those terms, `Hoardy-Web` would need to either disallow archival of all embedded media (which would defeat the point of it existing), or come bundled with a blacklist of URLs Google would claim you would be "unauthorized" to save to disk, and forcefully disallow archival for those.
   Even if such a blacklist could be made somehow (How do you expect somebody make such a thing, Google-san?), it would be very annoying to maintain.
 
   (Meanwhile, on Firefox, `Hoardy-Web` will just silently collect everything you browser fetches.
