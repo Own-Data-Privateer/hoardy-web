@@ -1,29 +1,46 @@
 # What is `hoardy-web`?
 
-`hoardy-web` is a tool to display, search, manipulate (programmatically extract values from and rename/move/symlink/hardlink files based on their metadata), import, and export Web Request+Response (WRR) files produced by [`Hoardy-Web` WebExtension](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/) (also [there](https://oxij.org/software/hoardy-web/tree/master/)).
+`hoardy-web` is a tool to display, search, manipulate (programmatically extract values from and rename/move/symlink/hardlink files based on their metadata), import, and export Web Request+Response (`WRR`) files produced by [the `Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/) (also [there](https://oxij.org/software/hoardy-web/tree/master/)).
 
 # Quickstart
 
 ## Installation
 
-- Install with:
-  ```bash
+- On a conventional POSIX system or on a Windows system with configured `PATH` environment variable, install it with:
+
+  ``` bash
   pip install hoardy-web
   ```
   and run as
-  ```bash
+  ``` bash
   hoardy-web --help
   ```
-- Alternatively, install it via Nix
-  ```bash
-  nix-env -i -f ./default.nix
-  hoardy-web --help
+
+- Alternatively, on a Windows system with unconfigured `PATH`, install with:
+
+  ``` bash
+  pip install hoardy-web
   ```
-- Alternatively, run without installing:
+  and run as
+  ``` bash
+  python3 -m hoardy_web --help
+  ```
+
+- Alternatively, on a POSIX system, run without installing:
+
   ```bash
   alias hoardy-web="python3 -m hoardy_web"
   hoardy-web --help
   ```
+
+- Alternatively, on a system with [Nix package manager](https://nixos.org/nix/)
+
+  ``` bash
+  nix-env -i -f ./default.nix
+  hoardy-web --help
+  ```
+
+  Though, in this case, you'll probably want to do the first command from the parent directory, to install everything all at once.
 
 ## Supported input file formats
 
@@ -65,7 +82,7 @@ See the documentation of the `hoardy-web import` sub-command below for more info
 To merge multiple input directories into one you can simply `hoardy-web organize` them `--to` a new directory.
 `hoardy-web` will automatically deduplicate all the files in the generated result.
 
-That is to say, for `hoardy-web organize` (see the documentation below for more info):
+That is to say, for `hoardy-web organize`
 
 - `--move` is de-duplicating when possible,
 - while `--copy`, `--hardlink`, and `--symlink` are non-duplicating when possible.
@@ -132,13 +149,14 @@ I.e. the above will produce `~/hoardy-web/pointers` with unique symlinks pointin
 
 ## How to build a file system tree of latest versions of all hoarded URLs
 
-Assuming you keep your `WRR`-dumps in `~/hoardy-web/raw` you can generate a hierarchy of symlinks for each URL pointing from under `~/hoardy-web/latest` to the most recent `WRR` file that contains `200 OK` response in `~/hoardy-web/raw` via:
+Assuming you keep your `WRR`-dumps in `~/hoardy-web/raw`, the following command will generate a file system hierarchy under `~/hoardy-web/latest` organized in such a way that, for each URL from `~/hoardy-web/raw`, it contains a symlink from under `~/hoardy-web/latest` to a file in `~/hoardy-web/raw` pointing to the most recent `WRR` file containing `200 OK` response for that URL:
 
 ```bash
 hoardy-web organize --symlink --latest --output hupq --to ~/hoardy-web/latest --and "status|~= .200C" ~/hoardy-web/raw
 ```
 
-Personally, I prefer `flat_mhs` (see the documentation of the `--output` below) format as I dislike deep file hierarchies, using it also simplifies filtering in my `ranger` file browser, so I do this:
+Personally, I prefer `flat_mhs` format (see the documentation of the `--output` below), as I dislike deep file hierarchies.
+Using it also simplifies filtering in my `ranger` file browser, so I do this:
 
 ```bash
 hoardy-web organize --symlink --latest --output flat_mhs --and "status|~= .200C" --to ~/hoardy-web/latest ~/hoardy-web/raw
@@ -218,13 +236,10 @@ hoardy-web export mirror \
 
 Note, however, that `CSS` resource filtering and remapping is not implemented yet.
 
-If you also want to keep links that point to not yet hoarded Internet URLs to still point those URLs in the exported files instead of them pointing to non-existent local files, similarly to what `wget -mpk` does, run `hoardy-web export mirror` with `--remap-open`, e.g.:
+If you want to keep links that point to not yet hoarded Internet URLs to still point those URLs in the exported files instead of them pointing to non-existent local files, similarly to what `wget -mpk` does, run `hoardy-web export mirror` with `--remap-open`, e.g.:
 
 ```bash
-hoardy-web export mirror \
-  -e 'response.body|eb|scrub response +all_refs,-actions,+styles,+pretty' \
-  --remap-open \
-  --to ~/hoardy-web/mirror3 ~/hoardy-web/latest/archiveofourown.org
+hoardy-web export mirror --remap-open --to ~/hoardy-web/mirror3 ~/hoardy-web/latest/archiveofourown.org
 ```
 
 Finally, if you want a mirror made of raw files without any content censorship or link conversions, run:

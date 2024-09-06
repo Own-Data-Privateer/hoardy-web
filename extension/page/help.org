@@ -480,6 +480,8 @@ This makes things a bit tricky, for instance:
 
   *However, closing the notification will make all in-flight requests lose their response data.*
 
+  All alternatives to =Hoardy-Web= that work with Chromium suffer from the same issue.
+
   If you disable [[./popup.html#div-config.collecting][this option]] the debuggers will get detached only after all requests finish.
   But even if there are no requests in-flight the notification will not disappear immediately.
   Chromium takes its time updating the UI after the debugger is detached.

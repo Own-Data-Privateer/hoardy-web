@@ -3097,7 +3097,7 @@ function shallowCopyOfReqres(reqres) {
 }
 
 function addLoggableFields(loggable) {
-    // status in `hoardy`
+    // status in `hoardy-web`
     loggable.status = (loggable.requestComplete ? "C" : "I") +
         (loggable.responded
          ? loggable.statusCode.toString() + (loggable.responseComplete ? "C" : "I")

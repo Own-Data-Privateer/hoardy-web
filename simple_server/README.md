@@ -1,6 +1,6 @@
 # What is `hoardy-web-sas`?
 
-`hoardy-web-sas`: a very simple archiving server for the [`Hoardy-Web` browser extension](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/extension/) (also [there](https://oxij.org/software/hoardy-web/tree/master/extension/)).
+`hoardy-web-sas` is a very simple archiving server for the [`Hoardy-Web` browser extension](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/extension/) (also [there](https://oxij.org/software/hoardy-web/tree/master/extension/)).
 
 I.e. this is the thing you run and then paste the URL of into `Server URL` setting in `Hoardy-Web`.
 
@@ -15,23 +15,40 @@ This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/hoardy
 
 ## Installation
 
-- You can run this without installing:
-  ``` {.bash}
-  ./hoardy-web-sas.py --help
-  ```
-- Alternatively, install with:
-  ``` {.bash}
+- On a conventional POSIX system or on a Windows system with configured `PATH` environment variable, install it with:
+
+  ``` bash
   pip install hoardy-web-sas
   ```
   and run as
-  ``` {.bash}
+  ``` bash
   hoardy-web-sas --help
   ```
-- Alternatively, install it via Nix
+
+- Alternatively, on a Windows system with unconfigured `PATH`, install with:
+
+  ``` bash
+  pip install hoardy-web-sas
+  ```
+  and run as
+  ``` bash
+  python3 -m hoardy_web_sas --help
+  ```
+
+- Alternatively, run without installing:
+
+  ``` {.bash}
+  ./hoardy-web-sas.py --help
+  ```
+
+- Alternatively, on a system with [Nix package manager](https://nixos.org/nix/)
+
   ``` {.bash}
   nix-env -i -f ./default.nix
   hoardy-web-sas --help
   ```
+
+  Though, in this case, you'll probably want to do the first command from the parent directory, to install everything all at once.
 
 # Usage
 

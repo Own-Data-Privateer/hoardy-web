@@ -1,6 +1,6 @@
 #+TITLE: Example scripts using hoardy
 
-This directory contains a bunch of example scripts built on top of =hoardy=.
+This directory contains a bunch of example scripts built on top of =hoardy-web=.
 
 * [[./hoardy-web-xdg-open]]
 
