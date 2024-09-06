@@ -1577,11 +1577,11 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f"{__prog__} pprint ../simple_server/pwebarc-dump")
     fmt.end_section()
 
-    fmt.start_section(_("Pipe raw response body from a given WRR file to stdout"))
+    fmt.start_section(_("Pipe raw response body from a given `WRR` file to stdout"))
     fmt.add_code(f'{__prog__} get ../simple_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
-    fmt.start_section(_(f"Pipe response body scrubbed of dynamic content from a given WRR file to stdout"))
+    fmt.start_section(_(f"Pipe response body scrubbed of dynamic content from a given `WRR` file to stdout"))
     fmt.add_code(f'{__prog__} get -e "response.body|eb|scrub response defaults" ../simple_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
@@ -1589,7 +1589,7 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f'{__prog__} get -e "net_url|to_ascii|sha256|take_prefix 4" ../simple_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
-    fmt.start_section(_("Pipe response body from a given WRR file to stdout, but less efficiently, by generating a temporary file and giving it to `cat`"))
+    fmt.start_section(_("Pipe response body from a given `WRR` file to stdout, but less efficiently, by generating a temporary file and giving it to `cat`"))
     fmt.add_code(f"{__prog__} run cat ../simple_server/pwebarc-dump/path/to/file.wrr")
     fmt.add_text(_(f"Thus `{__prog__} run` can be used to do almost anything you want, e.g."))
     fmt.add_code(f"{__prog__} run less ../simple_server/pwebarc-dump/path/to/file.wrr")
@@ -1597,11 +1597,11 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f"{__prog__} run -n 2 -- diff -u ../simple_server/pwebarc-dump/path/to/file-v1.wrr ../simple_server/pwebarc-dump/path/to/file-v2.wrr")
     fmt.end_section()
 
-    fmt.start_section(_(f"List paths of all WRR files from `../simple_server/pwebarc-dump` that contain only complete `200 OK` responses with bodies larger than 1K"))
+    fmt.start_section(_(f"List paths of all `WRR` files from `../simple_server/pwebarc-dump` that contain only complete `200 OK` responses with bodies larger than 1K"))
     fmt.add_code(f"""{__prog__} find --and "status|~= .200C" --and "response.body|len|> 1024" ../simple_server/pwebarc-dump""")
     fmt.end_section()
 
-    fmt.start_section(_(f"Rename all WRR files in `../simple_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `{__prog__} organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic)"))
+    fmt.start_section(_(f"Rename all `WRR` files in `../simple_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `{__prog__} organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic)"))
     fmt.add_code(f"{__prog__} organize ../simple_server/pwebarc-dump/default")
     fmt.add_text(_("alternatively, just show what would be done"))
     fmt.add_code(f"{__prog__} organize --dry-run ../simple_server/pwebarc-dump/default")
@@ -1624,11 +1624,11 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f"{__prog__} stream -ue . ../simple_server/pwebarc-dump")
     fmt.end_section()
 
-    fmt.start_section(_("Produce a JSON list of `[<file path>, <time it finished loading in seconds since UNIX epoch>, <URL>]` tuples (one per reqres) and pipe it into `jq` for indented and colored output"))
+    fmt.start_section(_("Produce a `JSON` list of `[<file path>, <time it finished loading in seconds since UNIX epoch>, <URL>]` tuples (one per reqres) and pipe it into `jq` for indented and colored output"))
     fmt.add_code(f"{__prog__} stream --format=json -ue fs_path -e finished_at -e request.url ../simple_server/pwebarc-dump | jq .")
     fmt.end_section()
 
-    fmt.start_section(_("Similarly, but produce a CBOR output"))
+    fmt.start_section(_("Similarly, but produce a `CBOR` output"))
     fmt.add_code(f"{__prog__} stream --format=cbor -ue fs_path -e finished_at -e request.url ../simple_server/pwebarc-dump | less")
     fmt.end_section()
 
@@ -1646,9 +1646,9 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
 
     fmt.add_text(_("## How to handle binary data"))
 
-    fmt.add_text(_(f"Trying to use response bodies produced by `{__prog__} stream --format=json` is likely to result garbled data as JSON can't represent raw sequences of bytes, thus binary data will have to be encoded into UNICODE using replacement characters:"))
+    fmt.add_text(_(f"Trying to use response bodies produced by `{__prog__} stream --format=json` is likely to result garbled data as `JSON` can't represent raw sequences of bytes, thus binary data will have to be encoded into UNICODE using replacement characters:"))
     fmt.add_code(f"{__prog__} stream --format=json -ue . ../simple_server/pwebarc-dump/path/to/file.wrr | jq .")
-    fmt.add_text(_("The most generic solution to this is to use `--format=cbor` instead, which would produce a verbose CBOR representation equivalent to the one used by `--format=json` but with binary data preserved as-is:"))
+    fmt.add_text(_("The most generic solution to this is to use `--format=cbor` instead, which would produce a verbose `CBOR` representation equivalent to the one used by `--format=json` but with binary data preserved as-is:"))
     fmt.add_code(f"{__prog__} stream --format=cbor -ue . ../simple_server/pwebarc-dump/path/to/file.wrr | less")
     fmt.add_text(_("Or you could just dump raw response bodies separately:"))
     fmt.add_code(f"{__prog__} stream --format=raw -ue response.body ../simple_server/pwebarc-dump/path/to/file.wrr | less")
@@ -1665,7 +1665,7 @@ def main() -> None:
     parser = ArgumentParser(
         prog=__prog__,
         description=_("A tool to display, search, manipulate, import, and export Web Request+Response (`WRR`) archive files produced by the `Hoardy-Web` Web Extension browser add-on.") + "\n\n" +
-_("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing HTTP request+response pair with some additional metadata."),
+_("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata."),
         additional_sections = [add_doc],
         allow_abbrev = False,
         add_version = True,
@@ -1779,14 +1779,14 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         cmd.add_argument("paths", metavar="PATH", nargs="*", type=str, help=_("inputs, can be a mix of files and directories (which will be traversed recursively)"))
 
     # pprint
-    cmd = subparsers.add_parser("pprint", help=_("pretty-print given WRR files"),
-                                description = _("""Pretty-print given WRR files to stdout."""))
+    cmd = subparsers.add_parser("pprint", help=_("pretty-print given `WRR` files"),
+                                description = _("""Pretty-print given `WRR` files to stdout."""))
     add_pure(cmd, "print")
     add_abridged(cmd)
-    agrp = cmd.add_argument_group("MIME type sniffing")
+    agrp = cmd.add_argument_group("`MIME` type sniffing")
     grp = agrp.add_mutually_exclusive_group()
     grp.add_argument("--naive", dest="paranoid", action="store_const", const=False, help=_(f"""populate "potentially" lists like `{__prog__} (get|run|export) --expr '(request|response).body|eb|scrub \\2 defaults'` does; default"""))
-    grp.add_argument("--paranoid", dest="paranoid", action="store_const", const=True, help=_(f"""populate "potentially" lists in the output using paranoid MIME type sniffing like `{__prog__} (get|run|export) --expr '(request|response).body|eb|scrub \\2 +paranoid'` does; this exists to answer "Hey! Why did it censor out my data?!" questions"""))
+    grp.add_argument("--paranoid", dest="paranoid", action="store_const", const=True, help=_(f"""populate "potentially" lists in the output using paranoid `MIME` type sniffing like `{__prog__} (get|run|export) --expr '(request|response).body|eb|scrub \\2 +paranoid'` does; this exists to answer "Hey! Why did it censor out my data?!" questions"""))
     grp.set_defaults(paranoid = False)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_pprint)
@@ -1825,7 +1825,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         if kind == "get":
             agrp.add_argument("--expr-fd", metavar="INT", type=int, default = 1, help=_(f"file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `%(default)s`, i.e. `stdout`"))
 
-            def_expr = f"`{default_get_expr}`, which will dump the HTTP response body"
+            def_expr = f"`{default_get_expr}`, which will dump the `HTTP` response body"
             agrp.add_argument("-e", "--expr", dest="mexprs", metavar="EXPR", action=AddExprFd, type=str, default = {}, help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below') + \
                 "; " + \
                 _("default: %s") % (def_expr,) + "; " + \
@@ -1848,7 +1848,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""", 2))
         else:
             if kind == "run":
-                def_expr = f"`{default_get_expr}`, which will dump the HTTP response body"
+                def_expr = f"`{default_get_expr}`, which will dump the `HTTP` response body"
             elif kind == "stream":
                 def_expr = f"`{default_stream_expr}`, which will dump the whole reqres structure"
             elif kind == "export":
@@ -1891,16 +1891,16 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
             add_separator(cmd, "exporting", "export values", short = False)
 
     # get
-    cmd = subparsers.add_parser("get", help=_("print values produced by computing given expressions on a given WRR file"),
+    cmd = subparsers.add_parser("get", help=_("print values produced by computing given expressions on a given `WRR` file"),
                                 description = _(f"""Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified."""))
 
     add_expr(cmd, "get")
 
-    cmd.add_argument("path", metavar="PATH", type=str, help=_("input WRR file path"))
+    cmd.add_argument("path", metavar="PATH", type=str, help=_("input `WRR` file path"))
     cmd.set_defaults(func=cmd_get)
 
     # run
-    cmd = subparsers.add_parser("run", help=_("spawn a process with generated temporary files produced by given expressions computed on given WRR files as arguments"),
+    cmd = subparsers.add_parser("run", help=_("spawn a process with generated temporary files produced by given expressions computed on given `WRR` files as arguments"),
                                 description = _("""Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files terminating each value as specified, spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process."""))
 
     add_expr(cmd, "run")
@@ -1908,18 +1908,18 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of `PATH`s; default: `%(default)s`"))
     cmd.add_argument("command", metavar="COMMAND", type=str, help=_("command to spawn"))
     cmd.add_argument("args", metavar="ARG", nargs="*", type=str, help=_("additional arguments to give to the `COMMAND`"))
-    cmd.add_argument("paths", metavar="PATH", nargs="+", type=str, help=_("input WRR file paths to be mapped into new temporary files"))
+    cmd.add_argument("paths", metavar="PATH", nargs="+", type=str, help=_("input `WRR` file paths to be mapped into new temporary files"))
     cmd.set_defaults(func=cmd_run)
 
     # stream
-    cmd = subparsers.add_parser("stream", help=_(f"produce a stream of structured lists containing values produced by computing given expressions on given WRR files, a generalized `{__prog__} get`"),
-                                description = _("""Compute given expressions for each of given WRR files, encode them into a requested format, and print the result to stdout."""))
+    cmd = subparsers.add_parser("stream", help=_(f"produce a stream of structured lists containing values produced by computing given expressions on given `WRR` files, a generalized `{__prog__} get`"),
+                                description = _("""Compute given expressions for each of given `WRR` files, encode them into a requested format, and print the result to stdout."""))
     add_pure(cmd, "print")
     add_abridged(cmd)
     cmd.add_argument("--format", choices=["py", "cbor", "json", "raw"], default="py", help=_("""generate output in:
 - py: Pythonic Object Representation aka `repr`; default
-- cbor: CBOR (RFC8949)
-- json: JavaScript Object Notation aka JSON; **binary data can't be represented, UNICODE replacement characters will be used**
+- cbor: Concise Binary Object Representation aka `CBOR` (RFC8949)
+- json: JavaScript Object Notation aka `JSON`; **binary data can't be represented, UNICODE replacement characters will be used**
 - raw: concatenate raw values; termination is controlled by `*-terminated` options
 """))
     add_expr(cmd, "stream")
@@ -1927,10 +1927,10 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
     cmd.set_defaults(func=cmd_stream)
 
     # find
-    cmd = subparsers.add_parser("find", help=_("print paths of WRR files matching specified criteria"),
-                                description = _(f"""Print paths of WRR files matching specified criteria."""))
+    cmd = subparsers.add_parser("find", help=_("print paths of `WRR` files matching specified criteria"),
+                                description = _(f"""Print paths of `WRR` files matching specified criteria."""))
     add_pure(cmd, "print paths to")
-    add_terminator(cmd, "found files printing", "print absolute paths of matching WRR files", allow_not=False)
+    add_terminator(cmd, "found files printing", "print absolute paths of matching `WRR` files", allow_not=False)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_find)
 
@@ -2014,8 +2014,8 @@ on the other hand, this is quite useful when growing a partial mirror generated 
         cmd.set_defaults(allow_updates = False)
 
     # organize
-    cmd = subparsers.add_parser("organize", help=_("programmatically rename/move/hardlink/symlink WRR files based on their contents"),
-                                description = _(f"""Parse given WRR files into their respective reqres and then rename/move/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
+    cmd = subparsers.add_parser("organize", help=_("programmatically rename/move/hardlink/symlink `WRR` files based on their contents"),
+                                description = _(f"""Parse given `WRR` files into their respective reqres and then rename/move/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
 
 Operations that could lead to accidental data loss are not permitted.
 E.g. `{__prog__} organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`."""))
@@ -2042,28 +2042,28 @@ E.g. `{__prog__} organize --move` will not overwrite any files, which is why the
         add_paths(cmd)
 
     # import
-    supcmd = subparsers.add_parser("import", help=_("convert other HTTP archive formats into WRR"),
-                                   description = _(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
+    supcmd = subparsers.add_parser("import", help=_("convert other `HTTP` archive formats into `WRR`"),
+                                   description = _(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
 In short, this is `{__prog__} organize --copy` for `INPUT` files that use different files formats."""))
     supsub = supcmd.add_subparsers(title="file formats")
 
-    cmd = supsub.add_parser("bundle", help=_("convert WRR-bundles into separate WRR files"),
-                            description = _(f"""Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of WRR-dumps) and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata."""))
+    cmd = supsub.add_parser("bundle", help=_("convert `WRR`-bundles into separate `WRR` files"),
+                            description = _(f"""Parse each `INPUT` `PATH` as a `WRR`-bundle (an optionally compressed sequence of `WRR`-dumps) and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata."""))
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_bundle)
 
-    cmd = supsub.add_parser("mitmproxy", help=_("convert `mitmproxy` stream dumps into WRR files"),
-                            description = _(f"""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata."""))
+    cmd = supsub.add_parser("mitmproxy", help=_("convert `mitmproxy` stream dumps into `WRR` files"),
+                            description = _(f"""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata."""))
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_mitmproxy)
 
     # export
-    supcmd = subparsers.add_parser("export", help=_(f"convert WRR archives into other formats"),
-                                   description = _(f"""Parse given WRR files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata."""))
+    supcmd = subparsers.add_parser("export", help=_(f"convert `WRR` archives into other formats"),
+                                   description = _(f"""Parse given `WRR` files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata."""))
     supsub = supcmd.add_subparsers(title="file formats")
 
-    cmd = supsub.add_parser("mirror", help=_("convert given WRR files into a local website mirror stored in interlinked plain files"),
-                            description = _(f"""Parse given WRR files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
+    cmd = supsub.add_parser("mirror", help=_("convert given `WRR` files into a local website mirror stored in interlinked plain files"),
+                            description = _(f"""Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
 In short, this is a combination of `{__prog__} organize --copy` followed by in-place `{__prog__} get`.
 In other words, this generates static offline website mirrors, producing results similar to those of `wget -mpk`."""))
     add_impure(cmd, "export")

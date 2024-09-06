@@ -27,21 +27,21 @@
 
 ## Supported input file formats
 
-### Simple WRR-dumps (`*.wrr`)
+### Simple `WRR`-dumps (`*.wrr`)
 
-When you use [the `Hoardy-Web` WebExtension](../extension/) together with [`hoardy-web-sas` archiving server](../simple_server/), the latter writes [WRR-dumps `Hoardy-Web` WebExtension generates](../doc/data-on-disk.md) into separate `.wrr` files (aka "WRR files") in its dumping directory.
+When you use [the `Hoardy-Web` extension](../extension/) together with [`hoardy-web-sas` archiving server](../simple_server/), the latter writes [`WRR`-dumps the extension generates](../doc/data-on-disk.md) into separate `.wrr` files (aka "`WRR` files") in its dumping directory.
 No further actions to use that data are required.
 
-The situation is similar if you instead use `Hoardy-Web` WebExtension with "Export via `saveAs`" option enabled but `saveAs`-bundling option disabled (max bundle size set to zero).
-The only difference is that WRR files will be put into `~/Downloads` or similar.
+The situation is similar if you instead use the `Hoardy-Web` extension with "Export via `saveAs`" option enabled but `saveAs`-bundling option disabled (max bundle size set to zero).
+The only difference is that `WRR` files will be put into `~/Downloads` or similar.
 
 ```bash
 ls ~/Downloads/Hoardy-Web-export-*
 ```
 
-### Bundles of WRR-dumps (`*.wrrb`)
+### Bundles of `WRR`-dumps (`*.wrrb`)
 
-However, if instead of using any of the above you use `Hoardy-Web` WebExtension with both "Export via `saveAs`" and bundling options enabled, then, at the moment, you will need to `import` those `.wrrb` files (aka WRR-bundles) into separate WRR files first:
+However, if instead of using any of the above you use the `Hoardy-Web` extension with both "Export via `saveAs`" and bundling options enabled, then, at the moment, you will need to `import` those `.wrrb` files (aka `WRR`-bundles) into separate `WRR` files first:
 
 ```bash
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
@@ -132,7 +132,7 @@ I.e. the above will produce `~/hoardy-web/pointers` with unique symlinks pointin
 
 ## How to build a file system tree of latest versions of all hoarded URLs
 
-Assuming you keep your WRR-dumps in `~/hoardy-web/raw` you can generate a hierarchy of symlinks for each URL pointing from under `~/hoardy-web/latest` to the most recent WRR file that contains `200 OK` response in `~/hoardy-web/raw` via:
+Assuming you keep your `WRR`-dumps in `~/hoardy-web/raw` you can generate a hierarchy of symlinks for each URL pointing from under `~/hoardy-web/latest` to the most recent `WRR` file that contains `200 OK` response in `~/hoardy-web/raw` via:
 
 ```bash
 hoardy-web organize --symlink --latest --output hupq --to ~/hoardy-web/latest --and "status|~= .200C" ~/hoardy-web/raw
@@ -148,7 +148,7 @@ hoardy-web organize --symlink --latest --output flat_mhs --and "status|~= .200C"
 
 The above commands rescan the whole contents of `~/hoardy-web/raw` and so can take a while to complete.
 
-If you have a lot of WRR files and you want to keep your symlink tree updated in near-real-time you will need to use a two-stage pipeline by giving the output of `hoardy-web organize --zero-terminated` to `hoardy-web organize --stdin0` to perform complex updates.
+If you have a lot of `WRR` files and you want to keep your symlink tree updated in near-real-time you will need to use a two-stage pipeline by giving the output of `hoardy-web organize --zero-terminated` to `hoardy-web organize --stdin0` to perform complex updates.
 
 E.g. the following will rename new reqres from `../simple_server/pwebarc-dump` to `~/hoardy-web/raw` renaming them with `--output default` (the `for` loop is there to preserve buckets/profiles):
 
@@ -172,16 +172,16 @@ hoardy-web organize --stdin0 --symlink --output hupq_msn --to ~/hoardy-web/all <
 
 ## <span id="mirror"/>How to generate a local offline website mirror like `wget -mpk`
 
-If you want to render your WRR files into a local offline website mirror containing interlinked HTML files and their resources a-la `wget -mpk` (`wget --mirror --page-requisites --convert-links`), run one of the above `--symlink --latest` commands, and then do something like this:
+If you want to render your `WRR` files into a local offline website mirror containing interlinked `HTML` files and their resources a-la `wget -mpk` (`wget --mirror --page-requisites --convert-links`), run one of the above `--symlink --latest` commands, and then do something like this:
 
 ```bash
 hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/latest/archiveofourown.org
 ```
 
-on completion `~/hoardy-web/mirror1` will contain a bunch of interlinked minimized HTML files, their resources, and everything else available from WRR files living under `~/hoardy-web/latest/archiveofourown.org`.
+on completion `~/hoardy-web/mirror1` will contain a bunch of interlinked minimized `HTML` files, their resources, and everything else available from `WRR` files living under `~/hoardy-web/latest/archiveofourown.org`.
 
-The above command might fail if the set of WRR-dumps you are trying to export contains two or more dumps with distinct URLs that map to the same `--output` path.
-This will produce an error since `hoardy` does not permit file overwrites.
+The above command might fail if the set of `WRR`-dumps you are trying to export contains two or more dumps with distinct URLs that map to the same `--output` path.
+This will produce an error since `hoardy-web` does not permit file overwrites.
 With the default `--output hupq` format this can happen, for instance, when the URLs recorded in the reqres are long and so they end up truncated into the same file system paths.
 
 In this case you can either switch to a more verbose `--output` format
@@ -204,11 +204,11 @@ hoardy-web export mirror --errors skip --to ~/hoardy-web/mirror1 ~/hoardy-web/la
 
 The latter command would also skip reqres that fail to be exported for other reasons.
 
-By default, *all* the links in exported HTML files will be remapped to local files (even if source WRR files for those would-be exported files are missing in `~/hoardy-web/latest/archiveofourown.org`, see the documentation for the `--remap-*` options below for more info), and those HTML files will also be stripped of all JavaScript, CSS, and other stuff of various levels of evil (see the documentation for the `scrub` function below for more info).
+By default, *all* the links in exported `HTML` files will be remapped to local files (even if source `WRR` files for those would-be exported files are missing in `~/hoardy-web/latest/archiveofourown.org`, see the documentation for the `--remap-*` options below for more info), and those `HTML` files will also be stripped of all `JavaScript`, `CSS`, and other stuff of various levels of evil (see the documentation for the `scrub` function below for more info).
 
 On the plus side, the result will be completely self-contained and safe to view with a dumb unconfigured browser.
 
-If you are unhappy with this behaviour and, for instance, want to keep the CSS and produce human-readable HTML, run the following instead:
+If you are unhappy with this behaviour and, for instance, want to keep the `CSS` and produce human-readable `HTML`, run the following instead:
 
 ```bash
 hoardy-web export mirror \
@@ -216,7 +216,7 @@ hoardy-web export mirror \
   --to ~/hoardy-web/mirror2 ~/hoardy-web/latest/archiveofourown.org
 ```
 
-Note, however, that CSS resource filtering and remapping is not implemented yet.
+Note, however, that `CSS` resource filtering and remapping is not implemented yet.
 
 If you also want to keep links that point to not yet hoarded Internet URLs to still point those URLs in the exported files instead of them pointing to non-existent local files, similarly to what `wget -mpk` does, run `hoardy-web export mirror` with `--remap-open`, e.g.:
 
@@ -233,11 +233,11 @@ Finally, if you want a mirror made of raw files without any content censorship o
 hoardy-web export mirror -e 'response.body|eb' --to ~/hoardy-web/mirror-raw ~/hoardy-web/latest/archiveofourown.org
 ```
 
-The later command will render your mirror pretty quickly, but the other above-mentioned commands will call the `scrub` function, and that will be pretty slow (as in avg ~5Mb, ~3 files per second on my 2013-era laptop), mostly because `html5lib` that `hoardy-web` uses for paranoid HTML parsing and filtering is fairly slow.
+The later command will render your mirror pretty quickly, but the other above-mentioned commands will call the `scrub` function, and that will be pretty slow (as in avg ~5Mb, ~3 files per second on my 2013-era laptop), mostly because `html5lib` that `hoardy-web` uses for paranoid `HTML` parsing and filtering is fairly slow.
 
 ### Using `--root` and `--depth`
 
-As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of WRR files into `hoardy-web`'s memory but then `export mirror` only select URLs (and all resources needed to properly render those pages) by running something like:
+As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of `WRR` files into `hoardy-web`'s memory but then `export mirror` only select URLs (and all resources needed to properly render those pages) by running something like:
 
 ```
 hoardy-web export mirror \
@@ -246,7 +246,7 @@ hoardy-web export mirror \
   --to ~/hoardy-web/mirror4 ~/hoardy-web/raw/*/2023
 ```
 
-(`hoardy-web` loads (indexes) WRR files pretty fast, so if you are running from an SSD, you can totally feed it years of WRR files and then only export a couple of URLs, and it will take a couple of seconds to finish anyway.)
+(`hoardy-web` loads (indexes) `WRR` files pretty fast, so if you are running from an SSD, you can totally feed it years of `WRR` files and then only export a couple of URLs, and it will take a couple of seconds to finish anyway.)
 
 There is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root`s and then `export mirror` all those URLs (and their resources) too.
 
@@ -273,9 +273,9 @@ and then `export mirror` like above, e.g. to generate mirrors for all URLs:
 hoardy-web export mirror --to ~/hoardy-web/mirror ~/hoardy-web/mitmproxy
 ```
 
-## How to generate previews for WRR files, listen to them via TTS, open them with `xdg-open`, etc
+## How to generate previews for `WRR` files, listen to them via TTS, open them with `xdg-open`, etc
 
-See [`script` sub-directory](./script/) for examples that show how to use `pandoc` and/or `w3m` to turn WRR files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
+See [`script` sub-directory](./script/) for examples that show how to use `pandoc` and/or `w3m` to turn `WRR` files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
 
 # Usage
 
@@ -283,7 +283,7 @@ See [`script` sub-directory](./script/) for examples that show how to use `pando
 
 A tool to display, search, manipulate, import, and export Web Request+Response (`WRR`) archive files produced by the `Hoardy-Web` Web Extension browser add-on.
 
-Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing HTTP request+response pair with some additional metadata.
+Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata.
 
 - options:
   - `--version`
@@ -296,25 +296,25 @@ Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a struct
 - subcommands:
   - `{pprint,get,run,stream,find,organize,import,export}`
     - `pprint`
-    : pretty-print given WRR files
+    : pretty-print given `WRR` files
     - `get`
-    : print values produced by computing given expressions on a given WRR file
+    : print values produced by computing given expressions on a given `WRR` file
     - `run`
-    : spawn a process with generated temporary files produced by given expressions computed on given WRR files as arguments
+    : spawn a process with generated temporary files produced by given expressions computed on given `WRR` files as arguments
     - `stream`
-    : produce a stream of structured lists containing values produced by computing given expressions on given WRR files, a generalized `hoardy-web get`
+    : produce a stream of structured lists containing values produced by computing given expressions on given `WRR` files, a generalized `hoardy-web get`
     - `find`
-    : print paths of WRR files matching specified criteria
+    : print paths of `WRR` files matching specified criteria
     - `organize`
-    : programmatically rename/move/hardlink/symlink WRR files based on their contents
+    : programmatically rename/move/hardlink/symlink `WRR` files based on their contents
     - `import`
-    : convert other HTTP archive formats into WRR
+    : convert other `HTTP` archive formats into `WRR`
     - `export`
-    : convert WRR archives into other formats
+    : convert `WRR` archives into other formats
 
 ### hoardy-web pprint
 
-Pretty-print given WRR files to stdout.
+Pretty-print given `WRR` files to stdout.
 
 - positional arguments:
   - `PATH`
@@ -341,11 +341,11 @@ Pretty-print given WRR files to stdout.
   - `--and EXPR`
   : only print reqres which match all of these expressions
 
-- MIME type sniffing:
+- `MIME` type sniffing:
   - `--naive`
   : populate "potentially" lists like `hoardy-web (get|run|export) --expr '(request|response).body|eb|scrub \2 defaults'` does; default
   - `--paranoid`
-  : populate "potentially" lists in the output using paranoid MIME type sniffing like `hoardy-web (get|run|export) --expr '(request|response).body|eb|scrub \2 +paranoid'` does; this exists to answer "Hey! Why did it censor out my data?!" questions
+  : populate "potentially" lists in the output using paranoid `MIME` type sniffing like `hoardy-web (get|run|export) --expr '(request|response).body|eb|scrub \2 +paranoid'` does; this exists to answer "Hey! Why did it censor out my data?!" questions
 
 - file system path ordering:
   - `--paths-given-order`
@@ -367,13 +367,13 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
 
 - positional arguments:
   - `PATH`
-  : input WRR file path
+  : input `WRR` file path
 
 - expression evaluation:
   - `--expr-fd INT`
   : file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `1`, i.e. `stdout`
   - `-e EXPR, --expr EXPR`
-  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; default: `response.body|eb`, which will dump the HTTP response body; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
+  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; default: `response.body|eb`, which will dump the `HTTP` response body; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
     - constants and functions:
       - `es`: replace `None` value with an empty string `""`
       - `eb`: replace `None` value with an empty byte string `b""`
@@ -414,19 +414,19 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `pp_to_path`: encode `path_parts` `list` into a POSIX path, quoting as little as needed
       - `qsl_urlencode`: encode parsed `query` `list` into a URL's query component `str`
       - `qsl_to_path`: encode `query` `list` into a POSIX path, quoting as little as needed
-      - `scrub`: scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on `--remap-*` command line options, the MIME type of the value itself, and the scrubbing options described below; this fuction takes two arguments:
-            - the first must be either of `request|response`, it controls which HTTP headers `scrub` should inspect to help it detect the MIME type;
+      - `scrub`: scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on `--remap-*` command line options, the `MIME` type of the value itself, and the scrubbing options described below; this fuction takes two arguments:
+            - the first must be either of `request|response`, it controls which `HTTP` headers `scrub` should inspect to help it detect the `MIME` type;
             - the second is either `defaults` or ","-separated string of `(+|-)(paranoid|unknown|jumps|actions|srcs|all_refs|scripts|iframes|styles|iepragmas|prefetches|tracking|dyndoc|all_dyns|verbose|whitespace|optional_tags|indent|pretty|debug)` tokens which control the scrubbing behaviour:
-              - `+paranoid` will assume the server is lying in its `Content-Type` and `X-Content-Type-Options` HTTP headers, sniff the contents of `(request|response).body` to determine what it actually contains regardless of what the server said, and then use the most paranoid interpretation of both the HTTP headers and the sniffed possible MIME types to decide what should be kept and what sholuld be removed by the options below; i.e., this will make `-unknown`, `-scripts`, and `-styles` options below to censor out more things, in particular, at the moment, most plain text files will get censored out as potential JavaScript; the default is `-paranoid`;
+              - `+paranoid` will assume the server is lying in its `Content-Type` and `X-Content-Type-Options` `HTTP` headers, sniff the contents of `(request|response).body` to determine what it actually contains regardless of what the server said, and then use the most paranoid interpretation of both the `HTTP` headers and the sniffed possible `MIME` types to decide what should be kept and what sholuld be removed by the options below; i.e., this will make `-unknown`, `-scripts`, and `-styles` options below to censor out more things, in particular, at the moment, most plain text files will get censored out as potential `JavaScript`; the default is `-paranoid`;
               - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which will keep data of unknown content types as-is;
-              - `(+|-)(jumps|actions|srcs)` control which kinds of references to other documents should be remapped or censored out (respectively); i.e. it controls whether jump-links (HTML `a href`, `area href`, and similar), action-links (HTML `a ping`, `form action`, and similar), and/or resource references (HTML `img src`, `iframe src`, CSS `url` references, and similar) should be remapped using the specified `--remap-*` option (which see) or censored out similarly to how `--remap-void` will do it; the default is `+jumps,-actions,-srcs` which will produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
+              - `(+|-)(jumps|actions|srcs)` control which kinds of references to other documents should be remapped or censored out (respectively); i.e. it controls whether jump-links (`HTML` `a href`, `area href`, and similar), action-links (`HTML` `a ping`, `form action`, and similar), and/or resource references (`HTML` `img src`, `iframe src`, `CSS` `url` references, and similar) should be remapped using the specified `--remap-*` option (which see) or censored out similarly to how `--remap-void` will do it; the default is `+jumps,-actions,-srcs` which will produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
               - `(+|-)all_refs` is equivalent to enabling or disabling all of the above options simultaneously;
-              - `(+|-)(scripts|iframes|styles|iepragmas|prefetches|tracking)` control which things should be kept or censored out w.r.t. to HTML, CSS, and JavaScript, i.e. it controls whether JavaScript (both separate files and HTML tags and attributes), `<iframe>` HTML tags, CSS (both separate files and HTML tags and attributes; why? because CSS is Turing-complete), HTML Internet-Explorer pragmas, HTML content prefetch `link` tags, and other tracking HTML tags and attributes (like `a ping` attributes), should be respectively kept in or censored out from the input; the default is `-scripts,-iframes,-styles,-iepragmas,-prefetches,-tracking` which ensures the result will not produce any prefetch and tracking requests when loaded in a web browser, and that the whole result is simple data, not a program in some Turing-complete language, thus making it safe to feed the result to other tools too smart for their own users' good;
+              - `(+|-)(scripts|iframes|styles|iepragmas|prefetches|tracking)` control which things should be kept or censored out w.r.t. to `HTML`, `CSS`, and `JavaScript`, i.e. it controls whether `JavaScript` (both separate files and `HTML` tags and attributes), `<iframe>` `HTML` tags, `CSS` (both separate files and `HTML` tags and attributes; why? because `CSS` is Turing-complete), `HTML` Internet-Explorer pragmas, `HTML` content prefetch `link` tags, and other tracking `HTML` tags and attributes (like `a ping` attributes), should be respectively kept in or censored out from the input; the default is `-scripts,-iframes,-styles,-iepragmas,-prefetches,-tracking` which ensures the result will not produce any prefetch and tracking requests when loaded in a web browser, and that the whole result is simple data, not a program in some Turing-complete language, thus making it safe to feed the result to other tools too smart for their own users' good;
               - `(+|-)all_dyns` is equivalent to enabling or disabling all of the above (`scripts|...`) options simultaneously;
               - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead; the default is `-verbose`;
-              - `(+|-)whitespace` controls whether HTML renderer should keep the original HTML whitespace as-is or collapse it away (respectively); the default is `-whitespace`;
-              - `(+|-)optional_tags` controls whether HTML renderer should put optional HTML tags into the output or skip them (respectively); the default is `+optional_tags` (because many tools fail to parse minimized HTML properly);
-              - `(+|-)indent` controls whether HTML renderer should indent HTML elements (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent`;
+              - `(+|-)whitespace` controls whether `HTML` renderer should keep the original `HTML` whitespace as-is or collapse it away (respectively); the default is `-whitespace`;
+              - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them (respectively); the default is `+optional_tags` (because many tools fail to parse minimized `HTML` properly);
+              - `(+|-)indent` controls whether `HTML` renderer should indent `HTML` elements (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent`;
               - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics; `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied; neither is the default;
               - `+debug` is an alias for `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it will indent `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging custom mutations; `-debug` is noop, which is the default;
     - reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:
@@ -434,14 +434,14 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `source`: `+`-separated list of applications that produced this reqres; str
       - `protocol`: protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str
       - `request.started_at`: request start time in seconds since 1970-01-01 00:00; Epoch
-      - `request.method`: request HTTP method; e.g. `"GET"`, `"POST"`, etc; str
+      - `request.method`: request `HTTP` method; e.g. `"GET"`, `"POST"`, etc; str
       - `request.url`: request URL, including the fragment/hash part; str
       - `request.headers`: request headers; list[tuple[str, bytes]]
       - `request.complete`: is request body complete?; bool
       - `request.body`: request body; bytes
       - `response.started_at`: response start time in seconds since 1970-01-01 00:00; Epoch
-      - `response.code`: HTTP response code; e.g. `200`, `404`, etc; int
-      - `response.reason`: HTTP response reason; e.g. `"OK"`, `"Not Found"`, etc; usually empty for Chromium and filled for Firefox; str
+      - `response.code`: `HTTP` response code; e.g. `200`, `404`, etc; int
+      - `response.reason`: `HTTP` response reason; e.g. `"OK"`, `"Not Found"`, etc; usually empty for Chromium and filled for Firefox; str
       - `response.headers`: response headers; list[tuple[str, bytes]]
       - `response.complete`: is response body complete?; bool
       - `response.body`: response body; Firefox gives raw bytes, Chromium gives UTF-8 encoded strings; bytes | str
@@ -492,8 +492,8 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `raw_path`: raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str
       - `path_parts`: component-wise unquoted "/"-split `raw_path` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]
       - `mq_path`: `path_parts` turned back into a minimally-quoted string; str
-      - `filepath_parts`: `path_parts` transformed into components usable as an exportable file name; i.e. `path_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` MIME type; extension will be stored separately in `filepath_ext`; e.g. for HTML documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a JSON MIME type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]
-      - `filepath_ext`: extension of the last component of `filepath_parts` for recognized MIME types, `".data"` otherwise; str
+      - `filepath_parts`: `path_parts` transformed into components usable as an exportable file name; i.e. `path_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` `MIME` type; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]
+      - `filepath_ext`: extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str
       - `raw_query`: query part of `raw_url` (i.e. everything after the `?` character and before the `#` character) as it is recorded in the reqres; str
       - `query_parts`: parsed (and component-wise unquoted) `raw_query`; list[tuple[str, str]]
       - `query_ne_parts`: `query_parts` with empty query parameters removed; list[tuple[str, str]]
@@ -537,7 +537,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   - `ARG`
   : additional arguments to give to the `COMMAND`
   - `PATH`
-  : input WRR file paths to be mapped into new temporary files
+  : input `WRR` file paths to be mapped into new temporary files
 
 - options:
   - `-n NUM, --num-args NUM`
@@ -545,7 +545,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; default: `response.body|eb`, which will dump the HTTP response body
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; default: `response.body|eb`, which will dump the `HTTP` response body
 
 - URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
@@ -563,7 +563,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
 
 ### hoardy-web stream
 
-Compute given expressions for each of given WRR files, encode them into a requested format, and print the result to stdout.
+Compute given expressions for each of given `WRR` files, encode them into a requested format, and print the result to stdout.
 
 - positional arguments:
   - `PATH`
@@ -577,8 +577,8 @@ Compute given expressions for each of given WRR files, encode them into a reques
   - `--format {py,cbor,json,raw}`
   : generate output in:
     - py: Pythonic Object Representation aka `repr`; default
-    - cbor: CBOR (RFC8949)
-    - json: JavaScript Object Notation aka JSON; **binary data can't be represented, UNICODE replacement characters will be used**
+    - cbor: Concise Binary Object Representation aka `CBOR` (RFC8949)
+    - json: JavaScript Object Notation aka `JSON`; **binary data can't be represented, UNICODE replacement characters will be used**
     - raw: concatenate raw values; termination is controlled by `*-terminated` options
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
@@ -630,7 +630,7 @@ Compute given expressions for each of given WRR files, encode them into a reques
 
 ### hoardy-web find
 
-Print paths of WRR files matching specified criteria.
+Print paths of `WRR` files matching specified criteria.
 
 - positional arguments:
   - `PATH`
@@ -655,9 +655,9 @@ Print paths of WRR files matching specified criteria.
 
 - found files printing:
   - `-l, --lf-terminated`
-  : print absolute paths of matching WRR files terminated with `\n` (LF) newline characters; default
+  : print absolute paths of matching `WRR` files terminated with `\n` (LF) newline characters; default
   - `-z, --zero-terminated`
-  : print absolute paths of matching WRR files terminated with `\0` (NUL) bytes
+  : print absolute paths of matching `WRR` files terminated with `\0` (NUL) bytes
 
 - file system path ordering:
   - `--paths-given-order`
@@ -675,7 +675,7 @@ Print paths of WRR files matching specified criteria.
 
 ### hoardy-web organize
 
-Parse given WRR files into their respective reqres and then rename/move/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
+Parse given `WRR` files into their respective reqres and then rename/move/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
 
 Operations that could lead to accidental data loss are not permitted.
 E.g. `hoardy-web organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
@@ -1109,19 +1109,19 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
 
 ### hoardy-web import
 
-Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
+Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
 In short, this is `hoardy-web organize --copy` for `INPUT` files that use different files formats.
 
 - file formats:
   - `{bundle,mitmproxy}`
     - `bundle`
-    : convert WRR-bundles into separate WRR files
+    : convert `WRR`-bundles into separate `WRR` files
     - `mitmproxy`
-    : convert `mitmproxy` stream dumps into WRR files
+    : convert `mitmproxy` stream dumps into `WRR` files
 
 ### hoardy-web import bundle
 
-Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of WRR-dumps) and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
+Parse each `INPUT` `PATH` as a `WRR`-bundle (an optionally compressed sequence of `WRR`-dumps) and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
 
 - positional arguments:
   - `PATH`
@@ -1209,7 +1209,7 @@ Parse each `INPUT` `PATH` as a WRR-bundle (an optionally compressed sequence of 
 
 ### hoardy-web import mitmproxy
 
-Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their WRR-dumps into separate WRR files under `DESTINATION` with paths derived from their metadata.
+Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
 
 - positional arguments:
   - `PATH`
@@ -1297,16 +1297,16 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
 
 ### hoardy-web export
 
-Parse given WRR files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata.
+Parse given `WRR` files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata.
 
 - file formats:
   - `{mirror}`
     - `mirror`
-    : convert given WRR files into a local website mirror stored in interlinked plain files
+    : convert given `WRR` files into a local website mirror stored in interlinked plain files
 
 ### hoardy-web export mirror
 
-Parse given WRR files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
+Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
 In short, this is a combination of `hoardy-web organize --copy` followed by in-place `hoardy-web get`.
 In other words, this generates static offline website mirrors, producing results similar to those of `wget -mpk`.
 
@@ -1414,12 +1414,12 @@ In other words, this generates static offline website mirrors, producing results
   hoardy-web pprint ../simple_server/pwebarc-dump
   ```
 
-- Pipe raw response body from a given WRR file to stdout:
+- Pipe raw response body from a given `WRR` file to stdout:
   ```
   hoardy-web get ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
 
-- Pipe response body scrubbed of dynamic content from a given WRR file to stdout:
+- Pipe response body scrubbed of dynamic content from a given `WRR` file to stdout:
   ```
   hoardy-web get -e "response.body|eb|scrub response defaults" ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
@@ -1429,7 +1429,7 @@ In other words, this generates static offline website mirrors, producing results
   hoardy-web get -e "net_url|to_ascii|sha256|take_prefix 4" ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
 
-- Pipe response body from a given WRR file to stdout, but less efficiently, by generating a temporary file and giving it to `cat`:
+- Pipe response body from a given `WRR` file to stdout, but less efficiently, by generating a temporary file and giving it to `cat`:
   ```
   hoardy-web run cat ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
@@ -1448,12 +1448,12 @@ In other words, this generates static offline website mirrors, producing results
   hoardy-web run -n 2 -- diff -u ../simple_server/pwebarc-dump/path/to/file-v1.wrr ../simple_server/pwebarc-dump/path/to/file-v2.wrr
   ```
 
-- List paths of all WRR files from `../simple_server/pwebarc-dump` that contain only complete `200 OK` responses with bodies larger than 1K:
+- List paths of all `WRR` files from `../simple_server/pwebarc-dump` that contain only complete `200 OK` responses with bodies larger than 1K:
   ```
   hoardy-web find --and "status|~= .200C" --and "response.body|len|> 1024" ../simple_server/pwebarc-dump
   ```
 
-- Rename all WRR files in `../simple_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `hoardy-web organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic):
+- Rename all `WRR` files in `../simple_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `hoardy-web organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic):
   ```
   hoardy-web organize ../simple_server/pwebarc-dump/default
   ```
@@ -1493,12 +1493,12 @@ In other words, this generates static offline website mirrors, producing results
   hoardy-web stream -ue . ../simple_server/pwebarc-dump
   ```
 
-- Produce a JSON list of `[<file path>, <time it finished loading in seconds since UNIX epoch>, <URL>]` tuples (one per reqres) and pipe it into `jq` for indented and colored output:
+- Produce a `JSON` list of `[<file path>, <time it finished loading in seconds since UNIX epoch>, <URL>]` tuples (one per reqres) and pipe it into `jq` for indented and colored output:
   ```
   hoardy-web stream --format=json -ue fs_path -e finished_at -e request.url ../simple_server/pwebarc-dump | jq .
   ```
 
-- Similarly, but produce a CBOR output:
+- Similarly, but produce a `CBOR` output:
   ```
   hoardy-web stream --format=cbor -ue fs_path -e finished_at -e request.url ../simple_server/pwebarc-dump | less
   ```
@@ -1520,13 +1520,13 @@ In other words, this generates static offline website mirrors, producing results
 
 ### How to handle binary data
 
-Trying to use response bodies produced by `hoardy-web stream --format=json` is likely to result garbled data as JSON can't represent raw sequences of bytes, thus binary data will have to be encoded into UNICODE using replacement characters:
+Trying to use response bodies produced by `hoardy-web stream --format=json` is likely to result garbled data as `JSON` can't represent raw sequences of bytes, thus binary data will have to be encoded into UNICODE using replacement characters:
 
 ```
 hoardy-web stream --format=json -ue . ../simple_server/pwebarc-dump/path/to/file.wrr | jq .
 ```
 
-The most generic solution to this is to use `--format=cbor` instead, which would produce a verbose CBOR representation equivalent to the one used by `--format=json` but with binary data preserved as-is:
+The most generic solution to this is to use `--format=cbor` instead, which would produce a verbose `CBOR` representation equivalent to the one used by `--format=json` but with binary data preserved as-is:
 
 ```
 hoardy-web stream --format=cbor -ue . ../simple_server/pwebarc-dump/path/to/file.wrr | less

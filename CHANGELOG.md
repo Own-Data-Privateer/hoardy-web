@@ -44,7 +44,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Added `--to` option to `wrrarms-pandoc` script.
   It allows you to change the output format it will use.
 
-- Added `wrrarms-spd-say` script, which can feed contents of an archived HTML document, extracted from HTML via `pandoc -t plain`, to `speech-dispatcher`'s `spd-say`, i.e. to your preferred TTS engine.
+- Added `wrrarms-spd-say` script, which can feed contents of an archived `HTML` document, extracted from `HTML` via `pandoc -t plain`, to `speech-dispatcher`'s `spd-say`, i.e. to your preferred TTS engine.
 
 - Added `--*-url` options to `wrrarms-w3m` and `wrrarms-pandoc` scripts.
   They allow you to control how to print the document's URL in the output.
@@ -181,7 +181,7 @@ On Firefox:
 
   Also, added a new error code for when it (very rarely) fails because of a race condition inherent in `webRequest` API and documented all of it on the `Help` page.
 
-- Fixed HTTP protocol version detection, requests fetched via `HTTP/3` will now be marked as such.
+- Fixed `HTTP` protocol version detection, requests fetched via `HTTP/3` will now be marked as such.
 
 - Added yet another `webRequest` API error to a list of those that mark reqres response data as incomplete.
 
@@ -204,7 +204,7 @@ Generally:
 ### Changed
 
 - Improved documentation, especially the `Help` page.
-- Tiny improvement in popup UI HTML layout.
+- Tiny improvement in popup UI `HTML` layout.
 - Changed `config.history` default value.
 
 ## [extension-v1.13.0] - 2024-08-05
@@ -221,7 +221,7 @@ Generally:
 - Implemented two new archiving methods.
   pWebArc can now archive `collected` reqres by
 
-  - generating fake-Downloads containing either separate dumps (one dump of an HTTP request+response per file) or bundles of them (many dumps in a single file, for convenience, to be later imported via `wrrarms import bundle`),
+  - generating fake-Downloads containing either separate dumps (one dump of an `HTTP` request+response per file) or bundles of them (many dumps in a single file, for convenience, to be later imported via `wrrarms import bundle`),
 
   - archiving separate dumps to your own private archiving server (the old one, the previous default, inherited on extension update),
   - archiving separate dumps to your browser's local storage (the new default on a new clean install).
@@ -396,7 +396,7 @@ Generally:
   - If some functions are still waiting to be run, the badge will have `~` or `.` in it and change its color, depending on the importance of the stuff that is waiting to be run.
   - Popup UI has a new stat line showing the number of such delayed actions and buttons to run or cancel them immediately.
 
-- Added config options and popup UI toggles for picking and marking as problematic reqres with various HTTP status codes.
+- Added config options and popup UI toggles for picking and marking as problematic reqres with various `HTTP` status codes.
 
 - Implemented new config options and popup UI toggles for browser-specific workarounds.
   In particular, on Chromium you can now set the URL new root tabs will be reset to (still `about:blank` by default).
@@ -685,11 +685,11 @@ Generally:
 
 ### Added
 
-- Implemented `scrub` `--expr` atom for rewriting links/references and wiping inner evils out from HTML, JavaScript, and CSS values.
+- Implemented `scrub` `--expr` atom for rewriting links/references and wiping inner evils out from `HTML`, `JavaScript`, and `CSS` values.
 
-  CSS scrubbing is not finished yet, so all CSS gets censored out by default at the moment.
+  `CSS` scrubbing is not finished yet, so all `CSS` gets censored out by default at the moment.
 
-  HTML processing uses `html5lib`, which is pretty nice (though, rather slow), but overall the complexity of this thing and the time it took to debug it into working is kind of unamusing.
+  `HTML` processing uses `html5lib`, which is pretty nice (though, rather slow), but overall the complexity of this thing and the time it took to debug it into working is kind of unamusing.
 
 - Implemented `export mirror` subcommand generating static website mirrors from previously archived WRR files, kind of similar to what `wget -mpk` does, but offline and the outputs are properly `scrub`bed.
 

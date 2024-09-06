@@ -15,17 +15,17 @@ Also, [[https://oxij.org/software/hoardy-web/tree/master/extension/page/help.org
 </div>
 #+END_EXPORT
 * What?
-=Hoardy-Web= is a browser extension (add-on) that passively captures and collects dumps of HTTP requests and responses as you browse the web, and then archives them using one or more of the following methods:
+=Hoardy-Web= is a browser extension (add-on) that passively captures and collects dumps of =HTTP= requests and responses as you browse the web, and then archives them using one or more of the following methods:
 
 - by generating fake-Downloads containing either
-  - separate dumps ([[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/doc/data-on-disk.md][one dump of an HTTP request+response per file]], also [[https://oxij.org/software/hoardy-web/tree/master/doc/data-on-disk.md][there]]) or
+  - separate dumps ([[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/doc/data-on-disk.md][one dump of an =HTTP= request+response per file]], also [[https://oxij.org/software/hoardy-web/tree/master/doc/data-on-disk.md][there]]) or
   - bundles of them (many dumps in a single file),
 - by archiving separate dumps to your own private archiving server (like [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/simple_server/][the =hoardy-web-sas= simple archiving server]], also [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][there]]), or
 - by archiving separate dumps to your browser's local storage.
 
 To view your archived data, see [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool][the accompanying =hoardy-web= CLI tool]] (also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]).
 ** Glossary
-- A /reqres/ (/REQuest/ + /RESponse/) is an internal object containing captured information about an HTTP request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
+- A /reqres/ (/REQuest/ + /RESponse/) is an internal object containing captured information about an =HTTP= request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
 * General operation
 ** State Diagram
 Reqres change their internal states according to the following state diagram (which is explained below):
@@ -63,11 +63,11 @@ Reqres change their internal states according to the following state diagram (wh
       \-------->-----------------------------------------------/
 #+END_SRC
 ** Step 1: Tracking
-=Hoardy-Web= attaches to your browser's runtime and tracks progress of HTTP requests and their responses, capturing both their request and response headers and data at appropriate times in the browser's request and response processing pipeline.
+=Hoardy-Web= attaches to your browser's runtime and tracks progress of =HTTP= requests and their responses, capturing both their request and response headers and data at appropriate times in the browser's request and response processing pipeline.
 
 Whether =Hoardy-Web= will track a given request depends on the =Track new reqres= toggles in the settings popup, e.g:
 
-- [[./popup.html#div-config.collecting][this toggle]] allows you to disable tracking of newly spawned HTTP requests globally, thus essentially disabling =Hoardy-Web=,
+- [[./popup.html#div-config.collecting][this toggle]] allows you to disable tracking of newly spawned =HTTP= requests globally, thus essentially disabling =Hoardy-Web=,
 - [[./popup.html#div-tabconfig.collecting][this one]] controls whether =Hoardy-Web= will track new reqres originating from the currently active tab,
 - [[./popup.html#div-tabconfig.children.collecting][this one]] controls whether it will track new reqres originating from new tabs opened from the currently active tab (aka "children tabs", e.g. via middle mouse click, context menu, etc),
 - while [[./popup.html#div-config.root.collecting][this one]] controls whether it will track new reqres originating from new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
@@ -79,13 +79,13 @@ As shown on the above diagram, a new reqres proceeds through the following netwo
 
 - =start=: the starting state;
 
-- =request sent=, (response) =headers received=, (response) =body recived=: these are the normal HTTP request stages (stages of [[https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest][=webRequest= sub-API of =WebExtensions= API]]);
+- =request sent=, (response) =headers received=, (response) =body recived=: these are the normal =HTTP= request stages (stages of [[https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest][=webRequest= sub-API of =WebExtensions= API]]);
 
-- =nIO=: normal network IO performed by the browser in between HTTP request stages;
+- =nIO=: normal network IO performed by the browser in between =HTTP= request stages;
 
 - =canceled=: request was canceled before it was sent
   - you, the user, canceled it manually, via the =Stop= button;
-  - by the browser when redirecting an =http://= URL to an =https://= URL in HTTPS-only mode;
+  - by the browser when redirecting an =http://= URL to an =https://= URL in =HTTPS=-only mode;
   - by an ad-blocking extension like =uBlock Origin=;
   - etc;
 
@@ -112,7 +112,7 @@ As shown on the above diagram, a new reqres proceeds through the following netwo
 
 - =complete_fc=: request was completed successfully from browser's cache;
 
-- =snapshot=: this reqres was produced by taking a DOM (Document Object Model) snapshot (using one of the [[./popup.html#snapshotAll][appropriate]]-[[./popup.html#snapshotTab][buttons]] in the popup), i.e. it was produced by capturing a raw HTML/XML of the current state of the tab/frame, not by capturing a network request;
+- =snapshot=: this reqres was produced by taking a DOM (Document Object Model) snapshot (using one of the [[./popup.html#snapshotAll][appropriate]]-[[./popup.html#snapshotTab][buttons]] in the popup), i.e. it was produced by capturing a raw =HTML= or =XML= of the current state of the tab/frame, not by capturing a network request;
 
 - =finished=: the terminal state of this step, no new events for this reqres will come from the browser.
 *** The states after the =finished= state
@@ -151,16 +151,16 @@ The [[./popup.html#problematic-options][latter]] set decides if the reqres in qu
 The =problematic= reqres status is a flag (NOT a state) that does not influence archival or any actions discussed in the latter steps.
 It exists because browsers provide no indication when some parts of the page failed to load properly --- they expect you to actually look at the page with your eyes to notice something looking broken (and reload it manually) instead --- which is counterproductive when you want to be sure that the whole page with all its resources was archived.
 
-After all, parts of a dynamically loaded page might simply silently fail to be rendered by associated JavaScript because some of the HTTP requests that JavaScript did in background failed, or, on a static web page, layout and CSS might have made some of the incompletely loaded parts of the page invisible (by design or by accident).
+After all, parts of a dynamically loaded page might simply silently fail to be rendered by associated =JavaScript= because some of the =HTTP= requests that =JavaScript= did in background failed, or, on a static web page, layout and `CSS` might have made some of the incompletely loaded parts of the page invisible (by design or by accident).
 
 So, to provide an indicator for such cases, =Hoardy-Web= keeps the log of =problematic= reqres and displays the number of elements in the log in its toolbar button's badge.
 
-By default, HTTP requests that failed to get a response, those that have incomplete response bodies, and those for which the browser reported potentially /problematic errors/ but then =Hoardy-Web= =picked= them anyway, will be marked as =problematic=.
+By default, =HTTP= requests that failed to get a response, those that have incomplete response bodies, and those for which the browser reported potentially /problematic errors/ but then =Hoardy-Web= =picked= them anyway, will be marked as =problematic=.
 
 /Problematic errors/ are errors like
 
 - "this request failed because of a networking issue",
-- "this request was aborted because the JavaScript function making it decided to cancel it when you moved your mouse cursor away from a video thumbnail it was needed for",
+- "this request was aborted because the =JavaScript= function making it decided to cancel it when you moved your mouse cursor away from a video thumbnail it was needed for",
 - and similar things that probably imply some part of the page was left unfetched,
 
 but NOT errors like
@@ -242,7 +242,7 @@ In other words, stashing exists to prevent loss of successfully captured but yet
 
 before you =collected= or =discarded= everything from =in_limbo= or =Hoardy-Web= has successfully archived everything from its archiving queue.
 
-Note however, that even with [[./popup.html#div-config.stash][stashing]] enabled =Hoardy-Web= will skip disk IO whenever possible: e.g., if both [[./popup.html#div-config.archive][=Archive 'collected' reqres by=]] and [[./popup.html#div-config.archiveSubmitHTTP][=Archive 'collected' reqres by > ... submitting them via HTTP=]] options discussed below are enabled, =Hoardy-Web= will first try to archive each new =collected= reqres straight from memory to the archiving server and only if that process fails will it attempt stashing them to local storage instead.
+Note however, that even with [[./popup.html#div-config.stash][stashing]] enabled =Hoardy-Web= will skip disk IO whenever possible: e.g., if both [[./popup.html#div-config.archive][=Archive 'collected' reqres by=]] and [[./popup.html#div-config.archiveSubmitHTTP][=Archive 'collected' reqres by > ... submitting them via 'HTTP'=]] options discussed below are enabled, =Hoardy-Web= will first try to archive each new =collected= reqres straight from memory to the archiving server and only if that process fails will it attempt stashing them to local storage instead.
 
 Meaning that
 
@@ -279,7 +279,7 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= toggle]]
     - after a delay controlled by [[./popup.html#div-config.exportAsTimeout][this]] and [[./popup.html#div-config.exportAsInFlightTimeout][that]] options
     export the resulting =bundle= via browser's =saveAs= mechanism (i.e. generate a fake-Download);
 
-- if [[./popup.html#div-config.archiveSubmitHTTP][=Archive 'collected' reqres by > ... submitting them via HTTP= option]] is enabled, =Hoardy-Web= will submit the =dump= to the archiving server at [[./popup.html#div-config.submitHTTPURLBase][=Server URL= setting]] by making an HTTP POST request with the =dump= as request body (which is denoted by =srvIO= states on the diagram above);
+- if [[./popup.html#div-config.archiveSubmitHTTP][=Archive 'collected' reqres by > ... submitting them via 'HTTP'= option]] is enabled, =Hoardy-Web= will submit the =dump= to the archiving server at [[./popup.html#div-config.submitHTTPURLBase][=Server URL= setting]] by making an =HTTP POST= request with the =dump= as request body (which is denoted by =srvIO= states on the diagram above);
 
 - if any of the above fails =Hoardy-Web= will
 
@@ -324,7 +324,7 @@ Evaluation of the =bucket= parameter is done just before each archival attempt, 
 When exporting via =saveAs=, =bucket= value will be used in the file name of the generated fake-Download =.wrrb= file and the dumps will be split into separate fake-Download files by said =bucket=.
 I.e., internally, the =bundle= discussed above is actually a set of per-=bucket= =bundle='s.
 
-When submitting to an HTTP server, =Hoardy-Web= will specify =bucket= as a query parameter (named "profile", for historical reasons) to each HTTP POST request.
+When submitting to an =HTTP= server, =Hoardy-Web= will specify =bucket= as a query parameter (named "profile", for historical reasons) to each =HTTP POST= request.
 
 When stashing or saving to local storage, =Hoardy-Web= will record the value of =bucket= into each =loggable= before saving data to disk.
 If you restart your browser, thus starting a new =Hoardy-Web= session, =Hoardy-Web= will use the old stashed/saved =bucket= values for all new attempted archivals of old reqres generated by previous sessions.
@@ -366,8 +366,8 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
 - open the =Internal State and Logs= page, scrolled to the end of the log, {{{shortcut(showLog)}}};
 - open [[./popup.html#showTabState][the =Internal State and Logs= page]] narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
 - open the =Internal State and Logs= page narrowed to the currently active tab's data, scrolled to the end of the log, {{{shortcut(showTabLog)}}};
-- toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned HTTP requests in the currently active tab]] and set [[./popup.html#div-tabconfig.children.collecting][tracking in its children]] to the same value at the same time, {{{shortcut(toggleTabConfigTracking)}}};
-- toggle [[./popup.html#div-tabconfig.children.collecting][tracking of newly spawned HTTP requests currently active tab's children]], {{{shortcut(toggleTabConfigChildrenTracking)}}};
+- toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned =HTTP= requests in the currently active tab]] and set [[./popup.html#div-tabconfig.children.collecting][tracking in its children]] to the same value at the same time, {{{shortcut(toggleTabConfigTracking)}}};
+- toggle [[./popup.html#div-tabconfig.children.collecting][tracking of newly spawned =HTTP= requests currently active tab's children]], {{{shortcut(toggleTabConfigChildrenTracking)}}};
 - toggle [[./popup.html#div-tabconfig.limbo][limbo mode in the currently active tab]] and set [[./popup.html#div-tabconfig.children.limbo][limbo mode in its children]] to the same value at the same time, {{{shortcut(toggleTabConfigLimbo)}}};
 - toggle [[./popup.html#div-tabconfig.children.limbo][limbo mode in currently active tab's children]], {{{shortcut(toggleTabConfigChildrenLimbo)}}};
 - [[./popup.html#unmarkAllProblematic][unmark all problematic reqres]], {{{shortcut(unmarkAllProblematic)}}};
@@ -410,14 +410,14 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
   (Firefox does not support it.
   Chromium does support it, in theory, but I have not tried using that API, so I have no idea how well it works.)
 
-  This is low-priority issue since you can simply take a DOM [[./popup.html#snapshotTab][snapshot]] instead of capturing and later replaying WebSocket messages to in-page JavaScript.
-  Also, capturing and archiving a DOM snapshot will free you from needing to run any JavaScript at all when you decide to return to view the archived page later, which is nice.
+  This is low-priority issue since you can simply take a DOM [[./popup.html#snapshotTab][snapshot]] instead of capturing and later replaying WebSocket messages to in-page =JavaScript=.
+  Also, capturing and archiving a DOM snapshot will free you from needing to run any =JavaScript= at all when you decide to return to view the archived page later, which is nice.
 
 - On Chromium, response data of background requests and requests made by other extensions does not get collected, since there's no tab to attach a debugger to, and I have not figured out how to attach debugger to other things yet.
 
 - On Firefox, fetches that spawn new downloads will be marked as =problematic= by default, since Firefox's implementation of =webRequest.filterResponseData= API does not provide their contents to the extension and I have not figured out how to distinguish them from other fetches yet.
 ** Relevant issues of all browsers
-- On all supported browsers, if an HTTP server supplies the same header multiple times --- which happens sometimes, most commonly with =Set-Cookie= headers --- then the archived response headers will usually become weird, with multiple headers squished into a single value, separated by newline symbols.
+- On all supported browsers, if an =HTTP= server supplies the same header multiple times --- which happens sometimes, most commonly with =Set-Cookie= headers --- then the archived response headers will usually become weird, with multiple headers squished into a single value, separated by newline symbols.
 
   This is just the way both Firefox (usually) and Chromium (always) supply those headers to extensions and =Hoardy-Web= does not try to undo it.
 ** Relevant issues of Firefox-based desktop browsers: Firefox, Tor Browser, LibreWolf, etc
@@ -445,7 +445,7 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
   Usually this is not a problem since such media will be archived on first (non-cached) access.
   But if you want to force everything on the page to be archived, you can reload the page without the cache with =Control+F5=.
 
-- Firefox fails to run =onstop= method for =webRequest.filterResponseData= filter for the very first HTTP/2 request the browser makes after you start it, thus making the reqres of that request =incomplete=.
+- Firefox fails to run =onstop= method for =webRequest.filterResponseData= filter for the very first =HTTP/2= request the browser makes after you start it, thus making the reqres of that request =incomplete=.
   If [[./popup.html#div-config.workaroundFirefoxFirstRequest][this option]] is enabled, =Hoardy-Web= will transparently work around this bug by redirecting the very first navigation request to =about:blank= and then reloading the tab with its original URL.
 
 - Firefox-based browsers provide no API for archiving WebSockets data at the moment, unfortunately.
@@ -462,7 +462,7 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
 :CUSTOM_ID: chromium-bugs
 :END:
 
-On Chromium-based browsers, there is no way to get HTTP response data without attaching Chromium's debugger to a tab from which a request originates from.
+On Chromium-based browsers, there is no way to get =HTTP= response data without attaching Chromium's debugger to a tab from which a request originates from.
 This makes things a bit tricky, for instance:
 
 - With [[./popup.html#div-config.collecting][this]] and [[./popup.html#div-config.workaroundChromiumResetRootTab][this option]] enabled, new tabs will be reset to [[./popup.html#div-config.workaroundChromiumResetRootTabURL][this value]] (=about:blank= by default) because the default of =chrome://newtab/= does not allow attaching debugger to the tabs with =chrome:= URLs.
@@ -502,7 +502,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
 
 - @@html:<span id="chromium-bug-no-media">@@ Chromium handling of media files (audio and video) within its debugging interface is very strange.
   When Chromium encounters a media file, it immediately loads a first few frames of it, then cancels the rest of the download, generates a networking error debugging event, but forgets to give the already loaded data to it, and then, when the user clicks the play button, continues the download by requesting the rest of the file as normal.
-  Thus, on Chromium, for media files =Hoardy-Web= will only ever get =206 Partial Content= HTTP responses with the first few kilobytes of file data missing.
+  Thus, on Chromium, for media files =Hoardy-Web= will only ever get =206 Partial Content= =HTTP= responses with the first few kilobytes of file data missing.
   This bug has no good workaround, all alternatives to =Hoardy-Web= that work with Chromium work it around by silently re-downloading the file the second time in background.
   @@html:</span>@@
 
@@ -527,7 +527,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   Yes, this means that some minor metadata fields (like =document_url=) of those reqres might be missing, but waiting more time usually won't fix it, so =Hoardy-Web= can't do anything else there.
 
 - @@html:<span id="chromium-bug-stuck">@@ However, sometimes Chromium forgets to generate both =loading-complete= and =loading-failed= debugging events.
-  This usually happens when a request gets started and then canceled by a page's JavaScript, or when you navigate between pages too fast.
+  This usually happens when a request gets started and then canceled by a page's =JavaScript=, or when you navigate between pages too fast.
   @@html:</span>@@
 
   In that case, =Hoardy-Web= can't tell if a reqres is just slow at being loaded or if Chromium forgot about it, so those reqres will get stuck in the =in_flight= state indefinitely, at least until their originator tab gets closed, or until you press one of [[./popup.html#stopAllInFlight][this]] or [[./popup.html#stopTabInFlight][that]] buttons.
@@ -544,7 +544,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
 
 - =Failed to archive <N> items in the queue because requests to the archiving server failed with: <STATUS> <REASON>: <RESPONSE>=
 
-  Your archiving sever is returning HTTP errors when =Hoardy-Web= is trying to archive data to it.
+  Your archiving sever is returning =HTTP= errors when =Hoardy-Web= is trying to archive data to it.
   See your archiving server's console for more information.
 
   Some common reasons it could be failing:
@@ -615,7 +615,7 @@ In particular:
 :CUSTOM_ID: faq
 :END:
 ** Does =Hoardy-Web= send any of my captured web browsing data anywhere?
-=Hoardy-Web= only ever sends your data to [[./popup.html#div-config.submitHTTPURLBase][the archiving =Server URL=]] you specify when [[./popup.html#div-config.archiveSubmitHTTP][the =Archive 'collected' reqres by > ... submitting them via HTTP= option]] is enabled.
+=Hoardy-Web= only ever sends your data to [[./popup.html#div-config.submitHTTPURLBase][the archiving =Server URL=]] you specify when [[./popup.html#div-config.archiveSubmitHTTP][the =Archive 'collected' reqres by > ... submitting them via 'HTTP'= option]] is enabled.
 
 Nowhere else.
 Never else.
@@ -633,31 +633,31 @@ This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough 
 ** =Hoardy-Web= asks for a lot of permissions, what does it use all those permissions for?
 
 - =<all_urls>= permission is used so that =Hoardy-Web= could capture all URLs.
-- =webRequest= and =webRequestBlocking= permissions are used to track and capture HTTP requests and responses; on Chromium the latter also requires the =debugger= permission, which =Hoardy-Web= also asks for there.
+- =webRequest= and =webRequestBlocking= permissions are used to track and capture =HTTP= requests and responses; on Chromium the latter also requires the =debugger= permission, which =Hoardy-Web= also asks for there.
 - =tabs= permission is used for tracking per-tab state and stats, making =Hoardy-Web='s toolbar icon show per-tab state, [[./popup.html#snapshotAll][taking DOM snapshot of all tabs]], buttons switching to a related tab in [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]], etc.
 - =storage= permission is used to save extension config and stats.
 - =unlimitedStorage= permission is used for archival of captured data to browser's local storage.
 - =menus= (=contextMenus= on Chromium) permission is used to add [[#context-menu-shortcuts][context-menu shortcut actions for links]].
 - =notifications= permission is used to send desktop notifications, which mostly used for reporting various issues.
-** Can I use =Hoardy-Web= to capture web pages while my browser runs with JavaScript disabled?
+** Can I use =Hoardy-Web= to capture web pages while my browser runs with =JavaScript= disabled?
 Yes.
-** Can I use =Hoardy-Web= to capture web pages that use a lot of JavaScript?
+** Can I use =Hoardy-Web= to capture web pages that use a lot of =JavaScript=?
 This is why [[./popup.html#snapshotTab][DOM]]-[[./popup.html#snapshotAll][snapshot]] buttons exist, see the following question.
 
 In principle, =Hoardy-Web= will capture everything your browser fetches from the network as you browse the web, except for, at the moment, WebSockets data.
-So, web pages using only simple UI-related JavaScript code will work fine when you start replaying them "from scratch" via [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool][=hoardy-web export mirror=]] (also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]) or some such.
+So, web pages using only simple UI-related =JavaScript= code will work fine when you start replaying them "from scratch" via [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool][=hoardy-web export mirror=]] (also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]) or some such.
 
-However, in the most general case, "from scratch" replay of pages dynamically generated via JavaScript is not guaranteed.
-For example, consider a web page with a JavaScript code that generates a random number, then queries a remote server with that number, and then renders the result somehow.
+However, in the most general case, "from scratch" replay of pages dynamically generated via =JavaScript= is not guaranteed.
+For example, consider a web page with a =JavaScript= code that generates a random number, then queries a remote server with that number, and then renders the result somehow.
 Obviously, such a web page can not be replayed "from scratch" since it will generate a new random number and your archive probably won't have the corresponding server's response for it.
-** Can I use =Hoardy-Web= to capture a web page as it currently is, after all JavaScript was run, not as it was when it was last fetched from the network?
+** Can I use =Hoardy-Web= to capture a web page as it currently is, after all =JavaScript= was run, not as it was when it was last fetched from the network?
 :PROPERTIES:
 :CUSTOM_ID: faq-snapshot
 :END:
 
 Yes, you can capture DOM (Document Object Model) snapshots of all frames of the currently active tab by pressing [[./popup.html#snapshotTab][this button]] in the popup.
 
-Doing that will generate and capture snapshots of raw HTML/XMLs for each frame contained in the currently active tab.
+Doing that will generate and capture snapshots of raw =HTML='s or =XML='s for each frame contained in the currently active tab.
 (Reqres-wise they will be =200 OK= responses, but with =protocol= set to =SNAPSHOT= and =method= set to =DOM=.)
 
 You can also do that for all open tabs at once by pressing [[./popup.html#snapshotAll][that button]].
@@ -676,7 +676,7 @@ On the other hand, if you
 
 - run =Hoardy-Web= under Firefox,
 - just want to load all lazily-loaded images the page already has (NOT load more stuff), and
-- the page in question uses modern HTML5 lazy loading attributes instead of using JavaScript to do the same,
+- the page in question uses modern HTML5 lazy loading attributes instead of using =JavaScript= to do the same,
 
 then you can simply go to =about:config= and toggle =dom.image-lazy-loading.enabled= to =false=.
 All images will start being loaded eagerly after that.
@@ -726,7 +726,7 @@ This is a rare error caused by [[#error-race][a race condition between webpage's
 Usually, you can ignore this error, since loading another related page is likely to fulfill the same URL.
 
 However, if this happens a lot to you, or if it annoys you, you can go to =about:config=, toggle =dom.serviceWorkers.enabled= to =false=, and restart the browser.
-Alternatively, you can use =NoScript= or some such extension to disable JavaScript, and thus the offending service/shared workers, on the page in question.
+Alternatively, you can use =NoScript= or some such extension to disable =JavaScript=, and thus the offending service/shared workers, on the page in question.
 ** Why does a (specific) URL or some part of it fails to be properly captured by =Hoardy-Web=?
 Did you read the notes on [[#bugs][the bugs of the browser you are using]] above?
 
@@ -735,7 +735,7 @@ Most notably:
 - both Firefox- and Chromium-based browsers in their default builds [[#firefox-bug-no-post][fail]] to [[#chromium-bug-no-post][properly]] supply POST request data to their extensions; for Firefox-based browsers there exists a [[#firefox-bug-no-post][patch]] that fixes it, mostly; Chromium users are out of luck at the moment;
 
 - on a Chromium-based browser, because of limitations of the Chromium's debugging interface, [[#chromium-bug-no-media][it is impossible to properly capture media files (both audio and video)]] and [[#chromium-bug-no-large-files][large files in general]]; this issue has no good work-around and, AFAIK, all alternatives to =Hoardy-Web= running on Chromium-based browser suffer from it (and work around it by silently re-downloading said files the second time in background); try using =Hoardy-Web= under a Firefox-based browser instead.
-** The documentation claims that all =Hoardy-Web= archival methods except for [[./popup.html#div-config.archiveSubmitHTTP][submission via HTTP]] are unsafe. Why?
+** The documentation claims that all =Hoardy-Web= archival methods except for [[./popup.html#div-config.archiveSubmitHTTP][submission via =HTTP=]] are unsafe. Why?
 :PROPERTIES:
 :CUSTOM_ID: faq-unsafe
 :END:
@@ -744,7 +744,7 @@ Archival [[./popup.html#div-config.archiveExportAs][by exporting using =saveAs=]
 
 Archival [[./popup.html#div-config.archiveSaveLS][to browser's local storage]] (which is what =Hoardy-Web= is doing by default) can **loose all your collected data at the same time** if you uninstall the extension by accident.
 
-Meanwhile, archival [[./popup.html#div-config.archiveSubmitHTTP][by submission via HTTP]] has none of these problems:
+Meanwhile, archival [[./popup.html#div-config.archiveSubmitHTTP][by submission via =HTTP=]] has none of these problems:
 
 - =Hoardy-Web= will keep each reqres in memory until the archiving server responds with =200 OK= for that reqres;
 - the archiving will only respond with =200 OK= response to =Hoardy-Web= after the dump is written and =fsync=-ed to disk;
@@ -757,7 +757,7 @@ It is the default because it usually works fine, it properly reports errors, has
 
 In the ideal world, browsers would provide a better =saveAs= API which would have a less annoying UI for the user and would return out-of-disk-space errors to the extension, in which case [[./popup.html#div-config.archiveExportAs][exporting via =saveAs=]] would be the default.
 
-As it is now, the only way to be absolutely sure you data is properly forever saved to disk when the extension reports it archived is to use [[./popup.html#div-config.archiveSubmitHTTP][submission via HTTP]].
+As it is now, the only way to be absolutely sure you data is properly forever saved to disk when the extension reports it archived is to use [[./popup.html#div-config.archiveSubmitHTTP][submission via =HTTP=]].
 ** When running =Hoardy-Web= under Firefox, enabling [[./popup.html#div-config.archiveExportAs][export via =saveAs=]] makes the browser's UI quite annoying. Can it be fixed?
 :PROPERTIES:
 :CUSTOM_ID: faq-firefox-saveas
