@@ -1664,7 +1664,7 @@ def main() -> None:
 
     parser = ArgumentParser(
         prog=__prog__,
-        description=_("A tool to pretty-print, compute and print values from, search, organize (programmatically rename/move/symlink/hardlink files), import, export, (WIP: check, deduplicate, and edit) `Hoardy-Web`'s WRR (Web Request+Response) archive files.") + "\n\n" +
+        description=_("A tool to display, search, manipulate, import, and export Web Request+Response (`WRR`) archive files produced by the `Hoardy-Web` Web Extension browser add-on.") + "\n\n" +
 _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing HTTP request+response pair with some additional metadata."),
         additional_sections = [add_doc],
         allow_abbrev = False,
