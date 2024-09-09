@@ -670,7 +670,7 @@ def linst_scrub() -> LinstAtom:
         rere = check_request_response("scrub", part)
 
         paranoid = False
-        scrub_opts = ScrubOpts()
+        scrub_opts = ScrubbingOptions()
         if optstr != "defaults":
             for opt in optstr.split(","):
                 if not opt.startswith("+") and not opt.startswith("-"):
@@ -689,18 +689,18 @@ def linst_scrub() -> LinstAtom:
                     scrub_opts.whitespace = False
                     scrub_opts.indent = True
                     scrub_opts.debug = True
-                elif oname in ScrubOpts.__dataclass_fields__:
+                elif oname in ScrubbingOptions.__dataclass_fields__:
                     setattr(scrub_opts, oname, value)
                 elif oname == "all_refs":
-                    for oname in ScrubReferenceOpts:
+                    for oname in ScrubbingReferenceOptions:
                         setattr(scrub_opts, oname, value)
                 elif oname == "all_dyns":
-                    for oname in ScrubDynamicOpts:
+                    for oname in ScrubbingDynamicOpts:
                         setattr(scrub_opts, oname, value)
                 else:
                     raise CatastrophicFailure("unknown `scrub` option %s", opt)
 
-        scrubber = make_scrubber(scrub_opts)
+        scrubbers = make_scrubbers(scrub_opts)
 
         def envfunc(rrexpr : _t.Any, v : _t.Any) -> _t.Any:
             rrexpr = check_rrexpr("scrub", rrexpr)
@@ -711,9 +711,9 @@ def linst_scrub() -> LinstAtom:
             rere_obj : Request | Response
             if rere:
                 rere_obj = request
+            elif reqres.response is None:
+                return ""
             else:
-                if reqres.response is None:
-                    return ""
                 rere_obj = reqres.response
 
             if len(rere_obj.body) == 0:
@@ -735,12 +735,13 @@ def linst_scrub() -> LinstAtom:
                 what = ", or ".join(censor)
                 return f"/* hoardy censored out {what} blob ({mime}) from here */\n" if scrub_opts.verbose else b""
 
-            if "html" not in essence:
+            if "html" in essence:
+                remap_link = rrexpr.items.get("remap_link", None)
+                return scrub_html(scrubbers, rrexpr.net_url, remap_link, rere_obj.body, charset)
+            else:
                 # no scrubbing needed
                 return rere_obj.body
 
-            remap_url = rrexpr.items.get("remap_url", None)
-            return scrub_html(scrubber, rrexpr.net_url, remap_url, rere_obj.body, likely_encoding = charset)
         return envfunc
     return [str, str], func
 

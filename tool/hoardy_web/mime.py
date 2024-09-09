@@ -30,7 +30,7 @@ _registry = _emlhr.HeaderRegistry()
 def normalize_content_type(header : str) -> tuple[set[str] | None, str, str | None, list[str]]:
     """Parse and normalize "Content-type" header.
 
-       Returns (possible essenses | None, mime type, charset | None).
+       Returns [possible essenses | None, mime type, charset | None, extensions).
     """
 
     ct_reg = _registry("content-type", header)
@@ -253,7 +253,7 @@ def sniff_mime_type(data : str | bytes, charset : str | None) -> DiscernContentT
 def discern_content_type(ct : str | None, sniff : bool, paranoid : bool, data : str | bytes) \
     -> DiscernContentType:
     """Given `Content-type` HTTP header, sniff and paranoid flags, and actual content body,
-       return (possible essenses, mime type, charset | None).
+       return (possible essenses, mime type, charset | None, extensions).
     """
 
     extensions : list[str]

@@ -19,6 +19,7 @@
 """
 
 import dataclasses as _dc
+import enum as _enum
 import re as _re
 import traceback as _traceback
 import typing as _t
@@ -30,6 +31,22 @@ import html5lib.filters.whitespace as _h5ws
 import html5lib.filters.optionaltags as _h5ot
 
 from kisstdlib.exceptions import *
+
+class LinkType(_enum.Enum):
+    JUMP = 0
+    ACTION = 1
+    SRC = 2
+
+LinkRemapper = _t.Callable[[LinkType, str], str]
+
+def remap_link_id(link_type : LinkType, url : str) -> str:
+    return url
+
+def remap_link_into_void(link_type : LinkType, url : str) -> str:
+    if link_type == LinkType.SRC:
+        return "data:text/plain;base64,"
+    else:
+        return "javascript:void(0)"
 
 HTML5Token = dict[str, _t.Any]
 
@@ -311,15 +328,15 @@ stylesheet_link_rels = frozenset([
 ])
 
 @_dc.dataclass
-class ScrubOpts:
+class ScrubbingOptions:
     unknown : bool = _dc.field(default=True)
     jumps : bool = _dc.field(default=True)
     actions : bool = _dc.field(default=False)
     srcs : bool = _dc.field(default=False)
-    scripts : bool = _dc.field(default=False)
-    iframes : bool = _dc.field(default=False)
     styles : bool = _dc.field(default=False)
+    scripts : bool = _dc.field(default=False)
     iepragmas : bool = _dc.field(default=False)
+    iframes : bool = _dc.field(default=False)
     prefetches : bool = _dc.field(default=False)
     tracking : bool = _dc.field(default=False)
     verbose : bool | int = _dc.field(default=True)
@@ -328,18 +345,12 @@ class ScrubOpts:
     indent : bool = _dc.field(default=False)
     debug : bool = _dc.field(default=False)
 
-ScrubReferenceOpts = ["jumps", "actions", "srcs"]
-ScrubDynamicOpts = ["scripts", "iframes", "styles", "iepragmas", "prefetches", "tracking"]
+ScrubbingReferenceOptions = ["jumps", "actions", "srcs"]
+ScrubbingDynamicOpts = ["scripts", "iframes", "styles", "iepragmas", "prefetches", "tracking"]
 
-RemapUrlType = _t.Callable[[int, str], str]
+Scrubbers =  _t.Callable[[str, LinkRemapper, _t.Iterator[HTML5Token]], _t.Iterator[HTML5Token]]
 
-def make_scrubber(opts : ScrubOpts) \
-        -> _t.Callable[[str, RemapUrlType, _t.Iterator[HTML5Token]], _t.Iterator[HTML5Token]]:
-    """Generates a function that produces html5lib.Filter that scrubs HTML
-      documents, rewriting links, and removing scripts, styles, etc, as
-      requested.
-    """
-
+def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     attr_blacklist : set[tuple[NS, NS]] = set()
     if not opts.tracking:
         attr_blacklist.update(tracking_attrs)
@@ -350,26 +361,32 @@ def make_scrubber(opts : ScrubOpts) \
     if not opts.prefetches:
         link_rel_blacklist.update(prefetch_link_rels)
 
-    not_scripts = not opts.scripts
-    not_iframes = not opts.iframes
-    not_styles = not opts.styles
     not_jumps = not opts.jumps
     not_actions = not opts.actions
     not_srcs = not opts.srcs
+    not_styles = not opts.styles
+    not_scripts = not opts.scripts
     not_iepragmas = not opts.iepragmas
+    not_iframes = not opts.iframes
 
     def scrub_html(base_url : str,
-                   remap_url : RemapUrlType,
+                   remap_link : LinkRemapper,
                    walker : _t.Iterator[HTML5Token]) -> _t.Iterator[HTML5Token]:
         orig_base_url = base_url
         base_url_unset = True
+
+        remap_src_url : LinkRemapper
+        if not_srcs:
+            remap_src_url = remap_link_into_void
+        else:
+            remap_src_url = remap_link
 
         censor_lvl : int = 0
         stack : list[tuple[str | None, str]] = []
 
         def emit_censored(what : str) -> _t.Iterator[HTML5Token]:
             if opts.verbose:
-                yield {"type": "Comment", "data": f"hoardy censored out a {what} from here"}
+                yield {"type": "Comment", "data": f" hoardy-web censored out {what} from here "}
 
         for token in walker:
             typ = token["type"]
@@ -392,7 +409,7 @@ def make_scrubber(opts : ScrubOpts) \
                         else:
                             href = purl.geturl()
                         href = _up.urljoin(orig_base_url, href)
-                        #attrs[href_attr] = remap_url(href) # if no censorship
+                        #attrs[href_attr] = remap_link(href) # if no censorship
                         # set new base_url
                         base_url = href
                         # can only be set once
@@ -435,39 +452,37 @@ def make_scrubber(opts : ScrubOpts) \
                             to_remove.append(ann)
                             continue
 
-                        # turn relative URLs into absolute ones, and then mangle them with remap_url
                         value = attrs[ann]
                         if nnann in refs_attrs:
+                            # turn relative URLs into absolute ones, and then mangle them with remap_link
                             url = value.strip()
                             url = _up.urljoin(base_url, url)
                             if not_scripts and url.startswith("javascript:"):
                                 url = "javascript:void(0)"
                             elif not (url.startswith("data:") or url.startswith("javascript:")):
                                 if nnann in jumps_attrs:
-                                    kind, minus = 0, not_jumps
+                                    link_type, minus = LinkType.JUMP, not_jumps
                                 elif nnann in actions_attrs:
-                                    kind, minus = 1, not_actions
+                                    link_type, minus = LinkType.ACTION, not_actions
                                 else:
-                                    kind, minus = 2, not_srcs
-                                # remap URL
+                                    link_type, minus = LinkType.SRC, not_srcs
+                                # remap the URL
                                 if minus:
-                                    url = remap_url_into_void(kind, url)
+                                    url = remap_link_into_void(link_type, url)
                                 else:
-                                    url = remap_url(kind, url)
+                                    url = remap_link(link_type, url)
                             attrs[ann] = url
                         elif nnann in srcset_attrs:
+                            # similarly
                             srcset = parse_srcset_attr(value)
                             new_srcset = []
                             for url, cond in srcset:
-                                url = _up.urljoin(base_url, url)
                                 if not_scripts and url.startswith("javascript:"):
                                     continue
-                                elif not (url.startswith("data:") or url.startswith("javascript:")):
-                                    # remap URL
-                                    if not_srcs:
-                                        url = remap_url_into_void(2, url)
-                                    else:
-                                        url = remap_url(2, url)
+                                elif not(url.startswith("data:") or url.startswith("javascript:")):
+                                    # remap the URL
+                                    url = _up.urljoin(base_url, url)
+                                    url = remap_src_url(LinkType.SRC, url)
                                 new_srcset.append((url, cond))
                             attrs[ann] = unparse_srcset_attr(new_srcset)
                             del srcset, new_srcset
@@ -485,12 +500,13 @@ def make_scrubber(opts : ScrubOpts) \
                 if stack == in_head:
                     base_url_unset = False
 
-                if censor_lvl != 0:
-                    censor_lvl -= 1
                 stack.pop()
                 #print(stack)
+
+                if censoring:
+                    censor_lvl -= 1
             elif not_iepragmas and typ == "Comment" and ie_pragma_re.match(token["data"]):
-                yield from emit_censored("comment with an IE pragma")
+                yield from emit_censored("a comment with an IE pragma")
                 continue
 
             if not censoring:
@@ -524,28 +540,20 @@ def make_scrubber(opts : ScrubOpts) \
     else:
         post_process3 = lambda x: _h5ot.Filter(post_process2(x))
 
-    return lambda base_url, remap_url, walker: post_process3(scrub_html(base_url, remap_url, walker))
-
-def remap_url_id(kind : int, url : str) -> str:
-    return url
-
-def remap_url_into_void(kind : int, url : str) -> str:
-    if kind == 2:
-        return "data:text/plain;base64,"
-    else:
-        return "javascript:void(0)"
+    process_html = lambda base_url, remap_link, walker: post_process3(scrub_html(base_url, remap_link, walker))
+    return process_html
 
 _html5treebuilder = _h5.treebuilders.getTreeBuilder("etree", fullTree=True)
 _html5parser = _h5.html5parser.HTMLParser(_html5treebuilder)
 _html5walker = _h5.treewalkers.getTreeWalker("etree")
 _html5serializer = _h5.serializer.HTMLSerializer(strip_whitespace = False, omit_optional_tags = False)
 
-def scrub_html(scrubber : _t.Any,
+def scrub_html(scrubber : Scrubbers,
                base_url : str,
-               remap_url : RemapUrlType,
-               data : str | bytes, *,
-               likely_encoding : str | None = None) -> str:
-    dom = _html5parser.parse(data, likely_encoding=likely_encoding)
+               remap_link : LinkRemapper,
+               data : str | bytes,
+               protocol_encoding : str | None = None) -> str:
+    dom = _html5parser.parse(data, likely_encoding=protocol_encoding)
     charEncoding = _html5parser.tokenizer.stream.charEncoding[0]
-    walker = scrubber(base_url, remap_url, _html5walker(dom))
+    walker = scrubber(base_url, remap_link, _html5walker(dom))
     return _html5serializer.render(walker, charEncoding.name) # type: ignore

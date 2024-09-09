@@ -122,10 +122,10 @@ def elaborate_output(cargs : _t.Any) -> None:
             raise CatastrophicFailure(gettext('unknown `--output` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), cargs.output)
 
 def compile_remap(cargs : _t.Any) -> None:
-    if cargs.remap_urls == "id":
-        cargs.remap_url_func = remap_url_id
-    elif cargs.remap_urls == "void":
-        cargs.remap_url_func = remap_url_into_void
+    if cargs.remap_links == "id":
+        cargs.remap_link_func = remap_link_id
+    elif cargs.remap_links == "void":
+        cargs.remap_link_func = remap_link_into_void
     else:
         assert False
 
@@ -164,6 +164,7 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], Lo
         if (isinstance(path, str) and path.endswith(".part")) or \
            (isinstance(path, bytes) and path.endswith(b".part")):
             continue
+
         abs_path = _os.path.abspath(path)
         try:
             if follow_symlinks:
@@ -258,7 +259,7 @@ def cmd_get(cargs : _t.Any) -> None:
 
     abs_path = _os.path.abspath(_os.path.expanduser(cargs.path))
     rrexpr = wrr_loadf_expr(abs_path)
-    rrexpr.items["remap_url"] = cargs.remap_url_func
+    rrexpr.items["remap_link"] = cargs.remap_link_func
 
     for fobj, exprs in cargs.mexprs.items():
         print_exprs(rrexpr, exprs, cargs.separator, fobj)
@@ -286,7 +287,7 @@ def cmd_run(cargs : _t.Any) -> None:
         for path in cargs.paths:
             abs_path = _os.path.abspath(path)
             rrexpr = wrr_loadf_expr(abs_path)
-            rrexpr.items["remap_url"] = cargs.remap_url_func
+            rrexpr.items["remap_link"] = cargs.remap_link_func
 
             # TODO: extension guessing
             fileno, tmp_path = _tempfile.mkstemp(prefix = "hoardy_wrr_run_", suffix = ".tmp")
@@ -1392,29 +1393,42 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     elaborate_output(cargs)
     handle_paths(cargs)
 
-    always_fallback = cargs.remap_urls in ["id", "void"]
-    remap_url_fallback : _t.Callable[[Epoch, str, int, ParsedURL], str]
-    if cargs.remap_urls in ["id", "open"]:
-        remap_url_fallback = lambda st, ap, kind, purl: remap_url_id(kind, purl.raw_url)
-    elif cargs.remap_urls in ["void", "closed"]:
-        remap_url_fallback = lambda st, ap, kind, purl: remap_url_into_void(kind, purl.raw_url)
-    elif cargs.remap_urls == "all":
-        def remap_url_fallback(stime : Epoch, document_path : str, kind : int, purl : ParsedURL) -> str:
+    destination = _os.path.expanduser(cargs.destination)
+
+    always_fallback = cargs.remap_links in ["id", "void"]
+    remap_link_fallback : _t.Callable[[Epoch, str, LinkType, ParsedURL], str]
+    if cargs.remap_links in ["id", "open"]:
+        remap_link_fallback = lambda st, ap, link_type, purl: remap_link_id(link_type, purl.raw_url)
+    elif cargs.remap_links in ["void", "closed"]:
+        remap_link_fallback = lambda st, ap, link_type, purl: remap_link_into_void(link_type, purl.raw_url)
+    elif cargs.remap_links == "all":
+        def remap_link_fallback(stime : Epoch, document_dir : str, link_type : LinkType, purl : ParsedURL) -> str:
             trrexpr = ReqresExpr(trivial_Reqres(purl, stime, stime, stime), None, [])
             trrexpr.items["num"] = 0
             rel_out_path : str = _os.path.join(destination, cargs.output_format % trrexpr)
             abs_out_path = _os.path.abspath(rel_out_path)
-            return _os.path.relpath(abs_out_path, document_path)
+            return _os.path.relpath(abs_out_path, document_dir)
     else:
         assert False
 
-    def remap_url_func_maker(queue : list[str], enqueue : bool, stime : Epoch, document_path : str) -> _t.Callable[[int, str], str]:
-        def remap_url_func(kind : int, url : str) -> str:
+    allow_updates = cargs.allow_updates == True
+    skip_existing = cargs.allow_updates == "partial"
+
+    mem = Memory()
+    seen_counter : SeenCounter[str] = SeenCounter(mem)
+
+    # net_url -> (stime, src_path, dst_path)
+    index : dict[str, tuple[Epoch, str, str]] = dict()
+    # indexed by net_url
+    visited : set[str] = set()
+
+    def remap_link_func_maker(queue : list[str], enqueue : bool, stime : Epoch, document_dir : str) -> LinkRemapper:
+        def remap_link_func(link_type : LinkType, url : str) -> str:
             try:
                 purl = parse_url(url)
             except URLParsingError:
                 issue("malformed URL `%s`", url)
-                return remap_url_into_void(kind, url)
+                return remap_link_into_void(link_type, url)
 
             if purl.scheme not in Reqres_url_schemes:
                 issue("not remapping `%s`", url)
@@ -1429,7 +1443,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             if abs_out_path is not None and net_url not in visited:
                 visited.add(net_url)
                 # queue this if we are not over max_depth or this is a resource
-                if enqueue or kind == 2:
+                if enqueue or link_type == LinkType.SRC:
                     queue.append(net_url)
                     if stdout.isatty:
                         stdout.write_bytes(b"\033[33m")
@@ -1439,23 +1453,11 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                     stdout.flush()
 
             if abs_out_path is None or always_fallback:
-                return remap_url_fallback(stime, document_path, kind, purl)
+                return remap_link_fallback(stime, document_dir, link_type, purl)
 
-            return _os.path.relpath(abs_out_path, document_path)
-        return remap_url_func
+            return _os.path.relpath(abs_out_path, document_dir)
+        return remap_link_func
 
-    destination = _os.path.expanduser(cargs.destination)
-
-    allow_updates = cargs.allow_updates == True
-    skip_existing = cargs.allow_updates == "partial"
-
-    mem = Memory()
-    seen_counter : SeenCounter[str] = SeenCounter(mem)
-
-    # net_url -> (stime, src_path, dst_path)
-    index : dict[str, tuple[Epoch, str, str]] = dict()
-    # indexed by net_url
-    visited : set[str] = set()
     queue : list[str] = []
     current_depth : int = 0
     max_depth : int = cargs.depth
@@ -1545,7 +1547,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
             try:
                 rrexpr = wrr_loadf_expr(abs_in_path)
-                rrexpr.items["remap_url"] = remap_url_func_maker(queue, enqueue, stime, _os.path.dirname(abs_out_path))
+                rrexpr.items["remap_link"] = remap_link_func_maker(queue, enqueue, stime, _os.path.dirname(abs_out_path))
 
                 data : bytes
                 with TIOWrappedWriter(_io.BytesIO()) as f:
@@ -1870,18 +1872,18 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 
         agrp = cmd.add_argument_group("URL remapping; used by `scrub` atom of `--expr`")
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--remap-id", dest="remap_urls", action="store_const", const="id", help=_("remap all URLs with an identity function; i.e. don't remap anything") + def_id)
-        grp.add_argument("--remap-void", dest="remap_urls", action="store_const", const="void", help=_("remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained"))
+        grp.add_argument("--remap-id", dest="remap_links", action="store_const", const="id", help=_("remap all URLs with an identity function; i.e. don't remap anything") + def_id)
+        grp.add_argument("--remap-void", dest="remap_links", action="store_const", const="void", help=_("remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained"))
 
         if kind == "export":
-            grp.add_argument("--remap-open", "-k", "--convert-links", dest="remap_urls", action="store_const", const="open", help=_("point all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding output paths, remap all other URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`"))
-            grp.add_argument("--remap-closed", dest="remap_urls", action="store_const", const="closed", help=_("remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained"))
-            grp.add_argument("--remap-all", dest="remap_urls", action="store_const", const="all", help=_(f"remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `{__prog__} export` to be used incrementally; `export`ed `mirror`s will be self-contained") + def_all)
+            grp.add_argument("--remap-open", "-k", "--convert-links", dest="remap_links", action="store_const", const="open", help=_("point all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding output paths, remap all other URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`"))
+            grp.add_argument("--remap-closed", dest="remap_links", action="store_const", const="closed", help=_("remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained"))
+            grp.add_argument("--remap-all", dest="remap_links", action="store_const", const="all", help=_(f"remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `{__prog__} export` to be used incrementally; `export`ed `mirror`s will be self-contained") + def_all)
 
         if kind != "export":
-            cmd.set_defaults(remap_urls = "id")
+            cmd.set_defaults(remap_links = "id")
         else:
-            cmd.set_defaults(remap_urls = "all")
+            cmd.set_defaults(remap_links = "all")
 
         if kind == "stream":
             add_terminator(cmd, "`--format=raw` output printing", "print `--format=raw` output values")
