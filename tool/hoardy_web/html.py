@@ -66,12 +66,10 @@ def prettify_html(walker : _t.Iterator[HTML5Token], indent : int = 2, relaxed : 
     on_space : bool = True
     newline : bool = True
 
-    prev_token : HTML5Token | None = None
-    token : HTML5Token | None = None
-
     def space_ok() -> bool:
-        try: tp = stack[-1]
-        except IndexError: tp = None
+        if len(stack) == 0:
+            return True
+        tp = stack[-1]
         if tp in _space_okElements:
             return True
         return False
@@ -87,6 +85,7 @@ def prettify_html(walker : _t.Iterator[HTML5Token], indent : int = 2, relaxed : 
         else:
             return False
 
+    prev_token : HTML5Token | None = None
     for token in walker:
         typ = token["type"]
         if typ == "Doctype":
@@ -114,12 +113,12 @@ def prettify_html(walker : _t.Iterator[HTML5Token], indent : int = 2, relaxed : 
             on_space = False
             newline = False
         elif typ == "EndTag":
-            stack.pop()
             current -= 1
             if preserve == 0:
                 yield from emit_indent()
             else:
                 preserve -= 1
+            stack.pop()
             yield token
             on_space = False
             newline = False
