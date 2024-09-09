@@ -252,7 +252,7 @@ def unparse_srcset_attr(value : list[tuple[str, str]]) -> str:
     """Unparse HTML5 srcset attribute"""
     return ", ".join([(f"{url} {cond}" if cond is not None else url) for url, cond in value])
 
-ie_pragma_re = _re.compile(r"^\s*\[if IE [^]]*\].*\[endif\]\s*$")
+ie_pragma_re = _re.compile(r"^\s*(\[if IE [^]]*\].*\[endif\]|\[if !IE\]><!|<!\[endif\])\s*$")
 
 htmlns = _h5.constants.namespaces["html"]
 xlinkns = _h5.constants.namespaces["xlink"]
