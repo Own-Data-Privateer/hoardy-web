@@ -475,22 +475,22 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `qsecond`: second of `gmtime(qtime)`; int
       - `stime`: `response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; seconds since UNIX epoch; decimal float
       - `stime_ms`: `stime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch, int
-      - `stime_msq`: three least significant digits of `stime_msq`; int
-      - `syear`: similar to `syear`, but for `stime`; int
-      - `smonth`: similar to `smonth`, but for `stime`; int
-      - `sday`: similar to `sday`, but for `stime`; int
-      - `shour`: similar to `shour`, but for `stime`; int
-      - `sminute`: similar to `sminute`, but for `stime`; int
-      - `ssecond`: similar to `ssecond`, but for `stime`; int
+      - `stime_msq`: three least significant digits of `stime_ms`; int
+      - `syear`: similar to `qyear`, but for `stime`; int
+      - `smonth`: similar to `qmonth`, but for `stime`; int
+      - `sday`: similar to `qday`, but for `stime`; int
+      - `shour`: similar to `qhour`, but for `stime`; int
+      - `sminute`: similar to `qminute`, but for `stime`; int
+      - `ssecond`: similar to `qsecond`, but for `stime`; int
       - `ftime`: aliast for `finished_at`; seconds since UNIX epoch; decimal float
       - `ftime_ms`: `ftime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int
-      - `ftime_msq`: three least significant digits of `ftime_msq`; int
-      - `fyear`: similar to `syear`, but for `ftime`; int
-      - `fmonth`: similar to `smonth`, but for `ftime`; int
-      - `fday`: similar to `sday`, but for `ftime`; int
-      - `fhour`: similar to `shour`, but for `ftime`; int
-      - `fminute`: similar to `sminute`, but for `ftime`; int
-      - `fsecond`: similar to `ssecond`, but for `ftime`; int
+      - `ftime_msq`: three least significant digits of `ftime_ms`; int
+      - `fyear`: similar to `qyear`, but for `ftime`; int
+      - `fmonth`: similar to `qmonth`, but for `ftime`; int
+      - `fday`: similar to `qday`, but for `ftime`; int
+      - `fhour`: similar to `qhour`, but for `ftime`; int
+      - `fminute`: similar to `qminute`, but for `ftime`; int
+      - `fsecond`: similar to `qsecond`, but for `ftime`; int
       - `status`: `"I"` or  `"C"` depending on the value of `request.complete` (`false` or `true`, respectively) followed by either `"N"`, whene `response == None`, or `str(response.code)` followed by `"I"` or  `"C"` depending on the value of `response.complete`; str
       - `method`: aliast for `request.method`; str
       - `raw_url`: aliast for `request.url`; str
