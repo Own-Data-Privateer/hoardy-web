@@ -434,7 +434,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
             - the second is either `defaults` or ","-separated string of `(+|-)<option>` tokens which control the scrubbing behaviour:
               - `+paranoid` will assume the server is lying in its `Content-Type` and `X-Content-Type-Options` `HTTP` headers, sniff the contents of `(request|response).body` to determine what it actually contains regardless of what the server said, and then use the most paranoid interpretation of both the `HTTP` headers and the sniffed possible `MIME` types to decide what should be kept and what sholuld be removed by the options below; i.e., this will make `-unknown`, `-scripts`, and `-styles` options below to censor out more things, in particular, at the moment, most plain text files will get censored out as potential `JavaScript`; the default is `-paranoid`;
               - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which will keep data of unknown content types as-is;
-              - `(+|-)(jumps|actions|srcs)` control which kinds of references to other documents should be remapped or censored out (respectively); i.e. it controls whether jump-links (`HTML` `a href`, `area href`, and similar), action-links (`HTML` `a ping`, `form action`, and similar), and/or resource references (`HTML` `img src`, `iframe src`, `CSS` `url` references, and similar) should be remapped using the specified `--remap-*` option (which see) or censored out similarly to how `--remap-void` will do it; the default is `+jumps,-actions,-srcs` which will produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
+              - `(+|-)(jumps|actions|reqs)` control which kinds of references to other documents should be remapped or censored out (respectively); i.e. it controls whether jump-links (`HTML` `a href`, `area href`, and similar), action-links (`HTML` `a ping`, `form action`, and similar), and/or references to page requisites (`HTML` `img src`, `iframe src`, `link src` that are `stylesheet`s or `icon`s, `CSS` `url` references, and similar) should be remapped using the specified `--remap-*` option (which see) or censored out similarly to how `--remap-void` will do it; the default is `+jumps,-actions,-reqs` which will produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
               - `(+|-)all_refs` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
               - `(+|-)(styles|scripts|iepragmas|iframes|prefetches|tracking)` control which things should be kept or censored out w.r.t. to `HTML`, `CSS`, and `JavaScript`, i.e. it controls whether `JavaScript` (both separate files and `HTML` tags and attributes), `<iframe>` `HTML` tags, `CSS` (both separate files and `HTML` tags and attributes; why? because `CSS` is Turing-complete), `HTML` Internet-Explorer pragmas, `HTML` content prefetch `link` tags, and other tracking `HTML` tags and attributes (like `a ping` attributes), should be respectively kept in or censored out from the input; the default is `-styles,-scripts,-iepragmas,-iframes,-prefetches,-tracking` which ensures the result will not produce any prefetch and tracking requests when loaded in a web browser, and that the whole result is simple data, not a program in some Turing-complete language, thus making it safe to feed the result to other tools too smart for their own users' good;
               - `(+|-)all_dyns` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
@@ -519,8 +519,8 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `ofm`: optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str
     - a compound expression built by piping (`|`) the above, for example:
       - `response.body|eb` (the default for `get`) will print raw `response.body` or an empty byte string, if there was no response;
-      - `response.body|eb|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all action and resource reference URLs;
-      - `response.body|eb|scrub response +all_refs,-actions` (the default for `export`) will remap all `href` jump-links and `src` resource references to local files while still censoring out all action URLs (since those don't make sense for a static mirror);
+      - `response.body|eb|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
+      - `response.body|eb|scrub response +reqs` (the default for `export`) will remap all jump-links (`a href` and similar) and references to page requisites (`img src` and similar) to local files while still censoring out all action-links (like `a ping`, `form action`, and similar; since these don't make sense for a static mirror);
       - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
       - `response.complete|false` will print `response.complete` or `False`;
       - `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
@@ -532,7 +532,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   - `--remap-id`
   : remap all URLs with an identity function; i.e. don't remap anything; default
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
+  : remap all jump-link and action URLs to `javascript:void(0)` and all requisite resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
 - printing:
   - `--not-separated`
@@ -566,7 +566,7 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   - `--remap-id`
   : remap all URLs with an identity function; i.e. don't remap anything; default
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
+  : remap all jump-link and action URLs to `javascript:void(0)` and all requisite resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
 - printing:
   - `--not-separated`
@@ -619,7 +619,7 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
   - `--remap-id`
   : remap all URLs with an identity function; i.e. don't remap anything; default
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
+  : remap all jump-link and action URLs to `javascript:void(0)` and all requisite resource URLs into empty `data:` URLs; resulting web pages will be self-contained
 
 - `--format=raw` output printing:
   - `--not-terminated`
@@ -1352,13 +1352,13 @@ In other words, this generates static offline website mirrors, producing results
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; default: `response.body|eb|scrub response +all_refs,-actions`, which will export safe scrubbed versions of all files
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; default: `response.body|eb|scrub response +reqs`, which will export safe scrubbed versions of all files
 
 - URL remapping; used by `scrub` atom of `--expr`:
   - `--remap-id`
   : remap all URLs with an identity function; i.e. don't remap anything
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained
+  : remap all jump-link and action URLs to `javascript:void(0)` and all requisite resource URLs into empty `data:` URLs; resulting web pages will be self-contained
   - `--remap-open, -k, --convert-links`
   : point all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding output paths, remap all other URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`
   - `--remap-closed`
@@ -1406,7 +1406,7 @@ In other words, this generates static offline website mirrors, producing results
   - `-r URL, --root URL`
   : recursion root; a URL which will be used as a root for recursive export; can be specified multiple times; if none are specified, then all (`net_url`) URLs available from input `PATH`s will be treated as roots
   - `-d DEPTH, --depth DEPTH`
-  : maximum recursion depth level; the default is `0`, which means "`--root` documents and their resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
+  : maximum recursion depth level; the default is `0`, which means "`--root` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
 
 - file system path ordering:
   - `--paths-given-order`

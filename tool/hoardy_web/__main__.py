@@ -1385,7 +1385,7 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
     from .mitmproxy import load_as_wrrs
     cmd_import_generic(cargs, load_as_wrrs)
 
-default_export_expr = "response.body|eb|scrub response +all_refs,-actions"
+default_export_expr = "response.body|eb|scrub response +reqs"
 def cmd_export_mirror(cargs : _t.Any) -> None:
     compile_filters(cargs)
     if len(cargs.exprs) == 0:
@@ -1443,7 +1443,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             if abs_out_path is not None and net_url not in visited:
                 visited.add(net_url)
                 # queue this if we are not over max_depth or this is a resource
-                if enqueue or link_type == LinkType.SRC:
+                if enqueue or link_type == LinkType.REQ:
                     queue.append(net_url)
                     if stdout.isatty:
                         stdout.write_bytes(b"\033[33m")
@@ -1840,8 +1840,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                 "".join([f"  - `{name}`: {__(value)}\n" for name, value in Reqres_derived_attrs.items()]) + \
                 "- " + _("a compound expression built by piping (`|`) the above, for example") + __(f""":
 - `{default_get_expr}` (the default for `get`) will print raw `response.body` or an empty byte string, if there was no response;
-- `{default_get_expr}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all action and resource reference URLs;
-- `{default_export_expr}` (the default for `export`) will remap all `href` jump-links and `src` resource references to local files while still censoring out all action URLs (since those don't make sense for a static mirror);
+- `{default_get_expr}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
+- `{default_export_expr}` (the default for `export`) will remap all jump-links (`a href` and similar) and references to page requisites (`img src` and similar) to local files while still censoring out all action-links (like `a ping`, `form action`, and similar; since these don't make sense for a static mirror);
 - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
 - `response.complete|false` will print `response.complete` or `False`;
 - `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
@@ -1873,7 +1873,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         agrp = cmd.add_argument_group("URL remapping; used by `scrub` atom of `--expr`")
         grp = agrp.add_mutually_exclusive_group()
         grp.add_argument("--remap-id", dest="remap_links", action="store_const", const="id", help=_("remap all URLs with an identity function; i.e. don't remap anything") + def_id)
-        grp.add_argument("--remap-void", dest="remap_links", action="store_const", const="void", help=_("remap all jump-link and action URLs to `javascript:void(0)` and all resource URLs into empty `data:` URLs; resulting web pages will be self-contained"))
+        grp.add_argument("--remap-void", dest="remap_links", action="store_const", const="void", help=_("remap all jump-link and action URLs to `javascript:void(0)` and all requisite resource URLs into empty `data:` URLs; resulting web pages will be self-contained"))
 
         if kind == "export":
             grp.add_argument("--remap-open", "-k", "--convert-links", dest="remap_links", action="store_const", const="open", help=_("point all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding output paths, remap all other URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`"))
@@ -2074,7 +2074,7 @@ In other words, this generates static offline website mirrors, producing results
 
     agrp = cmd.add_argument_group("export targets")
     agrp.add_argument("-r", "--root", dest="roots", metavar="URL", action="append", type=str, default = [], help=_(f"recursion root; a URL which will be used as a root for recursive export; can be specified multiple times; if none are specified, then all (`net_url`) URLs available from input `PATH`s will be treated as roots"))
-    agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `%(default)s`, which means "`--root` documents and their resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
+    agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `%(default)s`, which means "`--root` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
 
     add_paths(cmd)
     cmd.set_defaults(func=cmd_export_mirror)

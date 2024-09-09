@@ -35,7 +35,7 @@ from kisstdlib.exceptions import *
 class LinkType(_enum.Enum):
     JUMP = 0
     ACTION = 1
-    SRC = 2
+    REQ = 2
 
 LinkRemapper = _t.Callable[[LinkType, str], str]
 
@@ -43,7 +43,7 @@ def remap_link_id(link_type : LinkType, url : str) -> str:
     return url
 
 def remap_link_into_void(link_type : LinkType, url : str) -> str:
-    if link_type == LinkType.SRC:
+    if link_type == LinkType.REQ:
         return "data:text/plain;base64,"
     else:
         return "javascript:void(0)"
@@ -292,8 +292,8 @@ actions_attrs = frozenset([
     ((htmlns, "input"),  (None, "formaction")),
 ])
 
-srcs_attrs : frozenset[tuple[NS, NS]]
-srcs_attrs = frozenset([
+reqs_attrs : frozenset[tuple[NS, NS]]
+reqs_attrs = frozenset([
     ((htmlns, "audio"),  (None, "src")),
     ((htmlns, "embed"),  (None, "src")),
     ((htmlns, "iframe"), (None, "src")),
@@ -308,7 +308,7 @@ srcs_attrs = frozenset([
 ])
 
 refs_attrs : frozenset[tuple[NS, NS]]
-refs_attrs = frozenset(list(jumps_attrs) + list(actions_attrs) + list(srcs_attrs))
+refs_attrs = frozenset(list(jumps_attrs) + list(actions_attrs) + list(reqs_attrs))
 
 srcset_attrs = frozenset([
     ((htmlns, "img"),    (None, "srcset")),
@@ -332,7 +332,7 @@ class ScrubbingOptions:
     unknown : bool = _dc.field(default=True)
     jumps : bool = _dc.field(default=True)
     actions : bool = _dc.field(default=False)
-    srcs : bool = _dc.field(default=False)
+    reqs : bool = _dc.field(default=False)
     styles : bool = _dc.field(default=False)
     scripts : bool = _dc.field(default=False)
     iepragmas : bool = _dc.field(default=False)
@@ -345,7 +345,7 @@ class ScrubbingOptions:
     indent : bool = _dc.field(default=False)
     debug : bool = _dc.field(default=False)
 
-ScrubbingReferenceOptions = ["jumps", "actions", "srcs"]
+ScrubbingReferenceOptions = ["jumps", "actions", "reqs"]
 ScrubbingDynamicOpts = ["scripts", "iframes", "styles", "iepragmas", "prefetches", "tracking"]
 
 Scrubbers =  _t.Callable[[str, LinkRemapper, _t.Iterator[HTML5Token]], _t.Iterator[HTML5Token]]
@@ -363,7 +363,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
     not_jumps = not opts.jumps
     not_actions = not opts.actions
-    not_srcs = not opts.srcs
+    not_reqs = not opts.reqs
     not_styles = not opts.styles
     not_scripts = not opts.scripts
     not_iepragmas = not opts.iepragmas
@@ -376,7 +376,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         base_url_unset = True
 
         remap_src_url : LinkRemapper
-        if not_srcs:
+        if not_reqs:
             remap_src_url = remap_link_into_void
         else:
             remap_src_url = remap_link
@@ -465,7 +465,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                 elif nnann in actions_attrs:
                                     link_type, minus = LinkType.ACTION, not_actions
                                 else:
-                                    link_type, minus = LinkType.SRC, not_srcs
+                                    link_type, minus = LinkType.REQ, not_reqs
                                 # remap the URL
                                 if minus:
                                     url = remap_link_into_void(link_type, url)
@@ -482,7 +482,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                 elif not(url.startswith("data:") or url.startswith("javascript:")):
                                     # remap the URL
                                     url = _up.urljoin(base_url, url)
-                                    url = remap_src_url(LinkType.SRC, url)
+                                    url = remap_src_url(LinkType.REQ, url)
                                 new_srcset.append((url, cond))
                             attrs[ann] = unparse_srcset_attr(new_srcset)
                             del srcset, new_srcset
