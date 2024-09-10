@@ -204,8 +204,8 @@ def map_wrr_paths_extra(emit : _t.Callable[[_t.AnyStr, _t.AnyStr, _os.stat_resul
                         **kwargs : _t.Any) -> None:
     global should_raise
     should_raise = False
-    for path in paths:
-        load_map_orderly(wrr_load_expr, emit, path, **kwargs)
+    for exp_path in paths:
+        load_map_orderly(wrr_load_expr, emit, exp_path, **kwargs)
 
 def map_wrr_paths(emit : _t.Callable[[_t.AnyStr, _t.AnyStr, ReqresExpr], None],
                   paths : list[_t.AnyStr],
@@ -257,8 +257,8 @@ def cmd_get(cargs : _t.Any) -> None:
         cargs.mexprs = { stdout: [compile_expr(default_get_expr)] }
     compile_remap(cargs)
 
-    abs_path = _os.path.abspath(_os.path.expanduser(cargs.path))
-    rrexpr = wrr_loadf_expr(abs_path)
+    exp_path = _os.path.expanduser(cargs.path)
+    rrexpr = wrr_loadf_expr(exp_path)
     rrexpr.items["remap_link"] = cargs.remap_link_func
 
     for fobj, exprs in cargs.mexprs.items():
@@ -284,9 +284,8 @@ def cmd_run(cargs : _t.Any) -> None:
 
     tmp_paths = []
     try:
-        for path in cargs.paths:
-            abs_path = _os.path.abspath(path)
-            rrexpr = wrr_loadf_expr(abs_path)
+        for exp_path in cargs.paths:
+            rrexpr = wrr_loadf_expr(exp_path)
             rrexpr.items["remap_link"] = cargs.remap_link_func
 
             # TODO: extension guessing
@@ -1120,8 +1119,6 @@ def make_deferred_emit(cargs : _t.Any,
 def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) \
         -> tuple[_t.Callable[[str, str, _os.stat_result, ReqresExpr], None],
                  _t.Callable[[], None]]:
-    destination = _os.path.expanduser(destination)
-
     action_op : _t.Any
     action = cargs.action
     if allow_updates:
@@ -1324,7 +1321,7 @@ def cmd_organize(cargs : _t.Any) -> None:
 
     if cargs.destination is not None:
         # destination is set explicitly
-        emit, finish = make_organize_emit(cargs, cargs.destination, cargs.allow_updates)
+        emit, finish = make_organize_emit(cargs, _os.path.expanduser(cargs.destination), cargs.allow_updates)
         try:
             map_wrr_paths_extra(emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
         finally:
@@ -1334,19 +1331,19 @@ def cmd_organize(cargs : _t.Any) -> None:
             raise Failure(gettext("`--latest` without `--to` is not allowed"))
 
         # each path is its own destination
-        for path in cargs.paths:
+        for exp_path in cargs.paths:
             try:
-                path_stat = _os.stat(_os.path.expanduser(path))
+                path_stat = _os.stat(exp_path)
             except FileNotFoundError:
-                raise Failure(gettext("`%s` does not exist"), path)
+                raise Failure(gettext("`%s` does not exist"), exp_path)
 
             if not _stat.S_ISDIR(path_stat.st_mode):
-                raise Failure(gettext("%s is not a directory but no `--to` is specified"), path)
+                raise Failure(gettext("`%s` is not a directory but no `--to` is specified"), exp_path)
 
-        for path in cargs.paths:
-            emit, finish = make_organize_emit(cargs, path, False)
+        for exp_path in cargs.paths:
+            emit, finish = make_organize_emit(cargs, exp_path, False)
             try:
-                map_wrr_paths_extra(emit, [path], ordering=cargs.walk_fs, errors=cargs.errors)
+                map_wrr_paths_extra(emit, [exp_path], ordering=cargs.walk_fs, errors=cargs.errors)
             finally:
                 finish()
 
@@ -1371,10 +1368,9 @@ def cmd_import_generic(cargs : _t.Any, load_wrrs : _t.Callable[[_io.BufferedRead
 
     global should_raise
     should_raise = False
-
     try:
-        for path in cargs.paths:
-            load_map_orderly(load_wrrs, emit, path, ordering=cargs.walk_fs, errors=cargs.errors)
+        for exp_path in cargs.paths:
+            load_map_orderly(load_wrrs, emit, exp_path, ordering=cargs.walk_fs, errors=cargs.errors)
     finally:
         finish()
 
