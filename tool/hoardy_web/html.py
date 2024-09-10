@@ -338,7 +338,7 @@ class ScrubbingOptions:
     iframes : bool = _dc.field(default=False)
     prefetches : bool = _dc.field(default=False)
     tracking : bool = _dc.field(default=False)
-    verbose : bool | int = _dc.field(default=True)
+    verbose : bool = _dc.field(default=False)
     whitespace : bool = _dc.field(default=False)
     optional_tags : bool = _dc.field(default=True)
     indent : bool = _dc.field(default=False)
@@ -511,13 +511,9 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
             if not censoring:
                 yield token
             elif typ != "SpaceCharacters":
-                if opts.verbose == 2:
-                    tt = token.get("name", None)
-                    tt = f"{tt} tag" if tt is not None else typ
-                    yield from emit_censored(tt)
-                elif typ == "StartTag" or typ == "EmptyTag":
-                    tt = token.get("name", typ)
-                    yield from emit_censored(tt)
+                tt = token.get("name", None)
+                tt = f"{typ} {tt}" if tt is not None else typ
+                yield from emit_censored(tt)
 
     post_process1 : _h5fb.Filter
     if opts.whitespace:
