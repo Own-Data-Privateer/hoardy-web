@@ -30,6 +30,8 @@ import html5lib.filters.base as _h5fb
 import html5lib.filters.whitespace as _h5ws
 import html5lib.filters.optionaltags as _h5ot
 
+import tinycss2 as _tcss
+
 from kisstdlib.exceptions import *
 
 class LinkType(_enum.Enum):
@@ -49,6 +51,7 @@ def remap_link_into_void(link_type : LinkType, url : str) -> str:
         return "javascript:void(0)"
 
 HTML5Token = dict[str, _t.Any]
+CSSNode : _t.TypeAlias = _tcss.ast.Node
 
 # HTML elements that must preserve space
 _spacePreserveElements = _h5ws.Filter.spacePreserveElements
@@ -349,12 +352,18 @@ class ScrubbingOptions:
     whitespace : bool = _dc.field(default=False)
     optional_tags : bool = _dc.field(default=True)
     indent : bool = _dc.field(default=False)
+    indent_step : int = _dc.field(default=2)
     debug : bool = _dc.field(default=False)
 
 ScrubbingReferenceOptions = ["jumps", "actions", "reqs"]
 ScrubbingDynamicOpts = ["scripts", "iframes", "styles", "iepragmas", "prefetches", "tracking"]
 
-Scrubbers =  _t.Callable[[str, LinkRemapper, _t.Iterator[HTML5Token]], _t.Iterator[HTML5Token]]
+Scrubbers = tuple[
+    _t.Callable[[str, LinkRemapper, _t.Iterator[HTML5Token]], _t.Iterator[HTML5Token]],
+    _t.Callable[[str, LinkRemapper, _t.Iterator[CSSNode]], list[CSSNode]],
+]
+
+class CSSScrubbingError(Failure): pass
 
 def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     attr_blacklist : set[tuple[NS, NS]] = set()
@@ -374,6 +383,106 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     not_scripts = not opts.scripts
     not_iepragmas = not opts.iepragmas
     not_iframes = not opts.iframes
+    yes_verbose = opts.verbose
+    not_verbose = not opts.verbose
+    not_whitespace = not opts.whitespace
+    yes_indent = opts.indent
+    indent_step = opts.indent_step
+
+    def remap_url(base_url : str,
+                  remap_link : LinkRemapper,
+                  url : str) -> str:
+        url = _up.urljoin(base_url, url)
+        if not_scripts and url.startswith("javascript:"):
+            url = "javascript:void(0)"
+        elif not (url.startswith("data:") or url.startswith("javascript:")):
+            url = remap_link(LinkType.REQ, url)
+        return url
+
+    def scrub_css(base_url : str,
+                  remap_link : LinkRemapper,
+                  nodes : _t.Iterator[CSSNode],
+                  current : int | None = None,
+                  errors : bool = False) -> list[CSSNode]:
+        if not_styles:
+            if not_verbose:
+                node = _tcss.ast.Comment(0, 0, f" hoardy-web censored out CSS data from here ")
+                return [node]
+            else:
+                return []
+
+        res = []
+        newline : bool = True
+
+        def emit_indent() -> None:
+            if current is not None:
+                if newline:
+                    chars = " " * (indent_step * current)
+                else:
+                    chars = "\n" + " " * (indent_step * current)
+                res.append(_tcss.ast.WhitespaceToken(0, 0, chars))
+
+        # walk the AST tree recursively
+        for node in nodes:
+            if isinstance(node, (_tcss.ast.QualifiedRule, _tcss.ast.AtRule)):
+                emit_indent()
+                node.prelude = scrub_css(base_url, remap_link, node.prelude)
+                if node.content is not None:
+                    if current is not None:
+                        try:
+                            content = scrub_css(base_url, remap_link, _tcss.parse_blocks_contents(node.content), current + 1, True)
+                        except CSSScrubbingError:
+                            # it does not parse, scrub the tokens instead
+                            content = scrub_css(base_url, remap_link, node.content)
+                        node.content = \
+                            [_tcss.ast.WhitespaceToken(0, 0, "\n")] + \
+                            content + \
+                            [_tcss.ast.WhitespaceToken(0, 0, "\n" + " " * (indent_step * current))]
+                        del content
+                    else:
+                        # NB: no need to parse with `_tcss.parse_blocks_contents` in this case
+                        node.content = scrub_css(base_url, remap_link, node.content)
+            elif isinstance(node, _tcss.ast.Declaration):
+                emit_indent()
+                node.value = scrub_css(base_url, remap_link, node.value)
+            elif isinstance(node, _tcss.ast.URLToken):
+                # remap the URL
+                url = remap_url(base_url, remap_link, node.value)
+                rep = f"url({_tcss.serializer.serialize_url(url)})"
+                node.value = url
+                node.representation = rep
+            elif isinstance(node, _tcss.ast.FunctionBlock):
+                if node.lower_name == "url":
+                    # technically, this is a bug in the CSS we are processing, but browsers work around this, so do we
+                    url = remap_url(base_url, remap_link, "".join([n.value for n in node.arguments if n.type == "string"]))
+                    rep = f"url({_tcss.serializer.serialize_url(url)})"
+                    res.append(_tcss.ast.URLToken(node.source_line, node.source_column, url, rep))
+                    continue
+                node.arguments = scrub_css(base_url, remap_link, node.arguments)
+            elif isinstance(node, (_tcss.ast.ParenthesesBlock, _tcss.ast.SquareBracketsBlock, _tcss.ast.CurlyBracketsBlock)):
+                node.content = scrub_css(base_url, remap_link, node.content)
+            elif isinstance(node, _tcss.ast.Comment):
+                emit_indent()
+            elif isinstance(node, _tcss.ast.ParseError):
+                if errors:
+                    raise CSSScrubbingError("tinycss2.ast.ParseError: %s: %s", node.kind, node.message)
+                # replace errors with comments explaining what failed to parse
+                emit_indent()
+                node = _tcss.ast.Comment(node.source_line, node.source_column,
+                                         f" hoardy-web CSS parsing error: {node.kind}: {node.message} ")
+            elif isinstance(node, _tcss.ast.WhitespaceToken):
+                if not_whitespace or current is not None:
+                    # minimize away
+                    res.append(_tcss.ast.WhitespaceToken(node.source_line, node.source_column, " "))
+                    continue
+                res.append(node)
+                if node.value.endswith("\n"):
+                    newline = True
+                continue
+
+            res.append(node)
+            newline = False
+        return res
 
     def scrub_html(base_url : str,
                    remap_link : LinkRemapper,
@@ -390,13 +499,24 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         censor_lvl : int = 0
         stack : list[tuple[str | None, str]] = []
 
+        assembling : bool = False
+        contents : list[str] = []
+
         def emit_censored(what : str) -> _t.Iterator[HTML5Token]:
-            if opts.verbose:
+            if yes_verbose:
                 yield {"type": "Comment", "data": f" hoardy-web censored out {what} from here "}
 
         for token in walker:
             typ = token["type"]
+
+            if assembling and (typ == "Characters" or typ == "SpaceCharacters"):
+                contents.append(token["data"])
+                continue
+
             censoring = censor_lvl != 0
+            if censoring and len(contents) > 0:
+                yield from emit_censored("character data")
+                contents = []
 
             if typ == "StartTag" or typ == "EmptyTag":
                 nn = (token["namespace"], token["name"])
@@ -452,8 +572,11 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                             to_remove.append(ann)
                             continue
                         elif not_styles and ann == style_attr:
-                            # drop inline styles
-                            to_remove.append(ann)
+                            if not_verbose:
+                                # drop inline styles
+                                to_remove.append(ann)
+                            else:
+                                attrs[ann] = "/* hoardy-web censored out a CSS data from here */"
                             continue
                         elif nnann in attr_blacklist:
                             to_remove.append(ann)
@@ -498,6 +621,8 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                 new_srcset.append((url, cond))
                             attrs[ann] = unparse_srcset_attr(new_srcset)
                             del srcset, new_srcset
+                        elif ann == style_attr:
+                            attrs[ann] = _tcss.serialize(scrub_css(base_url, remap_src_url, _tcss.parse_blocks_contents(value), 0 if yes_indent else None))
 
                     # cleanup
                     for ann in to_remove:
@@ -507,10 +632,25 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                     stack.append(nn)
                     if censoring:
                         censor_lvl += 1
+                    elif nn == htmlns_style:
+                        # start assembling <style> contents
+                        assembling = True
             elif typ == "EndTag":
                 # stop handling <base ...> tag
                 if stack == in_head:
                     base_url_unset = False
+                # scrub <style> contents
+                elif assembling:
+                    assembling = False
+                    data = "".join(contents)
+                    contents = []
+                    stack_len = len(stack)
+                    data = _tcss.serialize(scrub_css(base_url, remap_src_url, _tcss.parse_stylesheet(data), stack_len))
+                    if yes_indent:
+                        data = "\n" + " " * (2 * stack_len) + data.strip() + "\n" + " " * (2 * (stack_len - 1))
+                    elif not_whitespace:
+                        data = data.strip()
+                    yield {"type": "Characters", "data": data}
 
                 stack.pop()
                 #print(stack)
@@ -536,9 +676,9 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
     post_process2 : _h5fb.Filter
     if opts.debug:
-        post_process2 = lambda x: prettify_html(post_process1(x), 2, True)
+        post_process2 = lambda x: prettify_html(post_process1(x), indent_step, True)
     elif opts.indent:
-        post_process2 = lambda x: prettify_html(post_process1(x), 2)
+        post_process2 = lambda x: prettify_html(post_process1(x), indent_step)
     else:
         post_process2 = post_process1
 
@@ -549,12 +689,25 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         post_process3 = lambda x: _h5ot.Filter(post_process2(x))
 
     process_html = lambda base_url, remap_link, walker: post_process3(scrub_html(base_url, remap_link, walker))
-    return process_html
+    process_css = lambda base_url, remap_link, nodes: scrub_css(base_url, remap_link, nodes, 0 if yes_indent else None)
+    return process_html, process_css
 
 _html5treebuilder = _h5.treebuilders.getTreeBuilder("etree", fullTree=True)
 _html5parser = _h5.html5parser.HTMLParser(_html5treebuilder)
 _html5walker = _h5.treewalkers.getTreeWalker("etree")
 _html5serializer = _h5.serializer.HTMLSerializer(strip_whitespace = False, omit_optional_tags = False)
+
+def scrub_css(scrubber : Scrubbers,
+              base_url : str,
+              remap_link : LinkRemapper,
+              data : str | bytes,
+              protocol_encoding : str | None = None) -> str:
+    if isinstance(data, str):
+        nodes = _tcss.parse_stylesheet(data)
+    else:
+        nodes, encoding = _tcss.parse_stylesheet_bytes(data, protocol_encoding=protocol_encoding)
+    res = scrubber[1](base_url, remap_link, nodes)
+    return _tcss.serialize(res) # type: ignore
 
 def scrub_html(scrubber : Scrubbers,
                base_url : str,
@@ -563,5 +716,5 @@ def scrub_html(scrubber : Scrubbers,
                protocol_encoding : str | None = None) -> str:
     dom = _html5parser.parse(data, likely_encoding=protocol_encoding)
     charEncoding = _html5parser.tokenizer.stream.charEncoding[0]
-    walker = scrubber(base_url, remap_link, _html5walker(dom))
+    walker = scrubber[0](base_url, remap_link, _html5walker(dom))
     return _html5serializer.render(walker, charEncoding.name) # type: ignore

@@ -25,6 +25,7 @@ buildPythonApplication (rec {
     kisstdlib
     idna
     html5lib
+    tinycss2
   ]
   ++ lib.optional mitmproxySupport mitmproxy;
 

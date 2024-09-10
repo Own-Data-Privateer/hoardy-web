@@ -738,6 +738,9 @@ def linst_scrub() -> LinstAtom:
             if "html" in essence:
                 remap_link = rrexpr.items.get("remap_link", None)
                 return scrub_html(scrubbers, rrexpr.net_url, remap_link, rere_obj.body, charset)
+            elif "css" in essence:
+                remap_link = rrexpr.items.get("remap_link", None)
+                return scrub_css(scrubbers, rrexpr.net_url, remap_link, rere_obj.body, charset)
             else:
                 # no scrubbing needed
                 return rere_obj.body
@@ -763,9 +766,9 @@ ReqresExpr_atoms.update({
     - `(+|-)(styles|scripts|iepragmas|iframes|prefetches|tracking)` control which things should be kept or censored out w.r.t. to `HTML`, `CSS`, and `JavaScript`, i.e. it controls whether `JavaScript` (both separate files and `HTML` tags and attributes), `<iframe>` `HTML` tags, `CSS` (both separate files and `HTML` tags and attributes; why? because `CSS` is Turing-complete), `HTML` Internet-Explorer pragmas, `HTML` content prefetch `link` tags, and other tracking `HTML` tags and attributes (like `a ping` attributes), should be respectively kept in or censored out from the input; the default is `-styles,-scripts,-iepragmas,-iframes,-prefetches,-tracking` which ensures the result will not produce any prefetch and tracking requests when loaded in a web browser, and that the whole result is simple data, not a program in some Turing-complete language, thus making it safe to feed the result to other tools too smart for their own users' good;
     - `(+|-)all_dyns` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
     - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead; the default is `-verbose`;
-    - `(+|-)whitespace` controls whether `HTML` renderer should keep the original `HTML` whitespace as-is or collapse it away (respectively); the default is `-whitespace` (because it saves a lot of space);
+    - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away (respectively); the default is `-whitespace`, which produces somewhat minimized outputs (because it saves a lot of space);
     - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them (respectively); the default is `+optional_tags` (because many tools fail to parse minimized `HTML` properly);
-    - `(+|-)indent` controls whether `HTML` renderer should indent `HTML` elements (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent`;
+    - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent`;
     - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics; `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied; neither is the default;
     - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it will indent `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging custom mutations; `-debug` is noop, which is the default;""",
         linst_scrub()),
