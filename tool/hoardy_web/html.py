@@ -291,6 +291,14 @@ actions_attrs = frozenset([
     ((htmlns, "input"),  (None, "formaction")),
 ])
 
+link_attrs : frozenset[tuple[NS, NS]]
+link_attrs = frozenset([
+    (htmlns_link,        (None, "href")),
+])
+
+link_reqs_rels : frozenset[str]
+link_reqs_rels = frozenset(["stylesheet", "icon", "shortcut"])
+
 reqs_attrs : frozenset[tuple[NS, NS]]
 reqs_attrs = frozenset([
     ((htmlns, "audio"),  (None, "src")),
@@ -298,7 +306,6 @@ reqs_attrs = frozenset([
     ((htmlns, "iframe"), (None, "src")),
     ((htmlns, "img"),    (None, "src")),
     ((htmlns, "input"),  (None, "src")),
-    (htmlns_link,        (None, "href")),
     ((htmlns, "script"), (None, "src")),
     ((htmlns, "source"), (None, "src")),
     ((htmlns, "track"),  (None, "src")),
@@ -307,7 +314,7 @@ reqs_attrs = frozenset([
 ])
 
 refs_attrs : frozenset[tuple[NS, NS]]
-refs_attrs = frozenset(list(jumps_attrs) + list(actions_attrs) + list(reqs_attrs))
+refs_attrs = frozenset(list(jumps_attrs) + list(actions_attrs) + list(link_attrs) + list(reqs_attrs))
 
 srcset_attrs = frozenset([
     ((htmlns, "img"),    (None, "srcset")),
@@ -416,6 +423,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                     # censor the original tag for simplicity
                     censoring = True
 
+                link_rels = []
                 if not censoring:
                     if not_scripts and nn == htmlns_script or \
                        not_iframes and nn == htmlns_iframe or \
@@ -427,9 +435,9 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         rels_ = attrs.get(rel_attr, None)
                         if rels_ is not None:
                             rels = word_re.findall(rels_)
-                            allowed_rels = list(filter(lambda r: r not in link_rel_blacklist, rels))
-                            if len(allowed_rels) > 0:
-                                attrs[rel_attr] = " ".join(allowed_rels)
+                            link_rels = list(filter(lambda r: r not in link_rel_blacklist, rels))
+                            if len(link_rels) > 0:
+                                attrs[rel_attr] = " ".join(link_rels)
                             else:
                                 # censor the whole tag in this case
                                 censoring = True
@@ -463,6 +471,11 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                     link_type, minus = LinkType.JUMP, not_jumps
                                 elif nnann in actions_attrs:
                                     link_type, minus = LinkType.ACTION, not_actions
+                                elif nnann in link_attrs:
+                                    if any([rel in link_reqs_rels for rel in link_rels]):
+                                        link_type, minus = LinkType.REQ, not_reqs
+                                    else:
+                                        link_type, minus = LinkType.JUMP, not_jumps
                                 else:
                                     link_type, minus = LinkType.REQ, not_reqs
                                 # remap the URL
