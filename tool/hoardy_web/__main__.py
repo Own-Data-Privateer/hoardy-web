@@ -1418,10 +1418,11 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
     # net_url -> (stime, src_path, dst_path)
     index : dict[str, tuple[Epoch, str, str]] = dict()
-    # indexed by net_url
-    visited : set[str] = set()
+    # disjoin, both indexed by net_url
+    done : set[str] = set()
+    queued : set[str] = set()
 
-    def remap_link_func_maker(queue : list[str], enqueue : bool, stime : Epoch, document_dir : str) -> LinkRemapper:
+    def remap_link_func_maker(stime : Epoch, document_dir : str, enqueue : bool, others : list[str], reqs : list[str]) -> LinkRemapper:
         def remap_link_func(link_type : LinkType, url : str) -> str:
             try:
                 purl = parse_url(url)
@@ -1439,14 +1440,31 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             except KeyError:
                 abs_out_path = None
 
-            if abs_out_path is not None and net_url not in visited:
-                visited.add(net_url)
-                # queue this if we are not over max_depth or this is a resource
-                if enqueue or link_type == LinkType.REQ:
-                    queue.append(net_url)
+            if abs_out_path is not None and net_url not in done:
+                added = False
+                if link_type == LinkType.REQ:
+                    # enqueue this if this is a requisite
+                    done.add(net_url)
+                    try:
+                        queued.remove(net_url)
+                    except KeyError: pass
+                    reqs.append(net_url)
+                    added = True
+                elif net_url not in queued:
+                    if enqueue:
+                        # enqueue if we are not over max_depth yet
+                        queued.add(net_url)
+                        others.append(net_url)
+                        added = True
+
+                if added:
                     if stdout.isatty:
-                        stdout.write_bytes(b"\033[33m")
-                    stdout.write_str_ln(gettext("queued %s (%s)") % (purl.pretty_url, net_url))
+                        if link_type != LinkType.REQ:
+                            stdout.write_bytes(b"\033[33m")
+                        else:
+                            stdout.write_bytes(b"\033[36m")
+                    what = "document" if link_type != LinkType.REQ else "requisite"
+                    stdout.write_str_ln(gettext(f"queued {what} %s (%s)") % (purl.pretty_url, net_url))
                     if stdout.isatty:
                         stdout.write_bytes(b"\033[0m")
                     stdout.flush()
@@ -1489,85 +1507,112 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             # update
             index[net_url] = stime, abs_in_path, abs_out_path
 
-        if queue_all and net_url not in visited:
-            visited.add(net_url)
+        if queue_all and net_url not in queued:
+            queued.add(net_url)
             queue.append(net_url)
 
     map_wrr_paths(collect, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
+
+    index_total = len(index)
+    n = 0
+    doc_n = 0
+
+    def emit(net_url : str, top : bool, enqueue : bool, others : list[str], reqs : list[str]) -> None:
+        n100 = 100 * n
+        n_total = len(done) + len(queued)
+        stime, abs_in_path, abs_out_path = index[net_url]
+        exists = _os.path.exists(abs_out_path)
+
+        if stdout.isatty:
+            if top:
+                stdout.write_bytes(b"\033[32m")
+            else:
+                stdout.write_bytes(b"\033[34m")
+        what = "" if top else "requisite of "
+        stdout.write_str_ln(gettext(f"exporting %.2f%% of %d (%.2f%% of %d indexed), {what}document #%d, input #%d, depth %d") % (n100 / n_total, n_total, n100 / index_total, index_total, doc_n, n, current_depth))
+        stdout.write_str_ln(gettext("URL %s") % (net_url,))
+        if stdout.isatty:
+            stdout.write_bytes(b"\033[0m")
+        stdout.write_str_ln(gettext("src %s") % (abs_in_path,))
+        stdout.write_str_ln(gettext("dst %s") % (abs_out_path,))
+        stdout.flush()
+
+        if skip_existing and exists:
+            if stdout.isatty:
+                stdout.write_bytes(b"\033[33m")
+            stdout.write_str_ln(gettext("destination exists, skipped!"))
+            if stdout.isatty:
+                stdout.write_bytes(b"\033[0m")
+            stdout.flush()
+            return
+
+        try:
+            rrexpr = wrr_loadf_expr(abs_in_path)
+            rrexpr.items["remap_link"] = remap_link_func_maker(stime, _os.path.dirname(abs_out_path), enqueue, others, reqs)
+
+            data : bytes
+            with TIOWrappedWriter(_io.BytesIO()) as f:
+                print_exprs(rrexpr, cargs.exprs, cargs.separator, f)
+                data = f.fobj.getvalue()
+
+            if exists and file_content_equals(abs_out_path, data):
+                # this is a noop overwrite, skip it
+                return
+            undeferred_write(data, abs_out_path, None, allow_updates)
+        except Failure as exc:
+            if cargs.errors == "ignore":
+                return
+            exc.elaborate(gettext(f"while processing `%s`"), abs_in_path)
+            if cargs.errors != "fail":
+                _logging.error("%s", str(exc))
+                return
+            raise CatastrophicFailure("%s", str(exc))
+        except Exception:
+            error(gettext("while processing `%s`"), abs_in_path)
+            raise
 
     for url in cargs.roots:
         net_url = parse_url(url).net_url
         if net_url not in index:
             raise CatastrophicFailure(gettext("`--root` `%s` was not found among candidates loaded from given input `PATH`s"), url)
-        if net_url not in visited:
-            visited.add(net_url)
+        if net_url not in queued:
+            queued.add(net_url)
             queue.append(net_url)
-
-    n = 0
-    index_total = len(index)
-    prev_total = 0
 
     while len(queue) > 0:
         if want_stop: raise KeyboardInterrupt()
 
-        prev_total += len(queue)
-
-        prev_queue = queue
-        queue = []
-
         current_depth += 1
         enqueue = current_depth <= max_depth
 
-        for net_url in prev_queue:
+        new_queue : list[str] = []
+        for net_url in queue:
             if want_stop: raise KeyboardInterrupt()
 
-            n += 1
-            n100 = 100 * n
-            n_total = prev_total + len(queue)
-            stime, abs_in_path, abs_out_path = index[net_url]
-            exists = _os.path.exists(abs_out_path)
-
-            if stdout.isatty:
-                stdout.write_bytes(b"\033[32m")
-            stdout.write_str_ln(gettext("exporting #%d, %.2f%% of %d (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / index_total, index_total))
-            if stdout.isatty:
-                stdout.write_bytes(b"\033[0m")
-            stdout.write_str_ln(gettext("URL %s\nsrc %s\ndst %s") % (net_url, abs_in_path, abs_out_path))
-            stdout.flush()
-
-            if skip_existing and exists:
-                if stdout.isatty:
-                    stdout.write_bytes(b"\033[31m")
-                stdout.write_str_ln(gettext("skipped! (destination exists, `--partial` is set)"))
-                if stdout.isatty:
-                    stdout.write_bytes(b"\033[0m")
-                stdout.flush()
+            if net_url in done:
                 continue
 
-            try:
-                rrexpr = wrr_loadf_expr(abs_in_path)
-                rrexpr.items["remap_link"] = remap_link_func_maker(queue, enqueue, stime, _os.path.dirname(abs_out_path))
+            done.add(net_url)
+            queued.remove(net_url)
 
-                data : bytes
-                with TIOWrappedWriter(_io.BytesIO()) as f:
-                    print_exprs(rrexpr, cargs.exprs, cargs.separator, f)
-                    data = f.fobj.getvalue()
+            new_reqs: list[str] = []
+            n += 1
+            doc_n += 1
+            emit(net_url, True, enqueue, new_queue, new_reqs)
 
-                if exists and file_content_equals(abs_out_path, data):
-                    # this is a noop overwrite, skip it
-                    continue
-                undeferred_write(data, abs_out_path, None, allow_updates)
-            except Failure as exc:
-                if cargs.errors == "ignore":
-                    continue
-                exc.elaborate(gettext(f"while processing `%s`"), abs_in_path)
-                if cargs.errors != "fail":
-                    _logging.error("%s", str(exc))
-                    continue
-                raise CatastrophicFailure("%s", str(exc))
-            except Exception:
-                error(gettext("while processing `%s`"), abs_in_path)
-                raise
+            while len(new_reqs) > 0:
+                if want_stop: raise KeyboardInterrupt()
+
+                new_new_reqs: list[str] = []
+                for src_net_url in new_reqs:
+                    if want_stop: raise KeyboardInterrupt()
+
+                    n += 1
+                    emit(src_net_url, False, enqueue, new_queue, new_new_reqs)
+
+                new_reqs = new_new_reqs
+
+        queue = new_queue
 
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     _ : _t.Callable[[str], str] = gettext
