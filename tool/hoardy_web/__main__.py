@@ -1456,6 +1456,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                         queued.add(net_url)
                         others.append(net_url)
                         added = True
+                    else:
+                        # otherwise, use fallback, since this will not be exported
+                        abs_out_path = None
 
                 if added:
                     if stdout.isatty:
