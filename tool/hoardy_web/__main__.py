@@ -1381,6 +1381,9 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
     from .mitmproxy import load_as_wrrs
     cmd_import_generic(cargs, load_as_wrrs)
 
+def path_to_url(x : str) -> str:
+    return x.replace("?", "%3F")
+
 default_export_expr = "response.body|eb|scrub response +reqs"
 def cmd_export_mirror(cargs : _t.Any) -> None:
     compile_filters(cargs)
@@ -1403,7 +1406,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             trrexpr.items["num"] = 0
             rel_out_path : str = _os.path.join(destination, cargs.output_format % trrexpr)
             abs_out_path = _os.path.abspath(rel_out_path)
-            return _os.path.relpath(abs_out_path, document_dir)
+            return path_to_url(_os.path.relpath(abs_out_path, document_dir))
     else:
         assert False
 
@@ -1451,7 +1454,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             if abs_out_path is None or always_fallback:
                 return remap_link_fallback(stime, document_dir, link_type, purl)
 
-            return _os.path.relpath(abs_out_path, document_dir)
+            return path_to_url(_os.path.relpath(abs_out_path, document_dir))
         return remap_link_func
 
     queue : list[str] = []
