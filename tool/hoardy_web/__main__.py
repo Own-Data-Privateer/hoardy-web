@@ -151,9 +151,16 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], Lo
                      emit_func : _t.Callable[[_t.AnyStr, _t.AnyStr, _os.stat_result, LoadElem], None],
                      dir_or_file_path : _t.AnyStr,
                      *,
+                     seen_paths : set[_t.AnyStr] | None = None,
                      follow_symlinks : bool = True,
                      ordering : bool | None = False,
                      errors : str = "fail") -> None:
+    if seen_paths is not None:
+        abs_dir_or_file_path = _os.path.abspath(dir_or_file_path)
+        if abs_dir_or_file_path in seen_paths:
+            return
+        seen_paths.add(abs_dir_or_file_path)
+
     for path in walk_orderly(dir_or_file_path,
                              include_directories = False,
                              ordering = ordering,
@@ -169,6 +176,11 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], Lo
         try:
             if follow_symlinks:
                 abs_path = _os.path.realpath(abs_path)
+
+            if seen_paths is not None:
+                if abs_path in seen_paths:
+                    continue
+                seen_paths.add(abs_path)
 
             try:
                 fobj = open(abs_path, "rb")
@@ -1514,7 +1526,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             queued.add(net_url)
             queue.append(net_url)
 
-    map_wrr_paths(collect, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
+    map_wrr_paths(collect, cargs.paths, seen_paths=set(), ordering=cargs.walk_fs, errors=cargs.errors)
 
     index_total = len(index)
     n = 0
