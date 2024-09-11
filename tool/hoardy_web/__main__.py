@@ -1520,7 +1520,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     n = 0
     doc_n = 0
 
-    def emit(net_url : str, top : bool, enqueue : bool, others : list[str], reqs : list[str]) -> None:
+    def emit(net_url : str, top : bool, enqueue : bool, others : list[str], reqs : list[str]) -> _t.Callable[[], None] | None:
         n100 = 100 * n
         n_total = len(done) + len(queued)
         stime, abs_in_path, abs_out_path = index[net_url]
@@ -1547,7 +1547,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             if stdout.isatty:
                 stdout.write_bytes(b"\033[0m")
             stdout.flush()
-            return
+            return None
 
         try:
             rrexpr = wrr_loadf_expr(abs_in_path)
@@ -1560,15 +1560,18 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
             if exists and file_content_equals(abs_out_path, data):
                 # this is a noop overwrite, skip it
-                return
-            undeferred_write(data, abs_out_path, None, allow_updates)
+                return None
+
+            def finish() -> None:
+                undeferred_write(data, abs_out_path, None, allow_updates)
+            return finish
         except Failure as exc:
             if cargs.errors == "ignore":
-                return
+                return None
             exc.elaborate(gettext(f"while processing `%s`"), abs_in_path)
             if cargs.errors != "fail":
                 _logging.error("%s", str(exc))
-                return
+                return None
             raise CatastrophicFailure("%s", str(exc))
         except Exception:
             error(gettext("while processing `%s`"), abs_in_path)
@@ -1601,7 +1604,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             new_reqs: list[str] = []
             n += 1
             doc_n += 1
-            emit(net_url, True, enqueue, new_queue, new_reqs)
+            finish = emit(net_url, True, enqueue, new_queue, new_reqs)
 
             while len(new_reqs) > 0:
                 if want_stop: raise KeyboardInterrupt()
@@ -1611,9 +1614,14 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                     if want_stop: raise KeyboardInterrupt()
 
                     n += 1
-                    emit(src_net_url, False, enqueue, new_queue, new_new_reqs)
+                    src_finish = emit(src_net_url, False, enqueue, new_queue, new_new_reqs)
+                    if src_finish is not None:
+                        src_finish()
 
                 new_reqs = new_new_reqs
+
+            if finish is not None:
+                finish()
 
         queue = new_queue
 
