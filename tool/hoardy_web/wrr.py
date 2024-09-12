@@ -589,9 +589,41 @@ def trivial_Reqres(url : ParsedURL,
                   ftime,
                   {}, None)
 
+def fallback_Reqres(url : ParsedURL,
+                    expected_mime : list[str],
+                    qtime : Epoch = Epoch(0),
+                    stime : Epoch = Epoch(1000),
+                    ftime : Epoch = Epoch(2000),
+                    data : bytes = b"") -> Reqres:
+    """Similar to `trivial_Reqres`, but trying to guess the `Content-Type` from the given `expected_content_types` and the extension."""
+
+    path_parts = url.path_parts
+    if len(path_parts) == 0 or url.raw_path.endswith("/"):
+        cts = page_mime
+    else:
+        last = path_parts[-1].lower()
+        _, ext = _os.path.splitext(last)
+        try:
+            cts = possible_mimes_of_ext[ext]
+        except KeyError:
+            cts = any_mime
+
+    # intersect, keeping the order in expected_mime
+    cts = [ct for ct in expected_mime if ct in cts]
+
+    if len(cts) > 0:
+        return trivial_Reqres(url, cts[0], stime, stime, stime, data=data)
+
+    # fallback this otherwise
+    return trivial_Reqres(url, "application/octet-stream", stime, stime, stime, data=data)
+
 def test_ReqresExpr() -> None:
     def mk(url : str, ct : str = "text/html", sniff : bool = False, data : bytes = b"") -> ReqresExpr:
         x = trivial_Reqres(parse_url(url), ct, sniff=sniff, data=data)
+        return ReqresExpr(x, None, [])
+
+    def mkf(url : str, cts : list[str] = ["text/html"], data : bytes = b"") -> ReqresExpr:
+        x = fallback_Reqres(parse_url(url), cts)
         return ReqresExpr(x, None, [])
 
     def check(x : ReqresExpr, name : str, value : _t.Any) -> None:
@@ -621,6 +653,11 @@ def test_ReqresExpr() -> None:
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
+    def check_ff(url : str, cts : list[str], data : bytes, ext : str, *parts : str) -> None:
+        x = mkf(url, cts, data)
+        check(x, "filepath_ext", ext)
+        check(x, "filepath_parts", list(parts))
+
     check_fp("https://example.org/", ".htm", "index")
     check_fp("https://example.org/index.html", ".html", "index")
     check_fp("https://example.org/test", ".htm", "test", "index")
@@ -636,6 +673,10 @@ def test_ReqresExpr() -> None:
 
     check_fx("https://example.org/test.data", "text/plain", True, b"\x00", ".data", "test")
     check_fx("https://example.org/test", "text/plain", True, b"\x00", ".data", "test", "index")
+
+    check_ff("https://example.org/test.css", ["text/css", "text/plain"], b"", ".css", "test")
+    check_ff("https://example.org/test.txt", ["text/css", "text/plain"], b"", ".txt", "test")
+    check_ff("https://example.org/test", ["text/css", "text/plain"], b"", ".css", "test", "index")
 
     url = "https://example.org//first/./skipped/../second/?query=this"
     x = mk(url)
