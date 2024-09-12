@@ -274,26 +274,26 @@ def get_header(headers : Headers, name : str, default : str | None = None) -> st
         return res.decode("ascii")
 
 class RRCommon:
-    _ct : DiscernContentType | None = None
-    _pct : DiscernContentType | None = None
+    _dtc : dict[SniffContentType, DiscernContentType]
 
     def get_header(self, name : str, default : str | None = None) -> str | None:
         return get_header(self.headers, name, default) # type: ignore
 
-    def discern_content_type(self, paranoid : bool) -> DiscernContentType:
-        """do mime.discern_content_type on this, and cache the result"""
-        if paranoid and self._ct is not None:
-            return self._ct
-        elif not paranoid and self._pct is not None:
-            return self._pct
+    def discern_content_type(self, sniff : SniffContentType) -> DiscernContentType:
+        """Run `mime.discern_content_type` on this."""
+        try:
+            return self._dtc[sniff]
+        except KeyError:
+            pass
+        except AttributeError:
+            self._dtc = {}
 
-        ct, sniff = self.get_content_type() # type: ignore
-        res = discern_content_type(ct, sniff, paranoid, self.body) # type: ignore
+        ct, do_sniff = self.get_content_type() # type: ignore
+        if do_sniff and sniff == SniffContentType.NONE:
+            sniff = SniffContentType.FORCE
+        res = discern_content_type(ct, sniff, self.body) # type: ignore
 
-        if paranoid:
-            self._ct = res
-        else:
-            self._pct = res
+        self._dtc[sniff] = res
         return res
 
 @_dc.dataclass
@@ -442,6 +442,7 @@ class ReqresExpr:
     reqres : Reqres
     fs_path : str | bytes | None
     obj_path : list[int | str | bytes]
+    sniff : SniffContentType = _dc.field(default=SniffContentType.NONE)
     items : dict[str, _t.Any] = _dc.field(default_factory = dict)
 
     def format_source(self) -> bytes:
@@ -531,7 +532,7 @@ class ReqresExpr:
             self._fill_time("f", ftime)
         elif name == "filepath_parts" or name == "filepath_ext":
             if reqres.response is not None:
-                _, _, _, extensions = reqres.response.discern_content_type(False)
+                _, _, _, extensions = reqres.response.discern_content_type(self.sniff)
             else:
                 extensions = []
             parts, ext = reqres.request.url.filepath_parts_ext("index", extensions)
@@ -679,7 +680,6 @@ def linst_scrub() -> LinstAtom:
     def func(part : str, optstr : str) -> _t.Callable[..., LinstFunc]:
         rere = check_request_response("scrub", part)
 
-        paranoid = False
         scrub_opts = ScrubbingOptions()
         if optstr != "defaults":
             for opt in optstr.split(","):
@@ -688,9 +688,7 @@ def linst_scrub() -> LinstAtom:
 
                 oname = opt[1:]
                 value = opt.startswith("+")
-                if oname == "paranoid":
-                    paranoid = value
-                elif oname == "pretty":
+                if oname == "pretty":
                     scrub_opts.verbose = True
                     scrub_opts.whitespace = not value
                     scrub_opts.indent = value
@@ -729,7 +727,7 @@ def linst_scrub() -> LinstAtom:
             if len(rere_obj.body) == 0:
                 return rere_obj.body
 
-            mime, kinds, charset, _ = rere_obj.discern_content_type(paranoid)
+            mime, kinds, charset, _ = rere_obj.discern_content_type(rrexpr.sniff)
 
             censor = []
             if not scrub_opts.scripts and "javascript" in kinds:
@@ -770,7 +768,6 @@ ReqresExpr_atoms.update({
     "scrub": ("""scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on `--remap-*` command line options, the `MIME` type of the value itself, and the scrubbing options described below; this fuction takes two arguments:
   - the first must be either of `request|response`, it controls which `HTTP` headers `scrub` should inspect to help it detect the `MIME` type;
   - the second is either `defaults` or ","-separated string of `(+|-)<option>` tokens which control the scrubbing behaviour:
-    - `+paranoid` will assume the server is lying in its `Content-Type` and `X-Content-Type-Options` `HTTP` headers, sniff the contents of `(request|response).body` to determine what it actually contains regardless of what the server said, and then use the most paranoid interpretation of both the `HTTP` headers and the sniffed possible `MIME` types to decide what should be kept and what sholuld be removed by the options below; i.e., this will make `-unknown`, `-scripts`, and `-styles` options below to censor out more things, in particular, at the moment, most plain text files will get censored out as potential `JavaScript`; the default is `-paranoid`;
     - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which will keep data of unknown content types as-is;
     - `(+|-)(jumps|actions|reqs)` control which kinds of references to other documents should be remapped or censored out (respectively); i.e. it controls whether jump-links (`HTML` `a href`, `area href`, and similar), action-links (`HTML` `a ping`, `form action`, and similar), and/or references to page requisites (`HTML` `img src`, `iframe src`, `link src` that are `stylesheet`s or `icon`s, `CSS` `url` references, and similar) should be remapped using the specified `--remap-*` option (which see) or censored out similarly to how `--remap-void` will do it; the default is `+jumps,-actions,-reqs` which will produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
     - `(+|-)all_refs` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
@@ -889,18 +886,18 @@ def wrr_load_bundle(fobj : _io.BufferedReader, path : _t.AnyStr) -> _t.Iterator[
         res = wrr_load_raw(fobj)
         yield res
 
-def wrr_load_expr(fobj : _io.BufferedReader, path : str | bytes) -> ReqresExpr:
+def wrr_load_expr(fobj : _io.BufferedReader, path : str | bytes, sniff : SniffContentType) -> ReqresExpr:
     reqres = wrr_load(fobj)
-    res = ReqresExpr(reqres, path, [])
+    res = ReqresExpr(reqres, path, [], sniff)
     return res
 
 def wrr_loadf(path : str | bytes) -> Reqres:
     with open(path, "rb") as f:
         return wrr_load(f)
 
-def wrr_loadf_expr(path : str | bytes) -> ReqresExpr:
+def wrr_loadf_expr(path : str | bytes, sniff : SniffContentType) -> ReqresExpr:
     with open(path, "rb") as f:
-        return wrr_load_expr(f, path)
+        return wrr_load_expr(f, path, sniff)
 
 def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
     req = reqres.request

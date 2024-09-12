@@ -211,18 +211,20 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], Lo
                 continue
             raise exc
 
-def map_wrr_paths_extra(emit : _t.Callable[[_t.AnyStr, _t.AnyStr, _os.stat_result, ReqresExpr], None],
+def map_wrr_paths_extra(cargs : _t.Any,
+                        emit : _t.Callable[[_t.AnyStr, _t.AnyStr, _os.stat_result, ReqresExpr], None],
                         paths : list[_t.AnyStr],
                         **kwargs : _t.Any) -> None:
     global should_raise
     should_raise = False
     for exp_path in paths:
-        load_map_orderly(wrr_load_expr, emit, exp_path, **kwargs)
+        load_map_orderly(lambda x, y: wrr_load_expr(x, y, cargs.sniff), emit, exp_path, **kwargs)
 
-def map_wrr_paths(emit : _t.Callable[[_t.AnyStr, _t.AnyStr, ReqresExpr], None],
+def map_wrr_paths(cargs : _t.Any,
+                  emit : _t.Callable[[_t.AnyStr, _t.AnyStr, ReqresExpr], None],
                   paths : list[_t.AnyStr],
                   **kwargs : _t.Any) -> None:
-    map_wrr_paths_extra(lambda x, y, a, z: emit(x, y, z), paths, **kwargs)
+    map_wrr_paths_extra(cargs, lambda x, y, a, z: emit(x, y, z), paths, **kwargs)
 
 def get_bytes(value : _t.Any) -> bytes:
     if value is None or isinstance(value, (bool, int, float, Epoch)):
@@ -242,10 +244,10 @@ def cmd_pprint(cargs : _t.Any) -> None:
     def emit(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
         if not filters_allow(cargs, rrexpr): return
 
-        wrr_pprint(stdout, rrexpr.reqres, abs_in_path, cargs.abridged, cargs.paranoid)
+        wrr_pprint(stdout, rrexpr.reqres, abs_in_path, cargs.abridged, cargs.sniff)
         stdout.flush()
 
-    map_wrr_paths(emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
+    map_wrr_paths(cargs, emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
 
 def print_exprs(rrexpr : ReqresExpr, exprs : list[tuple[str, LinstFunc]],
                 separator : bytes, fobj : MinimalIOWriter) -> None:
@@ -270,7 +272,7 @@ def cmd_get(cargs : _t.Any) -> None:
     compile_remap(cargs)
 
     exp_path = _os.path.expanduser(cargs.path)
-    rrexpr = wrr_loadf_expr(exp_path)
+    rrexpr = wrr_loadf_expr(exp_path, cargs.sniff)
     rrexpr.items["remap_link"] = cargs.remap_link_func
 
     for fobj, exprs in cargs.mexprs.items():
@@ -297,7 +299,7 @@ def cmd_run(cargs : _t.Any) -> None:
     tmp_paths = []
     try:
         for exp_path in cargs.paths:
-            rrexpr = wrr_loadf_expr(exp_path)
+            rrexpr = wrr_loadf_expr(exp_path, cargs.sniff)
             rrexpr.items["remap_link"] = cargs.remap_link_func
 
             # TODO: extension guessing
@@ -351,7 +353,7 @@ def cmd_stream(cargs : _t.Any) -> None:
 
     stream.start()
     try:
-        map_wrr_paths(emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
+        map_wrr_paths(cargs, emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
     finally:
         stream.finish()
 
@@ -365,7 +367,7 @@ def cmd_find(cargs : _t.Any) -> None:
         stdout.write_bytes(cargs.terminator)
         stdout.flush()
 
-    map_wrr_paths(emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
+    map_wrr_paths(cargs, emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
 
 output_aliases = {
     "default":    "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s_%(num)d",
@@ -1174,9 +1176,9 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
             res : Epoch
             if data is not None:
                 bio = _t.cast(_io.BufferedReader, _io.BytesIO(data))
-                res = wrr_load_expr(bio, self.abs_path).stime
+                res = wrr_load_expr(bio, self.abs_path, cargs.sniff).stime
             else:
-                res = wrr_loadf_expr(self.abs_path).stime
+                res = wrr_loadf_expr(self.abs_path, cargs.sniff).stime
             self.stime_maybe = res
             return res
 
@@ -1335,7 +1337,7 @@ def cmd_organize(cargs : _t.Any) -> None:
         # destination is set explicitly
         emit, finish = make_organize_emit(cargs, _os.path.expanduser(cargs.destination), cargs.allow_updates)
         try:
-            map_wrr_paths_extra(emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
+            map_wrr_paths_extra(cargs, emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
         finally:
             finish()
     else:
@@ -1355,7 +1357,7 @@ def cmd_organize(cargs : _t.Any) -> None:
         for exp_path in cargs.paths:
             emit, finish = make_organize_emit(cargs, exp_path, False)
             try:
-                map_wrr_paths_extra(emit, [exp_path], ordering=cargs.walk_fs, errors=cargs.errors)
+                map_wrr_paths_extra(cargs, emit, [exp_path], ordering=cargs.walk_fs, errors=cargs.errors)
             finally:
                 finish()
 
@@ -1373,7 +1375,7 @@ def cmd_import_generic(cargs : _t.Any, load_wrrs : _t.Callable[[_io.BufferedRead
         for reqres in rr:
             if want_stop: raise KeyboardInterrupt()
 
-            rrexpr = ReqresExpr(reqres, abs_in_path, [n])
+            rrexpr = ReqresExpr(reqres, abs_in_path, [n], cargs.sniff)
             # TODO: to fix this cast, make ReqresExpr a _t.Generic
             emit_one(SourcedBytes(_t.cast(_t.AnyStr, rrexpr.format_source()), wrr_dumps(rrexpr.reqres)), rrexpr) # type: ignore
             n += 1
@@ -1526,7 +1528,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             queued.add(net_url)
             queue.append(net_url)
 
-    map_wrr_paths(collect, cargs.paths, seen_paths=set(), ordering=cargs.walk_fs, errors=cargs.errors)
+    map_wrr_paths(cargs, collect, cargs.paths, seen_paths=set(), ordering=cargs.walk_fs, errors=cargs.errors)
 
     index_total = len(index)
     n = 0
@@ -1562,7 +1564,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             return None
 
         try:
-            rrexpr = wrr_loadf_expr(abs_in_path)
+            rrexpr = wrr_loadf_expr(abs_in_path, cargs.sniff)
             rrexpr.items["remap_link"] = remap_link_func_maker(stime, _os.path.dirname(abs_out_path), enqueue, others, reqs)
 
             data : bytes
@@ -1847,16 +1849,31 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 
         cmd.add_argument("paths", metavar="PATH", nargs="*", type=str, help=_("inputs, can be a mix of files and directories (which will be traversed recursively)"))
 
+    def add_sniff(cmd : _t.Any, kind : str) -> None:
+        oscrub = "this influeences generated file names because `filepath_parts` and `filepath_ext` depend on both the original file extension present in the URL and the detected `MIME` type of its content"
+        wscrub = "higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`"
+        if kind == "pprint":
+            what = "this simply populates the `potentially` lists in the output in various ways"
+        elif kind == "organize":
+            what = oscrub
+        elif kind != "export":
+            what = wscrub
+        else:
+            what = f"{oscrub}; also, {wscrub}"
+
+        agrp = cmd.add_argument_group(_("`MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command " + what))
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument("--sniff-default", dest="sniff", action="store_const", const=SniffContentType.NONE, help=_("run `mimesniff` when the spec says it should be run; i.e., trust `Content-Type` `HTTP` headers most of the time; default"))
+        grp.add_argument("--sniff-force", dest="sniff", action="store_const", const=SniffContentType.FORCE, help=_("run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e., for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`"))
+        grp.add_argument("--sniff-paranoid", dest="sniff", action="store_const", const=SniffContentType.PARANOID, help=_(f"do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script"))
+        grp.set_defaults(sniff = SniffContentType.NONE)
+
     # pprint
     cmd = subparsers.add_parser("pprint", help=_("pretty-print given `WRR` files"),
                                 description = _("""Pretty-print given `WRR` files to stdout."""))
     add_pure(cmd, "print")
     add_abridged(cmd)
-    agrp = cmd.add_argument_group("`MIME` type sniffing")
-    grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--naive", dest="paranoid", action="store_const", const=False, help=_(f"""populate "potentially" lists like `{__prog__} (get|run|export) --expr '(request|response).body|eb|scrub \\2 defaults'` does; default"""))
-    grp.add_argument("--paranoid", dest="paranoid", action="store_const", const=True, help=_(f"""populate "potentially" lists in the output using paranoid `MIME` type sniffing like `{__prog__} (get|run|export) --expr '(request|response).body|eb|scrub \\2 +paranoid'` does; this exists to answer "Hey! Why did it censor out my data?!" questions"""))
-    grp.set_defaults(paranoid = False)
+    add_sniff(cmd, "pprint")
     add_paths(cmd)
     cmd.set_defaults(func=cmd_pprint)
 
@@ -1964,6 +1981,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                                 description = _(f"""Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified."""))
 
     add_expr(cmd, "get")
+    add_sniff(cmd, "get")
 
     cmd.add_argument("path", metavar="PATH", type=str, help=_("input `WRR` file path"))
     cmd.set_defaults(func=cmd_get)
@@ -1973,6 +1991,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                                 description = _("""Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files terminating each value as specified, spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process."""))
 
     add_expr(cmd, "run")
+    add_sniff(cmd, "run")
 
     cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of `PATH`s; default: `%(default)s`"))
     cmd.add_argument("command", metavar="COMMAND", type=str, help=_("command to spawn"))
@@ -1992,6 +2011,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 - raw: concatenate raw values; termination is controlled by `*-terminated` options
 """))
     add_expr(cmd, "stream")
+    add_sniff(cmd, "stream")
     add_paths(cmd)
     cmd.set_defaults(func=cmd_stream)
 
@@ -2101,6 +2121,7 @@ E.g. `{__prog__} organize --move` will not overwrite any files, which is why the
     add_fileout(cmd, "organize")
     add_memory(cmd)
 
+    add_sniff(cmd, "organize")
     add_paths(cmd, "organize")
     cmd.set_defaults(func=cmd_organize)
 
@@ -2137,6 +2158,7 @@ In short, this is a combination of `{__prog__} organize --copy` followed by in-p
 In other words, this generates static offline website mirrors, producing results similar to those of `wget -mpk`."""))
     add_impure(cmd, "export")
     add_expr(cmd, "export")
+    add_sniff(cmd, "export")
     add_fileout(cmd, "export")
 
     agrp = cmd.add_argument_group("export targets")

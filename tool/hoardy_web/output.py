@@ -38,7 +38,7 @@ def abridge_anystr(value : _t.AnyStr, length : int, ln : bool) -> tuple[bool, _t
     else:
         return False, value
 
-def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abridge : bool, paranoid : bool) -> None:
+def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abridge : bool, sniff : SniffContentType) -> None:
     req = reqres.request
     res = reqres.response
 
@@ -82,7 +82,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
 
     def dump_data(rr : Request | Response, complete : str) -> None:
         data = rr.body
-        kinds, mime, charset, _ = rr.discern_content_type(paranoid)
+        kinds, mime, charset, _ = rr.discern_content_type(sniff)
 
         unfinished = True
         if "json" in kinds or "unknown" in kinds:

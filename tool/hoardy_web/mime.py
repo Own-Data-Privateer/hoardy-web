@@ -22,6 +22,7 @@
 """
 
 import email.headerregistry as _emlhr
+import enum as _enum
 import re as _re
 import typing as _t
 
@@ -347,10 +348,15 @@ def sniff_mime_type(data : str | bytes, charset : str | None) \
 
     return any_text, "text/plain", charset, any_text_ext
 
+class SniffContentType(_enum.Enum):
+    NONE = 0
+    FORCE = 1
+    PARANOID = 2
+
 DiscernContentType = tuple[set[str], str, str | None, list[str]]
-def discern_content_type(ct : str | None, sniff : bool, paranoid : bool, data : str | bytes) \
+def discern_content_type(ct : str | None, sniff : SniffContentType, data : str | bytes) \
     -> DiscernContentType:
-    """Given `Content-type` HTTP header, sniff and paranoid flags, and actual content body,
+    """Given `Content-type` HTTP header, sniff value, and actual content body,
        return (possible kinds, MIME type, charset | None, extensions).
     """
 
@@ -364,11 +370,11 @@ def discern_content_type(ct : str | None, sniff : bool, paranoid : bool, data : 
     if kinds is None:
         kinds, mime, charset, extensions = sniff_mime_type(data, charset)
         skinds = set(kinds)
-    elif sniff or paranoid:
+    elif sniff != SniffContentType.NONE:
         kinds_, mime_, charset_, extensions_ = sniff_mime_type(data, charset)
         skinds = set(kinds)
         skinds_ = set(kinds_)
-        if paranoid:
+        if sniff == SniffContentType.PARANOID:
             # union possible interpretations
             skinds.update(skinds_)
             # sniffed version wins
