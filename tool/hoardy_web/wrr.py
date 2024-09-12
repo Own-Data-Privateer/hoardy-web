@@ -575,24 +575,26 @@ class ReqresExpr:
         return res
 
 def trivial_Reqres(url : ParsedURL,
+                   content_type : str = "text/html",
                    qtime : Epoch = Epoch(0),
                    stime : Epoch = Epoch(1000),
                    ftime : Epoch = Epoch(2000),
-                   content_type : bytes = b"text/html") -> Reqres:
+                   sniff : bool = False,
+                   data : bytes = b"") -> Reqres:
+    nsh = [] if sniff else [("X-Content-Type-Options", b"nosniff")]
     return Reqres(1, "hoardy-test/1", "HTTP/1.1",
                   Request(qtime, "GET", url, [], True, b""),
-                  Response(stime, 200, "OK", [("Content-Type", content_type)], True, b""),
+                  Response(stime, 200, "OK", [("Content-Type", content_type.encode("ascii"))] + nsh, True, data),
                   ftime,
                   {}, None)
 
 def test_ReqresExpr() -> None:
-    def mk(url : str, ct : bytes = b"text/html") -> ReqresExpr:
-        return ReqresExpr(trivial_Reqres(parse_url(url), content_type=ct), None, [])
+    def mk(url : str, ct : str = "text/html", sniff : bool = False, data : bytes = b"") -> ReqresExpr:
+        x = trivial_Reqres(parse_url(url), ct, sniff=sniff, data=data)
+        return ReqresExpr(x, None, [])
 
     def check(x : ReqresExpr, name : str, value : _t.Any) -> None:
         if x[name] != value:
-            print(value)
-            print(x[name])
             raise CatastrophicFailure("while evaluating %s of %s, got %s, expected %s", name, x.reqres.request.url, x[name], value)
 
     unmodified = [
@@ -603,6 +605,7 @@ def test_ReqresExpr() -> None:
         "http://example.org/unfinished/query?",
         "http://example.org/unfinished/query?param",
     ]
+
     for url in unmodified:
         x = mk(url)
         check(x, "net_url", url)
@@ -612,8 +615,8 @@ def test_ReqresExpr() -> None:
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
-    def check_fpx(url : str, ct : bytes, ext : str, *parts : str) -> None:
-        x = mk(url, ct)
+    def check_fx(url : str, ct : str, sniff : bool, data : bytes, ext : str, *parts : str) -> None:
+        x = mk(url, ct, sniff, data)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
@@ -622,9 +625,10 @@ def test_ReqresExpr() -> None:
     check_fp("https://example.org/test", ".htm", "test", "index")
     check_fp("https://example.org/test/", ".htm", "test", "index")
     check_fp("https://example.org/test/index.html", ".html", "test", "index")
-
     check_fp("https://example.org/test.data", ".htm", "test.data")
-    check_fpx("https://example.org/test.data", b"applications/octet-stream", ".data", "test")
+
+    check_fx("https://example.org/test.data", "application/octet-stream", False, b"", ".data", "test")
+    #check_fx("https://example.org/test.data", "application/octet-stream", True, b"", ".txt", "test.data")
 
     url = "https://example.org//first/./skipped/../second/?query=this"
     x = mk(url)

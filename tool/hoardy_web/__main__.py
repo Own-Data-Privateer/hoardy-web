@@ -1414,7 +1414,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         remap_link_fallback = lambda st, ap, link_type, purl: remap_link_into_void(link_type, purl.raw_url)
     elif cargs.remap_links == "all":
         def remap_link_fallback(stime : Epoch, document_dir : str, link_type : LinkType, purl : ParsedURL) -> str:
-            trrexpr = ReqresExpr(trivial_Reqres(purl, stime, stime, stime), None, [])
+            trrexpr = ReqresExpr(trivial_Reqres(purl, "text/html", stime, stime, stime), None, [])
             trrexpr.items["num"] = 0
             rel_out_path : str = _os.path.join(destination, cargs.output_format % trrexpr)
             abs_out_path = _os.path.abspath(rel_out_path)
