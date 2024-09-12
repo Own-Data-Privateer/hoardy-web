@@ -82,10 +82,10 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
 
     def dump_data(rr : Request | Response, complete : str) -> None:
         data = rr.body
-        essence, mime, charset, _ = rr.discern_content_type(paranoid)
+        kinds, mime, charset, _ = rr.discern_content_type(paranoid)
 
         unfinished = True
-        if "json" in essence or "unknown" in essence:
+        if "json" in kinds or "unknown" in kinds:
             try:
                 if isinstance(data, bytes):
                     data = data.decode(charset or fobj.encoding)
@@ -95,13 +95,13 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
             except _json.decoder.JSONDecodeError:
                 pass
             else:
-                essence = set(["json", "text"])
+                kinds = set(["json", "text"])
                 mime = "application/json"
                 charset = charset or fobj.encoding
                 data = _json.dumps(js, ensure_ascii = False, indent = 2).encode(fobj.encoding)
                 unfinished = False
 
-        if unfinished and ("cbor" in essence or "unknown" in essence) and isinstance(data, bytes):
+        if unfinished and ("cbor" in kinds or "unknown" in kinds) and isinstance(data, bytes):
             try:
                 with _io.BytesIO(data) as fp:
                     cb = _cbor2.CBORDecoder(fp).decode()
@@ -112,13 +112,13 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
             except Exception:
                 pass
             else:
-                essence = set(["cbor"])
+                kinds = set(["cbor"])
                 mime = "application/cbor"
                 charset = None
                 data = cbordump
                 unfinished = False
 
-        if "text" not in essence:
+        if "text" not in kinds:
             if isinstance(data, bytes):
                 data = repr(data)[2:-1].encode(fobj.encoding)
             else:
@@ -133,7 +133,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
         if abridged:
             status += ", abridged"
 
-        what = ", ".join(essence)
+        what = ", ".join(kinds)
         fobj.write_str_ln(f"({complete}, {len(data)} bytes, {mime}, potentially [{what}]{status}):")
         fobj.write(data)
         fobj.write_str_ln("")

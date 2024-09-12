@@ -531,7 +531,7 @@ class ReqresExpr:
             self._fill_time("f", ftime)
         elif name == "filepath_parts" or name == "filepath_ext":
             if reqres.response is not None:
-                _, _, _, extensions = reqres.response.discern_content_type(True)
+                _, _, _, extensions = reqres.response.discern_content_type(False)
             else:
                 extensions = []
             parts, ext = reqres.request.url.filepath_parts_ext("index", extensions)
@@ -628,7 +628,13 @@ def test_ReqresExpr() -> None:
     check_fp("https://example.org/test.data", ".htm", "test.data")
 
     check_fx("https://example.org/test.data", "application/octet-stream", False, b"", ".data", "test")
-    #check_fx("https://example.org/test.data", "application/octet-stream", True, b"", ".txt", "test.data")
+    check_fx("https://example.org/test", "application/octet-stream", False, b"", ".data", "test", "index")
+
+    check_fx("https://example.org/test.data", "application/octet-stream", True, b"", ".txt", "test.data")
+    check_fx("https://example.org/test", "application/octet-stream", True, b"", ".txt", "test", "index")
+
+    check_fx("https://example.org/test.data", "text/plain", True, b"\x00", ".data", "test")
+    check_fx("https://example.org/test", "text/plain", True, b"\x00", ".data", "test", "index")
 
     url = "https://example.org//first/./skipped/../second/?query=this"
     x = mk(url)
@@ -723,26 +729,27 @@ def linst_scrub() -> LinstAtom:
             if len(rere_obj.body) == 0:
                 return rere_obj.body
 
-            essence, mime, charset, _ = rere_obj.discern_content_type(paranoid)
+            mime, kinds, charset, _ = rere_obj.discern_content_type(paranoid)
 
             censor = []
-            if not scrub_opts.scripts and "javascript" in essence:
+            if not scrub_opts.scripts and "javascript" in kinds:
                 censor.append("JavaScript")
-            if not scrub_opts.styles and "css" in essence:
+            if not scrub_opts.styles and "css" in kinds:
                 censor.append("CSS")
-            if (not scrub_opts.scripts or not scrub_opts.styles) and "dyndoc" in essence:
+            if (not scrub_opts.scripts or not scrub_opts.styles) and "dyndoc" in kinds:
                 # PDF, PostScript, EPub
-                censor.append("Dynamic Document")
-            if not scrub_opts.unknown and "unknown" in essence:
-                censor.append("Unknown Data")
+                censor.append("dynamic document")
+            if not scrub_opts.unknown and "unknown" in kinds:
+                censor.append("unknown data")
+
             if len(censor) > 0:
                 what = ", or ".join(censor)
                 return f"/* hoardy censored out {what} blob ({mime}) from here */\n" if scrub_opts.verbose else b""
 
-            if "html" in essence:
+            if "html" in kinds:
                 remap_link = rrexpr.items.get("remap_link", None)
                 return scrub_html(scrubbers, rrexpr.net_url, remap_link, rere_obj.body, charset)
-            elif "css" in essence:
+            elif "css" in kinds:
                 remap_link = rrexpr.items.get("remap_link", None)
                 return scrub_css(scrubbers, rrexpr.net_url, remap_link, rere_obj.body, charset)
             else:
