@@ -98,6 +98,7 @@ mime_info_of = {
     "text/javascript": (["javascript", "text"], [".js", ".mjs"]),
     "text/json": (["json", "text"], [".json"]),
     "text/plain": (["text"], [".txt"]),
+    "text/vtt": (["media", "text"], [".vtt"]),
     "text/xml": (["xml", "text"], [".xml"]),
     "video/avi": (["video"], [".avi"]),
     "video/mp4": (["video"], [".mp4"]),
