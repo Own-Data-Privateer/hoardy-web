@@ -303,7 +303,6 @@ After adding each new feature to [the `hoardy-web` tool](./tool/), as a rule, I 
 ## `hoardy-web` tool
 
 - On-the-fly mangling of reqres when `export`ing, so that, e.g. you could `organize` or `export` a reqres containing `https://web.archive.org/web/<something>/<URL>` as if it was just a `<URL>`.
-- URL remapping in and `scrub`bing of `CSS` files.
 - Non-dumb `HTTP` server with time+URL index and replay, i.e. a local `HTTP` UI a-la [Wayback Machine](https://web.archive.org/).
   (Because re-generating local mirrors all the time can get a bit annoying.)
 - Converters from `HAR` and `WARC` to `WRR`.
@@ -535,7 +534,7 @@ Tools most similar to `Hoardy-Web` in their implementation, though not in their 
 
 Pros:
 
-- their replay is much more mature than anything `Hoardy-Web` currently has.
+- their replay is more mature than what `Hoardy-Web` currently has.
 
 Cons:
 

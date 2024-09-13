@@ -188,85 +188,156 @@ Then, optionally, you can reuse `changes` file again to symlink all new files fr
 hoardy-web organize --stdin0 --symlink --output hupq_msn --to ~/hoardy-web/all < changes
 ```
 
-## <span id="mirror"/>How to generate a local offline website mirror like `wget -mpk`
+## <span id="mirror"/>How to generate a local offline website mirror, similar to `wget -mpk`
 
-If you want to render your `WRR` files into a local offline website mirror containing interlinked `HTML` files and their resources a-la `wget -mpk` (`wget --mirror --page-requisites --convert-links`), run one of the above `--symlink --latest` commands, and then do something like this:
+To render all your archived `WRR` files into a local offline website mirror containing interlinked `HTML` files and their requisite resources similar to (but better than) what `wget -mpk` (`wget --mirror --page-requisites --convert-links`) does, you need to run something like this:
 
 ```bash
-hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/latest/archiveofourown.org
+hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/raw
 ```
 
-on completion `~/hoardy-web/mirror1` will contain a bunch of interlinked minimized `HTML` files, their resources, and everything else available from `WRR` files living under `~/hoardy-web/latest/archiveofourown.org`.
+On completion, `~/hoardy-web/mirror1` will contain a bunch of interlinked `HTML` files, their requisites, and everything else available from `WRR` files living under `~/hoardy-web/raw`.
 
-The above command might fail if the set of `WRR`-dumps you are trying to export contains two or more dumps with distinct URLs that map to the same `--output` path.
+The resulting `HTML` files will be stripped of all `JavaScript` and other stuff of various levels of evil and then minimized a bit to save space.
+The results should be completely self-contained (i.e., work inside a browser running in "Work offline" mode) and safe to view in a dumb unconfigured browser (i.e., the resulting web pages should not request any page requisites --- like images, `CSS`, or fonts --- from the Internet).
+
+If you are unhappy with the above and, for instance, want to keep `JavaScript` and produce unminimized human-readable `HTML`s, you can run the following instead:
+
+```bash
+hoardy-web export mirror \
+  -e 'response.body|eb|scrub response &all_refs,+scripts,+pretty' \
+  --to ~/hoardy-web/mirror2 ~/hoardy-web/raw
+```
+
+See the documentation for the `--remap-*` options of `export mirror` sub-command and the options of the `scrub` function below for more info.
+
+If you instead want a mirror made of raw files without any content censorship or link conversions, run:
+
+```bash
+hoardy-web export mirror -e 'response.body|eb' --to ~/hoardy-web/mirror-raw ~/hoardy-web/raw
+```
+
+The later command will render your mirror pretty quickly, but the other `export mirror` commands use the `scrub` function, and that will be pretty slow, mostly because `html5lib` and `tinycss2` that `hoardy-web` uses for paranoid `HTML` and `CSS` parsing and filtering are fairly slow.
+Under `CPython` on my 2013-era laptop `hoardy-web export mirror` manages to render, on average, 3 `HTML` and `CSS` files per second.
+Though, this is not very characteristic of the overall exporting speed, since images and other media just get copied around at expected speeds of 300+ files per second.
+
+Also, enabling `+pretty` (or `+indent`) in `scrub` will make `HTML` scrubbing slightly slower (since it will have to track more stuff) and `CSS` scrubbing a lot slower (since it requires complete parsing of the structure, not just tokenization).
+
+### Handling outputs to the same file
+
+The above commands might fail if the set of `WRR`-dumps you are trying to export contains two or more dumps with distinct URLs that map to the same `--output` path.
 This will produce an error since `hoardy-web` does not permit file overwrites.
 With the default `--output hupq` format this can happen, for instance, when the URLs recorded in the reqres are long and so they end up truncated into the same file system paths.
 
 In this case you can either switch to a more verbose `--output` format
 
 ```bash
-hoardy-web export mirror --output hupq_n --to ~/hoardy-web/mirror1 ~/hoardy-web/latest/archiveofourown.org
+hoardy-web export mirror --output hupq_n --to ~/hoardy-web/mirror3 ~/hoardy-web/raw
 ```
 
-or skip all reqres that would cause overwrites
+or just skip all reqres that would cause overwrites
 
 ```bash
-hoardy-web export mirror --skip-existing --to ~/hoardy-web/mirror1 ~/hoardy-web/latest/archiveofourown.org
+hoardy-web export mirror --skip-existing --to ~/hoardy-web/mirror1 ~/hoardy-web/raw
 ```
 
-or, almost equivalently for this use case, skip all export errors (which includes "no overwrites allowed" error)
+The latter method also allow for incremental updates, discussed in the next section.
+
+### Update your mirror incrementally
+
+By default, `hoardy-web export mirror` runs with implied `--remap-all` options which remaps *all* links in exported `HTML` files to local files, even if source `WRR` files for those would-be exported files are missing.
+This allows you to easily update your mirror directory incrementally by re-running `hoardy-web export mirror` with the same `--to` argument but new input paths.
+For instance:
 
 ```bash
-hoardy-web export mirror --errors skip --to ~/hoardy-web/mirror1 ~/hoardy-web/latest/archiveofourown.org
+# render everything archived in 2023
+hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2023
+
+# now, add new stuff archived in 2024, keeping already exported files as-is
+hoardy-web export mirror --skip-existing --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2024
+
+# same, but updating old files
+hoardy-web export mirror --overwrite-dangerously --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2024
 ```
 
-The latter command would also skip reqres that fail to be exported for other reasons.
+After the first of the above commands, links from pages generated from `WRR` files of `~/hoardy-web/raw/*/2023` to URLs contained in files from `~/hoardy-web/raw/*/2024` but not contained in files from `~/hoardy-web/raw/*/2023` will point to non-existent, yet unexported, files on disk.
+I.e. those links will be broken.
+Running the second or the third command from the example above will then export additional files from `~/hoardy-web/raw/*/2024`, thus fixing some or all of those links.
 
-By default, *all* the links in exported `HTML` files will be remapped to local files (even if source `WRR` files for those would-be exported files are missing in `~/hoardy-web/latest/archiveofourown.org`, see the documentation for the `--remap-*` options below for more info), and those `HTML` files will also be stripped of all `JavaScript`, `CSS`, and other stuff of various levels of evil (see the documentation for the `scrub` function below for more info).
+### How to treat missing links exactly like `wget -mpk` does
 
-On the plus side, the result will be completely self-contained and safe to view with a dumb unconfigured browser.
-
-If you are unhappy with this behaviour and, for instance, want to keep the `CSS` and produce human-readable `HTML`, run the following instead:
+If you want to treat links pointing to not yet hoarded URLs exactly like `wget -mpk` does, i.e. you want to keep them pointing to their original URLs instead of remapping them to yet non-existent local files (like the default `--remap-all` does), you need to run `export mirror` with `--remap-open` option:
 
 ```bash
-hoardy-web export mirror \
-  -e 'response.body|eb|scrub response +all_refs,-actions,+styles,+pretty' \
-  --to ~/hoardy-web/mirror2 ~/hoardy-web/latest/archiveofourown.org
+hoardy-web export mirror --remap-open --to ~/hoardy-web/mirror4 ~/hoardy-web/raw
 ```
 
-Note, however, that `CSS` resource filtering and remapping is not implemented yet.
-
-If you want to keep links that point to not yet hoarded Internet URLs to still point those URLs in the exported files instead of them pointing to non-existent local files, similarly to what `wget -mpk` does, run `hoardy-web export mirror` with `--remap-open`, e.g.:
+In practice, however, you probably won't want the exact behaviour of `wget -mpk`, since opening pages generated that way is likely to make your web browser try to access the Internet to load missing page requisites.
+To solve this problem, `hoardy-web` provides `--remap-semi` option, which does what `--remap-open` does, except it also remaps unavailable action links and page requisites into void links, fixing that problem:
 
 ```bash
-hoardy-web export mirror --remap-open --to ~/hoardy-web/mirror3 ~/hoardy-web/latest/archiveofourown.org
+hoardy-web export mirror --remap-semi --to ~/hoardy-web/mirror4 ~/hoardy-web/raw
 ```
 
-Finally, if you want a mirror made of raw files without any content censorship or link conversions, run:
+See the documentation for the `--remap-*` options below for more info.
+
+Obviously, using `--remap-open` or `--remap-semi` will make incremental updates to your mirror impossible.
+
+### How to export a subset of archived data
+
+#### .. by using a symlink hierarchy
+
+The simplest way to export a subset of your data is to run one of `hoardy-web organize --symlink --latest` commands described above, and then do something like this:
 
 ```bash
-hoardy-web export mirror -e 'response.body|eb' --to ~/hoardy-web/mirror-raw ~/hoardy-web/latest/archiveofourown.org
+hoardy-web export mirror --to ~/hoardy-web/mirror5 ~/hoardy-web/latest/archiveofourown.org
 ```
 
-The later command will render your mirror pretty quickly, but the other above-mentioned commands will call the `scrub` function, and that will be pretty slow (as in avg ~5Mb, ~3 files per second on my 2013-era laptop), mostly because `html5lib` that `hoardy-web` uses for paranoid `HTML` parsing and filtering is fairly slow.
+thus exporting everything ever archived from <https://archiveofourown.org>.
 
-### Using `--root` and `--depth`
+#### ... by using `--root` and `--depth`
 
-As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of `WRR` files into `hoardy-web`'s memory but then `export mirror` only select URLs (and all resources needed to properly render those pages) by running something like:
+As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of `WRR` files into `hoardy-web`'s memory but then `export mirror` only select URLs (and all requisites needed to properly render those pages) by running something like:
 
 ```
 hoardy-web export mirror \
   --root 'https://archiveofourown.org/works/3733123?view_adult=true&view_full_work=true' \
   --root 'https://archiveofourown.org/works/30186441?view_adult=true&view_full_work=true' \
-  --to ~/hoardy-web/mirror4 ~/hoardy-web/raw/*/2023
+  --to ~/hoardy-web/mirror6 ~/hoardy-web/raw/*/2023
 ```
 
-(`hoardy-web` loads (indexes) `WRR` files pretty fast, so if you are running from an SSD, you can totally feed it years of `WRR` files and then only export a couple of URLs, and it will take a couple of seconds to finish anyway.)
+`hoardy-web` loads (indexes) `WRR` files pretty fast, so if you are running from an SSD, you can totally feed it years of `WRR` files and then only export a couple of URLs, and it will take a couple of seconds to finish anyway, since only a couple of files will get `scrub`bed.
 
-There is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root`s and then `export mirror` all those URLs (and their resources) too.
+There is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root`s and then `export mirror` all those URLs (and their requisites) too.
 
 When using `--root` options, `--remap-open` works exactly like `wget`'s `--convert-links` in that it will only remap the URLs that are going to be exported and will keep the rest as-is.
 Similarly, `--remap-closed` will consider only the URLs reachable from the `--root`s in no more that `--depth` jumps as available.
+
+#### Prioritizing some files other others
+
+When no `--root` options are specified, by default, files are exported in the order they are specified on the command line, in lexicographic file system walk order when an argument is a directory.
+(See `--paths-*` and `--walk-*` options below if you want to change this.)
+
+However, the above rule does not apply to page requisites, those are always (with or without `--root`, regardless of `--paths-*` and `--walk-*` options) get exported just after their parent `HTML` document gets parsed and before that document gets written to disk.
+I.e., `export mirror` will generate a new file containing an `HTML` document only after all of its requisites were already written to disk.
+I.e., when exporting into an empty directory, if you see `export mirror` generated an `HTML` document, you can be sure that all of its requisites loaded (indexed) by this `export mirror` invocation are rendered too.
+Meaning, you can you can go ahead and open it in your browser, even if `export mirror` did not finish yet.
+
+Moreover, unlike all other sub-commands `export mirror` handles duplication in its input files in a special way: it remembers the files it has already seen and ignores them when they are given the second time.
+(All other commands don't, they will just process the same file the second time, the third time, and so on.
+This is by design, other commands are designed to handle potentially enormous file hierarchies in near-constant memory.)
+
+The combination of all of the above means you can prioritize rendering of some documents over others by specifying them earlier on the command line and then, in a later argument, specifying their containing directory to allow `export mirror` to also see their requisites and documents they link to.
+For instance,
+
+```
+hoardy-web export mirror \
+  --to ~/hoardy-web/mirror7 \
+  ~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr \
+  ~/hoardy-web/latest/archiveofourown.org
+```
+
+will export all of `~/hoardy-web/latest/archiveofourown.org`, but the web pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be exported first.
 
 ## <span id="mitmproxy-mirror"/>How to generate local offline website mirrors like `wget -mpk` from you old `mitmproxy` stream dumps
 
