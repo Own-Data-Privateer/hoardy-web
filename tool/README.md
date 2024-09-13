@@ -1411,6 +1411,8 @@ In short, this sub-command generates static offline website mirrors, producing r
   : change the default value for `--expr` to `response.body|eb|scrub response *all_refs`; i.e., remap all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does; results almost certainly will NOT be self-contained
   - `--remap-closed`
   : change the default value for `--expr` to `response.body|eb|scrub response /all_refs`; i.e., remap all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does; results will be self-contained
+  - `--remap-semi`
+  : change the default value for `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs`; i.e., remap all jump links like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does; this is a better version of `--remap-open` which keeps the `export`ed `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained
   - `--remap-all`
   : change the default value for `--expr` to `response.body|eb|scrub response &all_refs`; i.e., remap all links and references like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble; results will be self-contained; default
     
