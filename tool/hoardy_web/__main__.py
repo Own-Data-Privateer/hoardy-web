@@ -121,14 +121,6 @@ def elaborate_output(cargs : _t.Any) -> None:
         except KeyError:
             raise CatastrophicFailure(gettext('unknown `--output` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), cargs.output)
 
-def compile_remap(cargs : _t.Any) -> None:
-    if cargs.remap_links == "id":
-        cargs.remap_link_func = remap_link_id
-    elif cargs.remap_links == "void":
-        cargs.remap_link_func = remap_link_into_void
-    else:
-        assert False
-
 def elaborate_paths(cargs : _t.Any) -> None:
     for i in range(0, len(cargs.paths)):
         cargs.paths[i] = _os.path.expanduser(cargs.paths[i])
@@ -265,15 +257,23 @@ def print_exprs(rrexpr : ReqresExpr, exprs : list[tuple[str, LinstFunc]],
 
         fobj.write_bytes(data)
 
-default_get_expr = "response.body|eb"
+default_expr = {
+    "get": "response.body|eb",
+    "run": "response.body|eb",
+    "stream": ".",
+    "id": "response.body|eb|scrub response +all_refs",
+    "void": "response.body|eb|scrub response -all_refs",
+    "open": "response.body|eb|scrub response *all_refs",
+    "closed": "response.body|eb|scrub response /all_refs",
+    "all": "response.body|eb|scrub response &all_refs",
+}
+
 def cmd_get(cargs : _t.Any) -> None:
     if len(cargs.mexprs) == 0:
-        cargs.mexprs = { stdout: [compile_expr(default_get_expr)] }
-    compile_remap(cargs)
+        cargs.mexprs = { stdout: [compile_expr(default_expr[cargs.default_expr])] }
 
     exp_path = _os.path.expanduser(cargs.path)
     rrexpr = wrr_loadf_expr(exp_path, cargs.sniff)
-    rrexpr.items["remap_link"] = cargs.remap_link_func
 
     for fobj, exprs in cargs.mexprs.items():
         print_exprs(rrexpr, exprs, cargs.separator, fobj)
@@ -281,8 +281,7 @@ def cmd_get(cargs : _t.Any) -> None:
 
 def cmd_run(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
-        cargs.exprs = [compile_expr(default_get_expr)]
-    compile_remap(cargs)
+        cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
 
     if cargs.num_args < 1:
         raise Failure(gettext("`run` sub-command requires at least one PATH"))
@@ -300,7 +299,6 @@ def cmd_run(cargs : _t.Any) -> None:
     try:
         for exp_path in cargs.paths:
             rrexpr = wrr_loadf_expr(exp_path, cargs.sniff)
-            rrexpr.items["remap_link"] = cargs.remap_link_func
 
             # TODO: extension guessing
             fileno, tmp_path = _tempfile.mkstemp(prefix = "hoardy_wrr_run_", suffix = ".tmp")
@@ -329,12 +327,10 @@ def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
         assert False
     return stream
 
-default_stream_expr = "."
 def cmd_stream(cargs : _t.Any) -> None:
     compile_filters(cargs)
     if len(cargs.exprs) == 0:
-        cargs.exprs = [compile_expr(default_stream_expr)]
-    compile_remap(cargs)
+        cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
     handle_paths(cargs)
 
     stream = get_StreamEncoder(cargs)
@@ -1398,31 +1394,14 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
 def path_to_url(x : str) -> str:
     return x.replace("?", "%3F")
 
-default_export_expr = "response.body|eb|scrub response +reqs"
 def cmd_export_mirror(cargs : _t.Any) -> None:
     compile_filters(cargs)
     if len(cargs.exprs) == 0:
-        cargs.exprs = [compile_expr(default_export_expr)]
+        cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
     elaborate_output(cargs)
     handle_paths(cargs)
 
     destination = _os.path.expanduser(cargs.destination)
-
-    always_fallback = cargs.remap_links in ["id", "void"]
-    remap_link_fallback : _t.Callable[[Epoch, str, LinkType, ParsedURL], str]
-    if cargs.remap_links in ["id", "open"]:
-        remap_link_fallback = lambda st, ap, link_type, purl: remap_link_id(link_type, purl.raw_url)
-    elif cargs.remap_links in ["void", "closed"]:
-        remap_link_fallback = lambda st, ap, link_type, purl: remap_link_into_void(link_type, purl.raw_url)
-    elif cargs.remap_links == "all":
-        def remap_link_fallback(stime : Epoch, document_dir : str, link_type : LinkType, purl : ParsedURL) -> str:
-            trrexpr = ReqresExpr(trivial_Reqres(purl, "text/html", stime, stime, stime), None, [])
-            trrexpr.items["num"] = 0
-            rel_out_path : str = _os.path.join(destination, cargs.output_format % trrexpr)
-            abs_out_path = _os.path.abspath(rel_out_path)
-            return path_to_url(_os.path.relpath(abs_out_path, document_dir))
-    else:
-        assert False
 
     allow_updates = cargs.allow_updates == True
     skip_existing = cargs.allow_updates == "partial"
@@ -1436,13 +1415,19 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     done : set[str] = set()
     queued : set[str] = set()
 
-    def remap_link_func_maker(stime : Epoch, document_dir : str, enqueue : bool, others : list[str], reqs : list[str]) -> LinkRemapper:
-        def remap_link_func(link_type : LinkType, url : str) -> str:
+    def remap_url_fallback(stime : Epoch, expected_content_types : list[str], purl : ParsedURL) -> str:
+        trrexpr = ReqresExpr(fallback_Reqres(purl, expected_content_types, stime, stime, stime), None, [])
+        trrexpr.items["num"] = 0
+        rel_out_path : str = _os.path.join(destination, cargs.output_format % trrexpr)
+        return _os.path.abspath(rel_out_path)
+
+    def remap_url_func_maker(stime : Epoch, document_dir : str, enqueue : bool, others : list[str], reqs : list[str]) -> URLRemapper:
+        def remap_url_func(link_type : LinkType, fallbacks : list[str] | None, url : str) -> str | None:
             try:
                 purl = parse_url(url)
             except URLParsingError:
                 issue("malformed URL `%s`", url)
-                return remap_link_into_void(link_type, url)
+                return get_void_url(link_type)
 
             if purl.scheme not in Reqres_url_schemes:
                 issue("not remapping `%s`", url)
@@ -1486,11 +1471,14 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                         stdout.write_bytes(b"\033[0m")
                     stdout.flush()
 
-            if abs_out_path is None or always_fallback:
-                return remap_link_fallback(stime, document_dir, link_type, purl)
+            if abs_out_path is None:
+                if fallbacks is not None:
+                    abs_out_path = remap_url_fallback(stime, fallbacks, purl)
+                else:
+                    return None
 
             return path_to_url(_os.path.relpath(abs_out_path, document_dir))
-        return remap_link_func
+        return remap_url_func
 
     queue : list[str] = []
     current_depth : int = 0
@@ -1564,8 +1552,8 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             return None
 
         try:
-            rrexpr = wrr_loadf_expr(abs_in_path, cargs.sniff)
-            rrexpr.items["remap_link"] = remap_link_func_maker(stime, _os.path.dirname(abs_out_path), enqueue, others, reqs)
+            rrexpr = wrr_loadf_expr(abs_in_path, cargs.sniff,
+                                    remap_url_func_maker(stime, _os.path.dirname(abs_out_path), enqueue, others, reqs))
 
             data : bytes
             with TIOWrappedWriter(_io.BytesIO()) as f:
@@ -1911,10 +1899,10 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         if kind == "get":
             agrp.add_argument("--expr-fd", metavar="INT", type=int, default = 1, help=_(f"file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `%(default)s`, i.e. `stdout`"))
 
-            def_expr = f"`{default_get_expr}`, which will dump the `HTTP` response body"
+            def_expr = f"`{default_expr[kind]}`, which will dump the `HTTP` response body"
             agrp.add_argument("-e", "--expr", dest="mexprs", metavar="EXPR", action=AddExprFd, type=str, default = {}, help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below') + \
                 "; " + \
-                _("default: %s") % (def_expr,) + "; " + \
+                _("the default depends on `--remap-*` options, without any them set it is %s") % (def_expr,) + "; " + \
                 _("each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following") + ":\n" + \
                 "- " + _("constants and functions:") + "\n" + \
                 "".join([f"  - `{name}`: {__(value[0])}\n" for name, value in ReqresExpr_atoms.items()]) + \
@@ -1923,9 +1911,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                 "- " + _("derived attributes:") + "\n" + \
                 "".join([f"  - `{name}`: {__(value)}\n" for name, value in Reqres_derived_attrs.items()]) + \
                 "- " + _("a compound expression built by piping (`|`) the above, for example") + __(f""":
-- `{default_get_expr}` (the default for `get`) will print raw `response.body` or an empty byte string, if there was no response;
-- `{default_get_expr}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
-- `{default_export_expr}` (the default for `export`) will remap all jump-links (`a href` and similar) and references to page requisites (`img src` and similar) to local files while still censoring out all action-links (like `a ping`, `form action`, and similar; since these don't make sense for a static mirror);
+- `{default_expr["get"]}` (the default for `get` and `run`) will print raw `response.body` or an empty byte string, if there was no response;
+- `{default_expr["get"]}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
 - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
 - `response.complete|false` will print `response.complete` or `False`;
 - `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
@@ -1934,40 +1921,48 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""", 2))
         else:
             if kind == "run":
-                def_expr = f"`{default_get_expr}`, which will dump the `HTTP` response body"
+                def_expr = f"`{default_expr[kind]}`, which will simply dump the `HTTP` response body"
             elif kind == "stream":
-                def_expr = f"`{default_stream_expr}`, which will dump the whole reqres structure"
+                def_expr = f"`{default_expr[kind]}`, which will simply dump the whole reqres structure"
             elif kind == "export":
-                def_expr = f"`{default_export_expr}`, which will export safe scrubbed versions of all files"
+                def_expr = f"`{default_expr['all']}`, which will export `scrub`bed versions of all files with all links and references remapped using fallback `--output` paths"
             else:
                 assert False
 
             agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action=AddExpr, type=str, default = [], help=_(f"an expression to compute, same expression format and semantics as `{__prog__} get --expr` (which see); can be specified multiple times") + \
                               "; " + \
-                              _("default: %s") % (def_expr,))
+                              _("the default depends on `--remap-*` options, without any them set it is %s") % (def_expr,))
 
-        def_def = "; " + _("default")
-        if kind != "export":
-            def_id = def_def
-            def_all = ""
-        else:
-            def_id = ""
-            def_all = def_def
+        def alias(what : str) -> str:
+            return _("change the default value for `--expr` to `%s`") % (default_expr[what],)
 
-        agrp = cmd.add_argument_group("URL remapping; used by `scrub` atom of `--expr`")
+        agrp = cmd.add_argument_group("the default value of `--expr`")
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--remap-id", dest="remap_links", action="store_const", const="id", help=_("remap all URLs with an identity function; i.e. don't remap anything") + def_id)
-        grp.add_argument("--remap-void", dest="remap_links", action="store_const", const="void", help=_("remap all jump-link and action URLs to `javascript:void(0)` and all requisite resource URLs into empty `data:` URLs; resulting web pages will be self-contained"))
-
-        if kind == "export":
-            grp.add_argument("--remap-open", "-k", "--convert-links", dest="remap_links", action="store_const", const="open", help=_("point all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding output paths, remap all other URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`"))
-            grp.add_argument("--remap-closed", dest="remap_links", action="store_const", const="closed", help=_("remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained"))
-            grp.add_argument("--remap-all", dest="remap_links", action="store_const", const="all", help=_(f"remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `{__prog__} export` to be used incrementally; `export`ed `mirror`s will be self-contained") + def_all)
 
         if kind != "export":
-            cmd.set_defaults(remap_links = "id")
+            grp.add_argument("--no-remap", dest="default_expr", action="store_const", const=kind, help=_("do not touch the default value of `--expr`, use the default value shown above; default"))
+
+        grp.add_argument("--remap-id", dest="default_expr", action="store_const", const="id", help=alias("id") + _("; i.e., remap all URLs with an identity function; i.e., don't remap anything; results will NOT be self-contained"))
+        grp.add_argument("--remap-void", dest="default_expr", action="store_const", const="void", help=alias("void") + _("; i.e., remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained"))
+
+        if kind != "export":
+            cmd.set_defaults(default_expr = kind)
         else:
-            cmd.set_defaults(remap_links = "all")
+            grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open", help=alias("open") + _("; i.e., remap all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does; results almost certainly will NOT be self-contained"))
+            grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="open", help=alias("closed") + _("; i.e., remap all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does; results will be self-contained"))
+            grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _(f"""; i.e., remap all links and references like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble; results will be self-contained; default
+
+`{__prog__} export mirror` uses `--output` paths of trivial `GET <URL> -> 200 OK` as fallbacks for `&(jumps|actions|reqs)` options of `scrub`.
+
+For simple `--output` formats (like the default `hupq`) this will remap missing and unreachable URLs to `--output` paths of trivial `GET <URL> -> 200 OK` reqres.
+When `{__prog__} export mirror` is run the first time, the resulting URLs will point to missing files.
+But those files can be generated by running `{__prog__} export mirror` again, this time with `WRR` files containing those missing or unreachable URLs as inputs.
+I.e., this behaviour allows you to add new data to an already `export`ed mirror without regenerating old files that reference newly added URLs.
+I.e., this allows `{__prog__} export mirror` to be used incrementally.
+
+Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
+"""))
+            cmd.set_defaults(default_expr = "all")
 
         if kind == "stream":
             add_terminator(cmd, "`--format=raw` output printing", "print `--format=raw` output values")
@@ -2149,13 +2144,16 @@ In short, this is `{__prog__} organize --copy` for `INPUT` files that use differ
 
     # export
     supcmd = subparsers.add_parser("export", help=_(f"convert `WRR` archives into other formats"),
-                                   description = _(f"""Parse given `WRR` files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata."""))
+                                   description = _(f"""Parse given `WRR` files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata.
+"""))
     supsub = supcmd.add_subparsers(title="file formats")
 
     cmd = supsub.add_parser("mirror", help=_("convert given `WRR` files into a local website mirror stored in interlinked plain files"),
                             description = _(f"""Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
-In short, this is a combination of `{__prog__} organize --copy` followed by in-place `{__prog__} get`.
-In other words, this generates static offline website mirrors, producing results similar to those of `wget -mpk`."""))
+Essentially, this is a combination of `{__prog__} organize --copy` followed by in-place `{__prog__} get` and with a more advanced URL remapping capabilities available to the `scrub` function.
+
+In short, this sub-command generates static offline website mirrors, producing results similar to those of `wget -mpk`.
+"""))
     add_impure(cmd, "export")
     add_expr(cmd, "export")
     add_sniff(cmd, "export")

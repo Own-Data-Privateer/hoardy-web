@@ -443,6 +443,7 @@ class ReqresExpr:
     fs_path : str | bytes | None
     obj_path : list[int | str | bytes]
     sniff : SniffContentType = _dc.field(default=SniffContentType.NONE)
+    remap_url : URLRemapper | None = _dc.field(default = None)
     items : dict[str, _t.Any] = _dc.field(default_factory = dict)
 
     def format_source(self) -> bytes:
@@ -717,6 +718,20 @@ def check_rrexpr(cmd : str, rrexpr : _t.Any) -> ReqresExpr:
         raise CatastrophicFailure("`%s`: expecting `ReqresExpr` value as the command environment, got `%s`", cmd, typ.__name__)
     return rrexpr
 
+def _parse_rt(opt : str) -> RemapType:
+    x = opt[:1]
+    if x == "+":
+        return RemapType.ID
+    elif x == "-":
+        return RemapType.VOID
+    elif x == "*":
+        return RemapType.OPEN
+    elif x == "/":
+        return RemapType.CLOSED
+    elif x == "&":
+        return RemapType.FALLBACK
+    raise CatastrophicFailure("unknown `scrub` option `%s`", opt)
+
 def linst_scrub() -> LinstAtom:
     def func(part : str, optstr : str) -> _t.Callable[..., LinstFunc]:
         rere = check_request_response("scrub", part)
@@ -724,11 +739,22 @@ def linst_scrub() -> LinstAtom:
         scrub_opts = ScrubbingOptions()
         if optstr != "defaults":
             for opt in optstr.split(","):
-                if not opt.startswith("+") and not opt.startswith("-"):
+                oname = opt[1:]
+
+                if oname in ScrubbingReferenceOptions:
+                    rtvalue = _parse_rt(opt)
+                    setattr(scrub_opts, oname, rtvalue)
+                    continue
+                elif oname == "all_refs":
+                    rtvalue = _parse_rt(opt)
+                    for oname in ScrubbingReferenceOptions:
+                        setattr(scrub_opts, oname, rtvalue)
+                    continue
+
+                value = opt.startswith("+")
+                if not value and not opt.startswith("-"):
                     raise CatastrophicFailure("unknown `scrub` option `%s`", opt)
 
-                oname = opt[1:]
-                value = opt.startswith("+")
                 if oname == "pretty":
                     scrub_opts.verbose = True
                     scrub_opts.whitespace = not value
@@ -740,14 +766,11 @@ def linst_scrub() -> LinstAtom:
                     scrub_opts.debug = True
                 elif oname in ScrubbingOptions.__dataclass_fields__:
                     setattr(scrub_opts, oname, value)
-                elif oname == "all_refs":
-                    for oname in ScrubbingReferenceOptions:
-                        setattr(scrub_opts, oname, value)
                 elif oname == "all_dyns":
                     for oname in ScrubbingDynamicOpts:
                         setattr(scrub_opts, oname, value)
                 else:
-                    raise CatastrophicFailure("unknown `scrub` option %s", opt)
+                    raise CatastrophicFailure("unknown `scrub` option `%s`", opt)
 
         scrubbers = make_scrubbers(scrub_opts)
 
@@ -786,11 +809,9 @@ def linst_scrub() -> LinstAtom:
                 return f"/* hoardy censored out {what} blob ({mime}) from here */\n" if scrub_opts.verbose else b""
 
             if "html" in kinds:
-                remap_link = rrexpr.items.get("remap_link", None)
-                return scrub_html(scrubbers, rrexpr.net_url, remap_link, rere_obj.body, charset)
+                return scrub_html(scrubbers, rrexpr.net_url, rrexpr.remap_url, rere_obj.body, charset)
             elif "css" in kinds:
-                remap_link = rrexpr.items.get("remap_link", None)
-                return scrub_css(scrubbers, rrexpr.net_url, remap_link, rere_obj.body, charset)
+                return scrub_css(scrubbers, rrexpr.net_url, rrexpr.remap_url, rere_obj.body, charset)
             else:
                 # no scrubbing needed
                 return rere_obj.body
@@ -808,18 +829,27 @@ ReqresExpr_atoms.update({
         linst_apply0(lambda v: qsl_to_path(v))),
     "scrub": ("""scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on `--remap-*` command line options, the `MIME` type of the value itself, and the scrubbing options described below; this fuction takes two arguments:
   - the first must be either of `request|response`, it controls which `HTTP` headers `scrub` should inspect to help it detect the `MIME` type;
-  - the second is either `defaults` or ","-separated string of `(+|-)<option>` tokens which control the scrubbing behaviour:
-    - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which will keep data of unknown content types as-is;
-    - `(+|-)(jumps|actions|reqs)` control which kinds of references to other documents should be remapped or censored out (respectively); i.e. it controls whether jump-links (`HTML` `a href`, `area href`, and similar), action-links (`HTML` `a ping`, `form action`, and similar), and/or references to page requisites (`HTML` `img src`, `iframe src`, `link src` that are `stylesheet`s or `icon`s, `CSS` `url` references, and similar) should be remapped using the specified `--remap-*` option (which see) or censored out similarly to how `--remap-void` will do it; the default is `+jumps,-actions,-reqs` which will produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
-    - `(+|-)all_refs` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
+  - the second is either `defaults` or ","-separated string of tokens which control the scrubbing behaviour:
+    - `(+|-|*|/|&)(jumps|actions|reqs)` control how jump-links (`HTML` `a href`, `area href`, and similar), action-links (`HTML` `a ping`, `form action`, and similar), and references to page requisites (`HTML` `img src`, `iframe src`, `link src` that are `stylesheet`s or `icon`s, `CSS` `url` references, and similar) should be remapped or censored out:
+      - `+` leave links of this kind pointing to their original URLs;
+      - `-` void links of this kind, i.e., rewrite these links to `javascript:void(0)` and empty `data:` URLs;
+      - `*` rewrite links of this kind in an "open"-ended way, i.e. point them to locally mirrored versions of their URLs when available, leave them pointing to their original URL otherwise; this is only supported when `scrub` is used with `export mirror` sub-command; under other sub-commands this is equivalent to `+`;
+      - `/` rewrite links of this kind in a "close"-ended way, i.e. point them to locally mirrored versions URLs when available, and void them otherwise; this is only supported when `scrub` is used with `export mirror` sub-command; under other sub-commands this is equivalent to `-`;
+      - `&` rewrite links of this kind in a "close"-ended way like `/` does, except use fallbacks to remap unavailable URLs whenever possible; this is only supported when `scrub` is used with `export mirror` sub-command, see the documentation of the `--remap-all` option for more info; under other sub-commands this is equivalent to `/`;
+
+      when `scrub` is called manually, the default is `*jumps,&actions,&reqs` which produces a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
+
+      but, usually, the default is derived from `--remap-*` options, which see;
+    - `(+|*|/|-)all_refs` is equivalent to setting all of the options listed in the previous item simultaneously;
+    - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which keeps data of unknown content types as-is;
     - `(+|-)(styles|scripts|iepragmas|iframes|prefetches|tracking)` control which things should be kept or censored out w.r.t. to `HTML`, `CSS`, and `JavaScript`, i.e. they control whether `CSS` stylesheets (both separate files and `HTML` tags and attributes), `JavaScript` (both separate files and `HTML` tags and attributes), `HTML` Internet Explorer pragmas, `<iframe>` `HTML` tags, `HTML` content prefetch `link` tags, and other tracking `HTML` tags and attributes (like `a ping` attributes), should be respectively kept in or censored out from the input; the default is `+styles,-scripts,-iepragmas,+iframes,-prefetches,-tracking` which ensures the result does not contain `JavaScript` and will not produce any prefetch and tracking requests when loaded in a web browser; `-iepragmas` is the default because censoring for contents of such pragmas is not supported yet;
     - `(+|-)all_dyns` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
     - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead; the default is `-verbose`;
     - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away (respectively); the default is `-whitespace`, which produces somewhat minimized outputs (because it saves a lot of space);
     - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them (respectively); the default is `+optional_tags` (because many tools fail to parse minimized `HTML` properly);
-    - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent`;
+    - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent` (to save space);
     - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics; `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied; neither is the default;
-    - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it will indent `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging custom mutations; `-debug` is noop, which is the default;""",
+    - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it indents `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging; `-debug` is noop, which is the default;""",
         linst_scrub()),
 })
 
@@ -927,18 +957,23 @@ def wrr_load_bundle(fobj : _io.BufferedReader, path : _t.AnyStr) -> _t.Iterator[
         res = wrr_load_raw(fobj)
         yield res
 
-def wrr_load_expr(fobj : _io.BufferedReader, path : str | bytes, sniff : SniffContentType) -> ReqresExpr:
+def wrr_load_expr(fobj : _io.BufferedReader,
+                  path : str | bytes,
+                  sniff : SniffContentType,
+                  remap_url : URLRemapper | None = None) -> ReqresExpr:
     reqres = wrr_load(fobj)
-    res = ReqresExpr(reqres, path, [], sniff)
+    res = ReqresExpr(reqres, path, [], sniff, remap_url)
     return res
 
 def wrr_loadf(path : str | bytes) -> Reqres:
     with open(path, "rb") as f:
         return wrr_load(f)
 
-def wrr_loadf_expr(path : str | bytes, sniff : SniffContentType) -> ReqresExpr:
+def wrr_loadf_expr(path : str | bytes,
+                   sniff : SniffContentType,
+                   remap_url : URLRemapper | None = None) -> ReqresExpr:
     with open(path, "rb") as f:
-        return wrr_load_expr(f, path, sniff)
+        return wrr_load_expr(f, path, sniff, remap_url)
 
 def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
     req = reqres.request

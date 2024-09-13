@@ -390,7 +390,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   - `--expr-fd INT`
   : file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `1`, i.e. `stdout`
   - `-e EXPR, --expr EXPR`
-  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; default: `response.body|eb`, which will dump the `HTTP` response body; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
+  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; the default depends on `--remap-*` options, without any them set it is `response.body|eb`, which will dump the `HTTP` response body; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
     - constants and functions:
       - `es`: replace `None` value with an empty string `""`
       - `eb`: replace `None` value with an empty byte string `b""`
@@ -433,18 +433,27 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `qsl_to_path`: encode `query` `list` into a POSIX path, quoting as little as needed
       - `scrub`: scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on `--remap-*` command line options, the `MIME` type of the value itself, and the scrubbing options described below; this fuction takes two arguments:
             - the first must be either of `request|response`, it controls which `HTTP` headers `scrub` should inspect to help it detect the `MIME` type;
-            - the second is either `defaults` or ","-separated string of `(+|-)<option>` tokens which control the scrubbing behaviour:
-              - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which will keep data of unknown content types as-is;
-              - `(+|-)(jumps|actions|reqs)` control which kinds of references to other documents should be remapped or censored out (respectively); i.e. it controls whether jump-links (`HTML` `a href`, `area href`, and similar), action-links (`HTML` `a ping`, `form action`, and similar), and/or references to page requisites (`HTML` `img src`, `iframe src`, `link src` that are `stylesheet`s or `icon`s, `CSS` `url` references, and similar) should be remapped using the specified `--remap-*` option (which see) or censored out similarly to how `--remap-void` will do it; the default is `+jumps,-actions,-reqs` which will produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
-              - `(+|-)all_refs` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
+            - the second is either `defaults` or ","-separated string of tokens which control the scrubbing behaviour:
+              - `(+|-|*|/|&)(jumps|actions|reqs)` control how jump-links (`HTML` `a href`, `area href`, and similar), action-links (`HTML` `a ping`, `form action`, and similar), and references to page requisites (`HTML` `img src`, `iframe src`, `link src` that are `stylesheet`s or `icon`s, `CSS` `url` references, and similar) should be remapped or censored out:
+                - `+` leave links of this kind pointing to their original URLs;
+                - `-` void links of this kind, i.e., rewrite these links to `javascript:void(0)` and empty `data:` URLs;
+                - `*` rewrite links of this kind in an "open"-ended way, i.e. point them to locally mirrored versions of their URLs when available, leave them pointing to their original URL otherwise; this is only supported when `scrub` is used with `export mirror` sub-command; under other sub-commands this is equivalent to `+`;
+                - `/` rewrite links of this kind in a "close"-ended way, i.e. point them to locally mirrored versions URLs when available, and void them otherwise; this is only supported when `scrub` is used with `export mirror` sub-command; under other sub-commands this is equivalent to `-`;
+                - `&` rewrite links of this kind in a "close"-ended way like `/` does, except use fallbacks to remap unavailable URLs whenever possible; this is only supported when `scrub` is used with `export mirror` sub-command, see the documentation of the `--remap-all` option for more info; under other sub-commands this is equivalent to `/`;
+          
+                when `scrub` is called manually, the default is `*jumps,&actions,&reqs` which produces a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
+          
+                but, usually, the default is derived from `--remap-*` options, which see;
+              - `(+|*|/|-)all_refs` is equivalent to setting all of the options listed in the previous item simultaneously;
+              - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which keeps data of unknown content types as-is;
               - `(+|-)(styles|scripts|iepragmas|iframes|prefetches|tracking)` control which things should be kept or censored out w.r.t. to `HTML`, `CSS`, and `JavaScript`, i.e. they control whether `CSS` stylesheets (both separate files and `HTML` tags and attributes), `JavaScript` (both separate files and `HTML` tags and attributes), `HTML` Internet Explorer pragmas, `<iframe>` `HTML` tags, `HTML` content prefetch `link` tags, and other tracking `HTML` tags and attributes (like `a ping` attributes), should be respectively kept in or censored out from the input; the default is `+styles,-scripts,-iepragmas,+iframes,-prefetches,-tracking` which ensures the result does not contain `JavaScript` and will not produce any prefetch and tracking requests when loaded in a web browser; `-iepragmas` is the default because censoring for contents of such pragmas is not supported yet;
               - `(+|-)all_dyns` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
               - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead; the default is `-verbose`;
               - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away (respectively); the default is `-whitespace`, which produces somewhat minimized outputs (because it saves a lot of space);
               - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them (respectively); the default is `+optional_tags` (because many tools fail to parse minimized `HTML` properly);
-              - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent`;
+              - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent` (to save space);
               - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics; `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied; neither is the default;
-              - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it will indent `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging custom mutations; `-debug` is noop, which is the default;
+              - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it indents `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging; `-debug` is noop, which is the default;
     - reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:
       - `version`: WEBREQRES format version; int
       - `source`: `+`-separated list of applications that produced this reqres; str
@@ -519,9 +528,8 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `fragment`: fragment (hash) part of the url; str
       - `ofm`: optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str
     - a compound expression built by piping (`|`) the above, for example:
-      - `response.body|eb` (the default for `get`) will print raw `response.body` or an empty byte string, if there was no response;
+      - `response.body|eb` (the default for `get` and `run`) will print raw `response.body` or an empty byte string, if there was no response;
       - `response.body|eb|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
-      - `response.body|eb|scrub response +reqs` (the default for `export`) will remap all jump-links (`a href` and similar) and references to page requisites (`img src` and similar) to local files while still censoring out all action-links (like `a ping`, `form action`, and similar; since these don't make sense for a static mirror);
       - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
       - `response.complete|false` will print `response.complete` or `False`;
       - `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
@@ -529,11 +537,13 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
       - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;
 
-- URL remapping; used by `scrub` atom of `--expr`:
+- the default value of `--expr`:
+  - `--no-remap`
+  : do not touch the default value of `--expr`, use the default value shown above; default
   - `--remap-id`
-  : remap all URLs with an identity function; i.e. don't remap anything; default
+  : change the default value for `--expr` to `response.body|eb|scrub response +all_refs`; i.e., remap all URLs with an identity function; i.e., don't remap anything; results will NOT be self-contained
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all requisite resource URLs into empty `data:` URLs; resulting web pages will be self-contained
+  : change the default value for `--expr` to `response.body|eb|scrub response -all_refs`; i.e., remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained
 
 - printing:
   - `--not-separated`
@@ -569,13 +579,15 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; default: `response.body|eb`, which will dump the `HTTP` response body
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options, without any them set it is `response.body|eb`, which will simply dump the `HTTP` response body
 
-- URL remapping; used by `scrub` atom of `--expr`:
+- the default value of `--expr`:
+  - `--no-remap`
+  : do not touch the default value of `--expr`, use the default value shown above; default
   - `--remap-id`
-  : remap all URLs with an identity function; i.e. don't remap anything; default
+  : change the default value for `--expr` to `response.body|eb|scrub response +all_refs`; i.e., remap all URLs with an identity function; i.e., don't remap anything; results will NOT be self-contained
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all requisite resource URLs into empty `data:` URLs; resulting web pages will be self-contained
+  : change the default value for `--expr` to `response.body|eb|scrub response -all_refs`; i.e., remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained
 
 - printing:
   - `--not-separated`
@@ -630,13 +642,15 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; default: `.`, which will dump the whole reqres structure
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options, without any them set it is `.`, which will simply dump the whole reqres structure
 
-- URL remapping; used by `scrub` atom of `--expr`:
+- the default value of `--expr`:
+  - `--no-remap`
+  : do not touch the default value of `--expr`, use the default value shown above; default
   - `--remap-id`
-  : remap all URLs with an identity function; i.e. don't remap anything; default
+  : change the default value for `--expr` to `response.body|eb|scrub response +all_refs`; i.e., remap all URLs with an identity function; i.e., don't remap anything; results will NOT be self-contained
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all requisite resource URLs into empty `data:` URLs; resulting web pages will be self-contained
+  : change the default value for `--expr` to `response.body|eb|scrub response -all_refs`; i.e., remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained
 
 - `--format=raw` output printing:
   - `--not-terminated`
@@ -1355,8 +1369,9 @@ Parse given `WRR` files into their respective reqres, convert to another file fo
 ### hoardy-web export mirror
 
 Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
-In short, this is a combination of `hoardy-web organize --copy` followed by in-place `hoardy-web get`.
-In other words, this generates static offline website mirrors, producing results similar to those of `wget -mpk`.
+Essentially, this is a combination of `hoardy-web organize --copy` followed by in-place `hoardy-web get` and with a more advanced URL remapping capabilities available to the `scrub` function.
+
+In short, this sub-command generates static offline website mirrors, producing results similar to those of `wget -mpk`.
 
 - positional arguments:
   - `PATH`
@@ -1385,19 +1400,29 @@ In other words, this generates static offline website mirrors, producing results
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; default: `response.body|eb|scrub response +reqs`, which will export safe scrubbed versions of all files
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options, without any them set it is `response.body|eb|scrub response &all_refs`, which will export `scrub`bed versions of all files with all links and references remapped using fallback `--output` paths
 
-- URL remapping; used by `scrub` atom of `--expr`:
+- the default value of `--expr`:
   - `--remap-id`
-  : remap all URLs with an identity function; i.e. don't remap anything
+  : change the default value for `--expr` to `response.body|eb|scrub response +all_refs`; i.e., remap all URLs with an identity function; i.e., don't remap anything; results will NOT be self-contained
   - `--remap-void`
-  : remap all jump-link and action URLs to `javascript:void(0)` and all requisite resource URLs into empty `data:` URLs; resulting web pages will be self-contained
+  : change the default value for `--expr` to `response.body|eb|scrub response -all_refs`; i.e., remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained
   - `--remap-open, -k, --convert-links`
-  : point all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding output paths, remap all other URLs like `--remap-id` does; this is similar to `wget (-k|--convert-links)`
+  : change the default value for `--expr` to `response.body|eb|scrub response *all_refs`; i.e., remap all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does; results almost certainly will NOT be self-contained
   - `--remap-closed`
-  : remap all reachable URLs like `--remap-open` does, remap all other URLs like `--remap-void` does; `export`ed `mirror`s will be self-contained
+  : change the default value for `--expr` to `response.body|eb|scrub response /all_refs`; i.e., remap all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does; results will be self-contained
   - `--remap-all`
-  : remap all reachable URLs like `--remap-open` does, remap other URLs as if for each missing URL a trivial `GET <URL> -> 200 OK` reqres is present among input `PATH`s; this will produce broken links if the `--output` format depends on anything but the URL itself, but for a simple `--output` (like the default `hupq`) this will remap missing URLs to `--output` paths that they would occupy if they were present; this allows `hoardy-web export` to be used incrementally; `export`ed `mirror`s will be self-contained; default
+  : change the default value for `--expr` to `response.body|eb|scrub response &all_refs`; i.e., remap all links and references like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble; results will be self-contained; default
+    
+    `hoardy-web export mirror` uses `--output` paths of trivial `GET <URL> -> 200 OK` as fallbacks for `&(jumps|actions|reqs)` options of `scrub`.
+    
+    For simple `--output` formats (like the default `hupq`) this will remap missing and unreachable URLs to `--output` paths of trivial `GET <URL> -> 200 OK` reqres.
+    When `hoardy-web export mirror` is run the first time, the resulting URLs will point to missing files.
+    But those files can be generated by running `hoardy-web export mirror` again, this time with `WRR` files containing those missing or unreachable URLs as inputs.
+    I.e., this behaviour allows you to add new data to an already `export`ed mirror without regenerating old files that reference newly added URLs.
+    I.e., this allows `hoardy-web export mirror` to be used incrementally.
+    
+    Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
 
 - exporting:
   - `--not-separated`
