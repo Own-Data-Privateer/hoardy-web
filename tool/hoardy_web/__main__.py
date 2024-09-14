@@ -458,23 +458,21 @@ def test_outputs_aliases() -> None:
     def mk(url : str) -> ReqresExpr:
         return ReqresExpr(trivial_Reqres(parse_url(url)), None, [])
 
-    res = ""
+    res = []
     prev = ""
     for name in output_aliases:
         for url in output_aliases_tests:
             x = mk(url)
             x.items["num"] = 0
-            prefix = "\n" + name + ":" + " " * (12 - len(name)) + " "
+            prefix = name + ":" + " " * (12 - len(name)) + " "
             current = output_aliases[name] % x
             if prev != current:
-                res += prefix + current
+                res.append(prefix + current)
             else:
-                res += prefix + "=="
+                res.append(prefix + "==")
             prev = current
 
-    print(res)
-
-    assert res + "\n" == """
+    pristine = """
 default:      1970/01/01/001640000_0_GET_50d7_C200C_example.org_0
 default:      1970/01/01/001640000_0_GET_8198_C200C_example.org_0
 default:      1970/01/01/001640000_0_GET_f0dc_C200C_example.org_0
@@ -872,6 +870,15 @@ flat_mhsn:    königsgäßchen.example.org/index.GET_4f11_C200C_0.html
 flat_mhsn:    ジャジェメント.ですの.example.org/испытание__is__index.GET_c4ae_C200C_0.htm
 flat_mhsn:    ==
 """
+
+    pl = pristine.strip().split("\n")
+    assert len(pl) == len(res)
+
+    for i in range(0, len(res)):
+        a = pl[i]
+        b = res[i]
+        if a != b:
+            raise CatastrophicFailure("expected %s, got %s", a, b)
 
 not_allowed = gettext("; this is not allowed to prevent accidental data loss")
 variance_help = gettext("; your `--output` format fails to provide enough variance to solve this problem automatically (did your forget to place a `%%(num)d` substitution in there?)") + not_allowed
