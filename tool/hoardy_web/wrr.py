@@ -254,6 +254,38 @@ def parse_url(url : str) -> ParsedURL:
                      opm, port,
                      path, oqm, query, ofm, fragment)
 
+def test_parse_url() -> None:
+    def check(x : ParsedURL, name : str, value : _t.Any) -> None:
+        if getattr(x, name) != value:
+            raise CatastrophicFailure("while evaluating %s of %s, got %s, expected %s", name, x.raw_url, getattr(x, name), value)
+
+    tests = [
+        ["http://example.org", "http://example.org/"],
+        ["http://example.org/"],
+        ["http://example.org/test"],
+        ["http://example.org/test/", "http://example.org/test"],
+        ["http://example.org/unfinished/query?"],
+        ["http://example.org/unfinished/query?param", "http://example.org/unfinished/query?param"],
+        ["http://example.org/unfinished/query?param=0"],
+        ["http://example.org/unfinished/query?param=0&param=1"],
+        ["http://example.org/web/2/https://archived.example.org", "http://example.org/web/2/https:/archived.example.org"],
+        ["http://example.org/web/2/https://archived.example.org/", "http://example.org/web/2/https:/archived.example.org"],
+        ["http://example.org/web/2/https://archived.example.org/test", "http://example.org/web/2/https:/archived.example.org/test"],
+        ["http://example.org/web/2/https://archived.example.org/test/", "http://example.org/web/2/https:/archived.example.org/test"],
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?", "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param", "http://example.org/web/2/https:/archived.example.org/unfinished/query?param"],
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0", "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1", "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1"],
+    ]
+
+    for url, *rest in tests:
+        x = parse_url(url)
+        check(x, "raw_url", url)
+        check(x, "net_url", url)
+
+        nurl = rest[0] if len(rest) > 0 else url
+        check(x, "pretty_url", nurl)
+
 Headers = list[tuple[str, bytes]]
 
 def get_raw_headers(headers : Headers, name : str) -> list[bytes]:
@@ -630,19 +662,6 @@ def test_ReqresExpr() -> None:
     def check(x : ReqresExpr, name : str, value : _t.Any) -> None:
         if x[name] != value:
             raise CatastrophicFailure("while evaluating %s of %s, got %s, expected %s", name, x.reqres.request.url, x[name], value)
-
-    unmodified = [
-        "http://example.org",
-        "http://example.org/",
-        "http://example.org/test",
-        "http://example.org/test/",
-        "http://example.org/unfinished/query?",
-        "http://example.org/unfinished/query?param",
-    ]
-
-    for url in unmodified:
-        x = mk(url)
-        check(x, "net_url", url)
 
     def check_fp(url : str, ext : str, *parts : str) -> None:
         x = mk(url)
