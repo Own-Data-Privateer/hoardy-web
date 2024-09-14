@@ -117,7 +117,7 @@ def elaborate_output(cargs : _t.Any) -> None:
         cargs.output_format = cargs.output[7:]
     else:
         try:
-            cargs.output_format = output_aliases[cargs.output]
+            cargs.output_format = output_alias[cargs.output]
         except KeyError:
             raise CatastrophicFailure(gettext('unknown `--output` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), cargs.output)
 
@@ -366,7 +366,45 @@ def cmd_find(cargs : _t.Any) -> None:
 
     map_wrr_paths(cargs, emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
 
-output_aliases = {
+example_url = [
+    "https://example.org",
+    "https://example.org/",
+    "https://example.org/index.html",
+    "https://example.org/media",
+    "https://example.org/media/",
+    "https://example.org/view?one=1&two=2&three=&three=3#fragment",
+    "https://königsgäßchen.example.org/index.html",
+    "https://ジャジェメント.ですの.example.org/испытание/is/",
+    "https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/",
+]
+
+def make_example(gen : _t.Callable[[str], str], indent : int) -> str:
+    rev : dict[str, list[str]] = {}
+    for url in example_url:
+        current = gen(url)
+        try:
+            l = rev[current]
+        except KeyError:
+            l = []
+            rev[current] = l
+        l.append(url)
+
+    res = []
+    for r in rev:
+        res.append(" " * indent + "- " + ", ".join(map(lambda x: f"`{x}`", rev[r])) + " -> `" + r + "`")
+
+    return "\n".join(res).replace('%', '%%')
+
+atom_test = [
+    "raw_url",
+    "net_url",
+    "pretty_url",
+]
+
+def atom_example(name : str, indent : int) -> str:
+    return make_example(lambda url: getattr(parse_url(url), name), indent)
+
+output_alias = {
     "default":    "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s_%(num)d",
     "short":      "%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s_%(num)d",
 
@@ -420,39 +458,12 @@ output_aliases = {
     "flat_mhsn":  "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s",
 }
 
-output_aliases_tests = [
-    "https://example.org",
-    "https://example.org/",
-    "https://example.org/index.html",
-    "https://example.org/media",
-    "https://example.org/media/",
-    "https://example.org/view?one=1&two=2&three=&three=3#fragment",
-    "https://königsgäßchen.example.org/index.html",
-    "https://ジャジェメント.ですの.example.org/испытание/is/",
-    "https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/",
-]
-
 def output_example(name : str, indent : int) -> str:
-    def mk(url : str) -> ReqresExpr:
-        return ReqresExpr(trivial_Reqres(parse_url(url)), None, [])
-
-    rev : dict[str, list[str]] = {}
-    for url in output_aliases_tests:
-        x = mk(url)
+    def gen(url : str) -> str:
+        x = ReqresExpr(trivial_Reqres(parse_url(url)), None, [])
         x.items["num"] = 0
-        current = output_aliases[name] % x
-        try:
-            l = rev[current]
-        except KeyError:
-            l = []
-            rev[current] = l
-        l.append(url)
-
-    res = []
-    for r in rev:
-        res.append(" " * indent + "- " + ", ".join(map(lambda x: f"`{x}`", rev[r])) + " -> `" + r + "`")
-
-    return "\n".join(res).replace('%', '%%')
+        return output_alias[name] % x
+    return make_example(gen, indent)
 
 def test_outputs_aliases() -> None:
     def mk(url : str) -> ReqresExpr:
@@ -460,12 +471,12 @@ def test_outputs_aliases() -> None:
 
     res = []
     prev = ""
-    for name in output_aliases:
-        for url in output_aliases_tests:
+    for name in output_alias:
+        for url in example_url:
             x = mk(url)
             x.items["num"] = 0
             prefix = name + ":" + " " * (12 - len(name)) + " "
-            current = output_aliases[name] % x
+            current = output_alias[name] % x
             if prev != current:
                 res.append(prefix + current)
             else:
@@ -1926,7 +1937,10 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 - `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
 - `net_url|to_ascii|sha256|take_prefix 4` will print the first 4 characters of the above;
 - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
-- `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""", 2))
+- `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""", 2) + \
+                "\n\nExample URL mappings:\n" + \
+                "".join([f"  - `{name}`:\n" + atom_example(name, 4) + "\n" for name in atom_test])
+            )
         else:
             if kind == "run":
                 def_expr = f"`{default_expr[kind]}`, which will simply dump the `HTTP` response body"
@@ -2054,7 +2068,7 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
             agrp.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("destination directory; when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`"))
             agrp.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_("""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""") + "\n" + \
                          "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
-                         "".join([f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`" + ("; the default" if name == "default" else "") + "\n" + output_example(name, 8) + "\n" for name, value in output_aliases.items()]) + \
+                         "".join([f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`" + ("; the default" if name == "default" else "") + "\n" + output_example(name, 8) + "\n" for name, value in output_alias.items()]) + \
                          "- " + _("available substitutions:") + "\n" + \
                          "  - " + _(f"all expressions of `{__prog__} get --expr` (which see)") + ";\n" + \
                          "  - `num`: " + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique"))

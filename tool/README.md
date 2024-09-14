@@ -607,6 +607,34 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `net_url|to_ascii|sha256|take_prefix 4` will print the first 4 characters of the above;
       - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
       - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;
+    
+    Example URL mappings:
+      - `raw_url`:
+        - `https://example.org` -> `https://example.org`
+        - `https://example.org/` -> `https://example.org/`
+        - `https://example.org/index.html` -> `https://example.org/index.html`
+        - `https://example.org/media` -> `https://example.org/media`
+        - `https://example.org/media/` -> `https://example.org/media/`
+        - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https://example.org/view?one=1&two=2&three=&three=3#fragment`
+        - `https://königsgäßchen.example.org/index.html` -> `https://königsgäßchen.example.org/index.html`
+        - `https://ジャジェメント.ですの.example.org/испытание/is/` -> `https://ジャジェメント.ですの.example.org/испытание/is/`
+        - `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`
+      - `net_url`:
+        - `https://example.org` -> `https://example.org`
+        - `https://example.org/` -> `https://example.org/`
+        - `https://example.org/index.html` -> `https://example.org/index.html`
+        - `https://example.org/media` -> `https://example.org/media`
+        - `https://example.org/media/` -> `https://example.org/media/`
+        - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https://example.org/view?one=1&two=2&three=&three=3`
+        - `https://königsgäßchen.example.org/index.html` -> `https://xn--knigsgchen-b4a3dun.example.org/index.html`
+        - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`
+      - `pretty_url`:
+        - `https://example.org`, `https://example.org/` -> `https://example.org/`
+        - `https://example.org/index.html` -> `https://example.org/index.html`
+        - `https://example.org/media`, `https://example.org/media/` -> `https://example.org/media`
+        - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https://example.org/view?one=1&two=2&three&three=3#fragment`
+        - `https://königsgäßchen.example.org/index.html` -> `https://königsgäßchen.example.org/index.html`
+        - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https://ジャジェメント.ですの.example.org/испытание/is`
 
 - the default value of `--expr`:
   - `--no-remap`
