@@ -122,50 +122,56 @@ class ParsedURL:
 
     @property
     def net_url(self) -> str:
+        raw_path = self.raw_path
         if self.raw_hostname:
             nl = self.net_netloc
             if nl != "": nl = "//" + nl
-            return _up.quote(f"{self.scheme}:{nl}{self.raw_path}{self.oqm}{self.raw_query}", safe="%/:=&?~#+!$,;'@()*[]|")
+            slash = "/" if raw_path == "" else ""
+            return _up.quote(f"{self.scheme}:{nl}{raw_path}{slash}{self.oqm}{self.raw_query}", safe="%/:=&?~#+!$,;'@()*[]|")
         else:
-            return _up.quote(f"{self.scheme}:{self.raw_path}{self.oqm}{self.raw_query}", safe="%/:=&?~#+!$,;'@()*[]|")
+            return _up.quote(f"{self.scheme}:{raw_path}{self.oqm}{self.raw_query}", safe="%/:=&?~#+!$,;'@()*[]|")
 
     @property
     def full_url(self) -> str:
         return f"{self.net_url}{self.ofm}{self.fragment}"
 
     @property
-    def path_parts(self) -> list[str]:
-        path_parts_insecure = [_up.unquote(e) for e in self.raw_path.split("/") if e != ""]
+    def raw_path_parts(self) -> list[str]:
+        return [_up.unquote(e) for e in self.raw_path.split("/")]
+
+    @property
+    def npath_parts(self) -> list[str]:
+        parts_insecure = [e for e in self.raw_path_parts if e != ""]
 
         # remove dots and securely interpret double dots
-        path_parts : list[str] = []
-        for e in path_parts_insecure:
+        parts : list[str] = []
+        for e in parts_insecure:
             if e == ".":
                 continue
             elif e == "..":
-                if len(path_parts) > 0:
-                    path_parts.pop()
+                if len(parts) > 0:
+                    parts.pop()
                 continue
-            path_parts.append(e)
-        return path_parts
+            parts.append(e)
+        return parts
 
     def filepath_parts_ext(self, default : str, extensions : list[str]) -> tuple[list[str], str]:
-        path_parts = self.path_parts
-        if len(path_parts) == 0 or self.raw_path.endswith("/"):
-            return path_parts + [default], extensions[0] if len(extensions) > 0 else ".data"
+        parts = self.npath_parts
+        if len(parts) == 0 or self.raw_path.endswith("/"):
+            return parts + [default], extensions[0] if len(extensions) > 0 else ".data"
 
-        last = path_parts[-1].lower()
+        last = parts[-1].lower()
         last_name, last_ext = _os.path.splitext(last)
         if last_ext == "":
-            return path_parts + [default], extensions[0] if len(extensions) > 0 else ".data"
+            return parts + [default], extensions[0] if len(extensions) > 0 else ".data"
         elif last_ext in extensions:
-            return path_parts[:-1] + [last_name], last_ext
+            return parts[:-1] + [last_name], last_ext
         elif len(extensions) > 0:
-            return path_parts[:-1] + [last], extensions[0]
+            return parts[:-1] + [last], extensions[0]
         elif last_ext == ".data":
-            return path_parts[:-1] + [last_name], ".data"
+            return parts[:-1] + [last_name], ".data"
         else:
-            return path_parts[:-1] + [last], ".data"
+            return parts[:-1] + [last], ".data"
 
     @property
     def query_parts(self) -> list[tuple[str, str]]:
@@ -176,8 +182,12 @@ class ParsedURL:
         return [e for e in self.query_parts if e[1] != ""]
 
     @property
-    def mq_path(self) -> str:
-        return pp_to_path(self.path_parts)
+    def mq_raw_path(self) -> str:
+        return pp_to_path(self.raw_path_parts)
+
+    @property
+    def mq_npath(self) -> str:
+        return pp_to_path(self.npath_parts)
 
     @property
     def mq_query(self) -> str:
@@ -188,22 +198,34 @@ class ParsedURL:
         return qsl_to_path(self.query_ne_parts)
 
     @property
-    def pretty_url(self) -> str:
+    def pretty_net_url(self) -> str:
         if self.raw_hostname:
             nl = self.netloc
             if nl != "": nl = "//" + nl
-            return f"{self.scheme}:{nl}/{self.mq_path}{self.oqm}{self.mq_query}{self.ofm}{self.fragment}"
+            slash = "/" if self.raw_path == "" else ""
+            return f"{self.scheme}:{nl}{self.mq_raw_path}{slash}{self.oqm}{self.mq_query}"
         else:
-            return f"{self.scheme}:{self.mq_path}{self.oqm}{self.mq_query}{self.ofm}{self.fragment}"
+            return f"{self.scheme}:{self.mq_raw_path}{self.oqm}{self.mq_query}"
+
+    @property
+    def pretty_url(self) -> str:
+        return f"{self.pretty_net_url}{self.ofm}{self.fragment}"
+
+    @property
+    def pretty_net_nurl(self) -> str:
+        mq_npath = self.mq_npath
+        if self.raw_hostname:
+            nl = self.netloc
+            if nl != "": nl = "//" + nl
+            slash = "/" if self.raw_path.endswith("/") and len(mq_npath) > 0 else ""
+            return f"{self.scheme}:{nl}/{mq_npath}{slash}{self.oqm}{self.mq_nquery}"
+        else:
+            slash = "/" if self.raw_path.endswith("/") else ""
+            return f"{self.scheme}:{mq_npath}{slash}{self.oqm}{self.mq_nquery}"
 
     @property
     def pretty_nurl(self) -> str:
-        if self.raw_hostname:
-            nl = self.netloc
-            if nl != "": nl = "//" + nl
-            return f"{self.scheme}:{nl}/{self.mq_path}{self.oqm}{self.mq_nquery}{self.ofm}{self.fragment}"
-        else:
-            return f"{self.scheme}:{self.mq_path}{self.oqm}{self.mq_nquery}{self.ofm}{self.fragment}"
+        return f"{self.pretty_net_nurl}{self.ofm}{self.fragment}"
 
 class URLParsingError(ValueError): pass
 
@@ -259,32 +281,61 @@ def test_parse_url() -> None:
         if getattr(x, name) != value:
             raise CatastrophicFailure("while evaluating %s of %s, got %s, expected %s", name, x.raw_url, getattr(x, name), value)
 
-    tests = [
-        ["http://example.org", "http://example.org/"],
-        ["http://example.org/"],
-        ["http://example.org/test"],
-        ["http://example.org/test/", "http://example.org/test"],
-        ["http://example.org/unfinished/query?"],
-        ["http://example.org/unfinished/query?param", "http://example.org/unfinished/query?param"],
-        ["http://example.org/unfinished/query?param=0"],
-        ["http://example.org/unfinished/query?param=0&param=1"],
-        ["http://example.org/web/2/https://archived.example.org", "http://example.org/web/2/https:/archived.example.org"],
-        ["http://example.org/web/2/https://archived.example.org/", "http://example.org/web/2/https:/archived.example.org"],
-        ["http://example.org/web/2/https://archived.example.org/test", "http://example.org/web/2/https:/archived.example.org/test"],
-        ["http://example.org/web/2/https://archived.example.org/test/", "http://example.org/web/2/https:/archived.example.org/test"],
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?", "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param", "http://example.org/web/2/https:/archived.example.org/unfinished/query?param"],
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0", "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1", "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1"],
+    tests1 : list[list[str| None]]
+    tests1 = [
+        ["http://example.org", "http://example.org/", "http://example.org/"],
+        ["http://example.org/", None, None],
+        ["http://example.org/test", None, None],
+        ["http://example.org/test/", None, None],
+        ["http://example.org/unfinished/query?", None, None],
+        ["http://example.org/unfinished/query?param", None, "http://example.org/unfinished/query?"],
+        ["http://example.org/unfinished/query?param=0", None, None],
+        ["http://example.org/unfinished/query?param=0&param=1", None, None],
+        ["http://example.org/web/2/https://archived.example.org", None, "http://example.org/web/2/https:/archived.example.org"],
+        ["http://example.org/web/2/https://archived.example.org/", None, "http://example.org/web/2/https:/archived.example.org/"],
+        ["http://example.org/web/2/https://archived.example.org/test", None, "http://example.org/web/2/https:/archived.example.org/test"],
+        ["http://example.org/web/2/https://archived.example.org/test/", None, "http://example.org/web/2/https:/archived.example.org/test/"],
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1"],
     ]
 
-    for url, *rest in tests:
+    url : str | None
+    rest : list[str | None]
+    for url, *rest in tests1:
+        assert url is not None
         x = parse_url(url)
         check(x, "raw_url", url)
-        check(x, "net_url", url)
 
-        nurl = rest[0] if len(rest) > 0 else url
-        check(x, "pretty_url", nurl)
+        curl = rest[0] if rest[0] is not None else url
+        check(x, "net_url", curl)
+        check(x, "pretty_net_url", curl)
+        check(x, "pretty_url", curl)
+
+        nurl = rest[1] if rest[1] is not None else url
+        check(x, "pretty_net_nurl", nurl)
+        check(x, "pretty_nurl", nurl)
+
+    tests2 : list[list[str| None]]
+    tests2 = [
+        ["http://example.org#hash", "http://example.org/#hash", "http://example.org/"],
+        ["http://example.org/#hash", "http://example.org/#hash", "http://example.org/"],
+    ]
+
+    for url, *rest in tests2:
+        assert url is not None
+        x = parse_url(url)
+        check(x, "raw_url", url)
+
+        curl = rest[0] if rest[0] is not None else url
+        check(x, "pretty_url", curl)
+        check(x, "pretty_nurl", curl)
+
+        nurl = rest[1] if rest[1] is not None else url
+        check(x, "net_url", nurl)
+        check(x, "pretty_net_url", nurl)
+        check(x, "pretty_net_nurl", nurl)
 
 Headers = list[tuple[str, bytes]]
 
@@ -387,7 +438,7 @@ Reqres_fields = {
     "protocol": 'protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str',
     "request.started_at": "request start time in seconds since 1970-01-01 00:00; Epoch",
     "request.method": 'request `HTTP` method; e.g. `"GET"`, `"POST"`, etc; str',
-    "request.url": "request URL, including the fragment/hash part; str",
+    "request.url": "request URL, including the `fragment`/hash part; str",
     "request.headers": "request headers; list[tuple[str, bytes]]",
     "request.complete": "is request body complete?; bool",
     "request.body": "request body; bytes",
@@ -441,9 +492,11 @@ Reqres_derived_attrs = {
 }
 
 Reqres_url_attrs = {
-    "net_url": "`raw_url` with Punycode UTS46 IDNA encoded hostname, unsafe characters quoted, and without the fragment/hash part; this is the URL that actually gets sent to the server; str",
-    "pretty_url": "`raw_url`, but using `hostname`, `mq_path`, and `mq_query`; str",
-    "pretty_nurl": "`raw_url`, but using `hostname`, `mq_path`, and `mq_nquery`; str",
+    "net_url": "a variant of `raw_url` that uses Punycode UTS46 IDNA encoded `net_hostname`, has all unsafe characters of `raw_path` and `raw_query` quoted, and comes without the `fragment`/hash part; this is the URL that actually gets sent to an `HTTP` server when you request `raw_url`; str",
+    "pretty_net_url": "a variant of `raw_url` that uses UNICODE IDNA `hostname` without Punycode, minimally quoted `mq_raw_path` and `mq_query`, and comes without the `fragment`/hash part; this is a human-readable version of `net_url`; str",
+    "pretty_url": "`pretty_net_url` with `fragment`/hash part appended; str",
+    "pretty_net_nurl": "a variant of `pretty_net_url` that uses `mq_npath` instead of `mq_raw_path` and `mq_nquery` instead of `mq_query`; i.e. this is `pretty_net_url` with normalized path and query; str",
+    "pretty_nurl": "`pretty_net_nurl` with `fragment`/hash part appended; str",
     "scheme": "scheme part of `raw_url`; e.g. `http`, `https`, etc; str",
     "raw_hostname": "hostname part of `raw_url` as it is recorded in the reqres; str",
     "net_hostname": "hostname part of `raw_url`, encoded as Punycode UTS46 IDNA; this is what actually gets sent to the server; ASCII str",
@@ -452,9 +505,11 @@ Reqres_url_attrs = {
     "port": 'port part of `raw_url`; str',
     "netloc": "netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str",
     "raw_path": 'raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str',
-    "path_parts": 'component-wise unquoted "/"-split `raw_path` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]',
-    "mq_path": "`path_parts` turned back into a minimally-quoted string; str",
-    "filepath_parts": '`path_parts` transformed into components usable as an exportable file name; i.e. `path_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` `MIME` type; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
+    "raw_path_parts": 'component-wise unquoted "/"-split `raw_path`; list[str]',
+    "npath_parts": '`raw_path_parts` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]',
+    "mq_raw_path": "`raw_path_parts` turned back into a minimally-quoted string; str",
+    "mq_npath": "`npath_parts` turned back into a minimally-quoted string; str",
+    "filepath_parts": '`npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` `MIME` type; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
     "filepath_ext": 'extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str',
     "raw_query": "query part of `raw_url` (i.e. everything after the `?` character and before the `#` character) as it is recorded in the reqres; str",
     "query_parts": "parsed (and component-wise unquoted) `raw_query`; list[tuple[str, str]]",
@@ -630,11 +685,11 @@ def fallback_Reqres(url : ParsedURL,
                     data : bytes = b"") -> Reqres:
     """Similar to `trivial_Reqres`, but trying to guess the `Content-Type` from the given `expected_content_types` and the extension."""
 
-    path_parts = url.path_parts
-    if len(path_parts) == 0 or url.raw_path.endswith("/"):
+    npath_parts = url.npath_parts
+    if len(npath_parts) == 0 or url.raw_path.endswith("/"):
         cts = page_mime
     else:
-        last = path_parts[-1].lower()
+        last = npath_parts[-1].lower()
         _, ext = _os.path.splitext(last)
         try:
             cts = possible_mimes_of_ext[ext]
@@ -702,7 +757,7 @@ def test_ReqresExpr() -> None:
     x = mk(url)
     path_components = ["first", "second"]
     check(x, "net_url", url)
-    check(x, "path_parts", path_components)
+    check(x, "npath_parts", path_components)
     check(x, "filepath_parts", path_components + ["index"])
     check(x, "filepath_ext", ".htm")
     check(x, "query_parts", [("query", "this")])
@@ -719,7 +774,7 @@ def test_ReqresExpr() -> None:
     x = mk(f"https://{hostname}{path_query}#hash")
     check(x, "hostname", hostname)
     check(x, "net_hostname", ehostname)
-    check(x, "path_parts", path_components)
+    check(x, "npath_parts", path_components)
     check(x, "filepath_parts", path_components + ["index"])
     check(x, "filepath_ext", ".htm")
     check(x, "query_parts", query_components)
@@ -840,7 +895,7 @@ def linst_scrub() -> LinstAtom:
 
 ReqresExpr_atoms = linst_atoms.copy()
 ReqresExpr_atoms.update({
-    "pp_to_path": ("encode `path_parts` `list` into a POSIX path, quoting as little as needed",
+    "pp_to_path": ("encode `*path_parts` `list` into a POSIX path, quoting as little as needed",
         linst_apply0(lambda v: pp_to_path(v))),
     "qsl_urlencode": ("encode parsed `query` `list` into a URL's query component `str`",
         linst_apply0(lambda v: _up.urlencode(v))),

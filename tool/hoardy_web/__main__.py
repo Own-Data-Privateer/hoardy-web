@@ -399,6 +399,7 @@ atom_test = [
     "raw_url",
     "net_url",
     "pretty_url",
+    "pretty_nurl",
 ]
 
 def atom_example(name : str, indent : int) -> str:
@@ -408,8 +409,8 @@ output_alias = {
     "default":    "%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s_%(num)d",
     "short":      "%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s_%(num)d",
 
-    "surl":       "%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s",
-    "surl_msn":   "%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d",
+    "surl":       "%(scheme)s/%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s",
+    "surl_msn":   "%(scheme)s/%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d",
 
     "shupq":      "%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s",
     "shupq_n":    "%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(num)d%(filepath_ext)s",
@@ -429,8 +430,8 @@ output_alias = {
     "srhupnq_mhs":"%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s",
     "srhupnq_mhsn":"%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s",
 
-    "url":        "%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s",
-    "url_msn":    "%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d",
+    "url":        "%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s",
+    "url_msn":    "%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d",
 
     "hupq":       "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s",
     "hupq_n":     "%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(num)d%(filepath_ext)s",
@@ -484,8 +485,8 @@ def test_outputs_aliases() -> None:
             prev = current
 
     pristine = """
-default:      1970/01/01/001640000_0_GET_50d7_C200C_example.org_0
 default:      1970/01/01/001640000_0_GET_8198_C200C_example.org_0
+default:      ==
 default:      1970/01/01/001640000_0_GET_f0dc_C200C_example.org_0
 default:      1970/01/01/001640000_0_GET_086d_C200C_example.org_0
 default:      1970/01/01/001640000_0_GET_3fbb_C200C_example.org_0
@@ -574,8 +575,8 @@ shupnq_msn:   https/example.org/view/index?one=1&two=2&three=3.GET_C200C_0.htm
 shupnq_msn:   https/königsgäßchen.example.org/index.GET_C200C_0.html
 shupnq_msn:   https/ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm
 shupnq_msn:   ==
-shupnq_mhs:   https/example.org/index.GET_50d7_C200C.htm
 shupnq_mhs:   https/example.org/index.GET_8198_C200C.htm
+shupnq_mhs:   ==
 shupnq_mhs:   https/example.org/index.GET_f0dc_C200C.html
 shupnq_mhs:   https/example.org/media/index.GET_086d_C200C.htm
 shupnq_mhs:   https/example.org/media/index.GET_3fbb_C200C.htm
@@ -583,8 +584,8 @@ shupnq_mhs:   https/example.org/view/index?one=1&two=2&three=3.GET_5658_C200C.ht
 shupnq_mhs:   https/königsgäßchen.example.org/index.GET_4f11_C200C.html
 shupnq_mhs:   https/ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C.htm
 shupnq_mhs:   ==
-shupnq_mhsn:  https/example.org/index.GET_50d7_C200C_0.htm
 shupnq_mhsn:  https/example.org/index.GET_8198_C200C_0.htm
+shupnq_mhsn:  ==
 shupnq_mhsn:  https/example.org/index.GET_f0dc_C200C_0.html
 shupnq_mhsn:  https/example.org/media/index.GET_086d_C200C_0.htm
 shupnq_mhsn:  https/example.org/media/index.GET_3fbb_C200C_0.htm
@@ -646,8 +647,8 @@ srhupnq_msn:  https/org.example/view/index?one=1&two=2&three=3.GET_C200C_0.htm
 srhupnq_msn:  https/org.example.königsgäßchen/index.GET_C200C_0.html
 srhupnq_msn:  https/org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm
 srhupnq_msn:  ==
-srhupnq_mhs:  https/org.example/index.GET_50d7_C200C.htm
 srhupnq_mhs:  https/org.example/index.GET_8198_C200C.htm
+srhupnq_mhs:  ==
 srhupnq_mhs:  https/org.example/index.GET_f0dc_C200C.html
 srhupnq_mhs:  https/org.example/media/index.GET_086d_C200C.htm
 srhupnq_mhs:  https/org.example/media/index.GET_3fbb_C200C.htm
@@ -655,8 +656,8 @@ srhupnq_mhs:  https/org.example/view/index?one=1&two=2&three=3.GET_5658_C200C.ht
 srhupnq_mhs:  https/org.example.königsgäßchen/index.GET_4f11_C200C.html
 srhupnq_mhs:  https/org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C.htm
 srhupnq_mhs:  ==
-srhupnq_mhsn: https/org.example/index.GET_50d7_C200C_0.htm
 srhupnq_mhsn: https/org.example/index.GET_8198_C200C_0.htm
+srhupnq_mhsn: ==
 srhupnq_mhsn: https/org.example/index.GET_f0dc_C200C_0.html
 srhupnq_mhsn: https/org.example/media/index.GET_086d_C200C_0.htm
 srhupnq_mhsn: https/org.example/media/index.GET_3fbb_C200C_0.htm
@@ -736,8 +737,8 @@ hupnq_msn:    example.org/view/index?one=1&two=2&three=3.GET_C200C_0.htm
 hupnq_msn:    königsgäßchen.example.org/index.GET_C200C_0.html
 hupnq_msn:    ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm
 hupnq_msn:    ==
-hupnq_mhs:    example.org/index.GET_50d7_C200C.htm
 hupnq_mhs:    example.org/index.GET_8198_C200C.htm
+hupnq_mhs:    ==
 hupnq_mhs:    example.org/index.GET_f0dc_C200C.html
 hupnq_mhs:    example.org/media/index.GET_086d_C200C.htm
 hupnq_mhs:    example.org/media/index.GET_3fbb_C200C.htm
@@ -745,8 +746,8 @@ hupnq_mhs:    example.org/view/index?one=1&two=2&three=3.GET_5658_C200C.htm
 hupnq_mhs:    königsgäßchen.example.org/index.GET_4f11_C200C.html
 hupnq_mhs:    ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C.htm
 hupnq_mhs:    ==
-hupnq_mhsn:   example.org/index.GET_50d7_C200C_0.htm
 hupnq_mhsn:   example.org/index.GET_8198_C200C_0.htm
+hupnq_mhsn:   ==
 hupnq_mhsn:   example.org/index.GET_f0dc_C200C_0.html
 hupnq_mhsn:   example.org/media/index.GET_086d_C200C_0.htm
 hupnq_mhsn:   example.org/media/index.GET_3fbb_C200C_0.htm
@@ -808,8 +809,8 @@ rhupnq_msn:   org.example/view/index?one=1&two=2&three=3.GET_C200C_0.htm
 rhupnq_msn:   org.example.königsgäßchen/index.GET_C200C_0.html
 rhupnq_msn:   org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm
 rhupnq_msn:   ==
-rhupnq_mhs:   org.example/index.GET_50d7_C200C.htm
 rhupnq_mhs:   org.example/index.GET_8198_C200C.htm
+rhupnq_mhs:   ==
 rhupnq_mhs:   org.example/index.GET_f0dc_C200C.html
 rhupnq_mhs:   org.example/media/index.GET_086d_C200C.htm
 rhupnq_mhs:   org.example/media/index.GET_3fbb_C200C.htm
@@ -817,8 +818,8 @@ rhupnq_mhs:   org.example/view/index?one=1&two=2&three=3.GET_5658_C200C.htm
 rhupnq_mhs:   org.example.königsgäßchen/index.GET_4f11_C200C.html
 rhupnq_mhs:   org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C.htm
 rhupnq_mhs:   ==
-rhupnq_mhsn:  org.example/index.GET_50d7_C200C_0.htm
 rhupnq_mhsn:  org.example/index.GET_8198_C200C_0.htm
+rhupnq_mhsn:  ==
 rhupnq_mhsn:  org.example/index.GET_f0dc_C200C_0.html
 rhupnq_mhsn:  org.example/media/index.GET_086d_C200C_0.htm
 rhupnq_mhsn:  org.example/media/index.GET_3fbb_C200C_0.htm
@@ -862,8 +863,8 @@ flat_msn:     example.org/view__index?one=1&two=2&three=3.GET_C200C_0.htm
 flat_msn:     königsgäßchen.example.org/index.GET_C200C_0.html
 flat_msn:     ジャジェメント.ですの.example.org/испытание__is__index.GET_C200C_0.htm
 flat_msn:     ==
-flat_mhs:     example.org/index.GET_50d7_C200C.htm
 flat_mhs:     example.org/index.GET_8198_C200C.htm
+flat_mhs:     ==
 flat_mhs:     example.org/index.GET_f0dc_C200C.html
 flat_mhs:     example.org/media__index.GET_086d_C200C.htm
 flat_mhs:     example.org/media__index.GET_3fbb_C200C.htm
@@ -871,8 +872,8 @@ flat_mhs:     example.org/view__index?one=1&two=2&three=3.GET_5658_C200C.htm
 flat_mhs:     königsgäßchen.example.org/index.GET_4f11_C200C.html
 flat_mhs:     ジャジェメント.ですの.example.org/испытание__is__index.GET_c4ae_C200C.htm
 flat_mhs:     ==
-flat_mhsn:    example.org/index.GET_50d7_C200C_0.htm
 flat_mhsn:    example.org/index.GET_8198_C200C_0.htm
+flat_mhsn:    ==
 flat_mhsn:    example.org/index.GET_f0dc_C200C_0.html
 flat_mhsn:    example.org/media__index.GET_086d_C200C_0.htm
 flat_mhsn:    example.org/media__index.GET_3fbb_C200C_0.htm

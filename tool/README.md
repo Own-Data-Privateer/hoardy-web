@@ -499,7 +499,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `abbrev`: leave the current value as-is if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters
       - `abbrev_each`: `abbrev arg` each element in a value `list`
       - `replace`: replace all occurences of the first argument in the current value with the second argument, casts arguments to the same type as the current value
-      - `pp_to_path`: encode `path_parts` `list` into a POSIX path, quoting as little as needed
+      - `pp_to_path`: encode `*path_parts` `list` into a POSIX path, quoting as little as needed
       - `qsl_urlencode`: encode parsed `query` `list` into a URL's query component `str`
       - `qsl_to_path`: encode `query` `list` into a POSIX path, quoting as little as needed
       - `scrub`: scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on `--remap-*` command line options, the `MIME` type of the value itself, and the scrubbing options described below; this fuction takes two arguments:
@@ -531,7 +531,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `protocol`: protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str
       - `request.started_at`: request start time in seconds since 1970-01-01 00:00; Epoch
       - `request.method`: request `HTTP` method; e.g. `"GET"`, `"POST"`, etc; str
-      - `request.url`: request URL, including the fragment/hash part; str
+      - `request.url`: request URL, including the `fragment`/hash part; str
       - `request.headers`: request headers; list[tuple[str, bytes]]
       - `request.complete`: is request body complete?; bool
       - `request.body`: request body; bytes
@@ -575,9 +575,11 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `status`: `"I"` or  `"C"` depending on the value of `request.complete` (`false` or `true`, respectively) followed by either `"N"`, whene `response == None`, or `str(response.code)` followed by `"I"` or  `"C"` depending on the value of `response.complete`; str
       - `method`: aliast for `request.method`; str
       - `raw_url`: aliast for `request.url`; str
-      - `net_url`: `raw_url` with Punycode UTS46 IDNA encoded hostname, unsafe characters quoted, and without the fragment/hash part; this is the URL that actually gets sent to the server; str
-      - `pretty_url`: `raw_url`, but using `hostname`, `mq_path`, and `mq_query`; str
-      - `pretty_nurl`: `raw_url`, but using `hostname`, `mq_path`, and `mq_nquery`; str
+      - `net_url`: a variant of `raw_url` that uses Punycode UTS46 IDNA encoded `net_hostname`, has all unsafe characters of `raw_path` and `raw_query` quoted, and comes without the `fragment`/hash part; this is the URL that actually gets sent to an `HTTP` server when you request `raw_url`; str
+      - `pretty_net_url`: a variant of `raw_url` that uses UNICODE IDNA `hostname` without Punycode, minimally quoted `mq_raw_path` and `mq_query`, and comes without the `fragment`/hash part; this is a human-readable version of `net_url`; str
+      - `pretty_url`: `pretty_net_url` with `fragment`/hash part appended; str
+      - `pretty_net_nurl`: a variant of `pretty_net_url` that uses `mq_npath` instead of `mq_raw_path` and `mq_nquery` instead of `mq_query`; i.e. this is `pretty_net_url` with normalized path and query; str
+      - `pretty_nurl`: `pretty_net_nurl` with `fragment`/hash part appended; str
       - `scheme`: scheme part of `raw_url`; e.g. `http`, `https`, etc; str
       - `raw_hostname`: hostname part of `raw_url` as it is recorded in the reqres; str
       - `net_hostname`: hostname part of `raw_url`, encoded as Punycode UTS46 IDNA; this is what actually gets sent to the server; ASCII str
@@ -586,9 +588,11 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `port`: port part of `raw_url`; str
       - `netloc`: netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str
       - `raw_path`: raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str
-      - `path_parts`: component-wise unquoted "/"-split `raw_path` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]
-      - `mq_path`: `path_parts` turned back into a minimally-quoted string; str
-      - `filepath_parts`: `path_parts` transformed into components usable as an exportable file name; i.e. `path_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` `MIME` type; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]
+      - `raw_path_parts`: component-wise unquoted "/"-split `raw_path`; list[str]
+      - `npath_parts`: `raw_path_parts` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]
+      - `mq_raw_path`: `raw_path_parts` turned back into a minimally-quoted string; str
+      - `mq_npath`: `npath_parts` turned back into a minimally-quoted string; str
+      - `filepath_parts`: `npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` `MIME` type; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]
       - `filepath_ext`: extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str
       - `raw_query`: query part of `raw_url` (i.e. everything after the `?` character and before the `#` character) as it is recorded in the reqres; str
       - `query_parts`: parsed (and component-wise unquoted) `raw_query`; list[tuple[str, str]]
@@ -620,8 +624,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
         - `https://ジャジェメント.ですの.example.org/испытание/is/` -> `https://ジャジェメント.ですの.example.org/испытание/is/`
         - `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`
       - `net_url`:
-        - `https://example.org` -> `https://example.org`
-        - `https://example.org/` -> `https://example.org/`
+        - `https://example.org`, `https://example.org/` -> `https://example.org/`
         - `https://example.org/index.html` -> `https://example.org/index.html`
         - `https://example.org/media` -> `https://example.org/media`
         - `https://example.org/media/` -> `https://example.org/media/`
@@ -631,10 +634,19 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `pretty_url`:
         - `https://example.org`, `https://example.org/` -> `https://example.org/`
         - `https://example.org/index.html` -> `https://example.org/index.html`
-        - `https://example.org/media`, `https://example.org/media/` -> `https://example.org/media`
+        - `https://example.org/media` -> `https://example.org/media`
+        - `https://example.org/media/` -> `https://example.org/media/`
         - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https://example.org/view?one=1&two=2&three&three=3#fragment`
         - `https://königsgäßchen.example.org/index.html` -> `https://königsgäßchen.example.org/index.html`
-        - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https://ジャジェメント.ですの.example.org/испытание/is`
+        - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https://ジャジェメント.ですの.example.org/испытание/is/`
+      - `pretty_nurl`:
+        - `https://example.org`, `https://example.org/` -> `https://example.org/`
+        - `https://example.org/index.html` -> `https://example.org/index.html`
+        - `https://example.org/media` -> `https://example.org/media`
+        - `https://example.org/media/` -> `https://example.org/media/`
+        - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https://example.org/view?one=1&two=2&three=3#fragment`
+        - `https://königsgäßchen.example.org/index.html` -> `https://königsgäßchen.example.org/index.html`
+        - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https://ジャジェメント.ですの.example.org/испытание/is/`
 
 - the default value of `--expr`:
   - `--no-remap`
@@ -875,8 +887,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
       - `default`     : `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s_%(num)d`; the default
-            - `https://example.org` -> `1970/01/01/001640000_0_GET_50d7_C200C_example.org_0`
-            - `https://example.org/` -> `1970/01/01/001640000_0_GET_8198_C200C_example.org_0`
+            - `https://example.org`, `https://example.org/` -> `1970/01/01/001640000_0_GET_8198_C200C_example.org_0`
             - `https://example.org/index.html` -> `1970/01/01/001640000_0_GET_f0dc_C200C_example.org_0`
             - `https://example.org/media` -> `1970/01/01/001640000_0_GET_086d_C200C_example.org_0`
             - `https://example.org/media/` -> `1970/01/01/001640000_0_GET_3fbb_C200C_example.org_0`
@@ -885,14 +896,14 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `1970/01/01/001640000_0_GET_c4ae_C200C_ジャジェメント.ですの.example.org_0`
       - `short`       : `%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s_%(num)d`
             - `https://example.org`, `https://example.org/`, `https://example.org/index.html`, `https://example.org/media`, `https://example.org/media/`, `https://example.org/view?one=1&two=2&three=&three=3#fragment`, `https://königsgäßchen.example.org/index.html`, `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `1970/01/01/1000000_0_0`
-      - `surl`        : `%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s`
+      - `surl`        : `%(scheme)s/%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s`
             - `https://example.org`, `https://example.org/` -> `https/example.org/`
             - `https://example.org/index.html` -> `https/example.org/index.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media`
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view?one=1&two=2&three&three=3`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is`
-      - `surl_msn`    : `%(scheme)s/%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d`
+      - `surl_msn`    : `%(scheme)s/%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d`
             - `https://example.org`, `https://example.org/` -> `https/example.org/__GET_C200C_0`
             - `https://example.org/index.html` -> `https/example.org/index.html__GET_C200C_0`
             - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media__GET_C200C_0`
@@ -942,8 +953,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.GET_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm`
       - `shupnq_mhs`  : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
-            - `https://example.org` -> `https/example.org/index.GET_50d7_C200C.htm`
-            - `https://example.org/` -> `https/example.org/index.GET_8198_C200C.htm`
+            - `https://example.org`, `https://example.org/` -> `https/example.org/index.GET_8198_C200C.htm`
             - `https://example.org/index.html` -> `https/example.org/index.GET_f0dc_C200C.html`
             - `https://example.org/media` -> `https/example.org/media/index.GET_086d_C200C.htm`
             - `https://example.org/media/` -> `https/example.org/media/index.GET_3fbb_C200C.htm`
@@ -951,8 +961,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.GET_4f11_C200C.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C.htm`
       - `shupnq_mhsn` : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s`
-            - `https://example.org` -> `https/example.org/index.GET_50d7_C200C_0.htm`
-            - `https://example.org/` -> `https/example.org/index.GET_8198_C200C_0.htm`
+            - `https://example.org`, `https://example.org/` -> `https/example.org/index.GET_8198_C200C_0.htm`
             - `https://example.org/index.html` -> `https/example.org/index.GET_f0dc_C200C_0.html`
             - `https://example.org/media` -> `https/example.org/media/index.GET_086d_C200C_0.htm`
             - `https://example.org/media/` -> `https/example.org/media/index.GET_3fbb_C200C_0.htm`
@@ -1002,8 +1011,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.GET_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm`
       - `srhupnq_mhs` : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
-            - `https://example.org` -> `https/org.example/index.GET_50d7_C200C.htm`
-            - `https://example.org/` -> `https/org.example/index.GET_8198_C200C.htm`
+            - `https://example.org`, `https://example.org/` -> `https/org.example/index.GET_8198_C200C.htm`
             - `https://example.org/index.html` -> `https/org.example/index.GET_f0dc_C200C.html`
             - `https://example.org/media` -> `https/org.example/media/index.GET_086d_C200C.htm`
             - `https://example.org/media/` -> `https/org.example/media/index.GET_3fbb_C200C.htm`
@@ -1011,22 +1019,21 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.GET_4f11_C200C.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C.htm`
       - `srhupnq_mhsn`: `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s`
-            - `https://example.org` -> `https/org.example/index.GET_50d7_C200C_0.htm`
-            - `https://example.org/` -> `https/org.example/index.GET_8198_C200C_0.htm`
+            - `https://example.org`, `https://example.org/` -> `https/org.example/index.GET_8198_C200C_0.htm`
             - `https://example.org/index.html` -> `https/org.example/index.GET_f0dc_C200C_0.html`
             - `https://example.org/media` -> `https/org.example/media/index.GET_086d_C200C_0.htm`
             - `https://example.org/media/` -> `https/org.example/media/index.GET_3fbb_C200C_0.htm`
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=3.GET_5658_C200C_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.GET_4f11_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C_0.htm`
-      - `url`         : `%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s`
+      - `url`         : `%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s`
             - `https://example.org`, `https://example.org/` -> `example.org/`
             - `https://example.org/index.html` -> `example.org/index.html`
             - `https://example.org/media`, `https://example.org/media/` -> `example.org/media`
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view?one=1&two=2&three&three=3`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is`
-      - `url_msn`     : `%(netloc)s/%(mq_path)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d`
+      - `url_msn`     : `%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d`
             - `https://example.org`, `https://example.org/` -> `example.org/__GET_C200C_0`
             - `https://example.org/index.html` -> `example.org/index.html__GET_C200C_0`
             - `https://example.org/media`, `https://example.org/media/` -> `example.org/media__GET_C200C_0`
@@ -1076,8 +1083,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm`
       - `hupnq_mhs`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
-            - `https://example.org` -> `example.org/index.GET_50d7_C200C.htm`
-            - `https://example.org/` -> `example.org/index.GET_8198_C200C.htm`
+            - `https://example.org`, `https://example.org/` -> `example.org/index.GET_8198_C200C.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_f0dc_C200C.html`
             - `https://example.org/media` -> `example.org/media/index.GET_086d_C200C.htm`
             - `https://example.org/media/` -> `example.org/media/index.GET_3fbb_C200C.htm`
@@ -1085,8 +1091,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_4f11_C200C.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C.htm`
       - `hupnq_mhsn`  : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s`
-            - `https://example.org` -> `example.org/index.GET_50d7_C200C_0.htm`
-            - `https://example.org/` -> `example.org/index.GET_8198_C200C_0.htm`
+            - `https://example.org`, `https://example.org/` -> `example.org/index.GET_8198_C200C_0.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_f0dc_C200C_0.html`
             - `https://example.org/media` -> `example.org/media/index.GET_086d_C200C_0.htm`
             - `https://example.org/media/` -> `example.org/media/index.GET_3fbb_C200C_0.htm`
@@ -1136,8 +1141,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.GET_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm`
       - `rhupnq_mhs`  : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
-            - `https://example.org` -> `org.example/index.GET_50d7_C200C.htm`
-            - `https://example.org/` -> `org.example/index.GET_8198_C200C.htm`
+            - `https://example.org`, `https://example.org/` -> `org.example/index.GET_8198_C200C.htm`
             - `https://example.org/index.html` -> `org.example/index.GET_f0dc_C200C.html`
             - `https://example.org/media` -> `org.example/media/index.GET_086d_C200C.htm`
             - `https://example.org/media/` -> `org.example/media/index.GET_3fbb_C200C.htm`
@@ -1145,8 +1149,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.GET_4f11_C200C.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C.htm`
       - `rhupnq_mhsn` : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s`
-            - `https://example.org` -> `org.example/index.GET_50d7_C200C_0.htm`
-            - `https://example.org/` -> `org.example/index.GET_8198_C200C_0.htm`
+            - `https://example.org`, `https://example.org/` -> `org.example/index.GET_8198_C200C_0.htm`
             - `https://example.org/index.html` -> `org.example/index.GET_f0dc_C200C_0.html`
             - `https://example.org/media` -> `org.example/media/index.GET_086d_C200C_0.htm`
             - `https://example.org/media/` -> `org.example/media/index.GET_3fbb_C200C_0.htm`
@@ -1182,8 +1185,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index.GET_C200C_0.htm`
       - `flat_mhs`    : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
-            - `https://example.org` -> `example.org/index.GET_50d7_C200C.htm`
-            - `https://example.org/` -> `example.org/index.GET_8198_C200C.htm`
+            - `https://example.org`, `https://example.org/` -> `example.org/index.GET_8198_C200C.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_f0dc_C200C.html`
             - `https://example.org/media` -> `example.org/media__index.GET_086d_C200C.htm`
             - `https://example.org/media/` -> `example.org/media__index.GET_3fbb_C200C.htm`
@@ -1191,8 +1193,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_4f11_C200C.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index.GET_c4ae_C200C.htm`
       - `flat_mhsn`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s`
-            - `https://example.org` -> `example.org/index.GET_50d7_C200C_0.htm`
-            - `https://example.org/` -> `example.org/index.GET_8198_C200C_0.htm`
+            - `https://example.org`, `https://example.org/` -> `example.org/index.GET_8198_C200C_0.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_f0dc_C200C_0.html`
             - `https://example.org/media` -> `example.org/media__index.GET_086d_C200C_0.htm`
             - `https://example.org/media/` -> `example.org/media__index.GET_3fbb_C200C_0.htm`
