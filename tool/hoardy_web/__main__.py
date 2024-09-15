@@ -21,6 +21,7 @@ import errno as _errno
 import io as _io
 import logging as _logging
 import os as _os
+import re as _re
 import shutil as _shutil
 import signal as _signal
 import stat as _stat
@@ -1504,7 +1505,35 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     current_depth : int = 0
     max_depth : int = cargs.depth
 
-    queue_all = len(cargs.roots) == 0
+    @_dc.dataclass
+    class N:
+        n : int
+    root_url : dict[str, N] = {}
+    root_url_prefix : dict[str, N] = {}
+    @_dc.dataclass
+    class CN:
+        cre : _re.Pattern[_t.Any]
+        n : int
+    root_url_re : dict[str, CN] = {}
+
+    for url in cargs.root_url:
+        net_url = parse_url(url).net_url
+        root_url[net_url] = N(0)
+
+    for url_prefix in cargs.root_url_prefix:
+        net_url = parse_url(url_prefix).net_url
+        root_url_prefix[net_url] = N(0)
+
+    for url_re in cargs.root_url_re:
+        cre = _re.compile(url_re)
+        root_url_re[url_re] = CN(cre, 0)
+
+    have_root_url = len(root_url) > 0
+    have_root_url_prefix = len(root_url_prefix) > 0
+    have_root_url_re = len(root_url_re) > 0
+
+    queue_all = not have_root_url and not have_root_url_prefix and not have_root_url_re
+
     def collect(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
         reqres = rrexpr.reqres
         response = reqres.response
@@ -1532,11 +1561,51 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             # update
             index[net_url] = stime, abs_in_path, abs_out_path
 
-        if queue_all and net_url not in queued:
+        if net_url in queued:
+            return
+
+        do_queue = queue_all
+
+        if not do_queue and have_root_url:
+            vu = root_url.get(net_url, None)
+            if vu is not None:
+                vu.n += 1
+                do_queue = True
+
+        if not do_queue and have_root_url_prefix:
+            for pref, vp in root_url_prefix.items():
+                if not net_url.startswith(pref):
+                    continue
+                vp.n += 1
+                do_queue = True
+                break
+
+        if not do_queue and have_root_url_re:
+            pretty_net_url = rrexpr.pretty_net_url
+            for re, vr in root_url_re.items():
+                if not vr.cre.match(net_url) and not vr.cre.match(pretty_net_url):
+                    continue
+                vr.n += 1
+                do_queue = True
+                break
+
+        if do_queue:
             queued.add(net_url)
             queue.append(net_url)
 
     map_wrr_paths(cargs, collect, cargs.paths, seen_paths=set(), ordering=cargs.walk_fs, errors=cargs.errors)
+
+    for url, vu in root_url.items():
+        if vu.n == 0:
+            issue(gettext("`--root-url` `%s` was not found among candidates loaded from given input `PATH`s"), url)
+
+    for pref, vp in root_url_prefix.items():
+        if vp.n == 0:
+            issue(gettext("`--root-url-prefix` `%s` matched nothing among candidates loaded from given input `PATH`s"), url_prefix)
+
+    for re, vr in root_url_re.items():
+        if vr.n == 0:
+            issue(gettext("`--root-url-re` `%s` matched nothing among candidates loaded from given input `PATH`s"), url_re)
 
     index_total = len(index)
     n = 0
@@ -1598,14 +1667,6 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         except Exception:
             error(gettext("while processing `%s`"), abs_in_path)
             raise
-
-    for url in cargs.roots:
-        net_url = parse_url(url).net_url
-        if net_url not in index:
-            raise CatastrophicFailure(gettext("`--root` `%s` was not found among candidates loaded from given input `PATH`s"), url)
-        if net_url not in queued:
-            queued.add(net_url)
-            queue.append(net_url)
 
     while len(queue) > 0:
         if want_stop: raise KeyboardInterrupt()
@@ -1971,8 +2032,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         if kind != "export":
             cmd.set_defaults(default_expr = kind)
         else:
-            grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open", help=alias("open") + _("; i.e., remap all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does; results almost certainly will NOT be self-contained"))
-            grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="open", help=alias("closed") + _("; i.e., remap all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does; results will be self-contained"))
+            grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open", help=alias("open") + _("; i.e., remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does; results almost certainly will NOT be self-contained"))
+            grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="open", help=alias("closed") + _("; i.e., remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does; results will be self-contained"))
             grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi", help=alias("semi") + _("; i.e., remap all jump links like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does; this is a better version of `--remap-open` which keeps the `export`ed `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained"))
             grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _(f"""; i.e., remap all links and references like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble; results will be self-contained; default
 
@@ -2183,9 +2244,13 @@ In short, this sub-command generates static offline website mirrors, producing r
     add_sniff(cmd, "export")
     add_fileout(cmd, "export")
 
-    agrp = cmd.add_argument_group("export targets")
-    agrp.add_argument("-r", "--root", dest="roots", metavar="URL", action="append", type=str, default = [], help=_(f"recursion root; a URL which will be used as a root for recursive export; can be specified multiple times; if none are specified, then all (`net_url`) URLs available from input `PATH`s will be treated as roots"))
-    agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `%(default)s`, which means "`--root` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
+    agrp = cmd.add_argument_group("recursion roots; if none are specified, then all URLs available from input `PATH`s will be treated as roots; all of these options can be specified multiple times in arbitrary combinations; you can use both Punycode UTS46 encoded IDNAs and plain UNICODE IDNAs here, both will work")
+    agrp.add_argument("--root-url", dest="root_url", metavar="URL", action="append", type=str, default = [], help=_("a URL to be used as one of the roots for recursive export"))
+    agrp.add_argument("-r", "--root-url-prefix", "--root", dest="root_url_prefix", metavar="URL_PREFIX", action="append", type=str, default = [], help=_("a URL prefix for URLs that are to be used as roots for recursive export"))
+    agrp.add_argument("--root-url-re", dest="root_url_re", metavar="URL_RE", action="append", type=str, default = [], help=_("a regular expression matching URLs that are to be used as roots for recursive export"))
+
+    agrp = cmd.add_argument_group("recursion depth")
+    agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `%(default)s`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
 
     add_paths(cmd)
     cmd.set_defaults(func=cmd_export_mirror)

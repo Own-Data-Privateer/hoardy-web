@@ -295,30 +295,40 @@ hoardy-web export mirror --to ~/hoardy-web/mirror5 ~/hoardy-web/latest/archiveof
 
 thus exporting everything ever archived from <https://archiveofourown.org>.
 
-#### ... by using `--root` and `--depth`
+#### ... by using `--root-*` and `--depth`
 
 As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of `WRR` files into `hoardy-web`'s memory but then `export mirror` only select URLs (and all requisites needed to properly render those pages) by running something like:
 
 ```
 hoardy-web export mirror \
-  --root 'https://archiveofourown.org/works/3733123?view_adult=true&view_full_work=true' \
-  --root 'https://archiveofourown.org/works/30186441?view_adult=true&view_full_work=true' \
+  --root-url 'https://archiveofourown.org/works/3733123?view_adult=true&view_full_work=true' \
+  --root-url 'https://archiveofourown.org/works/30186441?view_adult=true&view_full_work=true' \
   --to ~/hoardy-web/mirror6 ~/hoardy-web/raw/*/2023
 ```
 
+or
+
+```
+hoardy-web export mirror \
+  --root-url-prefix 'https://archiveofourown.org/works/' \
+  --to ~/hoardy-web/mirror6 ~/hoardy-web/raw/*/2023
+```
+
+See the documentation for the `--root-*` options below for more info and more `--root-*` variants.
+
 `hoardy-web` loads (indexes) `WRR` files pretty fast, so if you are running from an SSD, you can totally feed it years of `WRR` files and then only export a couple of URLs, and it will take a couple of seconds to finish anyway, since only a couple of files will get `scrub`bed.
 
-There is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root`s and then `export mirror` all those URLs (and their requisites) too.
+There is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root-*`s and then `export mirror` all those URLs (and their requisites) too.
 
-When using `--root` options, `--remap-open` works exactly like `wget`'s `--convert-links` in that it will only remap the URLs that are going to be exported and will keep the rest as-is.
-Similarly, `--remap-closed` will consider only the URLs reachable from the `--root`s in no more that `--depth` jumps as available.
+When using `--root-*` options, `--remap-open` works exactly like `wget`'s `--convert-links` in that it will only remap the URLs that are going to be exported and will keep the rest as-is.
+Similarly, `--remap-closed` will consider only the URLs reachable from the `--root-*`s in no more that `--depth` jumps as available.
 
 #### Prioritizing some files other others
 
-When no `--root` options are specified, by default, files are exported in the order they are specified on the command line, in lexicographic file system walk order when an argument is a directory.
+By default, files are read, queued, and then exported in the order they are specified on the command line, in lexicographic file system walk order when an argument is a directory.
 (See `--paths-*` and `--walk-*` options below if you want to change this.)
 
-However, the above rule does not apply to page requisites, those are always (with or without `--root`, regardless of `--paths-*` and `--walk-*` options) get exported just after their parent `HTML` document gets parsed and before that document gets written to disk.
+However, the above rule does not apply to page requisites, those are always (with or without `--root-*`, regardless of `--paths-*` and `--walk-*` options) get exported just after their parent `HTML` document gets parsed and before that document gets written to disk.
 I.e., `export mirror` will generate a new file containing an `HTML` document only after all of its requisites were already written to disk.
 I.e., when exporting into an empty directory, if you see `export mirror` generated an `HTML` document, you can be sure that all of its requisites loaded (indexed) by this `export mirror` invocation are rendered too.
 Meaning, you can you can go ahead and open it in your browser, even if `export mirror` did not finish yet.
@@ -338,6 +348,18 @@ hoardy-web export mirror \
 ```
 
 will export all of `~/hoardy-web/latest/archiveofourown.org`, but the web pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be exported first.
+
+This also works with `--root-*` options. E.g., the following
+
+```
+hoardy-web export mirror \
+  --to ~/hoardy-web/mirror7 \
+  ~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr \
+  ~/hoardy-web/latest/archiveofourown.org \
+  --root-url-prefix 'https://archiveofourown.org/works/'
+```
+
+will export all pages those URLs start with `https://archiveofourown.org/works/` and all their requisites, but the pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be exported first.
 
 ## <span id="mitmproxy-mirror"/>How to generate local offline website mirrors like `wget -mpk` from you old `mitmproxy` stream dumps
 
@@ -1508,9 +1530,9 @@ In short, this sub-command generates static offline website mirrors, producing r
   - `--remap-void`
   : change the default value for `--expr` to `response.body|eb|scrub response -all_refs`; i.e., remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained
   - `--remap-open, -k, --convert-links`
-  : change the default value for `--expr` to `response.body|eb|scrub response *all_refs`; i.e., remap all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does; results almost certainly will NOT be self-contained
+  : change the default value for `--expr` to `response.body|eb|scrub response *all_refs`; i.e., remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does; results almost certainly will NOT be self-contained
   - `--remap-closed`
-  : change the default value for `--expr` to `response.body|eb|scrub response /all_refs`; i.e., remap all URLs present in input `PATH`s and reachable from `--root`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does; results will be self-contained
+  : change the default value for `--expr` to `response.body|eb|scrub response /all_refs`; i.e., remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does; results will be self-contained
   - `--remap-semi`
   : change the default value for `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs`; i.e., remap all jump links like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does; this is a better version of `--remap-open` which keeps the `export`ed `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained
   - `--remap-all`
@@ -1570,11 +1592,17 @@ In short, this sub-command generates static offline website mirrors, producing r
   : export all targets while permitting overwriting of old `--output` files under `DESTINATION`;
     DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
 
-- export targets:
-  - `-r URL, --root URL`
-  : recursion root; a URL which will be used as a root for recursive export; can be specified multiple times; if none are specified, then all (`net_url`) URLs available from input `PATH`s will be treated as roots
+- recursion roots; if none are specified, then all URLs available from input `PATH`s will be treated as roots; all of these options can be specified multiple times in arbitrary combinations; you can use both Punycode UTS46 encoded IDNAs and plain UNICODE IDNAs here, both will work:
+  - `--root-url URL`
+  : a URL to be used as one of the roots for recursive export
+  - `-r URL_PREFIX, --root-url-prefix URL_PREFIX, --root URL_PREFIX`
+  : a URL prefix for URLs that are to be used as roots for recursive export
+  - `--root-url-re URL_RE`
+  : a regular expression matching URLs that are to be used as roots for recursive export
+
+- recursion depth:
   - `-d DEPTH, --depth DEPTH`
-  : maximum recursion depth level; the default is `0`, which means "`--root` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
+  : maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
 
 - file system path ordering:
   - `--paths-given-order`
