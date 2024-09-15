@@ -1577,6 +1577,12 @@ In short, this sub-command generates static offline website mirrors, producing r
   - `--zero-separated`
   : export values separated with `\0` (NUL) bytes
 
+- caching:
+  - `--max-memory INT`
+  : the caches, all taken together, must not take more than this much memory in MiB; default: `1024`;
+    making this larger improves performance;
+    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`
+
 - `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` depend on both the original file extension present in the URL and the detected `MIME` type of its content; also, higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default

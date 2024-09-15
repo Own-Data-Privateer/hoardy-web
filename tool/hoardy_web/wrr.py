@@ -413,6 +413,10 @@ class Request(RRCommon):
         assert ct is not None
         return ct, False
 
+    def approx_size(self) -> int:
+        return 64 + 2 * len(self.url.raw_url) + len(self.body) \
+            + sum(map(lambda x: len(x[0]) + len(x[1]), self.headers))
+
 @_dc.dataclass
 class Response(RRCommon):
     started_at : Epoch
@@ -432,12 +436,19 @@ class Response(RRCommon):
             sniff = True
         return ct, sniff
 
+    def approx_size(self) -> int:
+        return 64 + len(self.body) \
+            + sum(map(lambda x: len(x[0]) + len(x[1]), self.headers))
+
 @_dc.dataclass
 class WebSocketFrame:
     sent_at : Epoch
     from_client : bool
     opcode : int
     content : bytes
+
+    def approx_size(self) -> int:
+        return 32 + len(self.content)
 
 @_dc.dataclass
 class Reqres:
@@ -449,6 +460,17 @@ class Reqres:
     finished_at : Epoch
     extra : dict[str, _t.Any]
     websocket : _t.Optional[list[WebSocketFrame]]
+    _approx_size : int | None = _dc.field(default = None)
+
+    def approx_size(self) -> int:
+        if self._approx_size is not None:
+            return self._approx_size
+        size = 128 \
+            + self.request.approx_size() \
+            + (self.response.approx_size() if self.response is not None else 0) \
+            + (sum(map(lambda x: x.approx_size(), self.websocket)) if self.websocket is not None else 0)
+        self._approx_size = size
+        return size
 
 Reqres_url_schemes = frozenset(["http", "https", "ftp", "ftps", "ws", "wss"])
 

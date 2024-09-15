@@ -1088,11 +1088,11 @@ def make_deferred_emit(cargs : _t.Any,
         if not filters_allow(cargs, rrexpr): return
 
         rrexpr.items["num"] = 0
-        ogprefix = _os.path.join(destination, output_format % rrexpr)
+        def_out_path = output_format % rrexpr
         prev_rel_out_path = None
         intent : DeferredIO[DataSource, _t.AnyStr] | None = None
         while True:
-            rrexpr.items["num"] = seen_counter.count(ogprefix)
+            rrexpr.items["num"] = seen_counter.count(def_out_path)
             if isinstance(destination, str):
                 rel_out_path = _os.path.join(destination, output_format % rrexpr)
             else:
@@ -1424,94 +1424,74 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     handle_paths(cargs)
 
     destination = _os.path.expanduser(cargs.destination)
-
+    output_format = cargs.output_format
+    max_depth : int = cargs.depth
+    sniff = cargs.sniff
     allow_updates = cargs.allow_updates == True
     skip_existing = cargs.allow_updates == "partial"
 
     mem = Memory()
     seen_counter : SeenCounter[str] = SeenCounter(mem)
 
-    # net_url -> (stime, src_path, dst_path)
-    index : dict[str, tuple[Epoch, str, str]] = dict()
-    # disjoin, both indexed by net_url
-    done : set[str] = set()
-    queued : set[str] = set()
+    max_memory_mib = cargs.max_memory * 1024 * 1024
 
-    def remap_url_fallback(stime : Epoch, expected_content_types : list[str], purl : ParsedURL) -> str:
-        trrexpr = ReqresExpr(fallback_Reqres(purl, expected_content_types, stime, stime, stime), None, [])
-        trrexpr.items["num"] = 0
-        rel_out_path : str = _os.path.join(destination, cargs.output_format % trrexpr)
-        return _os.path.abspath(rel_out_path)
+    @_dc.dataclass
+    class Indexed:
+        stime : Epoch
+        abs_in_path : str
+        def_out_path : str
+        _abs_out_path : str | None = _dc.field(default = None)
 
-    def remap_url_func_maker(stime : Epoch, document_dir : str, enqueue : bool, others : list[str], reqs : list[str]) -> URLRemapper:
-        known : set[str] = set() # for a better UI
-        def remap_url_func(link_type : LinkType, fallbacks : list[str] | None, url : str) -> str | None:
+        def load(self, rrexpr : ReqresExpr | None) -> ReqresExpr:
+            if rrexpr is None:
+                rrexpr = wrr_loadf_expr(self.abs_in_path, sniff)
+            return rrexpr
+
+        def preload(self, rrexpr : ReqresExpr | None) -> ReqresExpr | None:
+            if self._abs_out_path is not None:
+                return rrexpr
+            rrexpr = self.load(rrexpr)
+            rrexpr.items["num"] = seen_counter.count(self.def_out_path)
+            rel_out_path = _os.path.join(destination, output_format % rrexpr)
+            abs_out_path = _os.path.abspath(rel_out_path)
+            self._abs_out_path = abs_out_path
+            return rrexpr
+
+        def unpack(self, rrexpr : ReqresExpr | None) -> tuple[Epoch, str, str, ReqresExpr | None]:
+            rrexpr = self.preload(rrexpr)
+            assert self._abs_out_path is not None
+            return self.stime, self.abs_in_path, self._abs_out_path, rrexpr
+
+        def approx_size(self) -> int:
+            return 64 + len(self.abs_in_path) + 2 * len(self.def_out_path) + len(destination)
+
+    net_url_t : _t.TypeAlias = str
+    path_t : _t.TypeAlias = str
+
+    # `index`, `queue`, `new_queue` defined below, and `done` are all mutually disjoint
+    # `Indexed` objects migrate from disk to `index` or `queue`, then from `index` to `new_queue`,
+    # then from `new_queue` to `queue`, and from `queue` to `done`.
+    index : dict[net_url_t, Indexed] = dict()
+    Queue = _c.OrderedDict[net_url_t, tuple[Indexed, ReqresExpr | None]]
+    queue : Queue = _c.OrderedDict()
+    done : dict[net_url_t, path_t] = dict()
+
+    def get_q_or_i(net_url : str) -> tuple[bool, bool, Indexed | None, ReqresExpr | None]:
+        is_queued = False
+        is_indexed = False
+        try:
+            iobj, rrexpr = queue[net_url]
+        except KeyError:
             try:
-                purl = parse_url(url)
-            except URLParsingError:
-                issue("malformed URL `%s`", url)
-                return get_void_url(link_type)
-
-            net_url = purl.net_url
-
-            if purl.scheme not in Reqres_url_schemes:
-                if net_url not in known:
-                    issue("not remapping `%s`", url)
-                    known.add(net_url)
-                return url
-
-            try:
-                _, _, abs_out_path = index[net_url]
+                iobj = index[net_url]
             except KeyError:
-                abs_out_path = None
-
-            if abs_out_path is not None and net_url not in done:
-                added = False
-                if link_type == LinkType.REQ:
-                    # enqueue this if this is a requisite
-                    done.add(net_url)
-                    try:
-                        queued.remove(net_url)
-                    except KeyError: pass
-                    reqs.append(net_url)
-                    added = True
-                elif net_url not in queued:
-                    if enqueue:
-                        # enqueue if we are not over max_depth yet
-                        queued.add(net_url)
-                        others.append(net_url)
-                        added = True
-                    else:
-                        # otherwise, use fallback, since this will not be exported
-                        abs_out_path = None
-
-                if added:
-                    if stdout.isatty:
-                        if link_type != LinkType.REQ:
-                            stdout.write_bytes(b"\033[33m")
-                        else:
-                            stdout.write_bytes(b"\033[36m")
-                    what = "document" if link_type != LinkType.REQ else "requisite"
-                    pretty_net_url = purl.pretty_net_url
-                    durl = net_url if pretty_net_url == net_url else f"{net_url} ({pretty_net_url})"
-                    stdout.write_str_ln(gettext(f"queued {what} %s") % (durl,))
-                    if stdout.isatty:
-                        stdout.write_bytes(b"\033[0m")
-                    stdout.flush()
-
-            if abs_out_path is None:
-                if fallbacks is not None:
-                    abs_out_path = remap_url_fallback(stime, fallbacks, purl)
-                else:
-                    return None
-
-            return path_to_url(_os.path.relpath(abs_out_path, document_dir)) \
-                   + purl.ofm + purl.fragment
-        return remap_url_func
-
-    queue : list[str] = []
-    current_depth : int = 0
-    max_depth : int = cargs.depth
+                iobj = None
+            else:
+                is_indexed = True
+            rrexpr = None
+        else:
+            is_queued = True
+        return is_queued, is_indexed, iobj, rrexpr
 
     @_dc.dataclass
     class N:
@@ -1542,6 +1522,16 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
     queue_all = not have_root_url and not have_root_url_prefix and not have_root_url_re
 
+    def report_queued(net_url : str, pretty_net_url : str, level : int) -> None:
+        if stdout.isatty:
+            stdout.write_bytes(b"\033[33m")
+        durl = net_url if pretty_net_url == net_url else f"{net_url} ({pretty_net_url})"
+        ispace = " " * (2 * level)
+        stdout.write_str_ln(ispace + gettext(f"queued %s") % (durl,))
+        if stdout.isatty:
+            stdout.write_bytes(b"\033[0m")
+        stdout.flush()
+
     def collect(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
         reqres = rrexpr.reqres
         response = reqres.response
@@ -1554,62 +1544,61 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
         net_url = rrexpr.net_url
         stime = rrexpr.stime
-        try:
-            prev_stime, _, abs_out_path = index[net_url]
-        except KeyError:
-            prev_stime = None
 
+        is_queued, is_indexed, iobj, _ = get_q_or_i(net_url)
+
+        if iobj is None:
             rrexpr.items["num"] = 0
-            ogprefix = _os.path.join(destination, cargs.output_format % rrexpr)
-            rrexpr.items["num"] = seen_counter.count(ogprefix)
-            rel_out_path = _os.path.join(destination, cargs.output_format % rrexpr)
-            abs_out_path = _os.path.abspath(rel_out_path)
+            def_out_path = output_format % rrexpr
+            iobj = Indexed(stime, abs_in_path, def_out_path)
+        else:
+            if iobj.stime < stime:
+                # update
+                iobj.stime = stime
+                iobj.abs_in_path = abs_in_path
 
-        if prev_stime is None or prev_stime < stime:
-            # update
-            index[net_url] = stime, abs_in_path, abs_out_path
+            if is_queued:
+                return
 
-        if net_url in queued:
-            return
-
-        do_queue = queue_all
+        enqueue = queue_all
         pretty_net_url : str | None = None
 
-        if not do_queue and have_root_url:
+        if not enqueue and have_root_url:
             vu = root_url.get(net_url, None)
             if vu is not None:
                 vu.n += 1
-                do_queue = True
+                enqueue = True
 
-        if not do_queue and have_root_url_prefix:
+        if not enqueue and have_root_url_prefix:
             for pref, vp in root_url_prefix.items():
                 if not net_url.startswith(pref):
                     continue
                 vp.n += 1
-                do_queue = True
+                enqueue = True
                 break
 
-        if not do_queue and have_root_url_re:
+        if not enqueue and have_root_url_re:
             pretty_net_url = rrexpr.pretty_net_url
             for re, vr in root_url_re.items():
                 if not vr.cre.match(net_url) and not vr.cre.match(pretty_net_url):
                     continue
                 vr.n += 1
-                do_queue = True
+                enqueue = True
                 break
 
-        if do_queue:
-            queued.add(net_url)
-            queue.append(net_url)
-            if pretty_net_url is None:
-                pretty_net_url = rrexpr.pretty_url
-            if stdout.isatty:
-                stdout.write_bytes(b"\033[33m")
-            durl = net_url if pretty_net_url == net_url else f"{net_url} ({pretty_net_url})"
-            stdout.write_str_ln(gettext(f"queued document %s") % (durl,))
-            if stdout.isatty:
-                stdout.write_bytes(b"\033[0m")
-            stdout.flush()
+        mem.consumption += iobj.approx_size()
+
+        if enqueue:
+            iobj.preload(rrexpr) # for these, `abs_out_path` will have be computed anyway
+            rrexpr_ = None
+            aps = rrexpr.reqres.approx_size()
+            if mem.consumption + aps < max_memory_mib:
+                mem.consumption += aps
+                rrexpr_ = rrexpr
+            queue[net_url] = iobj, rrexpr_
+            report_queued(net_url, rrexpr.pretty_net_url if pretty_net_url is None else pretty_net_url, 1)
+        elif not is_indexed:
+            index[net_url] = iobj
 
     if stdout.isatty:
         stdout.write_bytes(b"\033[32m")
@@ -1632,42 +1621,162 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         if vr.n == 0:
             issue(gettext("`--root-url-re` `%s` matched nothing among candidates loaded from given input `PATH`s"), url_re)
 
-    index_total = len(index)
-    n = 0
-    doc_n = 0
+    total = len(queue) + len(index)
+    depth : int = 0
 
-    def emit(net_url : str, top : bool, enqueue : bool, others : list[str], reqs : list[str]) -> _t.Callable[[], None] | None:
-        n100 = 100 * n
-        n_total = len(done) + len(queued)
-        stime, abs_in_path, abs_out_path = index[net_url]
-        exists = _os.path.exists(abs_out_path)
+    class Stats:
+        n = 0
+        doc_n = 0
 
-        if stdout.isatty:
-            if top:
-                stdout.write_bytes(b"\033[32m")
-            else:
-                stdout.write_bytes(b"\033[34m")
-        what = "" if top else "requisite of "
-        stdout.write_str_ln(gettext(f"exporting input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), {what}document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / index_total, index_total, doc_n, current_depth))
-        stdout.write_str_ln(gettext("URL %s") % (net_url,))
-        if stdout.isatty:
-            stdout.write_bytes(b"\033[0m")
-        stdout.write_str_ln(gettext("src %s") % (abs_in_path,))
-        stdout.write_str_ln(gettext("dst %s") % (abs_out_path,))
-        stdout.flush()
+    def remap_url_fallback(stime : Epoch, expected_content_types : list[str], purl : ParsedURL) -> str:
+        trrexpr = ReqresExpr(fallback_Reqres(purl, expected_content_types, stime, stime, stime), None, [])
+        trrexpr.items["num"] = 0
+        rel_out_path : str = _os.path.join(destination, output_format % trrexpr)
+        return _os.path.abspath(rel_out_path)
 
-        if skip_existing and exists:
-            if stdout.isatty:
-                stdout.write_bytes(b"\033[33m")
-            stdout.write_str_ln(gettext("destination exists, skipped!"))
-            if stdout.isatty:
-                stdout.write_bytes(b"\033[0m")
-            stdout.flush()
-            return None
+    def render(net_url : str,
+               iobj : Indexed,
+               rrexpr : ReqresExpr | None,
+               enqueue : bool,
+               new_queue : Queue,
+               level : int) -> None:
+        level0 = level == 0
+        Stats.n += 1
+        if level0:
+            Stats.doc_n += 1
 
         try:
-            rrexpr = wrr_loadf_expr(abs_in_path, cargs.sniff,
-                                    remap_url_func_maker(stime, _os.path.dirname(abs_out_path), enqueue, others, reqs))
+            stime, abs_in_path, abs_out_path, rrexpr = iobj.unpack(rrexpr)
+            done[net_url] = abs_out_path
+            mem.consumption += 8 + len(abs_out_path)
+
+            n = Stats.n
+            doc_n = Stats.doc_n
+            n100 = 100 * n
+            n_total = len(done) + len(queue) + len(new_queue)
+
+            if stdout.isatty:
+                if level0:
+                    stdout.write_bytes(b"\033[32m")
+                else:
+                    stdout.write_bytes(b"\033[34m")
+            ispace = " " * (2 * level)
+            if level0:
+                stdout.write_str_ln(gettext(f"exporting input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / total, total, doc_n, depth))
+            else:
+                stdout.write_str_ln(ispace + gettext(f"exporting requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / total, total))
+            stdout.write_str_ln(ispace + gettext("URL %s") % (net_url,))
+            if stdout.isatty:
+                stdout.write_bytes(b"\033[0m")
+            stdout.write_str_ln(ispace + gettext("src %s") % (abs_in_path,))
+            stdout.write_str_ln(ispace + gettext("dst %s") % (abs_out_path,))
+            stdout.flush()
+
+            exists = _os.path.exists(abs_out_path)
+            if skip_existing and exists:
+                if stdout.isatty:
+                    stdout.write_bytes(b"\033[33m")
+                stdout.write_str_ln(gettext("destination exists, skipped!"))
+                if stdout.isatty:
+                    stdout.write_bytes(b"\033[0m")
+                stdout.flush()
+                return
+
+            document_dir = _os.path.dirname(abs_out_path)
+            known : set[str] = set() # for a better UI
+
+            def remap_url(link_type : LinkType, fallbacks : list[str] | None, url : str) -> str | None:
+                if want_stop: raise KeyboardInterrupt()
+
+                try:
+                    purl = parse_url(url)
+                except URLParsingError:
+                    ispace = " " * (2 * (level + 1))
+                    issue(ispace + gettext("malformed URL `%s`"), url)
+                    return get_void_url(link_type)
+
+                unet_url = purl.net_url
+
+                if purl.scheme not in Reqres_url_schemes:
+                    if unet_url not in known:
+                        ispace = " " * (2 * (level + 1))
+                        issue(ispace + gettext("not remapping `%s`"), url)
+                        known.add(unet_url)
+                    return url
+
+                try:
+                    abs_out_path = done[unet_url]
+                except KeyError:
+                    uobj : Indexed | None
+                    try:
+                        uobj, urrexpr_ = new_queue[unet_url]
+                    except KeyError:
+                        is_new_queued = False
+                        is_queued, is_indexed, uobj, urrexpr_ = get_q_or_i(unet_url)
+                    else:
+                        is_new_queued = True
+                        is_indexed = False
+
+                    if uobj is None:
+                        abs_out_path = None
+                    else:
+                        _, _, abs_out_path, urrexpr = uobj.unpack(urrexpr_)
+
+                        if link_type == LinkType.REQ:
+                            # this is a requisite
+                            # unqueue and unindex it
+                            if is_new_queued:
+                                del new_queue[unet_url]
+                            elif is_queued:
+                                del queue[unet_url]
+                            else:
+                                del index[unet_url]
+                            # and render it immediately
+                            render(unet_url, uobj, urrexpr, enqueue, new_queue, level + 1)
+                            if urrexpr_ is not None:
+                                # it was previously cached, yet it will be unloaded soon
+                                mem.consumption -= urrexpr_.reqres.approx_size()
+                        elif not is_new_queued and not is_queued:
+                            if enqueue:
+                                # enqueue if we are not over max_depth yet
+                                if urrexpr_ is None and urrexpr is not None:
+                                    # urrexpr was not previously cached, but was loaded above
+                                    aps = urrexpr.reqres.approx_size()
+                                    if mem.consumption + aps < max_memory_mib:
+                                        mem.consumption += aps
+                                    else:
+                                        urrexpr = None
+                                if is_indexed:
+                                    del index[unet_url]
+                                new_queue[unet_url] = uobj, urrexpr
+                                report_queued(unet_url, purl.pretty_net_url, level + 1)
+                            else:
+                                # otherwise, use fallback, since this will not be exported
+                                abs_out_path = None
+                        elif urrexpr_ is None and urrexpr is not None:
+                            # urrexpr was not yet previously cached, but was loaded above
+                            aps = urrexpr.reqres.approx_size()
+                            if mem.consumption + aps < max_memory_mib:
+                                mem.consumption += aps
+                                # cache it
+                                if is_new_queued:
+                                    new_queue[unet_url] = uobj, urrexpr
+                                elif is_queued:
+                                    queue[unet_url] = uobj, urrexpr
+                                else:
+                                    assert is_indexed
+
+                if abs_out_path is None:
+                    if fallbacks is not None:
+                        abs_out_path = remap_url_fallback(stime, fallbacks, purl)
+                    else:
+                        return None
+
+                return path_to_url(_os.path.relpath(abs_out_path, document_dir)) \
+                       + purl.ofm + purl.fragment
+
+            rrexpr = iobj.load(rrexpr)
+            rrexpr.remap_url = remap_url
 
             data : bytes
             with TIOWrappedWriter(_io.BytesIO()) as f:
@@ -1676,62 +1785,40 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
             if exists and file_content_equals(abs_out_path, data):
                 # this is a noop overwrite, skip it
-                return None
+                return
 
-            def finish() -> None:
-                undeferred_write(data, abs_out_path, None, allow_updates)
-            return finish
+            undeferred_write(data, abs_out_path, None, allow_updates)
         except Failure as exc:
             if cargs.errors == "ignore":
-                return None
+                return
             exc.elaborate(gettext(f"while processing `%s`"), abs_in_path)
             if cargs.errors != "fail":
                 _logging.error("%s", str(exc))
-                return None
+                return
             raise CatastrophicFailure("%s", str(exc))
         except Exception:
             error(gettext("while processing `%s`"), abs_in_path)
             raise
+        finally:
+            mem.consumption -= iobj.approx_size()
 
     while len(queue) > 0:
         if want_stop: raise KeyboardInterrupt()
 
-        new_queue : list[str] = []
-        enqueue = current_depth < max_depth
+        new_queue : Queue = _c.OrderedDict()
+        enqueue = depth < max_depth
 
-        for net_url in queue:
+        while len(queue) > 0:
             if want_stop: raise KeyboardInterrupt()
 
-            if net_url in done:
-                continue
-
-            done.add(net_url)
-            queued.remove(net_url)
-
-            new_reqs: list[str] = []
-            n += 1
-            doc_n += 1
-            finish = emit(net_url, True, enqueue, new_queue, new_reqs)
-
-            while len(new_reqs) > 0:
-                if want_stop: raise KeyboardInterrupt()
-
-                new_new_reqs: list[str] = []
-                for src_net_url in new_reqs:
-                    if want_stop: raise KeyboardInterrupt()
-
-                    n += 1
-                    src_finish = emit(src_net_url, False, enqueue, new_queue, new_new_reqs)
-                    if src_finish is not None:
-                        src_finish()
-
-                new_reqs = new_new_reqs
-
-            if finish is not None:
-                finish()
+            net_url, (iobj, rrexpr) = queue.popitem(False)
+            render(net_url, iobj, rrexpr, enqueue, new_queue, 0)
+            if rrexpr is not None:
+                # it was previously cached, yet it will be unloaded soon
+                mem.consumption -= rrexpr.reqres.approx_size()
 
         queue = new_queue
-        current_depth += 1
+        depth += 1
 
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     _ : _t.Callable[[str], str] = gettext
@@ -2127,7 +2214,7 @@ Note however, that using fallbacks when the `--output` format depends on anythin
     add_paths(cmd)
     cmd.set_defaults(func=cmd_find)
 
-    def add_memory(cmd : _t.Any, max_deferred : int = 1024, max_batch : int = 128) -> None:
+    def add_organize_memory(cmd : _t.Any, max_deferred : int = 1024, max_batch : int = 128) -> None:
         agrp = cmd.add_argument_group("caching, deferring, and batching")
         agrp.add_argument("--seen-number", metavar = "INT", dest="max_seen", type=int, default=16384, help=_(f"""track at most this many distinct generated `--output` values; default: `%(default)s`;
 making this larger improves disk performance at the cost of increased memory consumption;
@@ -2223,7 +2310,7 @@ E.g. `{__prog__} organize --move` will not overwrite any files, which is why the
     cmd.set_defaults(action = "move")
 
     add_fileout(cmd, "organize")
-    add_memory(cmd)
+    add_organize_memory(cmd)
 
     add_sniff(cmd, "organize")
     add_paths(cmd, "organize")
@@ -2232,7 +2319,7 @@ E.g. `{__prog__} organize --move` will not overwrite any files, which is why the
     def add_import_args(cmd : _t.Any) -> None:
         add_impure(cmd, "import")
         add_fileout(cmd, "import")
-        add_memory(cmd, 0, 1024)
+        add_organize_memory(cmd, 0, 1024)
         add_sniff(cmd, "import")
         add_paths(cmd)
 
@@ -2252,6 +2339,12 @@ In short, this is `{__prog__} organize --copy` for `INPUT` files that use differ
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_mitmproxy)
 
+    def add_export_memory(cmd : _t.Any) -> None:
+        agrp = cmd.add_argument_group("caching")
+        agrp.add_argument("--max-memory", metavar = "INT", dest="max_memory", type=int, default=1024, help=_("""the caches, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
+making this larger improves performance;
+the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`"""))
+
     # export
     supcmd = subparsers.add_parser("export", help=_(f"convert `WRR` archives into other formats"),
                                    description = _(f"""Parse given `WRR` files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata.
@@ -2266,6 +2359,8 @@ In short, this sub-command generates static offline website mirrors, producing r
 """))
     add_impure(cmd, "export")
     add_expr(cmd, "export")
+    add_export_memory(cmd)
+
     add_sniff(cmd, "export")
     add_fileout(cmd, "export")
 
