@@ -4,6 +4,113 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [tool-v0.15.0] - 2024-09-16
+
+`export mirror` sub-command now produces results quite usable in a normal web browser.
+I.e. it is now comparable to, say, what `Single-File` produces.
+
+Feature-wise, it reaches a [Pareto front](https://en.wikipedia.org/wiki/Pareto_front), AFAICS, since no other tool I know of can do efficient (with shared page requisites) incremental static semi-open (see `--remap-semi` option below) website mirrors.
+
+At the moment, scrubbed CSS can get a bit broken sometimes, because `hoardy-web` leans in favor of its results being safe to use, not them being as close to the original as possible.
+Also, support for `audio`, `video`, and `source` `HTML` tags is still a bit quirky.
+But the current state is quite usable.
+
+### Added
+
+- `scrub`, `export mirror`:
+
+  - Implemented stylesheet (`CSS`) scrubbing with the help of `tinycss2`.
+
+    I.e., requisite resource URLs mentioned in stylesheets will now be properly remapped.
+
+    I.e., `export`ed website mirrors will be styled now.
+
+- `export mirror`:
+
+  - Added `--remap-semi` option, which does the same thing as `--remap-open` (which is equivalent to `wget --convert-links`), except it remaps unavailable action links and page requisites to void URLs, making the resulting generated pages self-contained and safe to open in a web browser without it trying to download something.
+
+    I.e. `--remap-semi` does what `wget --convert-links` should be doing, IMHO.
+
+  - Added `--root-url-prefix` and `--root-url-re` options.
+
+- `pprint`, `get`, `run`, `stream`, `export mirror`:
+
+  - Implemented `--sniff-*` options controlling `mimesniff` algorithm usage.
+
+    For `pprint` sub-command they replace `--naive` and `--paranoid` options.
+
+- `--expr`, `--output`: Added `pretty_net_url`, `pretty_net_nurl`, `raw_path_parts`, and `mq_raw_path` atoms.
+
+### Changed
+
+- `scrub`, `export mirror`:
+
+  - Changed the way all `--remap-*` options are implemented.
+    Most of the remapping logic was moved into the `scrub` function.
+    `--remap-*` options simply change default values of the corresponding `--expr` options now.
+
+  - `+styles` and `+iframes` options are now set by default.
+
+    Since these things can now be properly exported.
+
+  - Renamed `(+|-)srcs` options to `(+|-)reqs` to follow the terminology used by `wget`.
+
+    In documentation, "page resources" became "requisite resources" and "page requisites".
+
+  - Improved censoring for `IE`-pragmas.
+
+  - Improved `+indent` and `+pretty` output layout a bit.
+
+  - Improved `+verbose` output format a bit.
+
+- `export mirror`:
+
+  - Renamed `--root` option to `--root-url`, `-r` and `--root` options now point to `--root-url-prefix` instead.
+    The `--root` option name is deprecated now and will be removed in the future.
+
+  - Improved progress reporting UI.
+
+    It's much prettier and more informative now.
+
+  - It ignores duplicate input paths now.
+
+    This allows to easily prioritize exporting of some files over others by specifying them in the command line arguments first, followed by their containing directory in a later argument.
+
+    [`README.md`](./tool/) has a new example showcasing it.
+
+  - It delays disk writes for `HTML` pages until after all of their requisite resources finished exporting now.
+
+    I.e. newly generated `HTML` pages can now be opened in a web browser while `export mirror` is still running, having not finished exporting other things yet.
+
+- Improved content MIME type handling a bit, added `text/vtt` recognition.
+
+- `--expr`, `--output`:
+  - Renamed: `path_parts` -\> `npath_parts`, `mq_path` -\> `mq_npath`.
+
+  - Changed semantics of `net_url` and `pretty_url` a bit.
+    Both add trailing slashes after empty `raw_path`s now.
+    Also, `pretty_url` does not normalize `raw_path` now, i.e. now it only re-quotes path parts, but does not interpret `.` and `..` path parts away.
+
+- Greatly improved documentation.
+
+### Fixed
+
+- `scrub`, `export mirror`:
+
+  - Fixed generation of broken `file:` links for URLs with query parameters.
+
+  - From now on `stylesheet`, `icon`, and `shortcut` `link`s are treated as page requisites.
+
+    This fixed a bug where `export mirror` with `--depth` set would forget to export `shortcut` `icon`s and `CSS` files.
+
+  - Fixed a bug where `export mirror` with `--depth` and `--remap-(open|closed)` set would fail to remap unreachable URLs properly.
+
+- Fixed some places where the code was misaligned with the documentation.
+
+  - Most importantly, `scrub` and `export mirror` use `-verbose` by default now, which documentation claimed they did, but they did not.
+
+- Fixed some typos.
+
 ## [extension-v1.16.0] - 2024-09-05
 
 ### Changed
@@ -937,6 +1044,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.15.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.14.1...tool-v0.15.0
 [extension-v1.16.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.15.1...extension-v1.16.0
 [tool-v0.14.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.14.0...tool-v0.14.1
 [simple_server-v1.6.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/dumb_server-v1.6.0...simple_server-v1.6.1
