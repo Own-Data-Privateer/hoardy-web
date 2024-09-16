@@ -39,3 +39,19 @@ def ungzip_fobj_maybe(fobj : _io.BufferedReader) -> _io.BufferedReader:
     if head == b"\037\213":
         fobj = _t.cast(_io.BufferedReader, _gzip.GzipFile(fileobj=fobj, mode="rb"))
     return fobj
+
+PipeType = _t.TypeVar("PipeType")
+def make_func_pipe(pipe : list[_t.Callable[[PipeType], PipeType]]) -> _t.Callable[[PipeType], PipeType]:
+    def sub(x : PipeType) -> PipeType:
+        for func in pipe:
+            x = func(x)
+        return x
+    return sub
+
+EnvType = _t.TypeVar("EnvType")
+def make_envfunc_pipe(pipe : list[_t.Callable[[EnvType, PipeType], PipeType]]) -> _t.Callable[[EnvType, PipeType], PipeType]:
+    def sub(env : EnvType, x : PipeType) -> PipeType:
+        for func in pipe:
+            x = func(env, x)
+        return x
+    return sub

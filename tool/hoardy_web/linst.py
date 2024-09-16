@@ -34,6 +34,8 @@ import urllib.parse as _up
 
 from kisstdlib.exceptions import *
 
+from .util import make_envfunc_pipe
+
 LinstFunc = _t.Callable[[_t.Any, _t.Any], _t.Any]
 LinstAtom = tuple[list[type], _t.Callable[..., LinstFunc]]
 
@@ -42,13 +44,6 @@ class LinstUnknownAtomError(LinstCompileError): pass
 
 def linst_unknown_atom(name : str) -> LinstAtom:
     raise LinstUnknownAtomError("unknown atom `%s`", name)
-
-def _run_pipe(pipe : list[LinstFunc]) -> LinstFunc:
-    def sub(env : _t.Any, v : _t.Any) -> _t.Any:
-        for func in pipe:
-            v = func(env, v)
-        return v
-    return sub
 
 _compile_cache : dict[str, LinstFunc] = {}
 
@@ -85,7 +80,7 @@ def _linst_compile(expr : str, lookup : _t.Callable[[str], LinstAtom]) -> LinstF
     elif len(pipe) == 1:
         res = pipe[0]
     else:
-        res = _run_pipe(pipe)
+        res = make_envfunc_pipe(pipe)
 
     _compile_cache[expr] = res
     return res

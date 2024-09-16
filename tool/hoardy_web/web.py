@@ -36,6 +36,7 @@ from kisstdlib.exceptions import *
 
 from .wire import *
 from .mime import *
+from .util import make_func_pipe
 
 class LinkType(_enum.Enum):
     JUMP = 0
@@ -65,7 +66,7 @@ _spacePreserveElements = _h5ws.Filter.spacePreserveElements
 # HTML elements that ignore space completely (and so it can be added or removed arbitrarily)
 _space_okElements = frozenset(["html", "head", "frameset"])
 
-def prettify_html(walker : _t.Iterator[HTML5Token], indent : int = 2, relaxed : bool = False) \
+def prettify_html(indent : int, relaxed : bool, walker : _t.Iterator[HTML5Token]) \
         -> _t.Iterator[HTML5Token]:
     """HTML prettification html5lib.Filter that adds lots of indent.
     """
@@ -597,40 +598,34 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 tt = f"{typ} {tt}" if tt is not None else typ
                 yield from emit_censored(tt)
 
-    post_process1 : _h5fb.Filter
-    if opts.whitespace:
-        post_process1 = lambda x: x
-    else:
-        post_process1 = _h5ws.Filter
+    stages : list[_h5fb.Filter]
+    stages = []
 
-    post_process2 : _h5fb.Filter
+    if not opts.whitespace:
+        stages.append(_h5ws.Filter)
     if opts.debug:
-        post_process2 = lambda x: prettify_html(post_process1(x), indent_step, True)
+        stages.append(lambda x: prettify_html(opts.indent_step, True, x))
     elif opts.indent:
-        post_process2 = lambda x: prettify_html(post_process1(x), indent_step)
-    else:
-        post_process2 = post_process1
+        stages.append(lambda x: prettify_html(opts.indent_step, False, x))
+    if not opts.optional_tags:
+        stages.append(_h5ot.Filter)
 
-    post_process3 : _h5fb.Filter
-    if opts.optional_tags:
-        post_process3 = post_process2
-    else:
-        post_process3 = lambda x: _h5ot.Filter(post_process2(x))
+    pipe = make_func_pipe(stages)
 
-    process_html = lambda base_url, remap_url, walker: post_process3(scrub_html(base_url, remap_url, walker))
+    process_html = lambda base_url, remap_url, walker: pipe(scrub_html(base_url, remap_url, walker))
     process_css = lambda base_url, remap_url, nodes: scrub_css(base_url, remap_url, nodes, 0 if yes_indent else None)
     return process_html, process_css
 
-def scrub_css(scrubber : Scrubbers,
+def scrub_css(scrubbers : Scrubbers,
               base_url : str,
               remap_url : URLRemapper,
               data : str | bytes,
-              protocol_encoding : str | None = None) -> str:
+              protocol_encoding : str | None) -> str:
     if isinstance(data, str):
         nodes = _tcss.parse_stylesheet(data)
     else:
         nodes, encoding = _tcss.parse_stylesheet_bytes(data, protocol_encoding=protocol_encoding)
-    res = scrubber[1](base_url, remap_url, nodes)
+    res = scrubbers[1](base_url, remap_url, nodes)
     return _tcss.serialize(res) # type: ignore
 
 _html5treebuilder = _h5.treebuilders.getTreeBuilder("etree", fullTree=True)
@@ -638,12 +633,12 @@ _html5parser = _h5.html5parser.HTMLParser(_html5treebuilder)
 _html5walker = _h5.treewalkers.getTreeWalker("etree")
 _html5serializer = _h5.serializer.HTMLSerializer(strip_whitespace = False, omit_optional_tags = False)
 
-def scrub_html(scrubber : Scrubbers,
+def scrub_html(scrubbers : Scrubbers,
                base_url : str,
                remap_url : URLRemapper,
                data : str | bytes,
-               protocol_encoding : str | None = None) -> str:
+               protocol_encoding : str | None) -> str:
     dom = _html5parser.parse(data, likely_encoding=protocol_encoding)
     charEncoding = _html5parser.tokenizer.stream.charEncoding[0]
-    walker = scrubber[0](base_url, remap_url, _html5walker(dom))
+    walker = scrubbers[0](base_url, remap_url, _html5walker(dom))
     return _html5serializer.render(walker, charEncoding.name) # type: ignore
