@@ -1443,6 +1443,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         return _os.path.abspath(rel_out_path)
 
     def remap_url_func_maker(stime : Epoch, document_dir : str, enqueue : bool, others : list[str], reqs : list[str]) -> URLRemapper:
+        known : set[str] = set() # for a better UI
         def remap_url_func(link_type : LinkType, fallbacks : list[str] | None, url : str) -> str | None:
             try:
                 purl = parse_url(url)
@@ -1450,11 +1451,14 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 issue("malformed URL `%s`", url)
                 return get_void_url(link_type)
 
+            net_url = purl.net_url
+
             if purl.scheme not in Reqres_url_schemes:
-                issue("not remapping `%s`", url)
+                if net_url not in known:
+                    issue("not remapping `%s`", url)
+                    known.add(net_url)
                 return url
 
-            net_url = purl.net_url
             try:
                 _, _, abs_out_path = index[net_url]
             except KeyError:
@@ -1487,7 +1491,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                         else:
                             stdout.write_bytes(b"\033[36m")
                     what = "document" if link_type != LinkType.REQ else "requisite"
-                    stdout.write_str_ln(gettext(f"queued {what} %s (%s)") % (purl.pretty_url, net_url))
+                    pretty_net_url = purl.pretty_net_url
+                    durl = net_url if pretty_net_url == net_url else f"{net_url} ({pretty_net_url})"
+                    stdout.write_str_ln(gettext(f"queued {what} %s") % (durl,))
                     if stdout.isatty:
                         stdout.write_bytes(b"\033[0m")
                     stdout.flush()
@@ -1566,6 +1572,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             return
 
         do_queue = queue_all
+        pretty_net_url : str | None = None
 
         if not do_queue and have_root_url:
             vu = root_url.get(net_url, None)
@@ -1593,6 +1600,22 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         if do_queue:
             queued.add(net_url)
             queue.append(net_url)
+            if pretty_net_url is None:
+                pretty_net_url = rrexpr.pretty_url
+            if stdout.isatty:
+                stdout.write_bytes(b"\033[33m")
+            durl = net_url if pretty_net_url == net_url else f"{net_url} ({pretty_net_url})"
+            stdout.write_str_ln(gettext(f"queued document %s") % (durl,))
+            if stdout.isatty:
+                stdout.write_bytes(b"\033[0m")
+            stdout.flush()
+
+    if stdout.isatty:
+        stdout.write_bytes(b"\033[32m")
+    stdout.write_str_ln(gettext("loading input `PATH`s..."))
+    if stdout.isatty:
+        stdout.write_bytes(b"\033[0m")
+    stdout.flush()
 
     map_wrr_paths(cargs, collect, cargs.paths, seen_paths=set(), ordering=cargs.walk_fs, errors=cargs.errors)
 
@@ -1624,7 +1647,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             else:
                 stdout.write_bytes(b"\033[34m")
         what = "" if top else "requisite of "
-        stdout.write_str_ln(gettext(f"exporting %.2f%% of %d (%.2f%% of %d indexed), {what}document #%d, input #%d, depth %d") % (n100 / n_total, n_total, n100 / index_total, index_total, doc_n, n, current_depth))
+        stdout.write_str_ln(gettext(f"exporting input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), {what}document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / index_total, index_total, doc_n, current_depth))
         stdout.write_str_ln(gettext("URL %s") % (net_url,))
         if stdout.isatty:
             stdout.write_bytes(b"\033[0m")
@@ -1672,10 +1695,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     while len(queue) > 0:
         if want_stop: raise KeyboardInterrupt()
 
-        current_depth += 1
-        enqueue = current_depth <= max_depth
-
         new_queue : list[str] = []
+        enqueue = current_depth < max_depth
+
         for net_url in queue:
             if want_stop: raise KeyboardInterrupt()
 
@@ -1708,6 +1730,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 finish()
 
         queue = new_queue
+        current_depth += 1
 
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     _ : _t.Callable[[str], str] = gettext
