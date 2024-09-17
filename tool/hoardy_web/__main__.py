@@ -1498,7 +1498,8 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 else:
                     return None
 
-            return path_to_url(_os.path.relpath(abs_out_path, document_dir))
+            return path_to_url(_os.path.relpath(abs_out_path, document_dir)) \
+                   + purl.ofm + purl.fragment
         return remap_url_func
 
     queue : list[str] = []
