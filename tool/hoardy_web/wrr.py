@@ -444,7 +444,7 @@ class Reqres:
     extra : dict[str, _t.Any]
     websocket : _t.Optional[list[WebSocketFrame]]
 
-Reqres_url_schemes = frozenset(["http", "https", "ws", "wss"])
+Reqres_url_schemes = frozenset(["http", "https", "ftp", "ftps", "ws", "wss"])
 
 Reqres_fields = {
     "version": "WEBREQRES format version; int",
