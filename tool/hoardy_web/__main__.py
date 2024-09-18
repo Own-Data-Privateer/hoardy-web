@@ -2233,6 +2233,7 @@ E.g. `{__prog__} organize --move` will not overwrite any files, which is why the
         add_impure(cmd, "import")
         add_fileout(cmd, "import")
         add_memory(cmd, 0, 1024)
+        add_sniff(cmd, "export")
         add_paths(cmd)
 
     # import

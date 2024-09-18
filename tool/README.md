@@ -1377,6 +1377,14 @@ Parse each `INPUT` `PATH` as a `WRR`-bundle (an optionally compressed sequence o
   : sets all of the above options to positive infinity;
     most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
 
+- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` depend on both the original file extension present in the URL and the detected `MIME` type of its content; also, higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+  - `--sniff-default`
+  : run `mimesniff` when the spec says it should be run; i.e., trust `Content-Type` `HTTP` headers most of the time; default
+  - `--sniff-force`
+  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e., for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
+  - `--sniff-paranoid`
+  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+
 - file system path ordering:
   - `--paths-given-order`
   : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
@@ -1464,6 +1472,14 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `--lazy`
   : sets all of the above options to positive infinity;
     most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
+
+- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` depend on both the original file extension present in the URL and the detected `MIME` type of its content; also, higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+  - `--sniff-default`
+  : run `mimesniff` when the spec says it should be run; i.e., trust `Content-Type` `HTTP` headers most of the time; default
+  - `--sniff-force`
+  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e., for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
+  - `--sniff-paranoid`
+  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
 - file system path ordering:
   - `--paths-given-order`
