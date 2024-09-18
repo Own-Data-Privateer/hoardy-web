@@ -6,6 +6,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [tool-v0.15.1] - 2024-09-18
 
+### Added
+
+- `export mirror`
+
+  - Added reporting for roots being queued at the very beginning.
+
 ### Fixed
 
 - `import *`:
@@ -16,7 +22,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
   - Will now remap URL fragments instead of dropping them.
   - Will now display the correct `depth` value in the UI.
-  - Made UI slightly less annoyingly verbose in general.
+  - Stopped reporting of repeated `not remapping '%s'` lines.
 
 ## [tool-v0.15.0] - 2024-09-16
 
