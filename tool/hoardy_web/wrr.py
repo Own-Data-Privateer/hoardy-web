@@ -865,7 +865,8 @@ def linst_scrub() -> LinstAtom:
             if len(rere_obj.body) == 0:
                 return rere_obj.body
 
-            mime, kinds, charset, _ = rere_obj.discern_content_type(rrexpr.sniff)
+            kinds : set[str]
+            kinds, mime, charset, _ = rere_obj.discern_content_type(rrexpr.sniff)
 
             censor = []
             if not scrub_opts.scripts and "javascript" in kinds:
