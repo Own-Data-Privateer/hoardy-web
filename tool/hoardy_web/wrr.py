@@ -32,6 +32,7 @@ from decimal import Decimal
 from gettext import gettext
 
 from kisstdlib.exceptions import *
+from kisstdlib.io.stdio import *
 from kisstdlib.path import *
 
 from .util import *
@@ -705,31 +706,31 @@ def fallback_Reqres(url : ParsedURL,
     # fallback this otherwise
     return trivial_Reqres(url, "application/octet-stream", stime, stime, stime, data=data)
 
-def test_ReqresExpr() -> None:
-    def mk(url : str, ct : str = "text/html", sniff : bool = False, data : bytes = b"") -> ReqresExpr:
-        x = trivial_Reqres(parse_url(url), ct, sniff=sniff, data=data)
-        return ReqresExpr(x, None, [])
+def mk_trivial_ReqresExpr(url : str, ct : str = "text/html", sniff : bool = False, data : bytes = b"") -> ReqresExpr:
+    x = trivial_Reqres(parse_url(url), ct, sniff=sniff, data=data)
+    return ReqresExpr(x, None, [])
 
-    def mkf(url : str, cts : list[str] = ["text/html"], data : bytes = b"") -> ReqresExpr:
-        x = fallback_Reqres(parse_url(url), cts)
-        return ReqresExpr(x, None, [])
+def mk_fallback_ReqresExpr(url : str, cts : list[str] = ["text/html"], data : bytes = b"") -> ReqresExpr:
+    x = fallback_Reqres(parse_url(url), cts)
+    return ReqresExpr(x, None, [])
 
+def test_ReqresExpr_url_parts() -> None:
     def check(x : ReqresExpr, name : str, value : _t.Any) -> None:
         if x[name] != value:
-            raise CatastrophicFailure("while evaluating %s of %s, got %s, expected %s", name, x.reqres.request.url, x[name], value)
+            raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", name, x.reqres.request.url, value, x[name])
 
     def check_fp(url : str, ext : str, *parts : str) -> None:
-        x = mk(url)
+        x = mk_trivial_ReqresExpr(url)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
     def check_fx(url : str, ct : str, sniff : bool, data : bytes, ext : str, *parts : str) -> None:
-        x = mk(url, ct, sniff, data)
+        x = mk_trivial_ReqresExpr(url, ct, sniff, data)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
     def check_ff(url : str, cts : list[str], data : bytes, ext : str, *parts : str) -> None:
-        x = mkf(url, cts, data)
+        x = mk_fallback_ReqresExpr(url, cts, data)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
@@ -754,7 +755,7 @@ def test_ReqresExpr() -> None:
     check_ff("https://example.org/test", ["text/css", "text/plain"], b"", ".css", "test", "index")
 
     url = "https://example.org//first/./skipped/../second/?query=this"
-    x = mk(url)
+    x = mk_trivial_ReqresExpr(url)
     path_components = ["first", "second"]
     check(x, "net_url", url)
     check(x, "npath_parts", path_components)
@@ -762,7 +763,7 @@ def test_ReqresExpr() -> None:
     check(x, "filepath_ext", ".htm")
     check(x, "query_parts", [("query", "this")])
 
-    x = mk("https://Königsgäßchen.example.org/испытание/../")
+    x = mk_trivial_ReqresExpr("https://Königsgäßchen.example.org/испытание/../")
     check(x, "hostname", "königsgäßchen.example.org")
     check(x, "net_url", "https://xn--knigsgchen-b4a3dun.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/../")
 
@@ -771,7 +772,7 @@ def test_ReqresExpr() -> None:
     path_query="/how%2Fdo%3Fyou%26like/these/components%E3%81%A7%E3%81%99%E3%81%8B%3F?empty&not=abit=%2F%3F%26weird"
     path_components = ["how/do?you&like", "these", "componentsですか?"]
     query_components = [("empty", ""), ("not", "abit=/?&weird")]
-    x = mk(f"https://{hostname}{path_query}#hash")
+    x = mk_trivial_ReqresExpr(f"https://{hostname}{path_query}#hash")
     check(x, "hostname", hostname)
     check(x, "net_hostname", ehostname)
     check(x, "npath_parts", path_components)
@@ -893,6 +894,81 @@ def linst_scrub() -> LinstAtom:
 
         return envfunc
     return [str, str], func
+
+def check_scrub(opts : str, url : str, ct : str, data : bytes, eres : bytes | str) -> None:
+    def sc(sniff : bool) -> None:
+        t = trivial_Reqres(parse_url(url), ct, sniff=sniff, data=data)
+        x = ReqresExpr(t, None, [])
+
+        res = x[f"response.body|eb|scrub response {opts}"]
+        if res != eres:
+            stdout.write_ln(res)
+            stdout.write_ln("=======")
+            stdout.write_ln(eres)
+            stdout.flush()
+            raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", opts, x, eres, res)
+    sc(False)
+    sc(True)
+
+def test_ReqresExpr_scrub_html() -> None:
+    test1 = b"""<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Test page</title>
+    <script>x = 1;</script>
+    <script src="inc1.js"></script>
+    <style>
+    body {
+      background: url(./background.jpg);
+      *zoom: 1;
+    }
+    </style>
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.</p>
+    <script>x = 2;</script>
+    <script src="inc2.js"></script>
+  </body>
+</html>
+"""
+
+    check_scrub("+verbose,+whitespace", "https://example.com/", "text/html", test1, b"""<!DOCTYPE html><html><head>
+    <meta charset=utf-8>
+    <title>Test page</title>
+    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out Characters from here --><!-- hoardy-web censored out EndTag script from here -->
+    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
+    <style>
+    body {
+      background: url(data:text/plain;base64,);
+      *zoom: 1;
+    }
+    </style>
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.</p>
+    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out Characters from here --><!-- hoardy-web censored out EndTag script from here -->
+    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
+  
+
+</body></html>""")
+
+def test_ReqresExpr_scrub_css() -> None:
+    test1 = b"""
+body {
+  background: url(./background.jpg);
+  *zoom: 1;
+}
+"""
+
+    check_scrub("+verbose,+whitespace", "https://example.com/test.css", "text/css", test1, """
+body {
+  background: url(data:text/plain;base64,);
+  *zoom: 1;
+}
+""")
 
 ReqresExpr_atoms = linst_atoms.copy()
 ReqresExpr_atoms.update({
