@@ -506,10 +506,10 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 if not_whitespace or current is not None:
                     # minimize away
                     res.append(_tcss.ast.WhitespaceToken(node.source_line, node.source_column, " "))
+                    newline = False
                     continue
                 res.append(node)
-                if node.value.endswith("\n"):
-                    newline = True
+                newline = node.value.endswith("\n")
                 continue
 
             res.append(node)
@@ -657,7 +657,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                     data = "".join(contents)
                     contents = []
                     stack_len = len(stack)
-                    data = _tcss.serialize(scrub_css(base_url, remap_url, _tcss.parse_stylesheet(data), stack_len))
+                    data = _tcss.serialize(scrub_css(base_url, remap_url, _tcss.parse_stylesheet(data), stack_len if not_whitespace else None))
                     if yes_indent:
                         data = "\n" + " " * (2 * stack_len) + data.strip() + "\n" + " " * (2 * (stack_len - 1))
                     elif not_whitespace:
