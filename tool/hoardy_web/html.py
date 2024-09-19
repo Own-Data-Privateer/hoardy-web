@@ -704,11 +704,6 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     process_css = lambda base_url, remap_url, nodes: scrub_css(base_url, remap_url, nodes, 0 if yes_indent else None)
     return process_html, process_css
 
-_html5treebuilder = _h5.treebuilders.getTreeBuilder("etree", fullTree=True)
-_html5parser = _h5.html5parser.HTMLParser(_html5treebuilder)
-_html5walker = _h5.treewalkers.getTreeWalker("etree")
-_html5serializer = _h5.serializer.HTMLSerializer(strip_whitespace = False, omit_optional_tags = False)
-
 def scrub_css(scrubber : Scrubbers,
               base_url : str,
               remap_url : URLRemapper,
@@ -720,6 +715,11 @@ def scrub_css(scrubber : Scrubbers,
         nodes, encoding = _tcss.parse_stylesheet_bytes(data, protocol_encoding=protocol_encoding)
     res = scrubber[1](base_url, remap_url, nodes)
     return _tcss.serialize(res) # type: ignore
+
+_html5treebuilder = _h5.treebuilders.getTreeBuilder("etree", fullTree=True)
+_html5parser = _h5.html5parser.HTMLParser(_html5treebuilder)
+_html5walker = _h5.treewalkers.getTreeWalker("etree")
+_html5serializer = _h5.serializer.HTMLSerializer(strip_whitespace = False, omit_optional_tags = False)
 
 def scrub_html(scrubber : Scrubbers,
                base_url : str,
