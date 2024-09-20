@@ -7,7 +7,7 @@ Not just the last 3 months, but from the beginning of time you start using it.
 In short, you [install the `Hoardy-Web` browser extension/add-on into your web browser](#quickstart) and just browse the web normally while `Hoardy-Web` passively, in background, captures and archives web pages you visit for later offline viewing, mirroring, and/or indexing.
 `Hoardy-Web` has a lot of configuration options to help you tweak what should or should not be archived and a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless explicitly configured otherwise to, e.g., minimize writes to disk instead).
 
-If you just want to start saving your browsing history, you can [start using the `Hoardy-Web` extension](#quickstart) independently of other tools developed in this repository.
+If you just want to start saving your browsing history, you can [start using the `Hoardy-Web` extension](#quickstart) independently of other tools that are being developed in this repository.
 But to display, search, extract useful values from, organize, manipulate, and run scripts over your archived data, you will eventually need to install and use at least [the the accompanying `hoardy-web` CLI tool](./tool/).
 
 To learn more:
@@ -97,7 +97,7 @@ Therefore, `Hoardy-Web` allows you to
 all the while
 
 - being invisible to websites you are browsing;
-- downloading everything only once, **not** once with your browser and then the second time with a separate tool like [ArchiveBox](https://github.com/ArchiveBox/ArchiveBox);
+- downloading everything only once, **not** once with your browser and then the second time with a separate tool like [ArchiveBox](https://github.com/ArchiveBox/ArchiveBox) (or with an extension like [SingleFile](https://github.com/gildas-lormeau/SingleFile), which can re-download some invalidated cached data when you ask it to save a page);
 - freeing you from worries of forgetting to archive something because you forgot to press a button somewhere.
 
 `Hoardy-Web` can archive collected data
