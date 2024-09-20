@@ -275,6 +275,7 @@ htmlns_link = (htmlns, "link")
 
 style_attr = (None, "style")
 rel_attr = (None, "rel")
+crossorigin_attr = (None, "crossorigin")
 href_attr = (None, "href")
 
 NS = tuple[str | None, str]
@@ -610,10 +611,12 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
                         value = attrs[ann]
                         ref = attr_ref_types.get(nnann, None)
+                        remapped = False
                         if ref is not None:
                             # turn relative URLs into absolute ones, and then mangle them with remap_url
                             link_type, cts = ref
                             attrs[ann] = remap_link(base_url, link_type, cts, remap_url, value.strip())
+                            remapped = True
                         elif nnann in link_attrs:
                             # similarly for `link`s, except `link_type` and `fallbacks` depend on `rel` attribute value
                             slink_type, cts = None, []
@@ -624,6 +627,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                 cts += [e for e in cts_ if e not in cts]
                             link_type = slink_type if slink_type is not None else LinkType.JUMP
                             attrs[ann] = remap_link(base_url, link_type, cts, remap_url, value.strip())
+                            remapped = True
                         elif nnann in srcset_attrs:
                             # similarly
                             srcset = parse_srcset_attr(value)
@@ -635,6 +639,11 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                             del srcset, new_srcset
                         elif ann == style_attr:
                             attrs[ann] = _tcss.serialize(scrub_css(base_url, remap_url, _tcss.parse_blocks_contents(value), 0 if yes_indent else None))
+                            remapped = True
+
+                        if remapped and crossorigin_attr in attrs:
+                            # these are not supported for file:// URLs
+                            to_remove.append(crossorigin_attr)
 
                     # cleanup
                     for ann in to_remove:
