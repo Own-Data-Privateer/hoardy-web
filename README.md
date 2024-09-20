@@ -8,7 +8,7 @@ In short, you [install the `Hoardy-Web` browser extension/add-on into your web b
 `Hoardy-Web` has a lot of configuration options to help you tweak what should or should not be archived and a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless explicitly configured otherwise to, e.g., minimize writes to disk instead).
 
 If you just want to start saving your browsing history, you can [start using the `Hoardy-Web` extension](#quickstart) independently of other tools developed in this repository.
-But to display, search, manage, extract useful values from, manipulate, and run scripts over your archived data, you will eventually need to install and use at least [the the accompanying `hoardy-web` CLI tool](./tool/).
+But to display, search, extract useful values from, organize, manipulate, and run scripts over your archived data, you will eventually need to install and use at least [the the accompanying `hoardy-web` CLI tool](./tool/).
 
 To learn more:
 
@@ -161,7 +161,7 @@ But then I got annoyed by all the sites that don't work under `mitmproxy`, did s
 
 ### Optional, but almost always required at some point
 
-- [The `hoardy-web` CLI tool](./tool/) that allows you to display, search, organize, and manipulate web archives stored in [`WRR`](./doc/data-on-disk.md) and `mitmproxy` formats.
+- [The `hoardy-web` CLI tool](./tool/) that allows you to display, search, programmatically extract values from, organize, manipulate, import, and export web archives stored in [`WRR`](./doc/data-on-disk.md) and `mitmproxy` formats.
 
   `hoardy-web` tool is deep in its *beta* stage.
   At the moment, it does about 70% of the stuff I want it to do, and the things it does it does not do as well as I'd like.

@@ -1,6 +1,6 @@
 # What is `hoardy-web`?
 
-`hoardy-web` is a tool to display, search, manipulate (programmatically extract values from and rename/move/symlink/hardlink files based on their metadata), import, and export Web Request+Response (`WRR`) files produced by [the `Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/) (also [there](https://oxij.org/software/hoardy-web/tree/master/)).
+`hoardy-web` is a tool to display, search, programmatically extract values from, organize (rename/move/symlink/hardlink files based on their metadata), manipulate, import, and export Web Request+Response (`WRR`) files produced by [the `Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/) (also [there](https://oxij.org/software/hoardy-web/tree/master/)).
 
 # Quickstart
 
@@ -389,7 +389,7 @@ See [`script` sub-directory](./script/) for examples that show how to use `pando
 
 ## hoardy-web
 
-A tool to display, search, manipulate, import, and export Web Request+Response (`WRR`) archive files produced by the `Hoardy-Web` Web Extension browser add-on.
+A tool to display, search, programmatically extract values from, organize, manipulate, import, and export Web Request+Response (`WRR`) archive files produced by the `Hoardy-Web` Web Extension browser add-on.
 
 Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata.
 

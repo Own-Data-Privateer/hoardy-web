@@ -7,7 +7,7 @@ packages = ["hoardy_web"]
 name = "hoardy-web"
 version = "0.15.1"
 authors = [{ name = "Jan Malakhovski", email = "oxij@oxij.org" }]
-description = "Display, search, manipulate, import, and export Web Request+Response (`WRR`) files produced by the `Hoardy-Web` Web Extension browser add-on."
+description = "Display, search, programmatically extract values from, organize, manipulate, import, and export Web Request+Response (`WRR`) files produced by the `Hoardy-Web` Web Extension browser add-on."
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 classifiers = [
