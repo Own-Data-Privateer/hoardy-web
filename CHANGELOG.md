@@ -4,6 +4,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [tool-v0.15.2] - 2024-09-21
+
+### Fixed
+
+- `scrub`, `export mirror`:
+
+  - Fixed a stupid bug in MIME detection code that prevented external `CSS` files from being detected as such.
+    Added tests to prevent such things in the future.
+
+  - Fixed `CSS` formatting with `+whitespace` set.
+
+  - Made `scrub` remove `crossorigin` attributes from `HTML` tags for which it remapped a URL.
+    This seems to have fixed most of issues causing pages produced by `export mirror` looking broken when opened in a web browser.
+
+### Changed
+
+- Improved documentation.
+
 ## [tool-v0.15.1] - 2024-09-18
 
 ### Added
@@ -1064,6 +1082,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.15.2]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.1...tool-v0.15.2
 [tool-v0.15.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.0...tool-v0.15.1
 [tool-v0.15.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.14.1...tool-v0.15.0
 [extension-v1.16.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.15.1...extension-v1.16.0
