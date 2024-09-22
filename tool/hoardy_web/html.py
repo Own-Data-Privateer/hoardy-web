@@ -275,7 +275,6 @@ htmlns_link = (htmlns, "link")
 
 style_attr = (None, "style")
 rel_attr = (None, "rel")
-crossorigin_attr = (None, "crossorigin")
 href_attr = (None, "href")
 
 NS = tuple[str | None, str]
@@ -341,6 +340,28 @@ stylesheet_link_rels = frozenset([
     "stylesheet", "ie-optimized-stylesheet-desk", "ie-optimized-onevent-stylesheet",
 ])
 
+crossorigin_attr = (None, "crossorigin")
+
+cors_attrs = frozenset([
+    ((htmlns, "audio"),        crossorigin_attr),
+    ((htmlns, "img"),          crossorigin_attr),
+    (htmlns_link,              crossorigin_attr),
+    ((htmlns, "script"),       crossorigin_attr),
+    ((htmlns, "video"),        crossorigin_attr),
+])
+
+integrity_attr = (None, "integrity")
+nonce_attr = (None, "nonce")
+
+sri_attrs = frozenset([
+    (htmlns_link,              integrity_attr),
+    ((htmlns, "script"),       integrity_attr),
+    ((htmlns, "style"),        integrity_attr),
+
+    ((htmlns, "script"),       nonce_attr),
+    ((htmlns, "style"),        nonce_attr),
+])
+
 @_dc.dataclass
 class ScrubbingOptions:
     jumps : RemapType = _dc.field(default=RemapType.OPEN)
@@ -372,6 +393,8 @@ class CSSScrubbingError(Failure): pass
 
 def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     attr_blacklist : set[tuple[NS, NS]] = set()
+    attr_blacklist.update(cors_attrs)
+    attr_blacklist.update(sri_attrs)
     if not opts.tracking:
         attr_blacklist.update(tracking_attrs)
 
@@ -611,12 +634,10 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
                         value = attrs[ann]
                         ref = attr_ref_types.get(nnann, None)
-                        remapped = False
                         if ref is not None:
                             # turn relative URLs into absolute ones, and then mangle them with remap_url
                             link_type, cts = ref
                             attrs[ann] = remap_link(base_url, link_type, cts, remap_url, value.strip())
-                            remapped = True
                         elif nnann in link_attrs:
                             # similarly for `link`s, except `link_type` and `fallbacks` depend on `rel` attribute value
                             slink_type, cts = None, []
@@ -627,7 +648,6 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                 cts += [e for e in cts_ if e not in cts]
                             link_type = slink_type if slink_type is not None else LinkType.JUMP
                             attrs[ann] = remap_link(base_url, link_type, cts, remap_url, value.strip())
-                            remapped = True
                         elif nnann in srcset_attrs:
                             # similarly
                             srcset = parse_srcset_attr(value)
@@ -639,11 +659,6 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                             del srcset, new_srcset
                         elif ann == style_attr:
                             attrs[ann] = _tcss.serialize(scrub_css(base_url, remap_url, _tcss.parse_blocks_contents(value), 0 if yes_indent else None))
-                            remapped = True
-
-                        if remapped and crossorigin_attr in attrs:
-                            # these are not supported for file:// URLs
-                            to_remove.append(crossorigin_attr)
 
                     # cleanup
                     for ann in to_remove:
