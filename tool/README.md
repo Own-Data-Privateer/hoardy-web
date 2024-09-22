@@ -604,6 +604,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `method`: aliast for `request.method`; str
       - `raw_url`: aliast for `request.url`; str
       - `net_url`: a variant of `raw_url` that uses Punycode UTS46 IDNA encoded `net_hostname`, has all unsafe characters of `raw_path` and `raw_query` quoted, and comes without the `fragment`/hash part; this is the URL that actually gets sent to an `HTTP` server when you request `raw_url`; str
+      - `url`: `net_url` with `fragment`/hash part appended; str
       - `pretty_net_url`: a variant of `raw_url` that uses UNICODE IDNA `hostname` without Punycode, minimally quoted `mq_raw_path` and `mq_query`, and comes without the `fragment`/hash part; this is a human-readable version of `net_url`; str
       - `pretty_url`: `pretty_net_url` with `fragment`/hash part appended; str
       - `pretty_net_nurl`: a variant of `pretty_net_url` that uses `mq_npath` instead of `mq_raw_path` and `mq_nquery` instead of `mq_query`; i.e. this is `pretty_net_url` with normalized path and query; str

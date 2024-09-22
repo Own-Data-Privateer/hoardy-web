@@ -133,7 +133,7 @@ class ParsedURL:
             return _up.quote(f"{self.scheme}:{raw_path}{self.oqm}{self.raw_query}", safe="%/:=&?~#+!$,;'@()*[]|")
 
     @property
-    def full_url(self) -> str:
+    def url(self) -> str:
         return f"{self.net_url}{self.ofm}{self.fragment}"
 
     @property
@@ -507,6 +507,7 @@ Reqres_derived_attrs = {
 
 Reqres_url_attrs = {
     "net_url": "a variant of `raw_url` that uses Punycode UTS46 IDNA encoded `net_hostname`, has all unsafe characters of `raw_path` and `raw_query` quoted, and comes without the `fragment`/hash part; this is the URL that actually gets sent to an `HTTP` server when you request `raw_url`; str",
+    "url": "`net_url` with `fragment`/hash part appended; str",
     "pretty_net_url": "a variant of `raw_url` that uses UNICODE IDNA `hostname` without Punycode, minimally quoted `mq_raw_path` and `mq_query`, and comes without the `fragment`/hash part; this is a human-readable version of `net_url`; str",
     "pretty_url": "`pretty_net_url` with `fragment`/hash part appended; str",
     "pretty_net_nurl": "a variant of `pretty_net_url` that uses `mq_npath` instead of `mq_raw_path` and `mq_nquery` instead of `mq_query`; i.e. this is `pretty_net_url` with normalized path and query; str",
