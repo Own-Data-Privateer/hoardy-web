@@ -230,9 +230,9 @@ def normalize_content_type(header : str) \
 
     return None, ct, charset, []
 
-html_sniff_re = _re.compile(r"^\s*<(?:!--|!doctype html|html|head|script|iframe|h1|div|font|table|a|style|title|b|body|br|p)( |>)", flags=_re.IGNORECASE)
-svg_sniff_re = _re.compile(r"^\s*(?:<\?xml\s[^>]*>\s*)?<svg", flags=_re.IGNORECASE)
-xml_sniff_re = _re.compile(r"^\s*<\?xml", flags=_re.IGNORECASE)
+html_sniff_re = _re.compile(r"^\s*(?:<\?xml(?:\s[^>]*)?>\s*)?(?:<!--[\s\S]*-->\s*)*<(?:!doctype\shtml|html|head|meta|link|title|body|frameset|frame|iframe|style|font|script|header|nav|article|section|footer|table|thead|tbody|tfoot|th|tr|td|h1|h2|h3|h4|h5|div|p|span|b|strong|i|em|strike|br|a)(?:\s[^>]*)?>", flags=_re.IGNORECASE)
+svg_sniff_re = _re.compile(r"^\s*(?:<\?xml(?:\s[^>]*)?>\s*)?(?:<!--[\s\S]*-->\s*)*<svg(?:\s[^>]*)?>", flags=_re.IGNORECASE)
+xml_sniff_re = _re.compile(r"^\s*<\?xml(?:\s[^>]*)?>", flags=_re.IGNORECASE)
 
 def sniff_mime_type(data : str | bytes, charset : str | None) \
     -> tuple[list[str], str, str | None, list[str]]:
@@ -349,12 +349,12 @@ def sniff_mime_type(data : str | bytes, charset : str | None) \
     assert type(data) is str
     assert ct is None
 
-    if svg_sniff_re.match(data):
+    if html_sniff_re.match(data):
+        ct = "text/html"
+    elif svg_sniff_re.match(data):
         ct = "image/svg+xml"
     elif xml_sniff_re.match(data):
         ct = "text/xml"
-    elif html_sniff_re.match(data):
-        ct = "text/html"
 
     if ct is not None:
         kinds, exts = mime_info_of[ct]
