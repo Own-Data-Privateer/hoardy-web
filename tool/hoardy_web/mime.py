@@ -26,6 +26,8 @@ import enum as _enum
 import re as _re
 import typing as _t
 
+from kisstdlib.exceptions import *
+
 canonical_mime_of : dict[str, str]
 canonical_mime_of = {
     "application/x-grip": "application/gzip",
@@ -361,6 +363,89 @@ def sniff_mime_type(data : str | bytes, charset : str | None) \
         return kinds, ct, charset, exts
 
     return any_text, "text/plain", charset, any_text_ext
+
+def test_sniff_mime_type() -> None:
+    def check(want_mime : str, data : bytes | str) -> None:
+        kinds, mime, charset, extensions = sniff_mime_type(data, None)
+        if mime != want_mime:
+            raise CatastrophicFailure("while evaluating `sniff_mime_type` on %s, expected %s, got %s", data, want_mime, mime)
+
+    check("text/html", "<!DOCTYPE html><html>")
+
+    check("text/html", """<!DOCTYPE html>
+<html>""")
+
+    check("text/html", """
+<!DOCTYPE html>
+<html>""")
+
+    check("text/html", """
+<!DOCTYPE html>
+<!-- comment -->
+<html>""")
+
+    check("text/html", """
+<!-- comment -->
+<!DOCTYPE html>
+<html>""")
+
+    check("text/html", """
+<!-- multi
+     line
+     comment -->
+<!DOCTYPE html>
+<html>""")
+
+    check("text/html", """
+<!-- comment1 -->
+<!-- comment2 -->
+<!DOCTYPE html>
+<html>""")
+
+    check("text/html", """
+<!-- comment
+  <!-- in comment -->
+     of comment -->
+<!DOCTYPE html>
+<html>""")
+
+    check("text/html", """<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">""")
+
+    check("text/html", """<html style="" lang="en">""")
+
+    check("text/html", """<a>test</a>""")
+
+    check("image/svg+xml", """<?xml version="1.0" encoding="UTF-8"?><svg>""")
+
+    check("image/svg+xml", """<?xml version="1.0" encoding="UTF-8"?>
+<!-- comment -->
+<svg>""")
+
+    check("image/svg+xml", """<?xml version="1.0" encoding="UTF-8"?>
+<!-- multi
+     line
+     comment -->
+<svg>""")
+
+    check("image/svg+xml", """<svg>""")
+
+    check("text/xml", """<?xml version="1.0" encoding="UTF-8"?>""")
+
+    check("text/xml", """<?xml version="1.0" encoding="UTF-8"?>
+<!-- comment -->
+<data>""")
+
+    check("text/xml", """<?xml version="1.0" encoding="UTF-8"?>
+<!-- multi
+     line
+     comment -->
+<data>""")
+
+    check("text/xml", """<?xml>""")
+
+    check("text/plain", "example")
 
 class SniffContentType(_enum.Enum):
     NONE = 0
