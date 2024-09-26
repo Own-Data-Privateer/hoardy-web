@@ -170,7 +170,8 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], Lo
             if follow_symlinks:
                 abs_path = _os.path.realpath(abs_path)
 
-            if seen_paths is not None:
+            if seen_paths is not None and \
+               abs_path != abs_dir_or_file_path: # do not skip top-level paths added above
                 if abs_path in seen_paths:
                     continue
                 seen_paths.add(abs_path)
