@@ -422,7 +422,12 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                    fallbacks : list[str],
                    remap_url : URLRemapper,
                    url : str) -> str:
-        url = _up.urljoin(base_url, url)
+        try:
+            url = _up.urljoin(base_url, url)
+        except ValueError:
+            # the `url` is malformed
+            return get_void_url(link_type)
+
         if url.startswith("javascript:"):
             if not_scripts:
                 return "javascript:void(0)"
