@@ -1798,14 +1798,14 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.end_section()
 
     fmt.start_section(_("Concatenate all response bodies of all the requests in `../simple_server/pwebarc-dump`"))
-    fmt.add_code(f'{__prog__} stream --format=raw --not-terminated -ue "response.body|es" ../simple_server/pwebarc-dump | less')
+    fmt.add_code(f'{__prog__} stream --format=raw --not-terminated -ue "response.body|eb" ../simple_server/pwebarc-dump | less')
     fmt.end_section()
 
     fmt.start_section(_("Print all unique visited URLs, one per line"))
     fmt.add_code(f"{__prog__} stream --format=raw --lf-terminated -ue request.url ../simple_server/pwebarc-dump | sort | uniq")
     fmt.end_section()
 
-    fmt.start_section(_("Same idea, but using NUL bytes while processing, and prints two URLs per line"))
+    fmt.start_section(_("Same idea, but using NUL bytes, with some post-processing, and two URLs per line"))
     fmt.add_code(f"{__prog__} stream --format=raw --zero-terminated -ue request.url ../simple_server/pwebarc-dump | sort -z | uniq -z | xargs -0 -n2 echo")
     fmt.end_section()
 
@@ -1957,8 +1957,8 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
 
         agrp = cmd.add_argument_group(_("`MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command " + what))
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--sniff-default", dest="sniff", action="store_const", const=SniffContentType.NONE, help=_("run `mimesniff` when the spec says it should be run; i.e., trust `Content-Type` `HTTP` headers most of the time; default"))
-        grp.add_argument("--sniff-force", dest="sniff", action="store_const", const=SniffContentType.FORCE, help=_("run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e., for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`"))
+        grp.add_argument("--sniff-default", dest="sniff", action="store_const", const=SniffContentType.NONE, help=_("run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default"))
+        grp.add_argument("--sniff-force", dest="sniff", action="store_const", const=SniffContentType.FORCE, help=_("run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`"))
         grp.add_argument("--sniff-paranoid", dest="sniff", action="store_const", const=SniffContentType.PARANOID, help=_(f"do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script"))
         grp.set_defaults(sniff = SniffContentType.NONE)
 
@@ -2043,7 +2043,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                               _("the default depends on `--remap-*` options, without any them set it is %s") % (def_expr,))
 
         def alias(what : str) -> str:
-            return _("change the default value for `--expr` to `%s`") % (default_expr[what],)
+            return _("set the default value for `--expr` to `%s`") % (default_expr[what],)
 
         agrp = cmd.add_argument_group("the default value of `--expr`")
         grp = agrp.add_mutually_exclusive_group()
@@ -2051,24 +2051,22 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         if kind != "export":
             grp.add_argument("--no-remap", dest="default_expr", action="store_const", const=kind, help=_("do not touch the default value of `--expr`, use the default value shown above; default"))
 
-        grp.add_argument("--remap-id", dest="default_expr", action="store_const", const="id", help=alias("id") + _("; i.e., remap all URLs with an identity function; i.e., don't remap anything; results will NOT be self-contained"))
-        grp.add_argument("--remap-void", dest="default_expr", action="store_const", const="void", help=alias("void") + _("; i.e., remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained"))
+        grp.add_argument("--remap-id", dest="default_expr", action="store_const", const="id", help=alias("id") + _("; i.e. remap all URLs with an identity function; i.e. don't remap anything; results will NOT be self-contained"))
+        grp.add_argument("--remap-void", dest="default_expr", action="store_const", const="void", help=alias("void") + _("; i.e. remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained"))
 
         if kind != "export":
             cmd.set_defaults(default_expr = kind)
         else:
-            grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open", help=alias("open") + _("; i.e., remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does; results almost certainly will NOT be self-contained"))
-            grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="open", help=alias("closed") + _("; i.e., remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does; results will be self-contained"))
-            grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi", help=alias("semi") + _("; i.e., remap all jump links like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does; this is a better version of `--remap-open` which keeps the `export`ed `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained"))
-            grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _(f"""; i.e., remap all links and references like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble; results will be self-contained; default
+            grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open", help=alias("open") + _("; i.e. remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does; results almost certainly will NOT be self-contained"))
+            grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="open", help=alias("closed") + _("; i.e. remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does; results will be self-contained"))
+            grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi", help=alias("semi") + _("; i.e. remap all jump links like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does; this is a better version of `--remap-open` which keeps the `export`ed `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained"))
+            grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _(f"""; i.e. remap all links and references like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble; results will be self-contained; default
 
 `{__prog__} export mirror` uses `--output` paths of trivial `GET <URL> -> 200 OK` as fallbacks for `&(jumps|actions|reqs)` options of `scrub`.
-
-For simple `--output` formats (like the default `hupq`) this will remap missing and unreachable URLs to `--output` paths of trivial `GET <URL> -> 200 OK` reqres.
-When `{__prog__} export mirror` is run the first time, the resulting URLs will point to missing files.
-But those files can be generated by running `{__prog__} export mirror` again, this time with `WRR` files containing those missing or unreachable URLs as inputs.
-I.e., this behaviour allows you to add new data to an already `export`ed mirror without regenerating old files that reference newly added URLs.
-I.e., this allows `{__prog__} export mirror` to be used incrementally.
+This will remap links pointing to missing and unreachable URLs to missing files.
+However, for simple `--output` formats (like the default `hupq`), those files can later be generated by running `{__prog__} export mirror` with `WRR` files containing those missing or unreachable URLs as inputs.
+I.e. this behaviour allows you to add new data to an already `export`ed mirror without regenerating old files that reference newly added URLs.
+I.e. this allows `{__prog__} export mirror` to be used incrementally.
 
 Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
 """))
@@ -2141,7 +2139,7 @@ setting this to a value smaller than `--defer-number` will not improve memory co
         agrp.add_argument("--defer-number", metavar = "INT", dest="max_deferred", type=int, default=max_deferred, help=_("""defer at most this many IO actions; default: `%(default)s`;
 making this larger improves performance at the cost of increased memory consumption;
 setting it to zero will force all IO actions to be applied immediately"""))
-        agrp.add_argument("--batch-number", metavar = "INT", dest="max_batched", type=int, default=max_batch, help=_(f"""queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: %(default)s"""))
+        agrp.add_argument("--batch-number", metavar = "INT", dest="max_batched", type=int, default=max_batch, help=_(f"""queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: `%(default)s`"""))
         agrp.add_argument("--max-memory", metavar = "INT", dest="max_memory", type=int, default=1024, help=_("""the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
 making this larger improves performance;
 the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`"""))
@@ -2184,7 +2182,7 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
             grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
                 _("""`--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
 when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
-the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap source file names will still fail
+the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap files will still fail
 """))
             grp.add_argument("--latest", dest="allow_updates", action="store_const", const=True, help=_("""replace files under `DESTINATION` with their latest version;
 this is only allowed in combination with `--symlink` at the moment;
@@ -2261,7 +2259,7 @@ In short, this is `{__prog__} organize --copy` for `INPUT` files that use differ
 
     cmd = supsub.add_parser("mirror", help=_("convert given `WRR` files into a local website mirror stored in interlinked plain files"),
                             description = _(f"""Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
-Essentially, this is a combination of `{__prog__} organize --copy` followed by in-place `{__prog__} get` and with a more advanced URL remapping capabilities available to the `scrub` function.
+Essentially, this is a combination of `{__prog__} organize --copy` followed by in-place `{__prog__} get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
 
 In short, this sub-command generates static offline website mirrors, producing results similar to those of `wget -mpk`.
 """))
