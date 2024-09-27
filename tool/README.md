@@ -4,7 +4,24 @@
 
 # Quickstart
 
+## Pre-installation
+
+- Install `Python 3`:
+
+  - On Windows: [Download and install Python from the official website](https://www.python.org/downloads/windows/).
+  - On a conventional POSIX system like most GNU/Linux distros and MacOS X: Install `python3` via your package manager. Realistically, it probably is installed already.
+
 ## Installation
+
+- On a Windows system with unconfigured `PATH`, install with:
+
+  ``` bash
+  pip install hoardy-web
+  ```
+  and run as
+  ``` bash
+  python3 -m hoardy_web --help
+  ```
 
 - On a conventional POSIX system or on a Windows system with configured `PATH` environment variable, install it with:
 
@@ -14,16 +31,6 @@
   and run as
   ``` bash
   hoardy-web --help
-  ```
-
-- Alternatively, on a Windows system with unconfigured `PATH`, install with:
-
-  ``` bash
-  pip install hoardy-web
-  ```
-  and run as
-  ``` bash
-  python3 -m hoardy_web --help
   ```
 
 - Alternatively, on a POSIX system, run without installing:
@@ -44,9 +51,9 @@
 
 ## Supported input file formats
 
-### Simple `WRR`-dumps (`*.wrr`)
+### Simple `WRR` dumps (`*.wrr`)
 
-When you use [the `Hoardy-Web` extension](../extension/) together with [`hoardy-web-sas` archiving server](../simple_server/), the latter writes [`WRR`-dumps the extension generates](../doc/data-on-disk.md) into separate `.wrr` files (aka "`WRR` files") in its dumping directory.
+When you use [the `Hoardy-Web` extension](../extension/) together with [`hoardy-web-sas` archiving server](../simple_server/), the latter writes [`WRR` dumps the extension generates](../doc/data-on-disk.md) into separate `.wrr` files (aka "`WRR` files") in its dumping directory.
 No further actions to use that data are required.
 
 The situation is similar if you instead use the `Hoardy-Web` extension with "Export via `saveAs`" option enabled but `saveAs`-bundling option disabled (max bundle size set to zero).
@@ -56,9 +63,9 @@ The only difference is that `WRR` files will be put into `~/Downloads` or simila
 ls ~/Downloads/Hoardy-Web-export-*
 ```
 
-### Bundles of `WRR`-dumps (`*.wrrb`)
+### Bundles of `WRR` dumps (`*.wrrb`)
 
-However, if instead of using any of the above you use the `Hoardy-Web` extension with both "Export via `saveAs`" and bundling options enabled, then, at the moment, you will need to `import` those `.wrrb` files (aka `WRR`-bundles) into separate `WRR` files first:
+However, if instead of using any of the above you use the `Hoardy-Web` extension with both "Export via `saveAs`" and bundling options enabled, then, at the moment, you will need to `import` those `.wrrb` files (aka `WRR` bundles) into separate `WRR` files first:
 
 ```bash
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
@@ -149,7 +156,7 @@ I.e. the above will produce `~/hoardy-web/pointers` with unique symlinks pointin
 
 ## How to build a file system tree of latest versions of all hoarded URLs
 
-Assuming you keep your `WRR`-dumps in `~/hoardy-web/raw`, the following command will generate a file system hierarchy under `~/hoardy-web/latest` organized in such a way that, for each URL from `~/hoardy-web/raw`, it contains a symlink from under `~/hoardy-web/latest` to a file in `~/hoardy-web/raw` pointing to the most recent `WRR` file containing `200 OK` response for that URL:
+Assuming you keep your `WRR` dumps in `~/hoardy-web/raw`, the following command will generate a file system hierarchy under `~/hoardy-web/latest` organized in such a way that, for each URL from `~/hoardy-web/raw`, it will contain a symlink from under `~/hoardy-web/latest` to a file in `~/hoardy-web/raw` pointing to the most recent `WRR` file containing `200 OK` response for that URL:
 
 ```bash
 hoardy-web organize --symlink --latest --output hupq --to ~/hoardy-web/latest --and "status|~= .200C" ~/hoardy-web/raw
@@ -168,7 +175,7 @@ The above commands rescan the whole contents of `~/hoardy-web/raw` and so can ta
 
 If you have a lot of `WRR` files and you want to keep your symlink tree updated in near-real-time you will need to use a two-stage pipeline by giving the output of `hoardy-web organize --zero-terminated` to `hoardy-web organize --stdin0` to perform complex updates.
 
-E.g. the following will rename new reqres from `../simple_server/pwebarc-dump` to `~/hoardy-web/raw` renaming them with `--output default` (the `for` loop is there to preserve buckets/profiles):
+E.g. the following will rename new `WRR` files from `../simple_server/pwebarc-dump` to `~/hoardy-web/raw` renaming them with `--output default` (the `for` loop is there to preserve buckets/profiles):
 
 ```bash
 for arg in ../simple_server/pwebarc-dump/* ; do
@@ -199,7 +206,7 @@ hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/raw
 On completion, `~/hoardy-web/mirror1` will contain a bunch of interlinked `HTML` files, their requisites, and everything else available from `WRR` files living under `~/hoardy-web/raw`.
 
 The resulting `HTML` files will be stripped of all `JavaScript` and other stuff of various levels of evil and then minimized a bit to save space.
-The results should be completely self-contained (i.e., work inside a browser running in "Work offline" mode) and safe to view in a dumb unconfigured browser (i.e., the resulting web pages should not request any page requisites --- like images, `CSS`, or fonts --- from the Internet).
+The results should be completely self-contained (i.e., work inside a browser running in "Work offline" mode) and safe to view in a dumb unconfigured browser (i.e., the resulting web pages should not request any page requisites --- like images, media, `CSS`, fonts, etc --- from the Internet).
 
 If you are unhappy with the above and, for instance, want to keep `JavaScript` and produce unminimized human-readable `HTML`s, you can run the following instead:
 
@@ -225,9 +232,9 @@ Also, enabling `+pretty` (or `+indent`) in `scrub` will make `HTML` scrubbing sl
 
 ### Handling outputs to the same file
 
-The above commands might fail if the set of `WRR`-dumps you are trying to export contains two or more dumps with distinct URLs that map to the same `--output` path.
+The above commands might fail if the set of `WRR` dumps you are trying to export contains two or more dumps with distinct URLs that map to the same `--output` path.
 This will produce an error since `hoardy-web` does not permit file overwrites.
-With the default `--output hupq` format this can happen, for instance, when the URLs recorded in the reqres are long and so they end up truncated into the same file system paths.
+With the default `--output hupq` format this can happen, for instance, when the URLs recorded in the `WRR` dumps are long and so they end up truncated into the same file system paths.
 
 In this case you can either switch to a more verbose `--output` format
 
@@ -235,7 +242,7 @@ In this case you can either switch to a more verbose `--output` format
 hoardy-web export mirror --output hupq_n --to ~/hoardy-web/mirror3 ~/hoardy-web/raw
 ```
 
-or just skip all reqres that would cause overwrites
+or just skip all operations that would cause overwrites
 
 ```bash
 hoardy-web export mirror --skip-existing --to ~/hoardy-web/mirror1 ~/hoardy-web/raw
@@ -1292,19 +1299,19 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
 
 ### hoardy-web import
 
-Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
+Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
 In short, this is `hoardy-web organize --copy` for `INPUT` files that use different files formats.
 
 - file formats:
   - `{bundle,mitmproxy}`
     - `bundle`
-    : convert `WRR`-bundles into separate `WRR` files
+    : convert `WRR` bundles into separate `WRR` files
     - `mitmproxy`
     : convert `mitmproxy` stream dumps into `WRR` files
 
 ### hoardy-web import bundle
 
-Parse each `INPUT` `PATH` as a `WRR`-bundle (an optionally compressed sequence of `WRR`-dumps) and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
+Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
 
 - positional arguments:
   - `PATH`
@@ -1400,7 +1407,7 @@ Parse each `INPUT` `PATH` as a `WRR`-bundle (an optionally compressed sequence o
 
 ### hoardy-web import mitmproxy
 
-Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
+Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
 
 - positional arguments:
   - `PATH`

@@ -135,19 +135,18 @@ Configuring your `speech-dispatcher` is out of scope of this script, look it up 
 
 # Note:
 
-`--start` and `--end` essentially run `sed -n "$start,$ p"`.
-
+`--start` and `--end` run `sed -n "$start,$ p"` and similar commands internally.
 Which is why see `man 1 sed` for more info about PATTERN syntax.
 
 # Examples:
 
-- Skip first 5 lines, then feed the next 100 lines to the TTS:
-
-  ./hoardy-web-spd-say -s 5 -e +100 path/to/wrr/file/containing/html.wrr
-
 - Feed the whole document to the TTS:
 
   ./hoardy-web-spd-say path/to/wrr/file/containing/html.wrr
+
+- Skip first 5 lines, then feed the next 100 lines to the TTS:
+
+  ./hoardy-web-spd-say -s 5 -e +100 path/to/wrr/file/containing/html.wrr
 
 - Start speaking aloud starting from the first `<hr>` element:
 

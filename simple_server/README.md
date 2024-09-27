@@ -1,8 +1,8 @@
 # What is `hoardy-web-sas`?
 
-`hoardy-web-sas` is a very simple archiving server for the [`Hoardy-Web` browser extension](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/extension/) (also [there](https://oxij.org/software/hoardy-web/tree/master/extension/)).
+`hoardy-web-sas` is a very simple archiving server for [the `Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/extension/) (also [there](https://oxij.org/software/hoardy-web/tree/master/extension/)).
 
-I.e. this is the thing you run and then paste the URL of into `Server URL` setting in `Hoardy-Web`.
+I.e. this is the thing you run and then paste the URL of into the `Server URL` setting of the `Hoardy-Web` add-on.
 
 This thing is less than 200 lines of pure Python that only uses the Python\'s standard library and nothing else.
 You could be running it already.
@@ -13,7 +13,24 @@ This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/hoardy
 
 # Quickstart
 
+## Pre-installation
+
+- Install `Python 3`:
+
+  - On Windows: [Download and install Python from the official website](https://www.python.org/downloads/windows/).
+  - On a conventional POSIX system like most GNU/Linux distros and MacOS X: Install `python3` via your package manager. Realistically, it probably is installed already.
+
 ## Installation
+
+- On a Windows system with unconfigured `PATH`, install with:
+
+  ``` bash
+  pip install hoardy-web-sas
+  ```
+  and run as
+  ``` bash
+  python3 -m hoardy_web_sas --help
+  ```
 
 - On a conventional POSIX system or on a Windows system with configured `PATH` environment variable, install it with:
 
@@ -23,16 +40,6 @@ This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/hoardy
   and run as
   ``` bash
   hoardy-web-sas --help
-  ```
-
-- Alternatively, on a Windows system with unconfigured `PATH`, install with:
-
-  ``` bash
-  pip install hoardy-web-sas
-  ```
-  and run as
-  ``` bash
-  python3 -m hoardy_web_sas --help
   ```
 
 - Alternatively, run without installing:

@@ -10,12 +10,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - `scrub`, `export mirror`:
 
-  - Fixed a stupid bug in MIME detection code that prevented external `CSS` files from being detected as such.
+  - Fixed a stupid bug in `MIME` detection code that prevented external `CSS` files from being detected as such.
+
     Added tests to prevent such things in the future.
 
   - Fixed `CSS` formatting with `+whitespace` set.
 
   - Made `scrub` remove `crossorigin` attributes from `HTML` tags for which it remapped a URL.
+
     This seems to have fixed most of issues causing pages produced by `export mirror` looking broken when opened in a web browser.
 
 ### Changed
@@ -38,8 +40,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - `export mirror`
 
-  - Will now remap URL fragments instead of dropping them.
-  - Will now display the correct `depth` value in the UI.
+  - It will now remap URL fragments instead of dropping them.
+  - It will now report the correct `depth` value in the UI.
   - Stopped reporting of repeated `not remapping '%s'` lines.
 
 ## [tool-v0.15.0] - 2024-09-16
@@ -120,7 +122,7 @@ But the current state is quite usable.
 
     I.e. newly generated `HTML` pages can now be opened in a web browser while `export mirror` is still running, having not finished exporting other things yet.
 
-- Improved content MIME type handling a bit, added `text/vtt` recognition.
+- Improved content `MIME` type handling a bit, added `text/vtt` recognition.
 
 - `--expr`, `--output`:
   - Renamed: `path_parts` -\> `npath_parts`, `mq_path` -\> `mq_npath`.

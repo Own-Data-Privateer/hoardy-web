@@ -1,10 +1,10 @@
 # What is `Hoardy-Web`?
 
 `Hoardy-Web` is a suite of tools that helps you to passively capture, archive, and hoard your web browsing history.
-Not just the URLs, but also the contents and the resources (images, media, `CSS`, etc) of the pages you visit.
+Not just the URLs, but also the contents and the requisite resources (images, media, `CSS`, fonts, etc) of the pages you visit.
 Not just the last 3 months, but from the beginning of time you start using it.
 
-In short, you [install the `Hoardy-Web` browser extension/add-on into your web browser](#quickstart) and just browse the web normally while `Hoardy-Web` passively, in background, captures and archives web pages you visit for later offline viewing, mirroring, and/or indexing.
+Practically speaking, you [install the `Hoardy-Web` browser extension/add-on into your web browser](#quickstart) and just browse the web normally while `Hoardy-Web` passively, in background, captures and archives web pages you visit for later offline viewing, mirroring, and/or indexing.
 `Hoardy-Web` has a lot of configuration options to help you tweak what should or should not be archived and a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless explicitly configured otherwise to, e.g., minimize writes to disk instead).
 
 If you just want to start saving your browsing history, you can [start using the `Hoardy-Web` extension](#quickstart) independently of other tools that are being developed in this repository.
@@ -35,7 +35,13 @@ See [there](./doc/gallery.md) for more screenshots.
 
 ## For a relatively layman user
 
-So, you wake up remembering something interesting, you try to look it up on Google, you fail, eventually you remember the website you seen it at (or a tool like [recoll](https://www.lesbonscomptes.com/recoll/index.html) or [Promnesia](https://github.com/karlicoss/promnesia) helps you), you go there to look it up… and discover it offline/gone/a parked domain. Not a problem\! Have no fear\! You go to [Wayback Machine](https://web.archive.org/) and look it up there… and discover they only archived an ancient version of it and the thing you wanted is missing there.
+So, you wake up remembering something interesting you saw a long time ago.
+Knowing you won't find it in your normal browsing history, which only contains the URLs and the titles of the pages you visited in the last 3 months, you try looking it up on Google.
+You fail.
+Eventually, you remember the website you seen it at, or maybe you re-discovered the link in question in an old message to/from a friend, or maybe a tool like [recoll](https://www.lesbonscomptes.com/recoll/index.html) or [Promnesia](https://github.com/karlicoss/promnesia) helped you.
+You open the link… and discover it offline/gone/a parked domain.
+Not a problem\! Have no fear\!
+You go to [Wayback Machine](https://web.archive.org/) and look it up there… and discover they only archived an ancient version of it and the thing you wanted is missing there.
 
 Or, say, you read a cool fanfiction on [AO3](https://archiveofourown.org/) years ago, you even wrote down the URL, you go back to it wanting to experience it again… and discover the author made it private... and Wayback Machine saved only the very first chapter.
 
@@ -64,7 +70,7 @@ Meanwhile, `Hoardy-Web` with [some scripts](./tool/script/) can do it.
 
 Say, there's a web page/app you use (like a banking app), but it lacks some features you want, and in your browser's Network Monitor you can see it uses `JSON RPC` or some such to fetch its data, and you want those `JSON`s for yourself (e.g., to compute statistics and supplement the app output with them), but the app in question has no public API and scraping it with a script is non-trivial (e.g., the site does complicated `JavaScript`+multifactor-based auth, tries to detect you are actually using a browser, and bans you immediately if not).
 
-Or, maybe, you want to parse those behind-auth pages with a script, save the results to a database, and then do interesting things with them (e.g., track price changes, manually classify, annotate, and merge pages representing the same product by different sellers, do complex queries, like sorting by price/unit, limit results by geographical locations extracted from text labels, etc).
+Or, maybe, you want to parse those behind-auth pages with a script, save the results to a database, and then do interesting things with them (e.g., track price changes, manually classify, annotate, and merge pages representing the same product by different sellers, do complex queries, like sorting by price/unit or price/weight, limit results by geographical locations extracted from text labels, etc).
 
 Or, say, you want to fetch a bunch of pages belonging to two recommendation lists on AO3 or [GoodReads](https://www.goodreads.com/), get all outgoing links for each fetched page, union sets for the pages belonging to the same recommendation list, and then intersect the results of the two lists to get a shorter list of things you might want to read with higher probability.
 
@@ -84,7 +90,7 @@ Meanwhile, `Hoardy-Web` provides some of the tools to help you build your own li
 
 # <span id="highlights"/>Highlights
 
-`Hoardy-Web` browser extension runs under desktop versions of both Firefox- and Chromium-based browsers as well as under Firefox-for-Android-based browsers.
+[The `Hoardy-Web` browser extension](./extension/) runs under desktop versions of both Firefox- and Chromium-based browsers as well as under Firefox-for-Android-based browsers.
 
 `Hoardy-Web`'s main workflow is to passively collect and archive `HTTP` requests and responses (and, if you ask, also [`DOM` snapshots](./extension/page/help.org#faq-snapshot), i.e. the contents of the page after all `JavaScript` was run) directly from your browser as you browse the web.
 
@@ -193,7 +199,7 @@ To conform to the above design principles
 
 - the dumps are generated using [the simplest, trivially parsable with many third-party libraries, yet most space-efficient on-disk file format representing separate `HTTP` requests+responses there currently is (aka `Web Request+Response`, `WRR`)](./doc/data-on-disk.md), which is a file format that is both more general and more simple than `WARC`, much simpler than that `mitmproxy` uses, and much more efficient than `HAR`;
 
-- the `Hoardy-Web` extension can write the dumps it produces to disk by itself by generating fake-Dowloads containing bundles of `WRR`-dumps, but because of limitations of browser APIs, `Hoardy-Web` can't tell if a file generated this way succeeds at being written to disk;
+- the `Hoardy-Web` extension can write the dumps it produces to disk by itself by generating fake-Dowloads containing bundles of `WRR` dumps, but because of limitations of browser APIs, `Hoardy-Web` can't tell if a file generated this way succeeds at being written to disk;
 
 - which is why, for users who want write guarantees and error reporting, the extension has other archival methods, which includes archival by submission via `HTTP`;
 
@@ -334,7 +340,7 @@ After adding each new feature to [the `hoardy-web` tool](./tool/), as a rule, I 
   On Chromium (but not on Firefox), technically, at the moment, `Hoardy-Web` does fail to collect streaming media properly because Chromium has a bug that prevents collection of the first few KiB of all audio and video files, and its API design prevents collection of large files in general, but if we are talking about YouTube, then most of the data of those streaming media files Chromium will fetch while you watch a video there will, in fact, get collected even on Chromium.
 
   So, in principle, to conform to those terms, `Hoardy-Web` would need to either disallow archival of all embedded media (which would defeat the point of it existing), or come bundled with a blacklist of URLs Google would claim you would be "unauthorized" to save to disk, and forcefully disallow archival for those.
-  How do you expect somebody except yourself even attempt at making such a blacklist, Google-san?
+  Even if such a blacklist could be made somehow (How do you expect somebody make such a thing, Google-san?), it would be very annoying and time-consuming to maintain.
 
   (Meanwhile, on Firefox, `Hoardy-Web` will just silently collect everything you browser fetches.
   And [addons.mozilla.org's policies do not restrict this](https://web.archive.org/web/20240611083716/https://extensionworkshop.com/documentation/publish/add-on-policies/).)
@@ -365,7 +371,7 @@ Also, I learned a lot about nefarious things some of the websites I visit do in 
 
 In practice, though, your will probably want to install at least [the `hoardy-web-sas` simple archiving server](./simple_server/) (see below for instructions) and switch `Hoardy-Web` to `Archive 'collected' reqres by > ... submitting them via 'HTTP'` mode pretty soon [**because it is very easy to accidentally loose data using other archival methods**](./extension/page/help.org#faq-unsafe) and, assuming you have Python installed on your computer, it is also the most convenient archival method there is.
 
-Or, alternatively, you can use the combination of archiving by saving of data to browser's local storage (the default) followed by manual export into `WRR`-bundles [as described below in the section on using `Hoardy-Web` together with Tor Browser](#in-tb).
+Or, alternatively, you can use the combination of archiving by saving of data to browser's local storage (the default) followed by manual export into `WRR` bundles [as described below in the section on using `Hoardy-Web` together with Tor Browser](#in-tb).
 
 Or, alternatively, you can switch to `Archive 'collected' reqres by > ... exporting them via 'saveAs'` mode by default and simply accept the resulting slightly more annoying UI ([on Firefox, it can be fixed with a small `about:config` change](./extension/page/help.org#faq-firefox-saveas)) and the facts that [you can now lose some data if your disk ever gets out of space or if you accidentally mis-click a button in your browser's `Downloads` UI](./extension/page/help.org#faq-unsafe).
 
@@ -379,12 +385,14 @@ See ["Setup recommendations"](#setup) section for best practices for configuring
 
 ## Installing the Pythonic parts
 
-### On Windows and conventional POSIX systems
+### Pre-installation
 
 - Install `Python 3`:
 
   - On Windows: [Download Python from the official website](https://www.python.org/downloads/windows/).
-  - On a conventional POSIX system like most GNU/Linux distros and MacOS X: Install `python3` via your package manager. Realistically, who am I kidding, it probably is installed already.
+  - On a conventional POSIX system like most GNU/Linux distros and MacOS X: Install `python3` via your package manager. Realistically, it probably is installed already.
+
+### Installation
 
 - Install the Pythonic parts:
 
@@ -473,7 +481,7 @@ To do the latter:
 - set `Exported via 'saveAs'` filter there to `false` (red) to make it only display reqres that were not exported yet;
 - press the `Re-queue` button there;
 - wait for `Hoardy-Web` to generate new fake-Downloads containing all that data;
-- wait for the browser to save the resulting generated `WRR`-bundles;
+- wait for the browser to save the resulting generated `WRR` bundles;
 - (if you are running on a truly ancient hardware and the above is slow, you can disable all GZip compression options);
 - confirm the file was properly saved (i.e. you did not run out of disk space);
 - repeat until everything is exported;
@@ -502,7 +510,7 @@ A slightly more paranoid than normal way to do this is:
 
 - Run the server as `./hoardy_web_sas.py --host 127.0.99.1` or similar.
 - Go to `about:config` in your Tor Browser and add `127.0.99.1` to `network.proxy.no_proxies_on`.
-- Set the submission URL in the extension to `http://127.0.99.1:3210/pwebarc/dump`.
+- Set the `Server URL` setting in the extension to `http://127.0.99.1:3210/pwebarc/dump`.
 
 Why?
 When using Tor Browser, you probably don't want to use `127.0.0.1` and `127.0.1.1` as those are normal loopback IP addresses used by most things, and you probably don't want to allow any `JavaScript` code running in Tor Browser to (potentially, if there are any bugs) access to those.
@@ -588,7 +596,7 @@ Same issues:
 
 ## [SingleFile](https://github.com/gildas-lormeau/SingleFile) and [WebScrapBook](https://github.com/danny0838/webscrapbook)
 
-Browser add-ons that capture whole web pages by taking their `DOM` snapshots and saving all resources (images, media, `CSS`, etc) the captured page references.
+Browser add-ons that capture whole web pages by taking their `DOM` snapshots and saving all requisite resources the captured page references.
 
 Pros:
 
@@ -599,7 +607,8 @@ Cons:
 
 - to make them archive all of your web browsing like `Hoardy-Web` does, you will have to manually capture each page you want to save;
 - they only captures web pages, you won't be able to save `POST` request data or JSONs fetched by web apps;
-- since they do not track and save `HTTP` requests and responses, capturing a page will make the browser re-download non-cached page resources a second time.
+- since they do not track and save `HTTP` requests and responses, capturing a page will make the browser re-download non-cached page resources a second time;
+- the resulting archives take a lot of disk space, since they duplicate requisite resources (images, media, `CSS`, fonts, etc) for each web page to make each saved page self-contained.
 
 Differences in design:
 
@@ -626,7 +635,8 @@ Cons:
 - it is slow enough to be hard to use on an older or a very busy system;
 - it injects content scripts to every page you visit, making your whole browsing experience much less snappy;
 - it performs a lot of `HTTP` requests to third-party services in background (`Hoardy-Web` does **none** of that);
-- you are expected to do everything from the web UI.
+- you are expected to do everything from the web UI;
+- the resulting archives take a lot of disk space.
 
 Differences in design:
 
@@ -641,7 +651,7 @@ Cons:
 - to do what `Hoardy-Web` does, you will have to manually enable it for each browser tab;
 - opening a link in a new tab will fail to archive the first page as you will not have Network Monitor open there yet; and then
 - you will have to check all your tabs for new data all the time and do \~5 clicks per tab to save it; and then
-- `HAR`s are `JSON`, meaning all that binary data gets encoded indirectly, thus making resulting `HAR` archives very inefficient for long-term storage, even when compressed.
+- `HAR`s are `JSON`, meaning all that binary data gets encoded indirectly, thus making resulting `HAR` archives very inefficient for long-term storage, as they take a lot of disk space, even when compressed.
 
 And then you still need something like this suite to look into the generated archives.
 

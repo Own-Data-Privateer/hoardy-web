@@ -2237,17 +2237,17 @@ E.g. `{__prog__} organize --move` will not overwrite any files, which is why the
 
     # import
     supcmd = subparsers.add_parser("import", help=_("convert other `HTTP` archive formats into `WRR`"),
-                                   description = _(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
+                                   description = _(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
 In short, this is `{__prog__} organize --copy` for `INPUT` files that use different files formats."""))
     supsub = supcmd.add_subparsers(title="file formats")
 
-    cmd = supsub.add_parser("bundle", help=_("convert `WRR`-bundles into separate `WRR` files"),
-                            description = _(f"""Parse each `INPUT` `PATH` as a `WRR`-bundle (an optionally compressed sequence of `WRR`-dumps) and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata."""))
+    cmd = supsub.add_parser("bundle", help=_("convert `WRR` bundles into separate `WRR` files"),
+                            description = _(f"""Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata."""))
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_bundle)
 
     cmd = supsub.add_parser("mitmproxy", help=_("convert `mitmproxy` stream dumps into `WRR` files"),
-                            description = _(f"""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR`-dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata."""))
+                            description = _(f"""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata."""))
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_mitmproxy)
 

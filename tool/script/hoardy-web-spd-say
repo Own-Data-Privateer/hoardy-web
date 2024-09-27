@@ -26,19 +26,18 @@ Configuring your \`speech-dispatcher\` is out of scope of this script, look it u
 
 # Note:
 
-\`--start\` and \`--end\` essentially run \`sed -n "\$start,$end p"\`.
-
+\`--start\` and \`--end\` run \`sed -n "\$start,$end p"\` and similar commands internally.
 Which is why see \`man 1 sed\` for more info about PATTERN syntax.
 
 # Examples:
 
-- Skip first 5 lines, then feed the next 100 lines to the TTS:
-
-  $0 -s 5 -e +100 path/to/wrr/file/containing/html.wrr
-
 - Feed the whole document to the TTS:
 
   $0 path/to/wrr/file/containing/html.wrr
+
+- Skip first 5 lines, then feed the next 100 lines to the TTS:
+
+  $0 -s 5 -e +100 path/to/wrr/file/containing/html.wrr
 
 - Start speaking aloud starting from the first \`<hr>\` element:
 
