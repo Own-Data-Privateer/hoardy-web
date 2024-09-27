@@ -1948,7 +1948,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         wscrub = "higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`"
         if kind == "pprint":
             what = "this simply populates the `potentially` lists in the output in various ways"
-        elif kind == "organize":
+        elif kind == "organize" or kind == "import":
             what = oscrub
         elif kind != "export":
             what = wscrub
@@ -2234,7 +2234,7 @@ E.g. `{__prog__} organize --move` will not overwrite any files, which is why the
         add_impure(cmd, "import")
         add_fileout(cmd, "import")
         add_memory(cmd, 0, 1024)
-        add_sniff(cmd, "export")
+        add_sniff(cmd, "import")
         add_paths(cmd)
 
     # import
