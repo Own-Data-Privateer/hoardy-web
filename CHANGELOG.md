@@ -4,6 +4,39 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [tool-v0.15.3] - 2024-09-28
+
+### Fixed
+
+- `scrub`, `export mirror`:
+
+  - From now on `scrub` will simply remove all `CORS` and `SRI` attributes from all relevant `HTML` tags.
+
+    This works fine 99% of the time.
+    Smarter handling for this will be implemented later.
+
+  - Fixed `MIME` type sniffing of `XHTML` data.
+
+    Also, added some tests for my `mimesniff` implementation.
+
+  - Fixed crashes when URL remapper encounters weirdly malformed URLs.
+
+    From now on they will be remapped into void URLs instead.
+
+- `export mirror`:
+
+  - Fixed it skipping regular files given directly as command line arguments.
+
+    This was broken since `v0.15.0`.
+
+- `scrub`, `import`:
+
+  - Fixed some places where the documentation was misaligned with the code.
+
+### Changed
+
+- Improved documentation.
+
 ## [tool-v0.15.2] - 2024-09-21
 
 ### Fixed
@@ -1084,6 +1117,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.15.3]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.2...tool-v0.15.3
 [tool-v0.15.2]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.1...tool-v0.15.2
 [tool-v0.15.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.0...tool-v0.15.1
 [tool-v0.15.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.14.1...tool-v0.15.0
