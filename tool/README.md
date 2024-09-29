@@ -1774,3 +1774,39 @@ hoardy-web stream --format=raw -ue response.body ../simple_server/pwebarc-dump/p
 hoardy-web get ../simple_server/pwebarc-dump/path/to/file.wrr | less
 ```
 
+## `./test-cli.sh [--help] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]`
+
+Sanity check and test `hoardy-web` command-line interface.
+
+### Examples
+
+- Run tests on each of given WRR bundles:
+
+  ```
+  ./test-cli.sh ~/Downloads/Hoardy-Web-export-*.wrrb
+  ```
+
+- Run tests on all WRR files in a given directory:
+
+  ```
+  ./test-cli.sh ~/hoardy-web/latest/archiveofourown.org
+  ```
+
+- Run tests on a random subset of WRR files in a given directory:
+
+  ```
+  ./test-cli.sh --subset 100 ~/hoardy-web/raw
+  ```
+
+- Run tests on each of given WRR bundles, except run long tests on a small subset of each:
+
+  ```
+  ./test-cli.sh --short 16 ~/Downloads/Hoardy-Web-export-*.wrrb
+  ```
+
+- Make `--stdin0` input and test on it, as if it was a WRR bundle:
+
+  ```
+  hoardy-web find -z ~/hoardy-web/latest/archiveofourown.org ~/hoardy-web/latest/example.org > ./bunch.wrrtest
+  ./test-cli.sh ./bunch.wrrtest
+  ```
