@@ -2123,6 +2123,7 @@ Note however, that using fallbacks when the `--output` format depends on anythin
                                 description = _(f"""Print paths of `WRR` files matching specified criteria."""))
     add_pure(cmd, "print paths to")
     add_terminator(cmd, "found files printing", "print absolute paths of matching `WRR` files", allow_not=False)
+    cmd.set_defaults(sniff = SniffContentType.NONE)
     add_paths(cmd)
     cmd.set_defaults(func=cmd_find)
 
