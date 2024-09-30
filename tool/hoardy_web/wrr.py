@@ -260,15 +260,23 @@ def parse_url(url : str) -> ParsedURL:
     else:
         # Fix common issues by rewriting hostnames like browsers do
         ehostname = _up.unquote(raw_hostname).replace("_", "-")
+
+        # Yes, this is a bit weird. `_idna.encode` and `_idna.decode` are not bijective.
+        # So, we turn `raw_hostname` into unicode `str` first.
         try:
-            # Yes, this is a bit weird. `_idna.encode` and `_idna.decode` are not bijective.
-            # So we turn raw_hostname into unicode str first, then encode it with uts46 enabled...
-            net_hostname = _idna.encode(_idna.decode(ehostname, uts46=True), uts46=True).decode("ascii")
-            # ..., and then decode it again to get the canonical unicode hostname for which
-            # encoding and decoding will be bijective
-            hostname = _idna.decode(net_hostname)
-        except _idna.IDNAError:
-            raise URLParsingError(url)
+            dehostname = _idna.decode(ehostname, uts46=True)
+        except _idna.IDNAError as err:
+            _logging.warning("`parse_url` left `net_hostname` and related attrs of `%s` undecoded because `idna` module failed to decode `%s`: %s", url, ehostname, repr(err))
+            net_hostname = hostname = ehostname
+        else:
+            try:
+                # Then encode it with uts46 enabled.
+                net_hostname = _idna.encode(dehostname, uts46=True).decode("ascii")
+                # And then decode it again to get the canonical unicode hostname for which
+                # encoding and decoding will be bijective
+                hostname = _idna.decode(net_hostname)
+            except _idna.IDNAError:
+                raise URLParsingError(url)
 
     oqm = "?" if query != "" or (query == "" and url.endswith("?")) else ""
     ofm = "#" if fragment != "" or (fragment == "" and url.endswith("#")) else ""
@@ -300,6 +308,11 @@ def test_parse_url() -> None:
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1"],
+
+        # check that our work-arounds for hostnames that `idna` module failes to parse actually work
+        ["http://ab-cd-xxxxxxxxx-yyyy.example.org/", None, None],
+        ["http://ab--cd-xxxxxxxxx-yyyy.example.org/", None, None],
+        ["http://ab---cd-xxxxxxxxx-yyyy.example.org/", None, None],
     ]
 
     url : str | None
