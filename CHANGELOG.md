@@ -4,6 +4,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [tool-v0.15.4] - 2024-10-02
+
+### Fixed
+
+- `get`, etc:
+
+  - Added a work-around for `idna` module failing to parse some hostnames ([#5 on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues/5)).
+
+- `find`:
+
+  - Added `--sniff-*` options to fix crashes introduced in `v0.15.0`.
+
+    Added tests to hopefully stop this kind of errors.
+
+### Changed
+
+- `get`, etc:
+
+  - `--expr`: technically, renamed `full_url` -\> `url`, though it did not officially exist before.
+
+    Added it to the docs.
+
+  - `ftp` and `ftps` URL schemes are now allowed everywhere.
+
 ## [tool-v0.15.3] - 2024-09-28
 
 ### Fixed
@@ -1117,6 +1141,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.15.4]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.3...tool-v0.15.4
 [tool-v0.15.3]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.2...tool-v0.15.3
 [tool-v0.15.2]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.1...tool-v0.15.2
 [tool-v0.15.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.0...tool-v0.15.1
