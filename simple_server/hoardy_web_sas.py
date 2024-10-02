@@ -37,16 +37,13 @@ class HTTPDumpServer(threading.Thread):
        would not interrupt a dump in the middle.
     """
 
-    def __init__(self, host, port, root, uncompressed, default_bucket, ignore_buckets, *args, **kwargs):
+    def __init__(self, cargs, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.httpd = make_server(host, port, validator(self.handle_request))
-        self.root = os.path.expanduser(root)
-        self.uncompressed = uncompressed
-        self.default_bucket = default_bucket
-        self.ignore_buckets = ignore_buckets
+        self.httpd = make_server(cargs.host, cargs.port, validator(self.handle_request))
+        self.cargs = cargs
         self.prevsec = 0
         self.num = 0
-        print(f"Listening for archive requests on http://{host}:{port}/pwebarc/dump")
+        print(f"Listening for archive requests on http://{cargs.host}:{cargs.port}/pwebarc/dump")
 
     def run(self):
         self.httpd.serve_forever()
@@ -69,19 +66,20 @@ class HTTPDumpServer(threading.Thread):
                 yield from end_with("400 Bad Request", b"expecting CBOR data")
                 return
 
+            cargs = self.cargs
             try:
                 query = environ["QUERY_STRING"]
             except KeyError:
                 query = ""
             params = up.parse_qs(query)
 
-            if self.ignore_buckets:
-                profile = self.default_bucket
+            if cargs.ignore_buckets:
+                profile = cargs.default_bucket
             else:
                 try:
                     profile = params["profile"][0]
                 except KeyError:
-                    profile = self.default_bucket
+                    profile = cargs.default_bucket
             pp = [p for p in profile.replace("\\", "/").split("/") if p != "" and not p.startswith(".")]
             if len(pp) != 0:
                 profile_dir = os.path.join(*pp)
@@ -107,7 +105,7 @@ class HTTPDumpServer(threading.Thread):
                     print(rparsed[-1500:])
                 del rparsed
 
-            if not self.uncompressed:
+            if not cargs.uncompressed:
                 # gzip it, if it gzips
                 buf = io.BytesIO()
                 with gzip.GzipFile(fileobj=buf, filename="", mtime=0, mode="wb", compresslevel=9) as gz:
@@ -121,7 +119,7 @@ class HTTPDumpServer(threading.Thread):
                 del buf
                 del compressed_data
 
-            # write it out to a file in {self.root}/<year>/<month>/<day>/<epoch>_<number>.wrr
+            # write it out to a file in {cargs.root}/<year>/<month>/<day>/<epoch>_<number>.wrr
 
             # because time.time() gives a float
             epoch = time.time_ns() // 1000000000
@@ -133,7 +131,7 @@ class HTTPDumpServer(threading.Thread):
             self.prevsec = epoch
 
             dd = list(map(lambda x: format(x, "02"), time.gmtime(epoch)[0:3]))
-            directory = os.path.join(self.root, profile_dir, *dd)
+            directory = os.path.join(cargs.root, profile_dir, *dd)
             path = os.path.join(directory, f"{str(epoch)}_{mypid}_{str(self.num)}.wrr")
             os.makedirs(directory, exist_ok=True)
 
@@ -171,15 +169,17 @@ def main():
     parser.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension and use the value of `--default-bucket` instead")
     parser.add_argument("--no-print", "--no-print-cbors", action="store_true", help="don't print parsed representations of newly archived CBORs to stdout even if `cbor2` module is available")
 
-    args = parser.parse_args(sys.argv[1:])
+    cargs = parser.parse_args(sys.argv[1:])
 
-    if args.help:
+    if cargs.help:
         if not sys.stdout.isatty():
             parser.formatter_class = lambda *args, **kwargs: argparse.HelpFormatter(*args, width=1024, **kwargs)
         print(parser.format_help())
         sys.exit(0)
 
-    if not args.no_print:
+    cargs.root = os.path.expanduser(cargs.root)
+
+    if not cargs.no_print:
         try:
             import cbor2 as cbor2_
         except ImportError:
@@ -189,7 +189,7 @@ def main():
             cbor2 = cbor2_
             del cbor2_
 
-    t = HTTPDumpServer(args.host, args.port, args.root, args.uncompressed, args.default_bucket, args.ignore_buckets)
+    t = HTTPDumpServer(cargs)
     t.start()
     try:
         t.join()
