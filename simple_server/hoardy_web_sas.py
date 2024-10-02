@@ -75,11 +75,18 @@ class HTTPDumpServer(threading.Thread):
                 query = ""
             params = up.parse_qs(query)
 
-            profile = ""
-            if "profile" in params:
-                profile = params["profile"][0]
-            if self.ignore_profiles or profile == "":
+            if self.ignore_profiles:
                 profile = self.default_profile
+            else:
+                try:
+                    profile = params["profile"][0]
+                except KeyError:
+                    profile = self.default_profile
+            pp = [p for p in profile.replace("\\", "/").split("/") if p != "" and not p.startswith(".")]
+            if len(pp) != 0:
+                profile_dir = os.path.join(*pp)
+            else:
+                profile_dir = "default"
 
             # read request body data
             fp = environ["wsgi.input"]
@@ -126,7 +133,7 @@ class HTTPDumpServer(threading.Thread):
             self.prevsec = epoch
 
             dd = list(map(lambda x: format(x, "02"), time.gmtime(epoch)[0:3]))
-            directory = os.path.join(self.root, profile, *dd)
+            directory = os.path.join(self.root, profile_dir, *dd)
             path = os.path.join(directory, f"{str(epoch)}_{mypid}_{str(self.num)}.wrr")
             os.makedirs(directory, exist_ok=True)
 
