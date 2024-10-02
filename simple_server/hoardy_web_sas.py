@@ -37,13 +37,13 @@ class HTTPDumpServer(threading.Thread):
        would not interrupt a dump in the middle.
     """
 
-    def __init__(self, host, port, root, uncompressed, default_profile, ignore_profiles, *args, **kwargs):
+    def __init__(self, host, port, root, uncompressed, default_bucket, ignore_buckets, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.httpd = make_server(host, port, validator(self.handle_request))
         self.root = os.path.expanduser(root)
         self.uncompressed = uncompressed
-        self.default_profile = default_profile
-        self.ignore_profiles = ignore_profiles
+        self.default_bucket = default_bucket
+        self.ignore_buckets = ignore_buckets
         self.prevsec = 0
         self.num = 0
         print(f"Listening for archive requests on http://{host}:{port}/pwebarc/dump")
@@ -75,13 +75,13 @@ class HTTPDumpServer(threading.Thread):
                 query = ""
             params = up.parse_qs(query)
 
-            if self.ignore_profiles:
-                profile = self.default_profile
+            if self.ignore_buckets:
+                profile = self.default_bucket
             else:
                 try:
                     profile = params["profile"][0]
                 except KeyError:
-                    profile = self.default_profile
+                    profile = self.default_bucket
             pp = [p for p in profile.replace("\\", "/").split("/") if p != "" and not p.startswith(".")]
             if len(pp) != 0:
                 profile_dir = os.path.join(*pp)
@@ -167,9 +167,9 @@ def main():
     parser.add_argument("--port", default=3210, type=int, help="listen on what port (default: 3210)")
     parser.add_argument("--root", default="pwebarc-dump", type=str, help="path to dump data into (default: pwebarc-dump)")
     parser.add_argument("--uncompressed", action="store_true", help="dump new archivals to disk without compression; the default is to try to compress each new archive first")
-    parser.add_argument("--default-profile", metavar="NAME", default="default", type=str, help="default profile to use when no `profile` query parameter is supplied by the extension (default: `default`)")
-    parser.add_argument("--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension and use the value of `--default-profile` instead")
-    parser.add_argument("--no-print-cbors", action="store_true", help="don't print parsed representations of newly archived CBORs to stdout even if `cbor2` module is available")
+    parser.add_argument("--default-bucket", "--default-profile", metavar="NAME", default="default", type=str, help="default bucket to use when no `profile` query parameter is supplied by the extension (default: `default`)")
+    parser.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension and use the value of `--default-bucket` instead")
+    parser.add_argument("--no-print", "--no-print-cbors", action="store_true", help="don't print parsed representations of newly archived CBORs to stdout even if `cbor2` module is available")
 
     args = parser.parse_args(sys.argv[1:])
 
@@ -179,17 +179,17 @@ def main():
         print(parser.format_help())
         sys.exit(0)
 
-    if not args.no_print_cbors:
+    if not args.no_print:
         try:
             import cbor2 as cbor2_
         except ImportError:
-            sys.stderr.write("warning: `cbor2` module is not available, forcing `--no-cbor` option\n")
+            sys.stderr.write("warning: `cbor2` module is not available, forcing `--no-print` option\n")
             sys.stderr.flush()
         else:
             cbor2 = cbor2_
             del cbor2_
 
-    t = HTTPDumpServer(args.host, args.port, args.root, args.uncompressed, args.default_profile, args.ignore_profiles)
+    t = HTTPDumpServer(args.host, args.port, args.root, args.uncompressed, args.default_bucket, args.ignore_buckets)
     t.start()
     try:
         t.join()
