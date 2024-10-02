@@ -150,6 +150,8 @@ class HTTPDumpServer(threading.Thread):
             print("dumped", path)
 
             yield from end_with("200 OK", b"")
+        elif method == "GET" and path == "/pwebarc/version":
+            yield from end_with("200 OK", b"1")
         else:
             yield from end_with("404 Not Found", b"")
 
