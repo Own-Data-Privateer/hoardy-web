@@ -4,7 +4,7 @@
 
 I.e. this is the thing you run and then paste the URL of into the `Server URL` setting of the `Hoardy-Web` add-on.
 
-This thing is less than 200 lines of pure Python that only uses the Python\'s standard library and nothing else.
+This thing is less than 250 lines of pure Python that only uses the Python\'s standard library and nothing else.
 You could be running it already.
 
 # Why does `hoardy-web-sas` exists?

@@ -203,7 +203,7 @@ To conform to the above design principles
 
 - which is why, for users who want write guarantees and error reporting, the extension has other archival methods, which includes archival by submission via `HTTP`;
 
-  server-side part of submission via `HTTP` uses [the `hoardy-web-sas` simple archiving server](./simple_server/), which is tiny (less than 200 lines of code) pure-Python script that provides an `HTTP` interface for archival of dumps given via `HTTP POST` requests;
+  server-side part of submission via `HTTP` uses [the `hoardy-web-sas` simple archiving server](./simple_server/), which is tiny (less than 250 lines of code) pure-Python script that provides an `HTTP` interface for archival of dumps given via `HTTP POST` requests;
 
 - both the `Hoardy-Web` extension and the `hoardy-web-sas` simple archiving server write those dumps to disk as-is, with optional compression for data storage efficiency;
 
