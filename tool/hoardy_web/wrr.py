@@ -266,8 +266,11 @@ def parse_url(url : str) -> ParsedURL:
         try:
             dehostname = _idna.decode(ehostname, uts46=True)
         except _idna.IDNAError as err:
-            _logging.warning("`parse_url` left `net_hostname` and related attrs of `%s` undecoded because `idna` module failed to decode `%s`: %s", url, ehostname, repr(err))
-            net_hostname = hostname = ehostname
+            if ehostname[2:4] == "--":
+                _logging.warning("`parse_url` left `net_hostname` and related attrs of `%s` undecoded because `idna` module failed to decode `%s`: %s", url, ehostname, repr(err))
+                net_hostname = hostname = ehostname
+            else:
+                raise URLParsingError(url)
         else:
             try:
                 # Then encode it with uts46 enabled.
@@ -309,7 +312,7 @@ def test_parse_url() -> None:
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1"],
 
-        # check that our work-arounds for hostnames that `idna` module failes to parse actually work
+        # work-arounds for hostnames that `idna` module fails to parse
         ["http://ab-cd-xxxxxxxxx-yyyy.example.org/", None, None],
         ["http://ab--cd-xxxxxxxxx-yyyy.example.org/", None, None],
         ["http://ab---cd-xxxxxxxxx-yyyy.example.org/", None, None],
