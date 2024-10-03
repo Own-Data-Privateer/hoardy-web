@@ -259,7 +259,7 @@ def parse_url(url : str) -> ParsedURL:
         net_hostname = hostname = ""
     else:
         # Fix common issues by rewriting hostnames like browsers do
-        ehostname = _up.unquote(raw_hostname).replace("_", "-")
+        ehostname = _up.unquote(raw_hostname).strip().replace("_", "-")
 
         # Yes, this is a bit weird. `_idna.encode` and `_idna.decode` are not bijective.
         # So, we turn `raw_hostname` into unicode `str` first.
@@ -312,6 +312,9 @@ def test_parse_url() -> None:
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1"],
 
+        # work-around for common typos
+        ["http://%20example.org/", "http://example.org/", None],
+
         # work-arounds for hostnames that `idna` module fails to parse
         ["http://ab-cd-xxxxxxxxx-yyyy.example.org/", None, None],
         ["http://ab--cd-xxxxxxxxx-yyyy.example.org/", None, None],
@@ -330,7 +333,7 @@ def test_parse_url() -> None:
         check(x, "pretty_net_url", curl)
         check(x, "pretty_url", curl)
 
-        nurl = rest[1] if rest[1] is not None else url
+        nurl = rest[1] if rest[1] is not None else curl
         check(x, "pretty_net_nurl", nurl)
         check(x, "pretty_nurl", nurl)
 
