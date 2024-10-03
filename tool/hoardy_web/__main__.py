@@ -50,7 +50,7 @@ def issue(pattern : str, *args : _t.Any) -> None:
     if stderr.isatty:
         stderr.write_str_ln("\033[31m" + message + "\033[0m")
     else:
-        stderr.write_str(message)
+        stderr.write_str_ln(message)
     stderr.flush()
 
 def error(pattern : str, *args : _t.Any) -> None:
