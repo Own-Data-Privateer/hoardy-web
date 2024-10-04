@@ -78,15 +78,15 @@ def test_parse_content_type_header() -> None:
 
 ### HTML attribute parsing
 
-opt_srcset_condition = _re.compile(r"^(?:\s+([0-9]+(?:\.[0-9]+)?[xw]))?")
-opt_srcset_sep = _re.compile(r"^(\s*,)?")
+opt_srcset_condition = _re.compile(r"(?:\s+([0-9]+(?:\.[0-9]+)?[xw]))?")
+opt_srcset_sep = _re.compile(r"(\s*,)?")
 
 def parse_srcset_attr(value : str) -> list[tuple[str, str]]:
     """Parse HTML5 srcset attribute"""
     res = []
     p = Parser(value)
-    p.opt_regex(opt_whitespace_re)
-    while not p.is_eof():
+    p.opt_whitespace()
+    while not p.at_eof():
         grp = p.regex(url_re)
         if grp[1].endswith(","):
             url = grp[1][:-1]
@@ -95,12 +95,13 @@ def parse_srcset_attr(value : str) -> list[tuple[str, str]]:
             url = grp[1]
         grp = p.opt_regex(opt_srcset_condition)
         cond = grp[0]
-        p.opt_regex(opt_whitespace_re)
+        p.opt_whitespace()
         p.opt_regex(opt_srcset_sep)
-        p.opt_regex(opt_whitespace_re)
+        p.opt_whitespace()
         if url != "":
             res.append((url, cond))
         #else: ignore it
+    p.eof()
     return res
 
 def unparse_srcset_attr(value : list[tuple[str, str]]) -> str:
