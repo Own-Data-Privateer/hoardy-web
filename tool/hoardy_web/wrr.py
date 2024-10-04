@@ -36,7 +36,7 @@ from kisstdlib.path import *
 from .util import *
 from .type import *
 from .linst import *
-from .html import *
+from .web import *
 
 class RRCommon:
     _dtc : dict[SniffContentType, DiscernContentType]
