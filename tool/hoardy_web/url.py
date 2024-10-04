@@ -34,47 +34,54 @@ uds_str       = r"http|https|ftp|ftps"
 # URL auth
 uauth_str     = r"\S+(?::\S*)?"
 # URL hostname
-uhostname_str = r"[^:/?#\s]+"
+def uhostname_str(d : str) -> str:
+    return rf"[^:/?#\s{d}]+"
 # URL port
 uport_str     = r":\d+"
-# URL path component
-upath_str     = r"/[^?#\s]*"
+# URL path
+def upath_str(d : str) -> str:
+    return rf"/[^?#\s{d}]*"
 # URL relative path
-urel_str      = r"[^?#\s]+"
+def urel_str(d : str) -> str:
+    return rf"[^?#\s{d}]+"
 # URL query
-uquery_str    = r"[^#\s]*"
+def uquery_str(d : str) -> str:
+    return rf"[^#\s{d}]*"
 # URL fragment/hash
-ufragment_str = r"[^\s]*"
+def ufragment_str(d : str) -> str:
+    return rf"[^\s{d}]*"
 
 # Regexp describing a URL, the second case is for common malformed path-less
 # URLs like "https://example.com" (which should actually be given as
 # "https://example.com/", but this is almost a universal mistake). The order
 # of cases matters, since `_re.match` and co are greedy.
-url_re_str = rf"""(
+def url_re_str(d : str) -> str:
+    return rf"""(
 (
 (?:(?:{uds_str}):)?
 //
 (?:{uauth_str}@)?
-(?:{uhostname_str})
+(?:{uhostname_str(d)})
 (?:{uport_str})?
-(?:{upath_str})
+(?:{upath_str(d)})
 |
 (?:(?:{uds_str}):)?
 //
 (?:{uauth_str}@)?
-(?:{uhostname_str})
+(?:{uhostname_str(d)})
 (?:{uport_str})?
 |
-(?:{upath_str})
+(?:{upath_str(d)})
 |
-(?:{urel_str})
+(?:{urel_str(d)})
 )
-(\?{uquery_str})?
-(#{ufragment_str})?
+(\?{uquery_str(d)})?
+(#{ufragment_str(d)})?
 )""".replace("\n", "")
-url_re = _re.compile(url_re_str)
 
-#print(url_re_str)
+#print(url_re_str(""))
+
+url_re = _re.compile(url_re_str(""))
 
 _miniquoters : dict[str, dict[str, str]] = {}
 

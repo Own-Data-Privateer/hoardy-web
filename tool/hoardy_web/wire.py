@@ -174,6 +174,85 @@ def test_parse_content_type_header() -> None:
 
 ### HTML attribute parsing
 
+link_url_re = _re.compile(url_re_str("<>"))
+
+def parse_link_value(p : Parser) -> tuple[str, Parameters]:
+    """Parse single sub-value of HTTP `Link` header.
+    """
+    p.opt_whitespace()
+    p.string("<")
+    p.opt_whitespace()
+    grp = p.regex(link_url_re)
+    p.opt_whitespace()
+    p.string(">")
+    p.opt_whitespace()
+    params = parse_mime_parameters(p, [","])
+    return grp[0], params
+
+ParsedLinkHeader = list[tuple[str, Parameters]]
+
+def parse_link_header(value : str) -> ParsedLinkHeader:
+    """Parse HTTP `Link` header."""
+    p = Parser(value)
+    res = []
+    token = parse_link_value(p)
+    res.append(token)
+    while p.at_string(","):
+        p.string(",")
+        token = parse_link_value(p)
+        res.append(token)
+    return res
+
+def test_parse_link_header() -> None:
+    def check(lhs : list[str], expected_values : _t.Any) -> None:
+        for lh in lhs:
+            values = parse_link_header(lh)
+            for i in range(0, len(expected_values)):
+                url, params = values[i]
+                expected_url, expected_params = expected_values[i]
+                scheck(lh, "url", url, expected_url)
+                scheck(lh, "params", params, expected_params)
+            scheck(lh, "the whole", values, expected_values)
+
+    check([
+        "<https://example.org>",
+        " <https://example.org>",
+        "<https://example.org> ",
+        " <https://example.org> ",
+        " < https://example.org > ",
+    ], [
+        ("https://example.org", [])
+    ])
+    check([
+        "<https://example.org>;rel=me",
+        "<https://example.org>; rel=me",
+        " <https://example.org> ; rel=me",
+    ], [
+        ("https://example.org", [("rel", "me")])
+    ])
+    check([
+        "<https://example.org>; rel=preconnect; crossorigin",
+        "<https://example.org>; rel=preconnect ; crossorigin ",
+    ], [
+        ("https://example.org", [("rel", "preconnect"), ("crossorigin", "")])
+    ])
+    check([
+        '<https://example.org/path/#hash>; rel=canonical; type="text/html"',
+    ], [
+        ("https://example.org/path/#hash", [("rel", "canonical"), ("type", "text/html")])
+    ])
+    check([
+        '<https://example.org>; rel=preconnect, ' +
+        '<https://example.org/index.css>; as=style; rel=preload; crossorigin, ' +
+        '<https://example.org/index.js>; as=script; rel=preload; crossorigin, ' +
+        '<https://example.org/main.js>; as=script; rel=preload',
+    ], [
+        ('https://example.org', [('rel', 'preconnect')]),
+        ('https://example.org/index.css', [('as', 'style'), ('rel', 'preload'), ('crossorigin', '')]),
+        ('https://example.org/index.js', [('as', 'script'), ('rel', 'preload'), ('crossorigin', '')]),
+        ('https://example.org/main.js', [('as', 'script'), ('rel', 'preload')])
+    ])
+
 opt_srcset_condition = _re.compile(r"(?:\s+([0-9]+(?:\.[0-9]+)?[xw]))?")
 opt_srcset_sep = _re.compile(r"(\s*,)?")
 
