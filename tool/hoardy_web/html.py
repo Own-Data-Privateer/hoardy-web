@@ -34,6 +34,7 @@ import tinycss2 as _tcss
 
 from kisstdlib.exceptions import *
 
+from .wire import *
 from .mime import *
 
 class LinkType(_enum.Enum):
@@ -146,119 +147,6 @@ def prettify_html(walker : _t.Iterator[HTML5Token], indent : int = 2, relaxed : 
                 on_space = False
                 newline = False
         prev_token = token
-
-class RegsecParseError(Failure):
-    pass
-
-class Regsec:
-    """Parser combinator with regexes."""
-
-    def __init__(self, data : str) -> None:
-        self._buffer = data
-
-    def unread(self, data : str) -> None:
-        self._buffer = data + self._buffer
-
-    def is_eof(self) -> bool:
-        return len(self._buffer) == 0
-
-    def eof(self) -> None:
-        if len(self._buffer) != 0:
-            raise RegsecParseError("expected EOF, got %s", repr(self._buffer[0]))
-
-    def regex(self, regexp : _re.Pattern[str], allow_empty : bool = False) -> tuple[str | _t.Any, ...]:
-        m = regexp.match(self._buffer)
-        if m is None:
-            raise RegsecParseError("failed to advance via %s, buffer is %s", regexp, repr(self._buffer))
-        pos = m.span()[1]
-        if pos == 0:
-            if not allow_empty:
-                raise RegsecParseError("matched nothing via %s, buffer is %s", regexp, repr(self._buffer))
-        else:
-            self._buffer = self._buffer[pos:]
-        return m.groups()
-
-    def opt_regex(self, regexp : _re.Pattern[str]) -> tuple[str | _t.Any, ...]:
-        return self.regex(regexp, True)
-
-word_re = _re.compile(r"\S+")
-opt_whitespace_re = _re.compile(r"^\s*")
-
-# URL double-slash scheme
-uds_str       = r"http|https|ftp|ftps"
-# URL auth
-uauth_str     = r"\S+(?::\S*)?"
-# URL hostname
-uhostname_str = r"[^:/?#\s]+"
-# URL port
-uport_str     = r":\d+"
-# URL path component
-upath_str     = r"/[^?#\s]*"
-# URL relative path
-urel_str      = r"[^?#\s]+"
-# URL query
-uquery_str    = r"[^#\s]*"
-# URL fragment/hash
-ufragment_str = r"[^\s]*"
-
-# Regexp describing a URL, the second case is for common malformed path-less
-# URLs like "https://example.com" (which should actually be given as
-# "https://example.com/", but this is almost a universal mistake). The order
-# of cases matters, since `_re.match` and co are greedy.
-url_re_str = rf"""(
-(
-(?:(?:{uds_str}):)?
-//
-(?:{uauth_str}@)?
-(?:{uhostname_str})
-(?:{uport_str})?
-(?:{upath_str})
-|
-(?:(?:{uds_str}):)?
-//
-(?:{uauth_str}@)?
-(?:{uhostname_str})
-(?:{uport_str})?
-|
-(?:{upath_str})
-|
-(?:{urel_str})
-)
-(\?{uquery_str})?
-(#{ufragment_str})?
-)""".replace("\n", "")
-url_re = _re.compile(url_re_str)
-
-#print(url_re_str)
-
-opt_srcset_condition = _re.compile(r"^(?:\s+([0-9]+(?:\.[0-9]+)?[xw]))?")
-opt_srcset_sep = _re.compile(r"^(\s*,)?")
-
-def parse_srcset_attr(value : str) -> list[tuple[str, str]]:
-    """Parse HTML5 srcset attribute"""
-    res = []
-    p = Regsec(value)
-    p.opt_regex(opt_whitespace_re)
-    while not p.is_eof():
-        grp = p.regex(url_re)
-        if grp[1].endswith(","):
-            url = grp[1][:-1]
-            p.unread(",")
-        else:
-            url = grp[1]
-        grp = p.opt_regex(opt_srcset_condition)
-        cond = grp[0]
-        p.opt_regex(opt_whitespace_re)
-        p.opt_regex(opt_srcset_sep)
-        p.opt_regex(opt_whitespace_re)
-        if url != "":
-            res.append((url, cond))
-        #else: ignore it
-    return res
-
-def unparse_srcset_attr(value : list[tuple[str, str]]) -> str:
-    """Unparse HTML5 srcset attribute"""
-    return ", ".join([(f"{url} {cond}" if cond is not None else url) for url, cond in value])
 
 ie_pragma_re = _re.compile(r"^\s*(\[if IE [^]]*\].*\[endif\]|\[if !IE\]><!|<!\[endif\])\s*$")
 

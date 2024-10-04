@@ -21,12 +21,13 @@
   usually does more than mimesniff requires.
 """
 
-import email.headerregistry as _emlhr
 import enum as _enum
 import re as _re
 import typing as _t
 
 from kisstdlib.exceptions import *
+
+from .wire import parse_content_type_header
 
 canonical_mime_of : dict[str, str]
 canonical_mime_of = {
@@ -184,17 +185,16 @@ def _unknown_binary() \
     -> tuple[list[str], str, str | None, list[str]]:
     return unknown_binary, "application/octet-stream", None, []
 
-_registry = _emlhr.HeaderRegistry()
 def normalize_content_type(header : str) \
     -> tuple[list[str] | None, str, str | None, list[str]]:
     """Parse and normalize "Content-type" header,
        return (possible kinds | None, MIME type, charset | None, extensions).
     """
 
-    ct_reg = _registry("content-type", header)
-    ct : str = ct_reg.content_type.lower() # type: ignore
+    maintype, subtype, params = parse_content_type_header(header)
+    ct : str = f"{maintype}/{subtype}"
     charset = None
-    for name, value in ct_reg._parse_tree.params: # type: ignore
+    for name, value in params:
         if name == "charset":
             charset = value
 
