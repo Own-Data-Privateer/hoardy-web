@@ -8,14 +8,16 @@ Practically speaking, you [install the `Hoardy-Web` browser extension/add-on int
 `Hoardy-Web` has a lot of configuration options to help you tweak what should or should not be archived and a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless explicitly configured otherwise to, e.g., minimize writes to disk instead).
 
 If you just want to start saving your browsing history, you can [start using the `Hoardy-Web` extension](#quickstart) independently of other tools that are being developed in this repository.
-But to display, search, extract useful values from, organize, manipulate, and run scripts over your archived data, you will eventually need to install and use at least [the the accompanying `hoardy-web` CLI tool](./tool/).
+But to display, search, extract useful values from, organize, manipulate, and run scripts over your archived data, you will eventually need to install and use at least [the accompanying `hoardy-web` CLI tool](./tool/).
 
 To learn more:
 
 - See ["Why"](#why) section for why you might want to do this.
 - See ["Highlights"](#highlights) section for a longer description of what `Hoardy-Web` does and does not do.
 - See ["Alternatives"](#alternatives) for comparisons to alternatives.
-- See ["Frequently Asked Questions"](./extension/page/help.org#faq) for the answers to those, including the questions about common quirks you can encounter while using `Hoardy-Web`.
+- See ["Frequently Asked Questions"](./extension/page/help.org#faq) for the answers to those.
+  Additionally, see ["Quirks and Bugs"](./extension/page/help.org#bugs) for a full list of currently known quirks and issues/bugs.
+  These two sections of [the `Help` page](./extension/page/help.org) answer questions about most common issues you can encounter while using `Hoardy-Web` extension/add-on.
 - See ["Quickstart"](#quickstart) section for setup instructions.
 
 `Hoardy-Web` was previously known as "Personal Private Passive Web Archive" aka "pwebarc".

@@ -4,6 +4,10 @@
 <div name="less">
 #+END_EXPORT
 * How to read this document
+:PROPERTIES:
+:CUSTOM_ID: top
+:END:
+
 It is highly recommended you view this page by clicking the =Help= button in the extension's own UI.
 Doing that will make this page interactive: the settings popup will be displayed on the right on this page and hovering over or clicking on any links pointing to =popup.html= will highlight those elements in the popup.
 
@@ -479,6 +483,13 @@ In particular:
 :PROPERTIES:
 :CUSTOM_ID: bugs
 :END:
+#+BEGIN_EXPORT html
+<div name="less">
+#+END_EXPORT
+If you are reading this page outside of the extension's UI be sure to read [[#top][the very top of this page]] first.
+#+BEGIN_EXPORT html
+</div>
+#+END_EXPORT
 ** Known extension issues
 - When the extension is (re-)loaded, all tabs inherit the values of [[./popup.html#root-tab-options][these settings]].
 
@@ -616,6 +627,13 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
 :PROPERTIES:
 :CUSTOM_ID: faq
 :END:
+#+BEGIN_EXPORT html
+<div name="less">
+#+END_EXPORT
+If you are reading this page outside of the extension's UI be sure to read [[#top][the very top of this page]] first.
+#+BEGIN_EXPORT html
+</div>
+#+END_EXPORT
 ** Does =Hoardy-Web= send any of my captured web browsing data anywhere?
 =Hoardy-Web= only ever sends your data to [[./popup.html#div-config.submitHTTPURLBase][the archiving =Server URL=]] you specify when [[./popup.html#div-config.archiveSubmitHTTP][the =Archive 'collected' reqres by > ... submitting them via 'HTTP'= option]] is enabled.
 
