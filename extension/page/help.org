@@ -194,7 +194,7 @@ Since those tuples can be reconstructed back into the original =reqres= structur
 Normally, /picked reqres/ proceed to the =collected= state and get =queued= for archival while /dropped reqres/ proceed to being =discarded= from memory.
 
 When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= toggle]] is enabled, those =queued= reqres proceed directly to the next step.
-*** Limbo mode
+*** "Limbo" mode
 :PROPERTIES:
 :CUSTOM_ID: limbo
 :END:
@@ -336,7 +336,7 @@ If you restart your browser, thus starting a new =Hoardy-Web= session, =Hoardy-W
 - [[./popup.html#div-stats.saved][A /saved reqres/]] is a reqres that was successfully =saved= by being archived into browser's local storage.
 
 - /An archived reqres/ is either /exported/, /submitted/, or /saved/ reqres.
-** Handling of Failures
+** Handling of failures
 As noted above, if any of the [[./popup.html#sub-config.archive][archival methods]] fail, the reqres in question will be moved into the =failed= state.
 
 Submissions of reqres that =failed= because of networking issues will be retried automatically every 60 seconds.
@@ -398,6 +398,83 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
   - toggling [[./popup.html#div-tabconfig.children.collecting][this]] again.
 
 - do the same thing, but opening it in a new window.
+* Error messages and codes
+:PROPERTIES:
+:CUSTOM_ID: errors
+:END:
+** Desktop notifications
+- =Failed to archive <N> items in the queue because Hoardy-Web can't establish a connection to the archiving server at <URL>=
+
+  Are you running the [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][the archiving server script]]?
+
+- =Failed to archive <N> items in the queue because requests to the archiving server failed with: <STATUS> <REASON>: <RESPONSE>=
+
+  Your archiving sever is returning =HTTP= errors when =Hoardy-Web= is trying to archive data to it.
+  See your archiving server's console for more information.
+
+  Some common reasons it could be failing:
+  - No space left on the device you are archiving to.
+  - It's a bug.
+- =Failed to open/create a database via `IndexedDB` API, all data persistence will be done via `storage.local` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears Hoardy-Web previously used `IndexedDB` for archiving and/or stashing reqres.=
+
+  So, it worked before, but why doesn't it work now?
+  The most likely reason is: you are running =Hoardy-Web= under a browser based on an older version of Firefox and you have recently enabled =Always use private browsing mode= setting in your browser's config.
+  Older versions of Firefox forbid the use of =IndexedDB= API when that setting is set.
+
+  To make archives currently saved in =IndexedDB= accessible to =Hoardy-Web= under =Always use private browsing mode= you need to:
+
+  - Disable =Always use private browsing mode= browser setting and restart the browser, thus allowing =Hoardy-Web= access to =IndexedDB= again.
+  - Ensure [[./popup.html#div-config.preferIndexedDB][=Prefer 'IndexedDB' API= setting]] is disabled.
+  - Ensure [[./popup.html#div-config.archiveSaveLS][=Archive 'collected' reqres by > ... saving them into local storage= option]] is enabled.
+  - Ensure [[./popup.html#div-config.archive][=Archive 'collected' reqres by=]] is enabled.
+  - Open [[./popup.html#showSaved][the =Saved in Local Storage= page]].
+  - Set =In 'storage.local'= filter there to =false= (red).
+  - Press =Re-queue= button there to re-archive all those saved reqres from =IndexedDB= to =storage.local=.
+  - Now, you can re-enable the =Always use private browsing mode= browser setting and restart you browser again.
+
+  All old data should be available from [[./popup.html#showSaved][the =Saved in Local Storage= page]] now.
+** Errors recorded in =reqres=, as seen in [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]]
+Most error codes are produced by attaching one of the following prefixes to the raw error code given by the browser:
+
+- =webRequest::= prefix is prepended to errors produced by the code working with =webRequest= API;
+
+- =debugger::= prefix is prepended to errors produced by the code working with Chromium's Debugger API;
+
+- =filterResponseData::= prefix is prepended to errors produced by =webRequest.filterResponseData= API (these can usually be ignored, since Firefox generates normal =webRequest::= codes for those reqres too, when it was an actual error; but =Hoardy-Web= still collects them, adhering to "collect everything as browser gives it, when possible" philosophy).
+
+In particular, =webRequest::NS_= prefix on Firefox, and =webRequest::net::= and =debugger::net::= prefixes on Chromium signify various issues produced by the networking stacks of those browsers.
+For instance:
+
+  - =webRequest::NS_ERROR_ABORT= on Firefox and =webRequest::net::ERR_ABORTED= on Chromium signify that this request was aborted before it finished, e.g. because the originator tab was closed before it was fully loaded;
+    Firefox also uses this code to mean what Chromium signifies with various =BLOCKED= codes;
+
+  - =webRequest::net::ERR_BLOCKED_BY_CLIENT= on Chromium signifies that an extension blocked it;
+
+  - =debugger::net::ERR_BLOCKED::= is a prefix for other errors when the request was blocked, e.g. by CSP;
+
+  - =webRequest::NS_ERROR_NET= prefix on Firefox and =webRequest::net::ERR_FAILED= error on Chromium signify various networking issues.
+
+The exception to the above rule of keeping everything as raw as possible are =webRequest::capture::= and =debugger::capture::= prefixes which signify various errors produced by =Hoardy-Web= itself in its =webRequest=- or =debugger=-handling code, respectively.
+In particular:
+
+- =webRequest::capture::EMIT_FORCED::BY_USER= and =debugger::capture::EMIT_FORCED::BY_USER= are produced when you forcefully advance a reqres from in-flight state by pressing [[./popup.html#stopTabInFlight][this]] or [[./popup.html#stopAllInFlight][that]] button;
+
+- =debugger::capture::EMIT_FORCED::BY_DETACHED_DEBUGGER= is produced when Chromium debugger gets detached from its tab while a reqres inside that tab is still in flight;
+
+- =debugger::capture::EMIT_FORCED::BY_CLOSED_TAB= is produced when a tab gets closed while a reqres inside of it is still in flight;
+
+- =debugger::capture::NO_RESPONSE_BODY::= is a prefix for errors produced when getting request's response body from Chromium's debugger fails for various reasons;
+
+- =webRequest::capture::CANCELED::NO_DEBUGGER= is produced when a non-main-frame request is canceled by =Hoardy-Web= because no debugger is available to capture it;
+  in the case of a main frame request, =Hoardy-Web= will cancel the request and reload the tab, [[#chromium-quirk-reload][as discussed there]], so this error will not be produced;
+  but it can happen if a page tries to load a sub-frame (like =iframe=) while the debugger for the tab (and, thus, the main frame) did not attach yet (which only happens for pages where Chromium disallows debugging, or when =Hoardy-Web= gets enabled after the page in question already started loading, e.g. the very first page after the browser starts);
+  also, this can happen when the debugger gets detached after the main frame was captured but its resources are still loading.
+
+- @@html:<span id="error-race">@@ =webRequest::capture::RESPONSE::BROKEN= is produced when some response metadata is unavailable.
+  @@html:</span>@@
+
+  At the moment, this only appears to happen on Firefox when a request gets fulfilled by a service or shared worker after Firefox had already sent it to the server.
+  Firefox then interrupts the networking code and generates =NS_ERROR_NET_ON_*= error about the event failing to supply the response metadata generated by the service/shared worker.
 * Quirks and Bugs
 :PROPERTIES:
 :CUSTOM_ID: bugs
@@ -535,83 +612,6 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   In that case, =Hoardy-Web= can't tell if a reqres is just slow at being loaded or if Chromium forgot about it, so those reqres will get stuck in the =in_flight= state indefinitely, at least until their originator tab gets closed, or until you press one of [[./popup.html#stopAllInFlight][this]] or [[./popup.html#stopTabInFlight][that]] buttons.
 
   =Hoardy-Web= might get another workaround for this bug later.
-* Error messages and codes
-:PROPERTIES:
-:CUSTOM_ID: errors
-:END:
-** Desktop notifications
-- =Failed to archive <N> items in the queue because Hoardy-Web can't establish a connection to the archiving server at <URL>=
-
-  Are you running the [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][the archiving server script]]?
-
-- =Failed to archive <N> items in the queue because requests to the archiving server failed with: <STATUS> <REASON>: <RESPONSE>=
-
-  Your archiving sever is returning =HTTP= errors when =Hoardy-Web= is trying to archive data to it.
-  See your archiving server's console for more information.
-
-  Some common reasons it could be failing:
-  - No space left on the device you are archiving to.
-  - It's a bug.
-- =Failed to open/create a database via `IndexedDB` API, all data persistence will be done via `storage.local` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears Hoardy-Web previously used `IndexedDB` for archiving and/or stashing reqres.=
-
-  So, it worked before, but why doesn't it work now?
-  The most likely reason is: you are running =Hoardy-Web= under a browser based on an older version of Firefox and you have recently enabled =Always use private browsing mode= setting in your browser's config.
-  Older versions of Firefox forbid the use of =IndexedDB= API when that setting is set.
-
-  To make archives currently saved in =IndexedDB= accessible to =Hoardy-Web= under =Always use private browsing mode= you need to:
-
-  - Disable =Always use private browsing mode= browser setting and restart the browser, thus allowing =Hoardy-Web= access to =IndexedDB= again.
-  - Ensure [[./popup.html#div-config.preferIndexedDB][=Prefer 'IndexedDB' API= setting]] is disabled.
-  - Ensure [[./popup.html#div-config.archiveSaveLS][=Archive 'collected' reqres by > ... saving them into local storage= option]] is enabled.
-  - Ensure [[./popup.html#div-config.archive][=Archive 'collected' reqres by=]] is enabled.
-  - Open [[./popup.html#showSaved][the =Saved in Local Storage= page]].
-  - Set =In 'storage.local'= filter there to =false= (red).
-  - Press =Re-queue= button there to re-archive all those saved reqres from =IndexedDB= to =storage.local=.
-  - Now, you can re-enable the =Always use private browsing mode= browser setting and restart you browser again.
-
-  All old data should be available from [[./popup.html#showSaved][the =Saved in Local Storage= page]] now.
-** Errors recorded in =reqres=, as seen in [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]]
-Most error codes are produced by attaching one of the following prefixes to the raw error code given by the browser:
-
-- =webRequest::= prefix is prepended to errors produced by the code working with =webRequest= API;
-
-- =debugger::= prefix is prepended to errors produced by the code working with Chromium's Debugger API;
-
-- =filterResponseData::= prefix is prepended to errors produced by =webRequest.filterResponseData= API (these can usually be ignored, since Firefox generates normal =webRequest::= codes for those reqres too, when it was an actual error; but =Hoardy-Web= still collects them, adhering to "collect everything as browser gives it, when possible" philosophy).
-
-In particular, =webRequest::NS_= prefix on Firefox, and =webRequest::net::= and =debugger::net::= prefixes on Chromium signify various issues produced by the networking stacks of those browsers.
-For instance:
-
-  - =webRequest::NS_ERROR_ABORT= on Firefox and =webRequest::net::ERR_ABORTED= on Chromium signify that this request was aborted before it finished, e.g. because the originator tab was closed before it was fully loaded;
-    Firefox also uses this code to mean what Chromium signifies with various =BLOCKED= codes;
-
-  - =webRequest::net::ERR_BLOCKED_BY_CLIENT= on Chromium signifies that an extension blocked it;
-
-  - =debugger::net::ERR_BLOCKED::= is a prefix for other errors when the request was blocked, e.g. by CSP;
-
-  - =webRequest::NS_ERROR_NET= prefix on Firefox and =webRequest::net::ERR_FAILED= error on Chromium signify various networking issues.
-
-The exception to the above rule of keeping everything as raw as possible are =webRequest::capture::= and =debugger::capture::= prefixes which signify various errors produced by =Hoardy-Web= itself in its =webRequest=- or =debugger=-handling code, respectively.
-In particular:
-
-- =webRequest::capture::EMIT_FORCED::BY_USER= and =debugger::capture::EMIT_FORCED::BY_USER= are produced when you forcefully advance a reqres from in-flight state by pressing [[./popup.html#stopTabInFlight][this]] or [[./popup.html#stopAllInFlight][that]] button;
-
-- =debugger::capture::EMIT_FORCED::BY_DETACHED_DEBUGGER= is produced when Chromium debugger gets detached from its tab while a reqres inside that tab is still in flight;
-
-- =debugger::capture::EMIT_FORCED::BY_CLOSED_TAB= is produced when a tab gets closed while a reqres inside of it is still in flight;
-
-- =debugger::capture::NO_RESPONSE_BODY::= is a prefix for errors produced when getting request's response body from Chromium's debugger fails for various reasons;
-
-- =webRequest::capture::CANCELED::NO_DEBUGGER= is produced when a non-main-frame request is canceled by =Hoardy-Web= because no debugger is available to capture it;
-  in the case of a main frame request, =Hoardy-Web= will cancel the request and reload the tab, [[#chromium-quirk-reload][as discussed there]], so this error will not be produced;
-  but it can happen if a page tries to load a sub-frame (like =iframe=) while the debugger for the tab (and, thus, the main frame) did not attach yet (which only happens for pages where Chromium disallows debugging, or when =Hoardy-Web= gets enabled after the page in question already started loading, e.g. the very first page after the browser starts);
-  also, this can happen when the debugger gets detached after the main frame was captured but its resources are still loading.
-
-- @@html:<span id="error-race">@@ =webRequest::capture::RESPONSE::BROKEN= is produced when some response metadata is unavailable.
-  @@html:</span>@@
-
-  At the moment, this only appears to happen on Firefox when a request gets fulfilled by a service or shared worker after Firefox had already sent it to the server.
-  Firefox then interrupts the networking code and generates =NS_ERROR_NET_ON_*= error about the event failing to supply the response metadata generated by the service/shared worker.
 * Frequently Asked Questions
 :PROPERTIES:
 :CUSTOM_ID: faq
