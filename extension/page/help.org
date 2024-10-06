@@ -603,7 +603,7 @@ In particular:
 - =debugger::capture::NO_RESPONSE_BODY::= is a prefix for errors produced when getting request's response body from Chromium's debugger fails for various reasons;
 
 - =webRequest::capture::CANCELED::NO_DEBUGGER= is produced when a non-main-frame request is canceled by =Hoardy-Web= because no debugger is available to capture it;
-  in the case of a main frame request, =Hoardy-Web= will cancel the request and reload the tab, [[#chromium-quirk-reload][as discussed above]], so this error will not be produced;
+  in the case of a main frame request, =Hoardy-Web= will cancel the request and reload the tab, [[#chromium-quirk-reload][as discussed there]], so this error will not be produced;
   but it can happen if a page tries to load a sub-frame (like =iframe=) while the debugger for the tab (and, thus, the main frame) did not attach yet (which only happens for pages where Chromium disallows debugging, or when =Hoardy-Web= gets enabled after the page in question already started loading, e.g. the very first page after the browser starts);
   also, this can happen when the debugger gets detached after the main frame was captured but its resources are still loading.
 
@@ -688,7 +688,7 @@ All images will start being loaded eagerly after that.
 :END:
 
 Yes. This is why [[./popup.html#div-tabconfig.limbo][=Pick into limbo= setting]] exists.
-See [[#limbo][above]] for more info.
+See [[#limbo][there]] for more info.
 
 In combination with [[./popup.html#closed-auto-options][=Automatic actions for recently closed tabs= options]] you can implement any of the following workflows:
 
@@ -704,7 +704,7 @@ However, you can archive [[https://addons.mozilla.org/]] pages by running =Hoard
 
 You are either
 
-- pressing the =Cancel= or =Close= (cross) buttons in the Chromium's popup-toolbar telling you about the debugger being enabled, and so Chromium detaches it, breaking everything ([[#chromium-bug-detach][see above]]);
+- pressing the =Cancel= or =Close= (cross) buttons in the Chromium's popup-toolbar telling you about the debugger being enabled, and so Chromium detaches it, breaking everything ([[#chromium-bug-detach][see there]]);
 
 - pressing =Space= or =Escape= keyboard keys when doing things in Chromium's UI, but nothing at that particular moment reacts to the key you pressed, except there is that popup-toolbar... and so Chromium decides it must mean you want to press =Cancel= button there ... and detaches the debugger, breaking everything ([[#chromium-bug-detach][again]]);
 
@@ -715,7 +715,7 @@ You are either
 
   even then, Chromium will detach debuggers from time to time seemingly at random, but at least it will be rare enough that you won't need to reload much;
 
-- trying to capture large or media files; [[#chromium-bug-no-large-files][as discussed above]], this has no workaround, run =Hoardy-Web= under Firefox instead.
+- trying to capture large or media files; [[#chromium-bug-no-large-files][as discussed there]], this has no workaround, run =Hoardy-Web= under Firefox instead.
 
 Also, [[#chromium-bug-autodetach][Chromium will occasionally detach its debugger at random]], it just happens.
 ** When running =Hoardy-Web= under Firefox, some of my captures fail with =webRequest::capture::RESPONSE::BROKEN=. What do I do?
@@ -730,7 +730,7 @@ Usually, you can ignore this error, since loading another related page is likely
 However, if this happens a lot to you, or if it annoys you, you can go to =about:config=, toggle =dom.serviceWorkers.enabled= to =false=, and restart the browser.
 Alternatively, you can use =NoScript= or some such extension to disable =JavaScript=, and thus the offending service/shared workers, on the page in question.
 ** Why does a (specific) URL or some part of it fails to be properly captured by =Hoardy-Web=?
-Did you read the notes on [[#bugs][the bugs of the browser you are using]] above?
+Did you read the notes on [[#bugs][the bugs of the browser you are using]]?
 
 Most notably:
 
