@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [tool-v0.15.5] - 2024-10-07
+
+### Fixed
+
+- `get`, `export mirror`, etc:
+
+  - Restricted the `idna` workaround of `tool-v0.15.4` to hostnames with "--" in \[2:4\] character positions.
+
+    The previous iteration made `parse_url` start accepting many malformed URLs.
+
+  - URL parsing will now strip hostnames of leading and following whitespace, like browsers do.
+
+    Mainly, this improves `export mirror` outputs.
+
+  - Fixed output formatting when redirecting output to a non-tty destination.
+
 ## [simple_server-v1.7.0] - 2024-10-03
 
 ### Changed
@@ -33,7 +49,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
-- `get`, etc:
+- `get`, `export mirror`, etc:
 
   - Added a work-around for `idna` module failing to parse some hostnames ([#5 on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues/5)).
 
@@ -45,7 +61,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Changed
 
-- `get`, etc:
+- `get`, `export mirror`, etc:
 
   - `--expr`: technically, renamed `full_url` -\> `url`, though it did not officially exist before.
 
@@ -1166,6 +1182,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.15.5]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.4...tool-v0.15.5
 [simple_server-v1.7.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.6.1...simple_server-v1.7.0
 [tool-v0.15.4]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.3...tool-v0.15.4
 [tool-v0.15.3]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.2...tool-v0.15.3
