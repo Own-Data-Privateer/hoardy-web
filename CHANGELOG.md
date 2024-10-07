@@ -1182,7 +1182,7 @@ All planned features are complete now.
 
 - Initial public release.
 
-[tool-v0.15.5]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.4...tool-v0.15.5
+[tool-v0.15.5]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.4...tool-v0.15.5.1
 [simple_server-v1.7.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.6.1...simple_server-v1.7.0
 [tool-v0.15.4]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.3...tool-v0.15.4
 [tool-v0.15.3]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.2...tool-v0.15.3
@@ -1205,8 +1205,8 @@ All planned features are complete now.
 [extension-v1.9.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.8.1...extension-v1.9.0
 [tool-v0.12.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.11.2...tool-v0.12.0
 [extension-v1.8.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.8.0...extension-v1.8.1
-[tool-v0.11.2]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.11.1...tool-v0.11.2
 [extension-v1.8.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.7.0...extension-v1.8.0
+[tool-v0.11.2]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.11.1...tool-v0.11.2
 [extension-v1.7.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.6.0...extension-v1.7.0
 [tool-v0.11.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.11.0...tool-v0.11.1
 [tool-v0.11.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.9.0...tool-v0.11.0
@@ -1215,8 +1215,8 @@ All planned features are complete now.
 [extension-v1.6.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.5...extension-v1.6.0
 [tool-v0.8]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.6...tool-v0.8
 [dumb_server-v1.6.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/dumb_server-v1.5.5...dumb_server-v1.6.0
-[tool-v0.6]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.5...tool-v0.6
 [dumb_server-v1.5.5]: https://github.com/Own-Data-Privateer/hoardy-web/compare/dumb_server-v1.5...dumb_server-v1.5.5
+[tool-v0.6]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.5...tool-v0.6
 [tool-v0.5]: https://github.com/Own-Data-Privateer/hoardy-web/releases/tag/tool-v0.5
 [dumb_server-v1.5]: https://github.com/Own-Data-Privateer/hoardy-web/compare/dumb_server-v1.1...dumb_server-v1.5
 [extension-v1.5]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.4...extension-v1.5
