@@ -176,7 +176,8 @@ async function saveConfig() {
     if (equalRec(savedConfig, config))
         return;
     savedConfig = assignRec({}, config);
-    console.log("saving config", savedConfig);
+    if (config.debugging)
+        console.log("saving config", savedConfig);
     await browser.storage.local.set({ config: savedConfig }).catch(logError);
 }
 
@@ -623,7 +624,8 @@ async function saveGlobals() {
     if (equalRec(savedGlobals, globals))
         return;
     savedGlobals = assignRec({}, globals);
-    console.log("saving globals", savedGlobals);
+    if (config.debugging)
+        console.log("saving globals", savedGlobals);
     await browser.storage.local.set({ globals: savedGlobals }).catch(logError);
     await browser.storage.local.remove("persistentStats").catch(() => {});
     await browser.storage.local.remove("globalStats").catch(() => {});
