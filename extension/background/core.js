@@ -235,19 +235,19 @@ async function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
 
 function resetAndNavigateTab(tabId, url, priority) {
     return sleepResetTab(tabId, priority,
-                         blankTab, undefined,
-                         (tabId) => navigateTabTo(tabId, url));
+                         navigateTabToBlank, undefined,
+                         (tabId, _ignored) => navigateTabTo(tabId, url));
 }
 
 function resetAttachDebuggerAndNavigateTab(tabId, url, priority) {
     return sleepResetTab(tabId, priority,
-                         blankTab, attachDebugger,
-                         (tabId) => navigateTabTo(tabId, url));
+                         navigateTabToBlank, attachDebugger,
+                         (tabId, _ignored) => navigateTabTo(tabId, url));
 }
 
 function resetAttachDebuggerAndReloadTab(tabId, priority) {
     return sleepResetTab(tabId, priority,
-                         captureURLThenBlankTab, attachDebugger,
+                         getTabURLThenNavigateTabToBlank, attachDebugger,
                          navigateTabTo);
 }
 

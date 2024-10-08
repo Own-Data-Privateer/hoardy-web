@@ -58,18 +58,6 @@ function mkIcons(what) {
 
 let stateURL = browser.runtime.getURL("/page/state.html");
 
-function getTabURL(tab, def) {
-    if (useDebugger) {
-        let pendingUrl = tab.pendingUrl;
-        if (isDefinedURL(pendingUrl))
-            return pendingUrl;
-    }
-    let url = tab.url;
-    if (isDefinedURL(url))
-        return url;
-    return def;
-}
-
 function getStateTabIdOrTabId(tab) {
     return getMapURLParam(stateURL, "tab", new URL(getTabURL(tab, "")), toNumber, tab.id, tab.id);
 }

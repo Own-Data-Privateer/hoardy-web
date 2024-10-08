@@ -436,14 +436,24 @@ function navigateTabTo(tabId, url) {
     return browser.tabs.update(tabId, { url });
 }
 
-function blankTab(tabId) {
+function navigateTabToBlank(tabId) {
     return navigateTabTo(tabId, "about:blank");
 }
 
-async function captureURLThenBlankTab(tabId) {
+function getTabURL(tab, def) {
+    let pendingUrl = tab.pendingUrl;
+    if (isDefinedURL(pendingUrl))
+        return pendingUrl;
+    let url = tab.url;
+    if (isDefinedURL(url))
+        return url;
+    return def;
+}
+
+async function getTabURLThenNavigateTabToBlank(tabId) {
     let tab = await browser.tabs.get(tabId);
     let url = getTabURL(tab);
-    await navigateTabTo(tabId, "about:blank");
+    await navigateTabToBlank(tabId);
     return url;
 }
 
