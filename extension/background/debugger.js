@@ -252,10 +252,11 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
 
     logDebugEvent("requestWillBeSent", nonExtra, e, undefined);
 
+    let tabId = e.tabId;
     let dreqres = cacheSingleton(debugReqresInFlight, e.requestId, () => { return {
         sessionId,
         requestId: e.requestId,
-        tabId: e.tabId,
+        tabId,
         fromExtension: false, // most likely
 
         //method: undefined,
@@ -306,7 +307,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
     }
 
     scheduleProcessMatchFinishingUpWebRequestDebug();
-    scheduleUpdateDisplay(true, e.tabId);
+    scheduleUpdateDisplay(true, tabId);
 }
 
 function handleDebugResponseRecieved(nonExtra, e) {

@@ -1254,7 +1254,7 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
 
 let udUpdatedTabId;
 
-async function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic) {
+function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic) {
     if (udUpdatedTabId === undefined)
         udUpdatedTabId = updatedTabId;
     else
@@ -1685,16 +1685,10 @@ function selectTSS(inLS) {
     let mkTransaction;
     let stashStats;
     let savedStats;
-    if (inLS) {
-        mkTransaction = mkLSlotTransaction;
-        stashStats = globals.stashedLS;
-        savedStats = globals.savedLS;
-    } else {
-        mkTransaction = mkIDBTransaction;
-        stashStats = globals.stashedIDB;
-        savedStats = globals.savedIDB;
-    }
-    return [mkTransaction, stashStats, savedStats];
+    if (inLS)
+        return [mkLSlotTransaction, globals.stashedLS, globals.savedLS];
+    else
+        return [mkIDBTransaction, globals.stashedIDB, globals.savedIDB];
 }
 
 async function syncWipeOne(tss, dumpSize, dumpId, stashId, saveId) {
@@ -2046,21 +2040,24 @@ function bucketSaveAs(bucket, ifGEQ) {
         // NB: This is slightly fragile, consider the following sequence of
         // events for a given archivable:
         //
-        //  exportAsOne -> submitHTTPOne -> saveOne
-        //  -> ... -> bucketSaveAs, which fails -> recordFailed
-        //  -> syncMany
+        //   exportAsOne -> submitHTTPOne -> saveOne
+        //   -> ... -> scheduledEndgame -> asyncBucketSaveAs -> bucketSaveAs, which fails
+        //   -> recordManyFailed -> runSynchronously(syncMany, ...) -> scheduledEndgame
         //
-        // It will work only if `runSynchronously` is run after `saveOne`
-        // (which is true, given how `scheduleEndgame` is written). Also,
-        // note, that it will first save the archivable, and then un-save it,
-        // this is by design, since, ideally, this this `catch` would never be
-        // run.
+        // It will first save the archivable, and then un-save and stash it
+        // instead. This is by design, since, ideally, this this `catch` would
+        // never be run.
+        //
+        // Also note that it will work properly only if the above
+        // `runSynchronously` is run after run after `processArchiving` for
+        // the same archivables. (The code is written to always make this
+        // true.)
         //
         // Now consider this:
         //
-        //  exportAsOne -> submitHTTPOne -> (no saveOne) -> syncOne(archivable, 0, ...)
-        //  -> ... -> bucketSaveAs, which fails -> recordFailed
-        //  -> syncMany
+        //   exportAsOne -> submitHTTPOne -> (no saveOne) -> syncOne(archivable, 0, ...)
+        //   -> ... -> scheduleEndgame -> asyncBucketSaveAs -> bucketSaveAs, which fails
+        //   -> recordManyFailed -> runSynchronously(syncMany, ...) -> scheduledEndgame
         //
         // Which will only work if that first `syncOne` does not elide the
         // dump from memory, see (notEliding).
@@ -3180,7 +3177,7 @@ function handleBeforeRequest(e) {
         if (config.debugging)
             console.warn("canceling and restarting request to", e.url, "as tab", e.tabId, "is not managed yet");
         if (e.type == "main_frame") {
-            // attach debugger and reload the main flame
+            // attach debugger and reload the main frame
             attachDebuggerAndReloadTab(e.tabId).catch(logError);
             // not using
             //   resetAttachDebuggerAndNavigateTab(e.tabId, e.url).catch(logError);
@@ -3212,11 +3209,12 @@ function handleBeforeRequest(e) {
         }
     }
 
+    let tabId = e.tabId;
     let requestId = e.requestId;
     let reqres = {
         sessionId,
         requestId,
-        tabId: e.tabId,
+        tabId,
         fromExtension,
 
         method: e.method,
@@ -3272,7 +3270,7 @@ function handleBeforeRequest(e) {
     if (reject) {
         reqres.errors.push("webRequest::capture::CANCELED::NO_DEBUGGER")
         reqresAlmostDone.push(reqres);
-        scheduleEndgame(e.tabId);
+        scheduleEndgame(tabId);
         return { cancel: true };
     }
 
@@ -3312,7 +3310,7 @@ function handleBeforeRequest(e) {
 
     reqresInFlight.set(requestId, reqres);
     broadcast(["newInFlight", [makeLoggableReqres(reqres)]]);
-    scheduleUpdateDisplay(true, e.tabId);
+    scheduleUpdateDisplay(true, tabId);
 }
 
 function handleBeforeSendHeaders(e) {
@@ -3395,11 +3393,9 @@ function handleBeforeRedirect(e) {
         let firefoxInternalRedirect = !useDebugger && e.statusCode === 0;
         let firefoxExtensionRedirectToSelf = !useDebugger && (e.statusCode < 300 || e.statusCode >= 400) && isExtensionURL(e.redirectUrl);
         if (firefoxInternalRedirect || firefoxExtensionRedirectToSelf) {
-
             // Work around internal Firefox redirects giving no codes and
             // statuses or extensions redirecting to their local files under
             // Firefox.
-
             reqres.generated = true;
             reqres.responded = true;
             reqres.responseTimeStamp = e.timeStamp;
@@ -3409,7 +3405,6 @@ function handleBeforeRedirect(e) {
             reqres.responseHeaders = [
                 { name: "Location", value: e.redirectUrl }
             ];
-
             // these give no data, usually
             if (firefoxExtensionRedirectToSelf)
                 reqres.responseComplete = false;
@@ -3519,13 +3514,14 @@ function handleTabReplaced(addedTabId, removedTabId) {
 }
 
 function handleTabActivated(e) {
+    let tabId = e.tabId;
     if (config.debugging)
-        console.log("tab activated", e.tabId);
+        console.log("tab activated", tabId);
     if (useDebugger)
         // Chromium does not provide `browser.menus.onShown` event
-        updateMenu(getOriginConfig(e.tabId));
+        updateMenu(getOriginConfig(tabId));
     // Usually, this will not be enough, see `handleTabUpdated`.
-    scheduleUpdateDisplay(false, e.tabId);
+    scheduleUpdateDisplay(false, tabId);
 }
 
 function handleTabUpdated(tabId, changeInfo, tabInfo) {
