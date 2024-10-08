@@ -216,7 +216,9 @@ function equalRec(a, b) {
     if (typ == "boolean" || typ == "number" || typ == "string")
         return a === b;
 
-    if (a instanceof Object && b instanceof Object) {
+    if (a instanceof Array && b instanceof Array)
+        return a.length === b.length && a.every((v, i) => equalRec(v, b[i]));
+    else if (a instanceof Object && b instanceof Object) {
         let ae = Array.from(Object.entries(a));
         let be = Array.from(Object.entries(b));
         if (ae.length !== be.length)

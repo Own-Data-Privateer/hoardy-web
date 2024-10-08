@@ -4072,7 +4072,7 @@ async function init() {
         // reset `config.seenChangelog` when major version changes
         let vOld = config.lastSeenVersion.split(".");
         let vNew = manifest.version.split(".").slice(0, 2);
-        config.seenChangelog = vNew.every((e, i) => e == vOld[i]);
+        config.seenChangelog = equalRec(vOld, vNew);
     }
     config.lastSeenVersion = manifest.version;
 
