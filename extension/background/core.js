@@ -4045,7 +4045,7 @@ async function init() {
 
     let oldConfig = localData.config;
     if (oldConfig !== undefined) {
-        console.log(`Loading old config of version ${oldConfig.version}`);
+        console.log(`Loading config of version ${oldConfig.version}`);
 
         upgradeConfig(oldConfig);
         config = updateFromRec(config, oldConfig);
@@ -4058,7 +4058,7 @@ async function init() {
         oldGlobals = localData.globalStats;
 
     if (oldGlobals !== undefined) {
-        console.log(`Loading old globals of version ${oldGlobals.version}`);
+        console.log(`Loading globals of version ${oldGlobals.version}`);
 
         oldGlobals = upgradeGlobals(oldGlobals);
         globals = updateFromRec(globals, oldGlobals);
