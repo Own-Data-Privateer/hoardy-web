@@ -108,6 +108,7 @@ async function popupMain() {
         cancelActions: "🟥",
         exportAsAll: "💾",
         retryFailed: "♻",
+        retryUnarchived: "♻",
         stashAll: "💾",
         retryUnstashed: "♻",
         collectAllInLimbo: "✔",
@@ -209,6 +210,7 @@ async function popupMain() {
     buttonToMessage("cancelActions");
     buttonToMessage("forgetErrored");
     buttonToMessage("retryFailed");
+    buttonToMessage("retryUnarchived");
     buttonToMessage("stashAll");
     buttonToMessage("retryUnstashed");
     buttonToAction("showSaved",    catchAll(() => replaceWith(showSaved, "", "top")));

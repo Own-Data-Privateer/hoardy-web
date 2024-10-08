@@ -52,15 +52,16 @@ Reqres change their internal states according to the following state diagram (wh
                (stashIO?) <----/         |                     v            v
                    |                     \-- (in_limbo) <- (stashIO?) <- (dropped)
                    v                              |                         |
-                (queued) <------------------\     |                         |
-                / |  ^ \                     \    \-----> (discarded) <-----/
-  (exported) <-/  |  |  \----------------\    \                ^
-      |           |  |                    \    \               |
-      |       /---/  \-----------------\   \    \              |
-      |       |                        |    \    \             |
-      |       v                        |     \    \            |
-      |\-> (srvIO) -> (stashIO?) -> (failed) |     \           |
-      |       |                        ^     /      \          |
+                (queued) <--------------------\   |                         |
+                / |  ^ \                       \  \-----> (discarded) <-----/
+  (exported) <-/  |  |  \-------------------\   \              ^
+      |           |  |                       \   \             |
+      |       /---/  \-----------------\      \   \            |
+      |       |                        |       \   \           |
+      |       v                        |        \   \          |
+      |\-> (srvIO) -> (stashIO?) -> (unarchived) |   \         |
+      |       |                        ^        /    |         |
+      |       |                        |    /--/     |         |
       |       v                        |    v        |         |
       |   (sumbitted) --------------> (saveIO) --> (saved)     | {{!saving}}
       |       \                                                |
@@ -236,7 +237,7 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= option]]
 
 Similarly, when both [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] and [[./popup.html#div-tabconfig.stashLimbo][=Stash 'in_limbo' reqres= option]] (or [[./popup.html#div-tabconfig.children.stashLimbo][one]]-[[./popup.html#div-config.root.stashLimbo][of]]-[[./popup.html#div-config.background.stashLimbo][the]]-[[./popup.html#div-config.extension.stashLimbo][other]] similar options) is enabled, then newly generated =in_limbo= reqres will also get immediately stashed into browser's local storage.
 
-Moreover, the following section will discuss how =Hoardy-Web= will try stashing =failed= to archive reqres into browser's local storage too.
+Moreover, the following section will discuss how =Hoardy-Web= will try stashing =unarchived= reqres into browser's local storage too.
 
 In other words, stashing exists to prevent loss of successfully captured but yet unarchived data in situations where
 
@@ -258,13 +259,19 @@ To try and make it such would mean unconditional immediate stashing of all captu
 
 When both [[./popup.html#div-config.archive][=Archive 'collected' reqres by= option]] and [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] are disabled, then, after a new reqres gets =queued=, =Hoardy-Web= will generate a new desktop notification complaining about it, unless [[./popup.html#div-config.archiveStuckNotify][that option]] is disabled too.
 
-You can also forcefully stash all currently =queued=, =in_limbo=, and =failed= reqres by pressing [[./popup.html#stashAll][this button]].
+You can also forcefully stash all currently =queued=, =in_limbo=, and =unarchived= reqres by pressing [[./popup.html#stashAll][this button]].
 It stashes everything immediately and unconditionally, ignoring all other stashing settings.
 *** Glossary
 - A /stuck queued reqres/ is a =queued= reqres that got stuck in the archival queue, e.g. because it got queued while [[./popup.html#div-config.archive][=Archive 'collected' reqres by= option]] was disabled.
 
 - [[./popup.html#div-stats.stashed][A /stashed reqres/]] is a reqres that was temporarily =stashed= (backed-up) into browser's local storage while it is still being kept in =Hoardy-Web='s memory.
   I.e., the stash is a persistent on-disk backup for in-memory reqres.
+
+- [[./popup.html#div-stats.unstashed][A /failed to stash reqres/]] is a reqres that is currently =unstashed=, i.e. a reqres that failed to be stashed into browser's local storage.
+  Note that reqres for which stashing was not even attempted are not included in this set.
+  It is also a part of the sum of the "Failed" part of the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line.
+
+  You can retry stashing these by pressing [[./popup.html#retryUnstashed][this button]].
 ** Step 3.75: Logging
 On entering =collected= or =discarded= state, =loggable= metadata of each reqres is copied into the recent reqres [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]] and is kept there until the size of the log reaches [[./popup.html#div-config.history][this many elements]], at which point the older elements of the log start being elided automatically.
 
@@ -287,7 +294,7 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= toggle]]
 
 - if any of the above fails =Hoardy-Web= will
 
-  - move the reqres into the =failed= state,
+  - move the reqres into the =unarchived= state,
 
   - if [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] is enabled, it will try stashing the =(loggable, dump)= tuple into browser's local storage (which is denoted by =stashIO= states on the diagram above) and record but ignore any errors produced while doing that, and
 
@@ -297,7 +304,7 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= toggle]]
 
   - try to save the =(loggable, dump)= tuple into browser's local storage (which is denoted by =saveIO= states on the diagram above),
 
-  - if saving fails, it will move the reqres into the =failed= state instead, and stop processing this reqres;
+  - if saving fails, it will move the reqres into the =unarchived= state instead, and stop processing this reqres;
 
 - finally, if [[./popup.html#div-config.archiveSaveLS][=Archive 'collected' reqres by > ... saving them into local storage= option]] is disabled or if saving to local storage succeeds, =Hoardy-Web= will discard the reqres from memory.
 
@@ -341,19 +348,22 @@ If you restart your browser, thus starting a new =Hoardy-Web= session, =Hoardy-W
 
 - /An archived reqres/ is either /exported/, /submitted/, or /saved/ reqres.
 ** Handling of failures
-As noted above, if any of the [[./popup.html#sub-config.archive][archival methods]] fail, the reqres in question will be moved into the =failed= state.
+As noted above, if any of the [[./popup.html#sub-config.archive][archival methods]] fail, the reqres in question will be moved into the =unarchived= state.
 
-Submissions of reqres that =failed= because of networking issues will be retried automatically every 60 seconds.
+Submissions of reqres that =unarchived= because of networking issues will be retried automatically every 60 seconds.
 Archivals of reqres rejected by the archiving server or those that failed to be saved to browser's local storage will not be retried automatically as those usually happen when there is no space left on the device you are archiving to.
 
-You can retry all failed archivals by pressing [[./popup.html#retryFailed][this button]].
-You can also use it to nudge the archiving sub-process awake if some things got stuck in the queue by accident.
+You can retry all archiving failures by pressing one of [[./popup.html#retryUnarchived][this]] or [[./popup.html#retryFailed][that]] buttons.
+You can also use them to nudge the archiving sub-process awake if some things got stuck in the queue by accident.
 E.g., after the extension got reloaded with a non-empty queue, or if you previously quit your browser before everything was archived.
 
-If [[./popup.html#div-config.archiveFailedNotify][this option]] is enabled and a new reqres recently moved to the =failed= state, a new desktop notification will be generated.
+If [[./popup.html#div-config.archiveFailedNotify][this option]] is enabled and a new reqres recently moved to the =unarchived= state, a new desktop notification will be generated.
 If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new desktop notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
-- [[./popup.html#stats.failed][A /failed to archive reqres/]] (displayed on the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line) is a reqres that =failed= to be archived by one of the enabled [[./popup.html#sub-config.archive][archival methods]].
+- [[./popup.html#div-stats.unarchived][A /failed to archive reqres/]] is a reqres that is currently =unarchived=, i.e. a reqres that failed to be archived by one of the enabled [[./popup.html#sub-config.archive][archival methods]].
+  It is also a part of the sum of the "Failed" part of the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line.
+
+  You can retry archiving these by pressing [[./popup.html#retryUnarchived][this button]].
 * Shortcuts
 =Hoardy-Web= provides a bunch of keyboard and context menu shortcuts to allow using it in more efficient ways.
 

@@ -26,7 +26,7 @@ let rrfilters = {
     in_limbo: assignRec({}, rrfilterDefaults),
     log: assignRec({}, rrfilterDefaults),
     queued: assignRec({}, rrfilterDefaults),
-    failed: assignRec({}, rrfilterDefaults),
+    unarchived: assignRec({}, rrfilterDefaults),
 };
 
 let tabId = getMapURLParam(stateURL, "tab", document.location, toNumber, null, null);
@@ -53,8 +53,8 @@ function resetQueued(log_data) {
     resetDataNode("data_queued", log_data, (loggable) => isAcceptedBy(rrfilters.queued, loggable));
 }
 
-function resetFailed(log_data) {
-    resetDataNode("data_failed", log_data, (loggable) => isAcceptedBy(rrfilters.failed, loggable));
+function resetUnarchived(log_data) {
+    resetDataNode("data_unarchived", log_data, (loggable) => isAcceptedBy(rrfilters.unarchived, loggable));
 }
 
 async function stateMain() {
@@ -71,7 +71,7 @@ async function stateMain() {
     buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, null, tabId, rrfilters.in_limbo]);
     buttonToMessage("stopAllInFlight",      () => ["stopInFlight", tabId]);
 
-    buttonToMessage("retryFailed");
+    buttonToMessage("retryUnarchived");
 
     setUI(document, "rrfilters", rrfilters, (value, path) => {
         if (path.startsWith("rrfilters.problematic."))
@@ -82,8 +82,8 @@ async function stateMain() {
             browser.runtime.sendMessage(["getLog"]).then(resetLog).catch(logError);
         else if (path.startsWith("rrfilters.queued."))
             browser.runtime.sendMessage(["getQueuedLog"]).then(resetQueued).catch(logError);
-        else if (path.startsWith("rrfilters.failed."))
-            browser.runtime.sendMessage(["getFailedLog"]).then(resetFailed).catch(logError);
+        else if (path.startsWith("rrfilters.unarchived."))
+            browser.runtime.sendMessage(["getUnarchivedLog"]).then(resetUnarchived).catch(logError);
         else
             console.warn("unknown rrfilters update", path, value);
     });
@@ -115,8 +115,8 @@ async function stateMain() {
         case "resetQueued":
             resetQueued(data);
             break;
-        case "resetFailed":
-            resetFailed(data);
+        case "resetUnarchived":
+            resetUnarchived(data);
             break;
         // incrementally add new rows
         case "newInFlight":
@@ -150,7 +150,7 @@ async function stateMain() {
         if (willReset()) return;
         let queuedLog = await browser.runtime.sendMessage(["getQueuedLog"]);
         if (willReset()) return;
-        let failedLog = await browser.runtime.sendMessage(["getFailedLog"]);
+        let unarchivedLog = await browser.runtime.sendMessage(["getUnarchivedLog"]);
         if (willReset()) return;
 
         resetInFlight(inFlightLog);
@@ -158,7 +158,7 @@ async function stateMain() {
         resetInLimbo(inLimboLog);
         resetLog(log);
         resetQueued(queuedLog);
-        resetFailed(failedLog);
+        resetUnarchived(unarchivedLog);
     }), setPageLoading, setPageSettling);
 
     // show UI

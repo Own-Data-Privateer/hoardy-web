@@ -360,9 +360,9 @@ function getUsedTabs() {
     for (let f of reqresErrored.values())
         for (let v of f.queue)
             usedTabs.add(v[0].tabId);
-    for (let v of reqresFailedToStashByArchivable.keys())
+    for (let v of reqresUnstashedByArchivable.keys())
         usedTabs.add(v[0].tabId);
-    for (let v of reqresFailedToArchiveByArchivable.keys())
+    for (let v of reqresUnarchivedByArchivable.keys())
         usedTabs.add(v[0].tabId);
 
     return usedTabs;
@@ -488,14 +488,14 @@ let reqresBundledAs = new Map();
 // archivables that failed to be processed in some way, indexed by error message
 let reqresErrored = new Map();
 // archivables that failed to sync to indexedDB, indexed by error message
-let reqresFailedToStashByError = new Map();
+let reqresUnstashedByError = new Map();
 // same thing, but archivable as key, and `syncOne` args as values
-let reqresFailedToStashByArchivable = new Map();
+let reqresUnstashedByArchivable = new Map();
 // archivables that failed in server submission, indexed by archiveURL, then by error message
-let reqresFailedToArchiveByArchiveError = new Map();
+let reqresUnarchivedByArchiveError = new Map();
 // map `archivables -> int`, the `int` is a count of how many times each archivable appears
-// in`reqresFailedToArchiveByArchiveError`
-let reqresFailedToArchiveByArchivable = new Map();
+// in`reqresUnarchivedByArchiveError`
+let reqresUnarchivedByArchivable = new Map();
 
 function truncateLog() {
     while (reqresLog.length > config.history)
@@ -539,12 +539,12 @@ function getQueuedLog() {
     return getLoggables(reqresQueue, []);
 }
 
-function getFailedLog() {
-    return getLoggables(reqresFailedToArchiveByArchivable.keys(), []);
+function getUnarchivedLog() {
+    return getLoggables(reqresUnarchivedByArchivable.keys(), []);
 }
 
 function getByErrorMap(archiveURL) {
-    return cacheSingleton(reqresFailedToArchiveByArchiveError, archiveURL, () => new Map());
+    return cacheSingleton(reqresUnarchivedByArchiveError, archiveURL, () => new Map());
 }
 
 function getByErrorMapRecord(byErrorMap, error) {
@@ -561,10 +561,10 @@ function recordByErrorTo(v, recoverable, archivable, size) {
     v.queue.push(archivable);
     v.size += size;
 
-    let count = reqresFailedToArchiveByArchivable.get(archivable);
+    let count = reqresUnarchivedByArchivable.get(archivable);
     if (count === undefined)
         count = 0;
-    reqresFailedToArchiveByArchivable.set(archivable, count + 1);
+    reqresUnarchivedByArchivable.set(archivable, count + 1);
 }
 
 function recordByError(byErrorMap, error, recoverable, archivable, size) {
@@ -659,10 +659,10 @@ function getOriginState(tabId, fromExtension) {
 }
 
 // scheduleComplaints flags
-// do we have a new failed to stash or save reqres
-let gotNewSyncedOrFailed = false;
-// do we have new failed to submit or new archived reqres?
-let gotNewArchivedOrFailed = false;
+// do we have a newly- or recently failed to be stashed or saved/archived to local storage reqres?
+let gotNewSyncedOrNot = false;
+// do we have a newly- or recently failed to be archived reqres?
+let gotNewArchivedOrNot = false;
 // do we need to show empty queue notification?
 let wantArchiveDoneNotify = true;
 // do we have new queued reqres?
@@ -676,7 +676,7 @@ let gotNewErrored = false;
 
 // scheduleEndgame flags
 let gotNewExportedAs = false;
-let wantRetryFailed = false;
+let wantRetryUnarchived = false;
 let wantBroadcastSaved = false;
 
 function getNumberAndSizeFromQueues(m) {
@@ -703,9 +703,9 @@ function getStats() {
 
     let [errored, erroredSize] = getNumberAndSizeFromQueues(reqresErrored);
 
-    let [stashFailed, stashFailedSize] = getNumberAndSizeFromKeys(reqresFailedToStashByArchivable);
+    let [stashFailed, stashFailedSize] = getNumberAndSizeFromKeys(reqresUnstashedByArchivable);
 
-    let [archiveFailed, archiveFailedSize] = getNumberAndSizeFromKeys(reqresFailedToArchiveByArchivable);
+    let [archiveFailed, archiveFailedSize] = getNumberAndSizeFromKeys(reqresUnarchivedByArchivable);
 
     let in_flight = Math.max(reqresInFlight.size, debugReqresInFlight.size);
 
@@ -746,8 +746,10 @@ function getStats() {
         submittedHTTP_size: globals.submittedHTTPSize,
         saved: globals.savedLS.number + globals.savedIDB.number,
         saved_size: globals.savedLS.size + globals.savedIDB.size,
-        failed: archiveFailed,
-        failed_size: archiveFailedSize,
+        unarchived: archiveFailed,
+        unarchived_size: archiveFailedSize,
+        failed: stashFailed + archiveFailed,
+        failed_size: stashFailedSize + archiveFailedSize,
         errored,
         errored_size: erroredSize,
         issues: in_flight
@@ -1060,10 +1062,10 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
             color = 2;
             chunks.push(`failed to stash ${stats.unstashed} reqres`);
         }
-        if (stats.failed > 0) {
+        if (stats.unarchived > 0) {
             badge += "F";
-            color = 2;
-            chunks.push(`failed to archive ${stats.failed} reqres`);
+            color = Math.max(color, 2);
+            chunks.push(`failed to archive ${stats.unarchived} reqres`);
         }
         if (config.ephemeral) {
             badge += "D";
@@ -1361,11 +1363,11 @@ function scheduleEndgame(updatedTabId) {
                                      , null);
             }
 
-            if (wantRetryFailed) {
-                wantRetryFailed = false;
-                if (config.archive && reqresFailedToArchiveByArchivable.size > 0)
-                    // retry failed in 60s
-                    scheduleRetryFailed(60000, false);
+            if (wantRetryUnarchived) {
+                wantRetryUnarchived = false;
+                if (config.archive && reqresUnarchivedByArchivable.size > 0)
+                    // retry unarchived in 60s
+                    scheduleRetryUnarchived(60000, false);
             }
 
             scheduleComplaints(1000);
@@ -1378,18 +1380,17 @@ function scheduleEndgame(updatedTabId) {
 async function doRetryAllUnstashed() {
     let newByError = new Map();
     let newByArchivable = new Map();
-    for (let [archivable, args] of reqresFailedToStashByArchivable.entries()) {
+    for (let [archivable, args] of reqresUnstashedByArchivable.entries()) {
         let [state, elide] = args;
         await syncOne(archivable, state, elide, newByError, newByArchivable);
     }
-    reqresFailedToStashByError = newByError;
-    reqresFailedToStashByArchivable = newByArchivable;
-    gotNewSyncedOrFailed = true;
+    reqresUnstashedByError = newByError;
+    reqresUnstashedByArchivable = newByArchivable;
+    gotNewSyncedOrNot = true;
 }
 
-function retryUnstashed() {
+function scheduleRetryUnstashed() {
     runSynchronously(doRetryAllUnstashed);
-    scheduleEndgame(null);
 }
 
 async function doStashAll(alsoLimbo) {
@@ -1397,7 +1398,7 @@ async function doStashAll(alsoLimbo) {
     await syncMany(reqresQueue, 1, true);
     if (alsoLimbo)
         await syncMany(reqresLimbo, 1, true);
-    for (let m of reqresFailedToArchiveByArchiveError.values())
+    for (let m of reqresUnarchivedByArchiveError.values())
         for (let f of m.values())
             await syncMany(f.queue, 1, true);
 }
@@ -1407,59 +1408,59 @@ function stashAll(alsoLimbo) {
     scheduleEndgame(null);
 }
 
-function retryOneFailed(archiveURL, unrecoverable) {
-    let byErrorMap = reqresFailedToArchiveByArchiveError.get(archiveURL);
+function retryOneUnarchived(archiveURL, unrecoverable) {
+    let byErrorMap = reqresUnarchivedByArchiveError.get(archiveURL);
     if (byErrorMap === undefined)
         return;
-    for (let [reason, failed] of Array.from(byErrorMap.entries())) {
-        if (!unrecoverable && !failed.recoverable)
+    for (let [reason, unarchived] of Array.from(byErrorMap.entries())) {
+        if (!unrecoverable && !unarchived.recoverable)
             continue;
 
-        for (let archivable of failed.queue) {
+        for (let archivable of unarchived.queue) {
             let [loggable, dump] = archivable;
             let dumpSize = loggable.dumpSize;
             reqresQueue.push(archivable);
             reqresQueueSize += dumpSize;
 
-            let count = reqresFailedToArchiveByArchivable.get(archivable);
+            let count = reqresUnarchivedByArchivable.get(archivable);
             if (count > 1)
-                reqresFailedToArchiveByArchivable.set(archivable, count - 1);
+                reqresUnarchivedByArchivable.set(archivable, count - 1);
             else if (count !== undefined)
-                reqresFailedToArchiveByArchivable.delete(archivable);
+                reqresUnarchivedByArchivable.delete(archivable);
         }
 
         byErrorMap.delete(reason);
     }
     if (byErrorMap.size === 0)
-        reqresFailedToArchiveByArchiveError.delete(archiveURL);
+        reqresUnarchivedByArchiveError.delete(archiveURL);
 }
 
-function retryFailed(unrecoverable) {
-    for (let archiveURL of Array.from(reqresFailedToArchiveByArchiveError.keys()))
-        retryOneFailed(archiveURL, unrecoverable);
+function retryUnarchived(unrecoverable) {
+    for (let archiveURL of Array.from(reqresUnarchivedByArchiveError.keys()))
+        retryOneUnarchived(archiveURL, unrecoverable);
 
     broadcast(["resetQueued", getQueuedLog()]);
-    broadcast(["resetFailed", getFailedLog()]);
+    broadcast(["resetUnarchived", getUnarchivedLog()]);
 
     scheduleEndgame(null);
 }
 
-function scheduleRetryFailed(timeout, unrecoverable) {
-    resetSingletonTimeout(scheduledCancelable, "retryFailed", timeout, () => retryFailed(unrecoverable));
+function scheduleRetryUnarchived(timeout, unrecoverable) {
+    resetSingletonTimeout(scheduledCancelable, "retryUnarchived", timeout, () => retryUnarchived(unrecoverable));
 }
 
 function formatFailures(why, list) {
     let parts = [];
-    for (let [reason, failed] of list)
-        parts.push(`- ${why} ${failed.queue.length} items because ${reason}.`);
+    for (let [reason, unarchived] of list)
+        parts.push(`- ${why} ${unarchived.queue.length} items because ${reason}.`);
     return parts.join("\n");
 }
 
 async function doComplain() {
     // record the current state, because the rest of this chunk is async
     let rrErrored = Array.from(reqresErrored.entries());
-    let rrUnstashed = Array.from(reqresFailedToStashByError.entries());
-    let rrUnsubmitted = Array.from(reqresFailedToArchiveByArchiveError.entries());
+    let rrUnstashed = Array.from(reqresUnstashedByError.entries());
+    let rrUnarchived = Array.from(reqresUnarchivedByArchiveError.entries());
 
     if (gotNewErrored && rrErrored.length > 0) {
         gotNewErrored = false;
@@ -1489,8 +1490,8 @@ async function doComplain() {
         // clear stale
         await browser.notifications.clear("notSaving");
 
-    if (gotNewSyncedOrFailed && rrUnstashed.length > 0) {
-        gotNewSyncedOrFailed = false;
+    if (gotNewSyncedOrNot && rrUnstashed.length > 0) {
+        gotNewSyncedOrNot = false;
 
         if (config.archiveFailedNotify) {
             // generate a new one
@@ -1505,8 +1506,8 @@ async function doComplain() {
         // clear stale
         await browser.notifications.clear("unstashed");
 
-    if (gotNewArchivedOrFailed) {
-        gotNewArchivedOrFailed = false;
+    if (gotNewArchivedOrNot) {
+        gotNewArchivedOrNot = false;
 
         // get shown notifications
         let all_ = await browser.notifications.getAll();
@@ -1514,16 +1515,16 @@ async function doComplain() {
 
         // clear stale
         for (let label in all) {
-            if (!label.startsWith("unsubmitted-"))
+            if (!label.startsWith("unarchived-"))
                 continue;
             let archiveURL = label.substr(12);
-            if (rrUnsubmitted.every((e) => e[0] !== archiveURL))
+            if (rrUnarchived.every((e) => e[0] !== archiveURL))
                 await browser.notifications.clear(label);
         }
 
         if (config.archiveFailedNotify) {
             // generate new ones
-            for (let [archiveURL, byErrorMap] of rrUnsubmitted) {
+            for (let [archiveURL, byErrorMap] of rrUnarchived) {
                 let where;
                 if (archiveURL === "exportAs")
                     where = "Export via `saveAs`";
@@ -1531,7 +1532,7 @@ async function doComplain() {
                     where = "Browser's local storage";
                 else
                     where = `Archiving server at ${archiveURL}`;
-                await browser.notifications.create(`unsubmitted-${archiveURL}`, {
+                await browser.notifications.create(`unarchived-${archiveURL}`, {
                     title: "Hoardy-Web: FAILED",
                     message: `${where}:\n${formatFailures("Failed to archive", byErrorMap.entries())}`,
                     iconUrl: iconURL("error", 128),
@@ -1540,7 +1541,7 @@ async function doComplain() {
             }
         }
 
-        let isDone = rrUnstashed.length === 0 && rrUnsubmitted.length === 0;
+        let isDone = rrUnstashed.length === 0 && rrUnarchived.length === 0;
 
         if (wantArchiveDoneNotify && isDone && reqresQueue.length === 0) {
             wantArchiveDoneNotify = false;
@@ -1834,9 +1835,9 @@ async function doSyncOne(archivable, state, elide) {
 
 async function syncOne(archivable, state, elide, rrFailed, rrLast) {
     if (rrFailed === undefined)
-        rrFailed = reqresFailedToStashByError;
+        rrFailed = reqresUnstashedByError;
     if (rrLast === undefined)
-        rrLast = reqresFailedToStashByArchivable;
+        rrLast = reqresUnstashedByArchivable;
 
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
@@ -1847,11 +1848,11 @@ async function syncOne(archivable, state, elide, rrFailed, rrLast) {
         logHandledError(err);
         recordByError(rrFailed, err, false, archivable, dumpSize);
         rrLast.set(archivable, [state, elide]);
-        gotNewSyncedOrFailed = true;
+        gotNewSyncedOrNot = true;
         return false;
     }
 
-    gotNewSyncedOrFailed = true;
+    gotNewSyncedOrNot = true;
     return true;
 }
 
@@ -1939,7 +1940,7 @@ async function forEachSynced(storeName, func, limit) {
 
 // reqres archiving
 
-function recordManyFailed(archiveURL, reason, recoverable, archivables, func) {
+function recordManyUnarchived(archiveURL, reason, recoverable, archivables, func) {
     let m = getByErrorMap(archiveURL);
     let v = getByErrorMapRecord(m, reason);
 
@@ -1951,32 +1952,32 @@ function recordManyFailed(archiveURL, reason, recoverable, archivables, func) {
         recordByErrorTo(v, recoverable, archivable, dumpSize);
     }
 
-    gotNewArchivedOrFailed = true;
+    gotNewArchivedOrNot = true;
     wantArchiveDoneNotify = true;
-    wantRetryFailed = true;
+    wantRetryUnarchived = true;
 }
 
-function recordOneFailedTo(byErrorMap, reason, recoverable, archivable, dumpSize) {
+function recordOneUnarchivedTo(byErrorMap, reason, recoverable, archivable, dumpSize) {
     recordByError(byErrorMap, reason, recoverable, archivable, dumpSize);
-    gotNewArchivedOrFailed = true;
+    gotNewArchivedOrNot = true;
     wantArchiveDoneNotify = true;
-    wantRetryFailed = true;
+    wantRetryUnarchived = true;
 }
 
-function recordOneFailed(archiveURL, reason, recoverable, archivable, dumpSize) {
+function recordOneUnarchived(archiveURL, reason, recoverable, archivable, dumpSize) {
     let m = getByErrorMap(archiveURL);
-    recordOneFailedTo(m, reason, recoverable, archivable, dumpSize);
+    recordOneUnarchivedTo(m, reason, recoverable, archivable, dumpSize);
 }
 
 function recordOneAssumedBroken(archiveURL, archivable, dumpSize) {
-    let byErrorMap = reqresFailedToArchiveByArchiveError.get(archiveURL);
+    let byErrorMap = reqresUnarchivedByArchiveError.get(archiveURL);
     if (byErrorMap !== undefined) {
         let recent = Array.from(byErrorMap.entries()).filter(
             (x) => (Date.now() - x[1].when) < 1000 && !x[0].endsWith(" (assumed)")
         )[0];
         if (recent !== undefined) {
             // we had recent errors there, fail this reqres immediately
-            recordOneFailedTo(byErrorMap, recent[0] + " (assumed)", recent[1].recoverable, archivable, dumpSize);
+            recordOneUnarchivedTo(byErrorMap, recent[0] + " (assumed)", recent[1].recoverable, archivable, dumpSize);
             return true;
         }
     }
@@ -2032,7 +2033,7 @@ function bucketSaveAs(bucket, ifGEQ) {
         globals.exportedAsTotal += res.queue.length;
         globals.exportedAsSize += res.size;
     } catch (err) {
-        recordManyFailed("exportAs", err, false, res.queue, (loggable) => {
+        recordManyUnarchived("exportAs", err, false, res.queue, (loggable) => {
             loggable.exportedAs = false;
             loggable.dirty = true;
         });
@@ -2042,7 +2043,7 @@ function bucketSaveAs(bucket, ifGEQ) {
         //
         //   exportAsOne -> submitHTTPOne -> saveOne
         //   -> ... -> scheduledEndgame -> asyncBucketSaveAs -> bucketSaveAs, which fails
-        //   -> recordManyFailed -> runSynchronously(syncMany, ...) -> scheduledEndgame
+        //   -> recordManyUnarchived -> runSynchronously(syncMany, ...) -> scheduledEndgame
         //
         // It will first save the archivable, and then un-save and stash it
         // instead. This is by design, since, ideally, this this `catch` would
@@ -2057,7 +2058,7 @@ function bucketSaveAs(bucket, ifGEQ) {
         //
         //   exportAsOne -> submitHTTPOne -> (no saveOne) -> syncOne(archivable, 0, ...)
         //   -> ... -> scheduleEndgame -> asyncBucketSaveAs -> bucketSaveAs, which fails
-        //   -> recordManyFailed -> runSynchronously(syncMany, ...) -> scheduledEndgame
+        //   -> recordManyUnarchived -> runSynchronously(syncMany, ...) -> scheduledEndgame
         //
         // Which will only work if that first `syncOne` does not elide the
         // dump from memory, see (notEliding).
@@ -2137,18 +2138,18 @@ async function saveOne(archivable) {
     // events:
     //   finished -> in_limbo -> syncOne -> out of disk space ->
     //   the user fixes it -> popInLimbo ->
-    //   queued -> saveOne -> retryUnstashed
-    reqresFailedToStashByArchivable.delete(archivable);
+    //   queued -> saveOne -> scheduleRetryUnstashed
+    reqresUnstashedByArchivable.delete(archivable);
 
     try {
         await doSyncOne(archivable, 2, true);
     } catch (err) {
         logHandledError(err);
-        recordOneFailed(archiveURL, err, false, archivable, dumpSize);
+        recordOneUnarchived(archiveURL, err, false, archivable, dumpSize);
         return false;
     }
 
-    gotNewArchivedOrFailed = true;
+    gotNewArchivedOrNot = true;
     wantBroadcastSaved = true;
     return true;
 }
@@ -2304,7 +2305,7 @@ async function submitHTTPOne(archivable) {
 
     function broken(reason, recoverable) {
         logHandledError(reason);
-        recordOneFailed(archiveURL, reason, recoverable, archivable, dumpSize);
+        recordOneUnarchived(archiveURL, reason, recoverable, archivable, dumpSize);
     }
 
     let response;
@@ -2329,13 +2330,13 @@ async function submitHTTPOne(archivable) {
         return false;
     }
 
-    retryOneFailed(archiveURL, true);
+    retryOneUnarchived(archiveURL, true);
     globals.submittedHTTPTotal += 1;
     globals.submittedHTTPSize += loggable.dumpSize;
     loggable.archived |= archivedViaSubmitHTTP;
     loggable.dirty = true;
 
-    gotNewArchivedOrFailed = true;
+    gotNewArchivedOrNot = true;
     return true;
 }
 
@@ -2365,9 +2366,9 @@ async function processArchiving() {
             // other archival methods go here
 
             if (!allOK)
-                // it's in reqresFailedToArchiveByArchiveError now, stash it without
-                // recording it in reqresFailedToStashByError and
-                // reqresFailedToStashByArchivable
+                // it's in reqresUnarchivedByArchiveError now, stash it without
+                // recording it in reqresUnstashedByError and
+                // reqresUnstashedByArchivable
                 await doSyncOne(archivable, 1, true).catch(logError);
             else if (config.archiveSaveLS)
                 await saveOne(archivable);
@@ -2384,7 +2385,7 @@ async function processArchiving() {
     }
 
     broadcast(["resetQueued", getQueuedLog()]);
-    broadcast(["resetFailed", getFailedLog()]);
+    broadcast(["resetUnarchived", getUnarchivedLog()]);
 }
 
 // tracking and capture
@@ -3468,7 +3469,7 @@ function handleErrorOccurred(e) {
 }
 
 function handleNotificationClicked(notificationId) {
-    if (reqresFailedToArchiveByArchivable.size === 0) return;
+    if (reqresUnarchivedByArchivable.size === 0) return;
 
     browser.tabs.create({
         url: browser.runtime.getURL("/page/help.html#errors"),
@@ -3608,7 +3609,7 @@ function handleMessage(request, sender, sendResponse) {
             stashAll(false);
 
         if (config.archive && oldConfig.archive !== config.archive)
-            scheduleRetryFailed(0, false);
+            scheduleRetryUnarchived(0, false);
 
         scheduleUpdateDisplay(true, null);
         broadcast(["updateConfig", config]);
@@ -3676,11 +3677,17 @@ function handleMessage(request, sender, sendResponse) {
     case "getQueuedLog":
         sendResponse(getQueuedLog());
         break;
-    case "getFailedLog":
-        sendResponse(getFailedLog());
+    case "getUnarchivedLog":
+        sendResponse(getUnarchivedLog());
         break;
     case "retryFailed":
-        scheduleRetryFailed(0, true);
+        scheduleRetryUnarchived(0, true);
+        scheduleRetryUnstashed();
+        // same as below
+        sendResponse(null);
+        break;
+    case "retryUnarchived":
+        scheduleRetryUnarchived(0, true);
         // technically, we need
         //scheduleUpdateDisplay(true, null);
         // here, but it would be useless, since timeout is 0
@@ -3714,7 +3721,8 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(null);
         break;
     case "retryUnstashed":
-        retryUnstashed();
+        scheduleRetryUnstashed();
+        scheduleEndgame(null);
         sendResponse(null);
         break;
     case "snapshot":
@@ -3961,7 +3969,7 @@ function fixConfig(config, oldConfig) {
 
     // to prevent surprises
     if (config.archive
-        && (reqresQueue.length > 0 || reqresFailedToArchiveByArchivable.size > 0)
+        && (reqresQueue.length > 0 || reqresUnarchivedByArchivable.size > 0)
         && (config.archiveExportAs !== oldConfig.archiveExportAs
          || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
          || config.archiveSaveLS !== oldConfig.archiveSaveLS)) {
