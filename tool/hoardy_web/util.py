@@ -19,6 +19,20 @@ import gzip as _gzip
 import io as _io
 import typing as _t
 
+InType = _t.TypeVar("InType")
+OutType = _t.TypeVar("OutType")
+def map_optional(f : _t.Callable[[InType], OutType], x : InType | None) -> OutType | None:
+    if x is None:
+        return None
+    else:
+        return f(x)
+
+def map_optionals(f : _t.Callable[[InType], list[OutType]], x : InType | None) -> list[OutType]:
+    if x is None:
+        return []
+    else:
+        return f(x)
+
 def gzip_maybe(data : bytes) -> bytes:
     """Given some bytes, return their GZipped version if they compress, return the original otherwise."""
 

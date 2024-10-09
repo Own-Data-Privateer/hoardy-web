@@ -36,7 +36,7 @@ from kisstdlib.exceptions import *
 
 from .wire import *
 from .mime import *
-from .util import make_func_pipe
+from .util import map_optional, map_optionals, make_func_pipe
 
 class LinkType(_enum.Enum):
     JUMP = 0
