@@ -374,11 +374,12 @@ def trivial_Reqres(url : ParsedURL,
                    stime : Epoch = Epoch(1000),
                    ftime : Epoch = Epoch(2000),
                    sniff : bool = False,
+                   headers : Headers = [],
                    data : bytes = b"") -> Reqres:
     nsh = [] if sniff else [("X-Content-Type-Options", b"nosniff")]
     return Reqres(1, "hoardy-test/1", "HTTP/1.1",
                   Request(qtime, "GET", url, [], True, b""),
-                  Response(stime, 200, "OK", [("Content-Type", content_type.encode("ascii"))] + nsh, True, data),
+                  Response(stime, 200, "OK", [("Content-Type", content_type.encode("ascii"))] + nsh + headers, True, data),
                   ftime,
                   {}, None)
 
@@ -387,6 +388,7 @@ def fallback_Reqres(url : ParsedURL,
                     qtime : Epoch = Epoch(0),
                     stime : Epoch = Epoch(1000),
                     ftime : Epoch = Epoch(2000),
+                    headers : Headers = [],
                     data : bytes = b"") -> Reqres:
     """Similar to `trivial_Reqres`, but trying to guess the `Content-Type` from the given `expected_content_types` and the extension."""
 
@@ -405,17 +407,17 @@ def fallback_Reqres(url : ParsedURL,
     cts = [ct for ct in expected_mime if ct in cts]
 
     if len(cts) > 0:
-        return trivial_Reqres(url, cts[0], stime, stime, stime, data=data)
+        return trivial_Reqres(url, cts[0], stime, stime, stime, headers=headers, data=data)
 
     # fallback this otherwise
-    return trivial_Reqres(url, "application/octet-stream", stime, stime, stime, data=data)
+    return trivial_Reqres(url, "application/octet-stream", stime, stime, stime, headers=headers, data=data)
 
-def mk_trivial_ReqresExpr(url : str, ct : str = "text/html", sniff : bool = False, data : bytes = b"") -> ReqresExpr:
-    x = trivial_Reqres(parse_url(url), ct, sniff=sniff, data=data)
+def mk_trivial_ReqresExpr(url : str, ct : str = "text/html", sniff : bool = False, headers : Headers = [], data : bytes = b"") -> ReqresExpr:
+    x = trivial_Reqres(parse_url(url), ct, sniff=sniff, headers=headers, data=data)
     return ReqresExpr(x, None, [])
 
-def mk_fallback_ReqresExpr(url : str, cts : list[str] = ["text/html"], data : bytes = b"") -> ReqresExpr:
-    x = fallback_Reqres(parse_url(url), cts)
+def mk_fallback_ReqresExpr(url : str, cts : list[str] = ["text/html"], headers : Headers = [], data : bytes = b"") -> ReqresExpr:
+    x = fallback_Reqres(parse_url(url), cts, headers=headers, data=data)
     return ReqresExpr(x, None, [])
 
 def test_ReqresExpr_url_parts() -> None:
@@ -429,12 +431,12 @@ def test_ReqresExpr_url_parts() -> None:
         check(x, "filepath_parts", list(parts))
 
     def check_fx(url : str, ct : str, sniff : bool, data : bytes, ext : str, *parts : str) -> None:
-        x = mk_trivial_ReqresExpr(url, ct, sniff, data)
+        x = mk_trivial_ReqresExpr(url, ct, sniff, [], data)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
     def check_ff(url : str, cts : list[str], data : bytes, ext : str, *parts : str) -> None:
-        x = mk_fallback_ReqresExpr(url, cts, data)
+        x = mk_fallback_ReqresExpr(url, cts, [], data)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
@@ -599,27 +601,37 @@ def linst_scrub() -> LinstAtom:
         return envfunc
     return [str, str], func
 
-def check_scrub(opts : str, url : str, ct : str, data : bytes, eres : bytes | str) -> None:
+def check_scrub(opts : str, url : str, ct : str, headers : Headers, data : bytes, eres : bytes | str) -> None:
     def sc(sniff : bool) -> None:
-        t = trivial_Reqres(parse_url(url), ct, sniff=sniff, data=data)
+        t = trivial_Reqres(parse_url(url), ct, sniff=sniff, headers=headers, data=data)
         x = ReqresExpr(t, None, [])
 
         res = x[f"response.body|eb|scrub response {opts}"]
         if res != eres:
-            stdout.write_ln(res)
-            stdout.write_ln("=======")
+            stdout.write_ln("input:")
+            stdout.write_ln("==== START ====")
+            stdout.write_ln(data)
+            stdout.write_ln("===== END =====")
+            stdout.write_ln("expected:")
+            stdout.write_ln("==== START ====")
             stdout.write_ln(eres)
+            stdout.write_ln("===== END =====")
+            stdout.write_ln("got:")
+            stdout.write_ln("==== START ====")
+            stdout.write_ln(res)
+            stdout.write_ln("===== END =====")
             stdout.flush()
             raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", opts, x, eres, res)
     sc(False)
     sc(True)
 
 def test_ReqresExpr_scrub_html() -> None:
-    test1 = b"""<!DOCTYPE html>
+    check_scrub("+verbose,+whitespace", "https://example.com/", "text/html", [], b"""<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
     <title>Test page</title>
+    <link as=script rel=preload href="https://example.com/main.js">
     <script>x = 1;</script>
     <script src="inc1.js"></script>
     <style>
@@ -636,11 +648,10 @@ def test_ReqresExpr_scrub_html() -> None:
     <script src="inc2.js"></script>
   </body>
 </html>
-"""
-
-    check_scrub("+verbose,+whitespace", "https://example.com/", "text/html", test1, b"""<!DOCTYPE html><html><head>
+""", b"""<!DOCTYPE html><html><head>
     <meta charset=utf-8>
     <title>Test page</title>
+    <!-- hoardy-web censored out EmptyTag link from here -->
     <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out Characters from here --><!-- hoardy-web censored out EndTag script from here -->
     <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
     <style>
@@ -660,14 +671,12 @@ def test_ReqresExpr_scrub_html() -> None:
 </body></html>""")
 
 def test_ReqresExpr_scrub_css() -> None:
-    test1 = b"""
+    check_scrub("+verbose,+whitespace", "https://example.com/test.css", "text/css", [], b"""
 body {
   background: url(./background.jpg);
   *zoom: 1;
 }
-"""
-
-    check_scrub("+verbose,+whitespace", "https://example.com/test.css", "text/css", test1, """
+""", """
 body {
   background: url(data:text/plain;base64,);
   *zoom: 1;
