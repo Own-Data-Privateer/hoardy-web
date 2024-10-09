@@ -37,7 +37,7 @@ def get_raw_header(headers : Headers, name : str, default : bytes | None = None)
     if len(res) == 0:
         return default
     else:
-        return res[-1]
+        return res[0]
 
 def get_header(headers : Headers, name : str, default : str | None = None) -> str | None:
     res = get_raw_header(headers, name)
