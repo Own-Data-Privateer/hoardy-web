@@ -58,16 +58,58 @@ def get_void_url(link_type : LinkType) -> str:
 
 URLRemapper = _t.Callable[[LinkType, list[str] | None, str], str | None] | None
 
-HTML5Token = dict[str, _t.Any]
+HTML5Node = dict[str, _t.Any]
+HTML5NN = tuple[str | None, str] # NN = namespaced name
+HTML5NodeAttr = tuple[HTML5NN, HTML5NN] # tuple[namespaced token name, namespaced attribute name]
 CSSNode : _t.TypeAlias = _tcss.ast.Node
+
+htmlns = _h5.constants.namespaces["html"]
+xlinkns = _h5.constants.namespaces["xlink"]
+xmlns = _h5.constants.namespaces["xml"]
+
+htmlns_html = (htmlns, "html")
+htmlns_head = (htmlns, "head")
+htmlns_body = (htmlns, "body")
+
+def in_head(stack : list[HTML5NN]) -> bool:
+    return stack == [htmlns_html, htmlns_head]
+
+htmlns_a = (htmlns, "a")
+htmlns_area = (htmlns, "area")
+htmlns_audio = (htmlns, "audio")
+htmlns_base = (htmlns, "base")
+htmlns_blockquote = (htmlns, "blockquote")
+htmlns_button = (htmlns, "button")
+htmlns_del = (htmlns, "del")
+htmlns_embed = (htmlns, "embed")
+htmlns_form = (htmlns, "form")
+htmlns_iframe = (htmlns, "iframe")
+htmlns_img = (htmlns, "img")
+htmlns_input = (htmlns, "input")
+htmlns_ins = (htmlns, "ins")
+htmlns_link = (htmlns, "link")
+htmlns_meta= (htmlns, "meta")
+htmlns_object = (htmlns, "object")
+htmlns_q = (htmlns, "q")
+htmlns_script = (htmlns, "script")
+htmlns_source = (htmlns, "source")
+htmlns_style = (htmlns, "style")
+htmlns_title = (htmlns, "title")
+htmlns_track = (htmlns, "track")
+htmlns_video = (htmlns, "video")
+
+def debug_walker(walker : _t.Iterator[HTML5Node]) -> _t.Iterator[HTML5Node]:
+    for token in walker:
+        print(token)
+        yield token
 
 # HTML elements that must preserve space
 _spacePreserveElements = _h5ws.Filter.spacePreserveElements
 # HTML elements that ignore space completely (and so it can be added or removed arbitrarily)
 _space_okElements = frozenset(["html", "head", "frameset"])
 
-def prettify_html(indent : int, relaxed : bool, walker : _t.Iterator[HTML5Token]) \
-        -> _t.Iterator[HTML5Token]:
+def prettify_html(indent : int, relaxed : bool, walker : _t.Iterator[HTML5Node]) \
+        -> _t.Iterator[HTML5Node]:
     """HTML prettification html5lib.Filter that adds lots of indent.
     """
 
@@ -85,7 +127,7 @@ def prettify_html(indent : int, relaxed : bool, walker : _t.Iterator[HTML5Token]
             return True
         return False
 
-    def emit_indent() -> _t.Generator[HTML5Token, None, bool]:
+    def emit_indent() -> _t.Generator[HTML5Node, None, bool]:
         if on_space or relaxed or space_ok():
             if newline:
                 chars = " " * (indent * current)
@@ -96,7 +138,7 @@ def prettify_html(indent : int, relaxed : bool, walker : _t.Iterator[HTML5Token]
         else:
             return False
 
-    prev_token : HTML5Token | None = None
+    prev_token : HTML5Node | None = None
     for token in walker:
         typ = token["type"]
         if typ == "Doctype":
@@ -149,76 +191,77 @@ def prettify_html(indent : int, relaxed : bool, walker : _t.Iterator[HTML5Token]
                 newline = False
         prev_token = token
 
-ie_pragma_re = _re.compile(r"^\s*(\[if IE [^]]*\].*\[endif\]|\[if !IE\]><!|<!\[endif\])\s*$")
-
-htmlns = _h5.constants.namespaces["html"]
-xlinkns = _h5.constants.namespaces["xlink"]
-xmlns = _h5.constants.namespaces["xml"]
-in_head = [(htmlns, "html"), (htmlns, "head")]
-
-htmlns_base = (htmlns, "base")
-htmlns_script = (htmlns, "script")
-htmlns_iframe = (htmlns, "iframe")
-htmlns_style = (htmlns, "style")
-htmlns_link = (htmlns, "link")
-
-style_attr = (None, "style")
-rel_attr = (None, "rel")
+action_attr = (None, "action")
+cite_attr = (None, "cite")
+content_attr = (None, "content")
+crossorigin_attr = (None, "crossorigin")
+data_attr = (None, "data")
+formaction_attr = (None, "formaction")
 href_attr = (None, "href")
+http_equiv_attr = (None, "http-equiv")
+integrity_attr = (None, "integrity")
+nonce_attr = (None, "nonce")
+ping_attr = (None, "ping")
+poster_attr = (None, "poster")
+rel_attr = (None, "rel")
+src_attr = (None, "src")
+srcset_attr = (None, "srcset")
+style_attr = (None, "style")
 
-NS = tuple[str | None, str]
+RelRefType = tuple[LinkType, list[str]]
+jump_ref : RelRefType = (LinkType.JUMP, page_mime)
+action_ref : RelRefType = (LinkType.ACTION, page_mime)
 
-jump_ref = (LinkType.JUMP, page_mime)
-action_ref = (LinkType.ACTION, page_mime)
+ref_types_of_node_attrs : dict[HTML5NodeAttr, RelRefType]
+ref_types_of_node_attrs = {
+    (htmlns_a,      href_attr): jump_ref,
+    (htmlns_area,   href_attr): jump_ref,
+    #(htmlns_base,   href_attr): handled_separately,
+    (htmlns_blockquote, cite_attr): jump_ref,
+    (htmlns_del,    cite_attr): jump_ref,
+    (htmlns_ins,    cite_attr): jump_ref,
+    #(htmlns_link,   href_attr): handled_separately,
+    (htmlns_object, data_attr): jump_ref,
+    (htmlns_q,      cite_attr): jump_ref,
 
-attr_ref_types : dict[tuple[NS, NS], tuple[LinkType, list[str]]]
-attr_ref_types = {
-    ((htmlns, "a"),      (None, "href")): jump_ref,
-    ((htmlns, "area"),   (None, "href")): jump_ref,
-    (htmlns_base,        (None, "href")): jump_ref,
-    ((htmlns, "blockquote"), (None, "cite")): jump_ref,
-    ((htmlns, "del"),    (None, "cite")): jump_ref,
-    ((htmlns, "ins"),    (None, "cite")): jump_ref,
-    ((htmlns, "object"), (None, "data")): jump_ref,
-    ((htmlns, "q"),      (None, "cite")): jump_ref,
+    (htmlns_a,      ping_attr): action_ref,
+    (htmlns_area,   ping_attr): action_ref,
+    (htmlns_button, formaction_attr): action_ref,
+    (htmlns_form,   action_attr): action_ref,
+    (htmlns_input,  formaction_attr): action_ref,
 
-    ((htmlns, "a"),      (None, "ping")): action_ref,
-    ((htmlns, "area"),   (None, "ping")): action_ref,
-    ((htmlns, "button"), (None, "formaction")): action_ref,
-    ((htmlns, "form"),   (None, "action")): action_ref,
-    ((htmlns, "input"),  (None, "formaction")): action_ref,
-
-    ((htmlns, "audio"),  (None, "src")): (LinkType.REQ, audio_mime + audio_video_mime),
-    ((htmlns, "embed"),  (None, "src")): (LinkType.REQ, ["application/octet-stream"]),
-    ((htmlns, "iframe"), (None, "src")): (LinkType.REQ, page_mime),
-    ((htmlns, "img"),    (None, "src")): (LinkType.REQ, image_mime),
-    ((htmlns, "input"),  (None, "src")): (LinkType.REQ, image_mime),
-    ((htmlns, "script"), (None, "src")): (LinkType.REQ, script_mime),
-    ((htmlns, "source"), (None, "src")): (LinkType.REQ, media_mime),
-    ((htmlns, "track"),  (None, "src")): (LinkType.REQ, track_mime),
-    ((htmlns, "video"),  (None, "poster")): (LinkType.REQ, image_mime),
-    ((htmlns, "video"),  (None, "src")): (LinkType.REQ, video_mime + audio_video_mime),
+    (htmlns_audio,  src_attr): (LinkType.REQ, audio_mime + audio_video_mime),
+    (htmlns_embed,  src_attr): (LinkType.REQ, ["application/octet-stream"]),
+    (htmlns_iframe, src_attr): (LinkType.REQ, page_mime),
+    (htmlns_img,    src_attr): (LinkType.REQ, image_mime),
+    #(htmlns_img,    srcset_attr): handled_separately,
+    (htmlns_input,  src_attr): (LinkType.REQ, image_mime),
+    (htmlns_script, src_attr): (LinkType.REQ, script_mime),
+    (htmlns_source, src_attr): (LinkType.REQ, media_mime),
+    (htmlns_track,  src_attr): (LinkType.REQ, track_mime),
+    (htmlns_video,  poster_attr): (LinkType.REQ, image_mime),
+    (htmlns_video,  src_attr): (LinkType.REQ, video_mime + audio_video_mime),
 }
 
-link_attrs : frozenset[tuple[NS, NS]]
-link_attrs = frozenset([
-    (htmlns_link,        (None, "href")),
+link_node_attrs : frozenset[HTML5NodeAttr]
+link_node_attrs = frozenset([
+    (htmlns_link, href_attr),
 ])
 
-rel_ref_types : dict[str, tuple[LinkType, list[str]]]
+rel_ref_types : dict[str, RelRefType]
 rel_ref_types = {
     "stylesheet": (LinkType.REQ, stylesheet_mime),
     "icon":       (LinkType.REQ, image_mime),
     "shortcut":   (LinkType.REQ, image_mime),
 }
 
-srcset_attrs = frozenset([
-    ((htmlns, "img"),    (None, "srcset")),
+srcset_node_attrs = frozenset([
+    (htmlns_img,  srcset_attr),
 ])
 
-tracking_attrs = frozenset([
-    ((htmlns, "a"),      (None, "ping")),
-    ((htmlns, "area"),   (None, "ping")),
+tracking_node_attrs = frozenset([
+    (htmlns_a,    ping_attr),
+    (htmlns_area, ping_attr),
 ])
 
 prefetch_link_rels = frozenset([
@@ -229,27 +272,24 @@ stylesheet_link_rels = frozenset([
     "stylesheet", "ie-optimized-stylesheet-desk", "ie-optimized-onevent-stylesheet",
 ])
 
-crossorigin_attr = (None, "crossorigin")
-
-cors_attrs = frozenset([
-    ((htmlns, "audio"),        crossorigin_attr),
-    ((htmlns, "img"),          crossorigin_attr),
-    (htmlns_link,              crossorigin_attr),
-    ((htmlns, "script"),       crossorigin_attr),
-    ((htmlns, "video"),        crossorigin_attr),
+cors_node_attrs = frozenset([
+    (htmlns_audio,  crossorigin_attr),
+    (htmlns_img,    crossorigin_attr),
+    (htmlns_link,   crossorigin_attr),
+    (htmlns_script, crossorigin_attr),
+    (htmlns_video,  crossorigin_attr),
 ])
 
-integrity_attr = (None, "integrity")
-nonce_attr = (None, "nonce")
+sri_node_attrs = frozenset([
+    (htmlns_link,   integrity_attr),
+    (htmlns_script, integrity_attr),
+    (htmlns_style,  integrity_attr),
 
-sri_attrs = frozenset([
-    (htmlns_link,              integrity_attr),
-    ((htmlns, "script"),       integrity_attr),
-    ((htmlns, "style"),        integrity_attr),
-
-    ((htmlns, "script"),       nonce_attr),
-    ((htmlns, "style"),        nonce_attr),
+    (htmlns_script, nonce_attr),
+    (htmlns_style,  nonce_attr),
 ])
+
+ie_pragma_re = _re.compile(r"^\s*(\[if IE [^]]*\].*\[endif\]|\[if !IE\]><!|<!\[endif\])\s*$")
 
 @_dc.dataclass
 class ScrubbingOptions:
@@ -271,21 +311,21 @@ class ScrubbingOptions:
     debug : bool = _dc.field(default=False)
 
 ScrubbingReferenceOptions = ["jumps", "actions", "reqs"]
-ScrubbingDynamicOpts = ["scripts", "iframes", "styles", "iepragmas", "prefetches", "tracking"]
+ScrubbingDynamicOpts = ["styles", "scripts", "iepragmas", "iframes", "prefetches", "tracking", "navigations"]
 
 Scrubbers = tuple[
-    _t.Callable[[str, URLRemapper, _t.Iterator[HTML5Token]], _t.Iterator[HTML5Token]],
+    _t.Callable[[str, URLRemapper, _t.Iterator[HTML5Node]], _t.Iterator[HTML5Node]],
     _t.Callable[[str, URLRemapper, _t.Iterator[CSSNode]], list[CSSNode]],
 ]
 
 class CSSScrubbingError(Failure): pass
 
 def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
-    attr_blacklist : set[tuple[NS, NS]] = set()
-    attr_blacklist.update(cors_attrs)
-    attr_blacklist.update(sri_attrs)
+    attr_blacklist : set[HTML5NodeAttr] = set()
+    attr_blacklist.update(cors_node_attrs)
+    attr_blacklist.update(sri_node_attrs)
     if not opts.tracking:
-        attr_blacklist.update(tracking_attrs)
+        attr_blacklist.update(tracking_node_attrs)
 
     link_rel_blacklist : set[str] = set()
     if not opts.styles:
@@ -436,7 +476,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
     def scrub_html(base_url : str,
                    remap_url : URLRemapper,
-                   walker : _t.Iterator[HTML5Token]) -> _t.Iterator[HTML5Token]:
+                   walker : _t.Iterator[HTML5Node]) -> _t.Iterator[HTML5Node]:
         orig_base_url = base_url
         base_url_unset = True
 
@@ -446,7 +486,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         assembling : bool = False
         contents : list[str] = []
 
-        def emit_censored(what : str) -> _t.Iterator[HTML5Token]:
+        def emit_censored(what : str) -> _t.Iterator[HTML5Node]:
             if yes_verbose:
                 yield {"type": "Comment", "data": f" hoardy-web censored out {what} from here "}
 
@@ -469,7 +509,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 # handle <base ...> tag
                 if base_url_unset and \
                    nn == htmlns_base and \
-                   stack == in_head:
+                   in_head(stack):
                     href = attrs.get(href_attr, None)
                     if href is not None:
                         # add root slash to the URL if it's missing one
@@ -527,12 +567,12 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                             continue
 
                         value = attrs[ann]
-                        ref = attr_ref_types.get(nnann, None)
+                        ref = ref_types_of_node_attrs.get(nnann, None)
                         if ref is not None:
                             # turn relative URLs into absolute ones, and then mangle them with remap_url
                             link_type, cts = ref
                             attrs[ann] = remap_link(base_url, link_type, cts, remap_url, value.strip())
-                        elif nnann in link_attrs:
+                        elif nnann in link_node_attrs:
                             # similarly for `link`s, except `link_type` and `fallbacks` depend on `rel` attribute value
                             slink_type, cts = None, []
                             for rel in link_rels:
@@ -542,7 +582,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                 cts += [e for e in cts_ if e not in cts]
                             link_type = slink_type if slink_type is not None else LinkType.JUMP
                             attrs[ann] = remap_link(base_url, link_type, cts, remap_url, value.strip())
-                        elif nnann in srcset_attrs:
+                        elif nnann in srcset_node_attrs:
                             # similarly
                             srcset = parse_srcset_attr(value)
                             new_srcset = []
@@ -567,7 +607,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         assembling = True
             elif typ == "EndTag":
                 # stop handling <base ...> tag
-                if stack == in_head:
+                if in_head(stack):
                     base_url_unset = False
                 # scrub <style> contents
                 elif assembling:
