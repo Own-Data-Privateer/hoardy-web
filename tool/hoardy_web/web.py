@@ -18,6 +18,7 @@
 """Parsing and scrubbing of HTML data.
 """
 
+import collections as _c
 import dataclasses as _dc
 import enum as _enum
 import re as _re
@@ -208,6 +209,31 @@ src_attr = (None, "src")
 srcset_attr = (None, "srcset")
 style_attr = (None, "style")
 
+def headers_to_meta_http_equiv(headers : Headers) -> _t.Iterator[HTML5Node]:
+    """Produce `<meta http-equiv>` tags from given `HTTP` headers."""
+
+    def emit_http_eqiuv(typ : str, value : str) -> _t.Iterator[HTML5Node]:
+        attrs = _c.OrderedDict()
+        attrs[http_equiv_attr] = typ
+        attrs[content_attr] = value
+        yield {"type": "EmptyTag", "namespace": htmlns, "name": "meta", "data": attrs}
+
+    # `Content-Type` headers are handled by `html5lib` and
+    # `protocol_encoding` below, so we ignore them here.
+
+    # `Content-Security-Policy` can be specified multiple times.
+    for csph in get_headers(headers, "content-security-policy"):
+        yield from emit_http_eqiuv("content-security-policy", csph)
+
+    # These headers should be inlined verbatim.
+    for name, value in headers:
+        if name.lower() in ["x-ua-compatible", "default-style", "refresh"]:
+            yield from emit_http_eqiuv(name, value.decode("ascii"))
+
+    # `Link` can be specified multiple times.
+    for lh in get_headers(headers, "link"):
+        yield from emit_http_eqiuv("link", lh)
+
 RelRefType = tuple[LinkType, list[str]]
 jump_ref : RelRefType = (LinkType.JUMP, page_mime)
 action_ref : RelRefType = (LinkType.ACTION, page_mime)
@@ -303,6 +329,7 @@ class ScrubbingOptions:
     iframes : bool = _dc.field(default=True)
     prefetches : bool = _dc.field(default=False)
     tracking : bool = _dc.field(default=False)
+    navigations : bool = _dc.field(default=False)
     verbose : bool = _dc.field(default=False)
     whitespace : bool = _dc.field(default=False)
     optional_tags : bool = _dc.field(default=True)
@@ -314,8 +341,8 @@ ScrubbingReferenceOptions = ["jumps", "actions", "reqs"]
 ScrubbingDynamicOpts = ["styles", "scripts", "iepragmas", "iframes", "prefetches", "tracking", "navigations"]
 
 Scrubbers = tuple[
-    _t.Callable[[str, URLRemapper, _t.Iterator[HTML5Node]], _t.Iterator[HTML5Node]],
-    _t.Callable[[str, URLRemapper, _t.Iterator[CSSNode]], list[CSSNode]],
+    _t.Callable[[str, URLRemapper, Headers, _t.Iterator[HTML5Node]], _t.Iterator[HTML5Node]],
+    _t.Callable[[str, URLRemapper, Headers, _t.Iterator[CSSNode]], list[CSSNode]],
 ]
 
 class CSSScrubbingError(Failure): pass
@@ -340,22 +367,23 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     not_scripts = not opts.scripts
     not_iepragmas = not opts.iepragmas
     not_iframes = not opts.iframes
+    yes_navigations = opts.navigations
     yes_verbose = opts.verbose
     not_verbose = not opts.verbose
     not_whitespace = not opts.whitespace
     yes_indent = opts.indent
     indent_step = opts.indent_step
 
-    def remap_link(base_url : str,
-                   link_type : LinkType,
-                   fallbacks : list[str],
-                   remap_url : URLRemapper,
-                   url : str) -> str:
+    def remap_link_maybe(base_url : str,
+                         link_type : LinkType,
+                         fallbacks : list[str],
+                         remap_url : URLRemapper,
+                         url : str) -> str | None:
         try:
             url = _up.urljoin(base_url, url)
         except ValueError:
             # the `url` is malformed
-            return get_void_url(link_type)
+            return None
 
         if url.startswith("javascript:"):
             if not_scripts:
@@ -376,7 +404,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         if rt == RemapType.ID:
             return url
         elif rt == RemapType.VOID:
-            return get_void_url(link_type)
+            return None
 
         rurl : str | None = None
         if remap_url is not None:
@@ -387,7 +415,17 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         elif rt == RemapType.OPEN:
             return url
         else: # rt == RemapType.CLOSED or rt == RemapType.FALLBACK
+            return None
+
+    def remap_link(base_url : str,
+                   link_type : LinkType,
+                   fallbacks : list[str],
+                   remap_url : URLRemapper,
+                   url : str) -> str:
+        res = remap_link_maybe(base_url, link_type, fallbacks, remap_url, url)
+        if res is None:
             return get_void_url(link_type)
+        return res
 
     def scrub_css(base_url : str,
                   remap_url : URLRemapper,
@@ -474,23 +512,66 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
             newline = False
         return res
 
-    def scrub_html(base_url : str,
+    def goes_before_inlines(nn : HTML5NN, attrs : _c.OrderedDict[HTML5NN, str]) -> bool:
+        """Should this `<html><head>` tag go before the ones produced by `headers_to_meta_http_equiv`?"""
+        if nn == htmlns_base or nn == htmlns_title:
+            return True
+        elif nn == htmlns_meta:
+            if (None, "charset") in attrs:
+                return True
+            he = attrs.get(http_equiv_attr, None)
+            if he is not None and he.lower() == "content-type":
+                return True
+        return False
+
+    def link_rels_of(rels : str) -> list[str]:
+        rparts = word_re.findall(rels)
+        return [r for r in rparts if r not in link_rel_blacklist]
+
+    def rel_ref_type_of(link_rels : list[str]) -> RelRefType:
+        slink_type = None
+        cts = []
+        for rel in link_rels:
+            link_type_, cts_ = rel_ref_types.get(rel, jump_ref)
+            if slink_type is None or link_type_ == LinkType.REQ:
+                slink_type = link_type_
+            cts += [e for e in cts_ if e not in cts]
+        link_type = slink_type if slink_type is not None else LinkType.JUMP
+        return link_type, cts
+
+    def scrub_html(orig_base_url : str,
                    remap_url : URLRemapper,
+                   headers : Headers,
                    walker : _t.Iterator[HTML5Node]) -> _t.Iterator[HTML5Node]:
-        orig_base_url = base_url
-        base_url_unset = True
-
         censor_lvl : int = 0
-        stack : list[tuple[str | None, str]] = []
+        stack : list[HTML5NN] = []
 
-        assembling : bool = False
+        assembling = False
         contents : list[str] = []
 
-        def emit_censored(what : str) -> _t.Iterator[HTML5Node]:
-            if yes_verbose:
-                yield {"type": "Comment", "data": f" hoardy-web censored out {what} from here "}
+        # `inline_headers` handling
+        inline_headers_undone = True
 
-        for token in walker:
+        # `<base>` tag handling
+        base_url = orig_base_url
+        base_url_unset = True
+
+        def emit_censored(why : str) -> _t.Iterator[HTML5Node]:
+            if yes_verbose:
+                yield {"type": "Comment", "data": f" hoardy-web censored out {why} from here "}
+
+        backlog : list[HTML5Node] = []
+        witer = iter(walker)
+
+        while True:
+            if len(backlog) > 0:
+                token = backlog.pop(0)
+            else:
+                try:
+                    token = next(witer)
+                except StopIteration:
+                    break
+
             typ = token["type"]
 
             if assembling and (typ == "Characters" or typ == "SpaceCharacters"):
@@ -504,16 +585,26 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
             if typ == "StartTag" or typ == "EmptyTag":
                 nn = (token["namespace"], token["name"])
-                attrs = token["data"]
+                attrs : _c.OrderedDict[HTML5NN, str] = token["data"]
+
+                # Handle HTTP header inlining.
+                # Put them after `<base>`, `<title>`, and charset-controlling `<meta>` headers.
+                if inline_headers_undone and \
+                   not goes_before_inlines(nn, attrs) and \
+                   in_head(stack):
+                    # inline them before this token
+                    backlog = list(headers_to_meta_http_equiv(headers)) + [token] + backlog
+                    inline_headers_undone = False
+                    continue
 
                 # handle <base ...> tag
                 if base_url_unset and \
                    nn == htmlns_base and \
                    in_head(stack):
-                    href = attrs.get(href_attr, None)
+                    href = map_optional(lambda x: x.strip(), attrs.get(href_attr, None))
                     if href is not None:
                         # add root slash to the URL if it's missing one
-                        purl = _up.urlsplit(href.strip())
+                        purl = _up.urlsplit(href)
                         if purl.netloc != "" and purl.path == "":
                             href = _up.urlunsplit((purl.scheme, purl.netloc, "/", purl.query, purl.fragment))
                         else:
@@ -527,6 +618,60 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                     # censor the original tag for simplicity
                     censoring = True
 
+                if not censoring and nn == htmlns_meta and http_equiv_attr in attrs:
+                    kind = attrs[http_equiv_attr].lower()
+                    content = attrs.get(content_attr, None)
+                    # NB: These are always rebased onto `orig_base_url`, not the `base_url`.
+                    if kind in ["content-type", "x-ua-compatible", "default-style"] and content is not None:
+                        # simply accept these
+                        pass
+                    elif kind == "refresh" and content is not None:
+                        if yes_navigations:
+                            osecs, href = parse_refresh_header(content)
+                            if osecs is not None:
+                                if href is None:
+                                    attrs[content_attr] = str(osecs)
+                                else:
+                                    href = remap_link_maybe(orig_base_url, LinkType.JUMP, page_mime, remap_url, href)
+                                    if href is not None:
+                                        attrs[content_attr] = str(osecs) + ";url=" + href
+                                    else:
+                                        censoring = True
+                            else:
+                                censoring = True
+                        else:
+                            censoring = True
+                    elif kind == "link" and content is not None:
+                        # replace this header with a sequence of `<link>` headers
+                        nbacklog = []
+                        for url, params in parse_link_header(content):
+                            try:
+                                url = _up.urljoin(orig_base_url, url)
+                            except ValueError:
+                                # the `url` is malformed
+                                pass
+                            else:
+                                tattrs = _c.OrderedDict()
+                                for k, v in params:
+                                    nk = (None, k)
+                                    # only the first value matters, href_attr is not allowed
+                                    if nk in tattrs or nk == href_attr:
+                                        continue
+                                    tattrs[nk] = v
+                                tattrs[href_attr] = url
+                                nbacklog.append({"type": "EmptyTag", "namespace": htmlns, "name": "link", "data": tattrs})
+
+                        if len(nbacklog) > 0:
+                            # reset
+                            backlog = nbacklog + backlog
+                            continue
+                        else:
+                            censoring = True
+                    else:
+                        # censor all others
+                        censoring = True
+                    # TODO XXX: also parse and remap `content-security-policy`
+
                 link_rels = []
                 if not censoring:
                     if not_scripts and nn == htmlns_script or \
@@ -536,15 +681,12 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         censoring = True
                     elif nn == htmlns_link:
                         # censor link rel attributes
-                        rels_ = attrs.get(rel_attr, None)
-                        if rels_ is not None:
-                            rels = word_re.findall(rels_)
-                            link_rels = list(filter(lambda r: r not in link_rel_blacklist, rels))
-                            if len(link_rels) > 0:
-                                attrs[rel_attr] = " ".join(link_rels)
-                            else:
-                                # censor the whole tag in this case
-                                censoring = True
+                        link_rels = map_optionals(link_rels_of, attrs.get(rel_attr, None))
+                        if len(link_rels) > 0:
+                            attrs[rel_attr] = " ".join(link_rels)
+                        else:
+                            # censor the whole tag in this case
+                            censoring = True
 
                 if not censoring:
                     # scrub attributes
@@ -574,13 +716,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                             attrs[ann] = remap_link(base_url, link_type, cts, remap_url, value.strip())
                         elif nnann in link_node_attrs:
                             # similarly for `link`s, except `link_type` and `fallbacks` depend on `rel` attribute value
-                            slink_type, cts = None, []
-                            for rel in link_rels:
-                                link_type_, cts_ = rel_ref_types.get(rel, jump_ref)
-                                if slink_type is None or link_type_ == LinkType.REQ:
-                                    slink_type = link_type_
-                                cts += [e for e in cts_ if e not in cts]
-                            link_type = slink_type if slink_type is not None else LinkType.JUMP
+                            link_type, cts = rel_ref_type_of(link_rels)
                             attrs[ann] = remap_link(base_url, link_type, cts, remap_url, value.strip())
                         elif nnann in srcset_node_attrs:
                             # similarly
@@ -608,6 +744,11 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
             elif typ == "EndTag":
                 # stop handling <base ...> tag
                 if in_head(stack):
+                    # as a fallback, dump inlines here
+                    if inline_headers_undone:
+                        backlog = list(headers_to_meta_http_equiv(headers)) + [token] + backlog
+                        inline_headers_undone = False
+                        continue
                     base_url_unset = False
                 # scrub <style> contents
                 elif assembling:
@@ -652,20 +793,21 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
     pipe = make_func_pipe(stages)
 
-    process_html = lambda base_url, remap_url, walker: pipe(scrub_html(base_url, remap_url, walker))
-    process_css = lambda base_url, remap_url, nodes: scrub_css(base_url, remap_url, nodes, 0 if yes_indent else None)
+    process_html = lambda base_url, remap_url, headers, walker: pipe(scrub_html(base_url, remap_url, headers, walker))
+    process_css = lambda base_url, remap_url, headers, nodes: scrub_css(base_url, remap_url, nodes, 0 if yes_indent else None)
     return process_html, process_css
 
 def scrub_css(scrubbers : Scrubbers,
               base_url : str,
               remap_url : URLRemapper,
-              data : str | bytes,
+              headers : Headers,
+              body : str | bytes,
               protocol_encoding : str | None) -> str:
-    if isinstance(data, str):
-        nodes = _tcss.parse_stylesheet(data)
+    if isinstance(body, str):
+        nodes = _tcss.parse_stylesheet(body)
     else:
-        nodes, encoding = _tcss.parse_stylesheet_bytes(data, protocol_encoding=protocol_encoding)
-    res = scrubbers[1](base_url, remap_url, nodes)
+        nodes, encoding = _tcss.parse_stylesheet_bytes(body, protocol_encoding=protocol_encoding)
+    res = scrubbers[1](base_url, remap_url, headers, nodes)
     return _tcss.serialize(res) # type: ignore
 
 _html5treebuilder = _h5.treebuilders.getTreeBuilder("etree", fullTree=True)
@@ -676,9 +818,10 @@ _html5serializer = _h5.serializer.HTMLSerializer(strip_whitespace = False, omit_
 def scrub_html(scrubbers : Scrubbers,
                base_url : str,
                remap_url : URLRemapper,
-               data : str | bytes,
+               headers : Headers,
+               body : str | bytes,
                protocol_encoding : str | None) -> str:
-    dom = _html5parser.parse(data, likely_encoding=protocol_encoding)
+    dom = _html5parser.parse(body, likely_encoding=protocol_encoding)
     charEncoding = _html5parser.tokenizer.stream.charEncoding[0]
-    walker = scrubbers[0](base_url, remap_url, _html5walker(dom))
+    walker = scrubbers[0](base_url, remap_url, headers, _html5walker(dom))
     return _html5serializer.render(walker, charEncoding.name) # type: ignore

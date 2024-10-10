@@ -41,6 +41,9 @@ from .web import *
 class RRCommon:
     _dtc : dict[SniffContentType, DiscernContentType]
 
+    def get_headers(self, name : str) -> list[str]:
+        return get_headers(self.headers, name) # type: ignore
+
     def get_header(self, name : str, default : str | None = None) -> str | None:
         return get_header(self.headers, name, default) # type: ignore
 
@@ -591,9 +594,9 @@ def linst_scrub() -> LinstAtom:
                 return f"/* hoardy censored out {what} blob ({mime}) from here */\n" if scrub_opts.verbose else b""
 
             if "html" in kinds:
-                return scrub_html(scrubbers, rrexpr.net_url, rrexpr.remap_url, rere_obj.body, charset)
+                return scrub_html(scrubbers, rrexpr.net_url, rrexpr.remap_url, rere_obj.headers, rere_obj.body, charset)
             elif "css" in kinds:
-                return scrub_css(scrubbers, rrexpr.net_url, rrexpr.remap_url, rere_obj.body, charset)
+                return scrub_css(scrubbers, rrexpr.net_url, rrexpr.remap_url, rere_obj.headers, rere_obj.body, charset)
             else:
                 # no scrubbing needed
                 return rere_obj.body
@@ -670,6 +673,81 @@ def test_ReqresExpr_scrub_html() -> None:
 
 </body></html>""")
 
+    check_scrub("+all_refs,+scripts,+prefetches,+navigations,+verbose,+indent", "https://example.com/", "text/html", [
+        ("Link", b"</main.js>; as=script; rel=preload"),
+        ("Link", b"<https://example.org/first.css>; rel=stylesheet"),
+        ("Content-Security-Policy", b"default-src 'self' https://example.com"),
+        ("Content-Security-Policy", b"script-src https://example.com/"),
+        ("X-UA-Compatible", b"IE=edge"),
+        ("Refresh", b"100;url=/two.html"),
+        ("Refresh", b"200;url=/three.html"),
+    ], b"""<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <base href="https://base.example.com">
+    <title>Test page</title>
+    <link rel=stylesheet href="second.css">
+    <script src="inc1.js"></script>
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.</p>
+  </body>
+</html>
+""", b"""<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <!-- hoardy-web censored out EmptyTag base from here -->
+    <title>Test page</title>
+    <!-- hoardy-web censored out EmptyTag meta from here -->
+    <!-- hoardy-web censored out EmptyTag meta from here -->
+    <meta http-equiv=X-UA-Compatible content="IE=edge">
+    <meta http-equiv=Refresh content="100;url=https://example.com/two.html">
+    <meta http-equiv=Refresh content="200;url=https://example.com/three.html">
+    <link as=script rel=preload href="https://example.com/main.js">
+    <link rel=stylesheet href="https://example.org/first.css">
+    <link rel=stylesheet href="https://base.example.com/second.css">
+    <script src="https://base.example.com/inc1.js"></script>
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.</p>
+  </body>
+</html>""")
+
+    # because browsers frequently squish headers together
+    check_scrub("+all_refs,+scripts,+prefetches,+navigations,+verbose,+indent", "https://example.com/", "text/html", [
+        ("Link", b"""<https://example.org/first.css>; rel=stylesheet
+<https://example.org/second.css>; rel=stylesheet"""),
+        ("Refresh", b"100;url=/one.html"),
+    ], b"""<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Test page</title>
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.</p>
+  </body>
+</html>
+""", b"""<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test page</title>
+    <meta http-equiv=Refresh content="100;url=https://example.com/one.html">
+    <link rel=stylesheet href="https://example.org/first.css">
+    <link rel=stylesheet href="https://example.org/second.css">
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.</p>
+  </body>
+</html>""")
+
 def test_ReqresExpr_scrub_css() -> None:
     check_scrub("+verbose,+whitespace", "https://example.com/test.css", "text/css", [], b"""
 body {
@@ -705,7 +783,7 @@ ReqresExpr_atoms.update({
       usually, however, the default is derived from `--remap-*` options, which see;
     - `(+|-|*|/|&)all_refs` is equivalent to setting all of the options listed in the previous item simultaneously;
     - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which keeps data of unknown content `MIME` types as-is;
-    - `(+|-)(styles|scripts|iepragmas|iframes|prefetches|tracking)` control which things should be kept in or censored out from `HTML`, `CSS`, and `JavaScript`; i.e. these options control whether `CSS` stylesheets (both separate files and `HTML` tags and attributes), `JavaScript` (both separate files and `HTML` tags and attributes), `HTML` Internet Explorer pragmas, `<iframe>` `HTML` tags, `HTML` content prefetch `link` tags, and other tracking `HTML` tags and attributes (like `a ping` attributes) should be respectively kept in or censored out from the input; the default is `+styles,-scripts,-iepragmas,+iframes,-prefetches,-tracking` which ensures the result does not contain `JavaScript` and will not produce any prefetch and tracking requests when loaded in a web browser; `-iepragmas` is the default because censoring for contents of such pragmas is not supported yet;
+    - `(+|-)(styles|scripts|iepragmas|iframes|prefetches|tracking|navigations)` control which things should be kept in or censored out from `HTML`, `CSS`, and `JavaScript`; i.e. these options control whether `CSS` stylesheets (both separate files and `HTML` tags and attributes), `JavaScript` (both separate files and `HTML` tags and attributes), `HTML` Internet Explorer pragmas, `<iframe>` `HTML` tags, `HTML` content prefetch `link` tags, other tracking `HTML` tags and attributes (like `a ping` attributes), and automatic navigations (`Refresh` `HTTP` headers and `<meta http-equiv>` `HTML` tags) should be respectively kept in or censored out from the input; the default is `+styles,-scripts,-iepragmas,+iframes,-prefetches,-tracking,-navigations` which ensures the result does not contain `JavaScript` and will not produce any prefetch, tracking requests, or re-navigations elsewhere, when loaded in a web browser; `-iepragmas` is the default because censoring for contents of such pragmas is not supported yet;
     - `(+|-)all_dyns` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
     - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead; the default is `-verbose`;
     - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away (respectively); the default is `-whitespace`, which produces somewhat minimized outputs (because it saves a lot of space);

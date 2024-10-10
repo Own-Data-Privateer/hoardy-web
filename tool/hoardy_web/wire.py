@@ -30,21 +30,18 @@ from .url import *
 Headers = list[tuple[str, bytes]]
 
 def get_raw_headers(headers : Headers, name : str) -> list[bytes]:
-    return [v for k, v in headers if k.lower() == name]
+    # split because browsers frequently squish headers together
+    return [e for k, v in headers if k.lower() == name for e in v.split(b"\n")]
 
-def get_raw_header(headers : Headers, name : str, default : bytes | None = None) -> bytes | None:
-    res = get_raw_headers(headers, name)
+def get_headers(headers : Headers, name : str) -> list[str]:
+    return [v.decode("ascii") for v in get_raw_headers(headers,name)]
+
+def get_header(headers : Headers, name : str, default : str | None = None) -> str | None:
+    res = get_headers(headers, name)
     if len(res) == 0:
         return default
     else:
         return res[0]
-
-def get_header(headers : Headers, name : str, default : str | None = None) -> str | None:
-    res = get_raw_header(headers, name)
-    if res is None:
-        return default
-    else:
-        return res.decode("ascii")
 
 ### HTTP Header values parsing
 
