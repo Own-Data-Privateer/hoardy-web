@@ -1015,22 +1015,22 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
 
         if (stats.in_flight > 0) {
             badge += "T";
-            color = 1;
+            color = Math.max(color, 1);
             chunks.push(`${stats.in_flight} in-flight reqres`);
         }
         if (stats.finishing_up > 0) {
             badge += "T";
-            color = 1;
+            color = Math.max(color, 1);
             chunks.push(`${stats.finishing_up} finishing-up reqres`);
         }
         if (stats.problematic > 0) {
             badge += "P";
-            color = 1;
+            color = Math.max(color, 1);
             chunks.push(`${stats.problematic} problematic reqres`);
         }
         if (stats.in_limbo > 0) {
             badge += "L";
-            color = 1;
+            color = Math.max(color, 1);
             chunks.push(`${stats.in_limbo} in-limbo reqres`);
         }
         if (stats.queued > 0) {
@@ -1039,27 +1039,27 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
         }
         if (stats.bundledAs > 0) {
             badge += "B";
-            color = 1;
+            color = Math.max(color, 1);
             chunks.push(`${stats.bundledAs} reqres bundled for export`);
         }
         if (!config.archive && !config.stash) {
             badge += "H";
-            color = 1;
+            color = Math.max(color, 1);
             chunks.push("ephemeral mode (both archiving and stashing are disabled)");
         }
         if (config.autoPopInLimboDiscard || config.discardAll) {
             badge += "!";
-            color = 2;
+            color = Math.max(color, 2);
             chunks.push("auto-discarding");
         }
         if (stats.errored > 0) {
             badge += "E";
-            color = 2;
+            color = Math.max(color, 2);
             chunks.push(`internal errors on ${stats.errored} reqres`);
         }
         if (stats.unstashed > 0) {
             badge += "F";
-            color = 2;
+            color = Math.max(color, 2);
             chunks.push(`failed to stash ${stats.unstashed} reqres`);
         }
         if (stats.unarchived > 0) {
@@ -1069,21 +1069,18 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
         }
         if (config.ephemeral) {
             badge += "D";
-            if (color === 0)
-                color = 1;
+            color = Math.max(color, 1);
             chunks.push("debugging: ephemeral config");
         }
         if (config.debugging || config.dumping) {
             badge += "D";
-            if (color === 0)
-                color = 1;
+            color = Math.max(color, 1);
             chunks.push("debugging: logging (SLOW!)");
         }
 
         if (stats.scheduled > stats.scheduled_low) {
             badge += "~";
-            if (color === 0)
-                color = 1;
+            color = Math.max(color, 1);
             chunks.push(`${stats.scheduled} scheduled actions`);
         }
         if (stats.scheduled == stats.scheduled_low && stats.scheduled_low > 0) {
