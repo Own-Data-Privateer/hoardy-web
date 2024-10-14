@@ -2514,6 +2514,7 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
             // `onCompleted` does in this case, but it does not, so we have to
             // handle it specially here.
             reqres.responded = true;
+            reqres.responseTimeStamp = reqres.emitTimeStamp;
             reqres.statusCode = 200;
             reqres.reason = "Assumed OK";
             // so that it would be marked as problematic, since actual metatada is not available
@@ -3461,9 +3462,8 @@ function handleErrorOccurred(e) {
         // loading gets interrupted by another extension or a service/shared
         // worker.
         reqres.generated = true;
-        // NB: not setting reqres.responded
-        reqres.responseTimeStamp = e.timeStamp;
         reqres.fromCache = e.fromCache;
+        // NB: Not setting `reqres.responded`, nor `reqres.responseTimeStamp` here.
         // NB: This then continues to (raceCondition).
     }
 
