@@ -3244,7 +3244,7 @@ function handleBeforeRequest(e) {
         reqres.originUrl = e.originUrl; // Firefox
     else if (isDefinedURL(e.initiator)
              && e.initiator !== "null"
-             && !e.originUrl.startsWith(selfURL)) // just in case
+             && !e.initiator.startsWith(selfURL)) // just in case
         reqres.originUrl = e.initiator; // Chromium
 
     if (e.requestBody !== undefined && e.requestBody !== null) {
