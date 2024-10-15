@@ -456,9 +456,9 @@ function processRemoveTab(tabId) {
             if (config.debugging)
                 console.log("cleaning up debugReqresInFlight after tab", tabId);
             emitTabInFlightDebug(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
-            processMatchFinishingUpWebRequestDebug();
+            let updatedTabId = processMatchFinishingUpWebRequestDebug(true, tabId);
             scheduleCleanupAfterTab(tabId, timeout);
-            scheduleUpdateDisplay(true, tabId);
+            scheduleEndgame(updatedTabId);
         });
         scheduleUpdateDisplay(true);
     } else
@@ -1254,14 +1254,8 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
 let udUpdatedTabId;
 
 function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic) {
-    if (udUpdatedTabId === undefined)
-        udUpdatedTabId = updatedTabId;
-    else
-        // then merging more than one value, the result is `null`, i.e. a full
-        // update
-        udUpdatedTabId = null;
-
-    let res = makeUpdateDisplay(statsChanged, updatedTabId, episodic);
+    udUpdatedTabId = mergeUpdatedTabIds(udUpdatedTabId, updatedTabId);
+    let res = makeUpdateDisplay(statsChanged, udUpdatedTabId, episodic);
 
     resetSingletonTimeout(scheduledHidden, "updateDisplay", 100, async () => {
         udUpdatedTabId = undefined;
@@ -1274,8 +1268,9 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic) {
 function scheduleFinishingUp() {
     resetSingletonTimeout(scheduledInternal, "finishingUp", 100, () => {
         scheduleUpdateDisplay(true);
-        processFinishingUp();
+        processFinishingUp(false);
     });
+    // TODO? scheduleUpdateDisplay(true);
 }
 
 // evaluator for `synchronousClosures` below
@@ -1298,28 +1293,46 @@ function runSynchronously(func, ...args) {
     synchronousClosures.push([func, args]);
 }
 
+let seUpdatedTabId;
+
 // schedule processArchiving, processAlmostDone, etc
 function scheduleEndgame(updatedTabId) {
+    updatedTabId = seUpdatedTabId = mergeUpdatedTabIds(seUpdatedTabId, updatedTabId);
+
     if (synchronousClosures.length > 0) {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
-            scheduleUpdateDisplay(true, updatedTabId);
+            // reset
+            seUpdatedTabId = undefined;
+
+            scheduleUpdateDisplay(true, locUpdatedTabId);
             await evalSynchronousClosures(synchronousClosures);
+            // TODO: this is inefficient, make all closures call us
+            // explicitly instead or make `evalSynchronousClosures` do `mergeUpdatedTabIds`
             scheduleEndgame(null);
         });
     } else if (config.archive && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+            // reset
+            seUpdatedTabId = undefined;
+
             scheduleUpdateDisplay(true, updatedTabId);
-            await processArchiving();
-            scheduleEndgame(null);
+            updatedTabId = await processArchiving(updatedTabId);
+            scheduleEndgame(updatedTabId);
         });
     } else if (reqresAlmostDone.length > 0) {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+            // reset
+            seUpdatedTabId = undefined;
+
             scheduleUpdateDisplay(true, updatedTabId);
-            await processAlmostDone();
-            scheduleEndgame(null);
+            updatedTabId = await processAlmostDone(updatedTabId);
+            scheduleEndgame(updatedTabId);
         });
     } else /* if (!config.archive || reqresQueue.length == 0) */ {
         resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+            // reset
+            seUpdatedTabId = undefined;
+
             if (wantBroadcastSaved) {
                 let log = await getSavedLog(savedFilters);
                 broadcast(["resetSaved", log]);
@@ -2337,7 +2350,7 @@ async function submitHTTPOne(archivable) {
     return true;
 }
 
-async function processArchiving() {
+async function processArchiving(updatedTabId) {
     while (config.archive && reqresQueue.length > 0) {
         let archivable = reqresQueue.shift();
         let [loggable, dump] = archivable;
@@ -2378,11 +2391,15 @@ async function processArchiving() {
             await syncOne(archivable, 1, true);
         }
 
-        scheduleUpdateDisplay(true, loggable.tabId, 10);
+        let tabId = loggable.tabId;
+        updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
+        scheduleUpdateDisplay(true, tabId, 10);
     }
 
     broadcast(["resetQueued", getQueuedLog()]);
     broadcast(["resetUnarchived", getUnarchivedLog()]);
+
+    return updatedTabId;
 }
 
 // tracking and capture
@@ -2753,7 +2770,7 @@ function processNonLimbo(collect, info, archivable, newQueued, newLog) {
     newLog.push(loggable);
 }
 
-async function processAlmostDone() {
+async function processAlmostDone(updatedTabId) {
     let newProblematic = [];
     let newLimbo = [];
     let newQueued = [];
@@ -2767,7 +2784,9 @@ async function processAlmostDone() {
             logHandledError(err);
             markAsErrored(err, [reqres, null]);
         }
-        scheduleUpdateDisplay(true, reqres.tabId, 10);
+        let tabId = reqres.tabId;
+        updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
+        scheduleUpdateDisplay(true, tabId, 10);
     }
 
     truncateLog();
@@ -2781,6 +2800,8 @@ async function processAlmostDone() {
         broadcast(["newQueued", newQueued]);
     if (newLog.length > 0)
         broadcast(["newLog", newLog]);
+
+    return updatedTabId;
 }
 
 async function snapshotOneTab(tabId, tabUrl) {
@@ -2901,19 +2922,20 @@ async function snapshot(tabIdNull) {
 
 function emitTabInFlightWebRequest(tabId, reason) {
     for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
-        if (tabId === null || reqres.tabId == tabId)
+        if (tabId === null || reqres.tabId === tabId)
             emitRequest(requestId, reqres, "webRequest::" + reason, true);
     }
 }
 
 // wait up for reqres filters to finish
-function processFinishingUpWebRequest(forcing) {
+function processFinishingUpWebRequest(forcing, updatedTabId) {
     let notFinished = [];
 
     for (let reqres of reqresFinishingUp) {
         if (reqres.filter === undefined) {
             // this reqres finished even before having a filter
             reqresAlmostDone.push(reqres);
+            updatedTabId = mergeUpdatedTabIds(updatedTabId, reqres.tabId);
             continue;
         }
 
@@ -2922,6 +2944,7 @@ function processFinishingUpWebRequest(forcing) {
             // the filter is done, remove it
             delete reqres["filter"];
             reqresAlmostDone.push(reqres);
+            updatedTabId = mergeUpdatedTabIds(updatedTabId, reqres.tabId);
             continue;
         }
 
@@ -2932,10 +2955,10 @@ function processFinishingUpWebRequest(forcing) {
 
     reqresFinishingUp = notFinished;
 
-    if (forcing)
-        return;
+    if (!forcing)
+        scheduleEndgame(updatedTabId);
 
-    scheduleEndgame(null);
+    return updatedTabId;
 }
 
 let processFinishingUp = processFinishingUpWebRequest;
@@ -2943,7 +2966,7 @@ if (useDebugger)
     processFinishingUp = processMatchFinishingUpWebRequestDebug;
 
 // flush reqresFinishingUp into the reqresAlmostDone, interrupting filters
-function forceFinishingUpWebRequest(predicate) {
+function forceFinishingUpWebRequest(predicate, updatedTabId) {
     let notFinished = [];
 
     for (let reqres of reqresFinishingUp) {
@@ -2969,9 +2992,11 @@ function forceFinishingUpWebRequest(predicate) {
                          "reqres", reqres);
 
         reqresAlmostDone.push(reqres);
+        updatedTabId = mergeUpdatedTabIds(updatedTabId, reqres.tabId);
     }
 
     reqresFinishingUp = notFinished;
+    return updatedTabId;
 }
 
 function stopInFlight(tabId) {
@@ -2979,13 +3004,13 @@ function stopInFlight(tabId) {
         emitTabInFlightDebug(tabId, "capture::EMIT_FORCED::BY_USER");
     emitTabInFlightWebRequest(tabId, "capture::EMIT_FORCED::BY_USER");
 
-    processFinishingUp(true);
+    let updatedTabId = processFinishingUp(true, tabId);
 
     if (useDebugger)
-        forceFinishingUpDebug((r) => tabId == null || r.tabId == tabId);
-    forceFinishingUpWebRequest((r) => tabId == null || r.tabId == tabId);
+        updatedTabId = forceFinishingUpDebug((r) => tabId === null || r.tabId === tabId, updatedTabId);
+    updatedTabId = forceFinishingUpWebRequest((r) => tabId === null || r.tabId === tabId, updatedTabId);
 
-    scheduleEndgame(tabId);
+    scheduleEndgame(updatedTabId);
 }
 
 function emitRequest(requestId, reqres, error, dontFinishUp) {
@@ -3043,7 +3068,7 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
 
     reqresFinishingUp.push(reqres);
     if (!dontFinishUp)
-        processFinishingUp();
+        processFinishingUp(false);
 }
 
 function logEvent(rtype, e, reqres) {

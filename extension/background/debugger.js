@@ -406,7 +406,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     // Second case: ignore data, file, end extension URLs.
     if (dreqres.url === undefined || isBoringURL(dreqres.url)) {
         if (!dontFinishUp)
-            processMatchFinishingUpWebRequestDebug();
+            processMatchFinishingUpWebRequestDebug(false, dreqres.tabId);
         return;
     }
     // NB: We do this here, instead of any other place because Chromium
@@ -465,7 +465,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
                              "url", dreqres.url,
                              "dreqres", dreqres);
             if (!dontFinishUp)
-                processMatchFinishingUpWebRequestDebug();
+                processMatchFinishingUpWebRequestDebug(false, dreqres.tabId);
         });
     } else {
         dreqres.responseComplete = error === undefined;
@@ -476,7 +476,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
                          "url", dreqres.url,
                          "dreqres", dreqres);
         if (!dontFinishUp)
-            processMatchFinishingUpWebRequestDebug();
+            processMatchFinishingUpWebRequestDebug(false, dreqres.tabId);
     }
 }
 
@@ -488,16 +488,10 @@ function emitTabInFlightDebug(tabId, reason) {
             emitDebugRequest(requestId, dreqres, false, "debugger::" + reason, true);
     }
 
-    // NB: Not `forcing` here because this is used in
-    // `handleDebugDetach`, and `handleDebugDetach` does not imply
-    // `forcing`!
-    //
-    // See `stopInFlight` instead, it does a separarate call to
-    // `processMatchFinishingUpWebRequestDebug(true)`.
-    processMatchFinishingUpWebRequestDebug();
+    processMatchFinishingUpWebRequestDebug(false, tabId);
 }
 
-function forceFinishingUpDebug(predicate) {
+function forceFinishingUpDebug(predicate, updatedTabId) {
     let notFinished = [];
 
     // Emit these by making up fake webRequest counterparts for them
@@ -515,9 +509,11 @@ function forceFinishingUpDebug(predicate) {
 
         dreqresToReques(dreqres);
         reqresAlmostDone.push(dreqres);
+        updatedTabId = mergeUpdatedTabIds(updatedTabId, dreqres.tabId);
     }
 
     debugReqresFinishingUp = notFinished;
+    return updatedTabId;
 }
 
 function debugHeadersMatchScore(reqres, dreqres) {
@@ -612,7 +608,7 @@ function mergeInDebugReqres(reqres, dreqres) {
     reqres.responseComplete = dreqres.responseComplete;
 }
 
-function processMatchFinishingUpWebRequestDebug(forcing) {
+function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
     if (debugReqresFinishingUp.length > 0 && reqresFinishingUp.length > 0) {
         // match elements from debugReqresFinishingUp to elements from
         // reqresFinishingUp, attach the former to the best-matching latter,
@@ -657,6 +653,7 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
 
                 mergeInDebugReqres(closest, dreqres);
                 reqresAlmostDone.push(closest);
+                updatedTabId = mergeUpdatedTabIds(updatedTabId, closest.tabId);
             } else
                 notFinished.push(dreqres);
 
@@ -680,9 +677,9 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             // generating the corresponding webRequest events. This actually
             // happens sometimes when loading a tab in background. Chromium
             // has a surprising number of bugs...
-            forceFinishingUpDebug();
+            updatedTabId = forceFinishingUpDebug(undefined, updatedTabId);
 
-        if (reqresFinishingUp.length > 0)
+        if (reqresFinishingUp.length > 0) {
             // This means Chromium generated some webRequests but did not
             // generate corresponding debug events. This happens all the time
             // as described in the NB above, but those webRequests will get
@@ -692,23 +689,23 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             // canceled, or just at random times sometimes, no debug events
             // will be emmited for it. So, to get these out of in-flight
             // state, we run following.
+            let updatedTabId2 = updatedTabId;
             resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000 + 500, () => {
                 // First, finish up unsent requests (which are usually redirects).
                 let olderThan1 = Date.now() - config.workaroundChromiumDebugTimeout * 1000;
-                forceFinishingUpWebRequest((r) => !r.sent && r.emitTimeStamp <= olderThan1);
-                scheduleUpdateDisplay(true, null);
-                scheduleEndgame();
+                updatedTabId2 = forceFinishingUpWebRequest((r) => !r.sent && r.emitTimeStamp <= olderThan1, updatedTabId2);
+                scheduleEndgame(updatedTabId2);
 
                 // Then, eventually, finish up the rest.
                 resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 2000 + 500, () => {
                     let olderThan2 = Date.now() - config.workaroundChromiumDebugTimeout * 2000;
-                    forceFinishingUpWebRequest((r) => r.emitTimeStamp <= olderThan2);
-                    scheduleUpdateDisplay(true, null);
-                    scheduleEndgame();
+                    updatedTabId2 = forceFinishingUpWebRequest((r) => r.emitTimeStamp <= olderThan2, updatedTabId2);
+                    scheduleEndgame(updatedTabId2);
                 });
             });
             // NB: not doing scheduleUpdateDisplay here, because scheduleEndgame
             // below (or the function `forcing` this one) will
+        }
     }
 
     if (config.debugging) {
@@ -719,10 +716,10 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             console.log("still unmatched", debugReqresFinishingUp, reqresFinishingUp);
     }
 
-    if (forcing)
-        return;
+    if (!forcing)
+        scheduleEndgame(updatedTabId);
 
-    scheduleEndgame();
+    return updatedTabId;
 }
 
 function scheduleProcessMatchFinishingUpWebRequestDebug() {
