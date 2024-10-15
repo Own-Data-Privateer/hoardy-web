@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [extension-v1.16.1] - 2024-10-15
+
+### Fixed
+
+- On Chromium, fixed request tracking being frequently broken since `extension-v1.15.0`.
+
+- Fixed reqres without responses but with networking errors having "Responded at" field set in the logs.
+
 ## [tool-v0.15.5] - 2024-10-07
 
 ### Fixed
@@ -1182,6 +1190,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.16.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.16.0...extension-v1.16.1
 [tool-v0.15.5]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.4...tool-v0.15.5.1
 [simple_server-v1.7.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.6.1...simple_server-v1.7.0
 [tool-v0.15.4]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.3...tool-v0.15.4
