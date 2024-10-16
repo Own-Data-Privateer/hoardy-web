@@ -4018,9 +4018,9 @@ function upgradeConfig(cfg) {
         rename("archiveNotifyFailed", "archiveFailedNotify")
         rename("archiveNotifyDisabled", "archiveStuckNotify")
 
-        config.root.bucket = config.root.profile;
-        config.extension.bucket = config.extension.profile;
-        config.background.bucket = config.background.profile;
+        cfg.root.bucket = cfg.root.profile;
+        cfg.extension.bucket = cfg.extension.profile;
+        cfg.background.bucket = cfg.background.profile;
     case 5:
         break;
     default:
