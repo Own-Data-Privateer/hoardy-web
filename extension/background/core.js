@@ -3910,13 +3910,13 @@ async function handleCommand(command) {
     setOriginConfig(tabId, false, tabcfg);
 }
 
-function fixConfig(cfg, old) {
+function fixConfig(config, oldConfig) {
     if (reqresIDB === undefined)
-        cfg.preferIndexedDB = false;
-    else if (useDebugger && !cfg.preferIndexedDB) {
+        config.preferIndexedDB = false;
+    else if (useDebugger && !config.preferIndexedDB) {
         // can not be disabled on Chromium ATM, since serialization of
         // Uint8Array to `storage.local` won't work there
-        cfg.preferIndexedDB = true;
+        config.preferIndexedDB = true;
 
         if (config.hintNotify)
             browser.notifications.create("configNotSupported-preferIndexedDB", {
@@ -3927,8 +3927,8 @@ function fixConfig(cfg, old) {
             }).catch(logError);
     }
 
-    if (isMobile && isFirefox && cfg.archiveExportAs) {
-        cfg.archiveExportAs = false;
+    if (isMobile && isFirefox && config.archiveExportAs) {
+        config.archiveExportAs = false;
 
         // Firefox on Android does not switch to new tabs opened from the settings
         if (config.hintNotify)
@@ -3940,8 +3940,8 @@ function fixConfig(cfg, old) {
             }).catch(logError);
     }
 
-    if (!isMobile && !cfg.spawnNewTabs) {
-        cfg.spawnNewTabs = true;
+    if (!isMobile && !config.spawnNewTabs) {
+        config.spawnNewTabs = true;
 
         if (config.hintNotify)
             browser.notifications.create("configNotSupported-spawnNewTabs", {
@@ -3952,22 +3952,22 @@ function fixConfig(cfg, old) {
             }).catch(logError);
     }
 
-    let anyA = cfg.archiveExportAs || cfg.archiveSubmitHTTP || cfg.archiveSaveLS;
+    let anyA = config.archiveExportAs || config.archiveSubmitHTTP || config.archiveSaveLS;
     if (!anyA) {
         // at lest one of these must be set
-        if (cfg.archiveSaveLS !== old.archiveSaveLS)
-            cfg.archiveExportAs = true;
+        if (config.archiveSaveLS !== oldConfig.archiveSaveLS)
+            config.archiveExportAs = true;
         else
-            cfg.archiveSaveLS = true;
+            config.archiveSaveLS = true;
     }
 
     // to prevent surprises
-    if (cfg.archive
+    if (config.archive
         && (reqresQueue.length > 0 || reqresFailedToArchiveByArchivable.size > 0)
-        && (cfg.archiveExportAs !== old.archiveExportAs
-         || cfg.archiveSubmitHTTP !== old.archiveSubmitHTTP
-         || cfg.archiveSaveLS !== old.archiveSaveLS)) {
-        cfg.archive = false;
+        && (config.archiveExportAs !== oldConfig.archiveExportAs
+         || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
+         || config.archiveSaveLS !== oldConfig.archiveSaveLS)) {
+        config.archive = false;
 
         if (config.hintNotify)
             browser.notifications.create("notArchivingNow", {
@@ -3979,38 +3979,38 @@ function fixConfig(cfg, old) {
     }
 
     // clamp
-    cfg.exportAsTimeout = clamp(0, 900, cfg.exportAsTimeout);
-    cfg.exportAsInFlightTimeout = clamp(cfg.exportAsTimeout, 900, cfg.exportAsInFlightTimeout);
+    config.exportAsTimeout = clamp(0, 900, config.exportAsTimeout);
+    config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 900, config.exportAsInFlightTimeout);
 
     // these are mutually exclusive
-    if (cfg.autoPopInLimboCollect && cfg.autoPopInLimboDiscard)
-        cfg.autoPopInLimboDiscard = false;
+    if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard)
+        config.autoPopInLimboDiscard = false;
 }
 
-function upgradeConfig(cfg) {
+function upgradeConfig(config) {
     function rename(from, to) {
-        let old = cfg[from];
-        delete cfg[from];
-        cfg[to] = old;
+        let old = config[from];
+        delete config[from];
+        config[to] = old;
     }
 
-    switch (cfg.version) {
+    switch (config.version) {
     case 1:
         rename("collectPartialRequests", "archivePartialRequest");
         rename("collectNoResponse", "archiveNoResponse");
         rename("collectIncompleteResponses", "archiveIncompleteResponse")
     case 2:
         // because it got updated lots
-        cfg.seenHelp = false;
+        config.seenHelp = false;
     case 3:
         // making them disjoint
-        if (cfg.markProblematicWithErrors)
-            cfg.markProblematicPickedWithErrors = true;
+        if (config.markProblematicWithErrors)
+            config.markProblematicPickedWithErrors = true;
         rename("markProblematicWithErrors", "markProblematicDroppedWithErrors")
     case 4:
         // because that, essentially, was the default before, even though it is not now
-        cfg.archiveSubmitHTTP = true;
-        cfg.archiveSaveLS = false;
+        config.archiveSubmitHTTP = true;
+        config.archiveSaveLS = false;
 
         rename("archiving", "archive")
         rename("archiveURLBase", "submitHTTPURLBase");
@@ -4018,17 +4018,15 @@ function upgradeConfig(cfg) {
         rename("archiveNotifyFailed", "archiveFailedNotify")
         rename("archiveNotifyDisabled", "archiveStuckNotify")
 
-        cfg.root.bucket = cfg.root.profile;
-        cfg.extension.bucket = cfg.extension.profile;
-        cfg.background.bucket = cfg.background.profile;
+        config.root.bucket = config.root.profile;
+        config.extension.bucket = config.extension.profile;
+        config.background.bucket = config.background.profile;
     case 5:
         break;
     default:
-        console.warn(`Bad old config version ${cfg.version}, reusing values as-is without updates`);
+        console.warn(`Bad old config version ${config.version}, reusing values as-is without updates`);
         // the following updateFromRec will do its best
     }
-
-    return cfg;
 }
 
 function upgradeGlobals(globs) {
@@ -4049,7 +4047,7 @@ async function init() {
     if (oldConfig !== undefined) {
         console.log(`Loading old config of version ${oldConfig.version}`);
 
-        oldConfig  = upgradeConfig(oldConfig);
+        upgradeConfig(oldConfig);
         config = updateFromRec(config, oldConfig);
     }
 
