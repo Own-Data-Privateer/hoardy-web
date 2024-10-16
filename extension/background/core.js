@@ -1264,6 +1264,15 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic) {
     });
 }
 
+function getEpisodic(num) {
+    if (num > 200)
+        return 100;
+    else if (num > 20)
+        return 10;
+    else
+        return 1;
+}
+
 // schedule processFinishingUp
 function scheduleFinishingUp() {
     resetSingletonTimeout(scheduledInternal, "finishingUp", 100, () => {
@@ -2393,7 +2402,7 @@ async function processArchiving(updatedTabId) {
 
         let tabId = loggable.tabId;
         updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
-        scheduleUpdateDisplay(true, tabId, 10);
+        scheduleUpdateDisplay(true, tabId, getEpisodic(reqresQueue.length));
     }
 
     broadcast(["resetQueued", getQueuedLog()]);
@@ -2786,7 +2795,7 @@ async function processAlmostDone(updatedTabId) {
         }
         let tabId = reqres.tabId;
         updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
-        scheduleUpdateDisplay(true, tabId, 10);
+        scheduleUpdateDisplay(true, tabId, getEpisodic(reqresAlmostDone.length));
     }
 
     truncateLog();
