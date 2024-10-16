@@ -570,7 +570,8 @@ function mergeInDebugReqres(reqres, dreqres) {
         reqres.requestTimeStamp = dreqres.requestTimeStamp;
 
     for (let e of dreqres.errors)
-        reqres.errors.push(e);
+        if (reqres.errors.every((v) => v !== e))
+            reqres.errors.push(e);
 
     mergeInHeaders(reqres.requestHeaders, dreqres.requestHeaders);
 
