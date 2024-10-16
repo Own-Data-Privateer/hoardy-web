@@ -178,14 +178,14 @@ function handleDebugDetach(debuggee, reason) {
     let tabId = debuggee.tabId;
     if (tabId !== undefined) {
         tabsDebugging.delete(tabId);
-        // Unfortunately, this means all debugReqresInFlight of this tab are broken now
-        emitTabInFlightDebug(tabId, "capture::EMIT_FORCED::BY_DETACHED_DEBUGGER");
-        if (config.collecting && reason !== "target_closed") {
+        // Unfortunately, this means all in-flight reqres of this tab are broken now
+        let updatedTabId = syncStopInFlight(tabId, "capture::EMIT_FORCED::BY_DETACHED_DEBUGGER");
+        if (config.collecting && reason !== "target_closed")
             // In Chrome, it's pretty easy to click the notification or press
             // Escape while doing Control+F and detach the debugger, so let's
             // reattach it immediately
             setTimeout(() => attachDebugger(tabId).catch(logErrorExceptWhenStartsWith("No tab with given id")), 1);
-        }
+        scheduleEndgame(updatedTabId);
     }
 }
 
@@ -481,14 +481,10 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
 }
 
 function emitTabInFlightDebug(tabId, reason) {
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
-
     for (let [requestId, dreqres] of Array.from(debugReqresInFlight.entries())) {
         if (tabId === null || dreqres.tabId === tabId)
             emitDebugRequest(requestId, dreqres, false, "debugger::" + reason, true);
     }
-
-    processMatchFinishingUpWebRequestDebug(false, tabId);
 }
 
 function forceFinishingUpDebug(predicate, updatedTabId) {

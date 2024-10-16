@@ -437,32 +437,19 @@ function cleanupAfterTab(tabId) {
     scheduleUpdateDisplay(true, tabId);
 }
 
-function scheduleCleanupAfterTab(tabId, untimeout) {
-    let tabstats = getTabStats(tabId);
-    if (config.autoUnmarkProblematic && tabstats.problematic > 0
-       || (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) && tabstats.in_limbo > 0) {
-        resetSingletonTimeout(scheduledCancelable, `cleanupAfterTab#${tabId}`, config.autoTimeout * 1000 - untimeout, () => cleanupAfterTab(tabId));
-    }
-}
-
 function processRemoveTab(tabId) {
     openTabs.delete(tabId);
 
-    if (useDebugger && Array.from(debugReqresInFlight.values()).some((r) => r.tabId === tabId)) {
-        // after a small timeout, force emit all `debugReqresInFlight` of this
-        // tab, since Chromium won't send any new debug events for them anyway
-        let timeout = config.workaroundChromiumDebugTimeout * 1000;
-        resetSingletonTimeout(scheduledInternal, `forceStopDebugTab#${tabId}`, timeout, () => {
-            if (config.debugging)
-                console.log("cleaning up debugReqresInFlight after tab", tabId);
-            emitTabInFlightDebug(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
-            let updatedTabId = processMatchFinishingUpWebRequestDebug(true, tabId);
-            scheduleCleanupAfterTab(tabId, timeout);
-            scheduleEndgame(updatedTabId);
-        });
-        scheduleUpdateDisplay(true);
-    } else
-        scheduleCleanupAfterTab(tabId, 0);
+    let updatedTabId = syncStopInFlight(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
+
+    // cleanup after this tab
+    let tabstats = getTabStats(tabId);
+    if (config.autoUnmarkProblematic && tabstats.problematic > 0
+        || (config.autoPopInLimboCollect || config.autoPopInLimboDiscard)
+           && tabstats.in_limbo > 0)
+        resetSingletonTimeout(scheduledCancelable, `cleanupAfterTab#${tabId}`, config.autoTimeout * 1000, () => cleanupAfterTab(tabId));
+
+    scheduleEndgame(updatedTabId);
 }
 
 // session state
@@ -3008,18 +2995,19 @@ function forceFinishingUpWebRequest(predicate, updatedTabId) {
     return updatedTabId;
 }
 
-function stopInFlight(tabId) {
+function syncStopInFlight(tabId, reason, updatedTabId) {
     if (useDebugger)
-        emitTabInFlightDebug(tabId, "capture::EMIT_FORCED::BY_USER");
-    emitTabInFlightWebRequest(tabId, "capture::EMIT_FORCED::BY_USER");
+        emitTabInFlightDebug(tabId, reason);
+    emitTabInFlightWebRequest(tabId, reason);
 
-    let updatedTabId = processFinishingUp(true, tabId);
+    updatedTabId = processFinishingUp(true, tabId);
 
     if (useDebugger)
         updatedTabId = forceFinishingUpDebug((r) => tabId === null || r.tabId === tabId, updatedTabId);
     updatedTabId = forceFinishingUpWebRequest((r) => tabId === null || r.tabId === tabId, updatedTabId);
 
-    scheduleEndgame(updatedTabId);
+    return updatedTabId;
+    // NB: needs scheduleEndgame after
 }
 
 function emitRequest(requestId, reqres, error, dontFinishUp) {
@@ -3684,7 +3672,8 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(getInFlightLog());
         break;
     case "stopInFlight":
-        stopInFlight(request[1]);
+        let updatedTabId = syncStopInFlight(request[1], "capture::EMIT_FORCED::BY_USER");
+        scheduleEndgame(updatedTabId);
         sendResponse(null);
         break;
     case "getInLimboLog":
