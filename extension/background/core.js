@@ -1330,8 +1330,18 @@ function scheduleEndgame(updatedTabId) {
             seUpdatedTabId = undefined;
 
             if (wantBroadcastSaved) {
-                let log = await getSavedLog(savedFilters);
-                broadcast(["resetSaved", log]);
+                wantBroadcastSaved = false;
+                resetSingletonTimeout(scheduledInternal, "readSaved", 0, async (wantStop) => {
+                    let log;
+                    try {
+                        log = await getSavedLog(savedFilters, wantStop);
+                        broadcast(["resetSaved", log]);
+                    } catch (err) {
+                        if (!(err instanceof StopIteration))
+                            throw err;
+                    }
+                    scheduleUpdateDisplay(true);
+                });
             }
 
             cleanupTabs();
@@ -1894,6 +1904,9 @@ async function forEachSynced(storeName, func, limit) {
 
             return func(loggable);
         } catch (err) {
+            if (err instanceof StopIteration)
+                throw err;
+
             logHandledError(err);
             markAsErrored(err, [loggable, null]);
             return false;
@@ -2213,12 +2226,14 @@ async function loadStashed() {
     }
 }
 
-async function getSavedLog(rrfilter) {
+async function getSavedLog(rrfilter, wantStop) {
     if (rrfilter === undefined)
         rrfilter = null;
 
     let res = [];
     let [newSavedLS, newSavedIDB] = await forEachSynced("save", (loggable) => {
+        if (wantStop !== undefined && wantStop())
+            throw new StopIteration();
         if (!isAcceptedLoggable(null, rrfilter, loggable))
             return false;
         addLoggableFields(loggable);
