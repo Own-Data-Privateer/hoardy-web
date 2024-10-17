@@ -189,6 +189,14 @@ function scheduleSaveConfig() {
     // NB: needs scheduleUpdateDisplay afterwards
 }
 
+// a list of [function, args] pairs; these are closures that need to be run synchronously
+let synchronousClosures = [];
+
+// syntax sugar
+function runSynchronously(name, func, ...args) {
+    synchronousClosures.push([name, func, args]);
+}
+
 // scheduled internal functions
 let scheduledInternal = new Map();
 // scheduled cancelable functions
@@ -199,7 +207,7 @@ let scheduledSaveState = new Map();
 let scheduledHidden = new Map();
 
 function runActions() {
-    runSynchronously(async () => {
+    runSynchronously("runAll", async () => {
         await runAllSingletonTimeouts(scheduledCancelable);
         await runAllSingletonTimeouts(scheduledInternal);
         await runAllSingletonTimeouts(scheduledSaveState);
@@ -208,7 +216,7 @@ function runActions() {
 }
 
 function cancelActions() {
-    runSynchronously(async () => {
+    runSynchronously("cancelAll", async () => {
         await cancelAllSingletonTimeouts(scheduledCancelable);
     });
     scheduleEndgame(null);
@@ -568,7 +576,7 @@ function markAsErrored(error, archivable) {
 }
 
 function forgetErrored() {
-    runSynchronously(async () => {
+    runSynchronously("forgetErrored", async () => {
         for (let f of reqresErrored.values())
             await syncMany(f.queue, 0, false);
         reqresErrored = new Map();
@@ -1269,26 +1277,6 @@ function scheduleFinishingUp() {
     // TODO? scheduleUpdateDisplay(true);
 }
 
-// evaluator for `synchronousClosures` below
-async function evalSynchronousClosures(closures) {
-    while (closures.length > 0) {
-        let [fun, args] = closures.shift();
-        try {
-            await fun(...args);
-        } catch (err) {
-            logError(err);
-        }
-    }
-}
-
-// a list of [function, args] pairs; these are closures that need to be run synchronously
-let synchronousClosures = [];
-
-// syntax sugar
-function runSynchronously(func, ...args) {
-    synchronousClosures.push([func, args]);
-}
-
 let seUpdatedTabId;
 
 // schedule processArchiving, processAlmostDone, etc
@@ -1301,9 +1289,20 @@ function scheduleEndgame(updatedTabId) {
             seUpdatedTabId = undefined;
 
             scheduleUpdateDisplay(true, locUpdatedTabId);
-            await evalSynchronousClosures(synchronousClosures);
+
+            while (synchronousClosures.length > 0) {
+                let [name, fun, args] = synchronousClosures.shift();
+                try {
+                    let res = fun(...args);
+                    if (res instanceof Promise)
+                        await res;
+                } catch (err) {
+                    logError(err);
+                }
+            }
+
             // TODO: this is inefficient, make all closures call us
-            // explicitly instead or make `evalSynchronousClosures` do `mergeUpdatedTabIds`
+            // explicitly instead or use `mergeUpdatedTabIds` above instead
             scheduleEndgame(null);
         });
     } else if (config.archive && reqresQueue.length > 0) {
@@ -1406,7 +1405,7 @@ async function doRetryAllUnstashed() {
 }
 
 function scheduleRetryUnstashed() {
-    runSynchronously(doRetryAllUnstashed);
+    runSynchronously("retryUnstashed", doRetryAllUnstashed);
 }
 
 async function doStashAll(alsoLimbo) {
@@ -1420,7 +1419,7 @@ async function doStashAll(alsoLimbo) {
 }
 
 function stashAll(alsoLimbo) {
-    runSynchronously(doStashAll, alsoLimbo);
+    runSynchronously("stashAll", doStashAll, alsoLimbo);
     scheduleEndgame(null);
 }
 
@@ -2056,7 +2055,7 @@ function bucketSaveAs(bucket, ifGEQ) {
             loggable.exportedAs = false;
             loggable.dirty = true;
         });
-        runSynchronously(syncMany, Array.from(res.queue), 1, true);
+        runSynchronously("stash", syncMany, Array.from(res.queue), 1, true);
         // NB: This is slightly fragile, consider the following sequence of
         // events for a given archivable:
         //
@@ -2258,7 +2257,7 @@ let savedFilters = assignRec({}, rrfilterDefaults);
 savedFilters.limit = 1024;
 
 function requeueSaved(reset) {
-    runSynchronously(async () => {
+    runSynchronously("requeueSaved", async () => {
         broadcast(["resetSaved", [null]]); // invalidate UI
 
         let log = await getSavedLog(savedFilters);
@@ -2286,7 +2285,7 @@ function requeueSaved(reset) {
 }
 
 function deleteSaved() {
-    runSynchronously(async () => {
+    runSynchronously("deleteSaved", async () => {
         broadcast(["resetSaved", [null]]); // invalidate UI
 
         let log = await getSavedLog(savedFilters);
@@ -2729,7 +2728,7 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
         info.inLimboSize += dumpSize;
         newLimbo.push(loggable);
         if (config.stash && options.stashLimbo)
-            runSynchronously(syncOne, archivable, 1, true);
+            runSynchronously("stash", syncOne, archivable, 1, true);
     } else
         processNonLimbo(picked, info, archivable, newQueued, newLog);
 
@@ -2763,7 +2762,7 @@ function processNonLimbo(collect, info, archivable, newQueued, newLog) {
                 updateLoggable(loggable);
 
             // stuck queue, stash it
-            runSynchronously(syncOne, archivable, 1, false);
+            runSynchronously("stash", syncOne, archivable, 1, false);
         }
     } else {
         loggable.collected = false;
@@ -2774,7 +2773,7 @@ function processNonLimbo(collect, info, archivable, newQueued, newLog) {
 
         if (loggable.was_in_limbo)
             // in case it was stashed before
-            runSynchronously(syncOne, archivable, 0, false);
+            runSynchronously("stash", syncOne, archivable, 0, false);
     }
 
     reqresLog.push(loggable);
