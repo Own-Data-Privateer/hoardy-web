@@ -965,21 +965,12 @@ let udStats = null;
 let udTitle = null;
 let udBadge = null;
 let udColor = null;
-let udEpisode = 1;
 
 // `updatedTabId === null` means "config changed or any tab could have been updated"
 // `updatedTabId === undefined` means "no tabs changed"
 // otherwise, it's a tabId of a changed tab
-function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
+function makeUpdateDisplay(statsChanged, updatedTabId) {
     let changed = updatedTabId === null;
-
-    // only run the rest every `episodic` updates, when it's set
-    if (!changed && udEpisode < episodic) {
-        udEpisode += 1;
-        return;
-    }
-    udEpisode = 1;
-
     let stats;
     let title;
     let badge;
@@ -988,7 +979,8 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
     if (statsChanged || udStats === null || changed) {
         stats = getStats();
 
-        if (udStats === null
+        if (changed
+            || udStats === null
             // because these global stats influence the tab's icon
             || stats.failed !== udStats.failed
             || stats.queued != udStats.queued)
@@ -1246,17 +1238,31 @@ function makeUpdateDisplay(statsChanged, updatedTabId, episodic) {
     return updateBrowserAction;
 }
 
+let udStatsChanged = false;
 let udUpdatedTabId;
+let udEpisode = 1;
 
-function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic) {
+function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, timeout) {
+    // merge succesive arguments
+    udStatsChanged = udStatsChanged || statsChanged;
     udUpdatedTabId = mergeUpdatedTabIds(udUpdatedTabId, updatedTabId);
-    let res = makeUpdateDisplay(statsChanged, udUpdatedTabId, episodic);
 
-    resetSingletonTimeout(scheduledHidden, "updateDisplay", 100, async () => {
+    // only run the rest every `episodic` updates, when it's set
+    if (udEpisode < episodic) {
+        udEpisode += 1;
+        return;
+    }
+    udEpisode = 1;
+
+    let res = makeUpdateDisplay(udStatsChanged, udUpdatedTabId);
+
+    resetSingletonTimeout(scheduledHidden, "updateDisplay", timeout !== undefined ? timeout : 100, async () => {
+        // reset
+        udStatsChanged = false;
         udUpdatedTabId = undefined;
         if (res !== undefined)
             await res();
-    });
+    }, undefined, true);
 }
 
 function getEpisodic(num) {
@@ -3555,21 +3561,19 @@ function handleTabActivated(e) {
         // Chromium does not provide `browser.menus.onShown` event
         updateMenu(getOriginConfig(tabId));
     // Usually, this will not be enough, see `handleTabUpdated`.
-    scheduleUpdateDisplay(false, tabId);
+    scheduleUpdateDisplay(false, tabId, 1, 0);
 }
 
-function handleTabUpdated(tabId, changeInfo, tabInfo) {
+function handleTabUpdated(tabId, changeInfo, tab) {
     if (config.debugging)
         console.log("tab updated", tabId);
-    if (/* Firefox */ changeInfo.url !== undefined || /* Chromium */ useDebugger)
-        // On Firefox, there's no `tab.pendingUrl`, so `scheduleUpdateDisplay` might
-        // get confused about which icon to show for our internal pages
-        // narrowed to a tracked tab until `tab.url` is set. Hence, we need to
-        // run `scheduleUpdateDisplay` as soon as it is set.
-        //
-        // On Chromium, Chromium resets the browserAction icon each time tab chages
-        // state, so we have to update icons after each one.
-        scheduleUpdateDisplay(false, tabId);
+    if (!useDebugger && tab.url === undefined)
+        // On Firefox, there's no `tab.pendingUrl`, so `scheduleUpdateDisplay`
+        // might get confused about which icon to show for our internal pages
+        // narrowed to a tracked tab. So, we skip updates until `tab.url` is
+        // set.
+        return;
+    scheduleUpdateDisplay(false, tabId, 1, 0);
 }
 
 // open client tab ports
