@@ -1265,6 +1265,11 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, timeout) {
     }, undefined, true);
 }
 
+async function forceUpdateDisplay(statsChanged, updatedTabId, episodic) {
+    scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, 0);
+    await popSingletonTimeout(scheduledHidden, "updateDisplay", true, true);
+}
+
 function getEpisodic(num) {
     if (num > 200)
         return 100;
@@ -1294,7 +1299,7 @@ function scheduleEndgame(updatedTabId) {
             // reset
             seUpdatedTabId = undefined;
 
-            scheduleUpdateDisplay(true, locUpdatedTabId);
+            await forceUpdateDisplay(true, updatedTabId);
 
             while (synchronousClosures.length > 0) {
                 let [name, fun, args] = synchronousClosures.shift();
@@ -1305,6 +1310,7 @@ function scheduleEndgame(updatedTabId) {
                 } catch (err) {
                     logError(err);
                 }
+                await forceUpdateDisplay(true, undefined, getEpisodic(synchronousClosures.length));
             }
 
             // TODO: this is inefficient, make all closures call us
@@ -1316,7 +1322,7 @@ function scheduleEndgame(updatedTabId) {
             // reset
             seUpdatedTabId = undefined;
 
-            scheduleUpdateDisplay(true, updatedTabId);
+            await forceUpdateDisplay(true, updatedTabId);
             updatedTabId = await processArchiving(updatedTabId);
             scheduleEndgame(updatedTabId);
         });
@@ -1325,7 +1331,7 @@ function scheduleEndgame(updatedTabId) {
             // reset
             seUpdatedTabId = undefined;
 
-            scheduleUpdateDisplay(true, updatedTabId);
+            await forceUpdateDisplay(true, updatedTabId);
             updatedTabId = await processAlmostDone(updatedTabId);
             scheduleEndgame(updatedTabId);
         });
