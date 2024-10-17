@@ -200,16 +200,16 @@ let scheduledHidden = new Map();
 
 function runActions() {
     runSynchronously(async () => {
-        await popAllSingletonTimeouts(scheduledCancelable, true);
-        await popAllSingletonTimeouts(scheduledInternal, true);
-        await popAllSingletonTimeouts(scheduledSaveState, true);
+        await runAllSingletonTimeouts(scheduledCancelable);
+        await runAllSingletonTimeouts(scheduledInternal);
+        await runAllSingletonTimeouts(scheduledSaveState);
     });
     scheduleEndgame(null);
 }
 
 function cancelActions() {
     runSynchronously(async () => {
-        await popAllSingletonTimeouts(scheduledCancelable, false);
+        await cancelAllSingletonTimeouts(scheduledCancelable);
     });
     scheduleEndgame(null);
 }
