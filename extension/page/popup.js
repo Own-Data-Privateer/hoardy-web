@@ -42,9 +42,7 @@ function hideAll() {
 function present(obj) {
     for (let [k, v] of Object.entries(obj)) {
         let typ = typeof v;
-        if (v instanceof Array)
-            obj[k] = v.join(", ");
-        else if (typ === "number") {
+        if (typ === "number") {
             if (k.endsWith("_size"))
                 obj[k] = byteLengthToString(v);
             else

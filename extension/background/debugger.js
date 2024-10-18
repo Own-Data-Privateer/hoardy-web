@@ -248,7 +248,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
     // don't do anything if we are globally disabled
     if (!config.collecting) return;
 
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+    popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
     logDebugEvent("requestWillBeSent", nonExtra, e, undefined);
 
@@ -314,7 +314,7 @@ function handleDebugResponseRecieved(nonExtra, e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+    popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
     logDebugEvent("responseReceived", nonExtra, e, dreqres);
 
@@ -358,7 +358,7 @@ function handleRequestServedFromCache(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+    popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
     logDebugEvent("requestServedFromCache", true, e, dreqres);
 
@@ -371,7 +371,7 @@ function handleDebugCompleted(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+    popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
     logDebugEvent("loadingFinished", true, e, dreqres);
 
@@ -382,7 +382,7 @@ function handleDebugErrorOccuried(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
-    popSingletonTimeout(scheduledInternal, "debugFinishingUp");
+    popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
     logDebugEvent("loadingFailed", true, e, dreqres);
 
@@ -646,7 +646,7 @@ function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
                 }
 
                 if (config.debugging)
-                    console.log("MATCHED", dreqres, closest);
+                    console.warn("MATCHED", dreqres, closest);
 
                 mergeInDebugReqres(closest, dreqres);
                 reqresAlmostDone.push(closest);
@@ -687,18 +687,18 @@ function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
             // will be emmited for it. So, to get these out of in-flight
             // state, we run following.
             let updatedTabId2 = updatedTabId;
-            resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000 + 500, () => {
+            scheduleActionEndgame(scheduledCancelable, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000 + 500, () => {
                 // First, finish up unsent requests (which are usually redirects).
                 let olderThan1 = Date.now() - config.workaroundChromiumDebugTimeout * 1000;
                 updatedTabId2 = forceFinishingUpWebRequest((r) => !r.sent && r.emitTimeStamp <= olderThan1, updatedTabId2);
-                scheduleEndgame(updatedTabId2);
 
                 // Then, eventually, finish up the rest.
-                resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 2000 + 500, () => {
+                scheduleActionEndgame(scheduledCancelable, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 2000 + 500, () => {
                     let olderThan2 = Date.now() - config.workaroundChromiumDebugTimeout * 2000;
-                    updatedTabId2 = forceFinishingUpWebRequest((r) => r.emitTimeStamp <= olderThan2, updatedTabId2);
-                    scheduleEndgame(updatedTabId2);
+                    return forceFinishingUpWebRequest((r) => r.emitTimeStamp <= olderThan2, updatedTabId2);
                 });
+
+                return updatedTabId2;
             });
             // NB: not doing scheduleUpdateDisplay here, because scheduleEndgame
             // below (or the function `forcing` this one) will
@@ -720,6 +720,6 @@ function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
 }
 
 function scheduleProcessMatchFinishingUpWebRequestDebug() {
-    resetSingletonTimeout(scheduledInternal, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000,
-                          processMatchFinishingUpWebRequestDebug);
+    scheduleAction(scheduledCancelable, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000,
+                   processMatchFinishingUpWebRequestDebug);
 }

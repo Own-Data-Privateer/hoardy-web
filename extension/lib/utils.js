@@ -317,14 +317,6 @@ async function cancelAllSingletonTimeouts(map) {
         await popSingletonTimeout(map, key, false, true);
 }
 
-function forEachSingletonTimeout(map, func) {
-    for (let [key, value] of map.entries()) {
-        if (value[0] === null)
-            continue;
-        func(key, value);
-    }
-}
-
 // recursive equality comparison
 function equalRec(a, b) {
     if (a === undefined && b !== undefined || a !== undefined && b === undefined)

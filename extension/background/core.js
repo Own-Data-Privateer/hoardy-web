@@ -181,13 +181,14 @@ async function saveConfig() {
     await browser.storage.local.set({ config: savedConfig }).catch(logError);
 }
 
-function scheduleSaveConfig() {
-    resetSingletonTimeout(scheduledSaveState, "saveConfig", 1000, async () => {
-        await saveConfig();
-        scheduleUpdateDisplay(true);
+function asyncSaveConfig() {
+    scheduleAction(scheduledSaveState, "saveConfig", 1000, () => {
+        saveConfig();
     });
     // NB: needs scheduleUpdateDisplay afterwards
 }
+
+let runningActions = new Set();
 
 // a list of [function, args] pairs; these are closures that need to be run synchronously
 let synchronousClosures = [];
@@ -197,48 +198,93 @@ function runSynchronously(name, func, ...args) {
     synchronousClosures.push([name, func, args]);
 }
 
-// scheduled internal functions
-let scheduledInternal = new Map();
 // scheduled cancelable functions
 let scheduledCancelable = new Map();
+// scheduled retries
+let scheduledRetry = new Map();
+// scheduled delayed functions
+let scheduledDelayed = new Map();
 // scheduled save state functions
 let scheduledSaveState = new Map();
-// scheduled functions hidden from the UI
+// scheduled internal functions
+let scheduledInternal = new Map();
+// scheduled internal functions hidden from the UI
 let scheduledHidden = new Map();
 
-function runActions() {
+function syncRunActions() {
     runSynchronously("runAll", async () => {
-        await runAllSingletonTimeouts(scheduledCancelable);
-        await runAllSingletonTimeouts(scheduledInternal);
+        //await runAllSingletonTimeouts(scheduledCancelable);
+        await runAllSingletonTimeouts(scheduledDelayed);
         await runAllSingletonTimeouts(scheduledSaveState);
     });
-    scheduleEndgame(null);
 }
 
-function cancelActions() {
+function syncCancelActions() {
     runSynchronously("cancelAll", async () => {
         await cancelAllSingletonTimeouts(scheduledCancelable);
+        await cancelAllSingletonTimeouts(scheduledDelayed);
+        await cancelAllSingletonTimeouts(scheduledRetry);
     });
-    scheduleEndgame(null);
+}
+
+// TODO topologically, updateDisplay goes here
+
+// Schedule a given function using resetSingletonTimeout.
+// The scheduled function is experted to return `updatedTabId` value.
+function scheduleActionExtra(map, key, priority, timeout, hurry, func, endgame) {
+    let value = resetSingletonTimeout(map, key, timeout, func, priority, hurry);
+    if (value === undefined)
+        // it was already scheduled (and might have been re-scheduled), no nothing
+        return;
+
+    value.before.push(async () => {
+        if (config.debugging)
+            console.warn("running", key);
+        runningActions.add(key);
+        await forceUpdateDisplay(true);
+    });
+    value.after.push(async (results) => {
+        if (config.debugging)
+            console.warn("finished", key, results);
+        runningActions.delete(key);
+
+        // merge results of all performed updates
+        let updatedTabId;
+        for (let res of results)
+            updatedTabId = mergeUpdatedTabIds(updatedTabId, res)
+
+        if (endgame)
+            scheduleEndgame(updatedTabId);
+        else
+            await forceUpdateDisplay(true, updatedTabId);
+    });
+    return value;
+}
+
+function scheduleAction(map, key, timeout, func) {
+    return scheduleActionExtra(map, key, 100, timeout, false, func, false);
+}
+
+function scheduleActionEndgame(map, key, timeout, func) {
+    return scheduleActionExtra(map, key, 100, timeout, false, func, true);
 }
 
 async function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
-    resetSingletonTimeout(scheduledInternal, `resetTab#${tabId}`, 100, async () => {
+    scheduleActionExtra(scheduledInternal, `reset-tab#${tabId}`, priority, 100, true, async () => {
         let r;
         if (resetFunc !== undefined)
             r = await resetFunc(tabId);
-        resetSingletonTimeout(scheduledInternal, `reloadTab#${tabId}`, 300, async () => {
+        scheduleActionExtra(scheduledInternal, `reload-tab#${tabId}`, priority, 300, true, async () => {
             try {
                 if (preFunc !== undefined)
                     await preFunc(tabId);
                 if (actionFunc !== undefined)
                     await actionFunc(tabId, r);
-            } finally {
-                scheduleUpdateDisplay(true, tabId);
+            } catch (err) {
+                logError(err);
             }
-        }, priority);
-    }, priority);
-    scheduleUpdateDisplay(true, tabId);
+        }, false);
+    }, false);
 }
 
 function resetAndNavigateTab(tabId, url, priority) {
@@ -442,7 +488,6 @@ function cleanupAfterTab(tabId) {
     }
 
     cleanupTabs();
-    scheduleUpdateDisplay(true, tabId);
 }
 
 function processRemoveTab(tabId) {
@@ -455,7 +500,10 @@ function processRemoveTab(tabId) {
     if (config.autoUnmarkProblematic && tabstats.problematic > 0
         || (config.autoPopInLimboCollect || config.autoPopInLimboDiscard)
            && tabstats.in_limbo > 0)
-        resetSingletonTimeout(scheduledCancelable, `cleanupAfterTab#${tabId}`, config.autoTimeout * 1000, () => cleanupAfterTab(tabId));
+        scheduleAction(scheduledDelayed, `cleanup-tab#${tabId}`, config.autoTimeout * 1000, () => {
+            cleanupAfterTab(tabId);
+            return tabId;
+        });
 
     scheduleEndgame(updatedTabId);
 }
@@ -575,13 +623,12 @@ function markAsErrored(error, archivable) {
     gotNewErrored = true;
 }
 
-function forgetErrored() {
+function syncForgetErrored() {
     runSynchronously("forgetErrored", async () => {
         for (let f of reqresErrored.values())
             await syncMany(f.queue, 0, false);
         reqresErrored = new Map();
     });
-    scheduleEndgame(null);
 }
 
 // persistent global stats
@@ -653,7 +700,7 @@ function getOriginState(tabId, fromExtension) {
     return cacheSingleton(tabState, tabId, () => assignRec({}, tabStateDefaults));
 }
 
-// scheduleComplaints flags
+// asyncNotifications flags
 // do we have a newly- or recently failed to be stashed or saved/archived to local storage reqres?
 let gotNewSyncedOrNot = false;
 // do we have a newly- or recently failed to be archived reqres?
@@ -707,15 +754,21 @@ function getStats() {
     let finishing_up = Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length) + reqresAlmostDone.length;
 
     let actions = [];
-    forEachSingletonTimeout(scheduledCancelable, (key) => actions.push(key));
-    forEachSingletonTimeout(scheduledSaveState, (key) => actions.push(key));
+    scheduledCancelable.forEach((v, key) => actions.push(key));
+    scheduledRetry.forEach((v, key) => actions.push(key));
+    scheduledDelayed.forEach((v, key) => actions.push(key));
+    scheduledSaveState.forEach((v, key) => actions.push(key));
     let low_prio = actions.length;
-    forEachSingletonTimeout(scheduledInternal, (key) => actions.push(key));
+    scheduledInternal.forEach((v, key) => actions.push(key));
+    // scheduledHidden are not shown to the UI
+    synchronousClosures.forEach((v) => actions.push(v[0]));
 
     return {
+        running: runningActions.size,
+        running_actions: Array.from(runningActions.values()).sort().join(", "),
         scheduled_low: low_prio,
-        scheduled: actions.length + synchronousClosures.length,
-        actions,
+        scheduled: actions.length,
+        scheduled_actions: actions.join(", "),
         in_flight,
         finishing_up,
         problematic: reqresProblematic.length,
@@ -994,8 +1047,14 @@ function makeUpdateDisplay(statsChanged, updatedTabId) {
         color = 0;
         let chunks = [];
 
+        if (stats.running > 0) {
+            badge += "^";
+            color = Math.max(color, 1);
+            chunks.push(`${stats.running} running actions`);
+        }
+
         if (stats.issues > 0)
-            badge = stats.issues.toString();
+            badge += stats.issues.toString();
 
         if (!config.collecting)
             chunks.push("off");
@@ -1281,11 +1340,14 @@ function getEpisodic(num) {
 
 // schedule processFinishingUp
 function scheduleFinishingUp() {
-    resetSingletonTimeout(scheduledInternal, "finishingUp", 100, () => {
-        scheduleUpdateDisplay(true);
-        processFinishingUp(false);
+    if (reqresFinishingUp.length == 0 && debugReqresFinishingUp.length == 0)
+        // nothing to do
+        return;
+
+    scheduleAction(scheduledInternal, "finishingUp", 100, () => {
+        return processFinishingUp(false);
     });
-    // TODO? scheduleUpdateDisplay(true);
+    scheduleUpdateDisplay(true);
 }
 
 let seUpdatedTabId;
@@ -1295,14 +1357,20 @@ function scheduleEndgame(updatedTabId) {
     updatedTabId = seUpdatedTabId = mergeUpdatedTabIds(seUpdatedTabId, updatedTabId);
 
     if (synchronousClosures.length > 0) {
-        resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             // reset
             seUpdatedTabId = undefined;
 
-            await forceUpdateDisplay(true, updatedTabId);
-
             while (synchronousClosures.length > 0) {
                 let [name, fun, args] = synchronousClosures.shift();
+
+                let key = "endgame::" + name;
+                if (config.debugging)
+                    console.warn("running", key);
+
+                await forceUpdateDisplay(true, updatedTabId, getEpisodic(synchronousClosures.length));
+                updatedTabId = undefined;
+
                 try {
                     let res = fun(...args);
                     if (res instanceof Promise)
@@ -1310,7 +1378,10 @@ function scheduleEndgame(updatedTabId) {
                 } catch (err) {
                     logError(err);
                 }
-                await forceUpdateDisplay(true, undefined, getEpisodic(synchronousClosures.length));
+
+                if (config.debugging)
+                    console.warn("finished", key);
+                runningActions.delete(key);
             }
 
             // TODO: this is inefficient, make all closures call us
@@ -1318,7 +1389,7 @@ function scheduleEndgame(updatedTabId) {
             scheduleEndgame(null);
         });
     } else if (config.archive && reqresQueue.length > 0) {
-        resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             // reset
             seUpdatedTabId = undefined;
 
@@ -1327,7 +1398,7 @@ function scheduleEndgame(updatedTabId) {
             scheduleEndgame(updatedTabId);
         });
     } else if (reqresAlmostDone.length > 0) {
-        resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             // reset
             seUpdatedTabId = undefined;
 
@@ -1336,13 +1407,13 @@ function scheduleEndgame(updatedTabId) {
             scheduleEndgame(updatedTabId);
         });
     } else /* if (!config.archive || reqresQueue.length == 0) */ {
-        resetSingletonTimeout(scheduledInternal, "endgame", 0, async () => {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             // reset
             seUpdatedTabId = undefined;
 
             if (wantBroadcastSaved) {
                 wantBroadcastSaved = false;
-                resetSingletonTimeout(scheduledInternal, "readSaved", 0, async (wantStop) => {
+                scheduleAction(scheduledInternal, "readSaved", 0, async (wantStop) => {
                     let log;
                     try {
                         log = await getSavedLog(savedFilters, wantStop);
@@ -1351,7 +1422,6 @@ function scheduleEndgame(updatedTabId) {
                         if (!(err instanceof StopIteration))
                             throw err;
                     }
-                    scheduleUpdateDisplay(true);
                 });
             }
 
@@ -1375,29 +1445,31 @@ function scheduleEndgame(updatedTabId) {
                     || savedGlobals.savedIDB.number !== globals.savedIDB.number)
                     boring = false;
 
-                resetSingletonTimeout(scheduledSaveState, "saveGlobals", boring ? 90000 : 1000, async () => {
-                    await saveGlobals();
-                    scheduleUpdateDisplay(true);
+                scheduleAction(scheduledSaveState, "persistStats", boring ? 90000 : 1000, () => {
+                    saveGlobals();
                 });
             }
 
             if (gotNewExportedAs) {
                 gotNewExportedAs = false;
                 // schedule exportAs for all buckets
-                scheduleBucketSaveAs(haveInFlight
-                                     ? config.exportAsInFlightTimeout * 1000
-                                     : config.exportAsTimeout * 1000
-                                     , null);
+                asyncBucketSaveAs(haveInFlight
+                                  ? config.exportAsInFlightTimeout * 1000
+                                  : config.exportAsTimeout * 1000
+                                  , null);
             }
 
             if (wantRetryUnarchived) {
                 wantRetryUnarchived = false;
                 if (config.archive && reqresUnarchivedByArchivable.size > 0)
                     // retry unarchived in 60s
-                    scheduleRetryUnarchived(60000, false);
+                    scheduleActionEndgame(scheduledRetry, "retryUnarchived", 60000, () => {
+                        syncRetryUnarchived(false);
+                        return null;
+                    });
             }
 
-            scheduleComplaints(1000);
+            asyncNotifications(1000);
 
             scheduleUpdateDisplay(true, updatedTabId);
         });
@@ -1416,7 +1488,7 @@ async function doRetryAllUnstashed() {
     gotNewSyncedOrNot = true;
 }
 
-function scheduleRetryUnstashed() {
+function syncRetryUnstashed() {
     runSynchronously("retryUnstashed", doRetryAllUnstashed);
 }
 
@@ -1430,9 +1502,8 @@ async function doStashAll(alsoLimbo) {
             await syncMany(f.queue, 1, true);
 }
 
-function stashAll(alsoLimbo) {
+function syncStashAll(alsoLimbo) {
     runSynchronously("stashAll", doStashAll, alsoLimbo);
-    scheduleEndgame(null);
 }
 
 function retryOneUnarchived(archiveURL, unrecoverable) {
@@ -1462,18 +1533,12 @@ function retryOneUnarchived(archiveURL, unrecoverable) {
         reqresUnarchivedByArchiveError.delete(archiveURL);
 }
 
-function retryUnarchived(unrecoverable) {
+function syncRetryUnarchived(unrecoverable) {
     for (let archiveURL of Array.from(reqresUnarchivedByArchiveError.keys()))
         retryOneUnarchived(archiveURL, unrecoverable);
 
     broadcast(["resetQueued", getQueuedLog()]);
     broadcast(["resetUnarchived", getUnarchivedLog()]);
-
-    scheduleEndgame(null);
-}
-
-function scheduleRetryUnarchived(timeout, unrecoverable) {
-    resetSingletonTimeout(scheduledCancelable, "retryUnarchived", timeout, () => retryUnarchived(unrecoverable));
 }
 
 function formatFailures(why, list) {
@@ -1483,7 +1548,7 @@ function formatFailures(why, list) {
     return parts.join("\n");
 }
 
-async function doComplain() {
+async function doNotify() {
     // record the current state, because the rest of this chunk is async
     let rrErrored = Array.from(reqresErrored.entries());
     let rrUnstashed = Array.from(reqresUnstashedByError.entries());
@@ -1645,8 +1710,9 @@ async function doComplain() {
         await browser.notifications.clear("problematic");
 }
 
-function scheduleComplaints(timeout) {
-    resetSingletonTimeout(scheduledHidden, "complaints", timeout, doComplain);
+function asyncNotifications(timeout) {
+    resetSingletonTimeout(scheduledHidden, "notify", timeout, doNotify);
+    // NB: needs scheduleUpdateDisplay after
 }
 
 // reqres persistence
@@ -1887,9 +1953,7 @@ async function syncMany(archivables, state, elide) {
     for (let archivable of archivables) {
         let [loggable, dump] = archivable;
         updateLoggable(loggable);
-
         await syncOne(archivable, state, elide);
-        scheduleUpdateDisplay(true, loggable.tabId, 100);
     }
 }
 
@@ -2098,7 +2162,7 @@ function bucketSaveAs(bucket, ifGEQ) {
 }
 
 // schedule bucketSaveAs action
-function scheduleBucketSaveAs(timeout, bucketOrNull) {
+function asyncBucketSaveAs(timeout, bucketOrNull) {
     if (reqresBundledAs.size === 0)
         return;
 
@@ -2108,12 +2172,12 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
     else
         buckets = [ bucketOrNull ];
 
-    for (let bucket of buckets) {
-        resetSingletonTimeout(scheduledCancelable, `exportAs-${bucket}`, timeout, async () => {
+    for (let bucket of buckets)
+        scheduleAction(scheduledDelayed, `exportAs-${bucket}`, timeout, () => {
             bucketSaveAs(bucket);
-            scheduleEndgame(null);
         });
-    }
+
+    // NB: needs scheduleUpdateDisplay after
 }
 
 async function exportAsOne(archivable) {
@@ -2168,7 +2232,7 @@ async function saveOne(archivable) {
     // events:
     //   finished -> in_limbo -> syncOne -> out of disk space ->
     //   the user fixes it -> popInLimbo ->
-    //   queued -> saveOne -> scheduleRetryUnstashed
+    //   queued -> saveOne -> syncRetryUnstashed
     reqresUnstashedByArchivable.delete(archivable);
 
     try {
@@ -2683,18 +2747,19 @@ async function processOneAlmostDone(reqres, newProblematic, newLimbo, newQueued,
 
     // dump it to console when debugging
     if (config.debugging)
-        console.log(picked ? "PICKED" : "DROPPED",
-                    in_limbo ? "LIMBO" : "QUEUED",
-                    reqres.requestId,
-                    "state", state,
-                    reqres.protocol, reqres.method, reqres.url,
-                    "tabId", updatedTabId,
-                    "req", reqres.requestComplete,
-                    "res", reqres.responseComplete,
-                    "result", statusCode, reqres.reason, reqres.statusLine,
-                    "errors", reqres.errors,
-                    "bucket", options.bucket,
-                    reqres);
+        console.warn(
+            picked ? "PICKED" : "DROPPED",
+            in_limbo ? "LIMBO" : "QUEUED",
+            reqres.requestId,
+            "state", state,
+            reqres.protocol, reqres.method, reqres.url,
+            "tabId", updatedTabId,
+            "req", reqres.requestComplete,
+            "res", reqres.responseComplete,
+            "result", statusCode, reqres.reason, reqres.statusLine,
+            "errors", reqres.errors,
+            "bucket", options.bucket,
+            reqres);
 
     let loggable = makeLoggableReqres(reqres);
     loggable.bucket = options.bucket;
@@ -3640,7 +3705,7 @@ function handleMessage(request, sender, sendResponse) {
         if (!config.ephemeral && !equalRec(oldConfig, config))
             // save config after a little pause to give the user time to click
             // the same toggle again without torturing the SSD
-            scheduleSaveConfig();
+            asyncSaveConfig();
 
         if (useDebugger)
             syncDebuggersState();
@@ -3649,18 +3714,18 @@ function handleMessage(request, sender, sendResponse) {
             wantArchiveDoneNotify = true;
 
         if (config.stash && oldConfig.stash != config.stash)
-            stashAll(false);
+            syncStashAll(false);
 
         if (config.archive && oldConfig.archive !== config.archive)
-            scheduleRetryUnarchived(0, false);
+            syncRetryUnarchived(false);
 
-        scheduleUpdateDisplay(true, null);
+        scheduleEndgame(null);
         broadcast(["updateConfig", config]);
         sendResponse(null);
         break;
     case "resetConfig":
         config = assignRec({}, configDefaults);
-        scheduleSaveConfig();
+        asyncSaveConfig();
         scheduleUpdateDisplay(true, null);
         broadcast(["updateConfig", config]);
         sendResponse(null);
@@ -3725,16 +3790,14 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(getUnarchivedLog());
         break;
     case "retryFailed":
-        scheduleRetryUnarchived(0, true);
-        scheduleRetryUnstashed();
-        // same as below
+        syncRetryUnarchived(true);
+        syncRetryUnstashed();
+        scheduleEndgame(null);
         sendResponse(null);
         break;
     case "retryUnarchived":
-        scheduleRetryUnarchived(0, true);
-        // technically, we need
-        //scheduleUpdateDisplay(true, null);
-        // here, but it would be useless, since timeout is 0
+        syncRetryUnarchived(true);
+        scheduleEndgame(null);
         sendResponse(null);
         break;
     case "getSavedFilters":
@@ -3757,15 +3820,17 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(null);
         break;
     case "forgetErrored":
-        forgetErrored();
+        syncForgetErrored();
+        scheduleEndgame(null);
         sendResponse(null);
         break;
     case "stashAll":
-        stashAll(true);
+        syncStashAll(true);
+        scheduleEndgame(null);
         sendResponse(null);
         break;
     case "retryUnstashed":
-        scheduleRetryUnstashed();
+        syncRetryUnstashed();
         scheduleEndgame(null);
         sendResponse(null);
         break;
@@ -3774,15 +3839,18 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(null);
         break;
     case "runActions":
-        runActions();
+        syncRunActions();
+        scheduleEndgame(null);
         sendResponse(null);
         break;
     case "cancelActions":
-        cancelActions();
+        syncCancelActions();
+        scheduleEndgame(null);
         sendResponse(null);
         break;
     case "exportAs":
-        scheduleBucketSaveAs(0, request[1]);
+        asyncBucketSaveAs(0, request[1]);
+        scheduleUpdateDisplay(true);
         sendResponse(null);
         break;
     case "broadcast":
@@ -4204,8 +4272,6 @@ async function init() {
     if (useDebugger)
         await initDebugger(tabs);
 
-    scheduleUpdateDisplay(true, null);
-
     console.log("Ready to Hoard the Web!");
 
     if (config.autoPopInLimboDiscard || config.discardAll) {
@@ -4222,7 +4288,9 @@ async function init() {
         }).catch(logError);
     }
 
-    scheduleComplaints(1000);
+    asyncNotifications(1000);
+
+    scheduleUpdateDisplay(true, null);
 }
 
 init();
