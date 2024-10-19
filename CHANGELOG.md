@@ -16,6 +16,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
   - Also, CSP headers are not supported yet and, thus, the generated `meta http-equiv=content-security-policy` tags will get immediately censored out, which is usually invisible, but can be seen with `+verbose` set.
 
+- `export mirror`:
+
+  - Added `--max-memory` option, allowing you to sacrifice arbitrary amounts of RAM to improve performance.
+
 - *:
 
   - Added unit tests for all internal parsers.
@@ -27,8 +31,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `export mirror`:
 
   - Improved the exporting algorithm, switched to a completely recursive implementation, in preparation for future extensions with cool features.
-
-  - Added `--max-memory` option, allowing you to sacrifice arbitrary amounts of RAM to improve performance.
 
   - From now on, writes to *all* files being exported (not just the top-level ones) will be atomic with respect to their dependencies.
 
