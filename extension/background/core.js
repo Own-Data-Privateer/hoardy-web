@@ -4181,6 +4181,7 @@ async function init() {
 
         upgradeConfig(oldConfig);
         config = updateFromRec(config, oldConfig);
+        savedConfig = config;
     }
 
     let oldGlobals = localData.globals;
@@ -4194,6 +4195,7 @@ async function init() {
 
         oldGlobals = upgradeGlobals(oldGlobals);
         globals = updateFromRec(globals, oldGlobals);
+        savedGlobals = globals;
     }
 
     config.version = configVersion;
