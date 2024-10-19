@@ -71,7 +71,9 @@ for target in "$@"; do
 
     cat ../CHANGELOG.md \
         | sed '
-s%(\./extension/page/help\.org\([^)]*\))%(./help.html\1)%g ; t end
+s%\./extension/page/help\.org%./help.html%g
+s%#state-in-extension-ui-only%./state.html%g
+t end
 s%(\./\([^)]*\))%(https://oxij.org/software/hoardy-web/tree/master/\1)%g
 : end
 ' \

@@ -22,7 +22,7 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
   - Added `--max-memory` option, allowing you to sacrifice arbitrary amounts of RAM to improve performance.
 
-- *:
+- `*`:
 
   - Added unit tests for all internal parsers.
 
@@ -34,9 +34,9 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
   - Improved the exporting algorithm, switched to a completely recursive implementation, in preparation for future extensions with cool features.
 
-  - From now on, writes to *all* files being exported (not just the top-level ones) will be atomic with respect to their dependencies.
+  - From now on, writes to *all* files that are being exported (not just the top-level ones) will be atomic with respect to their dependencies.
 
-- *:
+- `*`:
 
   - Refactored internals a lot.
 
@@ -260,7 +260,7 @@ But the current state is quite usable.
 
     This allows to easily prioritize exporting of some files over others by specifying them in the command line arguments first, followed by their containing directory in a later argument.
 
-    [`README.md`](./tool/) has a new example showcasing it.
+    [`README.md`](./tool/README.md) has a new example showcasing it.
 
   - It delays disk writes for `HTML` pages until after all of their requisite resources finished exporting now.
 
@@ -451,7 +451,7 @@ Moreover:
 
 - Split `in_flight` stat into a sum of two numbers.
 
-  This makes things less confusing on Chromium, the `Help` page explains it in more detail.
+  This makes things less confusing on Chromium, [the `Help` page](./extension/page/help.org) explains it in more detail.
 
 - Added toolbar button's badge as a prefix to its title, changed its format a bit.
 
@@ -462,7 +462,7 @@ Moreover:
 
 - Improved documentation.
 
-  In particular, among other things, added a lot of new anchors to the `Help` page, most internal links referencing some fact discussed in another section now point directly to the relevant paragraph instead of pointing to its section header.
+  In particular, among other things, added a lot of new anchors to [the `Help` page](./extension/page/help.org), most internal links referencing some fact discussed in another section now point directly to the relevant paragraph instead of pointing to its section header.
 
 ### Fixed
 
@@ -470,7 +470,7 @@ On Firefox:
 
 - Fixed capture of responses produced by service/shared workers.
 
-  Also, added a new error code for when it (very rarely) fails because of a race condition inherent in `webRequest` API and documented all of it on the `Help` page.
+  Also, added a new error code for when it (very rarely) fails because of a race condition inherent in `webRequest` API and documented all of it on [the `Help` page](./extension/page/help.org).
 
 - Fixed `HTTP` protocol version detection, requests fetched via `HTTP/3` will now be marked as such.
 
@@ -482,7 +482,7 @@ On Chromium:
 
 Generally:
 
-- Fixed navigation with browser's `Back` and `Forward` buttons to work properly on the `Help` page.
+- Fixed navigation with browser's `Back` and `Forward` buttons to work properly on [the `Help` page](./extension/page/help.org).
 
 - Fixed a bug where force-stopping all in-flight reqres in a single tab could also drop some of the others.
 
@@ -494,7 +494,7 @@ Generally:
 
 ### Changed
 
-- Improved documentation, especially the `Help` page.
+- Improved documentation, especially [the `Help` page](./extension/page/help.org).
 - Tiny improvement in popup UI `HTML` layout.
 - Changed `config.history` default value.
 
@@ -811,7 +811,7 @@ Generally:
 
   - Similarly, the `Help` button will now get highlighted when that page gets updated.
 
-  - The popup, the `Help` page, the `Internal State` aka the `Log` page all had their UI improved greatly.
+  - The popup, [the `Help` page](./extension/page/help.org), [the `Internal State` aka the `Log` page](#state-in-extension-ui-only) all had their UI improved greatly.
 
   - All the toggles in the popup are now color-coded with their expected values, so if something looks red(-dish), you might want to check the help string in question just in case.
 
@@ -959,7 +959,8 @@ Generally:
                   \-> (failed to archive) -/
   ```
 
-- The `Log` page became the `Internal State` page, now shows in-flight and in-limbo reqres. It also allows narrowing to data belonging to a single tab now.
+- [The `Log` page became the `Internal State` page](#state-in-extension-ui-only), now shows in-flight and in-limbo reqres.
+  It also allows narrowing to data belonging to a single tab now.
 
 - Improved UI.
 
@@ -1181,7 +1182,7 @@ Paths produced by `wrrarms organize` are expected to change:
 ### Changed
 
 - Improved handling of `304 Not Modified` responses.
-- Improved UI and the `Help` page.
+- Improved UI and [the `Help` page](./extension/page/help.org).
 
 ### Fixed
 
@@ -1209,8 +1210,8 @@ All planned features are complete now.
 ### Changed
 
 - Improved popup UI.
-- Improved the `Help` page: it's much more helpful now.
-- Improved the `Log` page: it's an interactive page that gets updated automatically now.
+- Improved [the `Help` page](./extension/page/help.org): it's much more helpful now.
+- Improved [the `Log` page](#state-in-extension-ui-only): it's an interactive page that gets updated automatically now.
 
 ### Fixed
 
@@ -1290,13 +1291,14 @@ All planned features are complete now.
 - UI:
   - Reorganize the popup UI.
   - Add separate per-tab toggles for limiting `DOM` snapshots taken with `Snapshot all tabs` button.
-  - Improve `Internal State`and `Saved into Local Storage` UIs.
+  - Improve `Internal State` and `Saved into Local Storage` UIs.
   - Add option persistence to `Internal State` and `Saved into Local Storage` UIs.
   - Add URL matching to `Internal State` and `Saved into Local Storage` UIs.
 - Core+UI:
   - Add a popup UI section for `Closed tabs`, so that you could easily collect/discard `in_limbo` reqres from such tabs.
   - Track navigations and allow to use them as boundaries between batches of reqres saved in limbo mode.
-  - Reorganize tracking- and problematic-related options into config profiles (~25% done), allow them to override each over, and then implement per-host profiles.
+  - (~25% done) Reorganize tracking- and problematic-related options into config profiles, allow them to override each over.
+  - Implement per-host profiles.
   - Implement extension auto-restart on updates.
     This requires us to implement saving of the complete state into local storage first.
   - Implement automatic capture of `DOM` snapshots when a page changes.
@@ -1329,6 +1331,6 @@ All planned features are complete now.
 - `import`, `export`:
   - Converters from `HAR` and `WARC` to `WRR`.
   - Converter from `WRR` to `WARC`.
-  - Converter from `PCAP` ito `WRR`.
+  - Converter from `PCAP` to `WRR`.
 - `*`:
   - Maybe: Full text indexing and search. "Maybe", because offloading (almost) everything search-related to third-party tools may be a better idea.
