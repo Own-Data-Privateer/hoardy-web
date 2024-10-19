@@ -4,6 +4,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [tool-v0.16.0] - 2024-10-19
+
+### Added
+
+- `scrub`, `export mirror`:
+
+  - Implemented inlining of `Link`, `Refresh`, `Content-Security-Policy`, and some other `HTTP` headers into the exported `HTML` files as `meta http-equiv` tags.
+
+  - `scrub` now has `(+|-)navigations` option which controls whether the resulting `meta http-equiv=refresh` headers should be kept or censored out, `-navigations` is the default.
+
+  - Also, CSP headers are not supported yet and, thus, the generated `meta http-equiv=content-security-policy` tags will get immediately censored out, which is usually invisible, but can be seen with `+verbose` set.
+
+- *:
+
+  - Added unit tests for all internal parsers.
+
+  - Added a lot of new integration tests.
+
+### Changed
+
+- `export mirror`:
+
+  - Improved the exporting algorithm, switched to a completely recursive implementation, in preparation for future extensions with cool features.
+
+  - Added `--max-memory` option, allowing you to sacrifice arbitrary amounts of RAM to improve performance.
+
+  - From now on, writes to *all* files being exported (not just the top-level ones) will be atomic with respect to their dependencies.
+
+- *:
+
+  - Refactored internals a lot.
+
+  - Improved performance a bit.
+
 ## [extension-v1.16.1] - 2024-10-15
 
 ### Fixed
@@ -1190,6 +1224,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.16.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.5.1...tool-v0.16.0
 [extension-v1.16.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.16.0...extension-v1.16.1
 [tool-v0.15.5]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.4...tool-v0.15.5.1
 [simple_server-v1.7.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.6.1...simple_server-v1.7.0
