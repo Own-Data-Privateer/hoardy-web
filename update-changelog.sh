@@ -46,9 +46,16 @@ sed -n "0,/^\[/ p" CHANGELOG.md | head -n -1 > CHANGELOG.new
     done
 } 4> CHANGELOG.spine.rnew | tac >> CHANGELOG.new
 
-echo "# Changelog" > CHANGELOG.spine.new
-cat CHANGELOG.spine.rnew | tac >> CHANGELOG.spine.new
-sed -n '/^##\? / p' CHANGELOG.md > CHANGELOG.spine.old
+{
+    echo
+    sed -n "/^# TODO/,$ p" CHANGELOG.md
+} >> CHANGELOG.new
+
+{
+    echo "# Changelog"
+    cat CHANGELOG.spine.rnew | tac
+} >> CHANGELOG.spine.new
+sed -n '/^# TODO/,$ d; /^##\? / p' CHANGELOG.md > CHANGELOG.spine.old
 diff -u CHANGELOG.spine.old CHANGELOG.spine.new || true
 rm CHANGELOG.spine.*
 
