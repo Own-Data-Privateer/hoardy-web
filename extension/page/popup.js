@@ -21,27 +21,26 @@
 
 "use strict";
 
-function showAll() {
-    document.body.classList.add("all");
-    document.body.classList.remove("short");
+let dbody = document.body;
 
-    for (let node of document.getElementsByName("more"))
-        node.style.removeProperty("display");
+function show(condition) {
+    implySetConditionalClass(dbody, "hidden", "more", !condition);
+    implySetConditionalClass(dbody, "hidden", "less", condition);
 
-    for (let node of document.getElementsByTagName("input")) {
-        let ti = node.getAttribute("tabindex");
-        if (ti !== null && ti != -1)
-            node.removeAttribute("tabindex");
-    }
-}
-
-function hideAll() {
-    document.body.classList.remove("all");
-    document.body.classList.add("short");
-
-    document.getElementById("showAll").style.removeProperty("display");
-    for (let node of document.getElementsByName("more"))
-        node.style.display = "none";
+    if (condition)
+        for (let node of dbody.getElementsByTagName("input")) {
+            let ti = node.getAttribute("tabindex");
+            if (ti !== null && ti != -1) {
+                node.removeAttribute("tabindex");
+                node.setAttribute("less-tabindex", ti);
+            }
+        }
+    else
+        for (let node of dbody.getElementsByTagName("input")) {
+            let ti = node.getAttribute("less-tabindex");
+            if (ti !== null)
+                node.setAttribute("tabindex", ti);
+        }
 }
 
 function present(obj) {
@@ -58,8 +57,10 @@ function present(obj) {
 }
 
 async function popupMain() {
-    document.body.classList.add(useDebugger ? "not-firefox" : "not-chromium");
-    document.body.classList.add(isMobile ? "not-desktop" : "not-mobile");
+    implySetConditionalOff(dbody, "on-firefox", useDebugger);
+    implySetConditionalOff(dbody, "on-chromium", !useDebugger);
+    implySetConditionalOff(dbody, "on-desktop", isMobile);
+    implySetConditionalOff(dbody, "on-mobile", !isMobile);
 
     let hash = document.location.hash.substr(1);
     let tabId;
@@ -106,7 +107,7 @@ async function popupMain() {
             , (help, shortcut) => shortcut ? `(\`${shortcut}\`) ${help}` : `(unbound) ${help}`);
 
     // allow to un-highlight currently highlighted node
-    document.body.addEventListener("click", (event) => {
+    dbody.addEventListener("click", (event) => {
         highlightNode(null);
     });
 
@@ -243,7 +244,7 @@ async function popupMain() {
     }));
 
     buttonToAction("showAll", catchAll(() => {
-        showAll();
+        show(true);
         broadcast(["popupResized"]);
     }));
 
@@ -288,18 +289,17 @@ async function popupMain() {
         setConditionalClass(versionButton, "attention", !config.seenChangelog);
         setConditionalClass(helpButton, "attention", !config.seenHelp);
 
-        let dbody = document.body;
-        setConditionalClass(dbody, "off-seasonal", !config.seasonal);
-        setConditionalClass(dbody, "off-collecting", !config.collecting);
-        setConditionalClass(dbody, "off-stash", !config.stash);
-        setConditionalClass(dbody, "off-archive", !config.archive);
-        setConditionalClass(dbody, "off-exportAs", !config.archive || !config.archiveExportAs);
-        setConditionalClass(dbody, "off-exportAsBundle", !config.exportAsBundle);
-        setConditionalClass(dbody, "off-submitHTTP", !config.archive || !config.archiveSubmitHTTP);
-        setConditionalClass(dbody, "off-LS", !config.stash && (!config.archive || !config.archiveSaveLS));
-        setConditionalClass(dbody, "off-auto", !config.autoUnmarkProblematic && !config.autoPopInLimboCollect && !config.autoPopInLimboDiscard);
-        setConditionalClass(dbody, "off-problematicNotify", !config.problematicNotify);
-        setConditionalClass(dbody, "off-limboNotify", !config.limboNotify);
+        implySetConditionalOff(dbody, "on-seasonal", !config.seasonal);
+        implySetConditionalOff(dbody, "on-collecting", !config.collecting);
+        implySetConditionalOff(dbody, "on-stash", !config.stash);
+        implySetConditionalOff(dbody, "on-archive", !config.archive);
+        implySetConditionalOff(dbody, "on-exportAs", !config.archive || !config.archiveExportAs);
+        implySetConditionalOff(dbody, "on-exportAsBundle", !config.exportAsBundle);
+        implySetConditionalOff(dbody, "on-submitHTTP", !config.archive || !config.archiveSubmitHTTP);
+        implySetConditionalOff(dbody, "on-LS", !config.stash && (!config.archive || !config.archiveSaveLS));
+        implySetConditionalOff(dbody, "on-auto", !config.autoUnmarkProblematic && !config.autoPopInLimboCollect && !config.autoPopInLimboDiscard);
+        implySetConditionalOff(dbody, "on-problematicNotify", !config.problematicNotify);
+        implySetConditionalOff(dbody, "on-limboNotify", !config.limboNotify);
     }
 
     async function updateStats(stats) {
@@ -307,11 +307,9 @@ async function popupMain() {
             stats = await browser.runtime.sendMessage(["getStats"]);
         setUI(document, "stats", present(stats));
 
-        let dbody = document.body;
-        setConditionalClass(dbody, "no-reload", !(stats.update_available || config.debugging));
         setConditionalClass(reloadSelfButton, "attention", stats.update_available);
-        setConditionalClass(dbody, "yes-pending", stats.reload_pending);
-        setConditionalClass(dbody, "no-pending", !stats.reload_pending);
+        implySetConditionalClass(dbody, "hidden", "on-reload", !hash && !(stats.update_available || config.debugging));
+        implySetConditionalClass(dbody, "hidden", "on-pending", !stats.reload_pending);
     }
 
     async function updateTabConfig(tabconfig) {
@@ -375,10 +373,7 @@ async function popupMain() {
     }
 
     // set default UI state
-    if (hash)
-        showAll();
-    else
-        hideAll();
+    show(!!hash);
 
     async function processUpdate(update) {
         let [what, data] = update;
