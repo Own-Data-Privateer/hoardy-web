@@ -101,8 +101,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log("current width:", w);
         columns = w >= minWidth;
 
-        setConditionalClass(document.body, columns, "columns");
-        setConditionalClass(document.body, !columns, "linear");
+        setConditionalClass(document.body, "columns", columns);
+        setConditionalClass(document.body, "linear", !columns);
 
         // Prevent independent scroll in `columns` layout.
         let h1 = columns ? `${h - 5}px` : null;

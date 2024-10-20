@@ -284,23 +284,22 @@ async function popupMain() {
         });
 
         setRootClasses(config);
-        let dbody = document.body;
-        setConditionalClass(dbody, !config.seasonal, "off-seasonal");
         resetPureText(config);
-        setConditionalClass(dbody, !config.collecting, "off-collecting");
-        setConditionalClass(dbody, !config.stash, "off-stash");
-        setConditionalClass(dbody, !config.archive, "off-archive");
-        setConditionalClass(dbody, !config.archive || !config.archiveExportAs, "off-exportAs");
-        setConditionalClass(dbody, !config.exportAsBundle, "off-exportAsBundle");
-        setConditionalClass(dbody, !config.archive || !config.archiveSubmitHTTP, "off-submitHTTP");
-        setConditionalClass(dbody, !config.stash && (!config.archive || !config.archiveSaveLS), "off-LS");
-        setConditionalClass(dbody, !config.autoUnmarkProblematic
-                            && !config.autoPopInLimboCollect
-                            && !config.autoPopInLimboDiscard, "off-auto");
-        setConditionalClass(dbody, !config.problematicNotify, "off-problematicNotify");
-        setConditionalClass(dbody, !config.limboNotify, "off-limboNotify");
-        setConditionalClass(versionButton, !config.seenChangelog, "attention");
-        setConditionalClass(helpButton, !config.seenHelp, "attention");
+        setConditionalClass(versionButton, "attention", !config.seenChangelog);
+        setConditionalClass(helpButton, "attention", !config.seenHelp);
+
+        let dbody = document.body;
+        setConditionalClass(dbody, "off-seasonal", !config.seasonal);
+        setConditionalClass(dbody, "off-collecting", !config.collecting);
+        setConditionalClass(dbody, "off-stash", !config.stash);
+        setConditionalClass(dbody, "off-archive", !config.archive);
+        setConditionalClass(dbody, "off-exportAs", !config.archive || !config.archiveExportAs);
+        setConditionalClass(dbody, "off-exportAsBundle", !config.exportAsBundle);
+        setConditionalClass(dbody, "off-submitHTTP", !config.archive || !config.archiveSubmitHTTP);
+        setConditionalClass(dbody, "off-LS", !config.stash && (!config.archive || !config.archiveSaveLS));
+        setConditionalClass(dbody, "off-auto", !config.autoUnmarkProblematic && !config.autoPopInLimboCollect && !config.autoPopInLimboDiscard);
+        setConditionalClass(dbody, "off-problematicNotify", !config.problematicNotify);
+        setConditionalClass(dbody, "off-limboNotify", !config.limboNotify);
     }
 
     async function updateStats(stats) {
@@ -309,11 +308,10 @@ async function popupMain() {
         setUI(document, "stats", present(stats));
 
         let dbody = document.body;
-        setConditionalClass(dbody, !(stats.update_available || config.debugging), "no-reload");
-        setConditionalClass(reloadSelfButton, stats.update_available, "attention");
-
-        setConditionalClass(dbody, stats.reload_pending, "yes-pending");
-        setConditionalClass(dbody, !stats.reload_pending, "no-pending");
+        setConditionalClass(dbody, "no-reload", !(stats.update_available || config.debugging));
+        setConditionalClass(reloadSelfButton, "attention", stats.update_available);
+        setConditionalClass(dbody, "yes-pending", stats.reload_pending);
+        setConditionalClass(dbody, "no-pending", !stats.reload_pending);
     }
 
     async function updateTabConfig(tabconfig) {

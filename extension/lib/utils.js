@@ -652,8 +652,8 @@ async function showInternalPageAtNode(url, id, tabId, spawn, scrollIntoViewOptio
     }
 }
 
-// add or remove class based on condition
-function setConditionalClass(node, condition, className) {
+// add or remove a class based on condition
+function setConditionalClass(node, className, condition) {
     if (condition)
         node.classList.add(className);
     else

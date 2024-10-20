@@ -130,10 +130,10 @@ function setRootClasses(config) {
     }
 
     let droot = getRootNode(document);
-    setConditionalClass(droot, dark, "dark");
-    setConditionalClass(droot, !dark, "light");
-    setConditionalClass(droot, config.colorblind, "colorblind");
-    setConditionalClass(droot, halloween, "halloween");
+    setConditionalClass(droot, "dark", dark);
+    setConditionalClass(droot, "light", !dark);
+    setConditionalClass(droot, "colorblind", config.colorblind);
+    setConditionalClass(droot, "halloween", halloween);
 
     return droot;
 }
