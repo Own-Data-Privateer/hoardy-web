@@ -2,7 +2,7 @@
 #+MACRO: reportit [[https://github.com/Own-Data-Privateer/hoardy-web/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]]
 
 #+BEGIN_EXPORT html
-<div class="less">
+<div class="hidden">
 #+END_EXPORT
 * How to read this document
 :PROPERTIES:
@@ -617,7 +617,7 @@ In particular:
 :CUSTOM_ID: bugs
 :END:
 #+BEGIN_EXPORT html
-<div class="less">
+<div class="hidden">
 #+END_EXPORT
 If you are reading this page outside of the extension's UI be sure to read [[#top][the very top of this page]] first.
 #+BEGIN_EXPORT html
@@ -765,7 +765,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
 :CUSTOM_ID: faq
 :END:
 #+BEGIN_EXPORT html
-<div class="less">
+<div class="hidden">
 #+END_EXPORT
 If you are reading this page outside of the extension's UI be sure to read [[#top][the very top of this page]] first.
 #+BEGIN_EXPORT html
