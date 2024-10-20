@@ -660,6 +660,15 @@ function setConditionalClass(node, className, condition) {
         node.classList.remove(className);
 }
 
+function implySetConditionalClass(node, impliedClass, className, condition) {
+    for (let e of node.getElementsByClassName(className))
+        setConditionalClass(e, impliedClass, condition);
+}
+
+function implySetConditionalOff(node, className, condition) {
+    return implySetConditionalClass(node, "off", className, condition);
+}
+
 let defaultScrollIntoViewOptionsStart = { behavior: "smooth", block: "start" };
 let defaultScrollIntoViewOptionsCenter = { behavior: "smooth", block: "center" };
 
