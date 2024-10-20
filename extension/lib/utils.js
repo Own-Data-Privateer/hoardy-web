@@ -822,7 +822,7 @@ async function connectToExtension(init, uninit, extensionId, connectInfo) {
         ready = true;
 }
 
-function subscribeToExtension(processUpdate, completeRefresh, markLoading, markSettling, extensionId, connectInfo) {
+function subscribeToExtension(processUpdate, reinit, isSafe, markLoading, markSettling, extensionId, connectInfo) {
     // onMessage will not wait for an Promises. Thus, multiple updates could
     // race, so we have to run them synchronously here.
     let updateQueue = [];
@@ -845,23 +845,34 @@ function subscribeToExtension(processUpdate, completeRefresh, markLoading, markS
     }
 
     return connectToExtension(async () => {
-        if (completeRefresh === undefined) {
+        if (reinit === undefined) {
             // the boring use case, no inconsistencies possible here
             portToExtension.onMessage.addListener(processUpdateSync);
             return;
         }
 
+        // by default, all async events mark the internal state to be
+        // inconsistent
+        if (isSafe === undefined)
+            isSafe = () => false;
+
         // a flag which remembers if there were any updates while
-        // completeRefresh was running asynchronously
+        // reinit was running asynchronously
         let shouldReset = false;
         function willReset() {
             return shouldReset;
         }
-        function rememberToReset() {
-            shouldReset = true;
+        function processUpdateSmartly(event) {
+            shouldReset = shouldReset || !isSafe(event);
+            if (shouldReset)
+                return;
+            // apparently, this event can be processed synchronously
+            processUpdateSync(event);
         }
-        portToExtension.onMessage.addListener(rememberToReset);
+        portToExtension.onMessage.addListener(processUpdateSmartly);
 
+        // delay `markLoading` a bit so that it would not be called if
+        // the rest of this happens fast enough
         let markLoadingTID = null;
         if (markLoading !== undefined)
             markLoadingTID = setTimeout(markLoading, 300);
@@ -878,20 +889,20 @@ function subscribeToExtension(processUpdate, completeRefresh, markLoading, markS
             // start processing updates
             updateQueue = [];
             shouldReset = false;
-            portToExtension.onMessage.addListener(processUpdateSync);
+            portToExtension.onMessage.addListener(processUpdateSmartly);
 
             // run full update
-            await completeRefresh(willReset);
+            let done = await reinit(willReset);
 
-            if (!shouldReset)
+            if (done || !shouldReset)
                 break;
 
-            // if there were messages in-between, async completeRefresh
+            // if there were messages in-between, async reinit
             // could have resulted in an inconsistent state, retry in 1s
-            console.warn("received some async state updates while doing async page init, the result is probably inconsistent, retrying");
+            console.warn("received some breaking async state updates while doing async page init, the result is probably inconsistent, retrying");
 
             // stop processing updates
-            portToExtension.onMessage.removeListener(processUpdateSync);
+            portToExtension.onMessage.removeListener(processUpdateSmartly);
 
             if (markSettling !== undefined) {
                 clearLoading();
@@ -904,7 +915,8 @@ function subscribeToExtension(processUpdate, completeRefresh, markLoading, markS
         clearLoading();
 
         // cleanup
-        portToExtension.onMessage.removeListener(rememberToReset);
+        portToExtension.onMessage.removeListener(processUpdateSmartly);
+        portToExtension.onMessage.addListener(processUpdateSync);
     }, async () => {
         portToExtension.onMessage.removeListener(processUpdateSync);
     }, extensionId, connectInfo);

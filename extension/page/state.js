@@ -159,7 +159,7 @@ async function stateMain() {
         resetLog(log);
         resetQueued(queuedLog);
         resetUnarchived(unarchivedLog);
-    }), setPageLoading, setPageSettling);
+    }), thisIsFine, setPageLoading, setPageSettling);
 
     // show UI
     setPageLoaded();

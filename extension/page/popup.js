@@ -397,14 +397,15 @@ async function popupMain() {
         }
     }
 
-    await subscribeToExtension(catchAll(processUpdate), catchAll(async () => {
+    await subscribeToExtension(catchAll(processUpdate), catchAll(async (willReset) => {
         await updateConfig();
         await updateStats();
+        if (willReset()) return;
         if (tabbing) {
             await updateTabConfig();
             await updateTabStats();
         }
-    }), setPageLoading, setPageSettling);
+    }), thisIsFine, setPageLoading, setPageSettling);
 
     // show UI
     setPageLoaded();
