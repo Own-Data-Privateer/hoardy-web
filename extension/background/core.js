@@ -1262,7 +1262,17 @@ function makeUpdateDisplay(statsChanged, updatedTabId) {
         if (udTitle !== title)
             udTitle = title;
 
-        let tabs = await browser.tabs.query({ active: true });
+        let tabs;
+        if (useDebugger && updatedTabId == null)
+            // On Chromium, when updating all tabs, actually update all tabs,
+            // otherwise switching to those tabs for the first time will
+            // display the `main` icon at first and then blink-switch to the
+            // target icon, which is ugly.
+            tabs = await browser.tabs.query({});
+        else
+            // On Firefox and when updating a select tab, we need only update
+            // for active tabs. This is more efficient.
+            tabs = await browser.tabs.query({ active: true });
 
         if (updatedTabId === undefined)
             // to simplify the logic below
