@@ -43,7 +43,7 @@ for target in "$@"; do
                 file="$DEST/icon/$1/${n%.svg}.png"
                 if [[ "$a" -nt "$file" ]]; then
                     echo "  Building $file..."
-                    convert -geometry "$1x$1" "$a" "$file"
+                    convert -geometry "$1x$1" -background none "$a" "$file"
                 fi
             done
         }
