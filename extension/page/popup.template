@@ -601,6 +601,7 @@ input.target {
     <ui id="config.spawnNewTabs" type="boolean" data-help="Open the other pages of this extension in newly created tabs instead of reusing the current window. This is enabled by default and can not disabled when `Hoardy-Web` runs on a desktop browser. This is disabled by default when `Hoardy-Web` runs on a mobile browser.">Spawn internal pages in new tabs</ui>
     <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
     <ui id="config.pureText" type="boolean" data-help="Do not use emojis in UI labels. Makes screen readers happier.">Pure text labels</ui>
+    <ui id="config.animateIcon" type="number" class="c" data-help="When `Hoardy-Web` wants to display more than one toolbar icon, switch them every this many milliseconds.">Animate toolbar icon every {} ms</ui>
     </div>
     </div>
 
