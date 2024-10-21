@@ -1295,7 +1295,7 @@ function makeUpdateDisplay(statsChanged, updatedTabId) {
             let icons = [];
 
             if (stats.errored > 0)
-                icons.push("failed");
+                icons.push("error");
             if (stats.failed > 0)
                 icons.push("failed");
             if (stats.queued + stats.bundledAs > 0)
@@ -1633,7 +1633,7 @@ async function doNotify() {
         await browser.notifications.create("errors", {
             title: "Hoardy-Web: ERROR",
             message: `Some internal errors:\n${formatFailures("Failed to process", rrErrored)}`,
-            iconUrl: iconURL("failed", 128),
+            iconUrl: iconURL("error", 128),
             type: "basic",
         });
     } else if (rrErrored.length === 0)
@@ -3059,7 +3059,7 @@ async function snapshotOneTab(tabId, tabUrl) {
             await browser.notifications.create(`snapshot-${tabId}`, {
                 title: "Hoardy-Web: ERROR",
                 message: `While taking DOM snapshot of tab #${tabId} (${tabUrl.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`,
-                iconUrl: iconURL("failed", 128),
+                iconUrl: iconURL("error", 128),
                 type: "basic",
             }).catch(logError);
     }
@@ -4307,7 +4307,7 @@ async function init() {
         browser.notifications.create("noIndexedDB", {
             title: "Hoardy-Web: ERROR",
             message: `Failed to open/create a database via \`IndexedDB\` API, all data persistence will be done via \`storage.local\` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears \`Hoardy-Web\` previously used \`IndexedDB\` for archiving and/or stashing reqres.\n\nSee the "Help" page for more info and instructions on how to fix this.`,
-            iconUrl: iconURL("failed", 128),
+            iconUrl: iconURL("error", 128),
             type: "basic",
         }).catch(logError);
     }
