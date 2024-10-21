@@ -5,9 +5,9 @@ set -e
 if [[ "$1" == clean ]]; then
     rm -rf dist
     shift
+    timestamp=$(git log --format='%ci' HEAD~1..HEAD)
 fi
 
-timestamp=$(git log --format='%ci' HEAD~1..HEAD)
 version=$(jq -r .version ./manifest-common.json)
 iconTheme=privateer
 
@@ -16,7 +16,7 @@ for target in "$@"; do
 
     NAME="Hoardy-Web-$target-v${version}"
     DEST="dist/$NAME"
-    mkdir -p "$DEST"
+    install -d "$DEST"
 
     pandocArgs=( \
         -V version=$version \
@@ -27,19 +27,23 @@ for target in "$@"; do
 
     echo "  Preparing icons..."
 
-    install -d "$DEST"/icon
-
-    if [[ "$target" != firefox ]]; then
+    if [[ "$target" =~ firefox-* ]]; then
+        pandocArgs+=(-V iconMIME=image/svg+xml -V iconFile=main.svg)
+        install -d "$DEST"/icon
+        install -C -t "$DEST"/icon icon/"$iconTheme"/*.svg
+    elif [[ "$target" =~ chromium-* ]]; then
         pandocArgs+=(-V iconMIME=image/png -V iconFile=128/main.png)
 
+        install -d "$DEST"/icon
+
         makeicons() {
-            mkdir -p "$DEST/icon/$1"
+            install -d "$DEST/icon/$1"
             for a in icon/"$iconTheme"/*.svg ; do
                 n=$(basename "$a")
                 file="$DEST/icon/$1/${n%.svg}.png"
-                if ! [[ -e "$file" ]]; then
+                if [[ "$a" -nt "$file" ]]; then
                     echo "  Building $file..."
-                    convert "$a" -geometry "$1x$1" "$file"
+                    convert -geometry "$1x$1" "$a" "$file"
                 fi
             done
         }
@@ -47,9 +51,6 @@ for target in "$@"; do
         #makeicons 48
         #makeicons 96
         makeicons 128
-    else
-        pandocArgs+=(-V iconMIME=image/svg+xml -V iconFile=main.svg)
-        install -C -t "$DEST"/icon icon/"$iconTheme"/*.svg
     fi
 
     runPandoc() {
@@ -114,22 +115,24 @@ s%(\./\([^)]*\))%(https://oxij.org/software/hoardy-web/tree/master/\1)%g
 
     echo "  Building manifest.json..."
 
-    if [[ "$target" == firefox ]]; then
+    if [[ "$target" =~ firefox-* ]]; then
         jq -s --indent 4 '.[0] * .[1]' manifest-common.json "manifest-$target.json" > "$DEST"/manifest.json
-    else
+    elif [[ "$target" =~ chromium-* ]]; then
         jq -s --indent 4 '.[0] * .[1] * .[2]' manifest-common.json "dist/manifest-chromium-key.json" "manifest-$target.json" > "$DEST"/manifest.json
     fi
 
-    find "$DEST" -exec touch --date="$timestamp" {} \;
+    if [[ -n "$timestamp" ]]; then
+        find "$DEST" -exec touch --date="$timestamp" {} \;
+    fi
 
-    if [[ "$target" == firefox ]]; then
+    if [[ "$target" =~ firefox-* ]]; then
         echo "  Zipping..."
 
         (
             cd "$DEST"
             zip -qr -9 -X "../$NAME.xpi" .
         )
-    else
+    elif [[ "$target" =~ chromium-* ]]; then
         echo "  Zipping..."
 
         cd dist
