@@ -18,6 +18,55 @@ for target in "$@"; do
     DEST="dist/$NAME"
     install -d "$DEST"
 
+    if [[ "$target" == tiles ]]; then
+        echo "  Tailing all icons into a single image..."
+
+        icons=()
+        for a in icon/"$iconTheme"/{main,off,idle,limbo,neglimbo,bothlimbo,tracking,problematic,in_limbo,archiving,failed}.svg icon/"$iconTheme"/*.svg; do
+            n=$(basename "$a")
+            file="$DEST/$n.png"
+            if [[ "$a" -nt "$file" ]]; then
+                echo "    Building $file..."
+                convert -geometry 128x128 -background none "$a" "$file"
+            fi
+            l="${#icons[@]}"
+            found=
+            for ((i=0; i<l; ++i)); do
+                if [[ "${icons[$i]}" == "$file" ]]; then
+                    found=1
+                    break
+                fi
+            done
+            if [[ -z "$found" ]]; then
+                icons+=("$file")
+            fi
+        done
+
+        l="${#icons[@]}"
+
+        maketile() {
+            x=$1; y=$2; bg=$3
+
+            local args=()
+            s=$((x*y))
+            for ((i=0; i<s; i++)); do
+                e=$((i % l))
+                args+=("${icons[$e]}")
+            done
+
+            file="$DEST/tile-$x-$y-$bg.png"
+            echo "    Building $file..."
+            montage -geometry +3+3 -tile "${x}x" -background "$bg" "${args[@]}" "$file"
+        }
+
+        maketile $l 1 white
+        maketile $l 1 black
+        maketile 16 6 white
+        maketile 16 6 black
+
+        continue
+    fi
+
     pandocArgs=( \
         -V version=$version \
         -V libScript=compat.js \
