@@ -24,25 +24,22 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
-  <ellipse
-     style="opacity:1;fill:#00ff00;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.79594028;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-     id="path2181-5"
-     cx="80.278824"
-     cy="80.205078"
-     rx="77.240662"
-     ry="77.627678" />
-  <ellipse
-     style="opacity:1;fill:#ffdc00;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.63158858;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-     id="path2181-3"
-     cx="80.278824"
-     cy="80.205078"
-     rx="61.291431"
-     ry="61.598537" />
-  <ellipse
-     style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.68528527;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+  <circle
+     cx="80"
+     cy="80"
+     id="path2181"
+     r="77"
+     style="opacity:1;fill:#00ff00;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <circle
+     cx="80"
+     cy="80"
+     id="path2182"
+     r="56"
+     style="opacity:1;fill:#ffdc00;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <circle
+     cx="80"
+     cy="80"
      id="path2183"
-     cx="80.278824"
-     cy="80.205078"
-     rx="17.265028"
-     ry="17.351538" />
+     r="17"
+     style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
 </svg>

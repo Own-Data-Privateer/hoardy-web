@@ -5,11 +5,11 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   width="160mm"
-   height="160mm"
-   viewBox="0 0 160 160"
+   id="svg8"
    version="1.1"
-   id="svg8">
+   viewBox="0 0 160 160"
+   height="160mm"
+   width="160mm">
   <defs
      id="defs2" />
   <metadata
@@ -24,18 +24,16 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
-  <ellipse
-     ry="77.627678"
-     rx="77.240662"
-     cy="80.205078"
-     cx="80.278824"
+  <circle
+     cx="80"
+     cy="80"
      id="path2181"
-     style="opacity:1;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.79594028;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
-  <ellipse
-     ry="17.351538"
-     rx="17.265028"
-     cy="80.205078"
-     cx="80.278824"
+     r="77"
+     style="opacity:1;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <circle
+     cx="80"
+     cy="80"
      id="path2183"
-     style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0.68528527;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+     r="17"
+     style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
 </svg>
