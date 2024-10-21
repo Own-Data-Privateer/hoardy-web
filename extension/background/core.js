@@ -1295,9 +1295,9 @@ function makeUpdateDisplay(statsChanged, updatedTabId) {
             let icons = [];
 
             if (stats.errored > 0)
-                icons.push("error");
+                icons.push("failed");
             if (stats.failed > 0)
-                icons.push("error");
+                icons.push("failed");
             if (stats.queued + stats.bundledAs > 0)
                 icons.push("archiving");
 
@@ -1633,7 +1633,7 @@ async function doNotify() {
         await browser.notifications.create("errors", {
             title: "Hoardy-Web: ERROR",
             message: `Some internal errors:\n${formatFailures("Failed to process", rrErrored)}`,
-            iconUrl: iconURL("error", 128),
+            iconUrl: iconURL("failed", 128),
             type: "basic",
         });
     } else if (rrErrored.length === 0)
@@ -1663,7 +1663,7 @@ async function doNotify() {
             await browser.notifications.create("unstashed", {
                 title: "Hoardy-Web: FAILED",
                 message: `For browser's local storage:\n${formatFailures("Failed to stash", rrUnstashed)}`,
-                iconUrl: iconURL("error", 128),
+                iconUrl: iconURL("failed", 128),
                 type: "basic",
             });
         }
@@ -1700,7 +1700,7 @@ async function doNotify() {
                 await browser.notifications.create(`unarchived-${archiveURL}`, {
                     title: "Hoardy-Web: FAILED",
                     message: `${where}:\n${formatFailures("Failed to archive", byErrorMap.entries())}`,
-                    iconUrl: iconURL("error", 128),
+                    iconUrl: iconURL("failed", 128),
                     type: "basic",
                 });
             }
@@ -3059,7 +3059,7 @@ async function snapshotOneTab(tabId, tabUrl) {
             await browser.notifications.create(`snapshot-${tabId}`, {
                 title: "Hoardy-Web: ERROR",
                 message: `While taking DOM snapshot of tab #${tabId} (${tabUrl.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`,
-                iconUrl: iconURL("error", 128),
+                iconUrl: iconURL("failed", 128),
                 type: "basic",
             }).catch(logError);
     }
@@ -4307,7 +4307,7 @@ async function init() {
         browser.notifications.create("noIndexedDB", {
             title: "Hoardy-Web: ERROR",
             message: `Failed to open/create a database via \`IndexedDB\` API, all data persistence will be done via \`storage.local\` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears \`Hoardy-Web\` previously used \`IndexedDB\` for archiving and/or stashing reqres.\n\nSee the "Help" page for more info and instructions on how to fix this.`,
-            iconUrl: iconURL("error", 128),
+            iconUrl: iconURL("failed", 128),
             type: "basic",
         }).catch(logError);
     }
