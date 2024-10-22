@@ -291,6 +291,9 @@ async function popupMain() {
             case "tabconfig.stashLimbo":
                 newtabconfig.children.stashLimbo = newtabconfig.stashLimbo;
                 break;
+            case "tabconfig.bucket":
+                newtabconfig.children.bucket = newtabconfig.bucket;
+                break;
             }
             browser.runtime.sendMessage(["setOriginConfig", tabId, false, newtabconfig]).catch(logError);
         });
