@@ -335,8 +335,18 @@ function getOriginConfig(tabId, fromExtension) {
         return cacheSingleton(tabConfig, tabId, () => prefillChildren(config.root));
 }
 
-function setTabConfig(tabId, tabcfg) {
+function setTabConfigInternal(tabId, tabcfg) {
+    if (tabcfg.children !== undefined && !tabcfg.children.bucket)
+        tabcfg.children.bucket = getFirstOk(tabcfg.bucket, config.root.bucket, configDefaults.root.bucket);
+    if (!tabcfg.bucket)
+        tabcfg.bucket = getFirstOk(config.root.bucket, configDefaults.root.bucket);
+
     tabConfig.set(tabId, tabcfg);
+}
+
+function setTabConfig(tabId, tabcfg) {
+    setTabConfigInternal(tabId, tabcfg);
+
     broadcast(["updateTabConfig", tabId, tabcfg]);
 
     if (useDebugger) {
@@ -345,7 +355,7 @@ function setTabConfig(tabId, tabcfg) {
         syncDebuggersState();
     }
 
-    scheduleUpdateDisplay(false, null);
+    scheduleUpdateDisplay(false, tabId);
 }
 
 function processNewTab(tabId, openerTabId) {
@@ -4155,6 +4165,13 @@ function fixConfig(config, oldConfig) {
             }).catch(logError);
     }
 
+    if (!config.background.bucket)
+        config.background.bucket = configDefaults.background.bucket;
+    if (!config.extension.bucket)
+        config.extension.bucket = configDefaults.extension.bucket;
+    if (!config.root.bucket)
+        config.root.bucket = configDefaults.root.bucket;
+
     // clamp
     config.animateIcon = clamp(100, 5000, config.animateIcon);
     config.exportAsTimeout = clamp(0, 900, config.exportAsTimeout);
@@ -4259,21 +4276,6 @@ async function init() {
         config.ephemeral = true;
     }
 
-    // get all currently open tabs
-    let tabs = await browser.tabs.query({});
-    for (let tab of tabs) {
-        // record them
-        openTabs.add(tab.id);
-
-        // compute and cache their configs
-        let tabcfg = getOriginConfig(tab.id);
-        // on Chromium, reset their URLs, maybe
-        if (useDebugger
-            && config.collecting && tabcfg.collecting && config.workaroundChromiumResetRootTab
-            && tab.pendingUrl == "chrome://newtab/")
-            chromiumResetRootTab(tab.id, tabcfg);
-    }
-
     // try opening indexedDB
     try {
         reqresIDB = await idbOpen("pwebarc", 1, (db, oldVersion, newVersion) => {
@@ -4294,9 +4296,29 @@ async function init() {
         }).catch(logError);
     }
 
-    await loadStashed();
-
+    // NB: this depends on reqresIDB
     fixConfig(config, config);
+
+    // get all currently open tabs
+    let tabs = await browser.tabs.query({});
+    for (let tab of tabs) {
+        let tabId = tab.id;
+
+        // record them
+        openTabs.add(tabId);
+
+        // compute and cache their configs
+        let tabcfg = getOriginConfig(tabId);
+        // on Chromium, reset their URLs, maybe
+        if (useDebugger
+            && config.collecting && tabcfg.collecting && config.workaroundChromiumResetRootTab
+            && tab.pendingUrl == "chrome://newtab/")
+            chromiumResetRootTab(tab.id, tabcfg);
+
+        setTabConfigInternal(tabId, tabcfg);
+    }
+
+    await loadStashed();
 
     console.log(`initialized Hoardy-Web with source of '${sourceDesc}'`);
     console.log("runtime options are", { useSVGIcons, useBlocking, useDebugger });
