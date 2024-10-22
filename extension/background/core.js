@@ -335,32 +335,14 @@ function getOriginConfig(tabId, fromExtension) {
         return cacheSingleton(tabConfig, tabId, () => prefillChildren(config.root));
 }
 
-function setOriginConfig(tabId, fromExtension, tabcfg) {
-    function clean() {
-        let d = assignRec({}, tabcfg);
-        delete d["children"];
-        return d;
-    }
+function setTabConfig(tabId, tabcfg) {
+    tabConfig.set(tabId, tabcfg);
+    broadcast(["updateTabConfig", tabId, tabcfg]);
 
-    if (fromExtension) {
-        config.extension = clean();
-        broadcast(["updateConfig", config]);
-    } else if (tabId == -1) {
-        // background process
-        config.background = clean();
-        broadcast(["updateConfig", config]);
-    } else if (tabId === null) {
-        config.root = clean();
-        broadcast(["updateConfig", config]);
-    } else {
-        tabConfig.set(tabId, tabcfg);
-        broadcast(["updateOriginConfig", tabId, tabcfg]);
-
-        if (useDebugger) {
-            // Chromium does not provide `browser.menus.onShown` event
-            updateMenu(tabcfg);
-            syncDebuggersState();
-        }
+    if (useDebugger) {
+        // Chromium does not provide `browser.menus.onShown` event
+        updateMenu(tabcfg);
+        syncDebuggersState();
     }
 
     scheduleUpdateDisplay(false, null);
@@ -3807,11 +3789,11 @@ function handleMessage(request, sender, sendResponse) {
         broadcast(["updateConfig", config]);
         sendResponse(null);
         break;
-    case "getOriginConfig":
-        sendResponse(getOriginConfig(request[1], request[2]));
+    case "getTabConfig":
+        sendResponse(getOriginConfig(request[1]));
         break;
-    case "setOriginConfig":
-        setOriginConfig(request[1], request[2], request[3]);
+    case "setTabConfig":
+        setTabConfig(request[1], request[2]);
         sendResponse(null);
         break;
     case "getStats":
@@ -4102,7 +4084,7 @@ async function handleCommand(command) {
         return;
     }
 
-    setOriginConfig(tabId, false, tabcfg);
+    setTabConfig(tabId, tabcfg);
 }
 
 function fixConfig(config, oldConfig) {

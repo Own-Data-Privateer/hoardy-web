@@ -276,7 +276,7 @@ async function popupMain() {
 
     async function updateTabConfig(tabconfig) {
         if (tabconfig === undefined)
-            tabconfig = await browser.runtime.sendMessage(["getOriginConfig", tabId]);
+            tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
         setUI(document, "tabconfig", tabconfig, (newtabconfig, path) => {
             switch (path) {
             case "tabconfig.collecting":
@@ -295,7 +295,7 @@ async function popupMain() {
                 newtabconfig.children.bucket = newtabconfig.bucket;
                 break;
             }
-            browser.runtime.sendMessage(["setOriginConfig", tabId, false, newtabconfig]).catch(logError);
+            browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]).catch(logError);
         });
     }
 
@@ -328,7 +328,7 @@ async function popupMain() {
         case "updateConfig":
             await updateConfig(data);
             break;
-        case "updateOriginConfig":
+        case "updateTabConfig":
             if (tabbing && data == tabId)
                 await updateTabConfig(update[2]);
             break;
