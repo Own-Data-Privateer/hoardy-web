@@ -3660,7 +3660,8 @@ function chromiumResetRootTab(tabId, tabcfg) {
     //
     // NB: `priority` argument here overrides `attachDebuggerAndReloadTab` what
     // `handleBeforeRequest` does. Thus, this action wins.
-    resetAttachDebuggerAndNavigateTab(tabId, config.workaroundChromiumResetRootTabURL, 0).catch(logError);
+    if (config.collecting && tabcfg.collecting && config.workaroundChromiumResetRootTab)
+        resetAttachDebuggerAndNavigateTab(tabId, config.workaroundChromiumResetRootTabURL, 0).catch(logError);
 }
 
 function handleTabCreated(tab) {
@@ -3669,13 +3670,12 @@ function handleTabCreated(tab) {
     if (config.debugging)
         console.log("tab added", tabId, tab.openerTabId);
 
-    if (useDebugger && tab.pendingUrl == "chrome://newtab/") {
+    if (useDebugger && tab.pendingUrl === "chrome://newtab/") {
         // work around Chrome's "New Tab" action creating a child tab by
         // ignoring openerTabId
         let tabcfg = processNewTab(tabId, undefined);
         // reset its URL, maybe
-        if (config.collecting && tabcfg.collecting && config.workaroundChromiumResetRootTab)
-            chromiumResetRootTab(tabId, tabcfg);
+        chromiumResetRootTab(tabId, tabcfg);
     } else
         processNewTab(tabId, tab.openerTabId);
 }
@@ -4307,10 +4307,8 @@ async function init() {
         // compute and cache their configs
         let tabcfg = getOriginConfig(tabId);
         // on Chromium, reset their URLs, maybe
-        if (useDebugger
-            && config.collecting && tabcfg.collecting && config.workaroundChromiumResetRootTab
-            && tab.pendingUrl == "chrome://newtab/")
-            chromiumResetRootTab(tab.id, tabcfg);
+        if (useDebugger && tab.pendingUrl === "chrome://newtab/")
+            chromiumResetRootTab(tabId, tabcfg);
 
         setTabConfigInternal(tabId, tabcfg);
     }
