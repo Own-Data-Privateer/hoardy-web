@@ -16,6 +16,14 @@ body {
 .less {
     display: none;
 }
+
+a.popup {
+    border: 1px solid var(--outline-color);
+    color: var(--a-local);
+    padding: 2px;
+    text-decoration: none;
+    text-shadow: 0px 0px 2px var(--a-local);
+}
 }
     </style>
   </head>

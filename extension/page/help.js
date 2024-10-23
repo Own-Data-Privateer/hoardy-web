@@ -24,6 +24,7 @@
 document.addEventListener("DOMContentLoaded", async () => {
     let selfURL = browser.runtime.getURL("/page/help.html");
     let popupURL = browser.runtime.getURL("/page/popup.html");
+    let rootURL = browser.runtime.getURL("/");
 
     // show settings as iframe
     let iframe = document.createElement("iframe");
@@ -49,6 +50,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // number of rewritten internal links
     let num_links = 0;
 
+    // style links of different kinds differently, track history state,
     // broadcast highlight messages on mouseovers over links to popup.html
     for (let el of document.getElementsByTagName("a")) {
         let id = `link-${num_links}`;
@@ -70,7 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             };
         } else if (el.href.startsWith(popupURL + "#")) {
             let target = el.href.substr(popupURL.length + 1);
-            el.classList.add("local");
+            el.classList.add("popup");
             el.href = "javascript:void(0)";
             el.onclick = (event) => {
                 event.cancelBubble = true;
@@ -82,6 +84,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             };
             el.onmouseover = (event) => {
                 broadcast(["focusNode", "popup", target]);
+            };
+        } else {
+            if (el.href.startsWith(rootURL))
+                el.classList.add("local");
+
+            el.onclick = (event) => {
+                history.pushState({ id }, "", selfURL + `#${id}`);
             };
         }
     }
