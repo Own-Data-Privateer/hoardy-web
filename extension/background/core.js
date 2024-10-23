@@ -4235,7 +4235,9 @@ async function init() {
     browser.runtime.onUpdateAvailable.addListener(catchAll(handleUpdateAvailable));
 
     let localData = await browser.storage.local.get([
-        "config", "globals", "persistentStats", "globalStats"
+        "config", "globals",
+        // obsolete names for `globals`
+        "persistentStats", "globalStats"
     ]).catch(() => { return {}; });
 
     let oldConfig = localData.config;
@@ -4247,12 +4249,7 @@ async function init() {
         savedConfig = config;
     }
 
-    let oldGlobals = localData.globals;
-    if (oldGlobals === undefined)
-        oldGlobals = localData.persistentStats;
-    if (oldGlobals === undefined)
-        oldGlobals = localData.globalStats;
-
+    let oldGlobals = getFirstDefined(localData.globals, localData.persistentStats, localData.globalStats);
     if (oldGlobals !== undefined) {
         console.log(`Loading globals of version ${oldGlobals.version}`);
 

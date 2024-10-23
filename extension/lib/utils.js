@@ -105,6 +105,18 @@ function clamp(min, max, value) {
     return Math.min(max, Math.max(min, toNumber(value)));
 }
 
+function getFirstDefined(...args) {
+    for (let a of args)
+        if (a !== undefined)
+            return a;
+}
+
+function getFirstOk(...args) {
+    for (let a of args)
+        if (a)
+            return a;
+}
+
 // convert milliseconds since UNIX epoch to "YYYY-mm-DD HH:MM:SS"
 function dateToString(epoch) {
     if (epoch === undefined || typeof epoch !== "number")
