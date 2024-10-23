@@ -53,6 +53,9 @@ function present(obj) {
 }
 
 async function popupMain() {
+    document.body.classList.add(useDebugger ? "not-firefox" : "not-chromium");
+    document.body.classList.add(isMobile ? "not-desktop" : "not-mobile");
+
     let hash = document.location.hash.substr(1);
     let tabId;
     let windowId;
@@ -152,7 +155,7 @@ async function popupMain() {
                 // Firefox on Android does not switch to new tabs opened from the settings
                 browser.notifications.create("pageSpawnedAway", {
                     title: "Hoardy-Web: REMINDER",
-                    message: "The newly spawned page might be hidden. See the list of open tabs or the list open private tabs, depending on the browser's mode." + annoyingNotification(config, "Generate desktop notifications about > ... actions invisible in the UI"),
+                    message: "The newly spawned page might be hidden. See the list of open tabs or the list open private tabs, depending on the browser's mode." + annoyingNotification(config, "Generate notifications about > ... actions invisible in the UI"),
                     iconUrl: iconURL("main", 128),
                     type: "basic",
                 }).catch(logError);
@@ -160,7 +163,7 @@ async function popupMain() {
                 // Firefox on Android does not switch to new tabs opened from the settings
                 browser.notifications.create("pageNotSpawnedAway", {
                     title: "Hoardy-Web: HINT",
-                    message: `To make the search work on the "Help" page, enable "User Interface and Accessibility > Spawn internal pages in new tabs" option, open the "Help" page again, and then switch to the newly spawned tab.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
+                    message: `To make the search work on the "Help" page, enable "User Interface and Accessibility > Spawn internal pages in new tabs" option, open the "Help" page again, and then switch to the newly spawned tab.` + annoyingNotification(config, "Generate notifications about > ... UI hints"),
                     iconUrl: iconURL("main", 128),
                     type: "basic",
                 }).catch(logError);
@@ -251,19 +254,18 @@ async function popupMain() {
         });
 
         setConditionalClass(body, config.colorblind, "colorblind");
-        setConditionalClass(body, config.pureText, "pure-text");
         resetPureText(config);
-        setConditionalClass(body, !config.collecting, "disabled-collecting");
-        setConditionalClass(body, !config.stash, "disabled-stash");
-        setConditionalClass(body, !config.archive, "disabled-archive");
-        setConditionalClass(body, !config.archiveExportAs, "disabled-exportas");
-        setConditionalClass(body, !config.archiveSubmitHTTP, "disabled-submit");
-        setConditionalClass(body, !config.stash && !config.archiveSaveLS, "disabled-localstorage");
+        setConditionalClass(body, !config.collecting, "off-collecting");
+        setConditionalClass(body, !config.stash, "off-stash");
+        setConditionalClass(body, !config.archive, "off-archive");
+        setConditionalClass(body, !config.archive || !config.archiveExportAs, "off-exportAs");
+        setConditionalClass(body, !config.archive || !config.archiveSubmitHTTP, "off-submitHTTP");
+        setConditionalClass(body, !config.stash && (!config.archive || !config.archiveSaveLS), "off-LS");
         setConditionalClass(body, !config.autoUnmarkProblematic
                             && !config.autoPopInLimboCollect
-                            && !config.autoPopInLimboDiscard, "disabled-auto");
-        setConditionalClass(body, !config.problematicNotify, "disabled-problematic-notify");
-        setConditionalClass(body, !config.limboNotify, "disabled-limbo-notify");
+                            && !config.autoPopInLimboDiscard, "off-auto");
+        setConditionalClass(body, !config.problematicNotify, "off-problematicNotify");
+        setConditionalClass(body, !config.limboNotify, "off-limboNotify");
         setConditionalClass(versionButton, !config.seenChangelog, "attention");
         setConditionalClass(helpButton, !config.seenHelp, "attention");
     }

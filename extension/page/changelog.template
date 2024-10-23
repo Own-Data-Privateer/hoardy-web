@@ -2,13 +2,19 @@
 <html>
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Hoardy-Web: Changelog</title>
     <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
     <link rel="stylesheet" href="main.css?v=$version$">
     <style>
-#body {
-    max-width: 72em;
-    margin: auto;
+@layer defaults {
+body {
+    --padding: 10px;
+
+    margin: 0 auto;
+    max-width: calc(900px - 2 * var(--padding));
+    padding: var(--padding);
+    width: calc(100% - 2 * var(--padding));
 }
 
 h1 {
@@ -23,13 +29,18 @@ h3 {
     font-size: 110%;
 }
 
-p {
+div > p {
     margin-left: 1em;
 }
 
-ul {
-    margin-left: 1em;
-    padding-left: 1em;
+div > ul {
+    margin-left: 2em;
+    padding-left: 0;
+}
+
+ul > li {
+    padding-left: 0.5em;
+}
 }
     </style>
   </head>

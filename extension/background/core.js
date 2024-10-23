@@ -1707,7 +1707,7 @@ async function doNotify() {
                 // generate a new one
                 await browser.notifications.create("done", {
                     title: "Hoardy-Web: OK",
-                    message: "Archiving appears to work OK!\n\nThis message won't be repeated unless something breaks." + annoyingNotification(config, "Generate desktop notifications about > ... newly empty archival queue"),
+                    message: "Archiving appears to work OK!\n\nThis message won't be repeated unless something breaks." + annoyingNotification(config, "Generate notifications about > ... newly empty archival queue"),
                     iconUrl: iconURL("idle", 128),
                     type: "basic",
                 });
@@ -1725,7 +1725,7 @@ async function doNotify() {
             // generate a new one
             await browser.notifications.create("fatLimbo", {
                 title: "Hoardy-Web: WARNING",
-                message: `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.` + annoyingNotification(config, "Generate desktop notifications about > ... too much stuff in limbo"),
+                message: `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.` + annoyingNotification(config, "Generate notifications about > ... too much stuff in limbo"),
                 iconUrl: iconURL("limbo", 128),
                 type: "basic",
             });
@@ -1765,7 +1765,7 @@ async function doNotify() {
             latestDesc.reverse();
             await browser.notifications.create("problematic", {
                 title: "Hoardy-Web: WARNING",
-                message: `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate desktop notifications about > ... new problematic reqres"),
+                message: `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate notifications about > ... new problematic reqres"),
                 iconUrl: iconURL("problematic", 128),
                 type: "basic",
             });
@@ -4108,7 +4108,7 @@ function fixConfig(config, oldConfig) {
         if (config.hintNotify)
             browser.notifications.create("configNotSupported-preferIndexedDB", {
                 title: "Hoardy-Web: HINT",
-                message: `"Prefer \`IndexedDB\` API" can not be disabled on a Chromium-based browser. See the description of that option for more info.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
+                message: `"Prefer \`IndexedDB\` API" can not be disabled on a Chromium-based browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints"),
                 iconUrl: iconURL("main", 128),
                 type: "basic",
             }).catch(logError);
@@ -4121,7 +4121,7 @@ function fixConfig(config, oldConfig) {
         if (config.hintNotify)
             browser.notifications.create("configNotSupported-archiveExportAs", {
                 title: "Hoardy-Web: HINT",
-                message: `"Export via \`saveAs\` is not supported on Firefox-based mobile browsers. See the "Help" page for more info.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
+                message: `"Export via \`saveAs\` is not supported on Firefox-based mobile browsers. See the "Help" page for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints"),
                 iconUrl: iconURL("main", 128),
                 type: "basic",
             }).catch(logError);
@@ -4133,7 +4133,7 @@ function fixConfig(config, oldConfig) {
         if (config.hintNotify)
             browser.notifications.create("configNotSupported-spawnNewTabs", {
                 title: "Hoardy-Web: HINT",
-                message: `"Spawn internal pages in new tabs" can not be disabled on a desktop browser. See the description of that option for more info.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
+                message: `"Spawn internal pages in new tabs" can not be disabled on a desktop browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints"),
                 iconUrl: iconURL("main", 128),
                 type: "basic",
             }).catch(logError);
@@ -4159,7 +4159,7 @@ function fixConfig(config, oldConfig) {
         if (config.hintNotify)
             browser.notifications.create("notArchivingNow", {
                 title: "Hoardy-Web: HINT",
-                message: `"Archive \`collected\` reqres by" option was disabled because the archival queue and/or the list of failed reqres are non-empty.` + annoyingNotification(config, "Generate desktop notifications about > ... UI hints"),
+                message: `"Archive \`collected\` reqres by" option was disabled because the archival queue and/or the list of failed reqres are non-empty.` + annoyingNotification(config, "Generate notifications about > ... UI hints"),
                 iconUrl: iconURL("off", 128),
                 type: "basic",
             }).catch(logError);

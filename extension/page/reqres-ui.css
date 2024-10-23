@@ -1,3 +1,4 @@
+@layer defaults {
 :root {
     --log-in-flight: #ffffaa;
     --log-picked: #eeffee;
@@ -99,3 +100,4 @@ td.long {
 .dropped { background: var(--log-dropped); }
 .collected { background: var(--log-collected); }
 .discarded { background: var(--log-discarded); }
+}

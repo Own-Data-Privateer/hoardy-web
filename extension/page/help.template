@@ -7,8 +7,15 @@
     <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
     <link rel="stylesheet" href="main.css?v=$version$">
     <style>
+@layer defaults {
 body {
-    margin: 0 0.5em;
+    margin: 0 0;
+    text-align: justify;
+}
+
+.less {
+    display: none;
+}
 }
     </style>
   </head>

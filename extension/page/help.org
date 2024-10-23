@@ -1,7 +1,7 @@
 #+MACRO: shortcut @@html:<span data-macro-shortcut="$1">bound to <code>manifest.commands.$1</code></span>@@
 
 #+BEGIN_EXPORT html
-<div name="less">
+<div class="less">
 #+END_EXPORT
 * How to read this document
 :PROPERTIES:
@@ -70,12 +70,12 @@ Reqres change their internal states according to the following state diagram (wh
 ** Step 1: Tracking
 =Hoardy-Web= attaches to your browser's runtime and tracks progress of =HTTP= requests and their responses, capturing both their request and response headers and data at appropriate times in the browser's request and response processing pipeline.
 
-Whether =Hoardy-Web= will track a given request depends on the =Track new reqres= toggles in the settings popup, e.g:
+Whether =Hoardy-Web= will track a given request depends on the =Track new requests= toggles in the settings popup, e.g:
 
 - [[./popup.html#div-config.collecting][this toggle]] allows you to disable tracking of newly spawned =HTTP= requests globally, thus essentially disabling =Hoardy-Web=,
-- [[./popup.html#div-tabconfig.collecting][this one]] controls whether =Hoardy-Web= will track new reqres originating from the currently active tab,
-- [[./popup.html#div-tabconfig.children.collecting][this one]] controls whether it will track new reqres originating from new tabs opened from the currently active tab (aka "children tabs", e.g. via middle mouse click, context menu, etc),
-- while [[./popup.html#div-config.root.collecting][this one]] controls whether it will track new reqres originating from new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
+- [[./popup.html#div-tabconfig.collecting][this one]] controls whether =Hoardy-Web= will track new requests originating from the currently active tab,
+- [[./popup.html#div-tabconfig.children.collecting][this one]] controls whether it will track new requests originating from new tabs opened from the currently active tab (aka "children tabs", e.g. via middle mouse click, context menu, etc),
+- while [[./popup.html#div-config.root.collecting][this one]] controls whether it will track new requests originating from new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
 - and so forth for the others (press =?= symbols to see a tooltip explaining what each of them does).
 
 Disabling any of these toggles does not stop tracking of already initiated requests, it only stops new requests controlled by that toggle from being tracked.
@@ -145,9 +145,9 @@ In principle, at reaching =finished= state the reqres can be serialized and save
 :CUSTOM_ID: classification
 :END:
 
-On reaching the =finished= state, =Hoardy-Web= performs reqres classification controlled by [[./popup.html#pick-options][=Pick reqres for archival when they finish=]] and [[./popup.html#problematic-options][=Mark reqres as 'problematic' when they finish= ]] settings.
-The [[./popup.html#pick-options][former]] set decides whether the reqres in question should be =picked= or =dropped=, which influences the actions =Hoardy-Web= will perform in the next step.
-The [[./popup.html#problematic-options][latter]] set decides if the reqres in question should be marked as =problematic=.
+On reaching the =finished= state, =Hoardy-Web= performs reqres classification controlled by [[./popup.html#problematic-options][=Mark reqres as 'problematic' when they finish= ]] and [[./popup.html#pick-options][=Pick reqres for archival when they finish=]] settings.
+The [[./popup.html#problematic-options][former]] set decides if the reqres in question should be marked as =problematic=.
+The [[./popup.html#pick-options][latter]] set decides whether the reqres in question should be =picked= or =dropped=, which influences the actions =Hoardy-Web= will perform in the next step.
 *** Problematic reqres
 :PROPERTIES:
 :CUSTOM_ID: problematic
@@ -179,7 +179,7 @@ but NOT errors like
 
 The raw error strings reported by the browser for each reqres can be seen in the [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]].
 
-If [[./popup.html#div-config.problematicNotify][this option]] is enabled =Hoardy-Web= will generate a desktop notification each time a new /problematic reqres/ get produced.
+If [[./popup.html#div-config.problematicNotify][this option]] is enabled =Hoardy-Web= will generate a notification each time a new /problematic reqres/ get produced.
 If you don't care about the /problematic/ flag and it annoys you, you should disable that option, not options under [[./popup.html#problematic-options][=Mark reqres as 'problematic' when they finish= settings]].
 This way you could then still see the number of =problematic= reqres in extension's toolbar button's badge.
 *** Glossary
@@ -257,7 +257,7 @@ Meaning that
 The above also implies that, technically, stashing is not a silver bullet against data loss.
 To try and make it such would mean unconditional immediate stashing of all captured data, which would waste a lot of disk IO on most =Hoardy-Web= configurations.
 
-When both [[./popup.html#div-config.archive][=Archive 'collected' reqres by= option]] and [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] are disabled, then, after a new reqres gets =queued=, =Hoardy-Web= will generate a new desktop notification complaining about it, unless [[./popup.html#div-config.archiveStuckNotify][that option]] is disabled too.
+When both [[./popup.html#div-config.archive][=Archive 'collected' reqres by= option]] and [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] are disabled, then, after a new reqres gets =queued=, =Hoardy-Web= will generate a new notification complaining about it, unless [[./popup.html#div-config.archiveStuckNotify][that option]] is disabled too.
 
 You can also forcefully stash all currently =queued=, =in_limbo=, and =unarchived= reqres by pressing [[./popup.html#stashAll][this button]].
 It stashes everything immediately and unconditionally, ignoring all other stashing settings.
@@ -357,8 +357,8 @@ You can retry all archiving failures by pressing one of [[./popup.html#retryUnar
 You can also use them to nudge the archiving sub-process awake if some things got stuck in the queue by accident.
 E.g., after the extension got reloaded with a non-empty queue, or if you previously quit your browser before everything was archived.
 
-If [[./popup.html#div-config.archiveFailedNotify][this option]] is enabled and a new reqres recently moved to the =unarchived= state, a new desktop notification will be generated.
-If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new desktop notification will be generated when the archival queue gets empty the very first time or after any failures.
+If [[./popup.html#div-config.archiveFailedNotify][this option]] is enabled and a new reqres recently moved to the =unarchived= state, a new notification will be generated.
+If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
 - [[./popup.html#div-stats.unarchived][A /failed to archive reqres/]] is a reqres that is currently =unarchived=, i.e. a reqres that failed to be archived by one of the enabled [[./popup.html#sub-config.archive][archival methods]].
   It is also a part of the sum of the "Failed" part of the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line.
@@ -416,7 +416,7 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
 :PROPERTIES:
 :CUSTOM_ID: errors
 :END:
-** Desktop notifications
+** Notifications
 - =Failed to archive <N> items in the queue because Hoardy-Web can't establish a connection to the archiving server at <URL>=
 
   Are you running the [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][the archiving server script]]?
@@ -494,7 +494,7 @@ In particular:
 :CUSTOM_ID: bugs
 :END:
 #+BEGIN_EXPORT html
-<div name="less">
+<div class="less">
 #+END_EXPORT
 If you are reading this page outside of the extension's UI be sure to read [[#top][the very top of this page]] first.
 #+BEGIN_EXPORT html
@@ -638,7 +638,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
 :CUSTOM_ID: faq
 :END:
 #+BEGIN_EXPORT html
-<div name="less">
+<div class="less">
 #+END_EXPORT
 If you are reading this page outside of the extension's UI be sure to read [[#top][the very top of this page]] first.
 #+BEGIN_EXPORT html
@@ -668,7 +668,7 @@ This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough 
 - =storage= permission is used to save extension config and stats.
 - =unlimitedStorage= permission is used for archival of captured data to browser's local storage.
 - =menus= (=contextMenus= on Chromium) permission is used to add [[#context-menu-shortcuts][context-menu shortcut actions for links]].
-- =notifications= permission is used to send desktop notifications, which mostly used for reporting various issues.
+- =notifications= permission is used to send notifications, which mostly used for reporting various issues.
 ** Can I use =Hoardy-Web= to capture web pages while my browser runs with =JavaScript= disabled?
 Yes.
 ** Can I use =Hoardy-Web= to capture web pages that use a lot of =JavaScript=?

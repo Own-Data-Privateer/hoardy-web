@@ -25,9 +25,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     let selfURL = browser.runtime.getURL("/page/help.html");
     let popupURL = browser.runtime.getURL("/page/popup.html");
 
-    for (let node of document.getElementsByName("less"))
-        node.style.display = "none";
-
     // show settings as iframe
     let iframe = document.createElement("iframe");
     iframe.src = popupURL + "#all";
@@ -73,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             };
         } else if (el.href.startsWith(popupURL + "#")) {
             let target = el.href.substr(popupURL.length + 1);
-            el.classList.add("external");
+            el.classList.add("local");
             el.href = "javascript:void(0)";
             el.onclick = (event) => {
                 event.cancelBubble = true;
