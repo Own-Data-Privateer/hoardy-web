@@ -44,9 +44,11 @@ ul > li {
 }
     </style>
   </head>
-  <body>
+  <body style="display: none">
     <div id="body">
       $body$
     </div>
+    $for(libScript)$<script src="../lib/$libScript$"></script>$endfor$
+    <script src="changelog.js"></script>
   </body>
 </html>
