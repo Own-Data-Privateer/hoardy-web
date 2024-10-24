@@ -83,7 +83,7 @@ let configDefaults = {
     archiveExportAs: false,
     exportAsHumanReadable: true,
     exportAsBundle: true,
-    exportAsMaxSize: 64,
+    exportAsMaxSize: 32,
     exportAsTimeout: 3,
     exportAsInFlightTimeout: 60,
     gzipExportAs: true,
@@ -4175,7 +4175,7 @@ function fixConfig(config, oldConfig) {
 
     // clamp
     config.animateIcon = clamp(100, 5000, config.animateIcon);
-    config.exportAsMaxSize = clamp(1, 512, config.exportAsMaxSize);
+    config.exportAsMaxSize = clamp(1, useDebugger ? 512 : 32, config.exportAsMaxSize);
     config.exportAsTimeout = clamp(0, 900, config.exportAsTimeout);
     config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 900, config.exportAsInFlightTimeout);
 
