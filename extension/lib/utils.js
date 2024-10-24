@@ -102,7 +102,7 @@ function toNumber(x) {
 }
 
 function clamp(min, max, value) {
-    return Math.min(max, Math.max(min, toNumber(value)));
+    return Math.min(max, Math.max(min, value));
 }
 
 function getFirstDefined(...args) {

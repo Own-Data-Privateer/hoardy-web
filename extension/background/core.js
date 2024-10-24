@@ -4174,10 +4174,10 @@ function fixConfig(config, oldConfig) {
         config.root.bucket = configDefaults.root.bucket;
 
     // clamp
-    config.animateIcon = clamp(100, 5000, config.animateIcon);
-    config.exportAsMaxSize = clamp(1, useDebugger ? 512 : 32, config.exportAsMaxSize);
-    config.exportAsTimeout = clamp(0, 900, config.exportAsTimeout);
-    config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 900, config.exportAsInFlightTimeout);
+    config.animateIcon = clamp(100, 5000, toNumber(config.animateIcon));
+    config.exportAsMaxSize = clamp(1, useDebugger ? 512 : 32, toNumber(config.exportAsMaxSize));
+    config.exportAsTimeout = clamp(0, 900, toNumber(config.exportAsTimeout));
+    config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 900, toNumber(config.exportAsInFlightTimeout));
 
     // these are mutually exclusive
     if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard)
