@@ -82,6 +82,7 @@ let configDefaults = {
     // export via exportAs
     archiveExportAs: false,
     exportAsHumanReadable: true,
+    exportAsBundle: true,
     exportAsMaxSize: 64,
     exportAsTimeout: 3,
     exportAsInFlightTimeout: 60,
@@ -2257,7 +2258,7 @@ async function exportAsOne(archivable) {
 
     let archiveURL = "exportAs";
     let bucket = loggable.bucket;
-    let maxSize = config.exportAsMaxSize * MEGABYTE;
+    let maxSize = config.exportAsBundle ? config.exportAsMaxSize * MEGABYTE : 0;
 
     // export if this dump will not fit
     bucketSaveAs(bucket, maxSize - dumpSize);
@@ -4174,6 +4175,7 @@ function fixConfig(config, oldConfig) {
 
     // clamp
     config.animateIcon = clamp(100, 5000, config.animateIcon);
+    config.exportAsMaxSize = clamp(1, 512, config.exportAsMaxSize);
     config.exportAsTimeout = clamp(0, 900, config.exportAsTimeout);
     config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 900, config.exportAsInFlightTimeout);
 
@@ -4217,6 +4219,10 @@ function upgradeConfig(config) {
         config.extension.bucket = config.extension.profile;
         config.background.bucket = config.background.profile;
     case 5:
+        if (config.exportAsMaxSize === 0) {
+            config.exportAsBundle = false;
+            config.exportAsMaxSize = configDefaults.exportAsMaxSize;
+        }
         break;
     default:
         console.warn(`Bad old config version ${config.version}, reusing values as-is without updates`);

@@ -56,7 +56,7 @@
 When you use [the `Hoardy-Web` extension](../extension/) together with [`hoardy-web-sas` archiving server](../simple_server/), the latter writes [`WRR` dumps the extension generates](../doc/data-on-disk.md) into separate `.wrr` files (aka "`WRR` files") in its dumping directory.
 No further actions to use that data are required.
 
-The situation is similar if you instead use the `Hoardy-Web` extension with "Export via `saveAs`" option enabled but `saveAs`-bundling option disabled (max bundle size set to zero).
+The situation is similar if you instead use the `Hoardy-Web` extension with `Export via 'saveAs'` option enabled but `Export via 'saveAs' > Bundle dumps` option disabled.
 The only difference is that `WRR` files will be put into `~/Downloads` or similar.
 
 ```bash
@@ -65,7 +65,7 @@ ls ~/Downloads/Hoardy-Web-export-*
 
 ### Bundles of `WRR` dumps (`*.wrrb`)
 
-However, if instead of using any of the above you use the `Hoardy-Web` extension with both "Export via `saveAs`" and bundling options enabled, then, at the moment, you will need to `import` those `.wrrb` files (aka `WRR` bundles) into separate `WRR` files first:
+However, if instead of using any of the above you use the `Hoardy-Web` extension with both `Export via 'saveAs'` and bundling options enabled, then, at the moment, you will need to `import` those `.wrrb` files (aka `WRR` bundles) into separate `WRR` files first:
 
 ```bash
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*

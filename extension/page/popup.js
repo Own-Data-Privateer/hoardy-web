@@ -259,6 +259,7 @@ async function popupMain() {
         setConditionalClass(body, !config.stash, "off-stash");
         setConditionalClass(body, !config.archive, "off-archive");
         setConditionalClass(body, !config.archive || !config.archiveExportAs, "off-exportAs");
+        setConditionalClass(body, !config.exportAsBundle, "off-exportAsBundle");
         setConditionalClass(body, !config.archive || !config.archiveSubmitHTTP, "off-submitHTTP");
         setConditionalClass(body, !config.stash && (!config.archive || !config.archiveSaveLS), "off-LS");
         setConditionalClass(body, !config.autoUnmarkProblematic

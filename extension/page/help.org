@@ -323,7 +323,7 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= toggle]]
   - append the =dump=, as a byte string, to a (per-=bucket=, see below) =bundle=,
   - and then
     - if the =bundle= gets larger than [[./popup.html#div-config.exportAsMaxSize][this]] or
-    - after a delay controlled by [[./popup.html#div-config.exportAsTimeout][this]] and [[./popup.html#div-config.exportAsInFlightTimeout][that]] options
+    - after a delay controlled by [[./popup.html#div-config.exportAsInFlightTimeout][that]] and [[./popup.html#div-config.exportAsTimeout][this]] options
     export the resulting =bundle= via browser's =saveAs= mechanism (i.e. generate a fake-Download);
 
 - if [[./popup.html#div-config.archiveSubmitHTTP][=Archive 'collected' reqres by > ... submitting them via 'HTTP'= option]] is enabled, =Hoardy-Web= will submit the =dump= to the archiving server at [[./popup.html#div-config.submitHTTPURLBase][=Server URL= setting]] by making an =HTTP POST= request with the =dump= as request body (which is denoted by =srvIO= states on the diagram above);
