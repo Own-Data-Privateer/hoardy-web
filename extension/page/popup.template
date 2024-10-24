@@ -289,6 +289,8 @@ input.target {
     <section>
     <h3>Generate notifications about</h3>
     <div class="subdots">
+    <ui id="config.hintNotify" type="boolean" class="prefer-on c" data-help="Generate notifications explaining various non-obvious things `Hoardy-Web` does.">... {} UI hints</ui>
+    <ui id="config.invisibleUINotify" type="boolean" class="on-mobile c" data-help="Generate notifications about actions that are quirky on mobile browsers. This only has an effect if `Hoardy-Web` runs on a mobile browser like Fenix/Fennec/Mull/etc.">... {} mobile UI quirks</ui>
     <ui id="config.problematicNotify" type="boolean" class="c" data-help="Complain when a new `problematic` reqres appears.">... {} new <code>problematic</code> reqres</ui>
     <section class="subdots">
     <ui id="config.problematicNotifyNumber" type="number" class="on-problematicNotify c" data-help="Show no more than this many latest METHOD + URL lines in the generated `problematic` reqres notification.">... but no more than {} lines</ui>
@@ -302,8 +304,6 @@ input.target {
     <ui id="config.archiveStuckNotify" type="boolean" class="prefer-on c" data-help="Complain when the archival queue is not empty but both `Archive 'collected' reqres by` and `Stash 'collected' reqres into local storage` options are disabled.">... {} unstashed stuck archival queue</ui>
     <ui id="config.archiveFailedNotify" type="boolean" class="prefer-on c" data-help="Complain when some reqres fail to be stashed or archived to persistent storage (browser&#039;s local storage, the archival server, etc).">... {} archival errors</ui>
     <ui id="config.archiveDoneNotify" type="boolean" class="c" data-help="Generate an &quot;All OK&quot; notification when the archival queue becomes empty the very first time or after a previous archival failure. This exists mostly for on-boarding new users.">... {} newly empty archival queue</ui>
-    <ui id="config.hintNotify" type="boolean" class="c" data-help="Generate notifications about various non-obvious things `Hoardy-Web` or your browser does.">... {} UI hints</ui>
-    <ui id="config.invisibleUINotify" type="boolean" class="on-mobile c" data-help="Generate notifications about actions with effects that are probably invisible in the UI. This only has an effect if `Hoardy-Web` runs on a mobile browser like Fenix/Fennec/Mull/etc, where the browser has to deal with a limited screen estate and so the use of `Hoardy-Web`&#039;s setting menu could get really confusing, as the browser will not switch to tabs newly spawned from there.">... {} actions invisible in the UI</ui>
     </div>
     </section>
 
