@@ -416,9 +416,11 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
 - open the =Internal State and Logs= page, scrolled to the end of the log, {{{shortcut(showLog)}}};
 - open [[./popup.html#showTabState][the =Internal State and Logs= page]] narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
 - open the =Internal State and Logs= page narrowed to the currently active tab's data, scrolled to the end of the log, {{{shortcut(showTabLog)}}};
-- toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned =HTTP= requests in the currently active tab]] and set [[./popup.html#div-tabconfig.children.collecting][tracking in its children]] to the same value at the same time, {{{shortcut(toggleTabConfigTracking)}}};
+- toggle [[./popup.html#div-tabconfig.workOffline][work offline mode in the currently active tab]], then, if [[./popup.html#div-config.workOfflineImpure][impure]], set [[./popup.html#div-tabconfig.collecting][tracking]] to the opposite value, then set [[./popup.html#div-tabconfig.children.workOffline][the same options]] in [[./popup.html#div-tabconfig.children.collecting][its children]] to the same values, {{{shortcut(toggleTabConfigWorkOffline)}}};
+- toggle [[./popup.html#div-tabconfig.children.workOffline][work offline mode in the currently active tab's new children]], then, if [[./popup.html#div-config.workOfflineImpure][impure]], set [[./popup.html#div-tabconfig.children.collecting][tracking]] to the opposite value, {{{shortcut(toggleTabConfigChildrenWorkOffline)}}};
+- toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned =HTTP= requests in the currently active tab]], then set [[./popup.html#div-tabconfig.children.collecting][tracking in its children]] to the same value, {{{shortcut(toggleTabConfigTracking)}}};
 - toggle [[./popup.html#div-tabconfig.children.collecting][tracking of newly spawned =HTTP= requests currently active tab's children]], {{{shortcut(toggleTabConfigChildrenTracking)}}};
-- toggle [[./popup.html#div-tabconfig.limbo][limbo mode in the currently active tab]] and set [[./popup.html#div-tabconfig.children.limbo][limbo mode in its children]] to the same value at the same time, {{{shortcut(toggleTabConfigLimbo)}}};
+- toggle [[./popup.html#div-tabconfig.limbo][limbo mode in the currently active tab]], then set [[./popup.html#div-tabconfig.children.limbo][limbo mode in its children]] to the same value, {{{shortcut(toggleTabConfigLimbo)}}};
 - toggle [[./popup.html#div-tabconfig.children.limbo][limbo mode in currently active tab's children]], {{{shortcut(toggleTabConfigChildrenLimbo)}}};
 - [[./popup.html#unmarkAllProblematic][unmark all problematic reqres]], {{{shortcut(unmarkAllProblematic)}}};
 - [[./popup.html#unmarkAllTabProblematic][unmark all current tab's problematic reqres]], {{{shortcut(unmarkAllTabProblematic)}}};
@@ -519,6 +521,8 @@ In particular:
   in the case of a main frame request, =Hoardy-Web= will cancel the request and reload the tab, [[#chromium-quirk-reload][as discussed there]], so this error will not be produced;
   but it can happen if a page tries to load a sub-frame (like =iframe=) while the debugger for the tab (and, thus, the main frame) did not attach yet (which only happens for pages where Chromium disallows debugging, or when =Hoardy-Web= gets enabled after the page in question already started loading, e.g. the very first page after the browser starts);
   also, this can happen when the debugger gets detached after the main frame was captured but its resources are still loading.
+
+- =webRequest::capture::CANCELED::BY_WORK_OFFLINE= is produced when the reqres was canceled by one of "Work offline" options, i.e. as a result of one or more of [[./popup.html#div-config.workOffline][this]]-[[./popup.html#div-tabconfig.workOffline][this]]-[[./popup.html#div-tabconfig.children.workOffline][this]]-[[./popup.html#div-config.root.workOffline][this]]-[[./popup.html#div-config.background.workOffline][or]]-[[./popup.html#div-config.extension.workOffline][that]] options being set.
 
 - @@html:<span id="error-race">@@ =webRequest::capture::RESPONSE::BROKEN= is produced when some response metadata is unavailable.
   @@html:</span>@@

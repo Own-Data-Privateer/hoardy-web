@@ -63,6 +63,11 @@ let configDefaults = {
     // log settings
     history: 1024,
 
+    // are we in "Work offline" mode?
+    workOffline: false,
+    workOfflineImpure: false,
+    workOfflineFile: true,
+    workOfflineData: false,
     // are we collecting new data?
     collecting: true,
 
@@ -146,6 +151,7 @@ let configDefaults = {
     workaroundChromiumDebugTimeout: 3,
 
     root: {
+        workOffline: false,
         collecting: true,
         limbo: false,
         negLimbo: false,
@@ -154,6 +160,7 @@ let configDefaults = {
     },
 
     extension: {
+        workOffline: false,
         collecting: false,
         limbo: false,
         negLimbo: false,
@@ -162,6 +169,7 @@ let configDefaults = {
     },
 
     background: {
+        workOffline: false,
         collecting: true,
         limbo: false,
         negLimbo: false,
@@ -1178,6 +1186,11 @@ function makeUpdateDisplay(statsChanged, updatedTabId) {
             chunks.push(`${stats.in_limbo} in-limbo reqres`);
         }
 
+        if (config.workOffline) {
+            badge += "O";
+            chunks.push("working offline");
+        }
+
         if (!config.collecting) {
             badge += "N";
             chunks.push("not tracking new reqres");
@@ -1314,9 +1327,16 @@ function makeUpdateDisplay(statsChanged, updatedTabId) {
                 tchunks.push(`${tabstats.in_limbo} in-limbo reqres`);
             }
 
+            let pwicon;
             let picon;
             function addSub(icons, chunks, cfg, child) {
+                let wicon;
                 let icon;
+
+                if (config.workOffline || cfg.workOffline) {
+                    wicon = "work_offline";
+                    tchunks.push("working offline");
+                }
 
                 if (!config.collecting || !cfg.collecting) {
                     icon = "off";
@@ -1338,10 +1358,17 @@ function makeUpdateDisplay(statsChanged, updatedTabId) {
                         chunks.push("normal");
                 }
 
-                if (icon !== picon) {
-                    picon = icon;
+                if (wicon !== pwicon || icon !== picon) {
+                    if (wicon)
+                        icons.push(wicon);
                     icons.push(icon);
+                    // add a separator
+                    if (child)
+                        icons.push("main");
                 }
+
+                pwicon = wicon;
+                picon = icon;
             }
 
             addSub(icons, tchunks, tabcfg);
@@ -3312,14 +3339,47 @@ function updateLoggable(loggable) {
 
 // handlers
 
+function toggleTabConfigWorkOffline(tabcfg) {
+    if (config.workOfflineImpure) {
+        tabcfg.collecting = tabcfg.workOffline;
+        tabcfg.children.collecting = tabcfg.workOffline;
+    }
+    tabcfg.workOffline = !tabcfg.workOffline;
+    tabcfg.children.workOffline = tabcfg.workOffline;
+}
+
+function resetTabConfigWorkOffline(tabcfg, url) {
+    if (config.workOfflineFile && url.startsWith("file:")
+        || config.workOfflineData && url.startsWith("data:")) {
+        if (!tabcfg.workOffline) {
+            toggleTabConfigWorkOffline(tabcfg);
+            return true;
+        }
+    }
+    return false;
+}
+
+function handleBeforeNavigate(e) {
+    if (e.frameId !== 0)
+        // ignore sub-frames
+        return;
+
+    let tabId = e.tabId;
+    if (tabId === -1)
+        // ignore background tabs
+        return;
+
+    let tabcfg = getOriginConfig(tabId);
+    if (resetTabConfigWorkOffline(tabcfg, e.url))
+        setTabConfig(tabId, tabcfg);
+}
+
 let workaroundFirstRequest = true;
 
 function handleBeforeRequest(e) {
-    // don't do anything if we are globally disabled
-    if (!config.collecting) return;
-
-    // ignore data, file, end extension URLs
-    // NB: file: URL only happen on Chromium, Firefox does not emit those
+    // Ignore data, file, end extension URLs.
+    // NB: `file:` URLs only happen on Chromium, Firefox does not emit
+    // any `webRequest` events for those.
     if (isBoringURL(e.url))
         return;
 
@@ -3341,9 +3401,15 @@ function handleBeforeRequest(e) {
             fromExtension = true;
     }
 
-    // ignore this request if archiving is disabled for this tab or extension
     let options = getOriginConfig(e.tabId, fromExtension);
-    if (!options.collecting) return;
+    let workOffline = config.workOffline || options.workOffline;
+
+    // ignore this request if archiving is disabled
+    if (!config.collecting || !options.collecting) {
+        if (workOffline)
+            return { cancel: true };
+        return;
+    }
 
     logEvent("BeforeRequest", e, undefined);
 
@@ -3376,7 +3442,7 @@ function handleBeforeRequest(e) {
     // to `about:blank`, and then reload the tab with the original URL to
     // work-around a Firefox bug where it will fail to run `onstop` for the
     // `filterResponseData` of the very first request, thus breaking it.
-    if (!useDebugger && workaroundFirstRequest) {
+    if (!useDebugger && workaroundFirstRequest && !workOffline) {
         workaroundFirstRequest = false;
         if (config.workaroundFirefoxFirstRequest
             && e.tabId !== -1
@@ -3448,8 +3514,11 @@ function handleBeforeRequest(e) {
         }
     }
 
-    if (reject) {
-        reqres.errors.push("webRequest::capture::CANCELED::NO_DEBUGGER")
+    if (reject || workOffline) {
+        if (reject)
+            reqres.errors.push("webRequest::capture::CANCELED::NO_DEBUGGER")
+        if (workOffline)
+            reqres.errors.push("webRequest::capture::CANCELED::BY_WORK_OFFLINE")
         reqresAlmostDone.push(reqres);
         scheduleEndgame(tabId);
         return { cancel: true };
@@ -4072,6 +4141,16 @@ async function handleCommand(command) {
     case "snapshotTab":
         snapshot(tabId);
         return;
+    case "toggleTabConfigWorkOffline":
+        tabcfg = getOriginConfig(tabId);
+        toggleTabConfigWorkOffline(tabcfg);
+        break;
+    case "toggleTabConfigChildrenWorkOffline":
+        tabcfg = getOriginConfig(tabId);
+        if (config.workOfflineImpure)
+            tabcfg.children.collecting = tabcfg.children.workOffline;
+        tabcfg.children.workOffline = !tabcfg.children.workOffline;
+        break;
     case "toggleTabConfigTracking":
         tabcfg = getOriginConfig(tabId);
         tabcfg.collecting = !tabcfg.collecting;
@@ -4306,6 +4385,7 @@ async function init() {
     let tabs = await browser.tabs.query({});
     for (let tab of tabs) {
         let tabId = tab.id;
+        let tabUrl = tab.url;
 
         // record them
         openTabs.add(tabId);
@@ -4315,6 +4395,8 @@ async function init() {
         // on Chromium, reset their URLs, maybe
         if (useDebugger && tab.pendingUrl === "chrome://newtab/")
             chromiumResetRootTab(tabId, tabcfg);
+        else if (tabUrl !== undefined)
+            resetTabConfigWorkOffline(tabcfg, tabUrl);
 
         setTabConfigInternal(tabId, tabcfg);
     }
@@ -4326,17 +4408,22 @@ async function init() {
     console.log("config is", config);
     console.log("globals are", globals);
 
+    // `webNavigation` and `webRequest` use different filter formats, of course.
+    let filterAllN = { url: [{}] };
+    let filterAllR = { urls: ["<all_urls>"] };
+
+    browser.webNavigation.onBeforeNavigate.addListener(catchAll(handleBeforeNavigate), filterAllN)
     if (useBlocking)
-        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), {urls: ["<all_urls>"]}, ["blocking", "requestBody"]);
+        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, ["blocking", "requestBody"]);
     else
-        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), {urls: ["<all_urls>"]}, ["requestBody"]);
-    browser.webRequest.onBeforeSendHeaders.addListener(catchAll(handleBeforeSendHeaders), {urls: ["<all_urls>"]});
-    browser.webRequest.onSendHeaders.addListener(catchAll(handleSendHeaders), {urls: ["<all_urls>"]}, ["requestHeaders"]);
-    browser.webRequest.onHeadersReceived.addListener(catchAll(handleHeadersRecieved), {urls: ["<all_urls>"]}, ["responseHeaders"]);
-    browser.webRequest.onBeforeRedirect.addListener(catchAll(handleBeforeRedirect), {urls: ["<all_urls>"]}, ["responseHeaders"]);
-    browser.webRequest.onAuthRequired.addListener(catchAll(handleAuthRequired), {urls: ["<all_urls>"]});
-    browser.webRequest.onCompleted.addListener(catchAll(handleCompleted), {urls: ["<all_urls>"]}, ["responseHeaders"]);
-    browser.webRequest.onErrorOccurred.addListener(catchAll(handleErrorOccurred), {urls: ["<all_urls>"]});
+        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, ["requestBody"]);
+    browser.webRequest.onBeforeSendHeaders.addListener(catchAll(handleBeforeSendHeaders), filterAllR);
+    browser.webRequest.onSendHeaders.addListener(catchAll(handleSendHeaders), filterAllR, ["requestHeaders"]);
+    browser.webRequest.onHeadersReceived.addListener(catchAll(handleHeadersRecieved), filterAllR, ["responseHeaders"]);
+    browser.webRequest.onBeforeRedirect.addListener(catchAll(handleBeforeRedirect), filterAllR, ["responseHeaders"]);
+    browser.webRequest.onAuthRequired.addListener(catchAll(handleAuthRequired), filterAllR);
+    browser.webRequest.onCompleted.addListener(catchAll(handleCompleted), filterAllR, ["responseHeaders"]);
+    browser.webRequest.onErrorOccurred.addListener(catchAll(handleErrorOccurred), filterAllR);
 
     browser.notifications.onClicked.addListener(catchAll(handleNotificationClicked));
 

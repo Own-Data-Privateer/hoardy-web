@@ -237,12 +237,32 @@ async function popupMain() {
         setUI(document, "stats", present(stats));
     }
 
-    async function updateConfig(config) {
-        if (config === undefined)
+    let config;
+
+    async function updateConfig(nconfig) {
+        if (nconfig === undefined)
             config = await browser.runtime.sendMessage(["getConfig"]);
+        else
+            config = nconfig;
 
         setUI(document, "config", config, (newconfig, path) => {
             switch (path) {
+            case "config.workOffline":
+                if (newconfig.workOfflineImpure)
+                    newconfig.collecting = !newconfig.workOffline;
+                break;
+            case "config.root.workOffline":
+                if (newconfig.workOfflineImpure)
+                    newconfig.root.collecting = !newconfig.root.workOffline;
+                break;
+            case "config.background.workOffline":
+                if (newconfig.workOfflineImpure)
+                    newconfig.background.collecting = !newconfig.background.workOffline;
+                break;
+            case "config.extension.workOffline":
+                if (newconfig.workOfflineImpure)
+                    newconfig.extension.collecting = !newconfig.extension.workOffline;
+                break;
             case "config.autoPopInLimboCollect":
                 newconfig.autoPopInLimboDiscard = newconfig.autoPopInLimboDiscard && !newconfig.autoPopInLimboCollect;
                 break;
@@ -282,6 +302,17 @@ async function popupMain() {
             tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
         setUI(document, "tabconfig", tabconfig, (newtabconfig, path) => {
             switch (path) {
+            case "tabconfig.workOffline":
+                if (config.workOfflineImpure)
+                    newtabconfig.collecting = !newtabconfig.workOffline;
+                newtabconfig.children.workOffline = newtabconfig.workOffline;
+                if (config.workOfflineImpure)
+                    newtabconfig.children.collecting = newtabconfig.collecting;
+                break;
+            case "tabconfig.children.workOffline":
+                if (config.workOfflineImpure)
+                    newtabconfig.children.collecting = !newtabconfig.children.workOffline;
+                break;
             case "tabconfig.collecting":
                 newtabconfig.children.collecting = newtabconfig.collecting;
                 break;

@@ -22,7 +22,7 @@ for target in "$@"; do
         echo "  Tailing all icons into a single image..."
 
         icons=()
-        for a in icon/"$iconTheme"/{main,off,idle,limbo,neglimbo,bothlimbo,tracking,problematic,in_limbo,archiving,failed}.svg icon/"$iconTheme"/*.svg; do
+        for a in icon/"$iconTheme"/{main,work_offline,off,idle,limbo,neglimbo,bothlimbo,tracking,problematic,in_limbo,archiving,failed}.svg icon/"$iconTheme"/*.svg; do
             n=$(basename "$a")
             file="$DEST/$n.png"
             if [[ "$a" -nt "$file" ]]; then
