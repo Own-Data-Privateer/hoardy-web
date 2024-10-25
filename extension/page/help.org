@@ -1,4 +1,5 @@
 #+MACRO: shortcut @@html:<span data-macro-shortcut="$1">bound to <code>manifest.commands.$1</code></span>@@
+#+MACRO: reportit [[https://github.com/Own-Data-Privateer/hoardy-web/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]]
 
 #+BEGIN_EXPORT html
 <div class="less">
@@ -487,19 +488,32 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 :PROPERTIES:
 :CUSTOM_ID: errors
 :END:
-** Notifications
-- =Failed to archive <N> items in the queue because Hoardy-Web can't establish a connection to the archiving server at <URL>=
+** Error messages, as seen in generated notifications
+:PROPERTIES:
+:CUSTOM_ID: error-notifications
+:END:
+
+- =Failed to archive <N> items because `Hoardy-Web` can't establish a connection to the archiving server at <URL>=
 
   Are you running the [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][the archiving server script]]?
 
-- =Failed to archive <N> items in the queue because requests to the archiving server failed with: <STATUS> <REASON>: <RESPONSE>=
+- =Failed to archive <N> items because requests to the archiving server failed with: <STATUS> <REASON>: <RESPONSE>=
 
   Your archiving sever is returning =HTTP= errors when =Hoardy-Web= is trying to archive data to it.
   See your archiving server's console for more information.
 
   Some common reasons it could be failing:
   - No space left on the device you are archiving to.
-  - It's a bug.
+  - It's a bug, {{{reportit()}}}.
+
+- =Failed to stash <N> items becase <reason>= or =Failed to archive <N> items becase <reason>=
+
+  Stashing or archiving failed for some other reason.
+
+  Some common reasons it could be failing:
+  - No space left on the device your browser saves its local storage to.
+  - It's a bug, {{{reportit()}}}.
+
 - =Failed to open/create a database via `IndexedDB` API, all data persistence will be done via `storage.local` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears Hoardy-Web previously used `IndexedDB` for archiving and/or stashing reqres.=
 
   So, it worked before, but why doesn't it work now?
@@ -518,6 +532,13 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
   - Now, you can re-enable the =Always use private browsing mode= browser setting and restart you browser again.
 
   All old data should be available from [[./popup.html#showSaved][the =Saved in Local Storage= page]] now.
+
+- =Failed to process <N> items becase <reason>=
+
+  It's a bug, {{{reportit()}}}.
+
+- Other error notifications should be completely self descriptive.
+  If they are not, {{{reportit()}}}.
 ** Errors recorded in =reqres=, as seen in [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]]
 Most error codes are produced by attaching one of the following prefixes to the raw error code given by the browser:
 
@@ -868,4 +889,4 @@ As it is now, the only way to be absolutely sure you data is properly forever sa
 
 Yes, go to =about:config= and toggle =browser.download.alwaysOpenPanel= to =false=.
 ** This page does not answer my question. What do I do?
-If the whole content of this page (not just this section, did you try searching for stuff with =Control+F=? there's a lot of info here) does not explain your problem, [[https://github.com/Own-Data-Privateer/hoardy-web/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]].
+If the whole content of this page (not just this section, did you try searching for stuff with =Control+F=? there's a lot of info here) does not explain your problem, {{{reportit()}}}.

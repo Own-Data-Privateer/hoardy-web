@@ -1650,7 +1650,7 @@ async function doNotify() {
     if (gotNewErrored && rrErrored.length > 0) {
         gotNewErrored = false;
 
-        await browser.notifications.create("errors", {
+        await browser.notifications.create("error-errored", {
             title: "Hoardy-Web: ERROR",
             message: `Some internal errors:\n${formatFailures("Failed to process", rrErrored)}`,
             iconUrl: iconURL("error", 128),
@@ -1658,13 +1658,13 @@ async function doNotify() {
         });
     } else if (rrErrored.length === 0)
         // clear stale
-        await browser.notifications.clear("errors");
+        await browser.notifications.clear("error-errored");
 
     if (gotNewQueued && reqresQueue.length > 0) {
         gotNewQueued = false;
 
         if (config.archiveStuckNotify && !config.archive && !config.stash) {
-            await browser.notifications.create("notSaving", {
+            await browser.notifications.create("warning-notSaving", {
                 title: "Hoardy-Web: WARNING",
                 message: "Some reqres are waiting in the archival queue, but both reqres stashing and archiving are disabled.",
                 iconUrl: iconURL("archiving", 128),
@@ -1673,14 +1673,14 @@ async function doNotify() {
         }
     } else if (config.archive || config.stash)
         // clear stale
-        await browser.notifications.clear("notSaving");
+        await browser.notifications.clear("warning-notSaving");
 
     if (gotNewSyncedOrNot && rrUnstashed.length > 0) {
         gotNewSyncedOrNot = false;
 
         if (config.archiveFailedNotify) {
             // generate a new one
-            await browser.notifications.create("unstashed", {
+            await browser.notifications.create("error-unstashed", {
                 title: "Hoardy-Web: FAILED",
                 message: `For browser's local storage:\n${formatFailures("Failed to stash", rrUnstashed)}`,
                 iconUrl: iconURL("failed", 128),
@@ -1689,7 +1689,7 @@ async function doNotify() {
         }
     } else if (rrUnstashed.length === 0)
         // clear stale
-        await browser.notifications.clear("unstashed");
+        await browser.notifications.clear("error-unstashed");
 
     if (gotNewArchivedOrNot) {
         gotNewArchivedOrNot = false;
@@ -1700,9 +1700,9 @@ async function doNotify() {
 
         // clear stale
         for (let label in all) {
-            if (!label.startsWith("unarchived-"))
+            if (!label.startsWith("error-unarchived-"))
                 continue;
-            let archiveURL = label.substr(12);
+            let archiveURL = label.substr(17);
             if (rrUnarchived.every((e) => e[0] !== archiveURL))
                 await browser.notifications.clear(label);
         }
@@ -1717,7 +1717,7 @@ async function doNotify() {
                     where = "Browser's local storage";
                 else
                     where = `Archiving server at ${archiveURL}`;
-                await browser.notifications.create(`unarchived-${archiveURL}`, {
+                await browser.notifications.create(`error-unarchived-${archiveURL}`, {
                     title: "Hoardy-Web: FAILED",
                     message: `${where}:\n${formatFailures("Failed to archive", byErrorMap.entries())}`,
                     iconUrl: iconURL("failed", 128),
@@ -1733,7 +1733,7 @@ async function doNotify() {
 
             if (config.archiveDoneNotify) {
                 // generate a new one
-                await browser.notifications.create("done", {
+                await browser.notifications.create("ok-done", {
                     title: "Hoardy-Web: OK",
                     message: "Archiving appears to work OK!\n\nThis message won't be repeated unless something breaks." + annoyingNotification(config, "Generate notifications about > ... newly empty archival queue"),
                     iconUrl: iconURL("idle", 128),
@@ -1751,7 +1751,7 @@ async function doNotify() {
 
         if (config.limboNotify) {
             // generate a new one
-            await browser.notifications.create("fatLimbo", {
+            await browser.notifications.create("warning-fatLimbo", {
                 title: "Hoardy-Web: WARNING",
                 message: `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.` + annoyingNotification(config, "Generate notifications about > ... too much stuff in limbo"),
                 iconUrl: iconURL("limbo", 128),
@@ -1760,7 +1760,7 @@ async function doNotify() {
         }
     } else if (!fatLimbo)
         // clear stale
-        await browser.notifications.clear("fatLimbo");
+        await browser.notifications.clear("warning-fatLimbo");
 
     if (gotNewProblematic) {
         gotNewProblematic = false;
@@ -1791,7 +1791,7 @@ async function doNotify() {
                     latestDesc.push(`${v}x ${k.substr(0, 80)}\u2026`);
             }
             latestDesc.reverse();
-            await browser.notifications.create("problematic", {
+            await browser.notifications.create("warning-problematic", {
                 title: "Hoardy-Web: WARNING",
                 message: `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate notifications about > ... new problematic reqres"),
                 iconUrl: iconURL("problematic", 128),
@@ -1800,7 +1800,7 @@ async function doNotify() {
         }
     } else if (reqresProblematic.length === 0)
         // clear stale
-        await browser.notifications.clear("problematic");
+        await browser.notifications.clear("warning-problematic");
 }
 
 function asyncNotifications(timeout) {
@@ -3076,7 +3076,7 @@ async function snapshotOneTab(tabId, tabUrl) {
         allErrors.push(err.toString());
     } finally {
         if (allErrors.length > 0)
-            await browser.notifications.create(`snapshot-${tabId}`, {
+            await browser.notifications.create(`error-snapshot-${tabId}`, {
                 title: "Hoardy-Web: ERROR",
                 message: `While taking DOM snapshot of tab #${tabId} (${tabUrl.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`,
                 iconUrl: iconURL("error", 128),
@@ -3718,11 +3718,8 @@ function handleErrorOccurred(e) {
 }
 
 function handleNotificationClicked(notificationId) {
-    if (reqresUnarchivedByArchivable.size === 0) return;
-
-    browser.tabs.create({
-        url: browser.runtime.getURL("/page/help.html#errors"),
-    });
+    if (notificationId.startsWith("error-"))
+        showHelp("", "error-notifications");
 }
 
 function chromiumResetRootTab(tabId, tabcfg) {
@@ -4186,7 +4183,7 @@ function fixConfig(config, oldConfig) {
         config.preferIndexedDB = true;
 
         if (config.hintNotify)
-            browser.notifications.create("configNotSupported-preferIndexedDB", {
+            browser.notifications.create("hint-configNotSupported-preferIndexedDB", {
                 title: "Hoardy-Web: HINT",
                 message: `"Prefer \`IndexedDB\` API" can not be disabled on a Chromium-based browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints"),
                 iconUrl: iconURL("main", 128),
@@ -4199,7 +4196,7 @@ function fixConfig(config, oldConfig) {
 
         // Firefox on Android does not switch to new tabs opened from the settings
         if (config.hintNotify)
-            browser.notifications.create("configNotSupported-archiveExportAs", {
+            browser.notifications.create("hint-configNotSupported-archiveExportAs", {
                 title: "Hoardy-Web: HINT",
                 message: `"Export via \`saveAs\` is not supported on Firefox-based mobile browsers. See the "Help" page for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints"),
                 iconUrl: iconURL("main", 128),
@@ -4211,7 +4208,7 @@ function fixConfig(config, oldConfig) {
         config.spawnNewTabs = true;
 
         if (config.hintNotify)
-            browser.notifications.create("configNotSupported-spawnNewTabs", {
+            browser.notifications.create("hint-configNotSupported-spawnNewTabs", {
                 title: "Hoardy-Web: HINT",
                 message: `"Spawn internal pages in new tabs" can not be disabled on a desktop browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints"),
                 iconUrl: iconURL("main", 128),
@@ -4237,7 +4234,7 @@ function fixConfig(config, oldConfig) {
         config.archive = false;
 
         if (config.hintNotify)
-            browser.notifications.create("notArchivingNow", {
+            browser.notifications.create("hint-notArchivingNow", {
                 title: "Hoardy-Web: HINT",
                 message: `"Archive \`collected\` reqres by" option was disabled because the archival queue and/or the list of failed reqres are non-empty.` + annoyingNotification(config, "Generate notifications about > ... UI hints"),
                 iconUrl: iconURL("off", 128),
@@ -4370,7 +4367,7 @@ async function init() {
     }
 
     if (reqresIDB === undefined && (globals.stashedIDB.number > 0 || globals.savedIDB.number > 0)) {
-        browser.notifications.create("noIndexedDB", {
+        browser.notifications.create("error-noIndexedDB", {
             title: "Hoardy-Web: ERROR",
             message: `Failed to open/create a database via \`IndexedDB\` API, all data persistence will be done via \`storage.local\` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears \`Hoardy-Web\` previously used \`IndexedDB\` for archiving and/or stashing reqres.\n\nSee the "Help" page for more info and instructions on how to fix this.`,
             iconUrl: iconURL("error", 128),
@@ -4452,7 +4449,7 @@ async function init() {
             what.push(`"Auto-discard reqres in limbo"`);
         if (config.discardAll)
             what.push(`"Discard all reqres just before archival"`);
-        browser.notifications.create("autoDiscard", {
+        browser.notifications.create("reminder-autoDiscard", {
             title: "Hoardy-Web: REMINDER",
             message: `Some auto-discarding options are enabled: ${what.join(", ")}.`,
             iconUrl: iconURL("limbo", 128),
