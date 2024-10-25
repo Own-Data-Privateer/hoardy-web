@@ -41,19 +41,19 @@
             "suggested_key": {
                 "default": "Alt+C"
             },
-            "description": "For the currently active tab, toggle tracking and reset it for the tab's new children"
+            "description": "For the currently active tab, toggle `Track new requests` setting and reset the related option for the tab's new children"
         },
         "toggleTabConfigChildrenTracking": {
-            "description": "For current tab's new children, toggle tracking"
+            "description": "For currently active tab's new children, toggle `Enable 'Track new requests' setting`"
         },
         "toggleTabConfigLimbo": {
             "suggested_key": {
                 "default": "Alt+L"
             },
-            "description": "For the currently active tab, toggle limbo mode and reset it for the tab's new children"
+            "description": "For the currently active tab, toggle `Pick into limbo` setting and reset the related option for the tab's new children"
         },
         "toggleTabConfigChildrenLimbo": {
-            "description": "For current tab's new children, toggle limbo mode"
+            "description": "For currently active tab's new children, toggle `Enable 'Pick into limbo'` setting"
         },
         "unmarkAllProblematic": {
             "description": "Unmark all problematic reqres"
