@@ -149,6 +149,13 @@ input.target {
 }
 
 @layer overrides {
+.all #showAll,
+.short .no-reload .on-reload,
+.yes-pending .on-reload,
+.no-pending .on-pending {
+    display: none;
+}
+
 .not-firefox .on-firefox,
 .not-firefox .on-firefox *,
 .not-chromium .on-chromium,
@@ -212,6 +219,12 @@ input.target {
     <h1>
       Hoardy-Web
       <input type="button" id="version" data-help="Open the `Changelog` page." value="v?" />
+      <span id="div-reloadSelf" class="on-reload">
+        <input type="button" id="reloadSelf" data-help="Reload and update `Hoardy-Web`. That is, ask `Hoardy-Web` to perform the following: wait for all in-flight reqres to finish, stash everything not yet stashed into local storage (regardless of `Stash 'collected' reqres into local storage` and `Stash 'in_limbo' reqres` options), run all scheduled actions immediately, dump the recent history log and per-tab configs into local storage, and then, if all of the above succeed, ask the browser to reload `Hoardy-Web`. If the browser has a new version of `Hoardy-Web` fetched and ready to go (which it has if this button appears to be highlighted), pressing this button will make the browser unload this and then load the new version of `Hoardy-Web`, thus updating it without a browser restart. This feature is experimental at the moment. See also `Auto-reload on updates` option below." value="Reload" />
+      </span>
+      <span class="on-pending">
+        <input type="button" id="cancelReloadSelf" data-help="Cancel pending `Hoardy-Web` reload." value="Reload pending..." />
+      </span>
       <span class="right">
         <input type="button" id="help" data-help="Open the `Help` page." value="Help" />
       </span>
@@ -258,6 +271,7 @@ input.target {
     <section id="behaviour-options">
     <h3>Behaviour</h3>
     <ui id="config.history" type="number" class="c" data-help="Remember at most this many `collected` and `discarded` reqres in the log. Making this larger will increase memory consumption.">Log at most {} reqres</ui>
+    <ui id="config.autoReloadOnUpdates" type="boolean" data-help="When the browser has a new version of `Hoardy-Web` fetched and ready to go, automatically reload `Hoardy-Web` to update. See the `Reload` button (the button with an awfully excited face emoji) above for more info. Disabled by default because this feature is experimental at the moment.">Auto-reload on updates</ui>
     </section>
 
     <section id="work-offline-options">

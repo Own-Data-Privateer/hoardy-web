@@ -22,7 +22,9 @@
 "use strict";
 
 function showAll() {
-    document.getElementById("showAll").style.display = "none";
+    document.body.classList.add("all");
+    document.body.classList.remove("short");
+
     for (let node of document.getElementsByName("more"))
         node.style.removeProperty("display");
 
@@ -34,6 +36,9 @@ function showAll() {
 }
 
 function hideAll() {
+    document.body.classList.remove("all");
+    document.body.classList.add("short");
+
     document.getElementById("showAll").style.removeProperty("display");
     for (let node of document.getElementsByName("more"))
         node.style.display = "none";
@@ -102,6 +107,7 @@ async function popupMain() {
 
     // emoji labels for the UI buttons
     let emojiButtons = {
+        reloadSelf: "（🌟ω🌟）",
         snapshotAll: "📸",
         forgetHistory: "🧹",
         showState: "📜",
@@ -190,6 +196,8 @@ async function popupMain() {
     // page will be taken by the navigation toolbar and there will be no
     // search function, which is very useful there.
 
+    let reloadSelfButton = buttonToMessage("reloadSelf");
+    buttonToMessage("cancelReloadSelf");
     buttonToAction("showState", catchAll(() => replaceWith(showState, "", "top")));
     buttonToMessage("forgetHistory",           () => ["forgetHistory", null]);
     buttonToMessage("snapshotAll",             () => ["snapshot", null]);
@@ -289,6 +297,12 @@ async function popupMain() {
         if (stats === undefined)
             stats = await browser.runtime.sendMessage(["getStats"]);
         setUI(document, "stats", present(stats));
+
+        setConditionalClass(body, !(stats.update_available || config.debugging), "no-reload");
+        setConditionalClass(reloadSelfButton, stats.update_available, "attention");
+
+        setConditionalClass(body, stats.reload_pending, "yes-pending");
+        setConditionalClass(body, !stats.reload_pending, "no-pending");
     }
 
     async function updateTabConfig(tabconfig) {

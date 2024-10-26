@@ -26,12 +26,8 @@
 
 // NB: "reqres" means "request + response"
 
-let updateAvailable = false;
-
-function handleUpdateAvailable(details) {
-    updateAvailable = true;
-}
-
+// current session ID, to prevent old reqres from being counted as belonging
+// to current tabs, etc
 let sessionId = Date.now();
 
 // default config
@@ -56,6 +52,7 @@ let configDefaults = {
     colorblind: false,
     pureText: false,
     animateIcon: 500,
+    autoReloadOnUpdates: false,
     spawnNewTabs: !isMobile,
     hintNotify: true,
     invisibleUINotify: true,
@@ -766,6 +763,8 @@ function getStats() {
     synchronousClosures.forEach((v) => actions.push(v[0]));
 
     return {
+        update_available: updateAvailable,
+        reload_pending: wantReloadSelf,
         running: runningActions.size,
         running_actions: Array.from(runningActions.values()).sort().join(", "),
         scheduled_low: low_prio,
@@ -1414,6 +1413,11 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, timeout, fo
         udUpdatedTabId = undefined;
         if (res !== undefined)
             await res(force);
+
+        // we schedule this here because otherwise we will have to schedule it
+        // almost everywhere `scheduleUpdateDisplay` is used
+        if (wantReloadSelf)
+            resetSingletonTimeout(scheduledHidden, "reload", 300, performReloadSelf);
     }, undefined, true);
 }
 
@@ -1529,6 +1533,7 @@ function scheduleEndgame(updatedTabId) {
                 // is this change important?
                 let boring = true;
                 if (savedGlobals === undefined
+                    || wantReloadSelf
                     || (!haveInFlight && (savedGlobals.collectedTotal !== globals.collectedTotal
                                           || savedGlobals.submittedHTTPTotal !== globals.submittedHTTPTotal
                                           || savedGlobals.exportedAsTotal !== globals.exportedAsTotal))
@@ -1538,7 +1543,7 @@ function scheduleEndgame(updatedTabId) {
                     || savedGlobals.savedIDB.number !== globals.savedIDB.number)
                     boring = false;
 
-                scheduleAction(scheduledSaveState, "persistStats", boring ? 90000 : 1000, () => {
+                scheduleAction(scheduledSaveState, "persistStats", boring ? 90000 : (wantReloadSelf ? 0 : 1000), () => {
                     saveGlobals();
                 });
             }
@@ -1548,7 +1553,7 @@ function scheduleEndgame(updatedTabId) {
                 // schedule exportAs for all buckets
                 asyncBucketSaveAs(haveInFlight
                                   ? config.exportAsInFlightTimeout * 1000
-                                  : config.exportAsTimeout * 1000
+                                  : (wantReloadSelf ? 0 : config.exportAsTimeout * 1000)
                                   , null);
             }
 
@@ -2050,6 +2055,11 @@ async function syncMany(archivables, state, elide) {
     }
 }
 
+function isSynced(archivable) {
+    let [loggable, dump] = archivable;
+    return loggable.inLS !== undefined && !loggable.dirty;
+}
+
 class StopIteration extends Error {}
 
 async function forEachSynced(storeName, func, limit) {
@@ -2353,8 +2363,8 @@ function loadOneStashed(loggable) {
 
     if (loggable.problematic) {
         reqresProblematic.push(archivable);
-        gotNewProblematic = true;
         info.problematicTotal += 1;
+        gotNewProblematic = true;
     }
 
     if (loggable.in_limbo || loggable.collected) {
@@ -2364,11 +2374,11 @@ function loadOneStashed(loggable) {
         if (loggable.in_limbo) {
             reqresLimbo.push(archivable);
             reqresLimboSize += dumpSize;
-            gotNewLimbo = true;
             if (loggable.sessionId === sessionId) {
                 info.inLimboTotal += 1;
                 info.inLimboSize += dumpSize;
             }
+            gotNewLimbo = true;
         } else if (loggable.collected) {
             reqresQueue.push(archivable);
             reqresQueueSize += dumpSize;
@@ -2893,20 +2903,20 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
     if (in_limbo) {
         reqresLimbo.push(archivable);
         reqresLimboSize += dumpSize;
-        gotNewLimbo = true;
         info.inLimboTotal += 1;
         info.inLimboSize += dumpSize;
         newlyLimboed.push(loggable);
         if (config.stash && options.stashLimbo)
             newlyStashed.push(archivable);
+        gotNewLimbo = true;
     } else
         processNonLimbo(picked, info, archivable, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
 
     if (problematic) {
         reqresProblematic.push(archivable);
-        gotNewProblematic = true;
         info.problematicTotal += 1;
         newlyProblematic.push(loggable);
+        gotNewProblematic = true;
     }
 
     changedGlobals = true;
@@ -3783,6 +3793,118 @@ function handleTabUpdated(tabId, changeInfo, tab) {
     scheduleUpdateDisplay(false, tabId, 1, 0, true);
 }
 
+// do we actually want to be reloaded?
+let wantReloadSelf = false;
+
+async function performReloadSelf() {
+    if (!wantReloadSelf)
+        return;
+
+    let notGood
+        = reqresErrored.size
+        + reqresUnstashedByArchivable.size;
+        //+ reqresUnarchivedByArchivable.size // these will be caught below
+
+    if (notGood !== 0) {
+        browser.notifications.create("error-noReload", {
+            title: "Hoardy-Web: ERROR",
+            message: `\`Hoardy-Web\` can NOT be reloaded while some \`unstashed\` and/or \`errored\` reqres are present.`,
+            iconUrl: iconURL("error", 128),
+            type: "basic",
+        }).catch(logError);
+
+        wantReloadSelf = false;
+        return;
+    }
+
+    let notDoneReqres
+        = reqresInFlight.size
+        + debugReqresInFlight.size
+        + reqresFinishingUp.length
+        + debugReqresFinishingUp.length
+        + reqresAlmostDone.length
+        + reqresBundledAs.size;
+
+    let notDoneTasks
+        = synchronousClosures.length
+        + runningActions.size
+        + scheduledCancelable.size
+        // scheduledRetry is ignored here
+        + scheduledDelayed.size
+        + scheduledSaveState.size
+        + scheduledInternal.size;
+        // scheduledHidden is ignored here;
+
+    let allSynced
+        = reqresLimbo.every(isSynced)
+        && reqresQueue.every(isSynced)
+        && Array.from(reqresUnarchivedByArchivable.keys()).every(isSynced);
+
+    let reloadAllowed
+        = notDoneReqres === 0
+        && notDoneTasks === 0
+        && allSynced;
+
+    if (!reloadAllowed) {
+        let stats = getStats()
+        console.warn("reload blocked,",
+                     "#reqres", notDoneReqres,
+                     "running", stats.running_actions,
+                     "scheduled", stats.scheduled_actions,
+                     "synced?", allSynced);
+        return;
+    }
+
+    console.warn("reloading!");
+
+    let tabs = {};
+    let currentTabs = await browser.tabs.query({});
+
+    for (let tab of currentTabs) {
+        let tabId = tab.id;
+        tabs[tabId] = {
+            url: getTabURL(tab),
+            tabcfg: tabConfig.get(tabId),
+        };
+    }
+
+    let session = {
+        id: sessionId,
+        tabs,
+        log: reqresLog,
+        // queue and others are stashed
+    };
+
+    await browser.storage.local.set({ session });
+
+    browser.runtime.reload();
+}
+
+function reloadSelf() {
+    wantReloadSelf = true;
+    //retryUnarchived(true);
+    syncRetryUnstashed();
+    syncStashAll(true);
+    syncRunActions();
+    scheduleEndgame(null);
+}
+
+function cancelReloadSelf() {
+    wantReloadSelf = false;
+    scheduleEndgame(null);
+}
+
+// is there a new version ready to be used?
+let updateAvailable = false;
+
+function handleUpdateAvailable(details) {
+    updateAvailable = true;
+    if (config.autoReloadOnUpdates)
+        reloadSelf();
+    else
+        scheduleUpdateDisplay(true);
+}
+
 // open client tab ports
 let openPorts = new Map();
 
@@ -3826,6 +3948,14 @@ function handleMessage(request, sender, sendResponse) {
 
     let cmd = request[0];
     switch (cmd) {
+    case "reloadSelf":
+        reloadSelf();
+        sendResponse(null);
+        break;
+    case "cancelReloadSelf":
+        cancelReloadSelf();
+        sendResponse(null);
+        break;
     case "getSessionId":
         sendResponse(sessionId);
         break;
@@ -4317,7 +4447,7 @@ async function init() {
     browser.runtime.onUpdateAvailable.addListener(catchAll(handleUpdateAvailable));
 
     let localData = await browser.storage.local.get([
-        "config", "globals",
+        "config", "globals", "session",
         // obsolete names for `globals`
         "persistentStats", "globalStats"
     ]).catch(() => { return {}; });
@@ -4353,6 +4483,7 @@ async function init() {
     if (false) {
         // for debugging
         config.ephemeral = true;
+        updateAvailable = true;
     }
 
     // try opening indexedDB
@@ -4378,23 +4509,52 @@ async function init() {
     // NB: this depends on reqresIDB
     fixConfig(config, config);
 
+    let oldSession = localData.session;
+    let sessionTabs = {};
+    if (oldSession !== undefined) {
+        // to prevent it from being loaded again
+        await browser.storage.local.remove("session").catch(() => {});
+
+        sessionId = oldSession.id;
+        console.log(`Loading old session ${oldSession.id}`);
+        sessionTabs = oldSession.tabs;
+        reqresLog = oldSession.log;
+
+        // populate reqresProblematic
+        for (let loggable of reqresLog) {
+            if (loggable.problematic) {
+                let info = getOriginState(loggable.tabId, loggable.fromExtension);
+                reqresProblematic.push([loggable, null]);
+                info.problematicTotal += 1;
+                gotNewProblematic = true;
+            }
+        }
+    }
+
     // get all currently open tabs
     let tabs = await browser.tabs.query({});
     for (let tab of tabs) {
         let tabId = tab.id;
-        let tabUrl = tab.url;
+        let tabUrl = getTabURL(tab);
 
-        // record them
+        // record they exist
         openTabs.add(tabId);
 
-        // compute and cache their configs
-        let tabcfg = getOriginConfig(tabId);
+        let oldTab = sessionTabs[tab.id];
+
+        let tabcfg = prefillChildren(config.root);
+        if (oldTab !== undefined && oldTab.url === tabUrl)
+            // reuse old config
+            tabcfg = updateFromRec(tabcfg, oldTab.tabcfg);
+
         // on Chromium, reset their URLs, maybe
-        if (useDebugger && tab.pendingUrl === "chrome://newtab/")
+        if (useDebugger && tabUrl === "chrome://newtab/")
             chromiumResetRootTab(tabId, tabcfg);
+        // reset workOffline toggles
         else if (tabUrl !== undefined)
             resetTabConfigWorkOffline(tabcfg, tabUrl);
 
+        // save it
         setTabConfigInternal(tabId, tabcfg);
     }
 
