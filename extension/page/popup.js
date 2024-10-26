@@ -231,12 +231,6 @@ async function popupMain() {
 
     buttonToAction("showAll", catchAll(showAll));
 
-    async function updateStats(stats) {
-        if (stats === undefined)
-            stats = await browser.runtime.sendMessage(["getStats"]);
-        setUI(document, "stats", present(stats));
-    }
-
     let config;
 
     async function updateConfig(nconfig) {
@@ -291,10 +285,10 @@ async function popupMain() {
         setConditionalClass(helpButton, !config.seenHelp, "attention");
     }
 
-    async function updateTabStats(tabstats) {
-        if (tabstats === undefined)
-            tabstats = await browser.runtime.sendMessage(["getTabStats", tabId]);
-        setUI(document, "tabstats", present(tabstats));
+    async function updateStats(stats) {
+        if (stats === undefined)
+            stats = await browser.runtime.sendMessage(["getStats"]);
+        setUI(document, "stats", present(stats));
     }
 
     async function updateTabConfig(tabconfig) {
@@ -333,11 +327,17 @@ async function popupMain() {
         });
     }
 
+    async function updateTabStats(tabstats) {
+        if (tabstats === undefined)
+            tabstats = await browser.runtime.sendMessage(["getTabStats", tabId]);
+        setUI(document, "tabstats", present(tabstats));
+    }
+
     // replace recordTabId with this
     async function recordUpdateTabId (event) {
         await recordTabId(event);
-        await updateTabStats();
         await updateTabConfig();
+        await updateTabStats();
     }
 
     if (tabbing) {
@@ -354,13 +354,13 @@ async function popupMain() {
     async function processUpdate(update) {
         let [what, data] = update;
         switch (what) {
+        case "updateConfig":
+            await updateConfig(data);
+            break;
         case "updateStats":
             await updateStats(data);
             if (tabbing)
                 await updateTabStats();
-            break;
-        case "updateConfig":
-            await updateConfig(data);
             break;
         case "updateTabConfig":
             if (tabbing && data == tabId)
@@ -372,11 +372,11 @@ async function popupMain() {
     }
 
     await subscribeToExtension(catchAll(processUpdate), catchAll(async () => {
-        await updateStats();
         await updateConfig();
+        await updateStats();
         if (tabbing) {
-            await updateTabStats();
             await updateTabConfig();
+            await updateTabStats();
         }
     }), setPageLoading, setPageSettling);
 
