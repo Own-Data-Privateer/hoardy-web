@@ -4470,11 +4470,12 @@ async function init() {
         savedGlobals = globals;
     }
 
+    let lastSeenVersion = config.lastSeenVersion;
     config.version = configVersion;
     config.ephemeral = false;
-    if (config.seenChangelog && config.lastSeenVersion != manifest.version) {
+    if (config.seenChangelog && lastSeenVersion != manifest.version) {
         // reset `config.seenChangelog` when major version changes
-        let vOld = config.lastSeenVersion.split(".");
+        let vOld = lastSeenVersion.split(".");
         let vNew = manifest.version.split(".").slice(0, 2);
         config.seenChangelog = equalRec(vOld, vNew);
     }
@@ -4602,6 +4603,15 @@ async function init() {
         await initDebugger(tabs);
 
     console.log("Ready to Hoard the Web!");
+
+    if (lastSeenVersion != manifest.version) {
+        browser.notifications.create("info-updated", {
+            title: "Hoardy-Web: INFO",
+            message: `\`Hoardy-Web\` updated \`${lastSeenVersion}\` -> \`${manifest.version}\``,
+            iconUrl: iconURL("main", 128),
+            type: "basic",
+        }).catch(logError);
+    }
 
     if (config.autoPopInLimboDiscard || config.discardAll) {
         let what = [];
