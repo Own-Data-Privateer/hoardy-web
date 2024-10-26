@@ -298,6 +298,7 @@ When both [[./popup.html#div-config.archive][=Archive 'collected' reqres by= opt
 
 You can also forcefully stash all currently =queued=, =in_limbo=, and =unarchived= reqres by pressing [[./popup.html#stashAll][this button]].
 It stashes everything immediately and unconditionally, ignoring all other stashing settings.
+When reloading the extension via [[./popup.html#div-reloadSelf][the =Reload= button]] or via [[./popup.html#div-config.autoReloadOnUpdates][=Auto-reload on updates= option]], this action will be run automatically.
 *** Glossary
 - A /stuck queued reqres/ is a =queued= reqres that got stuck in the archival queue, e.g. because it got queued while [[./popup.html#div-config.archive][=Archive 'collected' reqres by= option]] was disabled.
 
@@ -595,8 +596,6 @@ If you are reading this page outside of the extension's UI be sure to read [[#to
 </div>
 #+END_EXPORT
 ** Known extension issues
-- When the extension is (re-)loaded, all tabs inherit the values of [[./popup.html#root-tab-options][these settings]].
-
 - =Hoardy-Web= does not implement collection of WebSockets data on any of the supported browsers.
 
   (Firefox does not support it.
@@ -609,7 +608,13 @@ If you are reading this page outside of the extension's UI be sure to read [[#to
 
 - On Firefox, fetches that spawn new downloads will be marked as =problematic= by default, since Firefox's implementation of =webRequest.filterResponseData= API does not provide their contents to the extension and I have not figured out how to distinguish them from other fetches yet.
 ** Relevant issues of all browsers
-- On all supported browsers, if an =HTTP= server supplies the same header multiple times --- which happens sometimes, most commonly with =Set-Cookie= headers --- then the archived response headers will usually become weird, with multiple headers squished into a single value, separated by newline symbols.
+- When =Hoardy-Web= is reloaded without using [[./popup.html#div-reloadSelf][the =Reload= button]] or [[./popup.html#div-config.autoReloadOnUpdates][=Auto-reload on updates= option]], i.e. when =Hoardy-Web= is reloaded by clicking the "Reload" button in browser's extension list, then all [[./popup.html#this-tab-options][per-tab setting]] of all tabs will be reset to [[./popup.html#root-tab-options][the values used by the newly spawned root tabs]].
+
+  This issue is not applicable in the case when the reload happens because the extension was updated, in that case the browser will notify =Hoardy-Web= about it and =Hoardy-Web= will handle it properly, see the help string of [[./popup.html#div-reloadSelf][the =Reload= button]] for more info.
+
+  But in the case of =Reload= buttons, the browser does not ask the extension nicely, so all unsaved internal state will be lost.
+
+- If an =HTTP= server supplies the same header multiple times --- which happens sometimes, most commonly with =Set-Cookie= headers --- then the archived response headers will usually become weird, with multiple headers squished into a single value, separated by newline symbols.
 
   This is just the way both Firefox (usually) and Chromium (always) supply those headers to extensions and =Hoardy-Web= does not try to undo it.
 ** Relevant issues of Firefox-based desktop browsers: Firefox, Tor Browser, LibreWolf, etc
