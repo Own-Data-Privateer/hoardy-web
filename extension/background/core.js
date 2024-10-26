@@ -35,51 +35,45 @@ let configVersion = 5;
 let configDefaults = {
     version: configVersion,
 
-    // debugging options
-    ephemeral: false, // stop the config from being saved to disk
-    debugging: false, // verbose debugging logs
-    dumping: false, // dump dumps to console
-    snapshotAny: false, // snapshot isBoringURL
-    discardAll: false,
+    // behavior
+    history: 1024,
+    autoReloadOnUpdates: false,
 
-    // meta-UI
-    lastSeenVersion: manifest.version,
-    seenChangelog: true,
-    seenHelp: false,
-
-    // UI
-    verbose: true,
+    // user interface
     colorblind: false,
     pureText: false,
     animateIcon: 500,
-    autoReloadOnUpdates: false,
     spawnNewTabs: !isMobile,
+
+    // notifications
+    verbose: true,
     hintNotify: true,
     invisibleUINotify: true,
 
-    // log settings
-    history: 1024,
-
-    // are we in "Work offline" mode?
-    workOffline: false,
+    // work offline settings
     workOfflineImpure: false,
     workOfflineFile: true,
     workOfflineData: false,
-    // are we collecting new data?
-    collecting: true,
+
+    // Firefox workarounds
+    workaroundFirefoxFirstRequest: true,
+
+    // Chromium workarounds
+    workaroundChromiumResetRootTab: true,
+    workaroundChromiumResetRootTabURL: "about:blank",
+    workaroundChromiumDebugTimeout: 3,
+
+    // persistence
+
+    // should we stash unarchived reqres to local storage?
+    stash: true,
+    // are we archiving? or temporarily paused
+    archive: true,
 
     // prefer `IndexedDB` to `storage.local` for stashing and saving?
     preferIndexedDB: useDebugger,
     // GZip dumps written to local storage
     gzipLSDumps: true,
-
-    // should we stash unarchived reqres to local storage?
-    stash: true,
-
-    // are we archiving? or temporarily paused
-    archive: true,
-
-    // archive how?
 
     // export via exportAs
     archiveExportAs: false,
@@ -90,11 +84,11 @@ let configDefaults = {
     exportAsInFlightTimeout: 60,
     gzipExportAs: true,
 
-    // via HTTP
+    // submission via HTTP
     archiveSubmitHTTP: false,
     submitHTTPURLBase: "http://127.0.0.1:3210/pwebarc/dump",
 
-    // to local storage
+    // saving to local storage
     archiveSaveLS: true,
 
     // archiving notifications
@@ -113,10 +107,11 @@ let configDefaults = {
     markProblematicWithImportantErrors: true,
     markProblematicPickedWithErrors: true,
     markProblematicDroppedWithErrors: false,
+    // problematic notifications
     problematicNotify: true,
     problematicNotifyNumber: 3,
 
-    // collection options
+    // picking options
     archivePartialRequest: true,
     archiveCanceled: false,
     archiveNoResponse: false,
@@ -127,7 +122,7 @@ let configDefaults = {
     archivePermanentCodes: true,
     archiveWithErrors: true,
 
-    // limbo options
+    // limbo notifications
     limboMaxNumber: 1024,
     limboMaxSize: 128,
     limboNotify: true,
@@ -136,16 +131,14 @@ let configDefaults = {
     autoUnmarkProblematic: false,
     autoPopInLimboCollect: false,
     autoPopInLimboDiscard: false,
+    // automatic actions notifications
     autoTimeout: 1,
     autoNotify: true,
 
-    // Firefox workarounds
-    workaroundFirefoxFirstRequest: true,
-
-    // Chromium workarounds
-    workaroundChromiumResetRootTab: true,
-    workaroundChromiumResetRootTabURL: "about:blank",
-    workaroundChromiumDebugTimeout: 3,
+    // are in work offline mode?
+    workOffline: false,
+    // are we collecting new data?
+    collecting: true,
 
     root: {
         workOffline: false,
@@ -173,6 +166,18 @@ let configDefaults = {
         stashLimbo: true,
         bucket: "background",
     },
+
+    // debugging options
+    debugging: false, // verbose debugging logs
+    discardAll: false, // drop all reqres on archival
+    dumping: false, // dump dumps to console
+    ephemeral: false, // stop the config from being saved to disk
+    snapshotAny: false, // snapshot isBoringURL
+
+    // meta
+    lastSeenVersion: manifest.version,
+    seenChangelog: true,
+    seenHelp: false,
 };
 // current config
 let config = assignRec({}, configDefaults);
