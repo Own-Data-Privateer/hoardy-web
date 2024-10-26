@@ -3877,6 +3877,11 @@ async function performReloadSelf() {
 
     await browser.storage.local.set({ session });
 
+    if (useDebugger && currentTabs.every((tab) => tab.url === "about:blank" || isExtensionURL(tab.url)))
+        // Chromium will close all such tabs on extension reload, meaning, in
+        // this case, the whole browser window will close
+        await browser.tabs.create({ url: "chrome://extensions/" });
+
     browser.runtime.reload();
 }
 
