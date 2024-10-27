@@ -144,6 +144,7 @@ let configDefaults = {
         snapshottable: true,
         workOffline: false,
         collecting: true,
+        problematicNotify: true,
         limbo: false,
         negLimbo: false,
         stashLimbo: true,
@@ -153,6 +154,7 @@ let configDefaults = {
     extension: {
         workOffline: false,
         collecting: false,
+        problematicNotify: true,
         limbo: false,
         negLimbo: false,
         stashLimbo: true,
@@ -162,6 +164,7 @@ let configDefaults = {
     background: {
         workOffline: false,
         collecting: true,
+        problematicNotify: true,
         limbo: false,
         negLimbo: false,
         stashLimbo: true,
@@ -1783,8 +1786,12 @@ async function doNotify() {
             // elements, merging those referencing the same URL
             let latest = new Map();
             for (let i = reqresProblematic.length - 1; i >= 0; --i) {
-                let r = reqresProblematic[i][0];
-                let desc = (r.method ? r.method : "?") + " " + r.url;
+                let loggable = reqresProblematic[i][0];
+                let tabcfg = getOriginConfig(loggable.tabId, loggable.fromExtension);
+                if (!tabcfg.problematicNotify)
+                    continue;
+
+                let desc = (loggable.method ? loggable.method : "?") + " " + loggable.url;
                 let l = latest.get(desc);
                 if (l === undefined) {
                     if (latest.size < config.problematicNotifyNumber)
@@ -1794,20 +1801,22 @@ async function doNotify() {
                 } else
                     latest.set(desc, l + 1);
             }
-            let latestDesc = [];
-            for (let [k, v] of latest.entries()) {
-                if (k.length < 80)
-                    latestDesc.push(`${v}x ${k}`);
-                else
-                    latestDesc.push(`${v}x ${k.substr(0, 80)}\u2026`);
+            if (latest.size > 0) {
+                let latestDesc = [];
+                for (let [k, v] of latest.entries()) {
+                    if (k.length < 80)
+                        latestDesc.push(`${v}x ${k}`);
+                    else
+                        latestDesc.push(`${v}x ${k.substr(0, 80)}\u2026`);
+                }
+                latestDesc.reverse();
+                await browser.notifications.create("warning-problematic", {
+                    title: "Hoardy-Web: WARNING",
+                    message: `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate notifications about > ... new 'problematic' reqres"),
+                    iconUrl: iconURL("problematic", 128),
+                    type: "basic",
+                });
             }
-            latestDesc.reverse();
-            await browser.notifications.create("warning-problematic", {
-                title: "Hoardy-Web: WARNING",
-                message: `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate notifications about > ... new problematic reqres"),
-                iconUrl: iconURL("problematic", 128),
-                type: "basic",
-            });
         }
     } else if (reqresProblematic.length === 0)
         // clear stale
@@ -2922,7 +2931,8 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
         reqresProblematic.push(archivable);
         info.problematicTotal += 1;
         newlyProblematic.push(loggable);
-        gotNewProblematic = true;
+        if (options.problematicNotify)
+            gotNewProblematic = true;
     }
 
     changedGlobals = true;
@@ -4306,6 +4316,15 @@ async function handleCommand(command) {
     case "toggleTabConfigChildrenTracking":
         tabcfg = getOriginConfig(tabId);
         tabcfg.children.collecting = !tabcfg.children.collecting;
+        break;
+    case "toggleTabConfigProblematicNotify":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.problematicNotify = !tabcfg.problematicNotify;
+        tabcfg.children.problematicNotify = tabcfg.problematicNotify;
+        break;
+    case "toggleTabConfigChildrenProblematicNotify":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.children.problematicNotify = !tabcfg.children.problematicNotify;
         break;
     case "toggleTabConfigLimbo":
         tabcfg = getOriginConfig(tabId);

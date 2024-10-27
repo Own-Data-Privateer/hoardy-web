@@ -58,6 +58,12 @@
         "toggleTabConfigChildrenTracking": {
             "description": "For currently active tab's new children, toggle `Enable 'Track new requests' setting`"
         },
+        "toggleTabConfigProblematicNotify": {
+            "description": "For the currently active tab, toggle `Notify about 'problematic' reqres` setting and reset the related option  for the tab's new children"
+        },
+        "toggleTabConfigChildrenProblematicNotify": {
+            "description": "For currently active tab's new children, toggle `Enable 'Notify about 'problematic' reqres'` setting"
+        },
         "toggleTabConfigLimbo": {
             "suggested_key": {
                 "default": "Alt+L"

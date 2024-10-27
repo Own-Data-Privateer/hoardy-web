@@ -327,6 +327,9 @@ async function popupMain() {
             case "tabconfig.collecting":
                 newtabconfig.children.collecting = newtabconfig.collecting;
                 break;
+            case "tabconfig.problematicNotify":
+                newtabconfig.children.problematicNotify = newtabconfig.problematicNotify;
+                break;
             case "tabconfig.limbo":
                 newtabconfig.children.limbo = newtabconfig.limbo;
                 break;
