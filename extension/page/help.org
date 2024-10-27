@@ -451,6 +451,8 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 - open the =Internal State and Logs= page, scrolled to the end of the log, {{{shortcut(showLog)}}};
 - open [[./popup.html#showTabState][the =Internal State and Logs= page]] narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
 - open the =Internal State and Logs= page narrowed to the currently active tab's data, scrolled to the end of the log, {{{shortcut(showTabLog)}}};
+- toggle [[./popup.html#div-tabconfig.snapshottable][inclusion of the currently active tab in global snapshots]], then set [[./popup.html#div-tabconfig.children.snapshottable][inclusion of its children]] to the same value, {{{shortcut(toggleTabConfigSnapshottable)}}};
+- toggle [[./popup.html#div-tabconfig.children.snapshottable][inclusion of the currently active tab's children in global snapshots]], {{{shortcut(toggleTabConfigChildrenSnapshottable)}}};
 - toggle [[./popup.html#div-tabconfig.workOffline][work offline mode in the currently active tab]], then, if [[./popup.html#div-config.workOfflineImpure][impure]], set [[./popup.html#div-tabconfig.collecting][tracking]] to the opposite value, then set [[./popup.html#div-tabconfig.children.workOffline][the same options]] in [[./popup.html#div-tabconfig.children.collecting][its children]] to the same values, {{{shortcut(toggleTabConfigWorkOffline)}}};
 - toggle [[./popup.html#div-tabconfig.children.workOffline][work offline mode in the currently active tab's new children]], then, if [[./popup.html#div-config.workOfflineImpure][impure]], set [[./popup.html#div-tabconfig.children.collecting][tracking]] to the opposite value, {{{shortcut(toggleTabConfigChildrenWorkOffline)}}};
 - toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned =HTTP= requests in the currently active tab]], then set [[./popup.html#div-tabconfig.children.collecting][tracking in its children]] to the same value, {{{shortcut(toggleTabConfigTracking)}}};
@@ -463,7 +465,7 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 - [[./popup.html#collectAllTabInLimbo][collect all reqres from limbo for the currently active tab]], {{{shortcut(collectAllTabInLimbo)}}};
 - [[./popup.html#discardAllInLimbo][discard all reqres from limbo]], {{{shortcut(discardAllInLimbo)}}};
 - [[./popup.html#discardAllTabInLimbo][discard all reqres from limbo for the currently active tab]], {{{shortcut(discardAllTabInLimbo)}}};
-- [[./popup.html#snapshotAll][take DOM snapshot of all tabs]] for which [[./popup.html#div-tabconfig.collecting][=Track newly generated requests= setting]] is enabled, {{{shortcut(snapshotAll)}}};
+- [[./popup.html#snapshotAll][take DOM snapshot of all tabs]] for which [[./popup.html#div-tabconfig.snapshottable][=Include in global snapshots= setting]] is enabled, {{{shortcut(snapshotAll)}}};
 - [[./popup.html#snapshotTab][take DOM snapshot of the currently active tab]], {{{shortcut(snapshotTab)}}}.
 ** Context menu actions
 :PROPERTIES:
@@ -789,7 +791,7 @@ Yes, you can capture DOM (Document Object Model) snapshots of all frames of the 
 Doing that will generate and capture snapshots of raw =HTML='s or =XML='s for each frame contained in the currently active tab.
 (Reqres-wise they will be =200 OK= responses, but with =protocol= set to =SNAPSHOT= and =method= set to =DOM=.)
 
-You can also do that for all open tabs at once by pressing [[./popup.html#snapshotAll][that button]].
+You can also do that for all open tabs for which [[./popup.html#div-tabconfig.snapshottable][this setting]] is enabled all at once by pressing [[./popup.html#snapshotAll][that button]].
 ** How can I make =Hoardy-Web= capture a web page completely, especially when parts of it are loaded lazily?
 :PROPERTIES:
 :CUSTOM_ID: faq-lazy

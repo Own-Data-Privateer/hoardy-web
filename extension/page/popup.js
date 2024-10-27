@@ -310,6 +310,9 @@ async function popupMain() {
             tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
         setUI(document, "tabconfig", tabconfig, (newtabconfig, path) => {
             switch (path) {
+            case "tabconfig.snapshottable":
+                newtabconfig.children.snapshottable = newtabconfig.snapshottable;
+                break;
             case "tabconfig.workOffline":
                 if (config.workOfflineImpure)
                     newtabconfig.collecting = !newtabconfig.workOffline;

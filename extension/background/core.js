@@ -141,6 +141,7 @@ let configDefaults = {
     collecting: true,
 
     root: {
+        snapshottable: true,
         workOffline: false,
         collecting: true,
         limbo: false,
@@ -3107,7 +3108,7 @@ async function snapshot(tabIdNull) {
         for (let tab of tabs) {
             let tabId = tab.id;
             let tabcfg = getOriginConfig(tabId);
-            if (!tabcfg.collecting)
+            if (!tabcfg.snapshottable)
                 continue;
             await snapshotOneTab(tabId, getTabURL(tab));
         }
@@ -4278,6 +4279,15 @@ async function handleCommand(command) {
     case "snapshotTab":
         snapshot(tabId);
         return;
+    case "toggleTabConfigSnapshottable":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.snapshottable = !tabcfg.snapshottable;
+        tabcfg.children.snapshottable = tabcfg.snapshottable;
+        break;
+    case "toggleTabConfigChildrenSnapshottable":
+        tabcfg = getOriginConfig(tabId);
+        tabcfg.children.snapshottable = !tabcfg.children.snapshottable;
+        break;
     case "toggleTabConfigWorkOffline":
         tabcfg = getOriginConfig(tabId);
         toggleTabConfigWorkOffline(tabcfg);
