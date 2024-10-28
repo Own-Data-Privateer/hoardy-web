@@ -26,11 +26,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     let popupURL = browser.runtime.getURL("/page/popup.html");
     let rootURL = browser.runtime.getURL("/");
 
-    // show settings as iframe
-    let iframe = document.createElement("iframe");
-    iframe.src = popupURL + "#all";
-    iframe.setAttribute("title", "The Settings Popup.");
-    document.body.appendChild(iframe);
+    let body = document.getElementById("body");
+    let iframe = document.getElementById("iframe");
+    let minWidth = 1355; // see ./help.template
+    let columns = true;
 
     // setup history navigation
     window.onpopstate = (event) => {
@@ -68,7 +67,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 focusNode(target);
             };
             el.onmouseover = (event) => {
-                broadcast(["highlightNode", "popup", null]);
+                if (columns)
+                    broadcast(["highlightNode", "popup", null]);
             };
         } else if (el.href.startsWith(popupURL + "#")) {
             let target = el.href.substr(popupURL.length + 1);
@@ -76,14 +76,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             el.href = "javascript:void(0)";
             el.onclick = (event) => {
                 event.cancelBubble = true;
-                if (isMobile) {
+                if (!columns) {
                     history.pushState({ id }, "", selfURL + `#${id}`);
                     history.pushState({}, "", popupURL + `#${target}`);
                 }
                 broadcast(["focusNode", "popup", target]);
             };
             el.onmouseover = (event) => {
-                broadcast(["focusNode", "popup", target]);
+                if (columns)
+                    broadcast(["focusNode", "popup", target]);
             };
         } else {
             if (el.href.startsWith(rootURL))
@@ -95,48 +96,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    // Resize elements to window. We have to do this because we want body and
-    // settings iframe to have independent scroll on Desktop browsers.
-    let body = document.getElementById("body");
-
-    if (isMobile) {
-        iframe.style["border"] = "0px solid black";
-        iframe.style["width"] = "100%";
-    } else {
-        document.body.style["display"] = "flex";
-
-        body.style["width"] = "auto";
-        body.style["max-height"] = "500px";
-        body.style["overflow-y"] = "scroll";
-
-        iframe.style["max-height"] = "500px";
-        iframe.style["min-width"] = "450px";
-        iframe.style["overflow-y"] = "scroll";
-    }
-
-    // show UI
-    if (isMobile)
-        body.style["display"] = "block";
-    else
-        body.style["display"] = "inline-block";
-
+    // Resize elements to window. This switches between `columns` and
+    // `linear` layouts depending on width. This part is not done via
+    // `CSS` because we use the `columns` value above too.
     function resize() {
-        if (isMobile) {
-            // to prevent internal scroll
-            let h = iframe.contentDocument.body.scrollHeight + 20;
-            iframe.style["min-height"] = `${h}px`;
-        } else {
-            // to prevent external scroll
-            let h = window.innerHeight - 5;
-            body.style["max-height"] = `${h}px`;
-            iframe.style["max-height"] = `${h}px`;
-        }
+        let w = window.innerWidth;
+        console.log("current width:", w);
+        columns = w >= minWidth;
+
+        setConditionalClass(document.body, columns, "columns");
+        setConditionalClass(document.body, !columns, "linear");
+
+        // Prevent independent scroll in `columns` layout.
+        let h1 = columns ? `${window.innerHeight - 5}px` : null;
+        body.style["max-height"]
+            = iframe.style["max-height"]
+            = h1;
+
+        // To simplify things a bit.
+        let h2 = columns ? h1 : null;
+        body.style["min-height"] = h2;
+
+        // Prevent in-iframe scroll in `linear` layout.
+        let h3 = columns ? h1 : `${iframe.contentDocument.body.scrollHeight + 20}px`;
+        iframe.style["min-height"] = h3;
     }
 
     resize();
-
-    if (!isMobile)
-        window.onresize = (event) => resize();
+    window.onresize = resize;
 
     // expand shortcut macros
     let shortcuts = await getShortcuts();
@@ -163,8 +150,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         let [what, data] = update;
         switch (what) {
         case "popupResized":
-            if (isMobile)
-                resize();
+            resize();
         default:
             await handleDefaultUpdate(update, "help");
         }
@@ -172,6 +158,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // add default handlers
     await subscribeToExtension(catchAll(processUpdate));
+
+    // show UI
+    document.body.style["display"] = null;
 
     // highlight current target
     focusHashNode();

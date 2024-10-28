@@ -8,9 +8,77 @@
     <link rel="stylesheet" href="main.css?v=$version$">
     <style>
 @layer defaults {
+:root {
+    /* NB: when updating these two, also set `minWidth` in ./help.js to their sum */
+    --body: calc(900px - 2 * var(--padding));
+    --popup: 455px;
+
+    --padding: 10px;
+    --popup-height: 2000px;
+}
+
 body {
     margin: 0 0;
     text-align: justify;
+}
+
+#body {
+    font: 17px sans-serif;
+    max-width: var(--body);
+    min-width: var(--popup);
+}
+
+#iframe {
+    border: 0px solid black;
+    max-width: var(--popup);
+    min-width: var(--popup);
+}
+
+body.linear {
+    margin: 0 auto;
+    max-width: var(--body);
+}
+
+.linear #body {
+    padding: 0 var(--padding);
+    width: calc(100% - 2 * var(--padding));
+}
+
+.linear #container {
+    display: flex;
+}
+
+.linear #iframe {
+    margin: 0 auto;
+    min-height: var(--popup-height);
+    min-width: var(--popup);
+    width: calc(100% - 2 * var(--padding));
+}
+
+body.columns {
+    display: flex;
+}
+
+.columns #body,
+.columns #container {
+    display: inline-block;
+}
+
+.columns #body {
+    margin: 0 0 0 auto;
+    overflow-y: scroll;
+    padding: 0 calc(2 * var(--padding)) 0 0;
+    width: calc(100% - 2 * var(--padding));
+}
+
+.columns #container {
+    margin: 0 auto 0 0;
+    max-width: var(--body);
+    min-width: var(--popup);
+}
+
+.columns #iframe {
+    overflow-y: scroll;
 }
 
 .less {
@@ -27,9 +95,12 @@ a.popup {
 }
     </style>
   </head>
-  <body>
-    <div id="body" style="display: none">
+  <body style="display: none">
+    <div id="body">
       $body$
+    </div>
+    <div id="container">
+    <iframe id="iframe" src="./popup.html#all" title="The Settings Popup."></iframe>
     </div>
     $for(libScript)$<script src="../lib/$libScript$"></script>$endfor$
     <script src="help.js"></script>

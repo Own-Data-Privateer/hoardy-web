@@ -237,7 +237,10 @@ async function popupMain() {
         browser.runtime.sendMessage(["resetConfig"]).catch(logError);
     }));
 
-    buttonToAction("showAll", catchAll(showAll));
+    buttonToAction("showAll", catchAll(() => {
+        showAll();
+        broadcast(["popupResized"]);
+    }));
 
     let config;
 
