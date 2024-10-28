@@ -23,7 +23,7 @@
     <div class="controls">
       <ui id="rrfilters.limit" type="omega" class="c" data-default="1024" data-help="Load no more than this many elements.">{} At most {} elements</ui>
       <ui id="rrfilters.did_exportAs" type="tristate" data-help="Tristate filter for the &quot;exported via `saveAs`&quot; flag.">Exported via <code>saveAs</code></ui>
-      <ui id="rrfilters.did_submitHTTP" type="tristate" data-help="Tristate filter for the &quot;submitted via HTTP&quot; flag.">Submitted via HTTP</ui>
+      <ui id="rrfilters.did_submitHTTP" type="tristate" data-help="Tristate filter for the &quot;submitted via `HTTP`&quot; flag.">Submitted via <code>HTTP</code></ui>
       <ui id="rrfilters.in_ls" type="tristate" data-help="Tristate filter for the &quot;in `storage.local`&quot;/&quot;in `IndexedDB`&quot; flag.">In <code>storage.local</code></ui>
     </div>
     <div class="controls">
