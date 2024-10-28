@@ -154,7 +154,7 @@ As shown on the above diagram, a new reqres proceeds through the following netwo
 
 - =complete_fc=: request was completed successfully from browser's cache;
 
-- =snapshot=: this reqres was produced by taking a DOM (Document Object Model) snapshot (using one of the [[./popup.html#snapshotAll][appropriate]]-[[./popup.html#snapshotTab][buttons]] in the popup), i.e. it was produced by capturing a raw =HTML= or =XML= of the current state of the tab/frame, not by capturing a network request;
+- =snapshot=: this reqres was produced by taking a =DOM= (Document Object Model) snapshot (using one of the [[./popup.html#snapshotAll][appropriate]]-[[./popup.html#snapshotTab][buttons]] in the popup), i.e. it was produced by capturing a raw =HTML= or =XML= of the current state of the tab/frame, not by capturing a network request;
 
 - =finished=: the terminal state of this step, no new events for this reqres will come from the browser.
 *** The states after the =finished= state
@@ -491,8 +491,8 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 - [[./popup.html#collectAllTabInLimbo][collect all reqres from limbo for the currently active tab]], {{{shortcut(collectAllTabInLimbo)}}};
 - [[./popup.html#discardAllInLimbo][discard all reqres from limbo]], {{{shortcut(discardAllInLimbo)}}};
 - [[./popup.html#discardAllTabInLimbo][discard all reqres from limbo for the currently active tab]], {{{shortcut(discardAllTabInLimbo)}}};
-- [[./popup.html#snapshotAll][take DOM snapshot of all tabs]] for which [[./popup.html#div-tabconfig.snapshottable][=Include in global snapshots= setting]] is enabled, {{{shortcut(snapshotAll)}}};
-- [[./popup.html#snapshotTab][take DOM snapshot of the currently active tab]], {{{shortcut(snapshotTab)}}}.
+- [[./popup.html#snapshotAll][take =DOM= snapshot of all tabs]] for which [[./popup.html#div-tabconfig.snapshottable][=Include in global snapshots= setting]] is enabled, {{{shortcut(snapshotAll)}}};
+- [[./popup.html#snapshotTab][take =DOM= snapshot of the currently active tab]], {{{shortcut(snapshotTab)}}}.
 ** Context menu actions
 :PROPERTIES:
 :CUSTOM_ID: context-menu-shortcuts
@@ -629,8 +629,8 @@ If you are reading this page outside of the extension's UI be sure to read [[#to
   (Firefox does not support it.
   Chromium does support it, in theory, but I have not tried using that API, so I have no idea how well it works.)
 
-  This is low-priority issue since you can simply take a DOM [[./popup.html#snapshotTab][snapshot]] instead of capturing and later replaying WebSocket messages to in-page =JavaScript=.
-  Also, capturing and archiving a DOM snapshot will free you from needing to run any =JavaScript= at all when you decide to return to view the archived page later, which is nice.
+  This is low-priority issue since you can simply [[./popup.html#snapshotTab][take a =DOM= snapshot]] instead of capturing and later replaying WebSocket messages to in-page =JavaScript=.
+  Also, capturing and archiving a =DOM= snapshot will free you from needing to run any =JavaScript= at all when you decide to return to view the archived page later, which is nice.
 
 - On Chromium, response data of background requests and requests made by other extensions does not get collected, since there's no tab to attach a debugger to, and I have not figured out how to attach debugger to other things yet.
 
@@ -792,7 +792,7 @@ This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough 
 
 - =<all_urls>= permission is used so that =Hoardy-Web= could capture all URLs.
 - =webRequest= and =webRequestBlocking= permissions are used to track and capture =HTTP= requests and responses; on Chromium the latter also requires the =debugger= permission, which =Hoardy-Web= also asks for there.
-- =tabs= permission is used for tracking per-tab state and stats, making =Hoardy-Web='s toolbar icon show per-tab state, [[./popup.html#snapshotAll][taking DOM snapshot of all tabs]], buttons switching to a related tab in [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]], etc.
+- =tabs= permission is used for tracking per-tab state and stats, making =Hoardy-Web='s toolbar icon show per-tab state, [[./popup.html#snapshotAll][taking =DOM= snapshot of all tabs]], buttons switching to a related tab in [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]], etc.
 - =storage= permission is used to save extension config and stats.
 - =unlimitedStorage= permission is used for archival of captured data to browser's local storage.
 - =menus= (=contextMenus= on Chromium) permission is used to add [[#context-menu-shortcuts][context-menu shortcut actions for links]].
@@ -801,7 +801,7 @@ This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough 
 *** Can I use =Hoardy-Web= to capture web pages while my browser runs with =JavaScript= disabled?
 Yes.
 *** Can I use =Hoardy-Web= to capture web pages that use a lot of =JavaScript=?
-This is why [[./popup.html#snapshotTab][DOM]]-[[./popup.html#snapshotAll][snapshot]] buttons exist, see the following question.
+This is why [[./popup.html#snapshotTab][=DOM=]]-[[./popup.html#snapshotAll][snapshot]] buttons exist, see the following question.
 
 In principle, =Hoardy-Web= will capture everything your browser fetches from the network as you browse the web, except for, at the moment, WebSockets data.
 So, web pages using only simple UI-related =JavaScript= code will work fine when you start replaying them "from scratch" via [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool][=hoardy-web export mirror=]] (also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]) or some such.
@@ -814,7 +814,7 @@ Obviously, such a web page can not be replayed "from scratch" since it will gene
 :CUSTOM_ID: faq-snapshot
 :END:
 
-Yes, you can capture DOM (Document Object Model) snapshots of all frames of the currently active tab by pressing [[./popup.html#snapshotTab][this button]] in the popup.
+Yes, you can capture =DOM= (Document Object Model) snapshots of all frames of the currently active tab by pressing [[./popup.html#snapshotTab][this button]] in the popup.
 
 Doing that will generate and capture snapshots of raw =HTML='s or =XML='s for each frame contained in the currently active tab.
 (Reqres-wise they will be =200 OK= responses, but with =protocol= set to =SNAPSHOT= and =method= set to =DOM=.)
