@@ -403,6 +403,31 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
   It is also a part of the sum of the "Failed" part of the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line.
 
   You can retry archiving these by pressing [[./popup.html#retryUnarchived][this button]].
+** Re-archival
+:PROPERTIES:
+:CUSTOM_ID: re-archival
+:END:
+
+If you archived some data [[./popup.html#div-config.archiveSaveLS][by saving it into local storage]] and you now want to re-archive the same data using another method, do the following:
+
+- enable [[./popup.html#sub-config.archive][the option for your desired archival method]] (e.g., [[./popup.html#div-config.archiveExportAs][=Archive 'collected' reqres by > ... exporting them using 'saveAs'=]]),
+- but keep the [[./popup.html#div-config.archiveSaveLS][=Archive 'collected' reqres by > ... saving them into local storage= option]] enabled,
+- if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=... exporting them using 'saveAs'= option]], you should probably temporarily set [[./popup.html#div-config.exportAsTimeout][this timeout]] to =0= to prevent idle waiting,
+- press the [[./popup.html#showSaved][the =Show= button on =Saved in LS= line]] in the popup to open the =Saved in Local Storage= page;
+- set the filter of you desired archival method there to =false= (red) to make it only display reqres that were not yet archived using that archival method (e.g., set =Exported via 'saveAs'= to =false=);
+- then re-queue the data saved in local storage:
+  - press the =Re-queue= button;
+  - wait for =Hoardy-Web= to finish archival of newly re-queued reqres;
+  - (if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=... exporting them using 'saveAs'= option]] while running on a truly ancient hardware and the above process is slow, you can disable [[./popup.html#div-config.gzipExportAs][the =GZip outputs= option]]; though, the resulting =WRR= bundles will take a lot of disk space in this case);
+  - (also, if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=... exporting them using 'saveAs'= option]], then after each =Re-queue= you should wait for the browser to save the resulting generated =WRR= bundles to disk and then confirm that each generated fake-Download did not fail; why? because if you re-archive a lot of data, thus generating many =WRR= bundles at once, and you run out of disk space in the process, the browser might fail a random subset of the generated fake-Downloads without telling =Hoardy-Web= anything about it; this is not an issue when archiving by [[./popup.html#div-config.archiveSubmitHTTP][=... submitting them via 'HTTP'=]], because archiving servers report their errors properly);
+  - =Re-queue= more data, repeat until everything is re-archived.
+- set [[./popup.html#div-config.exportAsTimeout][this timeout]] to its previous value, if you changed it.
+
+If after you confirming everything was properly re-archived you now want to wipe that re-archived data from local storage, do the following:
+
+- press the [[./popup.html#showSaved][the =Show= button on =Saved in LS= line]] in the popup to open the =Saved in Local Storage= page;
+- set the filter of you desired archival method there to =true= (green) to make it only display reqres that were already archived using that archived method;
+- press the =Delete= button there repeatedly, until everything is deleted.
 ** "Work offline" mode
 :PROPERTIES:
 :CUSTOM_ID: work-offline

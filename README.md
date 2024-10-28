@@ -440,30 +440,7 @@ When using `Hoardy-Web` with Tor Browser, you probably want to configure it all 
 
 ### Mostly convenient, paranoid
 
-So, in the mostly convenient yet sufficiently paranoid setup, you would only ever use `Hoardy-Web` extension configured to archive captured data to browser's local storage (which is the default) and then export your dumps manually at the end of a browsing session.
-
-You can do that by
-
-- enabling `Archive 'collected' reqres by > ... exporting them via 'saveAs'` option,
-- while keeping the `Archive 'collected' reqres by > ... saving them into local storage` option set, for safety,
-- and then exporting everything saved in local storage and wiping the exported data out.
-
-To do the latter:
-
-- press the `Show` button on `Saved into LS` line in the main popup to open the `Saved in Local Storage` page;
-- set `Exported via 'saveAs'` filter there to `false` (red) to make it only display reqres that were not exported yet;
-- press the `Re-queue` button there;
-- wait for `Hoardy-Web` to generate new fake-Downloads containing all that data;
-- wait for the browser to save the resulting generated `WRR` bundles;
-- (if you are running on a truly ancient hardware and the above is slow, you can disable all GZip compression options);
-- confirm the file was properly saved (i.e. you did not run out of disk space);
-- repeat until everything is exported;
-
-and then
-
-- set `Exported via 'saveAs'` filter there to `true` (green);
-- press the `Delete` button there;
-- repeat until everything is deleted.
+So, in the mostly convenient yet sufficiently paranoid setup, you would only ever use `Hoardy-Web` extension configured to archive captured data to browser's local storage (which is the default) and then export your dumps manually at the end of a browsing session, see [re-archival intructions](./extension/page/help.org#re-archival).
 
 Yes, this is slightly annoying, but this is [the only absolutely safe way to export data out of `Hoardy-Web` without using submission via `HTTP`](./extension/page/help.org#faq-unsafe), and you don't need to do this at the end of each and every browsing session.
 
