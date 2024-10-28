@@ -746,23 +746,24 @@ If you are reading this page outside of the extension's UI be sure to read [[#to
 #+BEGIN_EXPORT html
 </div>
 #+END_EXPORT
-** Does =Hoardy-Web= send any of my captured web browsing data anywhere?
+** General
+*** Does =Hoardy-Web= send any of my captured web browsing data anywhere?
 =Hoardy-Web= only ever sends your data to [[./popup.html#div-config.submitHTTPURLBase][the archiving =Server URL=]] you specify when [[./popup.html#div-config.archiveSubmitHTTP][the =Archive 'collected' reqres by > ... submitting them via 'HTTP'= option]] is enabled.
 
 Nowhere else.
 Never else.
-** Does =Hoardy-Web= collect and send any telemetry anywhere?
+*** Does =Hoardy-Web= collect and send any telemetry anywhere?
 For your convenience, =Hoardy-Web= saves some global stats across restarts (e.g., the [[./popup.html#div-stats.collected][Collected]], [[./popup.html#div-stats.discarded][Discarded]], [[./popup.html#div-stats.picked][Picked]], and [[./popup.html#div-stats.dropped][Dropped]] lines).
 
 However, none of those are ever sent anywhere and [[./popup.html#resetPersistentStats][you can reset them]] at any time.
-** Will the answers to the above two questions ever change in a future version of =Hoardy-Web=?
+*** Will the answers to the above two questions ever change in a future version of =Hoardy-Web=?
 No.
 I (the author) hate non-consensual data collection.
 
 In fact, as you might have noticed, =Hoardy-Web=, unlike most other browser extensions, is almost trivial to reproducible-build from source on a POSIX-compliant system with a Nix package manager installed, and it has [[https://oxij.org/software/hoardy-web/][a privately operated source code mirror]].
 
 This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough to only ever build it from source and install the results manually into their LibreWolf or some such, leaving zero telemetry fingerprints anywhere.
-** =Hoardy-Web= asks for a lot of permissions, what does it use all those permissions for?
+*** =Hoardy-Web= asks for a lot of permissions, what does it use all those permissions for?
 
 - =<all_urls>= permission is used so that =Hoardy-Web= could capture all URLs.
 - =webRequest= and =webRequestBlocking= permissions are used to track and capture =HTTP= requests and responses; on Chromium the latter also requires the =debugger= permission, which =Hoardy-Web= also asks for there.
@@ -771,9 +772,10 @@ This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough 
 - =unlimitedStorage= permission is used for archival of captured data to browser's local storage.
 - =menus= (=contextMenus= on Chromium) permission is used to add [[#context-menu-shortcuts][context-menu shortcut actions for links]].
 - =notifications= permission is used to send notifications, which mostly used for reporting various issues.
-** Can I use =Hoardy-Web= to capture web pages while my browser runs with =JavaScript= disabled?
+** Capture
+*** Can I use =Hoardy-Web= to capture web pages while my browser runs with =JavaScript= disabled?
 Yes.
-** Can I use =Hoardy-Web= to capture web pages that use a lot of =JavaScript=?
+*** Can I use =Hoardy-Web= to capture web pages that use a lot of =JavaScript=?
 This is why [[./popup.html#snapshotTab][DOM]]-[[./popup.html#snapshotAll][snapshot]] buttons exist, see the following question.
 
 In principle, =Hoardy-Web= will capture everything your browser fetches from the network as you browse the web, except for, at the moment, WebSockets data.
@@ -782,7 +784,7 @@ So, web pages using only simple UI-related =JavaScript= code will work fine when
 However, in the most general case, "from scratch" replay of pages dynamically generated via =JavaScript= is not guaranteed.
 For example, consider a web page with a =JavaScript= code that generates a random number, then queries a remote server with that number, and then renders the result somehow.
 Obviously, such a web page can not be replayed "from scratch" since it will generate a new random number and your archive probably won't have the corresponding server's response for it.
-** Can I use =Hoardy-Web= to capture a web page as it currently is, after all =JavaScript= was run, not as it was when it was last fetched from the network?
+*** Can I use =Hoardy-Web= to capture a web page as it currently is, after all =JavaScript= was run, not as it was when it was last fetched from the network?
 :PROPERTIES:
 :CUSTOM_ID: faq-snapshot
 :END:
@@ -793,7 +795,7 @@ Doing that will generate and capture snapshots of raw =HTML='s or =XML='s for ea
 (Reqres-wise they will be =200 OK= responses, but with =protocol= set to =SNAPSHOT= and =method= set to =DOM=.)
 
 You can also do that for all open tabs for which [[./popup.html#div-tabconfig.snapshottable][this setting]] is enabled all at once by pressing [[./popup.html#snapshotAll][that button]].
-** How can I make =Hoardy-Web= capture a web page completely, especially when parts of it are loaded lazily?
+*** How can I make =Hoardy-Web= capture a web page completely, especially when parts of it are loaded lazily?
 :PROPERTIES:
 :CUSTOM_ID: faq-lazy
 :END:
@@ -812,22 +814,22 @@ On the other hand, if you
 
 then you can simply go to =about:config= and toggle =dom.image-lazy-loading.enabled= to =false=.
 All images will start being loaded eagerly after that.
-** Can I use =Hoardy-Web= to capture a web page without archiving it, look at it, decide if I want to save it, and archive it only if I do, all without reloading the page a second time?
+*** Can I use =Hoardy-Web= to capture a web page without archiving it, look at it, decide if I want to save it, and archive it only if I do, all without reloading the page a second time?
 :PROPERTIES:
 :CUSTOM_ID: faq-limbo
 :END:
 
 Yes. This is why [[./popup.html#div-tabconfig.limbo][=Pick into limbo= setting]] exists.
-See [[#limbo][there]] for more info.
+See [[#limbo][above]] for more info.
 
 In combination with [[./popup.html#closed-auto-options][=Automatic actions for recently closed tabs= options]] you can implement any of the following workflows:
 
 - archive everything by default, but allow to exclude some things by manually discarding them from limbo;
 - only archive things that are explicitly manually collected, discard everything else by default.
-** Why do pages under [[https://addons.mozilla.org/]] and [[https://chromewebstore.google.com/]] can not be captured by =Hoardy-Web=?
+*** Why do pages under [[https://addons.mozilla.org/]] and [[https://chromewebstore.google.com/]] can not be captured by =Hoardy-Web=?
 Browsers prevent extensions from running on extension store pages to prevent them from manipulating ratings, reviews, and etc such things.
 However, you can archive [[https://addons.mozilla.org/]] pages by running =Hoardy-Web= under Chromium and [[https://chromewebstore.google.com/]] pages by running =Hoardy-Web= under Firefox.
-** When running =Hoardy-Web= under Chromium, a lot of my captures fail with =debugger::capture::EMIT_FORCED::BY_DETACHED_DEBUGGER=, =debugger::capture::NO_RESPONSE_BODY::DETACHED_DEBUGGER=, =webRequest::capture::CANCELED::NO_DEBUGGER=, and similar errors. What do I do?
+*** When running =Hoardy-Web= under Chromium, a lot of my captures fail with =debugger::capture::EMIT_FORCED::BY_DETACHED_DEBUGGER=, =debugger::capture::NO_RESPONSE_BODY::DETACHED_DEBUGGER=, =webRequest::capture::CANCELED::NO_DEBUGGER=, and similar errors. What do I do?
 :PROPERTIES:
 :CUSTOM_ID: faq-debugger
 :END:
@@ -848,7 +850,7 @@ You are either
 - trying to capture large or media files; [[#chromium-bug-no-large-files][as discussed there]], this has no workaround, run =Hoardy-Web= under Firefox instead.
 
 Also, [[#chromium-bug-autodetach][Chromium will occasionally detach its debugger at random]], it just happens.
-** When running =Hoardy-Web= under Firefox, some of my captures fail with =webRequest::capture::RESPONSE::BROKEN=. What do I do?
+*** When running =Hoardy-Web= under Firefox, some of my captures fail with =webRequest::capture::RESPONSE::BROKEN=. What do I do?
 :PROPERTIES:
 :CUSTOM_ID: faq-disable-sw
 :END:
@@ -859,7 +861,7 @@ Usually, you can ignore this error, since loading another related page is likely
 
 However, if this happens a lot to you, or if it annoys you, you can go to =about:config=, toggle =dom.serviceWorkers.enabled= to =false=, and restart the browser.
 Alternatively, you can use =NoScript= or some such extension to disable =JavaScript=, and thus the offending service/shared workers, on the page in question.
-** Why does a (specific) URL or some part of it fails to be properly captured by =Hoardy-Web=?
+*** Why does a (specific) URL or some part of it fails to be properly captured by =Hoardy-Web=?
 Did you read the notes on [[#bugs][the bugs of the browser you are using]]?
 
 Most notably:
@@ -867,7 +869,8 @@ Most notably:
 - both Firefox- and Chromium-based browsers in their default builds [[#firefox-bug-no-post][fail]] to [[#chromium-bug-no-post][properly]] supply =POST= request data to their extensions; for Firefox-based browsers there exists a [[#firefox-bug-no-post][patch]] that fixes it, mostly; Chromium users are out of luck at the moment;
 
 - on a Chromium-based browser, because of limitations of the Chromium's debugging interface, [[#chromium-bug-no-media][it is impossible to properly capture media files (both audio and video)]] and [[#chromium-bug-no-large-files][large files in general]]; this issue has no good work-around and, AFAIK, all alternatives to =Hoardy-Web= running on Chromium-based browser suffer from it (and work around it by silently re-downloading said files the second time in background); try using =Hoardy-Web= under a Firefox-based browser instead.
-** The documentation claims that all =Hoardy-Web= archival methods except for [[./popup.html#div-config.archiveSubmitHTTP][submission via =HTTP=]] are unsafe. Why?
+** Archival
+*** The documentation claims that all =Hoardy-Web= archival methods except for [[./popup.html#div-config.archiveSubmitHTTP][submission via =HTTP=]] are unsafe. Why?
 :PROPERTIES:
 :CUSTOM_ID: faq-unsafe
 :END:
@@ -890,7 +893,7 @@ It is the default because it usually works fine, it properly reports errors, has
 In the ideal world, browsers would provide a better =saveAs= API which would have a less annoying UI for the user and would return out-of-disk-space errors to the extension, in which case [[./popup.html#div-config.archiveExportAs][exporting via =saveAs=]] would be the default.
 
 As it is now, the only way to be absolutely sure you data is properly forever saved to disk when the extension reports it archived is to use [[./popup.html#div-config.archiveSubmitHTTP][submission via =HTTP=]].
-** When running =Hoardy-Web= under Firefox, enabling [[./popup.html#div-config.archiveExportAs][export via =saveAs=]] makes the browser's UI quite annoying. Can it be fixed?
+*** When running =Hoardy-Web= under Firefox, enabling [[./popup.html#div-config.archiveExportAs][export via =saveAs=]] makes the browser's UI quite annoying. Can it be fixed?
 :PROPERTIES:
 :CUSTOM_ID: faq-firefox-saveas
 :END:
