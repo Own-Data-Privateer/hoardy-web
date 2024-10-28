@@ -354,7 +354,7 @@ async function popupMain() {
     }
 
     // replace recordTabId with this
-    async function recordUpdateTabId (event) {
+    async function recordUpdateTabId(event) {
         await recordTabId(event);
         await updateTabConfig();
         await updateTabStats();
@@ -379,12 +379,14 @@ async function popupMain() {
             break;
         case "updateStats":
             await updateStats(data);
-            if (tabbing)
-                await updateTabStats();
             break;
         case "updateTabConfig":
-            if (tabbing && data == tabId)
+            if (tabbing && data === null || data === tabId)
                 await updateTabConfig(update[2]);
+            break;
+        case "updateTabStats":
+            if (tabbing && data === null || data === tabId)
+                await updateTabStats(update[2]);
             break;
         default:
             await handleDefaultUpdate(update, "popup");

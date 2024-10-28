@@ -1288,6 +1288,12 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
         // for active tabs. This is more efficient.
         tabs = await browser.tabs.query({ active: true });
 
+    if (statsChanged && updatedTabId === null) {
+        // ask open pages to ask for updates to specific tabs they want via `getTabStats`
+        broadcast(["updateTabStats", null]);
+        statsChanged = false;
+    }
+
     if (updatedTabId === undefined)
         // to simplify the logic below
         updatedTabId = null;
@@ -1305,6 +1311,9 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
         if (tabcfg === undefined)
             tabcfg = prefillChildren(config.root);
         let tabstats = getTabStats(stateTabId);
+
+        if (statsChanged)
+            broadcast(["updateTabStats", stateTabId, tabstats]);
 
         let icons = [];
 
