@@ -269,13 +269,6 @@ If [[./popup.html#div-config.limboNotify][this option]] is enabled and there are
 :END:
 
 The =stashed= reqres status is, essentially, a flag that says this reqres was temporarily backed up to browser's local storage.
-
-When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= option]] is disabled but [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] is enabled, instead of archiving newly =queued= reqres, =Hoardy-Web= will /stash/ their =(loggable, dump)= tuples into browser's local storage.
-
-Similarly, when both [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] and [[./popup.html#div-tabconfig.stashLimbo][=Stash 'in_limbo' reqres= option]] (or [[./popup.html#div-tabconfig.children.stashLimbo][one]]-[[./popup.html#div-config.root.stashLimbo][of]]-[[./popup.html#div-config.background.stashLimbo][the]]-[[./popup.html#div-config.extension.stashLimbo][other]] similar options) is enabled, then newly generated =in_limbo= reqres will also get immediately stashed into browser's local storage.
-
-Moreover, the following section will discuss how =Hoardy-Web= will try stashing =unarchived= reqres into browser's local storage too.
-
 In other words, stashing exists to prevent loss of successfully captured but yet unarchived data in situations where
 
 - you quit or restart your browser, or
@@ -284,12 +277,20 @@ In other words, stashing exists to prevent loss of successfully captured but yet
 
 before you =collected= or =discarded= everything from =in_limbo= or =Hoardy-Web= has successfully archived everything from its archiving queue.
 
+In particular:
+
+- When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= option]] is disabled but [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] is enabled, instead of archiving newly =queued= reqres, =Hoardy-Web= will /stash/ their =(loggable, dump)= tuples into browser's local storage.
+
+- Similarly, when both [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] and [[./popup.html#div-tabconfig.stashLimbo][=Stash 'in_limbo' reqres= option]] (or [[./popup.html#div-tabconfig.children.stashLimbo][one]]-[[./popup.html#div-config.root.stashLimbo][of]]-[[./popup.html#div-config.background.stashLimbo][the]]-[[./popup.html#div-config.extension.stashLimbo][other]] similar options) is enabled, then newly generated =in_limbo= reqres will also get immediately stashed into browser's local storage.
+
+Moreover, the following section will discuss how =Hoardy-Web= will try stashing =unarchived= reqres into browser's local storage too.
+
 Note however, that even with [[./popup.html#div-config.stash][stashing]] enabled =Hoardy-Web= will skip disk IO whenever possible: e.g., if both [[./popup.html#div-config.archive][=Archive 'collected' reqres by=]] and [[./popup.html#div-config.archiveSubmitHTTP][=Archive 'collected' reqres by > ... submitting them via 'HTTP'=]] options discussed below are enabled, =Hoardy-Web= will first try to archive each new =collected= reqres straight from memory to the archiving server and only if that process fails will it attempt stashing them to local storage instead.
 
 Meaning that
 
 - stashing of non-=in_limbo= reqres is usually completely free and so you should probably keep [[./popup.html#div-config.stash][that option]] always enabled;
-- stashing of =in_limbo= reqres [[./popup.html#div-tabconfig.stashLimbo][via]]-[[./popup.html#div-tabconfig.children.stashLimbo][one]]-[[./popup.html#div-config.root.stashLimbo][of]]-[[./popup.html#div-config.background.stashLimbo][the]]-[[./popup.html#div-config.extension.stashLimbo][those]] options is not free, so if you almost never archive from limbo then keeping those options enabled will waste disk IO, so you might want to disable at least some of them in that case;
+- stashing of =in_limbo= reqres [[./popup.html#div-tabconfig.stashLimbo][via]]-[[./popup.html#div-tabconfig.children.stashLimbo][one]]-[[./popup.html#div-config.root.stashLimbo][of]]-[[./popup.html#div-config.background.stashLimbo][the]]-[[./popup.html#div-config.extension.stashLimbo][those]] options is not free, so if you almost never archive from limbo then keeping those options enabled will waste disk IO, so you might want to disable at least some of them in that case.
 
 The above also implies that, technically, stashing is not a silver bullet against data loss.
 To try and make it such would mean unconditional immediate stashing of all captured data, which would waste a lot of disk IO on most =Hoardy-Web= configurations.
