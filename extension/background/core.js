@@ -1114,25 +1114,16 @@ let udTitle = null;
 // `updatedTabId === undefined` means "no tabs changed"
 // otherwise, it's a tabId of a changed tab
 function makeUpdateDisplay(statsChanged, updatedTabId) {
-    let changed = updatedTabId === null;
+    statsChanged = statsChanged || udStats === null;
+    let wantUpdate = updatedTabId === null;
+
     let stats = udStats;
     let badge = udBadge;
     let color = udColor;
     let title = udTitle;
 
-    if (changed || statsChanged || udStats === null) {
+    if (statsChanged || wantUpdate) {
         stats = getStats();
-
-        if (changed
-            || udStats === null
-            // because these global stats influence the tab's icon
-            || stats.errored !== udStats.errored
-            || stats.failed !== udStats.failed
-            || stats.queued != udStats.queued
-            || stats.bundledAs !== udStats.bundledAs)
-            changed = true;
-
-        udStats = stats;
 
         broadcast(["updateStats", stats]);
 
@@ -1239,10 +1230,19 @@ function makeUpdateDisplay(statsChanged, updatedTabId) {
 
         title = chunks.join(", ");
 
-        changed = changed || udBadge !== badge || udColor !== color || udTitle !== title;
+        wantUpdate = wantUpdate
+            || udBadge !== badge || udColor !== color || udTitle !== title
+            || udStats === null
+            // because these global stats influence the tab's icon
+            || stats.errored !== udStats.errored
+            || stats.failed !== udStats.failed
+            || stats.queued != udStats.queued
+            || stats.bundledAs !== udStats.bundledAs;
+
+        udStats = stats;
     }
 
-    if (updatedTabId === undefined && !changed)
+    if (updatedTabId === undefined && !wantUpdate)
         // no tab-specific stuff needs updating, skip the rest of this
         return;
 
