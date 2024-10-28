@@ -656,13 +656,19 @@ function setConditionalClass(node, condition, className) {
         node.classList.remove(className);
 }
 
-let defaultScrollIntoViewOptions = { behavior: "smooth", block: "center" };
+let defaultScrollIntoViewOptionsStart = { behavior: "smooth", block: "start" };
+let defaultScrollIntoViewOptionsCenter = { behavior: "smooth", block: "center" };
 
 function viewHTMLNode(el, scrollIntoViewOptions, showAllFunc, hideAllFunc) {
     if (el !== null) {
         if (showAllFunc !== undefined)
             showAllFunc();
-        el.scrollIntoView(scrollIntoViewOptions ? scrollIntoViewOptions : defaultScrollIntoViewOptions);
+        let defopts = el.tagName.startsWith("H") ? defaultScrollIntoViewOptionsStart : defaultScrollIntoViewOptionsCenter;
+        // give the page a chance to redraw, in case the code just before this call changed styles
+        setTimeout(() => {
+            // and then scroll
+            el.scrollIntoView(scrollIntoViewOptions ? updateFromRec(assignRec({}, defopts), scrollIntoViewOptions) : defopts);
+        }, 0);
     } else if (hideAllFunc !== undefined)
         hideAllFunc();
 }
@@ -700,13 +706,13 @@ function viewHashNode(scrollIntoViewOptions, showAllFunc, hideAllFunc) {
     let hash = document.location.hash.substr(1);
     let el = hash ? document.getElementById(hash) : null;
     // no-smooth scrolling by default here
-    viewHTMLNode(el, scrollIntoViewOptions ? scrollIntoViewOptions : { block: "start" }, showAllFunc, hideAllFunc);
+    viewHTMLNode(el, scrollIntoViewOptions, showAllFunc, hideAllFunc);
 }
 
 function focusHashNode(scrollIntoViewOptions, showAllFunc, hideAllFunc) {
     let hash = document.location.hash.substr(1);
     // no-smooth scrolling by default here
-    focusNode(hash, scrollIntoViewOptions ? scrollIntoViewOptions : { block: "start" }, showAllFunc, hideAllFunc);
+    focusNode(hash, scrollIntoViewOptions, showAllFunc, hideAllFunc);
 }
 
 function handleDefaultUpdate(update, thisTabId, showAllFunc, hideAllFunc) {
@@ -724,13 +730,13 @@ function handleDefaultUpdate(update, thisTabId, showAllFunc, hideAllFunc) {
             hideAllFunc();
         return;
     case "viewNode":
-        viewNode(data1, data2 ? data2 : defaultScrollIntoViewOptions, showAllFunc, hideAllFunc);
+        viewNode(data1, data2 ? data2 : {}, showAllFunc, hideAllFunc);
         return;
     case "highlightNode":
         highlightNode(data1);
         return;
     case "focusNode":
-        focusNode(data1, data2 ? data2 : defaultScrollIntoViewOptions, showAllFunc, hideAllFunc);
+        focusNode(data1, data2 ? data2 : {}, showAllFunc, hideAllFunc);
         return;
     }
 }
