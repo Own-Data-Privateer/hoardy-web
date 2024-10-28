@@ -1125,7 +1125,8 @@ function makeUpdateDisplay(statsChanged, updatedTabId) {
     if (statsChanged || wantUpdate) {
         stats = getStats();
 
-        broadcast(["updateStats", stats]);
+        if (statsChanged)
+            broadcast(["updateStats", stats]);
 
         badge = "";
         color = 0;
