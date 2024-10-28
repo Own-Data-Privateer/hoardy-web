@@ -1113,7 +1113,7 @@ let udTitle = null;
 // `updatedTabId === null` means "config changed or any tab could have been updated"
 // `updatedTabId === undefined` means "no tabs changed"
 // otherwise, it's a tabId of a changed tab
-function makeUpdateDisplay(statsChanged, updatedTabId) {
+async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
     statsChanged = statsChanged || udStats === null;
     let wantUpdate = updatedTabId === null;
 
@@ -1247,166 +1247,164 @@ function makeUpdateDisplay(statsChanged, updatedTabId) {
         // no tab-specific stuff needs updating, skip the rest of this
         return;
 
-    async function updateBrowserAction(force) {
-        if (udBadge !== badge) {
-            await browser.browserAction.setBadgeText({ text: badge });
-            udBadge = badge;
-            if (config.debugging)
-                console.log(`updated browserAction: badge "${badge}"`);
-        }
-
-        if (udColor !== color) {
-            switch (color) {
-            case 0:
-                await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
-                await browser.browserAction.setBadgeBackgroundColor({ color: "#777777" });
-                break;
-            case 1:
-                await browser.browserAction.setBadgeTextColor({ color: "#000000" });
-                await browser.browserAction.setBadgeBackgroundColor({ color: "#e0e020" });
-                break;
-            default:
-                await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
-                await browser.browserAction.setBadgeBackgroundColor({ color: "#e02020" });
-            }
-            udColor = color;
-            if (config.debugging)
-                console.log(`updated browserAction: color "${color}"`);
-        }
-
-        if (udTitle !== title)
-            udTitle = title;
-
-        let tabs;
-        if (useDebugger && updatedTabId == null)
-            // On Chromium, when updating all tabs, actually update all tabs,
-            // otherwise switching to those tabs for the first time will
-            // display the `main` icon at first and then blink-switch to the
-            // target icon, which is ugly.
-            tabs = await browser.tabs.query({});
-        else
-            // On Firefox and when updating a select tab, we need only update
-            // for active tabs. This is more efficient.
-            tabs = await browser.tabs.query({ active: true });
-
-        if (updatedTabId === undefined)
-            // to simplify the logic below
-            updatedTabId = null;
-
-        for (let tab of tabs) {
-            let windowId = tab.windowId;
-            let tabId = tab.id;
-            let stateTabId = getStateTabIdOrTabId(tab);
-
-            // skip updates for unchanged tabs, when specified
-            if (updatedTabId !== null && updatedTabId !== tabId && updatedTabId !== stateTabId)
-                continue;
-
-            let tabcfg = tabConfig.get(stateTabId);
-            if (tabcfg === undefined)
-                tabcfg = prefillChildren(config.root);
-            let tabstats = getTabStats(stateTabId);
-
-            let icons = [];
-
-            if (stats.errored > 0)
-                icons.push("error");
-            if (stats.failed > 0)
-                icons.push("failed");
-            if (stats.queued + stats.bundledAs > 0)
-                icons.push("archiving");
-
-            let tchunks = [];
-            let cchunks = [];
-
-            if (tabstats.in_flight > 0) {
-                icons.push("tracking");
-                tchunks.push(`${tabstats.in_flight} in-flight reqres`);
-            }
-            if (tabstats.finishing_up > 0) {
-                icons.push("tracking");
-                tchunks.push(`${tabstats.finishing_up} finishing-up reqres`);
-            }
-            if (tabstats.problematic > 0) {
-                icons.push("problematic");
-                tchunks.push(`${tabstats.problematic} problematic reqres`);
-            }
-            if (tabstats.in_limbo > 0) {
-                icons.push("in_limbo");
-                tchunks.push(`${tabstats.in_limbo} in-limbo reqres`);
-            }
-
-            let pwicon;
-            let picon;
-            function addSub(icons, chunks, cfg, child) {
-                let wicon;
-                let icon;
-
-                if (config.workOffline || cfg.workOffline) {
-                    wicon = "work_offline";
-                    tchunks.push("working offline");
-                }
-
-                if (!config.collecting || !cfg.collecting) {
-                    icon = "off";
-                    chunks.push("not tracking new reqres");
-                } else if (cfg.limbo && cfg.negLimbo) {
-                    icon = "bothlimbo";
-                    chunks.push("picking and dropping into limbo");
-                } else if (cfg.limbo) {
-                    icon = "limbo";
-                    chunks.push("picking into limbo");
-                } else if (cfg.negLimbo) {
-                    icon = "neglimbo";
-                    chunks.push("dropping into limbo");
-                } else {
-                    icon = "idle";
-                    if (!child)
-                        chunks.push("idle");
-                    else
-                        chunks.push("normal");
-                }
-
-                if (wicon !== pwicon || icon !== picon) {
-                    if (wicon)
-                        icons.push(wicon);
-                    icons.push(icon);
-                    // add a separator
-                    if (child)
-                        icons.push("main");
-                }
-
-                pwicon = wicon;
-                picon = icon;
-            }
-
-            addSub(icons, tchunks, tabcfg);
-            addSub(icons, cchunks, tabcfg.children, true);
-
-            let gbadge = badge !== "" ? badge + ": " : badge;
-            let tdesc = tchunks.join(", ");
-            let cdesc = cchunks.join(", ");
-            let gtitle = `Hoardy-Web: ${gbadge}this tab: ${tdesc}; its new children: ${cdesc}; globally: ${title}`;
-
-            await setTitle(windowId, tabId, gtitle);
-            await setIcons(windowId, tabId, tab.active, icons, force);
-
-            if (config.debugging)
-                console.log(`updated browserAction: tabId ${tabId}: icons ${icons.join(", ")}, title "${title}"`);
-        }
+    if (udBadge !== badge) {
+        await browser.browserAction.setBadgeText({ text: badge });
+        udBadge = badge;
+        if (config.debugging)
+            console.log(`updated browserAction: badge "${badge}"`);
     }
 
-    return updateBrowserAction;
+    if (udColor !== color) {
+        switch (color) {
+        case 0:
+            await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
+            await browser.browserAction.setBadgeBackgroundColor({ color: "#777777" });
+            break;
+        case 1:
+            await browser.browserAction.setBadgeTextColor({ color: "#000000" });
+            await browser.browserAction.setBadgeBackgroundColor({ color: "#e0e020" });
+            break;
+        default:
+            await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
+            await browser.browserAction.setBadgeBackgroundColor({ color: "#e02020" });
+        }
+        udColor = color;
+        if (config.debugging)
+            console.log(`updated browserAction: color "${color}"`);
+    }
+
+    if (udTitle !== title)
+        udTitle = title;
+
+    let tabs;
+    if (useDebugger && updatedTabId == null)
+        // On Chromium, when updating all tabs, actually update all tabs,
+        // otherwise switching to those tabs for the first time will
+        // display the `main` icon at first and then blink-switch to the
+        // target icon, which is ugly.
+        tabs = await browser.tabs.query({});
+    else
+        // On Firefox and when updating a select tab, we need only update
+        // for active tabs. This is more efficient.
+        tabs = await browser.tabs.query({ active: true });
+
+    if (updatedTabId === undefined)
+        // to simplify the logic below
+        updatedTabId = null;
+
+    for (let tab of tabs) {
+        let windowId = tab.windowId;
+        let tabId = tab.id;
+        let stateTabId = getStateTabIdOrTabId(tab);
+
+        // skip updates for unchanged tabs, when specified
+        if (updatedTabId !== null && updatedTabId !== tabId && updatedTabId !== stateTabId)
+            continue;
+
+        let tabcfg = tabConfig.get(stateTabId);
+        if (tabcfg === undefined)
+            tabcfg = prefillChildren(config.root);
+        let tabstats = getTabStats(stateTabId);
+
+        let icons = [];
+
+        if (stats.errored > 0)
+            icons.push("error");
+        if (stats.failed > 0)
+            icons.push("failed");
+        if (stats.queued + stats.bundledAs > 0)
+            icons.push("archiving");
+
+        let tchunks = [];
+        let cchunks = [];
+
+        if (tabstats.in_flight > 0) {
+            icons.push("tracking");
+            tchunks.push(`${tabstats.in_flight} in-flight reqres`);
+        }
+        if (tabstats.finishing_up > 0) {
+            icons.push("tracking");
+            tchunks.push(`${tabstats.finishing_up} finishing-up reqres`);
+        }
+        if (tabstats.problematic > 0) {
+            icons.push("problematic");
+            tchunks.push(`${tabstats.problematic} problematic reqres`);
+        }
+        if (tabstats.in_limbo > 0) {
+            icons.push("in_limbo");
+            tchunks.push(`${tabstats.in_limbo} in-limbo reqres`);
+        }
+
+        let pwicon;
+        let picon;
+        function addSub(icons, chunks, cfg, child) {
+            let wicon;
+            let icon;
+
+            if (config.workOffline || cfg.workOffline) {
+                wicon = "work_offline";
+                tchunks.push("working offline");
+            }
+
+            if (!config.collecting || !cfg.collecting) {
+                icon = "off";
+                chunks.push("not tracking new reqres");
+            } else if (cfg.limbo && cfg.negLimbo) {
+                icon = "bothlimbo";
+                chunks.push("picking and dropping into limbo");
+            } else if (cfg.limbo) {
+                icon = "limbo";
+                chunks.push("picking into limbo");
+            } else if (cfg.negLimbo) {
+                icon = "neglimbo";
+                chunks.push("dropping into limbo");
+            } else {
+                icon = "idle";
+                if (!child)
+                    chunks.push("idle");
+                else
+                    chunks.push("normal");
+            }
+
+            if (wicon !== pwicon || icon !== picon) {
+                if (wicon)
+                    icons.push(wicon);
+                icons.push(icon);
+                // add a separator
+                if (child)
+                    icons.push("main");
+            }
+
+            pwicon = wicon;
+            picon = icon;
+        }
+
+        addSub(icons, tchunks, tabcfg);
+        addSub(icons, cchunks, tabcfg.children, true);
+
+        let gbadge = badge !== "" ? badge + ": " : badge;
+        let tdesc = tchunks.join(", ");
+        let cdesc = cchunks.join(", ");
+        let gtitle = `Hoardy-Web: ${gbadge}this tab: ${tdesc}; its new children: ${cdesc}; globally: ${title}`;
+
+        await setTitle(windowId, tabId, gtitle);
+        await setIcons(windowId, tabId, tab.active, icons, forceResetIcons);
+
+        if (config.debugging)
+            console.log(`updated browserAction: tabId ${tabId}: icons ${icons.join(", ")}, title "${title}"`);
+    }
 }
 
 let udStatsChanged = false;
 let udUpdatedTabId;
 let udEpisode = 1;
+let udForceResetIcons = false;
 
-function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, timeout, force) {
+function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, timeout, forceResetIcons) {
     // merge succesive arguments
-    udStatsChanged = udStatsChanged || statsChanged;
-    udUpdatedTabId = mergeUpdatedTabIds(udUpdatedTabId, updatedTabId);
+    statsChanged = udStatsChanged = udStatsChanged || statsChanged;
+    updatedTabId = udUpdatedTabId = mergeUpdatedTabIds(udUpdatedTabId, updatedTabId);
+    forceResetIcons = udForceResetIcons = udForceResetIcons || forceResetIcons;
 
     // only run the rest every `episodic` updates, when it's set
     if (udEpisode < episodic) {
@@ -1415,14 +1413,13 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, timeout, fo
     }
     udEpisode = 1;
 
-    let res = makeUpdateDisplay(udStatsChanged, udUpdatedTabId);
-
     resetSingletonTimeout(scheduledHidden, "updateDisplay", timeout !== undefined ? timeout : 100, async () => {
         // reset
         udStatsChanged = false;
         udUpdatedTabId = undefined;
-        if (res !== undefined)
-            await res(force);
+        udForceResetIcons = false;
+
+        await doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons);
 
         // we schedule this here because otherwise we will have to schedule it
         // almost everywhere `scheduleUpdateDisplay` is used
