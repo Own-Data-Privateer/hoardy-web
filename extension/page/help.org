@@ -598,7 +598,7 @@ If you are reading this page outside of the extension's UI be sure to read [[#to
 #+BEGIN_EXPORT html
 </div>
 #+END_EXPORT
-** Known extension issues
+** Known =Hoardy-Web='s own issues
 - =Hoardy-Web= does not implement collection of WebSockets data on any of the supported browsers.
 
   (Firefox does not support it.
@@ -610,7 +610,7 @@ If you are reading this page outside of the extension's UI be sure to read [[#to
 - On Chromium, response data of background requests and requests made by other extensions does not get collected, since there's no tab to attach a debugger to, and I have not figured out how to attach debugger to other things yet.
 
 - On Firefox, fetches that spawn new downloads will be marked as =problematic= by default, since Firefox's implementation of =webRequest.filterResponseData= API does not provide their contents to the extension and I have not figured out how to distinguish them from other fetches yet.
-** Relevant issues of all browsers
+** Known issues that are consequences of issues of all supported browsers
 - When =Hoardy-Web= is reloaded without using [[./popup.html#div-reloadSelf][the =Reload= button]] or [[./popup.html#div-config.autoReloadOnUpdates][=Auto-reload on updates= option]], i.e. when =Hoardy-Web= is reloaded by clicking the "Reload" button in browser's extension list, then all [[./popup.html#this-tab-options][per-tab setting]] of all tabs will be reset to [[./popup.html#root-tab-options][the values used by the newly spawned root tabs]].
 
   This issue is not applicable in the case when the reload happens because the extension was updated, in that case the browser will notify =Hoardy-Web= about it and =Hoardy-Web= will handle it properly, see the help string of [[./popup.html#div-reloadSelf][the =Reload= button]] for more info.
@@ -620,7 +620,7 @@ If you are reading this page outside of the extension's UI be sure to read [[#to
 - If an =HTTP= server supplies the same header multiple times --- which happens sometimes, most commonly with =Set-Cookie= headers --- then the archived response headers will usually become weird, with multiple headers squished into a single value, separated by newline symbols.
 
   This is just the way both Firefox (usually) and Chromium (always) supply those headers to extensions and =Hoardy-Web= does not try to undo it.
-** Relevant issues of Firefox-based desktop browsers: Firefox, Tor Browser, LibreWolf, etc
+** Known issues that are consequences of issues of Firefox-based desktop browsers: Firefox, Tor Browser, LibreWolf, etc
 :PROPERTIES:
 :CUSTOM_ID: firefox-bugs
 :END:
@@ -649,7 +649,7 @@ If you are reading this page outside of the extension's UI be sure to read [[#to
   If [[./popup.html#div-config.workaroundFirefoxFirstRequest][this option]] is enabled, =Hoardy-Web= will transparently work around this bug by redirecting the very first navigation request to =about:blank= and then reloading the tab with its original URL.
 
 - Firefox-based browsers provide no API for archiving WebSockets data at the moment, unfortunately.
-** Relevant issues of Firefox-based mobile browsers: Fenix aka Firefox for Android, Fennec, Mull, etc
+** Known issues that are consequences of issues of Firefox-based mobile browsers: Fenix aka Firefox for Android, Fennec, Mull, etc
 :PROPERTIES:
 :CUSTOM_ID: firefoxa-android-bugs
 :END:
@@ -657,7 +657,7 @@ If you are reading this page outside of the extension's UI be sure to read [[#to
 [[#firefox-bugs][All of the above]] apply, moreover:
 
 - Archival [[./popup.html#div-config.archiveExportAs][by exporting using =saveAs=]] is not supported at the moment because of [[https://bugzilla.mozilla.org/show_bug.cgi?id=1914360][this bug]].
-** Relevant issues of Chromium-based desktop browsers: Chromium, Chrome, etc
+** Known issues that are consequences of issues of Chromium-based desktop browsers: Chromium, Chrome, etc
 :PROPERTIES:
 :CUSTOM_ID: chromium-bugs
 :END:
