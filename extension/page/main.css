@@ -1,4 +1,4 @@
-@layer defaults, overrides, highlight;
+@layer defaults, seasonal, overrides, highlight;
 
 @layer defaults {
 :root {
@@ -421,5 +421,110 @@ input.attention {
     to {
         background-color: var(--attention-background-1);
     }
+}
+}
+
+@layer seasonal {
+.halloween {
+    --juice-dark: #94023e;
+    --juice: #d4023e;
+    --pumpkin-dark: #804000;
+    --pumpkin-light: #ffbb10;
+    --pumpkin: #f49405;
+    --water-dark: #023e94;
+    --water: #023ed4;
+    --light: #ffffff;
+    --moonlight: #dfdfdf;
+    --night: #000000;
+
+    --button-border-color: var(--juice);
+    --button-color: var(--light);
+    --code-background:  #aabb0030;
+    --code-border-color:  #f8f80030;
+    --input-border-color: var(--pumpkin);
+    --input-color: var(--light);
+    --outline-color: var(--pumpkin-dark);
+    --separator-color: var(--pumpkin-light);
+    --text-color: var(--light);
+    --toggle-background-bad: var(--water-dark);
+    --toggle-background-good:  var(--juice-dark);
+    --toggle-background: var(--light);
+    --toggle-border-color-bad: var(--water);
+    --toggle-border-color-good: var(--juice);
+    --toggle-border-color:  var(--moonlight);
+    --toggle-dot-background: var(--moonlight);
+    --toggle-dot-border-color: var(--night);
+    --untoggle-background-bad: var(--water);
+    --untoggle-background-good: var(--juice);
+    --untoggle-background: var(--night);
+    --untoggle-border-color-bad: var(--water-dark);
+    --untoggle-border-color-good: var(--juice-dark);
+    --untoggle-border-color: var(--moonlight);
+    --untoggle-dot-background: var(--moonlight);
+    --untoggle-dot-border-color: var(--night);
+}
+
+.halloween h1,
+.halloween h2,
+.halloween h3,
+.halloween h4 {
+    --text-color: var(--pumpkin);
+    text-shadow: 0px 0px 1em var(--light);
+}
+
+.halloween input {
+    box-shadow: 0px 0px 1em var(--pumpkin);
+}
+
+.halloween input[type="button"] {
+    box-shadow: 0px 0px 1em var(--juice);
+}
+
+.halloween input[type="checkbox"].help-btn {
+    box-shadow: 0px 0px 0.75em var(--moonlight);
+}
+
+.halloween input[type="checkbox"].toggle {
+    box-shadow: 0px 0px 1em var(--light);
+}
+
+.halloween div.ui.boolean label {
+    --text-color: var(--juice);
+    text-shadow: 0px 0px 1em var(--juice);
+}
+
+.halloween label:hover input[type="checkbox"].toggle::before {
+    --toggle-dot-background: #808080;
+    --untoggle-dot-background: #808080;
+    --toggle-dot-border-color: var(--light);
+    --untoggle-dot-border-color: var(--light);
+}
+
+.halloween input[type="checkbox"].toggle::before {
+    color: var(--night);
+    content: "🦇";
+    padding: 3px;
+    transform: translate(-8px, calc(50% - 7px));
+}
+
+.halloween input[type="checkbox"].toggle:checked::before {
+    transform: translate(14px, calc(50% - 15px));
+}
+
+.halloween div.ui.tristate input[type="checkbox"].toggle {
+    --untoggle-background: var(--text-inactive-background);
+    --untoggle-border-color: var(--text-inactive-color);
+}
+
+.halloween div.ui.tristate input[type="checkbox"].toggle::before {
+    transform: translate(-8px, calc(50% - 11px));
+}
+
+.halloween div.ui.tristate input[type="checkbox"].toggle.false::before {
+    transform: translate(6px, calc(50% - 7px));
+}
+
+.halloween div.ui.tristate input[type="checkbox"].toggle:checked::before {
+    transform: translate(19px, calc(50% - 15px));
 }
 }

@@ -114,7 +114,16 @@ function setPageError(error) {
 
 function setRootClasses(config) {
     let dark = config.colors;
-    if (dark === null) {
+
+    let dnow = new Date();
+    let dm = dnow.getMonth() + 1; // JavaScript is ridiculous
+    let dd = dnow.getDate();
+    let halloween = dm === 10 && dd >= 30 || dm === 11 && dd <= 1 || config.season.halloween === true;
+    halloween = halloween && config.seasonal && config.season.halloween !== false;
+
+    if (halloween)
+        dark = true;
+    else if (dark === null) {
         let dquery = window.matchMedia("(prefers-color-scheme: dark)");
         if (dquery.matches)
             dark = true;
@@ -124,6 +133,7 @@ function setRootClasses(config) {
     setConditionalClass(droot, dark, "dark");
     setConditionalClass(droot, !dark, "light");
     setConditionalClass(droot, config.colorblind, "colorblind");
+    setConditionalClass(droot, halloween, "halloween");
 
     return droot;
 }

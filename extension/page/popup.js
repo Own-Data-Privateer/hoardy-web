@@ -285,6 +285,7 @@ async function popupMain() {
 
         setRootClasses(config);
         let dbody = document.body;
+        setConditionalClass(dbody, !config.seasonal, "off-seasonal");
         resetPureText(config);
         setConditionalClass(dbody, !config.collecting, "off-collecting");
         setConditionalClass(dbody, !config.stash, "off-stash");

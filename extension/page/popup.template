@@ -20,6 +20,7 @@ body {
     line-height: 160%;
 }
 
+.rounded,
 h1, h2, h3, h4,
 section, label {
     background: var(--text-background);
@@ -162,6 +163,8 @@ input.target {
 .not-chromium .on-chromium *,
 .not-mobile .on-mobile,
 .not-mobile .on-mobile *,
+.off-seasonal .on-seasonal,
+.off-seasonal .on-seasonal *,
 .off-collecting .on-collecting,
 .off-collecting .on-collecting *,
 .off-stash .on-stash,
@@ -299,8 +302,14 @@ input.target {
 
     <section>
     <h3>User Interface</h3>
-    <ui id="config.colors" type="tristate" data-help="Color scheme tristate: browser&#039;s default, light mode, dark mode.">Color scheme</ui>
+    <ui id="config.colors" type="tristate" data-help="Color scheme tristate: light mode, browser&#039;s default, dark mode.">Color scheme</ui>
     <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
+    <ui id="config.seasonal" type="boolean" data-help="Allow `Hoardy-Web` to use seasonal themes. Disabling this will forbid the use of the following sub-options, including those that might be added here in future versions of `Hoardy-Web`. Enabled by default. You might want to disable this if you hate fun.">Allow seasonal theming</ui>
+    <div class="rounded on-seasonal">
+    <section class="subdots">
+    <ui id="config.season.halloween" type="tristate" data-help="Tristate controlling the use of the &quot;Halloween&quot; theme: disabled, enabled when close to Halloween, enabled. When enabled, this theme will force the dark mode theme regardless of what the `Color scheme` setting above says.">🦇 Halloween mode</ui>
+    </section>
+    </div>
     <ui id="config.pureText" type="boolean" data-help="Do not use emojis in UI labels. Makes screen readers happier.">Pure text labels</ui>
     <ui id="config.animateIcon" type="number" class="c" data-help="When `Hoardy-Web` wants to display more than one toolbar icon, switch them every this many milliseconds.">Animate toolbar icon every {} ms</ui>
     <ui id="config.spawnNewTabs" type="boolean" class="on-mobile" data-help="Open the other pages of this extension in newly created tabs instead of reusing the current window. This is enabled by default and can not disabled when `Hoardy-Web` runs on a desktop browser. This is disabled by default when `Hoardy-Web` runs on a mobile browser.">Spawn internal pages in new tabs</ui>

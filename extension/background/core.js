@@ -42,6 +42,10 @@ let configDefaults = {
     // user interface
     colors: null,
     colorblind: false,
+    seasonal: true,
+    season: {
+        halloween: null,
+    },
     pureText: false,
     animateIcon: 500,
     spawnNewTabs: !isMobile,
