@@ -720,6 +720,8 @@ function handleDefaultUpdate(update, thisTabId, showAllFunc, hideAllFunc) {
     if (reqTabId !== thisTabId)
         return;
 
+    hideHelp();
+
     switch (what) {
     case "showAll":
         if (showAllFunc !== undefined)

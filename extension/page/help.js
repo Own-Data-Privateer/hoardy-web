@@ -41,10 +41,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     // allow to un-highlight currently highlighted node
-    document.body.onclick = (event) => {
+    document.body.addEventListener("click", (event) => {
         highlightNode(null);
         broadcast(["highlightNode", "popup", null]);
-    };
+    });
 
     // number of rewritten internal links
     let num_links = 0;

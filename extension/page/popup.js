@@ -105,6 +105,11 @@ async function popupMain() {
     addHelp(body, shortcuts
             , (help, shortcut) => shortcut ? `(\`${shortcut}\`) ${help}` : `(unbound) ${help}`);
 
+    // allow to un-highlight currently highlighted node
+    document.body.addEventListener("click", (event) => {
+        highlightNode(null);
+    });
+
     // emoji labels for the UI buttons
     let emojiButtons = {
         reloadSelf: "（🌟ω🌟）",
