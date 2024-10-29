@@ -302,8 +302,12 @@ div.ui.tristate input[type="checkbox"].toggle:checked {
     border-color: var(--toggle-border-color-good);
 }
 
-div.ui.tristate input[type="checkbox"].toggle.false::before {
+div.ui.tristate input[type="checkbox"].toggle::before {
     transform: translate(9px, calc(50% - 5px));
+}
+
+div.ui.tristate input[type="checkbox"].toggle.false::before {
+    transform: translate(1px, calc(50% - 5px));
 }
 
 div.ui.tristate input[type="checkbox"].toggle:checked::before {
@@ -517,11 +521,11 @@ input.attention {
 }
 
 .halloween div.ui.tristate input[type="checkbox"].toggle::before {
-    transform: translate(-8px, calc(50% - 11px));
+    transform: translate(6px, calc(50% - 11px));
 }
 
 .halloween div.ui.tristate input[type="checkbox"].toggle.false::before {
-    transform: translate(6px, calc(50% - 7px));
+    transform: translate(-8px, calc(50% - 7px));
 }
 
 .halloween div.ui.tristate input[type="checkbox"].toggle:checked::before {
