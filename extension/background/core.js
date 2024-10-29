@@ -31,7 +31,7 @@
 let sessionId = Date.now();
 
 // default config
-let configVersion = 5;
+let configVersion = 6;
 let configDefaults = {
     version: configVersion,
 
@@ -4480,6 +4480,10 @@ function upgradeConfig(config) {
             config.exportAsBundle = false;
             config.exportAsMaxSize = configDefaults.exportAsMaxSize;
         }
+        // because it got updated lots
+        config.seenHelp = false;
+        break;
+    case 6:
         break;
     default:
         console.warn(`Bad old config version ${config.version}, reusing values as-is without updates`);
