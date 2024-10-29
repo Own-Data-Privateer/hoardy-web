@@ -2,8 +2,11 @@
 
 @layer defaults {
 :root {
-    color-scheme: light dark;
+    /* to prevent light-to-dark storbbing */
+    background-color: #000;
+    color: #000;
 
+    /* defaults */
     --a-external: #d80000;
     --a-internal: #00a800;
     --a-local: var(--target-background-1);
@@ -59,6 +62,11 @@
     --untoggle-dot-border-color: #000000;
 }
 
+.light {
+    background-color: #ffffff;
+    color: #000000;
+}
+
 .colorblind {
     --a-internal: #0000a8;
     --code-background:  #0000bb20;
@@ -68,35 +76,33 @@
     --untoggle-border-color-good: #cfcfd8;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        background-color: #0c0b12;
-        color: #fff;
-        --a-external: #f80000;
-        --attention-background-2: #000000;
-        --button-background: #101010;
-        --code-background:  #00bb0030;
-        --code-border-color:  #f8f80030;
-        --help-btn-background: #333333;
-        --help-btn-border-color : #666666;
-        --help-btn-checked-background: #aaaaaa;
-        --help-btn-checked-border-color : #bbbbbb;
-        --help-btn-checked-color: #060606;
-        --help-btn-color: #aaaaaa;
-        --help-tip-background: #000005;
-        --hover-background: #505050;
-        --hover-border-color: #e0e0e0;
-        --outline-color: #333333;
-        --separator-color: #ffffff;
-        --shadow-color: #ffffff;
-        --text-inactive-background: #303030;
-        --text-inactive-color: #505050;
-        --untoggle-background: #515138;
-    }
+.dark {
+    background-color: #0c0b12;
+    color: #fff;
+    --a-external: #f80000;
+    --attention-background-2: #000000;
+    --button-background: #101010;
+    --code-background:  #00bb0030;
+    --code-border-color:  #f8f80030;
+    --help-btn-background: #333333;
+    --help-btn-border-color : #666666;
+    --help-btn-checked-background: #aaaaaa;
+    --help-btn-checked-border-color : #bbbbbb;
+    --help-btn-checked-color: #060606;
+    --help-btn-color: #aaaaaa;
+    --help-tip-background: #000005;
+    --hover-background: #505050;
+    --hover-border-color: #e0e0e0;
+    --outline-color: #333333;
+    --separator-color: #ffffff;
+    --shadow-color: #ffffff;
+    --text-inactive-background: #303030;
+    --text-inactive-color: #505050;
+    --untoggle-background: #515138;
+}
 
-    .colorblind {
-        --code-background:  #0000bb30;
-    }
+.dark.colorblind {
+    --code-background:  #0000bb30;
 }
 
 #body {
@@ -266,7 +272,7 @@ input[type="checkbox"].toggle::before {
     font: 12px sans-serif;
     height: 12px;
     outline: 1px solid var(--untoggle-dot-border-color);
-    transform: translate(1px, calc(50% - 7px));
+    transform: translate(1px, calc(50% - 5px));
     transition: transform 500ms;
     width: 12px;
 }
@@ -274,7 +280,7 @@ input[type="checkbox"].toggle::before {
 input[type="checkbox"].toggle:checked::before {
     background: var(--toggle-dot-background);
     outline: 1px solid var(--toggle-dot-border-color);
-    transform: translate(11px, calc(50% - 7px));
+    transform: translate(11px, calc(50% - 5px));
 }
 
 label:hover input[type="checkbox"].toggle::before {
@@ -297,11 +303,11 @@ div.ui.tristate input[type="checkbox"].toggle:checked {
 }
 
 div.ui.tristate input[type="checkbox"].toggle.false::before {
-    transform: translate(8px, calc(50% - 7px));
+    transform: translate(9px, calc(50% - 5px));
 }
 
 div.ui.tristate input[type="checkbox"].toggle:checked::before {
-    transform: translate(16px, calc(50% - 7px));
+    transform: translate(16px, calc(50% - 5px));
 }
 
 .help-root {

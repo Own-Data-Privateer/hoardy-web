@@ -45,7 +45,7 @@ async function stateMain() {
     async function updateConfig(config) {
         if (config === undefined)
             config = await browser.runtime.sendMessage(["getConfig"]);
-        setConditionalClass(body, config.colorblind, "colorblind");
+        setRootClasses(config);
     }
 
     async function processUpdate(update) {

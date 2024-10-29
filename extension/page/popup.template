@@ -150,7 +150,7 @@ input.target {
 
 @layer overrides {
 .all #showAll,
-.short .no-reload .on-reload,
+.short.no-reload .on-reload,
 .yes-pending .on-reload,
 .no-pending .on-pending {
     display: none;
@@ -299,6 +299,7 @@ input.target {
 
     <section>
     <h3>User Interface</h3>
+    <ui id="config.colors" type="tristate" data-help="Color scheme tristate: browser&#039;s default, light mode, dark mode.">Color scheme</ui>
     <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
     <ui id="config.pureText" type="boolean" data-help="Do not use emojis in UI labels. Makes screen readers happier.">Pure text labels</ui>
     <ui id="config.animateIcon" type="number" class="c" data-help="When `Hoardy-Web` wants to display more than one toolbar icon, switch them every this many milliseconds.">Animate toolbar icon every {} ms</ui>

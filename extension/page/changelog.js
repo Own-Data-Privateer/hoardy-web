@@ -22,6 +22,9 @@
 "use strict";
 
 document.addEventListener("DOMContentLoaded", async () => {
+    let config = await browser.runtime.sendMessage(["getConfig"]);
+    setRootClasses(config);
+
     let selfURL = browser.runtime.getURL("/page/changelog.html");
     let rootURL = browser.runtime.getURL("/");
 
@@ -45,6 +48,20 @@ document.addEventListener("DOMContentLoaded", async () => {
             history.pushState({ id }, "", selfURL + `#${id}`);
         };
     }
+
+    async function processUpdate(update) {
+        let [what, data] = update;
+        switch (what) {
+        case "updateConfig":
+            setRootClasses(data);
+            break;
+        default:
+            await handleDefaultUpdate(update, "changelog");
+        }
+    }
+
+    // add default handlers
+    await subscribeToExtension(catchAll(processUpdate));
 
     // show UI
     document.body.style["display"] = null;

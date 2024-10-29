@@ -283,20 +283,21 @@ async function popupMain() {
             browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
         });
 
-        setConditionalClass(body, config.colorblind, "colorblind");
+        setRootClasses(config);
+        let dbody = document.body;
         resetPureText(config);
-        setConditionalClass(body, !config.collecting, "off-collecting");
-        setConditionalClass(body, !config.stash, "off-stash");
-        setConditionalClass(body, !config.archive, "off-archive");
-        setConditionalClass(body, !config.archive || !config.archiveExportAs, "off-exportAs");
-        setConditionalClass(body, !config.exportAsBundle, "off-exportAsBundle");
-        setConditionalClass(body, !config.archive || !config.archiveSubmitHTTP, "off-submitHTTP");
-        setConditionalClass(body, !config.stash && (!config.archive || !config.archiveSaveLS), "off-LS");
-        setConditionalClass(body, !config.autoUnmarkProblematic
+        setConditionalClass(dbody, !config.collecting, "off-collecting");
+        setConditionalClass(dbody, !config.stash, "off-stash");
+        setConditionalClass(dbody, !config.archive, "off-archive");
+        setConditionalClass(dbody, !config.archive || !config.archiveExportAs, "off-exportAs");
+        setConditionalClass(dbody, !config.exportAsBundle, "off-exportAsBundle");
+        setConditionalClass(dbody, !config.archive || !config.archiveSubmitHTTP, "off-submitHTTP");
+        setConditionalClass(dbody, !config.stash && (!config.archive || !config.archiveSaveLS), "off-LS");
+        setConditionalClass(dbody, !config.autoUnmarkProblematic
                             && !config.autoPopInLimboCollect
                             && !config.autoPopInLimboDiscard, "off-auto");
-        setConditionalClass(body, !config.problematicNotify, "off-problematicNotify");
-        setConditionalClass(body, !config.limboNotify, "off-limboNotify");
+        setConditionalClass(dbody, !config.problematicNotify, "off-problematicNotify");
+        setConditionalClass(dbody, !config.limboNotify, "off-limboNotify");
         setConditionalClass(versionButton, !config.seenChangelog, "attention");
         setConditionalClass(helpButton, !config.seenHelp, "attention");
     }
@@ -306,11 +307,12 @@ async function popupMain() {
             stats = await browser.runtime.sendMessage(["getStats"]);
         setUI(document, "stats", present(stats));
 
-        setConditionalClass(body, !(stats.update_available || config.debugging), "no-reload");
+        let dbody = document.body;
+        setConditionalClass(dbody, !(stats.update_available || config.debugging), "no-reload");
         setConditionalClass(reloadSelfButton, stats.update_available, "attention");
 
-        setConditionalClass(body, stats.reload_pending, "yes-pending");
-        setConditionalClass(body, !stats.reload_pending, "no-pending");
+        setConditionalClass(dbody, stats.reload_pending, "yes-pending");
+        setConditionalClass(dbody, !stats.reload_pending, "no-pending");
     }
 
     async function updateTabConfig(tabconfig) {

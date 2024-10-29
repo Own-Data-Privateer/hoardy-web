@@ -40,6 +40,7 @@ let configDefaults = {
     autoReloadOnUpdates: false,
 
     // user interface
+    colors: null,
     colorblind: false,
     pureText: false,
     animateIcon: 500,

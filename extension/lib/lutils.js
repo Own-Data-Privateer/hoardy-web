@@ -112,6 +112,22 @@ function setPageError(error) {
     be.style.display = "block";
 }
 
+function setRootClasses(config) {
+    let dark = config.colors;
+    if (dark === null) {
+        let dquery = window.matchMedia("(prefers-color-scheme: dark)");
+        if (dquery.matches)
+            dark = true;
+    }
+
+    let droot = getRootNode(document);
+    setConditionalClass(droot, dark, "dark");
+    setConditionalClass(droot, !dark, "light");
+    setConditionalClass(droot, config.colorblind, "colorblind");
+
+    return droot;
+}
+
 function isUnknownError(error) {
     if (useDebugger && (error === "webRequest::net::ERR_ABORTED"
                      || error === "webRequest::net::ERR_CANCELED"

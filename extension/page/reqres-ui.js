@@ -182,6 +182,9 @@ const headerHTML = `
 `;
 
 async function commonMain() {
+    let config = await browser.runtime.sendMessage(["getConfig"]);
+    setRootClasses(config);
+
     thisSessionId = await browser.runtime.sendMessage(["getSessionId"]);
     let thisTab = await getActiveTab();
     if (thisTab !== null)

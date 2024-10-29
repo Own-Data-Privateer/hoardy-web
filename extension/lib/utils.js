@@ -589,6 +589,10 @@ function broadcast(data) {
     return browser.runtime.sendMessage(["broadcast", data]);
 }
 
+function getRootNode(document) {
+    return Array.from(document.children).filter((e) => e.tagName === "HTML")[0];
+}
+
 // attach function to `onclick` of DOM node with a given id
 function buttonToAction(id, action) {
     let el = document.getElementById(id);
