@@ -1005,7 +1005,7 @@ function makeUI(node) {
         let ne = document.createElement("input");
         ne.id = id + sub;
         ne.name = id;
-        if (tabindex !== undefined)
+        if (tabindex !== null)
             ne.setAttribute("tabindex", tabindex);
 
         switch (tt) {
