@@ -171,7 +171,7 @@ See [`chromium-web-store`'s README](https://github.com/NeverDecaf/chromium-web-s
 - `git clone` this repository.
 - `cd extension`.
 - Optionally: run `nix-shell ./default.nix` to get the exact build environment I use.
-- Build by running `./build.sh clean firefox chromium-mv2` from this directory.
+- Build by running `./build.sh clean firefox-mv2 chromium-mv2` from this directory.
 - All outputs can then be found in the `dist` directory.
 
 ## Debugging
