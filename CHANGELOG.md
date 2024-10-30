@@ -6,6 +6,252 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is [a TODO list](#todo) with planned future changes.
 
+## [extension-v1.17.0] - 2024-10-30: Halloween special: major UI and state display improvements, fine-grained `Work offline` mode, add-on reloading with its state preserved, new options, etc
+
+In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij) now.
+
+### Fixed: Possibly important
+
+- Core:
+
+  - Fixed a bug in `upgradeConfig` that was resetting `bucket` settings to their default values or upgrade to `extension-v1.13.0`.
+    So, this is no longer relevant, but still.
+    Also, refactored code there to prevent such errors in the future.
+
+    **However, just in case, if you previously set `bucket` settings to something other than their default values and those settings are important to you, you should probably check your settings to ensure everything there is set as you expect it to be.**
+
+### Changed: Important UI
+
+- Core + Popup UI + Documentation:
+
+  - Renamed `failed` state and related `failed*` stats to `unarchived` state and `unarchived*` stats.
+    Introduced a new `failed` stat that is now a sum of `unstashed` and `unarchived` stats.
+    Edited the popup UI and the other pages appropriately.
+
+    This makes documentation's terminology more consistent, and simplifies UI a bit.
+
+    In particular, the `Retry` button of `Queued/Failed` stat line will both retry stashing `unstashed` and archiving `unarchived` reqres now.
+
+- Popup UI:
+
+  - Reworked the whole thing quite a bit:
+
+    - Improved option names and help strings.
+    - Sorted sections and options to follow a more logically consistent order.
+    - Improved layout.
+    - Fixed some typos there.
+
+  - From now on, setting `Bucket` for the current tab will set `Bucket` for its new children too, similar to how the rest of those settings work.
+
+  - From now on, setting any of the `Bucket` settings to nothing will reset it to the parent/default value.
+    I.e.:
+
+    - Setting `Bucket` of `This tab's new children` to nothing will reset it to `Bucket` value of `This tab`.
+    - Setting `Bucket` of `This tab` to nothing will reset it to `Bucket` value of `New root tabs`.
+    - Setting `Bucket` of `New root tabs` to nothing will reset it to `default`.
+
+- [The `Help` page](./extension/page/help.org):
+
+  - The previous "Desktop" `JavaScript`-generated layout became `columns` `CSS` layout and `JS`-operation mode, while the "Mobile" `JavaScript`-generated layout became `linear` `CSS` layout and `JS`-operation mode.
+    The page will now automatically switch between these two layouts and modes synchronously, depending on viewport width.
+
+    (As before, in `linear` mode hovering over a link does nothing, but in `columns` mode, hovering over a link referring to a target in popup UI scrolls the popup UI column to that target and highlights it.)
+
+    I.e., this means that on a Desktop browser, you can now zoom [the `Help` page](./extension/page/help.org) to arbitrary zoom levels and it will just switch between layouts and link-hover behaviors depending on available viewport width.
+
+  - Greatly improved the styling of all links and documented it in [the "Conventions" section](./extension/page/help.org#conventions).
+
+- All internal pages:
+
+  - All internal pages now color-code links depending on where they point to, using exactly the same `CSS` as [the `Help` page](./extension/page/help.org).
+
+  - All pages now use the same history state handling behaviour.
+
+    I.e., using the "Back" button of your browser will now not only go back, but also highlight the last link you clicked.
+
+  - All documentation pages now set viewport width to `device-width`, set content's `max-width` to `900px` and `width` to `100% - padding`, preventing horizontal scroll, when possible.
+  - Improved the `CSS` styling in general.
+
+- Core + Popup UI + General UI:
+
+  - Implemented a new popup UI tristate toggle named `Color scheme` which allows `Hoardy-Web`'s color-scheme to be different from the browser's default.
+
+  - Implemented a mechanism and popup UI settings for applying additional themes and experimental features.
+
+  - And then I looked at the date. Which is why ◥▅◤◢▅◣◥▅◤ `Hoardy-Web` now has `🦇 Halloween mode`. ◥▅◤◢▅◣◥▅◤.
+
+  - Also, from now on, the neutral states of tristate toggles are displayed with toggle knobs being in the middle of the things, not on their left.
+    This is not a political statement.
+    This mans that all tristate toggles, from left to right, now go `false` -> `null` -> `true` both internally (exactly as they did before) and externally (which is new).
+
+### Changed: State display
+
+- Core + Toolbar button + Icons:
+
+  - Replaced toolbar button's icons representing Cartesian products of other icons with animations.
+
+    In other words, the previous "this tab has limbo mode enabled while this tab's children do not" icon will now instead be represented with an animation that switches between "this tab has limbo mode enabled" and "this tab is idle" icons instead.
+
+    This both takes less space in the `XPI`/`CRX`, makes for a cuter UI, and is the only reasonable solution when the core wants to display more than two icons at the same time.
+
+  - Improved toolbar button's badge and title format a bit.
+
+    "This tab" part goes first now, then "its new children", then "globally".
+
+    Also, the order of sub-parts of those strings is more consistent now.
+
+  - From now on, internal UI updater will generate icon animation frames for all important statuses and setting states.
+
+    - When per-tab and per-tab's-new-children animation frames are equal, the repeated part will be elided.
+    - When per-tab and per-tab's-new-children animation frames differ, the `main` icon will be inserted at the end to make it obvious when the animation loop restarts (otherwise, it's easy to interpret such animation loops incorrectly).
+
+  - The update frequency of toolbar button's icon, badge, and title now depends on the amount of not yet done stuff still queued in the core.
+
+    I.e., from now on, when the core has a lot of stuff to do (like when re-archiving thousands of reqres at the same time), it will start updating toolbar button's properties less to trade update latency for improved performance, and vice versa.
+
+  - Greatly improved performance of state display updates. It's uses 2-1000x less CPU now, depending on what the core is doing.
+
+- Icons:
+
+  - Renamed the `error` icon to `failed` and added a new `error` icon.
+
+    From now on, the `failed` icon will only be used for archival/stashing errors, while the `error` icon will only be used for internal errors (i.e. bugs).
+
+  - Improved all icons to make them more visually distinct when they are being rendered at 48x48 or less, both in light and dark mode.
+
+  - On Chromium, all icons are now rendered with transparent backgrounds, so now they will look nice in the dark mode too.
+
+### Added: State display
+
+- Core + Popup UI + Toolbar button:
+
+  - From now on, popup UI and toolbar button's badge and title will display information about currently running internal actions.
+
+    (Implementing this took a surprising amount of effort in improvements to infrastructure code.)
+
+- Core + Toolbar button + Icons:
+
+  - Added a new `in_limbo` icon for "this tab has data in limbo" status.
+    Unlike most other icons, this icon will never be used alone, it will always be an animation frame of something longer.
+
+- Core + Popup UI + Toolbar button:
+
+  - Implemented `Animate toolbar icon every` setting for controlling toolbar icon animation speed.
+
+### Fixed: State display
+
+- Core + Toolbar button:
+
+  - Fixed a bunch of bugs that prevented updates to toolbar button's icon and badge in some cases.
+
+  - The icon and the badge will no longer get stuck when the core is very busy, like when re-archiving a lot of stuff all at once.
+
+### Added: `Work offline` mode
+
+- Core + Popup UI + Toolbar button + Icons + Documentation:
+
+  - Implemented `Work offline` mode, options, their popup UI, shortcuts, and icons.
+
+    This mode does the same thing as `File > Work Offline` checkbox of Firefox, except it supports per-tab/per-other-origin operation, not just the whole-browser one.
+    Also, enabling any these options will not break requests that are still in flight, and the requests they do cancel can be logged.
+
+    That is, enabling `Work offline` in a tab will start canceling all new requests that tab generates, and the resulting `canceled` reqres will get logged if `Track new requests` option is enabled in the same tab.
+    Similarly for background tasks and other origins.
+
+    This can be generally useful for debugging your own websites with dynamic responsive `CSS`, or if you just want to prevent a tab from accessing the network for some reason.
+
+    However, the main reason this exists is that the files generated by `hoardy-web export mirror` do not get `scrub`bed absolutely correctly at the moment, and the resulting pages can end up with some references to remote resources (in cases when an exported page uses some rare `HTML` and `CSS` tag combinations, or lazy-load images via `JavaScript`, but still).
+    With `Work offline` options enabled in a tab, you can now be sure that opening pages generated by `hoardy-web export mirror` won't send any requests to the network.
+
+    In fact, from now on, by default, `Hoardy-Web` will enable `Work offline` in all tabs pointing to `file:` URLs.
+    This can be disabled in the settings.
+
+  - Documented it in more detain on [the `Help` page](./extension/page/help.org#work-offline).
+
+  - Added a new `offline` toolbar icon to display the above state.
+
+### Added: Reloading with state preserved
+
+- Core + Popup UI + Documentation:
+
+  - Implemented `reloadSelf` action that reloads the add-on while preserving its state.
+
+    This action is different from similar `Reload` buttons in browser's own UI in that triggering this action will reload the add-on while preserving its state.
+    Meanwhile, using the browser's buttons will reset everything and loose all reqres that are both unarchived and unstashed.
+
+  - Added a popup UI button for triggering this action.
+    (The button is only shown when a new version is available, unless debugging is enabled.)
+
+  - Implemented `Auto-reload on updates` setting to automate away clicking of that button on updates.
+    Though, it is currently disabled by default, because this feature is a bit experimental at the moment.
+
+  - Documented it a little bit on [the `Help` page](./extension/page/help.org#bugs).
+
+  - That is, from now on, after the browser notifies the add-on that it ready to be updated, the popup UI will display a button allowing you to reload it, so that the browser could load the new version instead.
+    Alternatively, you can now enable `Auto-reload on updates` and it would do that automatically.
+
+### Added: Options
+
+- Core + Popup UI:
+
+  - Implemented `Export via 'saveAs' > Bundle dumps` option as separate toggle instead of forcing you into set the maximum size to `0` to get the same effect.
+
+  - Implemented `Include in global snapshots` per-tab/per-origin setting.
+
+    I.e., you can now exclude specific tabs from being included in all-tab `DOM`-snapshots even when `Track new requests` option is enabled.
+
+- Notifications + Popup UI:
+
+  - Implemented `Notify about 'problematic' reqres` per-tab/per-origin setting.
+
+    I.e., you can now exclude specific tabs from generating notifications about `problematic` reqres even when `Generate notifications about > ... new 'problematic' reqres` option is enabled.
+
+### Changed: Misc
+
+- Notifications + Documentation:
+
+  - From now on, clicking an error notification will open [the relevant section of the `Help` page](./extension/page/help.org#error-notifications) while doing nothing for other notifications.
+
+  - Also, improved that section a little bit.
+
+- Documentation:
+
+  - Moved re-archival instructions from the top-level [`README.md`](./README.md) to
+    [the `Help` page](./extension/page/help.org#re-archival) and generalized them a bit.
+
+  - Improved many random bits of documentation in random places.
+
+- Core:
+
+  - On Chromium, there will no longer be duplicates in reqres errors lists.
+
+  - From now on, when you close a tab, all in-flight reqres in it will be emitted with `*::capture::EMIT_FORCED::BY_CLOSED_TAB` error set.
+    Before, some of them sometimes finished with `webRequest::*_ABORT` errors instead.
+
+  - Refactored a lot of internal stuff, simplifying how many internal things are done.
+
+### Added: Misc
+
+- Icons:
+
+  - `build.sh` now has a new `tiles` target which generates pretty tile images from the icons on both light and dark backgrounds.
+    This helps with debugging visual issues there.
+
+    Also, both [Patreon](https://www.patreon.com/oxij) and [GitHub](https://github.com/Own-Data-Privateer/hoardy-web) are now configured to use one of the resulting images as `og:image`.
+    For cuteness!
+
+### Fixed: Misc
+
+- Core + Documentation:
+
+  - Fixed handling of interactions between page scrolling, node hilighting, and help tooltips.
+
+    I.e., on [the `Help` page](./extension/page/help.org), highlighting an option in the popup UI by hovering over a link there, and then clicking on the help tooltip of the highlighted option will no longer make the UI look weird.
+
+- Core + Notifications:
+
+  - Fixed a small bug preventing no longer relevant notifications about `unarchived` reqres from being closed automatically.
+
 ## [tool-v0.16.0] - 2024-10-19
 
 ### Added
@@ -1229,6 +1475,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.17.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.16.1...extension-v1.17.0
 [tool-v0.16.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.5.1...tool-v0.16.0
 [extension-v1.16.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.16.0...extension-v1.16.1
 [tool-v0.15.5]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.4...tool-v0.15.5.1
@@ -1285,12 +1532,7 @@ All planned features are complete now.
 
 ## `Hoardy-Web` extension
 
-- Core+UI:
-  - Implement per-tab "Work Offline" mode and use it for files generated by `hoardy-web export mirror`.
-    So that `scrub` failures of the CLI tool would stop leaking.
 - UI:
-  - Reorganize the popup UI.
-  - Add separate per-tab toggles for limiting `DOM` snapshots taken with `Snapshot all tabs` button.
   - Improve `Internal State` and `Saved into Local Storage` UIs.
   - Add option persistence to `Internal State` and `Saved into Local Storage` UIs.
   - Add URL matching to `Internal State` and `Saved into Local Storage` UIs.
@@ -1299,11 +1541,9 @@ All planned features are complete now.
   - Track navigations and allow to use them as boundaries between batches of reqres saved in limbo mode.
   - (~25% done) Reorganize tracking- and problematic-related options into config profiles, allow them to override each over.
   - Implement per-host profiles.
-  - Implement extension auto-restart on updates.
-    This requires us to implement saving of the complete state into local storage first.
   - Implement automatic capture of `DOM` snapshots when a page changes.
 - UI:
-  - Roll/unroll popup UI in steps, a-la `uBlock Origin`.
+  - (~25% done) Roll/unroll popup UI in steps, a-la `uBlock Origin`.
     The number of settings `Hoardy-Web` now has is kind of ridiculous (and I still want more), I find it hard to find stuff in there myself now, so.
 - Core:
   - Implement automatic management of `network.proxy.no_proxies_on` setting to allow `Hoardy-Web` archival to an archiving server to work out of the box when using proxies.
