@@ -8,13 +8,14 @@ if [[ "$1" == clean ]]; then
     timestamp=$(git log --format='%ci' HEAD~1..HEAD)
 fi
 
-version=$(jq -r .version ./manifest-common.json)
+VERSION=$(jq -r .version ./manifest-common.json)
 iconTheme=privateer
 
 for target in "$@"; do
     echo "Building $target..."
 
-    NAME="Hoardy-Web-$target-v${version}"
+    NAME="Hoardy-Web-$target"
+    NAME_VERSION="$NAME-v$VERSION"
     DEST="dist/$NAME"
     install -d "$DEST"
 
@@ -68,10 +69,7 @@ for target in "$@"; do
     fi
 
     pandocArgs=( \
-        -V version=$version \
-        -V libScript=compat.js \
-        -V libScript=utils.js \
-        -V libScript=lutils.js \
+        -V "version=$VERSION" \
     )
 
     echo "  Preparing icons..."
@@ -179,13 +177,13 @@ s%(\./\([^)]*\))%(https://oxij.org/software/hoardy-web/tree/master/\1)%g
 
         (
             cd "$DEST"
-            zip -qr -9 -X "../$NAME.xpi" .
+            zip -qr -9 -X "../$NAME_VERSION.xpi" .
         )
     elif [[ "$target" =~ chromium-* ]]; then
         echo "  Zipping..."
 
         cd dist
-        zip -qr -9 -X "$NAME.zip" "$NAME"
+        zip -qr -9 -X "$NAME_VERSION.zip" "$NAME"
         cd ..
 
         echo "  Making CRX..."
@@ -197,19 +195,19 @@ s%(\./\([^)]*\))%(https://oxij.org/software/hoardy-web/tree/master/\1)%g
 
             if false && which chromium ; then
                 cd ..
-                chromium --pack-extension="./$NAME" --pack-extension-key="$key"
+                chromium --pack-extension="./$NAME_VERSION" --pack-extension-key="$key"
             else
-                ../../bin/crx.sh "../$NAME" "$key"
+                ../../bin/crx.sh "../$NAME_VERSION" "$key"
             fi
         )
 
         chromium_id=$(cat "dist/manifest-chromium-id.txt")
-        chromium_crx_url="https://github.com/Own-Data-Privateer/hoardy-web/releases/download/extension-v${version}/Hoardy-Web-$target-v$version.crx"
+        chromium_crx_url="https://github.com/Own-Data-Privateer/hoardy-web/releases/download/extension-v$VERSION/$NAME_VERSION.crx"
 
         echo "  Making update.xml..."
 
         sed "
-s%@VERSION@%${version}%g
+s%@VERSION@%${VERSION}%g
 s%@ID@%${chromium_id}%g
 s%@CRX_URL@%${chromium_crx_url}%g
 " gupdate.xml.template > "dist/update-$target.xml"

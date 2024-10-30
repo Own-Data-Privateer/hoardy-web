@@ -48,7 +48,10 @@ ul > li {
     <div id="body">
       $body$
     </div>
-    $for(libScript)$<script src="../lib/$libScript$"></script>$endfor$
+
+    <script src="../lib/compat.js"></script>
+    <script src="../lib/utils.js"></script>
+    <script src="../lib/lutils.js"></script>
     <script src="changelog.js"></script>
   </body>
 </html>

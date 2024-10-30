@@ -6,9 +6,9 @@
     <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
   </head>
   <body>
-$for(libScript)$
-    <script src="../lib/$libScript$"></script>
-$endfor$
+    <script src="../lib/compat.js"></script>
+    <script src="../lib/utils.js"></script>
+    <script src="../lib/lutils.js"></script>
     <script src="../lib/cbor-s.js"></script>
     <script src="../lib/pako.js"></script>
     <script src="../lib/pako-ext.js"></script>
