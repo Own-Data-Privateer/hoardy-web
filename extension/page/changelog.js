@@ -37,8 +37,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             focusNode(id);
     };
 
+    // number of rewritten internal links
+    let num_links = 0;
+
     // style links of different kinds differently, track history state
     for (let el of document.getElementsByTagName("a")) {
+        let id = `link-${num_links}`;
+        num_links += 1;
+        el.id = id;
+
         if (el.href.startsWith(selfURL))
             el.classList.add("internal");
         else if (el.href.startsWith(rootURL))
