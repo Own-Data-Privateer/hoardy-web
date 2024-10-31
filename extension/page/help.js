@@ -96,6 +96,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             el.onclick = (event) => {
                 history.pushState({ id }, "", selfURL + `#${id}`);
             };
+            el.onmouseover = (event) => {
+                if (columns)
+                    broadcast(["highlightNode", "popup", null]);
+            };
         }
     }
 
