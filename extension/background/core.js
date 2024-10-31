@@ -4417,7 +4417,7 @@ function fixConfig(config, oldConfig) {
         if (config.hintNotify)
             browser.notifications.create("hint-notArchivingNow", {
                 title: "Hoardy-Web: HINT",
-                message: `"Archive \`collected\` reqres by" option was disabled because the archival queue and/or the list of failed reqres are non-empty.` + annoyingNotification(config, "Generate notifications about > ... UI hints"),
+                message: `"Archive \`collected\` reqres" option was disabled because the archival queue and/or the list of failed reqres are non-empty.` + annoyingNotification(config, "Generate notifications about > ... UI hints"),
                 iconUrl: iconURL("off", 128),
                 type: "basic",
             }).catch(logError);

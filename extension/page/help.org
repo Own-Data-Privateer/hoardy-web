@@ -235,7 +235,7 @@ Since those tuples can be reconstructed back into the original =reqres= structur
 
 Normally, /picked reqres/ proceed to the =collected= state and get =queued= for archival while /dropped reqres/ proceed to being =discarded= from memory.
 
-When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= toggle]] is enabled, those =queued= reqres proceed directly to the next step.
+When [[./popup.html#div-config.archive][=Archive 'collected' reqres= toggle]] is enabled, those =queued= reqres proceed directly to the next step.
 *** "Limbo" mode
 :PROPERTIES:
 :CUSTOM_ID: limbo
@@ -279,13 +279,13 @@ before you =collected= or =discarded= everything from =in_limbo= or =Hoardy-Web=
 
 In particular:
 
-- When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= option]] is disabled but [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] is enabled, instead of archiving newly =queued= reqres, =Hoardy-Web= will /stash/ their =(loggable, dump)= tuples into browser's local storage.
+- When [[./popup.html#div-config.archive][=Archive 'collected' reqres= option]] is disabled but [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] is enabled, instead of archiving newly =queued= reqres, =Hoardy-Web= will /stash/ their =(loggable, dump)= tuples into browser's local storage.
 
 - Similarly, when both [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] and [[./popup.html#div-tabconfig.stashLimbo][=Stash 'in_limbo' reqres= option]] (or [[./popup.html#div-tabconfig.children.stashLimbo][one]]-[[./popup.html#div-config.root.stashLimbo][of]]-[[./popup.html#div-config.background.stashLimbo][the]]-[[./popup.html#div-config.extension.stashLimbo][other]] similar options) is enabled, then newly generated =in_limbo= reqres will also get immediately stashed into browser's local storage.
 
 Moreover, the following section will discuss how =Hoardy-Web= will try stashing =unarchived= reqres into browser's local storage too.
 
-Note however, that even with [[./popup.html#div-config.stash][stashing]] enabled =Hoardy-Web= will skip disk IO whenever possible: e.g., if both [[./popup.html#div-config.archive][=Archive 'collected' reqres by=]] and [[./popup.html#div-config.archiveSubmitHTTP][=Archive 'collected' reqres by > ... submitting them via 'HTTP'=]] options discussed below are enabled, =Hoardy-Web= will first try to archive each new =collected= reqres straight from memory to the archiving server and only if that process fails will it attempt stashing them to local storage instead.
+Note however, that even with [[./popup.html#div-config.stash][stashing]] enabled =Hoardy-Web= will skip disk IO whenever possible: e.g., if both [[./popup.html#div-config.archive][=Archive 'collected' reqres=]] and [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'=]] options discussed below are enabled, =Hoardy-Web= will first try to archive each new =collected= reqres straight from memory to the archiving server and only if that process fails will it attempt stashing them to local storage instead.
 
 Meaning that
 
@@ -295,13 +295,13 @@ Meaning that
 The above also implies that, technically, stashing is not a silver bullet against data loss.
 To try and make it such would mean unconditional immediate stashing of all captured data, which would waste a lot of disk IO on most =Hoardy-Web= configurations.
 
-When both [[./popup.html#div-config.archive][=Archive 'collected' reqres by= option]] and [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] are disabled, then, after a new reqres gets =queued=, =Hoardy-Web= will generate a new notification complaining about it, unless [[./popup.html#div-config.archiveStuckNotify][that option]] is disabled too.
+When both [[./popup.html#div-config.archive][=Archive 'collected' reqres= option]] and [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] are disabled, then, after a new reqres gets =queued=, =Hoardy-Web= will generate a new notification complaining about it, unless [[./popup.html#div-config.archiveStuckNotify][that option]] is disabled too.
 
 You can also forcefully stash all currently =queued=, =in_limbo=, and =unarchived= reqres by pressing [[./popup.html#stashAll][this button]].
 It stashes everything immediately and unconditionally, ignoring all other stashing settings.
 When reloading the extension via [[./popup.html#div-reloadSelf][the =Reload= button]] or via [[./popup.html#div-config.autoReloadOnUpdates][=Auto-reload on updates= option]], this action will be run automatically.
 *** Glossary
-- A /stuck queued reqres/ is a =queued= reqres that got stuck in the archival queue, e.g. because it got queued while [[./popup.html#div-config.archive][=Archive 'collected' reqres by= option]] was disabled.
+- A /stuck queued reqres/ is a =queued= reqres that got stuck in the archival queue, e.g. because it got queued while [[./popup.html#div-config.archive][=Archive 'collected' reqres= option]] was disabled.
 
 - [[./popup.html#div-stats.stashed][A /stashed reqres/]] is a reqres that was temporarily =stashed= (backed-up) into browser's local storage while it is still being kept in =Hoardy-Web='s memory.
   I.e., the stash is a persistent on-disk backup for in-memory reqres.
@@ -320,16 +320,16 @@ Using [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]] will al
 Note, however, that /problematic reqres/ will not get automatically elided from the log, nor forgotten by using the above buttons.
 To forget about them, you will have to unset the /problematic/ flag on the respective reqres via [[./popup.html#unmarkAllProblematic][this button]], or [[./popup.html#unmarkAllTabProblematic][that button]], or use similar buttons in [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]].
 ** Step 4: Archival
-When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= toggle]] is enabled, =Hoardy-Web= will pop =queued= reqres from the archival queue one by one and then perform one or more of the following (in order they are listed):
+When [[./popup.html#div-config.archive][=Archive 'collected' reqres= toggle]] is enabled, =Hoardy-Web= will pop =queued= reqres from the archival queue one by one and then perform one or more of the following (in order they are listed):
 
-- if [[./popup.html#div-config.archiveExportAs][=Archive 'collected' reqres by > ... exporting them using 'saveAs'= option]] is enabled, =Hoardy-Web= will
+- if [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'= option]] is enabled, =Hoardy-Web= will
   - append the =dump=, as a byte string, to a (per-=bucket=, see below) =bundle=,
   - and then
     - if the =bundle= gets larger than [[./popup.html#div-config.exportAsMaxSize][this]] or
     - after a delay controlled by [[./popup.html#div-config.exportAsInFlightTimeout][that]] and [[./popup.html#div-config.exportAsTimeout][this]] options
     export the resulting =bundle= via browser's =saveAs= mechanism (i.e. generate a fake-Download);
 
-- if [[./popup.html#div-config.archiveSubmitHTTP][=Archive 'collected' reqres by > ... submitting them via 'HTTP'= option]] is enabled, =Hoardy-Web= will submit the =dump= to the archiving server at [[./popup.html#div-config.submitHTTPURLBase][=Server URL= setting]] by making an =HTTP POST= request with the =dump= as request body (which is denoted by =srvIO= states on the diagram above);
+- if [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'= option]] is enabled, =Hoardy-Web= will submit the =dump= to the archiving server at [[./popup.html#div-config.submitHTTPURLBase][=Server URL= setting]] by making an =HTTP POST= request with the =dump= as request body (which is denoted by =srvIO= states on the diagram above);
 
 - if any of the above fails =Hoardy-Web= will
 
@@ -339,20 +339,20 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres by= toggle]]
 
   - stop processing this reqres;
 
-- otherwise, if [[./popup.html#div-config.archiveSaveLS][=Archive 'collected' reqres by > ... saving them into local storage= option]] is enabled, =Hoardy-Web= will
+- otherwise, if [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is enabled, =Hoardy-Web= will
 
   - try to save the =(loggable, dump)= tuple into browser's local storage (which is denoted by =saveIO= states on the diagram above),
 
   - if saving fails, it will move the reqres into the =unarchived= state instead, and stop processing this reqres;
 
-- finally, if [[./popup.html#div-config.archiveSaveLS][=Archive 'collected' reqres by > ... saving them into local storage= option]] is disabled or if saving to local storage succeeds, =Hoardy-Web= will discard the reqres from memory.
+- finally, if [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is disabled or if saving to local storage succeeds, =Hoardy-Web= will discard the reqres from memory.
 
-You can enable more than one [[./popup.html#sub-config.archive][archival method]] at the same time.
+You can enable more than one [[./popup.html#on-archive][archival method]] at the same time.
 For a given =loggable=, =Hoardy-Web= will remember and skip previously successful archival methods if the =loggable= ever returns to the archival queue again (e.g., when one of the archival methods fails and you later ask =Hoardy-Web= to retry the archival, or when you re-queue a reqres from local storage from [[./popup.html#showSaved][the =Saved in Local Storage= page]]).
 
 Note the difference between /stashed/ and /saved/ reqres:
 
-- /stashed/ reqres are kept in memory until they get successfully archived by all configured [[./popup.html#sub-config.archive][archival methods]] (or until you manually discard them, in case they were stashed =in_limbo=);
+- /stashed/ reqres are kept in memory until they get successfully archived by all configured [[./popup.html#on-archive][archival methods]] (or until you manually discard them, in case they were stashed =in_limbo=);
 - /saved/ reqres get dumped into browser's local storage and, if that succeeds, discarded from memory (until you manually load them back from [[./popup.html#showSaved][there]]).
 *** Buckets
 :PROPERTIES:
@@ -369,7 +369,7 @@ To implement this, for each reqres in the archival queue, =Hoardy-Web= computes 
 - while [[./popup.html#div-config.root.bucket][this one]] will be used for new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
 - and so forth for the others (press =?= symbols to see a tooltip explaining what each of them does).
 
-Evaluation of the =bucket= parameter is done just before each archival attempt, so if the queue is not yet empty, and you disable [[./popup.html#div-config.archive][=Archive 'collected' reqres by=]], edit some of the "Bucket" settings, and enable [[./popup.html#div-config.archive][it]] again, =Hoardy-Web= will start using the new setting immediately.
+Evaluation of the =bucket= parameter is done just before each archival attempt, so if the queue is not yet empty, and you disable [[./popup.html#div-config.archive][=Archive 'collected' reqres=]], edit some of the "Bucket" settings, and enable [[./popup.html#div-config.archive][it]] again, =Hoardy-Web= will start using the new setting immediately.
 
 When exporting via =saveAs=, =bucket= value will be used in the file name of the generated fake-Download =.wrrb= file and the dumps will be split into separate fake-Download files by said =bucket=.
 I.e., internally, the =bundle= discussed above is actually a set of per-=bucket= =bundle='s.
@@ -387,7 +387,7 @@ If you restart your browser, thus starting a new =Hoardy-Web= session, =Hoardy-W
 
 - /An archived reqres/ is either /exported/, /submitted/, or /saved/ reqres.
 ** Handling of failures
-As noted above, if any of the [[./popup.html#sub-config.archive][archival methods]] fail, the reqres in question will be moved into the =unarchived= state.
+As noted above, if any of the [[./popup.html#on-archive][archival methods]] fail, the reqres in question will be moved into the =unarchived= state.
 
 Submissions of reqres that =unarchived= because of networking issues will be retried automatically every 60 seconds.
 Archivals of reqres rejected by the archiving server or those that failed to be saved to browser's local storage will not be retried automatically as those usually happen when there is no space left on the device you are archiving to.
@@ -399,7 +399,7 @@ E.g., after the extension got reloaded with a non-empty queue, or if you previou
 If [[./popup.html#div-config.archiveFailedNotify][this option]] is enabled and a new reqres recently moved to the =unarchived= state, a new notification will be generated.
 If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
-- [[./popup.html#div-stats.unarchived][A /failed to archive reqres/]] is a reqres that is currently =unarchived=, i.e. a reqres that failed to be archived by one of the enabled [[./popup.html#sub-config.archive][archival methods]].
+- [[./popup.html#div-stats.unarchived][A /failed to archive reqres/]] is a reqres that is currently =unarchived=, i.e. a reqres that failed to be archived by one of the enabled [[./popup.html#on-archive][archival methods]].
   It is also a part of the sum of the "Failed" part of the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line.
 
   You can retry archiving these by pressing [[./popup.html#retryUnarchived][this button]].
@@ -410,16 +410,16 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
 
 If you archived some data [[./popup.html#div-config.archiveSaveLS][by saving it into local storage]] and you now want to re-archive the same data using another method, do the following:
 
-- enable [[./popup.html#sub-config.archive][the option for your desired archival method]] (e.g., [[./popup.html#div-config.archiveExportAs][=Archive 'collected' reqres by > ... exporting them using 'saveAs'=]]),
-- but keep the [[./popup.html#div-config.archiveSaveLS][=Archive 'collected' reqres by > ... saving them into local storage= option]] enabled,
-- if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=... exporting them using 'saveAs'= option]], you should probably temporarily set [[./popup.html#div-config.exportAsTimeout][this timeout]] to =0= to prevent idle waiting,
+- enable [[./popup.html#on-archive][the option for your desired archival method]] (e.g., [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'=]]),
+- but keep the [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] enabled,
+- if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=exporting them via 'saveAs'= option]], you should probably temporarily set [[./popup.html#div-config.exportAsTimeout][this timeout]] to =0= to prevent idle waiting,
 - press the [[./popup.html#showSaved][the =Show= button on =Saved in LS= line]] in the popup to open the =Saved in Local Storage= page;
 - set the filter of you desired archival method there to =false= (red) to make it only display reqres that were not yet archived using that archival method (e.g., set =Exported via 'saveAs'= to =false=);
 - then re-queue the data saved in local storage:
   - press the =Re-queue= button;
   - wait for =Hoardy-Web= to finish archival of newly re-queued reqres;
-  - (if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=... exporting them using 'saveAs'= option]] while running on a truly ancient hardware and the above process is slow, you can disable [[./popup.html#div-config.gzipExportAs][the =GZip outputs= option]]; though, the resulting =WRR= bundles will take a lot of disk space in this case);
-  - (also, if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=... exporting them using 'saveAs'= option]], then after each =Re-queue= you should wait for the browser to save the resulting generated =WRR= bundles to disk and then confirm that each generated fake-Download did not fail; why? because if you re-archive a lot of data, thus generating many =WRR= bundles at once, and you run out of disk space in the process, the browser might fail a random subset of the generated fake-Downloads without telling =Hoardy-Web= anything about it; this is not an issue when archiving by [[./popup.html#div-config.archiveSubmitHTTP][=... submitting them via 'HTTP'=]], because archiving servers report their errors properly);
+  - (if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=exporting them via 'saveAs'= option]] while running on a truly ancient hardware and the above process is slow, you can disable [[./popup.html#div-config.gzipExportAs][the =GZip outputs= option]]; though, the resulting =WRR= bundles will take a lot of disk space in this case);
+  - (also, if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=exporting them via 'saveAs'= option]], then after each =Re-queue= you should wait for the browser to save the resulting generated =WRR= bundles to disk and then confirm that each generated fake-Download did not fail; why? because if you re-archive a lot of data, thus generating many =WRR= bundles at once, and you run out of disk space in the process, the browser might fail a random subset of the generated fake-Downloads without telling =Hoardy-Web= anything about it; this is not an issue when archiving by [[./popup.html#div-config.archiveSubmitHTTP][=... submitting them via 'HTTP'=]], because archiving servers report their errors properly);
   - =Re-queue= more data, repeat until everything is re-archived.
 - set [[./popup.html#div-config.exportAsTimeout][this timeout]] to its previous value, if you changed it.
 
@@ -553,8 +553,8 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 
   - Disable =Always use private browsing mode= browser setting and restart the browser, thus allowing =Hoardy-Web= access to =IndexedDB= again.
   - Ensure [[./popup.html#div-config.preferIndexedDB][=Prefer 'IndexedDB' API= setting]] is disabled.
-  - Ensure [[./popup.html#div-config.archiveSaveLS][=Archive 'collected' reqres by > ... saving them into local storage= option]] is enabled.
-  - Ensure [[./popup.html#div-config.archive][=Archive 'collected' reqres by=]] is enabled.
+  - Ensure [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is enabled.
+  - Ensure [[./popup.html#div-config.archive][=Archive 'collected' reqres=]] is enabled.
   - Open [[./popup.html#showSaved][the =Saved in Local Storage= page]].
   - Set =In 'storage.local'= filter there to =false= (red).
   - Press =Re-queue= button there to re-archive all those saved reqres from =IndexedDB= to =storage.local=.
@@ -773,7 +773,7 @@ If you are reading this page outside of the extension's UI be sure to read [[#to
 #+END_EXPORT
 ** General
 *** Does =Hoardy-Web= send any of my captured web browsing data anywhere?
-=Hoardy-Web= only ever sends your data to [[./popup.html#div-config.submitHTTPURLBase][the archiving =Server URL=]] you specify when [[./popup.html#div-config.archiveSubmitHTTP][the =Archive 'collected' reqres by > ... submitting them via 'HTTP'= option]] is enabled.
+=Hoardy-Web= only ever sends your data to [[./popup.html#div-config.submitHTTPURLBase][the archiving =Server URL=]] you specify when [[./popup.html#div-config.archiveSubmitHTTP][the =Submit dumps via 'HTTP'= option]] is enabled.
 
 Nowhere else.
 Never else.
