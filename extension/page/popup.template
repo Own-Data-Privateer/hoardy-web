@@ -10,7 +10,9 @@
 @layer defaults {
 body {
     border: 3px solid var(--outline-color);
+    box-sizing: border-box;
     margin: 0;
+    max-width: 455px; /* NB: keep in sync with values in ./help.template */
     min-width: 300px;
     padding: 5px;
 }
@@ -185,15 +187,18 @@ input.target {
 .off-problematicNotify .on-problematicNotify *,
 .off-limboNotify .on-limboNotify,
 .off-limboNotify .on-limboNotify * {
+    --box-shadow-color: var(--text-inactive-background);
     --button-background: var(--text-inactive-background);
     --button-color: var(--text-inactive-color);
     --code-background: var(--text-inactive-background);
     --hover-background: var(--text-inactive-color);
     --hover-color: var(--text-inactive-background);
     --input-border-color: var(--text-inactive-color);
-    --shadow-color: var(--text-inactive-background);
+    --input-color: var(--text-inactive-color);
+    --separator-color: var(--text-inactive-color);
     --text-background: var(--text-inactive-background);
     --text-color: var(--text-inactive-color);
+    --text-shadow-color: var(--text-inactive-background);
     --toggle-background-bad: var(--text-inactive-background);
     --toggle-background-good: var(--text-inactive-background);
     --toggle-background: var(--text-inactive-background);

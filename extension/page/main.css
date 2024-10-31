@@ -17,15 +17,16 @@
     --button-background: #f0f0f0;
     --button-border-color: var(--input-border-color);
     --button-color: var(--text-color);
-    --code-background:  #00bb0020;
-    --code-border-color:  #f8f80020;
+    --code-background: #00bb0020;
+    --code-border-color: #f8f80020;
+    --code-text-color: var(--text-color);
     --help-btn-background: #aaaaaa;
     --help-btn-border-color : #bbbbbb;
     --help-btn-checked-background: #666666;
     --help-btn-checked-border-color : #888888;
     --help-btn-checked-color: #ffffff;
     --help-btn-color: #fafafa;
-    --help-tip-background:  #fffffa;
+    --help-tip-background: #fffffa;
     --help-tip-border-color: #aaaaaa;
     --help-tip-text: var(--text-color);
     --hover-background: #d0d0d0;
@@ -36,7 +37,6 @@
     --input-color: var(--text-color);
     --outline-color: #aaaaaa;
     --separator-color: #000000;
-    --shadow-color: #000000;
     --target-background-1: #ffaa00;
     --target-background-2: #ffaa0040;
     --target-color: var(--text-color);
@@ -44,6 +44,7 @@
     --text-color: inherit;
     --text-inactive-background: #cfcfcf;
     --text-inactive-color: #afafaf;
+    --text-shadow-color: #000000;
     --toggle-background-bad: #fb3230;
     --toggle-background-good: #02bb50;
     --toggle-background: #f8f850;
@@ -69,7 +70,7 @@
 
 .colorblind {
     --a-internal: #0000a8;
-    --code-background:  #0000bb20;
+    --code-background: #0000bb20;
     --toggle-background-good: #0250bb;
     --toggle-border-color-good: #053e94;
     --untoggle-background-good: #9494f855;
@@ -79,11 +80,12 @@
 .dark {
     background-color: #0c0b12;
     color: #fff;
+
     --a-external: #f80000;
     --attention-background-2: #000000;
     --button-background: #101010;
-    --code-background:  #00bb0030;
-    --code-border-color:  #f8f80030;
+    --code-background: #00bb0030;
+    --code-border-color: #f8f80030;
     --help-btn-background: #333333;
     --help-btn-border-color : #666666;
     --help-btn-checked-background: #aaaaaa;
@@ -95,14 +97,14 @@
     --hover-border-color: #e0e0e0;
     --outline-color: #333333;
     --separator-color: #ffffff;
-    --shadow-color: #ffffff;
     --text-inactive-background: #303030;
     --text-inactive-color: #505050;
+    --text-shadow-color: #ffffff;
     --untoggle-background: #515138;
 }
 
 .dark.colorblind {
-    --code-background:  #0000bb30;
+    --code-background: #0000bb30;
 }
 
 #body {
@@ -128,7 +130,7 @@
 
 h1, h2, h3, h4,
 p, span, label,
-pre, code {
+pre, code, a {
     color: var(--text-color);
 }
 
@@ -137,9 +139,11 @@ a, code {
 }
 
 code {
-    background: var(--code-background);
-    border: 1px solid var(--code-border-color);
+    --text-background : var(--code-background);
+    --text-color: var(--code-text-color);
+    background: var(--text-background);
     border-radius: 5px;
+    border: 1px solid var(--code-border-color);
     line-height: 14px;
 }
 
@@ -151,21 +155,22 @@ pre code {
 }
 
 a {
-    color: var(--a-external);
+    --text-color: var(--a-external);
     text-decoration: solid underline;
 }
 
 /* points to a target on the same page */
 .internal {
-    color: var(--a-internal);
+    --text-color: var(--a-internal);
     text-decoration: dotted underline;
 }
 
 /* points to a target on another local page */
 .local {
-    color: var(--a-local);
+    --text-color: var(--a-local);
+    --text-shadow-color: var(--a-local);
     text-decoration: dotted underline;
-    text-shadow: 0px 0px 2px var(--a-local);
+    text-shadow: 0px 0px 2px var(--text-shadow-color);
 }
 
 .flex,
@@ -352,7 +357,7 @@ div.help-tip {
     background: var(--help-tip-background);
     border-radius: 3px;
     border: 1px solid var(--help-tip-border-color);
-    box-shadow: 1px 1px 3px var(--shadow-color);
+    box-shadow: 1px 1px 3px var(--box-shadow-color);
     color: var(--help-tip-text);
     font: 12px sans-serif;
     padding: 4px;
@@ -443,8 +448,9 @@ input.attention {
 
     --button-border-color: var(--juice);
     --button-color: var(--light);
-    --code-background:  #aabb0030;
-    --code-border-color:  #f8f80030;
+    --code-background: #aabb0030;
+    --code-border-color: #f8f80030;
+    --code-text-color:  var(--pumpkin);
     --input-border-color: var(--pumpkin);
     --input-color: var(--light);
     --outline-color: var(--pumpkin-dark);
@@ -473,28 +479,34 @@ input.attention {
 .halloween h3,
 .halloween h4 {
     --text-color: var(--pumpkin);
-    text-shadow: 0px 0px 1em var(--light);
+    --text-shadow-color: var(--light);
+    text-shadow: 0px 0px 1em var(--text-shadow-color);
 }
 
 .halloween input {
-    box-shadow: 0px 0px 1em var(--pumpkin);
+    --box-shadow-color: var(--pumpkin);
+    box-shadow: 0px 0px 1em var(--box-shadow-color);
 }
 
 .halloween input[type="button"] {
-    box-shadow: 0px 0px 1em var(--juice);
+    --box-shadow-color: var(--juice);
+    box-shadow: 0px 0px 1em var(--box-shadow-color);
 }
 
 .halloween input[type="checkbox"].help-btn {
-    box-shadow: 0px 0px 0.75em var(--moonlight);
+    --box-shadow-color: var(--moonlight);
+    box-shadow: 0px 0px 0.75em var(--box-shadow-color);
 }
 
 .halloween input[type="checkbox"].toggle {
-    box-shadow: 0px 0px 1em var(--light);
+    --box-shadow-color: var(--light);
+    box-shadow: 0px 0px 1em var(--box-shadow-color);
 }
 
 .halloween div.ui.boolean label {
     --text-color: var(--juice);
-    text-shadow: 0px 0px 1em var(--juice);
+    --text-shadow-color: var(--juice);
+    text-shadow: 0px 0px 1em var(--text-shadow-color);
 }
 
 .halloween label:hover input[type="checkbox"].toggle::before {

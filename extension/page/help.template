@@ -9,12 +9,17 @@
     <style>
 @layer defaults {
 :root {
-    /* NB: when updating these two, also set `minWidth` in ./help.js to their sum */
-    --body: calc(900px - 2 * var(--padding));
+    /* NB: when updating these two, also set `max-width` in
+       ./popup.template and `minWidth` in ./help.js to their sum
+    */
+    --body: 900px;
     --popup: 455px;
-
     --padding: 10px;
     --popup-height: 2000px;
+}
+
+#body, #container, #iframe {
+    box-sizing: border-box;
 }
 
 body {
@@ -41,7 +46,7 @@ body.linear {
 
 .linear #body {
     padding: 0 var(--padding);
-    width: calc(100% - 2 * var(--padding));
+    width: 100%;
 }
 
 .linear #container {
@@ -52,7 +57,7 @@ body.linear {
     margin: 0 auto;
     min-height: var(--popup-height);
     min-width: var(--popup);
-    width: calc(100% - 2 * var(--padding));
+    width: 100%;
 }
 
 body.columns {
@@ -68,7 +73,7 @@ body.columns {
     margin: 0 0 0 auto;
     overflow-y: scroll;
     padding: 0 calc(2 * var(--padding)) 0 0;
-    width: calc(100% - 2 * var(--padding));
+    width: 100%;
 }
 
 .columns #container {
