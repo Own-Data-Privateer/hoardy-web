@@ -22,9 +22,6 @@
 "use strict";
 
 document.addEventListener("DOMContentLoaded", async () => {
-    let config = await browser.runtime.sendMessage(["getConfig"]);
-    setRootClasses(config);
-
     let selfURL = browser.runtime.getURL("/page/help.html");
     let popupURL = browser.runtime.getURL("/page/popup.html");
     let rootURL = browser.runtime.getURL("/");
@@ -98,6 +95,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // `CSS` because we use the `columns` value above too.
     function resize() {
         let w = window.innerWidth;
+        let h = window.innerHeight;
+        let ih = iframe.contentDocument.body.scrollHeight;
+
         console.log("current width:", w);
         columns = w >= minWidth;
 
@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         setConditionalClass(document.body, !columns, "linear");
 
         // Prevent independent scroll in `columns` layout.
-        let h1 = columns ? `${window.innerHeight - 5}px` : null;
+        let h1 = columns ? `${h - 5}px` : null;
         body.style["max-height"]
             = iframe.style["max-height"]
             = h1;
@@ -115,12 +115,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         body.style["min-height"] = h2;
 
         // Prevent in-iframe scroll in `linear` layout.
-        let h3 = columns ? h1 : `${iframe.contentDocument.body.scrollHeight + 20}px`;
+        let h3 = columns ? h1 : `${ih + 20}px`;
         iframe.style["min-height"] = h3;
     }
-
-    resize();
-    window.onresize = resize;
 
     // expand shortcut macros
     let shortcuts = await getShortcuts();
@@ -158,8 +155,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     // add default handlers
     await subscribeToExtension(catchAll(processUpdate));
 
+    {
+        let config = await browser.runtime.sendMessage(["getConfig"]);
+        setRootClasses(config);
+    }
+
+    window.onresize = catchAll(resize);
+    catchAll(resize)();
+
+    // give it a chance to re-compute the layout
+    await sleep(1);
+
     // show UI
-    document.body.style["display"] = null;
+    document.body.style["visibility"] = null;
 
     // highlight current target
     focusHashNode();

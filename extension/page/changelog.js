@@ -22,9 +22,6 @@
 "use strict";
 
 document.addEventListener("DOMContentLoaded", async () => {
-    let config = await browser.runtime.sendMessage(["getConfig"]);
-    setRootClasses(config);
-
     let selfURL = browser.runtime.getURL("/page/changelog.html");
     let rootURL = browser.runtime.getURL("/");
 
@@ -63,8 +60,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     // add default handlers
     await subscribeToExtension(catchAll(processUpdate));
 
+    {
+        let config = await browser.runtime.sendMessage(["getConfig"]);
+        setRootClasses(config);
+    }
+
     // show UI
-    document.body.style["display"] = null;
+    document.body.style["visibility"] = null;
 
     // highlight current target
     focusHashNode();

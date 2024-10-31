@@ -44,7 +44,7 @@ ul > li {
 }
     </style>
   </head>
-  <body style="display: none">
+  <body style="visibility: hidden">
     <div id="body">
       $body$
     </div>
