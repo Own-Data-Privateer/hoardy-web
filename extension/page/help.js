@@ -34,20 +34,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     let minWidth = 1355; // see ./help.template
     let columns = true;
 
-    // setup history navigation
-    window.onpopstate = (event) => {
-        if (event.state === null)
-            return;
-        let id = event.state.id;
-        if (id !== undefined)
-            focusNode(id);
-    };
-
     // allow to un-highlight currently highlighted node
     document.body.addEventListener("click", (event) => {
         highlightNode(null);
         broadcast(["highlightNode", "popup", null]);
     });
+
+    setupHistoryPopState();
 
     // number of rewritten internal links
     let num_links = 0;
@@ -65,8 +58,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             el.href = "javascript:void(0)";
             el.onclick = (event) => {
                 event.cancelBubble = true;
-                history.pushState({ id }, "", selfURL + `#${id}`);
-                history.pushState({ id: target }, "", selfURL + `#${target}`);
+                historyFromTo({ id }, { id: target });
                 focusNode(target);
             };
             el.onmouseover = (event) => {
@@ -79,10 +71,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             el.href = "javascript:void(0)";
             el.onclick = (event) => {
                 event.cancelBubble = true;
-                if (!columns) {
-                    history.pushState({ id }, "", selfURL + `#${id}`);
-                    history.pushState({}, "", popupURL + `#${target}`);
-                }
+                if (!columns)
+                    historyFromTo({ id }, popupURL + `#${target}`);
                 broadcast(["focusNode", "popup", target]);
             };
             el.onmouseover = (event) => {
@@ -94,7 +84,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 el.classList.add("local");
 
             el.onclick = (event) => {
-                history.pushState({ id }, "", selfURL + `#${id}`);
+                historyFromTo({ id });
             };
             el.onmouseover = (event) => {
                 if (columns)

@@ -28,14 +28,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let selfURL = browser.runtime.getURL("/page/changelog.html");
     let rootURL = browser.runtime.getURL("/");
 
-    // setup history navigation
-    window.onpopstate = (event) => {
-        if (event.state === null)
-            return;
-        let id = event.state.id;
-        if (id !== undefined)
-            focusNode(id);
-    };
+    setupHistoryPopState();
 
     // number of rewritten internal links
     let num_links = 0;
@@ -52,7 +45,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             el.classList.add("local");
 
         el.onclick = (event) => {
-            history.pushState({ id }, "", selfURL + `#${id}`);
+            historyFromTo({ id });
         };
     }
 

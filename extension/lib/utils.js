@@ -719,6 +719,33 @@ function focusHashNode(scrollIntoViewOptions, showAllFunc, hideAllFunc) {
     focusNode(hash, scrollIntoViewOptions, showAllFunc, hideAllFunc);
 }
 
+// setup history navigation
+function setupHistoryPopState() {
+    window.onpopstate = (event) => {
+        let state = event.state;
+        if (state === null)
+            return;
+        let id = state.id;
+        if (id !== undefined)
+            focusNode(id);
+    };
+}
+
+function historyFromTo(fromState, to) {
+    if (equalRec(history.state, fromState))
+        return;
+
+    let fromURL = "#" + fromState.id;
+    history.pushState(fromState, "", fromURL);
+
+    if (typeof to === "string")
+        history.pushState({ skip: true }, "", to);
+    else if (to !== undefined) {
+        let toURL = "#" + to.id;
+        history.pushState(to, "", toURL);
+    }
+}
+
 function handleDefaultUpdate(update, thisTabId, showAllFunc, hideAllFunc) {
     let [what, reqTabId, data1, data2] = update;
     if (reqTabId !== thisTabId)
