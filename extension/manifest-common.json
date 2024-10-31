@@ -41,13 +41,13 @@
             "description": "For the currently active tab, toggle `Include in global snapshots` setting and reset the related option for the tab's new children"
         },
         "toggleTabConfigChildrenSnapshottable": {
-            "description": "For currently active tab's new children, toggle `Enable 'Include in global snapshots'` setting"
+            "description": "For currently active tab's new children, toggle `Set 'Include in global snapshots'` setting"
         },
         "toggleTabConfigWorkOffline": {
             "description": "For the currently active tab, toggle `Work Offline` setting (then, if impure, set `Track new requests` setting to the opposite value) and reset the related option for the tab's new children"
         },
         "toggleTabConfigChildrenWorkOffline": {
-            "description": "For currently active tab's new children, toggle `Enable 'Work Offline'` setting (then, if impure, set `Enable 'Track new requests'` setting to the opposite value)"
+            "description": "For currently active tab's new children, toggle `Set 'Work Offline'` setting (then, if impure, set `Set 'Track new requests'` setting to the opposite value)"
         },
         "toggleTabConfigTracking": {
             "suggested_key": {
@@ -56,13 +56,13 @@
             "description": "For the currently active tab, toggle `Track new requests` setting and reset the related option for the tab's new children"
         },
         "toggleTabConfigChildrenTracking": {
-            "description": "For currently active tab's new children, toggle `Enable 'Track new requests' setting`"
+            "description": "For currently active tab's new children, toggle `Set 'Track new requests' setting`"
         },
         "toggleTabConfigProblematicNotify": {
             "description": "For the currently active tab, toggle `Notify about 'problematic' reqres` setting and reset the related option  for the tab's new children"
         },
         "toggleTabConfigChildrenProblematicNotify": {
-            "description": "For currently active tab's new children, toggle `Enable 'Notify about 'problematic' reqres'` setting"
+            "description": "For currently active tab's new children, toggle `Set 'Notify about 'problematic' reqres'` setting"
         },
         "toggleTabConfigLimbo": {
             "suggested_key": {
@@ -71,7 +71,7 @@
             "description": "For the currently active tab, toggle `Pick into limbo` setting and reset the related option for the tab's new children"
         },
         "toggleTabConfigChildrenLimbo": {
-            "description": "For currently active tab's new children, toggle `Enable 'Pick into limbo'` setting"
+            "description": "For currently active tab's new children, toggle `Set 'Pick into limbo'` setting"
         },
         "unmarkAllProblematic": {
             "description": "Unmark all problematic reqres"
