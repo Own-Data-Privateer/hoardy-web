@@ -6,6 +6,64 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is [a TODO list](#todo) with planned future changes.
 
+## [extension-v1.17.1] - 2024-11-01: Annoyance fixes
+
+### Changed
+
+- Popup UI:
+
+  - Reverted most of the block reordering bit of popup UI rework of `extension-v1.17.0`.
+
+    The "Globally" block is near the top again.
+
+  - Edited the "Persistence" block a bit more.
+
+    Mainly, to stop graying out always-useful stat lines, even when the associated features are disabled, to prevent possible confusion there.
+
+  - Renamed some options and stat lines, mostly to make their names shorter to make popup UI on Fenix more readable.
+
+- Toolbar button:
+
+  - Edited its title format to be much shorter, especially on Fenix.
+
+  - Reverted the ordering of parts there to how it was before `extension-v1.17.0`.
+
+    The (much shorter now) "globally" part is at the front again because otherwise the badge being at the front there too without an explanation of its format is kind of confusing.
+
+- Core + All internal pages:
+
+  - Improved message handling infrastructure.
+
+  - Used it to improve initialization functions of all internal pages, improving efficiency and making the resulting UI much less flaky.
+
+- [The `Help` page](./extension/page/help.org):
+
+  - Documented what `webNavigation` permission is used for, improved the rest a bit.
+
+- `*`:
+
+  - Renamed `build.sh` `firefox` target to `firefox-mv2`, for consistency.
+
+### Fixed
+
+- UI:
+
+  - Fixed flaky rendering of [`Help`](./extension/page/help.org) and `Changelog` pages on Fenix.
+
+    They render properly now the very first time you load them, no reloads needed.
+
+  - Fixed duplication of history entries when navigating internal links.
+
+  - Fixed source links sometimes failing to being highlighted when pressing the browser's "Back" button.
+
+  - Fixed some small `CSS` nitpicks.
+
+- Popup UI + Documentation:
+
+  - Realigned some help strings with reality.
+
+- Fixed some more mostly inconsequential things.
+
 ## [extension-v1.17.0] - 2024-10-30: Halloween special: major UI and state display improvements, fine-grained `Work offline` mode, add-on reloading with its state preserved, new options, etc
 
 In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij) now.
@@ -1475,6 +1533,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.17.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.17.0...extension-v1.17.1
 [extension-v1.17.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.16.1...extension-v1.17.0
 [tool-v0.16.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.5.1...tool-v0.16.0
 [extension-v1.16.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.16.0...extension-v1.16.1
