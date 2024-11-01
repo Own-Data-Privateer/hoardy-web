@@ -1044,6 +1044,10 @@ function forgetHistory(tabId, rrfilter) {
 let perWindowUpdates = !useDebugger && !isMobile;
 
 function setTitle(windowId, tabId, title) {
+    if (!isMobile)
+        // mobile browsers don't have that much space there
+        title = "Hoardy-Web: " + title;
+
     let attrs = perWindowUpdates
         ? { windowId, title }
         : { tabId, title };
@@ -1147,7 +1151,7 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
             badge += stats.issues.toString();
 
         if (stats.errored > 0) {
-            badge += "E";
+            badge += "!";
             color = Math.max(color, 2);
             chunks.push(`internal errors on ${stats.errored} reqres`);
         }
@@ -1164,12 +1168,12 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
         if (stats.in_flight > 0) {
             badge += "T";
             color = Math.max(color, 1);
-            chunks.push(`${stats.in_flight} in-flight reqres`);
+            chunks.push(`tracking ${stats.in_flight} in-flight reqres`);
         }
         if (stats.finishing_up > 0) {
             badge += "T";
             color = Math.max(color, 1);
-            chunks.push(`${stats.finishing_up} finishing-up reqres`);
+            chunks.push(`tracking ${stats.finishing_up} finishing-up reqres`);
         }
         if (stats.queued > 0) {
             badge += "Q";
@@ -1190,39 +1194,43 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
             color = Math.max(color, 1);
             chunks.push(`${stats.in_limbo} in-limbo reqres`);
         }
-
         if (config.workOffline) {
             badge += "O";
-            chunks.push("working offline");
+            chunks.push("work offline");
         }
-
         if (!config.collecting) {
-            badge += "N";
-            chunks.push("not tracking new reqres");
-        } else if (stats.in_flight + stats.finishing_up
-                   + stats.queued + stats.bundledAs === 0)
-            chunks.push("idle");
-
-        if (!config.archive && !config.stash) {
-            badge += "H";
-            color = Math.max(color, 1);
-            chunks.push("ephemeral mode (both archiving and stashing are disabled)");
+            badge += "I";
+            chunks.push("ignore new requests");
         }
-        if (config.autoPopInLimboDiscard || config.discardAll) {
-            badge += "!";
+        if (!config.stash && !config.archive) {
+            badge += "?";
+            color = Math.max(color, 1);
+            chunks.push("ephemeral collection");
+        }
+        if (config.autoPopInLimboDiscard) {
+            badge += "/L";
             color = Math.max(color, 2);
-            chunks.push("auto-discarding");
+            chunks.push("auto-discard in-limbo");
+        }
+        if (config.discardAll) {
+            badge += "/Q";
+            color = Math.max(color, 2);
+            chunks.push("auto-discard queued");
         }
         if (config.ephemeral) {
-            badge += "D";
+            badge += "/C";
             color = Math.max(color, 1);
-            chunks.push("debugging via ephemeral config");
+            chunks.push("ephemeral config");
         }
         if (config.debugging || config.dumping) {
             badge += "D";
             color = Math.max(color, 1);
-            chunks.push("debugging via logging (SLOW!)");
+            chunks.push("debug log (slow!)");
         }
+
+        if (stats.in_flight + stats.finishing_up
+            + stats.queued + stats.bundledAs === 0)
+            chunks.push("idle");
 
         if (stats.scheduled > stats.scheduled_low) {
             badge += "~";
@@ -1357,27 +1365,24 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
 
             if (config.workOffline || cfg.workOffline) {
                 wicon = "work_offline";
-                tchunks.push("working offline");
+                chunks.push("work offline");
             }
 
             if (!config.collecting || !cfg.collecting) {
                 icon = "off";
-                chunks.push("not tracking new reqres");
+                chunks.push("ignore new requests");
             } else if (cfg.limbo && cfg.negLimbo) {
                 icon = "bothlimbo";
-                chunks.push("picking and dropping into limbo");
+                chunks.push("pick and drop into limbo");
             } else if (cfg.limbo) {
                 icon = "limbo";
-                chunks.push("picking into limbo");
+                chunks.push("pick into limbo");
             } else if (cfg.negLimbo) {
                 icon = "neglimbo";
-                chunks.push("dropping into limbo");
+                chunks.push("drop into limbo");
             } else {
                 icon = "idle";
-                if (!child)
-                    chunks.push("idle");
-                else
-                    chunks.push("normal");
+                chunks.push("queue normally");
             }
 
             if (wicon !== pwicon || icon !== picon) {
@@ -1399,7 +1404,7 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
         let gbadge = badge !== "" ? badge + ": " : badge;
         let tdesc = tchunks.join(", ");
         let cdesc = cchunks.join(", ");
-        let gtitle = `Hoardy-Web: ${gbadge}this tab: ${tdesc}; its new children: ${cdesc}; globally: ${title}`;
+        let gtitle = `${gbadge}${title}; this tab: ${tdesc}; its new children: ${cdesc !== tdesc ? cdesc : "same"}`;
 
         await setTitle(windowId, tabId, gtitle);
         await setIcons(windowId, tabId, tab.active, icons, forceResetIcons);
