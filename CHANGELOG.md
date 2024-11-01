@@ -18,7 +18,9 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
   - Edited the "Persistence" block a bit more.
 
-    Mainly, to stop graying out always-useful stat lines, even when the associated features are disabled, to prevent possible confusion there.
+    Mainly, to stop graying out always-useful stat lines, even when the associated features are disabled.
+
+    This prevents possible confusion of what buttons can be used when.
 
   - Renamed some options and stat lines, mostly to make their names shorter to make popup UI on Fenix more readable.
 
@@ -32,13 +34,9 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
 - Core + All internal pages:
 
-  - Improved message handling infrastructure.
+  - Improved internal async message handling infrastructure, making things slightly more efficient.
 
-  - Used it to improve initialization functions of all internal pages, improving efficiency and making the resulting UI much less flaky.
-
-- [The `Help` page](./extension/page/help.org):
-
-  - Documented what `webNavigation` permission is used for, improved the rest a bit.
+  - Improved initialization functions of all internal pages, making them more efficient and making the resulting UI much less jiggly when changing zoom level and/or jumping around between pages.
 
 - `*`:
 
@@ -62,7 +60,15 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
   - Realigned some help strings with reality.
 
-- Fixed some more mostly inconsequential things.
+- `*`:
+
+  - Fixed a couple more mostly inconsequential tiny bugs.
+
+### Added
+
+- [The `Help` page](./extension/page/help.org):
+
+  - Documented what `webNavigation` permission is used for, improved the rest a bit.
 
 ## [extension-v1.17.0] - 2024-10-30: Halloween special: major UI and state display improvements, fine-grained `Work offline` mode, add-on reloading with its state preserved, new options, etc
 
