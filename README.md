@@ -375,7 +375,7 @@ See ["Setup recommendations"](#setup) section for best practices for configuring
 
 - Test the results actually work:
 
-  - On Windows with unconfigured `PATH` environment varuable:
+  - On Windows with unconfigured `PATH` environment variable:
 
     ``` bash
     python3 -m hoardy_web_sas --help
