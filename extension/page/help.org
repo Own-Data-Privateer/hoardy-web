@@ -800,7 +800,7 @@ This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough 
 - =<all_urls>= permission is used so that =Hoardy-Web= could capture all URLs.
 - =webRequest= and =webRequestBlocking= permissions are used to track and capture =HTTP= requests and responses; on Chromium the latter also requires the =debugger= permission, which =Hoardy-Web= also asks for there.
 - =tabs= permission is used for tracking per-tab state and stats, making =Hoardy-Web='s toolbar icon show per-tab state, [[./popup.html#snapshotAll][taking =DOM= snapshot of all tabs]], buttons switching to a related tab in [[./popup.html#showState][the]]-[[./popup.html#showTabState][log]], etc.
-- =webNavigation= permission is used to set [[#work-offline][=Work offline= options]] automatically when a tab navigates to a different URL, see [[./popup.html#work-offline-url-options][the relevant options]].
+- =webNavigation= permission is used to apply [[./popup.html#work-offline-url-options][="Work offline" mode= automatic options]] when a tab navigates to a different URL, see [[#work-offline][above]] for more info.
 - =storage= permission is used to save extension config and stats.
 - =unlimitedStorage= permission is used for [[./popup.html#persistence-options][stashing and archival of captured data to browser's local storage]].
 - =menus= (=contextMenus= on Chromium) permission is used to add [[#context-menu-shortcuts][context-menu shortcut actions for links]].
@@ -920,12 +920,12 @@ Meanwhile, archival [[./popup.html#div-config.archiveSubmitHTTP][by submission v
   by using an archiving server, you can only loose your archived data if you go to its directory and delete some of it yourself, or if your disk dies, or if your file system gets corrupted;
   all of those problems are solved by regular backups.
 
-Archival [[./popup.html#div-config.archiveSaveLS][to browser's local storage]] was added because it was very easy to implement after [[#stash][the stash]] was added.
+Archival [[./popup.html#div-config.archiveSaveLS][to browser's local storage]] was added because it was very easy to implement after [[./popup.html#div-config.stash][the]]-[[#stash][stash]] was added.
 It is the default because it usually works fine, it properly reports errors, has the most consistent behaviour across all browsers, and does not require the user to install any Python code, which helps with on-boarding.
 
 In the ideal world, browsers would provide a better =saveAs= API which would have a less annoying UI for the user and would return out-of-disk-space errors to the extension, in which case [[./popup.html#div-config.archiveExportAs][exporting via =saveAs=]] would be the default.
 
-As it is now, the only way to be absolutely sure you data is properly forever saved to disk when the extension reports it archived is to use [[./popup.html#div-config.archiveSubmitHTTP][submission via =HTTP=]].
+As it is now, the only way to be absolutely sure you data is properly forever-saved to disk when the extension reports it archived is to use [[./popup.html#div-config.archiveSubmitHTTP][submission via =HTTP=]].
 *** When running =Hoardy-Web= under Firefox, enabling [[./popup.html#div-config.archiveExportAs][export via =saveAs=]] makes the browser's UI quite annoying. Can it be fixed?
 :PROPERTIES:
 :CUSTOM_ID: faq-firefox-saveas
