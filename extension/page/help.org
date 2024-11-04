@@ -34,37 +34,35 @@ To view your archived data, see [[https://github.com/Own-Data-Privateer/hoardy-w
 :CUSTOM_ID: conventions
 :END:
 
-When you read this document form extension's own UI, this page has two parts: this help text, and an =iframe= with a completely unrolled popup UI in it.
+When you open this document by clicking the =Help= button in extension's UI, this page has two parts: this help text, and an =iframe= with a completely unrolled popup UI in it.
 
 The whole page will switch between single- and two-column layouts depending on available viewport width (which depends on device width and zoom level).
+In single-column layout the popup UI is placed after the end of the help text.
+In two-column layout they are placed side-by-side.
 
 In both layouts:
 
 - [[./popup.html#div-config.colors][links that look like this]] are references to elements of the popup UI,
 
-  - in single-column layout you can click them, which will cause the whole page to scroll to that element in the =iframe= and then highlight it;
-    you can then get back to the exact link you clicked by pressing the "Back" button of your browser;
-    the exact place you left off will be highlighted;
+  - in single-column layout, clicking such a link will scroll the whole page to the corresponding element in the popup UI =iframe= and then highlight it;
 
-  - in two-column layout of this page you can click or hover over these links and the corresponding element in the popup UI =iframe= will be highlighted and scrolled into view;
-    the history used by the "Back" button will stay unmodified;
+  - in two-column layout, clicking or hovering over such a link will scroll only the popup UI =iframe= around to put the corresponding referenced element into view and then highlight it;
 
-  the element in question will stop being highlighted if you click anywhere else on the page;
+  - the highlighted element will stop being highlighted if you click anywhere else on the page;
 
 - [[#faq][links that look like this]] are references to other parts of this page;
   clicking these links will scroll this page to the place they point to and then highlight the relevant part;
-  pressing the "Back" button of your browser will get you back and highlight to the exact place you left off;
-
-  **Try it!**
 
 - [[./changelog.html][links that look like this]] are references to other internal pages of =Hoardy-web=;
   clicking them will navigate this tab there;
-  pressing the "Back" button will still get you back to exactly where you left off;
 
-- finally, [[https://oxij.org/software/][links like this]] are references to external URLs;
-  clicking them will navigate there, with a similar "Back" button behaviour.
+- finally, [[https://oxij.org/software/][links like this]] are references to external URLs.
 
-The last three of the above rules are also apply on all other internal pages of =Hoardy-Web=, e.g. [[./changelog.html][the =Changelog= page]].
+In cases when clicking on a link scrolls this page around or navigates to another page, pressing the "Back" button of your browser will get you back to the exact link you clicked and then highlight it, making it easy to get back to reading from the exact place you left off.
+
+**Go forth and try it by clicking one or more of the above links.**
+
+The above rules are also apply on all other internal pages of =Hoardy-Web=, e.g. [[./changelog.html][the =Changelog= page]].
 * General operation
 ** Glossary
 - A /reqres/ (/REQuest/ + /RESponse/) is an internal object containing captured information about an =HTTP= request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
