@@ -84,6 +84,7 @@ htmlns_button = (htmlns, "button")
 htmlns_del = (htmlns, "del")
 htmlns_embed = (htmlns, "embed")
 htmlns_form = (htmlns, "form")
+htmlns_frame = (htmlns, "frame")
 htmlns_iframe = (htmlns, "iframe")
 htmlns_img = (htmlns, "img")
 htmlns_input = (htmlns, "input")
@@ -258,6 +259,7 @@ ref_types_of_node_attrs = {
 
     (htmlns_audio,  src_attr): (LinkType.REQ, audio_mime + audio_video_mime),
     (htmlns_embed,  src_attr): (LinkType.REQ, ["application/octet-stream"]),
+    (htmlns_frame,  src_attr): (LinkType.REQ, page_mime),
     (htmlns_iframe, src_attr): (LinkType.REQ, page_mime),
     (htmlns_img,    src_attr): (LinkType.REQ, image_mime),
     #(htmlns_img,    srcset_attr): handled_separately,
