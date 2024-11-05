@@ -53,7 +53,7 @@ class RemapType(_enum.Enum):
 
 def get_void_url(link_type : LinkType) -> str:
     if link_type == LinkType.REQ:
-        return "data:text/plain;base64,"
+        return "data:text/plain,%20"
     else:
         return "javascript:void(0)"
 

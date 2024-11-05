@@ -659,7 +659,7 @@ def test_ReqresExpr_scrub_html() -> None:
     <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
     <style>
     body {
-      background: url(data:text/plain;base64,);
+      background: url(data:text/plain,%20);
       *zoom: 1;
     }
     </style>
@@ -756,7 +756,7 @@ body {
 }
 """, """
 body {
-  background: url(data:text/plain;base64,);
+  background: url(data:text/plain,%20);
   *zoom: 1;
 }
 """)
