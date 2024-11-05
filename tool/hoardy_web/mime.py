@@ -232,9 +232,10 @@ def normalize_content_type(header : str) \
 
     return None, ct, charset, []
 
-html_sniff_re = _re.compile(r"^\s*(?:<\?xml(?:\s[^>]*)?>\s*)?(?:<!--[\s\S]*-->\s*)*<(?:!doctype\shtml|html|head|meta|link|title|body|frameset|frame|iframe|style|font|script|header|nav|article|section|footer|table|thead|tbody|tfoot|th|tr|td|h1|h2|h3|h4|h5|div|p|span|b|strong|i|em|strike|br|a)(?:\s[^>]*)?>", flags=_re.IGNORECASE)
-svg_sniff_re = _re.compile(r"^\s*(?:<\?xml(?:\s[^>]*)?>\s*)?(?:<!--[\s\S]*-->\s*)*<svg(?:\s[^>]*)?>", flags=_re.IGNORECASE)
-xml_sniff_re = _re.compile(r"^\s*<\?xml(?:\s[^>]*)?>", flags=_re.IGNORECASE)
+_pre = r"(?:\ufeff|\s)*"
+html_sniff_re = _re.compile(rf"^{_pre}(?:<\?xml(?:\s[^>]*)?>\s*)?(?:<!--[\s\S]*-->\s*)*<(?:!doctype\shtml|html|head|meta|link|title|body|frameset|frame|iframe|style|font|script|header|nav|article|section|footer|table|thead|tbody|tfoot|th|tr|td|h1|h2|h3|h4|h5|div|p|span|b|strong|i|em|strike|br|a)(?:\s[^>]*)?>", flags=_re.IGNORECASE)
+svg_sniff_re = _re.compile(rf"^{_pre}(?:<\?xml(?:\s[^>]*)?>\s*)?(?:<!--[\s\S]*-->\s*)*<svg(?:\s[^>]*)?>", flags=_re.IGNORECASE)
+xml_sniff_re = _re.compile(rf"^{_pre}<\?xml(?:\s[^>]*)?>", flags=_re.IGNORECASE)
 
 def sniff_mime_type(data : str | bytes, charset : str | None) \
     -> tuple[list[str], str, str | None, list[str]]:
@@ -371,6 +372,7 @@ def test_sniff_mime_type() -> None:
             raise CatastrophicFailure("while evaluating `sniff_mime_type` on %s, expected %s, got %s", data, want_mime, mime)
 
     check("text/html", "<!DOCTYPE html><html>")
+    check("text/html", "\ufeff<!DOCTYPE html><html>")
 
     check("text/html", """<!DOCTYPE html>
 <html>""")
