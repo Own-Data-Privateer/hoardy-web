@@ -405,7 +405,10 @@ async function popupMain() {
             await updateTabConfig();
             await updateTabStats();
         }
-    }), thisIsFine, setPageLoading, setPageSettling);
+    }), (event) => {
+        let cmd = event[0];
+        return !cmd.startsWith("update");
+    }, setPageLoading, setPageSettling);
 
     // show UI
     setPageLoaded();

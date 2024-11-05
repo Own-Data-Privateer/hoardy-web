@@ -159,7 +159,10 @@ async function stateMain() {
         resetLog(log);
         resetQueued(queuedLog);
         resetUnarchived(unarchivedLog);
-    }), thisIsFine, setPageLoading, setPageSettling);
+    }), (event) => {
+        let cmd = event[0];
+        return !(cmd.startsWith("reset") || cmd.startsWith("new"));
+    }, setPageLoading, setPageSettling);
 
     // show UI
     setPageLoaded();

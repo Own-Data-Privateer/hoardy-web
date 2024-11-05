@@ -67,7 +67,7 @@ async function stateMain() {
 
     await subscribeToExtension(catchAll(processUpdate), catchAll(async (willReset) => {
         await updateConfig();
-    }), thisIsFine, setPageLoading, setPageSettling);
+    }), () => true, setPageLoading, setPageSettling);
 
     let rrfilters = await browser.runtime.sendMessage(["getSavedFilters"]);
     await browser.runtime.sendMessage(["setSavedFilters", rrfilters]);

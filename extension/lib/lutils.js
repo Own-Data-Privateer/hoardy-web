@@ -78,12 +78,6 @@ function showSaved(suffix, ...args) {
     return showInternalPageAtNode("/page/saved.html" + suffix, ...args);
 }
 
-// a filter for core events that can be ignored without causing inconsistencies
-function thisIsFine(event) {
-    // it usually isn't, isn't it?
-    return false;
-}
-
 function setPageLoading() {
     document.getElementById("body_loading").innerHTML = "<p>Loading...</p>";
 }

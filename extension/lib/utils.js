@@ -864,8 +864,6 @@ function subscribeToExtension(processUpdate, reinit, isSafe, markLoading, markSe
         }
         function processUpdateSmartly(event) {
             shouldReset = shouldReset || !isSafe(event);
-            if (shouldReset)
-                return;
             // apparently, this event can be processed synchronously
             processUpdateSync(event);
         }
