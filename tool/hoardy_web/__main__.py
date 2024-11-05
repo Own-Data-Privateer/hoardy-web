@@ -126,8 +126,8 @@ def elaborate_paths(cargs : _t.Any) -> None:
     for i in range(0, len(cargs.paths)):
         cargs.paths[i] = _os.path.expanduser(cargs.paths[i])
 
-def handle_paths(cargs : _t.Any, append_stdin0 : bool = True) -> None:
-    if append_stdin0 and cargs.stdin0:
+def handle_paths(cargs : _t.Any) -> None:
+    if cargs.stdin0:
         paths = stdin.read_all_bytes().split(b"\0")
         last = paths.pop()
         if last != b"":
@@ -328,9 +328,10 @@ def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
     return stream
 
 def cmd_stream(cargs : _t.Any) -> None:
-    compile_filters(cargs)
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
+
+    compile_filters(cargs)
     handle_paths(cargs)
 
     stream = get_StreamEncoder(cargs)
@@ -1414,9 +1415,10 @@ def path_to_url(x : str) -> str:
     return x.replace("?", "%3F")
 
 def cmd_export_mirror(cargs : _t.Any) -> None:
-    compile_filters(cargs)
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
+
+    compile_filters(cargs)
     elaborate_output(cargs)
     handle_paths(cargs)
 
