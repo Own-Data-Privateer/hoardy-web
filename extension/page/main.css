@@ -8,8 +8,8 @@
 
     /* defaults */
     --a-external: #d80000;
-    --a-internal: #00a800;
-    --a-local: var(--target-background-1);
+    --a-internal: #008800;
+    --a-local: #a86800;
     --attention-background-1: #e02020;
     --attention-background-2: #ffffff;
     --attention-border-color: var(--attention-background-1);
@@ -17,7 +17,7 @@
     --button-background: #f0f0f0;
     --button-border-color: var(--input-border-color);
     --button-color: var(--text-color);
-    --code-background: #00bb0020;
+    --code-background: #00ff0010;
     --code-border-color: #f8f80020;
     --code-text-color: var(--text-color);
     --help-btn-background: #aaaaaa;
@@ -69,8 +69,8 @@
 }
 
 .colorblind {
-    --a-internal: #0000a8;
-    --code-background: #0000bb20;
+    --a-internal: #000088;
+    --code-background: #0000ff10;
     --toggle-background-good: #0250bb;
     --toggle-border-color-good: #053e94;
     --untoggle-background-good: #9494f855;
@@ -82,9 +82,10 @@
     color: #fff;
 
     --a-external: #f80000;
+    --a-local: #ffaa00;
     --attention-background-2: #000000;
     --button-background: #101010;
-    --code-background: #00bb0030;
+    --code-background: #00ff0020;
     --code-border-color: #f8f80030;
     --help-btn-background: #333333;
     --help-btn-border-color : #666666;
@@ -95,7 +96,7 @@
     --help-tip-background: #000005;
     --hover-background: #505050;
     --hover-border-color: #e0e0e0;
-    --outline-color: #333333;
+    --outline-color: #666666;
     --separator-color: #ffffff;
     --text-inactive-background: #303030;
     --text-inactive-color: #505050;
@@ -104,7 +105,7 @@
 }
 
 .dark.colorblind {
-    --code-background: #0000bb30;
+    --code-background: #0000ff20;
 }
 
 #body {
