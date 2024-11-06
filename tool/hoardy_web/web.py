@@ -57,6 +57,9 @@ def is_data_url(url : str) -> bool:
 def is_script_url(url : str) -> bool:
     return url.startswith("javascript:")
 
+def is_page_url(url : str) -> bool:
+    return url.startswith("http:") or url.startswith("https:")
+
 def get_void_url(link_type : LinkType) -> str:
     if link_type == LinkType.REQ:
         return "data:text/plain,%20"
@@ -639,7 +642,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                     attrs[content_attr] = str(osecs)
                                 else:
                                     href = remap_link_maybe(orig_base_url, LinkType.JUMP, page_mime, remap_url, href)
-                                    if href is not None:
+                                    if href is not None and is_page_url(href):
                                         attrs[content_attr] = str(osecs) + ";url=" + href
                                     else:
                                         censoring = True
