@@ -277,24 +277,32 @@ ref_types_of_node_attrs = {
     (htmlns_video,  src_attr): (LinkType.REQ, video_mime + audio_video_mime),
 }
 
-rel_ref_types : dict[str, RelRefType]
-rel_ref_types = {
-    "stylesheet": (LinkType.REQ, stylesheet_mime),
-    "icon":       (LinkType.REQ, image_mime),
-    "shortcut":   (LinkType.REQ, image_mime),
-}
-
-tracking_node_attrs = frozenset([
-    (htmlns_a,    ping_attr),
-    (htmlns_area, ping_attr),
-])
-
 prefetch_link_rels = frozenset([
     "dns-prefetch", "preconnect", "prefetch", "prerender", "preload", "modulepreload",
 ])
 
 stylesheet_link_rels = frozenset([
-    "stylesheet", "ie-optimized-stylesheet-desk", "ie-optimized-onevent-stylesheet",
+    "stylesheet",
+    "ie-optimized-stylesheet-desk", "ie-optimized-onevent-stylesheet",
+    "kinetic-stylesheet",
+])
+
+icon_link_rels = frozenset([
+    "icon", "shortcut",
+    "apple-touch-icon", "apple-touch-startup-image", "apple-touch-icon-precomposed",
+    "fluid-icon", "mask-icon", "rich-pin-icon",
+])
+
+link_rel_ref_types : dict[str, RelRefType]
+link_rel_ref_types = {}
+for e in stylesheet_link_rels:
+    link_rel_ref_types[e] = (LinkType.REQ, stylesheet_mime)
+for e in icon_link_rels:
+    link_rel_ref_types[e] = (LinkType.REQ, image_mime)
+
+tracking_node_attrs = frozenset([
+    (htmlns_a,    ping_attr),
+    (htmlns_area, ping_attr),
 ])
 
 cors_node_attrs = frozenset([
@@ -348,10 +356,10 @@ class CSSScrubbingError(Failure): pass
 
 def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     attr_blacklist : set[HTML5NodeAttr] = set()
-    attr_blacklist.update(cors_node_attrs)
-    attr_blacklist.update(sri_node_attrs)
     if not opts.tracking:
         attr_blacklist.update(tracking_node_attrs)
+    attr_blacklist.update(cors_node_attrs)
+    attr_blacklist.update(sri_node_attrs)
 
     link_rel_blacklist : set[str] = set()
     if not opts.styles:
@@ -523,14 +531,14 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         return False
 
     def link_rels_of(rels : str) -> list[str]:
-        rparts = word_re.findall(rels)
+        rparts = map(lambda x: x.lower(), word_re.findall(rels))
         return [r for r in rparts if r not in link_rel_blacklist]
 
     def rel_ref_type_of(link_rels : list[str]) -> RelRefType:
         slink_type = None
         cts = []
         for rel in link_rels:
-            link_type_, cts_ = rel_ref_types.get(rel, jump_ref)
+            link_type_, cts_ = link_rel_ref_types.get(rel, jump_ref)
             if slink_type is None or link_type_ == LinkType.REQ:
                 slink_type = link_type_
             cts += [e for e in cts_ if e not in cts]
