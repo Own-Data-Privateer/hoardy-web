@@ -725,15 +725,25 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                             # scrub `srcset` attributes
                             new_srcset = []
                             for url, cond in parse_srcset_attr(value):
-                                url = remap_link_or_void(base_url, LinkType.REQ, image_mime, remap_url, url)
-                                new_srcset.append((url, cond))
-                            attrs[ann] = unparse_srcset_attr(new_srcset)
+                                href = remap_link_maybe(base_url, LinkType.REQ, image_mime, remap_url, url)
+                                if href is not None:
+                                    new_srcset.append((href, cond))
+                            if len(new_srcset) > 0:
+                                attrs[ann] = unparse_srcset_attr(new_srcset)
+                            else:
+                                # wipe it away
+                                to_remove.append(ann)
                         else:
                             # handle other attributes containing URLs
                             ref = ref_types_of_node_attrs.get(nnann, None)
                             if ref is not None:
                                 link_type, cts = ref
-                                attrs[ann] = remap_link_or_void(base_url, link_type, cts, remap_url, value.strip())
+                                href = remap_link_maybe(base_url, link_type, cts, remap_url, value.strip())
+                                if href is not None:
+                                    attrs[ann] = href
+                                else:
+                                    # wipe it away
+                                    to_remove.append(ann)
 
                     # cleanup
                     for ann in to_remove:
