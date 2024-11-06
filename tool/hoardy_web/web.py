@@ -51,6 +51,12 @@ class RemapType(_enum.Enum):
     CLOSED = 3
     FALLBACK = 4
 
+def is_data_url(url : str) -> bool:
+    return url.startswith("data:")
+
+def is_script_url(url : str) -> bool:
+    return url.startswith("javascript:")
+
 def get_void_url(link_type : LinkType) -> str:
     if link_type == LinkType.REQ:
         return "data:text/plain,%20"
@@ -271,21 +277,12 @@ ref_types_of_node_attrs = {
     (htmlns_video,  src_attr): (LinkType.REQ, video_mime + audio_video_mime),
 }
 
-link_node_attrs : frozenset[HTML5NodeAttr]
-link_node_attrs = frozenset([
-    (htmlns_link, href_attr),
-])
-
 rel_ref_types : dict[str, RelRefType]
 rel_ref_types = {
     "stylesheet": (LinkType.REQ, stylesheet_mime),
     "icon":       (LinkType.REQ, image_mime),
     "shortcut":   (LinkType.REQ, image_mime),
 }
-
-srcset_node_attrs = frozenset([
-    (htmlns_img,  srcset_attr),
-])
 
 tracking_node_attrs = frozenset([
     (htmlns_a,    ping_attr),
@@ -365,13 +362,15 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     jumps = opts.jumps
     actions = opts.actions
     reqs = opts.reqs
-    not_styles = not opts.styles
-    not_scripts = not opts.scripts
+    yes_styles = opts.styles
+    not_styles = not yes_styles
+    yes_scripts = opts.scripts
+    not_scripts = not yes_scripts
     not_iepragmas = not opts.iepragmas
     not_iframes = not opts.iframes
     yes_navigations = opts.navigations
     yes_verbose = opts.verbose
-    not_verbose = not opts.verbose
+    not_verbose = not yes_verbose
     not_whitespace = not opts.whitespace
     yes_indent = opts.indent
     indent_step = opts.indent_step
@@ -384,16 +383,13 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         try:
             url = _up.urljoin(base_url, url)
         except ValueError:
-            # the `url` is malformed
             return None
 
-        if url.startswith("javascript:"):
-            if not_scripts:
-                return "javascript:void(0)"
-            else:
-                return url
-        elif url.startswith("data:"):
+        if is_data_url(url):
             return url
+
+        if is_script_url(url) and not_scripts:
+            return None
 
         rt : RemapType
         if link_type == LinkType.JUMP:
@@ -419,11 +415,11 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         else: # rt == RemapType.CLOSED or rt == RemapType.FALLBACK
             return None
 
-    def remap_link(base_url : str,
-                   link_type : LinkType,
-                   fallbacks : list[str],
-                   remap_url : URLRemapper,
-                   url : str) -> str:
+    def remap_link_or_void(base_url : str,
+                           link_type : LinkType,
+                           fallbacks : list[str],
+                           remap_url : URLRemapper,
+                           url : str) -> str:
         res = remap_link_maybe(base_url, link_type, fallbacks, remap_url, url)
         if res is None:
             return get_void_url(link_type)
@@ -477,14 +473,14 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 node.value = scrub_css(base_url, remap_url, node.value)
             elif isinstance(node, _tcss.ast.URLToken):
                 # remap the URL
-                url = remap_link(base_url, LinkType.REQ, css_url_mime, remap_url, node.value)
+                url = remap_link_or_void(base_url, LinkType.REQ, css_url_mime, remap_url, node.value)
                 rep = f"url({_tcss.serializer.serialize_url(url)})"
                 node.value = url
                 node.representation = rep
             elif isinstance(node, _tcss.ast.FunctionBlock):
                 if node.lower_name == "url":
                     # technically, this is a bug in the CSS we are processing, but browsers work around this, so do we
-                    url = remap_link(base_url, LinkType.REQ, css_url_mime, remap_url, "".join([n.value for n in node.arguments if n.type == "string"]))
+                    url = remap_link_or_void(base_url, LinkType.REQ, css_url_mime, remap_url, "".join([n.value for n in node.arguments if n.type == "string"]))
                     rep = f"url({_tcss.serializer.serialize_url(url)})"
                     res.append(_tcss.ast.URLToken(node.source_line, node.source_column, url, rep))
                     continue
@@ -674,63 +670,59 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         censoring = True
                     # TODO XXX: also parse and remap `content-security-policy`
 
-                link_rels = []
-                if not censoring:
-                    if not_scripts and nn == htmlns_script or \
-                       not_iframes and nn == htmlns_iframe or \
-                       not_styles and nn == htmlns_style:
-                        # censor the whole tag
-                        censoring = True
-                    elif nn == htmlns_link:
-                        # censor link rel attributes
-                        link_rels = map_optionals(link_rels_of, attrs.get(rel_attr, None))
-                        if len(link_rels) > 0:
-                            attrs[rel_attr] = " ".join(link_rels)
-                        else:
-                            # censor the whole tag in this case
-                            censoring = True
+                if not censoring and \
+                   (not_styles and nn == htmlns_style or \
+                    not_scripts and nn == htmlns_script or \
+                    not_iframes and nn == htmlns_iframe):
+                    # censor these out quickly
+                    censoring = True
 
-                if not censoring:
-                    # scrub attributes
-                    to_remove = []
-                    for ann in attrs:
-                        nnann = (nn, ann)
-                        if not_scripts and ann[0] is None and ann[1].startswith("on"):
-                            # drop inline javascript on* attributes, e.g. `onclick`
-                            to_remove.append(ann)
-                            continue
-                        elif not_styles and ann == style_attr:
-                            if not_verbose:
-                                # drop inline styles
-                                to_remove.append(ann)
-                            else:
-                                attrs[ann] = "/* hoardy-web censored out a CSS data from here */"
-                            continue
-                        elif nnann in attr_blacklist:
-                            to_remove.append(ann)
-                            continue
-
-                        value = attrs[ann]
-                        ref = ref_types_of_node_attrs.get(nnann, None)
-                        if ref is not None:
-                            # turn relative URLs into absolute ones, and then mangle them with remap_url
-                            link_type, cts = ref
-                            attrs[ann] = remap_link(base_url, link_type, cts, remap_url, value.strip())
-                        elif nnann in link_node_attrs:
-                            # similarly for `link`s, except `link_type` and `fallbacks` depend on `rel` attribute value
+                if not censoring and nn == htmlns_link:
+                    # scrub `link` `rel` attributes
+                    link_rels = link_rels_of(attrs.get(rel_attr, ""))
+                    if len(link_rels) > 0:
+                        attrs[rel_attr] = " ".join(link_rels)
+                        # scrub `link` `href` attributes
+                        href = map_optional(lambda x: x.strip(), attrs.get(href_attr, None))
+                        if href is not None:
                             link_type, cts = rel_ref_type_of(link_rels)
-                            attrs[ann] = remap_link(base_url, link_type, cts, remap_url, value.strip())
-                        elif nnann in srcset_node_attrs:
-                            # similarly
-                            srcset = parse_srcset_attr(value)
+                            attrs[href_attr] = remap_link_or_void(base_url, link_type, cts, remap_url, href)
+                    else:
+                        # censor the whole tag in this case
+                        censoring = True
+
+                if not censoring:
+                    # scrub other attributes
+                    to_remove = []
+                    for ann, value in attrs.items():
+                        nnann = (nn, ann)
+                        if nnann in attr_blacklist:
+                            # censor out blacklisted attrs
+                            to_remove.append(ann)
+                        elif ann == style_attr:
+                            # scrub inline styles
+                            if yes_styles:
+                                attrs[ann] = _tcss.serialize(scrub_css(base_url, remap_url, _tcss.parse_blocks_contents(value), 0 if yes_indent else None))
+                            elif yes_verbose:
+                                attrs[ann] = "/* hoardy-web censored out a CSS data from here */"
+                            else:
+                                to_remove.append(ann)
+                        elif not_scripts and ann[0] is None and ann[1].startswith("on"):
+                            # censor out inline javascript on* attributes, e.g. `onclick`
+                            to_remove.append(ann)
+                        elif ann == srcset_attr:
+                            # scrub `srcset` attributes
                             new_srcset = []
-                            for url, cond in srcset:
-                                url = remap_link(base_url, LinkType.REQ, image_mime, remap_url, url)
+                            for url, cond in parse_srcset_attr(value):
+                                url = remap_link_or_void(base_url, LinkType.REQ, image_mime, remap_url, url)
                                 new_srcset.append((url, cond))
                             attrs[ann] = unparse_srcset_attr(new_srcset)
-                            del srcset, new_srcset
-                        elif ann == style_attr:
-                            attrs[ann] = _tcss.serialize(scrub_css(base_url, remap_url, _tcss.parse_blocks_contents(value), 0 if yes_indent else None))
+                        else:
+                            # handle other attributes containing URLs
+                            ref = ref_types_of_node_attrs.get(nnann, None)
+                            if ref is not None:
+                                link_type, cts = ref
+                                attrs[ann] = remap_link_or_void(base_url, link_type, cts, remap_url, value.strip())
 
                     # cleanup
                     for ann in to_remove:
