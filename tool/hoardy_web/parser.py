@@ -47,13 +47,17 @@ class Parser:
     def unread(self, data : str) -> None:
         self.buffer = self.buffer[:self.pos] + data + self.buffer[self.pos:]
 
+    @property
+    def leftovers(self) -> str:
+        return self.buffer[self.pos:]
+
     def at_eof(self) -> bool:
         return self.pos >= len(self.buffer)
 
     def eof(self) -> None:
         if self.at_eof():
             return
-        raise ParseError("expected EOF, got %s", repr(self.buffer[self.pos:]))
+        raise ParseError("expected EOF, got %s", repr(self.leftovers))
 
     def at_string(self, s : str) -> bool:
         if self.buffer.startswith(s, self.pos):
@@ -64,7 +68,7 @@ class Parser:
         if self.at_string(s):
             self.pos += len(s)
             return
-        raise ParseError("expected %s, got %s", repr(s), repr(self.buffer[self.pos:]))
+        raise ParseError("expected %s, got %s", repr(s), repr(self.leftovers))
 
     def at_string_in(self, ss : list[str]) -> bool:
         for s in ss:
@@ -77,7 +81,7 @@ class Parser:
             if self.at_string(s):
                 self.pos += len(s)
                 return
-        raise ParseError("expected one of %s, got %s", repr(ss), repr(self.buffer[self.pos:]))
+        raise ParseError("expected one of %s, got %s", repr(ss), repr(self.leftovers))
 
     def take_until_p(self, p : _t.Callable[[_t.Any], bool]) -> str:
         start = self.pos
@@ -101,10 +105,10 @@ class Parser:
     def regex(self, regexp : _re.Pattern[str], allow_empty : bool = False) -> tuple[str | _t.Any, ...]:
         m = regexp.match(self.buffer, self.pos)
         if m is None:
-            raise ParseError("expected %s, got %s", regexp, repr(self.buffer[self.pos:]))
+            raise ParseError("expected %s, got %s", regexp, repr(self.leftovers))
         pos = m.span()[1]
         if pos == self.pos and not allow_empty:
-            raise ParseError("matched nothing via %s, buffer is %s", regexp, repr(self.buffer[self.pos:]))
+            raise ParseError("matched nothing via %s, buffer is %s", regexp, repr(self.leftovers))
         self.pos = pos
         return m.groups()
 
