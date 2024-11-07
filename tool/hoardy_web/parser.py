@@ -113,3 +113,9 @@ class Parser:
 
     def opt_whitespace(self) -> tuple[str | _t.Any, ...]:
         return self.opt_regex(opt_whitespace_re)
+
+    def lexeme(self, body_re : _re.Pattern[str]) -> str:
+        self.opt_whitespace()
+        grp = self.regex(body_re)
+        self.opt_whitespace()
+        return grp[0]
