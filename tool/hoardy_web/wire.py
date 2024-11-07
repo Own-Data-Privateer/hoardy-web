@@ -454,8 +454,8 @@ def parse_value(p : Parser, ends : list[str]) -> str:
         res = []
         while not p.at_string('"'):
             if p.at_string('\\'):
-                res.append(p.buffer[1:2])
-                p.buffer = p.buffer[2:]
+                p.skip(1)
+                res.append(p.take(1))
             else:
                 grp = p.regex(qcontent_body_re)
                 res.append(grp[0])
@@ -544,6 +544,10 @@ def test_parse_content_type_header() -> None:
         "text/html; charset=utf-8; lang=en",
         'text/html; charset="utf-8"; lang=en',
     ], "text/html", [("charset", "utf-8"), ("lang", "en")])
+    check([
+        'text/html;charset="\\"utf-8\\"";lang=en',
+        'text/html; charset="\\"utf-8\\""; lang=en',
+    ], "text/html", [("charset", '"utf-8"'), ("lang", "en")])
     check(['text/html; charset="utf-8"; %%; lang=en'], "text/html", [("charset", "utf-8"), ("%%", ""), ("lang", "en")])
     # because RFC says invalid content types are to be interpreted as `text/plain`
     check(["bla; charset=utf-8; lang=en"], "text/plain", [("charset", "utf-8"), ("lang", "en")])

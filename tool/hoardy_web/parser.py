@@ -59,6 +59,25 @@ class Parser:
             return
         raise ParseError("while parsing %s: expected EOF, got %s", repr(self.buffer), repr(self.leftovers))
 
+    def have_at_least(self, n : int) -> bool:
+        return self.pos + n <= len(self.buffer)
+
+    def ensure_have(self, n : int) -> None:
+        if self.have_at_least(n):
+            return
+        raise ParseError("while parsing %s: expected %d more characters, got EOF", repr(self.buffer), n)
+
+    def skip(self, n : int) -> None:
+        self.ensure_have(n)
+        self.pos += n
+
+    def take(self, n : int) -> str:
+        self.ensure_have(n)
+        old_pos = self.pos
+        new_pos = old_pos + n
+        self.pos = new_pos
+        return self.buffer[old_pos:new_pos]
+
     def at_string(self, s : str) -> bool:
         if self.buffer.startswith(s, self.pos):
             return True
