@@ -483,7 +483,7 @@ def parse_mime_parameters(p : Parser, ends : list[str] = []) -> Parameters:
     ends = [";"] + ends
     res = []
     while p.at_string(";"):
-        p.string(";")
+        p.skip(1)
         p.opt_whitespace()
         if p.at_string(";"):
             # empty parameter
@@ -576,7 +576,7 @@ def parse_link_header(value : str) -> ParsedLinkHeader:
     token = parse_link_value(p)
     res.append(token)
     while p.at_string(","):
-        p.string(",")
+        p.skip(1)
         token = parse_link_value(p)
         res.append(token)
     return res
