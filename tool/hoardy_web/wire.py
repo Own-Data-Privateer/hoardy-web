@@ -485,7 +485,7 @@ def parse_mime_parameters(p : Parser, ends : list[str] = []) -> Parameters:
     while p.at_string(";"):
         p.skip(1)
         p.opt_whitespace()
-        if p.at_string(";"):
+        if p.at_eof() or p.at_string_in(ends):
             # empty parameter
             continue
         save = p.pos
@@ -538,11 +538,17 @@ def test_parse_content_type_header() -> None:
         "text/html ;charset=utf-8",
         "text/html; charset=utf-8",
         'text/html; charset="utf-8"',
+        'text/html; charset="utf-8";',
+        'text/html;; charset="utf-8";; ',
+        'text/html; ; charset="utf-8"; ; ',
     ], "text/html", [("charset", "utf-8")])
     check([
         "text/html;charset=utf-8;lang=en",
         "text/html; charset=utf-8; lang=en",
         'text/html; charset="utf-8"; lang=en',
+        'text/html; charset="utf-8"; lang=en;',
+        'text/html;; charset="utf-8"; lang=en;; ',
+        'text/html; ; charset="utf-8"; lang=en; ; ',
     ], "text/html", [("charset", "utf-8"), ("lang", "en")])
     check([
         'text/html;charset="\\"utf-8\\"";lang=en',
@@ -622,8 +628,8 @@ def test_parse_link_header() -> None:
     check([
         '<https://example.org>; rel=preconnect, ' +
         '<https://example.org/index.css>; as=style; rel=preload; crossorigin, ' +
-        '<https://example.org/index.js>; as=script; rel=preload; crossorigin, ' +
-        '<https://example.org/main.js>; as=script; rel=preload',
+        '<https://example.org/index.js>;; as=script; ; rel=preload;  ; crossorigin;, ' +
+        '<https://example.org/main.js>; as=script; rel=preload;;',
     ], [
         ('https://example.org', [('rel', 'preconnect')]),
         ('https://example.org/index.css', [('as', 'style'), ('rel', 'preload'), ('crossorigin', '')]),
