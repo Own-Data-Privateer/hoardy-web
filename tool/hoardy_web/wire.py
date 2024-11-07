@@ -415,6 +415,19 @@ token_body_re = _re.compile(rf'([^{token_ends}]+)')
 def parse_token(p : Parser) -> str:
     return p.lexeme(token_body_re)
 
+def parse_mime_type(p : Parser, ends : list[str] = []) -> str:
+    ends = [";"] + ends
+    try:
+        maintype = parse_token(p)
+        p.string("/")
+        subtype = parse_token(p)
+        p.opt_whitespace()
+        return maintype + "/" + subtype
+    except ParseError as err:
+        p.take_until_string_in(ends)
+        # RFC says invalid content types are to be interpreted as `text/plain`
+        return "text/plain"
+
 attribute_ends = token_ends + r"*'%"
 attribute_body_re = _re.compile(rf'([^{attribute_ends}]+)')
 
@@ -502,47 +515,38 @@ def get_header(headers : Headers, name : str, default : str | None = None) -> st
     else:
         return res[0]
 
-def parse_content_type_header(value : str) -> tuple[str, str, Parameters]:
+def parse_content_type_header(value : str) -> tuple[str, Parameters]:
     """Parse HTTP `Content-Type` header."""
     p = Parser(value)
-    try:
-        maintype = parse_token(p)
-        p.string("/")
-        subtype = parse_token(p)
-        p.opt_whitespace()
-    except ParseError as err:
-        maintype = "text"
-        subtype = "plain"
-        p.take_until_string(";")
+    mime_type = parse_mime_type(p)
     params = parse_mime_parameters(p)
     p.opt_whitespace()
     p.eof()
-    return maintype, subtype, params
+    return mime_type, params
 
 def test_parse_content_type_header() -> None:
-    def check(cts : list[str], expected_maintype : str, expected_subtype : str, expected_params : Parameters) -> None:
+    def check(cts : list[str], expected_mime_type : str, expected_params : Parameters) -> None:
         for ct in cts:
-            maintype, subtype, params = parse_content_type_header(ct)
-            scheck(ct, "maintype", maintype, expected_maintype)
-            scheck(ct, "subtype", subtype, expected_subtype)
+            mime_type, params = parse_content_type_header(ct)
+            scheck(ct, "mime_type", mime_type, expected_mime_type)
             scheck(ct, "params", params, expected_params)
 
-    check(["text/plain"], "text", "plain", [])
-    check(["text/html"], "text", "html", [])
+    check(["text/plain"], "text/plain", [])
+    check(["text/html"], "text/html", [])
     check([
         "text/html;charset=utf-8",
         "text/html ;charset=utf-8",
         "text/html; charset=utf-8",
         'text/html; charset="utf-8"',
-    ], "text", "html", [("charset", "utf-8")])
+    ], "text/html", [("charset", "utf-8")])
     check([
         "text/html;charset=utf-8;lang=en",
         "text/html; charset=utf-8; lang=en",
         'text/html; charset="utf-8"; lang=en',
-    ], "text", "html", [("charset", "utf-8"), ("lang", "en")])
-    check(['text/html; charset="utf-8"; %%; lang=en'], "text", "html", [("charset", "utf-8"), ("%%", ""), ("lang", "en")])
+    ], "text/html", [("charset", "utf-8"), ("lang", "en")])
+    check(['text/html; charset="utf-8"; %%; lang=en'], "text/html", [("charset", "utf-8"), ("%%", ""), ("lang", "en")])
     # because RFC says invalid content types are to be interpreted as `text/plain`
-    check(["bla; charset=utf-8; lang=en"], "text", "plain", [("charset", "utf-8"), ("lang", "en")])
+    check(["bla; charset=utf-8; lang=en"], "text/plain", [("charset", "utf-8"), ("lang", "en")])
 
 link_url_re = _re.compile(url_re_str("<>"))
 

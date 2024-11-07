@@ -191,8 +191,7 @@ def normalize_content_type(header : str) \
        return (possible kinds | None, MIME type, charset | None, extensions).
     """
 
-    maintype, subtype, params = parse_content_type_header(header)
-    ct : str = f"{maintype}/{subtype}"
+    ct, params = parse_content_type_header(header)
     charset = None
     for name, value in params:
         if name == "charset":
