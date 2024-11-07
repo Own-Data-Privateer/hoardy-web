@@ -460,6 +460,7 @@ def parse_value(p : Parser, ends : list[str]) -> str:
                 grp = p.regex(qcontent_body_re)
                 res.append(grp[0])
         p.string('"')
+        p.opt_whitespace()
         token = "".join(res)
     return ws[0] + token
 
@@ -475,7 +476,7 @@ def parse_parameter(p : Parser, ends : list[str]) -> tuple[str, str]:
 
 def parse_invalid_parameter(p : Parser, ends : list[str]) -> tuple[str, str]:
     key = p.take_until_string_in(ends)
-    return key, ""
+    return key.rstrip(), ""
 
 Parameters = list[tuple[str, str]]
 
@@ -554,7 +555,10 @@ def test_parse_content_type_header() -> None:
         'text/html;charset="\\"utf-8\\"";lang=en',
         'text/html; charset="\\"utf-8\\""; lang=en',
     ], "text/html", [("charset", '"utf-8"'), ("lang", "en")])
-    check(['text/html; charset="utf-8"; %%; lang=en'], "text/html", [("charset", "utf-8"), ("%%", ""), ("lang", "en")])
+    check([
+        'text/html; charset="utf-8"; %%; lang=en',
+        'text/html; charset="utf-8"; %% ; lang=en',
+    ], "text/html", [("charset", "utf-8"), ("%%", ""), ("lang", "en")])
     # because RFC says invalid content types are to be interpreted as `text/plain`
     check(["bla; charset=utf-8; lang=en"], "text/plain", [("charset", "utf-8"), ("lang", "en")])
 
@@ -635,13 +639,13 @@ def test_parse_link_header() -> None:
     check([
         '<https://example.org>; rel=preconnect, ' +
         '<https://example.org/index.css>; as=style; rel=preload; crossorigin, ' +
-        '<https://example.org/index.js>;; as=script; ; rel=preload;  ; crossorigin;  , ' +
+        '<https://example.org/index.js>;; as=script; ; rel = "preload" ;  ; crossorigin;  , ' +
         ', ' +
         '<https://example.org/main.js>; as=script; rel=preload;;',
     ], [
         ('https://example.org', [('rel', 'preconnect')]),
         ('https://example.org/index.css', [('as', 'style'), ('rel', 'preload'), ('crossorigin', '')]),
-        ('https://example.org/index.js', [('as', 'script'), ('rel', 'preload'), ('crossorigin', '')]),
+        ('https://example.org/index.js', [('as', 'script'), ('rel', ' preload'), ('crossorigin', '')]),
         ('https://example.org/main.js', [('as', 'script'), ('rel', 'preload')])
     ])
 
