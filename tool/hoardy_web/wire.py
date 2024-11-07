@@ -563,7 +563,6 @@ link_url_re = _re.compile(url_re_str("<>"))
 def parse_link_value(p : Parser) -> tuple[str, Parameters]:
     """Parse single sub-value of HTTP `Link` header.
     """
-    p.opt_whitespace()
     p.string("<")
     p.opt_whitespace()
     grp = p.regex(link_url_re)
@@ -579,10 +578,15 @@ def parse_link_header(value : str) -> ParsedLinkHeader:
     """Parse HTTP `Link` header."""
     p = Parser(value)
     res = []
+    p.opt_whitespace()
     token = parse_link_value(p)
     res.append(token)
     while p.at_string(","):
         p.skip(1)
+        p.opt_whitespace()
+        if p.at_eof() or p.at_string(","):
+            # empty link value
+            continue
         token = parse_link_value(p)
         res.append(token)
     return res
@@ -617,6 +621,9 @@ def test_parse_link_header() -> None:
     check([
         "<https://example.org>; rel=preconnect; crossorigin",
         "<https://example.org>; rel=preconnect ; crossorigin ",
+        " <https://example.org> ; rel=preconnect ; crossorigin ,",
+        " <https://example.org> ; rel=preconnect ; ; crossorigin ; , ,, ",
+        #" , <https://example.org>; rel=preconnect; crossorigin , ",
     ], [
         ("https://example.org", [("rel", "preconnect"), ("crossorigin", "")])
     ])
@@ -628,7 +635,8 @@ def test_parse_link_header() -> None:
     check([
         '<https://example.org>; rel=preconnect, ' +
         '<https://example.org/index.css>; as=style; rel=preload; crossorigin, ' +
-        '<https://example.org/index.js>;; as=script; ; rel=preload;  ; crossorigin;, ' +
+        '<https://example.org/index.js>;; as=script; ; rel=preload;  ; crossorigin;  , ' +
+        ', ' +
         '<https://example.org/main.js>; as=script; rel=preload;;',
     ], [
         ('https://example.org', [('rel', 'preconnect')]),
