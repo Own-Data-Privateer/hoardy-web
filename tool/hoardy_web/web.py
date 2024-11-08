@@ -837,8 +837,12 @@ def scrub_html(scrubbers : Scrubbers,
                remap_url : URLRemapper,
                headers : Headers,
                body : str | bytes,
-               protocol_encoding : str | None) -> str:
-    dom = _html5parser.parse(body, likely_encoding=protocol_encoding)
-    charEncoding = _html5parser.tokenizer.stream.charEncoding[0]
+               protocol_encoding : str | None) -> bytes:
+    if isinstance(body, bytes):
+        dom = _html5parser.parse(body, likely_encoding=protocol_encoding)
+        charset = _html5parser.tokenizer.stream.charEncoding[0].name
+    else:
+        dom = _html5parser.parse(body)
+        charset = "utf-8"
     walker = scrubbers[0](base_url, remap_url, headers, _html5walker(dom))
-    return _html5serializer.render(walker, charEncoding.name) # type: ignore
+    return _html5serializer.render(walker, charset) # type: ignore
