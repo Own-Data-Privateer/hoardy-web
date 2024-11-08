@@ -696,8 +696,26 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         # scrub `link` `href` attributes
                         href = map_optional(lambda x: x.strip(), attrs.get(href_attr, None))
                         if href is not None:
-                            link_type, cts = rel_ref_type_of(link_rels)
-                            attrs[href_attr] = remap_link_or_void(base_url, link_type, cts, remap_url, href)
+                            link_rels_set = set(link_rels)
+                            if is_data_url(href) and not link_rels_set.isdisjoint(stylesheet_link_rels):
+                                # handle stylsheets given as `data:` URLs.
+                                # yes, this is actually allowed =/
+                                try:
+                                    href_mime, href_params, href_data = parse_data_url(href)
+                                    href_mime = canonical_mime_of.get(href_mime, href_mime)
+                                    if href_mime not in stylesheet_mime:
+                                        raise ValueError("not a stylesheet")
+                                    href_protocol_encoding = get_parameter(href_params, "charset", "utf-8")
+                                    href_nodes, href_encoding = _tcss.parse_stylesheet_bytes(href_data, protocol_encoding=href_protocol_encoding)
+                                    href_charset = href_encoding.name
+                                    href_params = set_parameter(href_params, "charset", href_charset)
+                                    attrs[href_attr] = unparse_data_url(href_mime, href_params, _tcss.serialize(scrub_css(base_url, remap_url, href_nodes, None)).encode(href_charset))
+                                except (ParseError, ValueError):
+                                    # censor the whole tag in this case
+                                    censoring = True
+                            else:
+                                link_type, cts = rel_ref_type_of(link_rels)
+                                attrs[href_attr] = remap_link_or_void(base_url, link_type, cts, remap_url, href)
                     else:
                         # censor the whole tag in this case
                         censoring = True

@@ -421,6 +421,27 @@ def test_parse_url() -> None:
 
 Parameters = list[tuple[str, str]]
 
+ParamDefault = _t.TypeVar("ParamDefault", str, None)
+def get_parameter(ps : Parameters, name : str, default : ParamDefault) -> str | ParamDefault:
+    for n, v in ps:
+        if n == name:
+            return v
+    return default
+
+def set_parameter(ps : Parameters, name : str, value : str) -> Parameters:
+    res = []
+    not_done = True
+    for n, v in ps:
+        if n == name:
+            if not_done:
+                res.append((name, value))
+                not_done = False
+            continue
+        res.append((n, v))
+    if not_done:
+        res.append((name, value))
+    return res
+
 token_ends = r'\s\t()\[\]<>@,:;\/?="'
 token_body_re = _re.compile(rf'([^{token_ends}]+)')
 

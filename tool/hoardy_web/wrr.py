@@ -651,6 +651,30 @@ def test_ReqresExpr_scrub_html() -> None:
   <head>
     <meta charset="utf-8">
     <title>Test page</title>
+    <link rel=stylesheet href="{unparse_data_url("text/css", [], test_css_in1.encode("ascii"))}">
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.</p>
+  </body>
+</html>
+""", f"""<!DOCTYPE html><html><head>
+    <meta charset=utf-8>
+    <title>Test page</title>
+    <link rel=stylesheet href='{unparse_data_url("text/css", [("charset", "utf-8")], test_css_out1.encode("ascii"))}'>
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.</p>
+  
+
+</body></html>""")
+
+    check_scrub("+verbose,+whitespace", "https://example.com/", "text/html", [], f"""<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Test page</title>
     <link as=script rel=preload href="https://example.com/main.js">
     <script>x = 1;</script>
     <script src="inc1.js"></script>
