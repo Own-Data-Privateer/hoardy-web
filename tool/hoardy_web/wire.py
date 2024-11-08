@@ -17,6 +17,7 @@
 
 """Parsing and un-parsing of URLs, HTTP headers, HTML attributes, etc."""
 
+import base64 as _base64
 import dataclasses as _dc
 import idna as _idna
 import logging as _logging
@@ -52,6 +53,15 @@ def miniquote(x : str, blacklist : str) -> str:
         _miniquoters[blacklist] = miniquoter
 
     return "".join([miniquoter.get(c, c) for c in x])
+
+def miniescape(x : str, blacklist : str) -> str:
+    res = []
+    for c in x:
+        if c in blacklist:
+            res.append("\\" + c)
+        else:
+            res.append(c)
+    return "".join(res)
 
 ### URL parsing
 
@@ -409,6 +419,8 @@ def test_parse_url() -> None:
 
 ### MIME valuess
 
+Parameters = list[tuple[str, str]]
+
 token_ends = r'\s\t()\[\]<>@,:;\/?="'
 token_body_re = _re.compile(rf'([^{token_ends}]+)')
 
@@ -428,19 +440,20 @@ def parse_mime_type(p : Parser, ends : list[str] = []) -> str:
         # RFC says invalid content types are to be interpreted as `text/plain`
         return "text/plain"
 
-attribute_ends = token_ends + r"*'%"
+attribute_ends = token_ends + "*'%"
 attribute_body_re = _re.compile(rf'([^{attribute_ends}]+)')
 
 def parse_attribute(p : Parser) -> str:
     return p.lexeme(attribute_body_re)
 
-extended_attribute_ends = token_ends + r"*'"
+extended_attribute_ends = token_ends + "*'"
 extended_attribute_body_re = _re.compile(rf'([^{extended_attribute_ends}]+)')
 
 def parse_extended_attribute(p : Parser) -> str:
     return p.lexeme(extended_attribute_body_re)
 
 qcontent_body_re = _re.compile(rf'([^"\\]*)')
+qcontent_ends_str = '"\\'
 
 def parse_value(p : Parser, ends : list[str]) -> str:
     ws = p.opt_whitespace()
@@ -478,8 +491,6 @@ def parse_invalid_parameter(p : Parser, ends : list[str]) -> tuple[str, str]:
     key = p.take_until_string_in(ends)
     return key.rstrip(), ""
 
-Parameters = list[tuple[str, str]]
-
 def parse_mime_parameters(p : Parser, ends : list[str] = []) -> Parameters:
     ends = [";"] + ends
     res = []
@@ -497,6 +508,90 @@ def parse_mime_parameters(p : Parser, ends : list[str] = []) -> Parameters:
             token = parse_invalid_parameter(p, ends)
         res.append(token)
     return res
+
+### `data:` URLs
+
+def parse_data_url(value : str) -> tuple[str, Parameters, bytes]:
+    p = Parser(value)
+    p.string("data:")
+    if p.at_string(","):
+        # MDN says:
+        # > If omitted, defaults to `text/plain;charset=US-ASCII`
+        mime_type = "text/plain"
+        params = [("charset", "US-ASCII")]
+    else:
+        mime_type = parse_mime_type(p, [","])
+        params = parse_mime_parameters(p, [","])
+    p.string(",")
+
+    base64 = False
+    if len(params) > 0 and params[-1][0] == "base64":
+        params = params[:-1]
+        base64 = True
+
+    data : str | bytes
+    if base64:
+        data = _base64.b64decode(p.leftovers)
+    else:
+        data = _up.unquote_to_bytes(p.leftovers)
+    return mime_type, params, data
+
+def test_parse_data_url() -> None:
+    def check(values : list[str], expected_mime_type : str, expected_params : Parameters, expected_data : bytes) -> None:
+        for value in values:
+            mime_type, params, data = parse_data_url(value)
+            scheck(value, "mime_type", mime_type, expected_mime_type)
+            scheck(value, "params", params, expected_params)
+            scheck(value, "data", data, expected_data)
+
+    check(["data:,Hello%2C%20World%21",], "text/plain", [("charset", "US-ASCII")], b"Hello, World!")
+    check(["data:text/plain,Hello%2C%20World%21"], "text/plain", [], b"Hello, World!")
+    check([
+        "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==",
+        "data:text/plain; base64,SGVsbG8sIFdvcmxkIQ==",
+        "data:text/plain; base64 ,SGVsbG8sIFdvcmxkIQ==",
+    ], "text/plain", [], b"Hello, World!")
+    check([
+        "data:text/plain;charset=UTF-8;base64,SGVsbG8sIFdvcmxkIQ==",
+        "data:text/plain; charset=UTF-8;base64,SGVsbG8sIFdvcmxkIQ==",
+        "data:text/plain; charset=UTF-8 ;base64,SGVsbG8sIFdvcmxkIQ==",
+    ], "text/plain", [("charset", "UTF-8")], b"Hello, World!")
+    # because RFC says invalid content types are to be interpreted as `text/plain`
+    check([
+        "data: ,Hello%2C%20World%21",
+        "data:bla,Hello%2C%20World%21",
+    ], "text/plain", [], b"Hello, World!")
+
+def unparse_data_url(mime_type : str, params : Parameters, data : bytes) -> str:
+    res = [
+        "data:",
+        mime_type,
+    ]
+    for n, v in params:
+        res.append(";")
+        res.append(n)
+        if len(v) == 0:
+            continue
+        res.append('="')
+        res.append(miniescape(v, qcontent_ends_str))
+        res.append('"')
+    res += [
+        ";base64,",
+        _base64.b64encode(data).decode("ascii"),
+    ]
+    return "".join(res)
+
+def test_unparse_data_url() -> None:
+    def check(value : str, *args : _t.Any) -> None:
+        res = unparse_data_url(*args)
+        scheck(args, "unparse", value, res)
+        back = parse_data_url(res)
+        scheck(value, "re-parse", back, args)
+
+    check('data:text/plain;base64,', "text/plain", [], b"")
+    check('data:text/html;base64,TllB', "text/html", [], b"NYA")
+    check('data:text/plain;charset="utf-8";base64,QUJD', "text/plain", [("charset", "utf-8")], b"ABC")
+    check('data:text/plain;charset="US-ASCII";token="\\"";token="\'A";base64,ZGF0YQ==', "text/plain", [("charset", 'US-ASCII'), ("token", '"'), ("token", "'A")], b"data")
 
 ### HTTP Headers
 
