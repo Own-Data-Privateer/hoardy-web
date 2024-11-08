@@ -1704,7 +1704,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                     return url
 
                 try:
-                    abs_out_path = done[unet_url]
+                    uabs_out_path = done[unet_url]
                 except KeyError:
                     uobj : Indexed | None
                     try:
@@ -1717,9 +1717,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                         is_indexed = False
 
                     if uobj is None:
-                        abs_out_path = None
+                        uabs_out_path = None
                     else:
-                        _, _, abs_out_path, urrexpr = uobj.unpack(urrexpr_)
+                        _, _, uabs_out_path, urrexpr = uobj.unpack(urrexpr_)
 
                         if link_type == LinkType.REQ:
                             # this is a requisite
@@ -1751,7 +1751,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                                 report_queued(unet_url, purl.pretty_net_url, level + 1)
                             else:
                                 # otherwise, use fallback, since this will not be exported
-                                abs_out_path = None
+                                uabs_out_path = None
                         elif urrexpr_ is None and urrexpr is not None:
                             # urrexpr was not yet previously cached, but was loaded above
                             aps = urrexpr.reqres.approx_size()
@@ -1765,14 +1765,19 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                                 else:
                                     assert is_indexed
 
-                if abs_out_path is None:
+                if uabs_out_path is None:
                     if fallbacks is not None:
-                        abs_out_path = remap_url_fallback(stime, fallbacks, purl)
+                        uabs_out_path = remap_url_fallback(stime, fallbacks, purl)
                     else:
                         return None
 
-                return path_to_url(_os.path.relpath(abs_out_path, document_dir)) \
-                       + purl.ofm + purl.fragment
+                if uabs_out_path != abs_out_path or len(purl.ofm) == 0:
+                    urel_url = path_to_url(_os.path.relpath(uabs_out_path, document_dir))
+                else:
+                    # this is a reference to an inter-page `id`
+                    urel_url = ""
+
+                return urel_url + purl.ofm + purl.fragment
 
             rrexpr = iobj.load(rrexpr)
             rrexpr.remap_url = remap_url
