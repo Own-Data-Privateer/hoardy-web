@@ -134,7 +134,7 @@ while (($# > 0)); do
     exprs=( \
         "${uexprs[@]}" \
         -e "net_url|to_ascii|sha256|take_prefix 4" \
-        -e "response.body|eb|sha256" \
+        -e "response.body|eb|to_utf8|sha256" \
     )
 
     do_compare=1

@@ -511,8 +511,8 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `quote_plus`: URL-percent-encoding quote value and replace spaces with `+` symbols
       - `unquote`: URL-percent-encoding unquote value
       - `unquote_plus`: URL-percent-encoding unquote value and replace `+` symbols with spaces
-      - `to_ascii`: encode `str` value into `bytes` with "ascii" codec
-      - `to_utf8`: encode `str` value into `bytes` with "utf-8" codec
+      - `to_ascii`: encode `str` value into `bytes` with "ascii" codec, do nothing if the value is already `bytes`
+      - `to_utf8`: encode `str` value into `bytes` with "utf-8" codec, do nothing if the value is already `bytes`
       - `sha256`: replace `bytes` value with its `sha256` hex digest (`hex(sha256(value))`)
       - `~=`: check if the current value matches the regular exprission `arg`
       - `==`: apply `== arg`, `arg` is cast to the same type as the current value
