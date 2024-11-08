@@ -604,12 +604,12 @@ def linst_scrub() -> LinstAtom:
         return envfunc
     return [str, str], func
 
-def check_scrub(opts : str, url : str, ct : str, headers : Headers, data : bytes, eres : bytes | str) -> None:
+def check_scrub(opts : str, url : str, ct : str, headers : Headers, data : str, eres : str) -> None:
     def sc(sniff : bool) -> None:
-        t = trivial_Reqres(parse_url(url), ct, sniff=sniff, headers=headers, data=data)
+        t = trivial_Reqres(parse_url(url), ct, sniff=sniff, headers=headers, data=data.encode("utf-8"))
         x = ReqresExpr(t, None, [])
 
-        res = x[f"response.body|eb|scrub response {opts}"]
+        res = x[f"response.body|eb|scrub response {opts}"].decode("utf-8")
         if res != eres:
             stdout.write_ln("input:")
             stdout.write_ln("==== START ====")
@@ -624,12 +624,29 @@ def check_scrub(opts : str, url : str, ct : str, headers : Headers, data : bytes
             stdout.write_ln(res)
             stdout.write_ln("===== END =====")
             stdout.flush()
-            raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", opts, x, eres, res)
+            raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", opts, x, repr(eres), repr(res))
     sc(False)
     sc(True)
 
+test_css_in1 = """
+body {
+  background: url(./background.jpg);
+  *zoom: 1;
+}
+"""
+
+test_css_out1 = """
+body {
+  background: url(data:text/plain,%20);
+  *zoom: 1;
+}
+"""
+
+def test_ReqresExpr_scrub_css() -> None:
+    check_scrub("+verbose,+whitespace", "https://example.com/test.css", "text/css", [], test_css_in1, test_css_out1)
+
 def test_ReqresExpr_scrub_html() -> None:
-    check_scrub("+verbose,+whitespace", "https://example.com/", "text/html", [], b"""<!DOCTYPE html>
+    check_scrub("+verbose,+whitespace", "https://example.com/", "text/html", [], f"""<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -638,10 +655,7 @@ def test_ReqresExpr_scrub_html() -> None:
     <script>x = 1;</script>
     <script src="inc1.js"></script>
     <style>
-    body {
-      background: url(./background.jpg);
-      *zoom: 1;
-    }
+    {test_css_in1}
     </style>
   </head>
   <body>
@@ -651,17 +665,14 @@ def test_ReqresExpr_scrub_html() -> None:
     <script src="inc2.js"></script>
   </body>
 </html>
-""", b"""<!DOCTYPE html><html><head>
+""", f"""<!DOCTYPE html><html><head>
     <meta charset=utf-8>
     <title>Test page</title>
     <!-- hoardy-web censored out EmptyTag link from here -->
     <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out Characters from here --><!-- hoardy-web censored out EndTag script from here -->
     <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
     <style>
-    body {
-      background: url(data:text/plain,%20);
-      *zoom: 1;
-    }
+    {test_css_out1}
     </style>
   </head>
   <body>
@@ -681,7 +692,7 @@ def test_ReqresExpr_scrub_html() -> None:
         ("X-UA-Compatible", b"IE=edge"),
         ("Refresh", b"100;url=/two.html"),
         ("Refresh", b"200;url=/three.html"),
-    ], b"""<!DOCTYPE html>
+    ], """<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -695,7 +706,7 @@ def test_ReqresExpr_scrub_html() -> None:
     <p>Test para.</p>
   </body>
 </html>
-""", b"""<!DOCTYPE html>
+""", """<!DOCTYPE html>
 <html>
   <head>
     <meta charset=utf-8>
@@ -722,7 +733,7 @@ def test_ReqresExpr_scrub_html() -> None:
         ("Link", b"""<https://example.org/first.css>; rel=stylesheet
 <https://example.org/second.css>; rel=stylesheet"""),
         ("Refresh", b"100;url=/one.html"),
-    ], b"""<!DOCTYPE html>
+    ], """<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -733,7 +744,7 @@ def test_ReqresExpr_scrub_html() -> None:
     <p>Test para.</p>
   </body>
 </html>
-""", b"""<!DOCTYPE html>
+""", """<!DOCTYPE html>
 <html>
   <head>
     <meta charset=utf-8>
@@ -747,19 +758,6 @@ def test_ReqresExpr_scrub_html() -> None:
     <p>Test para.</p>
   </body>
 </html>""")
-
-def test_ReqresExpr_scrub_css() -> None:
-    check_scrub("+verbose,+whitespace", "https://example.com/test.css", "text/css", [], b"""
-body {
-  background: url(./background.jpg);
-  *zoom: 1;
-}
-""", """
-body {
-  background: url(data:text/plain,%20);
-  *zoom: 1;
-}
-""")
 
 ReqresExpr_atoms = linst_atoms.copy()
 ReqresExpr_atoms.update({

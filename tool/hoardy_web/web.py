@@ -817,13 +817,15 @@ def scrub_css(scrubbers : Scrubbers,
               remap_url : URLRemapper,
               headers : Headers,
               body : str | bytes,
-              protocol_encoding : str | None) -> str:
-    if isinstance(body, str):
-        nodes = _tcss.parse_stylesheet(body)
-    else:
+              protocol_encoding : str | None) -> bytes:
+    if isinstance(body, bytes):
         nodes, encoding = _tcss.parse_stylesheet_bytes(body, protocol_encoding=protocol_encoding)
+        charset = encoding.name
+    else:
+        nodes = _tcss.parse_stylesheet(body)
+        charset = "utf-8"
     res = scrubbers[1](base_url, remap_url, headers, nodes)
-    return _tcss.serialize(res) # type: ignore
+    return _tcss.serialize(res).encode(charset) # type: ignore
 
 _html5treebuilder = _h5.treebuilders.getTreeBuilder("etree", fullTree=True)
 _html5parser = _h5.html5parser.HTMLParser(_html5treebuilder)
