@@ -1439,30 +1439,33 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         stime : Epoch
         abs_in_path : str
         def_out_path : str
+        rrexpr : ReqresExpr | None
         _abs_out_path : str | None = _dc.field(default = None)
 
-        def load(self, rrexpr : ReqresExpr | None) -> ReqresExpr:
-            if rrexpr is None:
+        def load(self, strict : bool) -> tuple[Epoch, str, str, ReqresExpr | None]:
+            rrexpr = self.rrexpr
+            abs_out_path = self._abs_out_path
+            if rrexpr is None and (strict or abs_out_path is None):
                 rrexpr = wrr_loadf_expr(self.abs_in_path, sniff)
-            return rrexpr
+                if strict:
+                    self.rrexpr = rrexpr
+                    mem.consumption += rrexpr.reqres.approx_size()
 
-        def preload(self, rrexpr : ReqresExpr | None) -> ReqresExpr | None:
-            if self._abs_out_path is not None:
-                return rrexpr
-            rrexpr = self.load(rrexpr)
-            rrexpr.items["num"] = seen_counter.count(self.def_out_path)
-            rel_out_path = _os.path.join(destination, output_format % rrexpr)
-            abs_out_path = _os.path.abspath(rel_out_path)
-            self._abs_out_path = abs_out_path
-            return rrexpr
+            if abs_out_path is None:
+                assert rrexpr is not None
+                rrexpr.items["num"] = seen_counter.count(self.def_out_path)
+                rel_out_path = _os.path.join(destination, output_format % rrexpr)
+                abs_out_path = _os.path.abspath(rel_out_path)
+                self._abs_out_path = abs_out_path
+                mem.consumption += len(abs_out_path)
 
-        def unpack(self, rrexpr : ReqresExpr | None) -> tuple[Epoch, str, str, ReqresExpr | None]:
-            rrexpr = self.preload(rrexpr)
-            assert self._abs_out_path is not None
-            return self.stime, self.abs_in_path, self._abs_out_path, rrexpr
+            return self.stime, self.abs_in_path, abs_out_path, rrexpr
 
         def approx_size(self) -> int:
-            return 64 + len(self.abs_in_path) + 2 * len(self.def_out_path) + len(destination)
+            return 64 + len(self.abs_in_path) + \
+                len(self.def_out_path) + \
+                (self.rrexpr.reqres.approx_size() if self.rrexpr is not None else 0) + \
+                (len(self._abs_out_path) if self._abs_out_path is not None else 0)
 
     net_url_t : _t.TypeAlias = str
     path_t : _t.TypeAlias = str
@@ -1471,26 +1474,26 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     # `Indexed` objects migrate from disk to `index` or `queue`, then from `index` to `new_queue`,
     # then from `new_queue` to `queue`, and from `queue` to `done`.
     index : dict[net_url_t, Indexed] = dict()
-    Queue = _c.OrderedDict[net_url_t, tuple[Indexed, ReqresExpr | None]]
+    Queue = _c.OrderedDict[net_url_t, Indexed]
     queue : Queue = _c.OrderedDict()
     done : dict[net_url_t, path_t] = dict()
 
-    def get_q_or_i(net_url : str) -> tuple[bool, bool, Indexed | None, ReqresExpr | None]:
+    def get_q_or_i(net_url : str) -> tuple[bool, bool, Indexed | None]:
         is_queued = False
         is_indexed = False
+        iobj = None
         try:
-            iobj, rrexpr = queue[net_url]
+            iobj = queue[net_url]
         except KeyError:
             try:
                 iobj = index[net_url]
             except KeyError:
-                iobj = None
+                pass
             else:
                 is_indexed = True
-            rrexpr = None
         else:
             is_queued = True
-        return is_queued, is_indexed, iobj, rrexpr
+        return is_queued, is_indexed, iobj
 
     @_dc.dataclass
     class N:
@@ -1544,60 +1547,60 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         net_url = rrexpr.net_url
         stime = rrexpr.stime
 
-        is_queued, is_indexed, iobj, _ = get_q_or_i(net_url)
+        is_queued, is_indexed, iobj = get_q_or_i(net_url)
 
         if iobj is None:
             rrexpr.items["num"] = 0
             def_out_path = output_format % rrexpr
-            iobj = Indexed(stime, abs_in_path, def_out_path)
-        else:
-            if iobj.stime < stime:
-                # update
-                iobj.stime = stime
-                iobj.abs_in_path = abs_in_path
+            iobj = Indexed(stime, abs_in_path, def_out_path, rrexpr)
+            mem.consumption += iobj.approx_size()
+        elif iobj.stime < stime:
+            # update
+            mem.consumption -= iobj.approx_size()
+            iobj.stime = stime
+            iobj.abs_in_path = abs_in_path
+            iobj.rrexpr = rrexpr
+            mem.consumption += iobj.approx_size()
 
-            if is_queued:
-                return
+        if not is_queued:
+            enqueue = queue_all
+            pretty_net_url : str | None = None
 
-        enqueue = queue_all
-        pretty_net_url : str | None = None
+            if not enqueue and have_root_url:
+                vu = root_url.get(net_url, None)
+                if vu is not None:
+                    vu.n += 1
+                    enqueue = True
 
-        if not enqueue and have_root_url:
-            vu = root_url.get(net_url, None)
-            if vu is not None:
-                vu.n += 1
-                enqueue = True
+            if not enqueue and have_root_url_prefix:
+                for pref, vp in root_url_prefix.items():
+                    if not net_url.startswith(pref):
+                        continue
+                    vp.n += 1
+                    enqueue = True
+                    break
 
-        if not enqueue and have_root_url_prefix:
-            for pref, vp in root_url_prefix.items():
-                if not net_url.startswith(pref):
-                    continue
-                vp.n += 1
-                enqueue = True
-                break
+            if not enqueue and have_root_url_re:
+                pretty_net_url = rrexpr.pretty_net_url
+                for re, vr in root_url_re.items():
+                    if not vr.cre.match(net_url) and not vr.cre.match(pretty_net_url):
+                        continue
+                    vr.n += 1
+                    enqueue = True
+                    break
 
-        if not enqueue and have_root_url_re:
-            pretty_net_url = rrexpr.pretty_net_url
-            for re, vr in root_url_re.items():
-                if not vr.cre.match(net_url) and not vr.cre.match(pretty_net_url):
-                    continue
-                vr.n += 1
-                enqueue = True
-                break
+            if enqueue:
+                queue[net_url] = iobj
+                is_queued = True
+                report_queued(net_url, rrexpr.pretty_net_url if pretty_net_url is None else pretty_net_url, 1)
 
-        mem.consumption += iobj.approx_size()
-
-        if enqueue:
-            iobj.preload(rrexpr) # for these, `abs_out_path` will have be computed anyway
-            rrexpr_ = None
-            aps = rrexpr.reqres.approx_size()
-            if mem.consumption + aps < max_memory_mib:
-                mem.consumption += aps
-                rrexpr_ = rrexpr
-            queue[net_url] = iobj, rrexpr_
-            report_queued(net_url, rrexpr.pretty_net_url if pretty_net_url is None else pretty_net_url, 1)
-        elif not is_indexed:
+        if not is_queued and not is_indexed:
             index[net_url] = iobj
+
+        if len(rrexpr.obj_path) == 0 and mem.consumption > max_memory_mib:
+            # this `rrexpr` is cheap to re-load and we are over `max_memory_mib` limit
+            iobj.rrexpr = None
+            mem.consumption -= rrexpr.reqres.approx_size()
 
     if stdout.isatty:
         stdout.write_bytes(b"\033[32m")
@@ -1635,17 +1638,16 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
     def render(net_url : str,
                iobj : Indexed,
-               rrexpr : ReqresExpr | None,
                enqueue : bool,
                new_queue : Queue,
-               level : int) -> None:
+               level : int) -> str | None:
         level0 = level == 0
         Stats.n += 1
         if level0:
             Stats.doc_n += 1
 
         try:
-            stime, abs_in_path, abs_out_path, rrexpr = iobj.unpack(rrexpr)
+            stime, abs_in_path, abs_out_path, rrexpr = iobj.load(True)
             done[net_url] = abs_out_path
             mem.consumption += 8 + len(abs_out_path)
 
@@ -1679,7 +1681,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 if stdout.isatty:
                     stdout.write_bytes(b"\033[0m")
                 stdout.flush()
-                return
+                return abs_out_path
 
             document_dir = _os.path.dirname(abs_out_path)
             known : set[str] = set() # for a better UI
@@ -1708,62 +1710,39 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 except KeyError:
                     uobj : Indexed | None
                     try:
-                        uobj, urrexpr_ = new_queue[unet_url]
+                        uobj = new_queue[unet_url]
                     except KeyError:
                         is_new_queued = False
-                        is_queued, is_indexed, uobj, urrexpr_ = get_q_or_i(unet_url)
+                        is_queued, is_indexed, uobj = get_q_or_i(unet_url)
                     else:
                         is_new_queued = True
                         is_indexed = False
 
                     if uobj is None:
+                        # unavailable, use fallback
                         uabs_out_path = None
+                    elif link_type == LinkType.REQ:
+                        # this is a requisite
+                        # unqueue and unindex it
+                        if is_new_queued:
+                            del new_queue[unet_url]
+                        elif is_queued:
+                            del queue[unet_url]
+                        else:
+                            del index[unet_url]
+                        # render it immediately
+                        uabs_out_path = render(unet_url, uobj, enqueue, new_queue, level + 1)
+                    elif is_new_queued or is_queued:
+                        uabs_out_path = uobj.load(False)[2]
+                    elif enqueue:
+                        new_queue[unet_url] = uobj
+                        if is_indexed:
+                            del index[unet_url]
+                        report_queued(unet_url, purl.pretty_net_url, level + 1)
+                        uabs_out_path = uobj.load(False)[2]
                     else:
-                        _, _, uabs_out_path, urrexpr = uobj.unpack(urrexpr_)
-
-                        if link_type == LinkType.REQ:
-                            # this is a requisite
-                            # unqueue and unindex it
-                            if is_new_queued:
-                                del new_queue[unet_url]
-                            elif is_queued:
-                                del queue[unet_url]
-                            else:
-                                del index[unet_url]
-                            # and render it immediately
-                            render(unet_url, uobj, urrexpr, enqueue, new_queue, level + 1)
-                            if urrexpr_ is not None:
-                                # it was previously cached, yet it will be unloaded soon
-                                mem.consumption -= urrexpr_.reqres.approx_size()
-                        elif not is_new_queued and not is_queued:
-                            if enqueue:
-                                # enqueue if we are not over max_depth yet
-                                if urrexpr_ is None and urrexpr is not None:
-                                    # urrexpr was not previously cached, but was loaded above
-                                    aps = urrexpr.reqres.approx_size()
-                                    if mem.consumption + aps < max_memory_mib:
-                                        mem.consumption += aps
-                                    else:
-                                        urrexpr = None
-                                if is_indexed:
-                                    del index[unet_url]
-                                new_queue[unet_url] = uobj, urrexpr
-                                report_queued(unet_url, purl.pretty_net_url, level + 1)
-                            else:
-                                # otherwise, use fallback, since this will not be exported
-                                uabs_out_path = None
-                        elif urrexpr_ is None and urrexpr is not None:
-                            # urrexpr was not yet previously cached, but was loaded above
-                            aps = urrexpr.reqres.approx_size()
-                            if mem.consumption + aps < max_memory_mib:
-                                mem.consumption += aps
-                                # cache it
-                                if is_new_queued:
-                                    new_queue[unet_url] = uobj, urrexpr
-                                elif is_queued:
-                                    queue[unet_url] = uobj, urrexpr
-                                else:
-                                    assert is_indexed
+                        # this will not be exported, use fallback
+                        uabs_out_path = None
 
                 if uabs_out_path is None:
                     if fallbacks is not None:
@@ -1779,7 +1758,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
                 return urel_url + purl.ofm + purl.fragment
 
-            rrexpr = iobj.load(rrexpr)
+            assert rrexpr is not None
             rrexpr.remap_url = remap_url
 
             data : bytes
@@ -1789,16 +1768,17 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
             if exists and file_content_equals(abs_out_path, data):
                 # this is a noop overwrite, skip it
-                return
+                return abs_out_path
 
             undeferred_write(data, abs_out_path, None, allow_updates)
+            return abs_out_path
         except Failure as exc:
             if cargs.errors == "ignore":
-                return
+                return None
             exc.elaborate(gettext(f"while processing `%s`"), abs_in_path)
             if cargs.errors != "fail":
                 _logging.error("%s", str(exc))
-                return
+                return None
             raise CatastrophicFailure("%s", str(exc))
         except Exception:
             error(gettext("while processing `%s`"), abs_in_path)
@@ -1815,11 +1795,8 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         while len(queue) > 0:
             if want_stop: raise KeyboardInterrupt()
 
-            net_url, (iobj, rrexpr) = queue.popitem(False)
-            render(net_url, iobj, rrexpr, enqueue, new_queue, 0)
-            if rrexpr is not None:
-                # it was previously cached, yet it will be unloaded soon
-                mem.consumption -= rrexpr.reqres.approx_size()
+            net_url, iobj = queue.popitem(False)
+            render(net_url, iobj, enqueue, new_queue, 0)
 
         queue = new_queue
         depth += 1
