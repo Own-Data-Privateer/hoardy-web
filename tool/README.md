@@ -121,7 +121,7 @@ hoardy-web organize --copy     --to ~/hoardy-web/copy1 ~/hoardy-web/original
 hoardy-web organize --hardlink --to ~/hoardy-web/copy2 ~/hoardy-web/original
 ```
 
-(In real-life use different copies usually end up on in different backup drives or some such.)
+(In real-life use different copies usually end up on different backup drives or some such.)
 
 Then, repeating the same command would a noop:
 
@@ -234,6 +234,12 @@ On completion, `~/hoardy-web/mirror1` will contain a bunch of interlinked `HTML`
 The resulting `HTML` files will be stripped of all `JavaScript` and other stuff of various levels of evil and then minimized a bit to save space.
 The results should be completely self-contained (i.e., work inside a browser running in "Work offline" mode) and safe to view in a dumb unconfigured browser (i.e., the resulting web pages should not request any page requisites --- like images, media, `CSS`, fonts, etc --- from the Internet).
 
+(In practice, though, `hoardy-web export mirror` is not completely free of bugs and `HTML5` spec is constantly evolving, with new things getting added there all the time.
+So, it is entirely possible that the output of the above `hoardy-web export mirror` invocation will not be completely self-contained.
+Which is why the `Hoardy-Web` extension has its own per-tab `Work offline` mode which, by default, gets enabled for tabs with `file:` URLs.
+That feature prevents the outputs of `hoardy-web export mirror` from accessing the Internet regardless of any bugs or missing features in `hoardy-web`.
+It also helps with debugging.)
+
 If you are unhappy with the above and, for instance, want to keep `JavaScript` and produce unminimized human-readable `HTML`s, you can run the following instead:
 
 ```bash
@@ -254,7 +260,7 @@ The later command will render your mirror pretty quickly, but the other `export 
 Under `CPython` on my 2013-era laptop `hoardy-web export mirror` manages to render, on average, 3 `HTML` and `CSS` files per second.
 Though, this is not very characteristic of the overall exporting speed, since images and other media just get copied around at expected speeds of 300+ files per second.
 
-Also, enabling `+pretty` (or `+indent`) in `scrub` will make `HTML` scrubbing slightly slower (since it will have to track more stuff) and `CSS` scrubbing a lot slower (since it requires complete parsing of the structure, not just tokenization).
+Also, enabling `+indent` (or `+pretty`) in `scrub` will make `HTML` scrubbing slightly slower (since it will have to track more stuff) and `CSS` scrubbing a lot slower (since it will force complete structural parsing, not just tokenization).
 
 ### Handling outputs to the same file
 
@@ -278,8 +284,8 @@ The latter method also allow for incremental updates, discussed in the next sect
 
 ### Update your mirror incrementally
 
-By default, `hoardy-web export mirror` runs with implied `--remap-all` options which remaps *all* links in exported `HTML` files to local files, even if source `WRR` files for those would-be exported files are missing.
-This allows you to easily update your mirror directory incrementally by re-running `hoardy-web export mirror` with the same `--to` argument but new input paths.
+By default, `hoardy-web export mirror` runs with an implied `--remap-all` option which remaps *all* links in exported `HTML` files to local files, even if source `WRR` files for those would-be exported files are missing.
+This allows you to easily update your mirror directory incrementally by re-running `hoardy-web export mirror` with the same `--to` argument on new inputs.
 For instance:
 
 ```bash
@@ -334,17 +340,9 @@ As an alternative to (or in combination with) keeping a symlink hierarchy of lat
 
 ```
 hoardy-web export mirror \
-  --root-url 'https://archiveofourown.org/works/3733123?view_adult=true&view_full_work=true' \
-  --root-url 'https://archiveofourown.org/works/30186441?view_adult=true&view_full_work=true' \
-  --to ~/hoardy-web/mirror6 ~/hoardy-web/raw/*/2023
-```
-
-or
-
-```
-hoardy-web export mirror \
-  --root-url-prefix 'https://archiveofourown.org/works/' \
-  --to ~/hoardy-web/mirror6 ~/hoardy-web/raw/*/2023
+  --to ~/hoardy-web/mirror6 ~/hoardy-web/raw/*/2023 \
+  --root-url-prefix 'https://archiveofourown.org/works/3733123' \
+  --root-url-prefix 'https://archiveofourown.org/works/30186441'
 ```
 
 See the documentation for the `--root-*` options below for more info and more `--root-*` variants.
@@ -356,15 +354,15 @@ There is also `--depth` option, which works similarly to `wget`'s `--level` opti
 When using `--root-*` options, `--remap-open` works exactly like `wget`'s `--convert-links` in that it will only remap the URLs that are going to be exported and will keep the rest as-is.
 Similarly, `--remap-closed` will consider only the URLs reachable from the `--root-*`s in no more that `--depth` jumps as available.
 
-#### Prioritizing some files other others
+### Prioritizing some files other others
 
 By default, files are read, queued, and then exported in the order they are specified on the command line, in lexicographic file system walk order when an argument is a directory.
 (See `--paths-*` and `--walk-*` options below if you want to change this.)
 
 However, the above rule does not apply to page requisites, those are always (with or without `--root-*`, regardless of `--paths-*` and `--walk-*` options) get exported just after their parent `HTML` document gets parsed and before that document gets written to disk.
-I.e., `export mirror` will generate a new file containing an `HTML` document only after all of its requisites were already written to disk.
+I.e., `export mirror` will produce a new file containing an `HTML` document only after first producing all of its requisites.
 I.e., when exporting into an empty directory, if you see `export mirror` generated an `HTML` document, you can be sure that all of its requisites loaded (indexed) by this `export mirror` invocation are rendered too.
-Meaning, you can you can go ahead and open it in your browser, even if `export mirror` did not finish yet.
+Meaning, you can go ahead and open it in your browser, even if `export mirror` did not finish yet.
 
 Moreover, unlike all other sub-commands `export mirror` handles duplication in its input files in a special way: it remembers the files it has already seen and ignores them when they are given the second time.
 (All other commands don't, they will just process the same file the second time, the third time, and so on.
@@ -394,7 +392,7 @@ hoardy-web export mirror \
 
 will export all pages those URLs start with `https://archiveofourown.org/works/` and all their requisites, but the pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be exported first.
 
-## <span id="mitmproxy-mirror"/>How to generate local offline website mirrors like `wget -mpk` from you old `mitmproxy` stream dumps
+## <span id="mitmproxy-mirror"/>How to generate a local offline website mirror, like `wget -mpk` does, from `mitmproxy` stream dumps
 
 Assuming `mitmproxy.001.dump`, `mitmproxy.002.dump`, etc are files that were produced by running something like
 
@@ -416,7 +414,7 @@ hoardy-web export mirror --to ~/hoardy-web/mirror ~/hoardy-web/mitmproxy
 
 ## How to generate previews for `WRR` files, listen to them via TTS, open them with `xdg-open`, etc
 
-See [`script` sub-directory](./script/) for examples that show how to use `pandoc` and/or `w3m` to turn `WRR` files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
+See [the `script` sub-directory](./script/) for examples that show how to use `pandoc` and/or `w3m` to turn `WRR` files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
 
 # Usage
 
@@ -1806,11 +1804,11 @@ hoardy-web stream --format=raw -ue response.body ../simple_server/pwebarc-dump/p
 hoardy-web get ../simple_server/pwebarc-dump/path/to/file.wrr | less
 ```
 
-## `./test-cli.sh [--help] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]`
+# Development: `./test-cli.sh [--help] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]`
 
 Sanity check and test `hoardy-web` command-line interface.
 
-### Examples
+## Examples
 
 - Run tests on each of given WRR bundles:
 

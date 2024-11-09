@@ -7,8 +7,7 @@ s/^\(#\+\) /#\1 /
 s/^\(#\+\) \(hoardy-web[^[({]*\) [[({].*/\1 \2/
 ' >> README.new
 ./test-cli.sh --help | sed '
-s/^# usage: \(.*\)$/# `\1`/
-s/^\(#\+\) /#\1 /
+s/^# usage: \(.*\)$/# Development: `\1`/
 ' >> README.new
 mv README.new README.md
 pandoc -f markdown -t html README.md > README.html
