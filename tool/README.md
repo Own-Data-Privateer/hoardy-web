@@ -49,12 +49,25 @@
 
   Though, in this case, you'll probably want to do the first command from the parent directory, to install everything all at once.
 
-## Supported input file formats
+## Archived data -> Website mirror
 
-### Simple `WRR` dumps (`*.wrr`)
+You can then use your archived data to generate a local offline website mirror that can be opened in a web browser without accesing the Internet, similar to what `wget -mpk` does.
+The invocation is identical regardless of if the data was saved by [the `hoardy-web-sas` archiving server](../simple_server/) or exported via `saveAs` by [the `Hoardy-Web` extension](../extension/) itself:
 
-When you use [the `Hoardy-Web` extension](../extension/) together with [`hoardy-web-sas` archiving server](../simple_server/), the latter writes [`WRR` dumps the extension generates](../doc/data-on-disk.md) into separate `.wrr` files (aka "`WRR` files") in its dumping directory.
-No further actions to use that data are required.
+```bash
+hoardy-web export mirror --to ~/hoardy-web/mirror1 ../simple_server/pwebarc-dump
+hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/Downloads/Hoardy-Web-export-*
+```
+
+[A section below](#mirror) contains more `export mirror` examples.
+Though, the top part of this `README` file (from here to ["Usage"](#usage)) is designed to be read in a linear fashion, not piece-meal.
+
+# Supported input file formats
+
+## Simple `WRR` dumps (`*.wrr`)
+
+When you use [the `Hoardy-Web` extension](../extension/) together with [`hoardy-web-sas` archiving server](../simple_server/), the latter writes [`WRR` dumps the extension generates](../doc/data-on-disk.md), one dump per file, into separate `.wrr` files (aka "`WRR` files") in its dumping directory.
+No further actions to use such files are required.
 
 The situation is similar if you instead use the `Hoardy-Web` extension with `Export via 'saveAs'` option enabled but `Export via 'saveAs' > Bundle dumps` option disabled.
 The only difference is that `WRR` files will be put into `~/Downloads` or similar.
@@ -63,15 +76,20 @@ The only difference is that `WRR` files will be put into `~/Downloads` or simila
 ls ~/Downloads/Hoardy-Web-export-*
 ```
 
-### Bundles of `WRR` dumps (`*.wrrb`)
+## Bundles of `WRR` dumps (`*.wrrb`)
 
-However, if instead of using any of the above you use the `Hoardy-Web` extension with both `Export via 'saveAs'` and bundling options enabled, then, at the moment, you will need to `import` those `.wrrb` files (aka `WRR` bundles) into separate `WRR` files first:
+When, instead of the above, you run the `Hoardy-Web` extension with both `Export via 'saveAs'` and bundling options enabled, it fills your `~/Downloads` directory with `.wrrb` files (aka "`WRR` bundles") instead.
+`WRR` bundles are simply concatenations of `WRR` dumps (optionally) compressed with `GZip`.
+
+Most sub-commands of `hoardy-web` can take both `.wrr` and `.wrrb` files as inputs, so most examples described below will work for both.
+
+Except, at the moment, `hoardy-web organize` sub-command can only take plain `.wrr` files as inputs, so to use it you will have to convert your `.wrrb` bundles into `WRR` files first by running something like:
 
 ```bash
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
 ```
 
-Note that `hoardy-web` can parse `.wrr` files as single-dump `.wrrb` files, so the above will work even when some of the exported dumps are simple `.wrr` files (`Hoardy-Web` generates those when exporting an only available per-bucket dump or when exporting dumps larger than set maximum bundle size).
+Note that `.wrr` files can be parsed as single-dump `.wrrb` files, so the above will work even when some of the exported dumps were exported as separate `.wrr` files by the `Hoardy-Web` extension (because you configured it to do that, because it exported a bucket with a single dump as a separate file, because it exported a dump that was larger than set maximum bundle size as a separate file, etc).
 So, essentially, the above command is equivalent to
 
 ```bash
@@ -79,10 +97,12 @@ hoardy-web organize --copy --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.wrrb
 ```
 
-### Other file formats
+## Other file formats
 
 `hoardy-web` can also use some other file formats as inputs.
 See the documentation of the `hoardy-web import` sub-command below for more info.
+
+# Recipes
 
 ## How to merge multiple archive directories
 
@@ -156,9 +176,15 @@ I.e. the above will produce `~/hoardy-web/pointers` with unique symlinks pointin
 
 ## How to build a file system tree of latest versions of all hoarded URLs
 
-Assuming you keep your `WRR` dumps in `~/hoardy-web/raw`, the following command will generate a file system hierarchy under `~/hoardy-web/latest` organized in such a way that, for each URL from `~/hoardy-web/raw`, it will contain a symlink from under `~/hoardy-web/latest` to a file in `~/hoardy-web/raw` pointing to the most recent `WRR` file containing `200 OK` response for that URL:
+Assuming you keep your `WRR` dumps in `~/hoardy-web/raw`, the following commands will generate a file system hierarchy under `~/hoardy-web/latest` organized in such a way that, for each URL from `~/hoardy-web/raw`, it will contain a symlink from under `~/hoardy-web/latest` to a file in `~/hoardy-web/raw` pointing to the most recent `WRR` file containing `200 OK` response for that URL:
 
 ```bash
+# import exported extension outputs
+hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
+# and/or move and rename `hoardy-web-sas` outputs
+hoardy-web organize --move --to ~/hoardy-web/raw ../simple_server/pwebarc-dump
+
+# and then organize them
 hoardy-web organize --symlink --latest --output hupq --to ~/hoardy-web/latest --and "status|~= .200C" ~/hoardy-web/raw
 ```
 
