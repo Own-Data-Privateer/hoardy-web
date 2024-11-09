@@ -6,6 +6,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is [a TODO list](#todo) with planned future changes.
 
+## [extension-v1.17.2] - 2024-11-09: Documentation fixes, mostly
+
+### Changed
+
+- [The `Help` page](./extension/page/help.org):
+
+  - Rewrote "Conventions" and "'Work offline' mode" sections of to be much more readable.
+
+- `*`:
+
+  - Improved contrast when running with a light `CSS` color scheme.
+
+### Fixed
+
+- Documentation:
+
+  - Fixed some typos.
+
+- `*`:
+
+  - Fixed some potential state display inconsistency bugs and improved UI pages' init performance when the core is very busy.
+
 ## [extension-v1.17.1] - 2024-11-01: Annoyance fixes
 
 ### Changed
@@ -1539,6 +1561,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.17.2]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.17.1...extension-v1.17.2
 [extension-v1.17.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.17.0...extension-v1.17.1
 [extension-v1.17.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.16.1...extension-v1.17.0
 [tool-v0.16.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.15.5.1...tool-v0.16.0
