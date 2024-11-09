@@ -83,7 +83,7 @@ When, instead of the above, you run the `Hoardy-Web` extension with both `Export
 
 Most sub-commands of `hoardy-web` can take both `.wrr` and `.wrrb` files as inputs, so most examples described below will work for both.
 
-Except, at the moment, `hoardy-web organize` sub-command can only take plain `.wrr` files as inputs, so to use it you will have to convert your `.wrrb` bundles into `WRR` files first by running something like:
+Except, at the moment, `hoardy-web organize` and `hoardy-web run` sub-command can only take plain `.wrr` files as inputs, so to use it you will have to convert your `.wrrb` bundles into `WRR` files first by running something like:
 
 ```bash
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*

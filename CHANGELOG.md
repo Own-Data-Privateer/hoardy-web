@@ -10,9 +10,9 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
 ### Added
 
-- `*` except `organize` :
+- `*` except `organize` and `run`:
 
-  - All `WRR`-processing sub-commands except for `organize` can now take `WRR` bundles as inputs.
+  - All `WRR`-processing sub-commands except for `organize` and `run` can now take `WRR` bundles as inputs.
 
     That is, you can now directly do
 
@@ -22,7 +22,7 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
     # etc
     ```
 
-    without needing to run `hoardy-web organize` first.
+    without needing to run `hoardy-web import bundle` first.
 
     Though, at the moment, `export mirror` will stop respecting `--max-memory` option for such inputs.
 
@@ -1703,7 +1703,6 @@ All planned features are complete now.
 ## `hoardy-web` tool
 
 - `scrub`:
-  - Handle contents of `data:` URLs, e.g. `<link rel=style href="data:...">`, `<script src="data:...">`, etc.
   - Handle `CSS` `@import`s.
   - Handle SRI things.
   - Handle CSP things.
