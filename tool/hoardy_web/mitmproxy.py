@@ -31,8 +31,9 @@ def _hd(x : _t.Any) -> Headers:
         res.append((k.decode("ascii"), v))
     return Headers(res)
 
-def load_as_wrrs(fobj : _io.BufferedReader, abs_path : _t.AnyStr) -> _t.Iterator[Reqres]:
+def mitmproxy_load_exprs(fobj : _io.BufferedReader, abs_path : _t.AnyStr, sniff : SniffContentType) -> _t.Iterator[ReqresExpr]:
     stream = mitmproxy.io.FlowReader(fobj).stream()
+    n = 0
     for flow in stream:
         if not isinstance(flow, mitmproxy.http.HTTPFlow):
             raise ValueError("unknown type", type(flow))
@@ -115,4 +116,6 @@ def load_as_wrrs(fobj : _io.BufferedReader, abs_path : _t.AnyStr) -> _t.Iterator
                 wsstream.append(WebSocketFrame(Epoch(ws.timestamp_end), ws.closed_by_client, 0x8,
                                                _struct.pack("!H", ws.close_code) + ws.close_reason.encode("utf-8")))
 
-        yield Reqres(1, "hoardy-mitmproxy/1", rq.http_version, request, response, finished_at, {}, wsstream)
+        reqres = Reqres(1, "hoardy-mitmproxy/1", rq.http_version, request, response, finished_at, {}, wsstream)
+        yield ReqresExpr(reqres, abs_path, [n], sniff)
+        n += 1

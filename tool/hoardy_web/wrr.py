@@ -912,7 +912,7 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
         raise WRRParsingError(gettext("expected EOF, got `%s`"), p)
     return res
 
-def wrr_load_bundle(fobj : _io.BufferedReader, path : _t.AnyStr) -> _t.Iterator[Reqres]:
+def wrr_bundle_load(fobj : _io.BufferedReader, path : _t.AnyStr) -> _t.Iterator[Reqres]:
     fobj = ungzip_fobj_maybe(fobj)
     while True:
         p = fobj.peek(16)
@@ -921,22 +921,37 @@ def wrr_load_bundle(fobj : _io.BufferedReader, path : _t.AnyStr) -> _t.Iterator[
         yield res
 
 def wrr_load_expr(fobj : _io.BufferedReader,
-                  path : str | bytes,
+                  path : _t.AnyStr,
                   sniff : SniffContentType,
                   remap_url : URLRemapper | None = None) -> ReqresExpr:
     reqres = wrr_load(fobj)
     res = ReqresExpr(reqres, path, [], sniff, remap_url)
     return res
 
-def wrr_loadf(path : str | bytes) -> Reqres:
+def wrr_bundle_load_exprs(fobj : _io.BufferedReader,
+                          path : _t.AnyStr,
+                          sniff : SniffContentType,
+                          remap_url : URLRemapper | None = None) -> _t.Iterator[ReqresExpr]:
+    n = 0
+    for reqres in wrr_bundle_load(fobj, path):
+        yield ReqresExpr(reqres, path, [n], sniff, remap_url)
+        n += 1
+
+def wrr_loadf(path : _t.AnyStr) -> Reqres:
     with open(path, "rb") as f:
         return wrr_load(f)
 
-def wrr_loadf_expr(path : str | bytes,
+def wrr_loadf_expr(path : _t.AnyStr,
                    sniff : SniffContentType,
                    remap_url : URLRemapper | None = None) -> ReqresExpr:
     with open(path, "rb") as f:
         return wrr_load_expr(f, path, sniff, remap_url)
+
+def wrr_bundle_loadf_exprs(path : _t.AnyStr,
+                           sniff : SniffContentType,
+                           remap_url : URLRemapper | None = None) -> _t.Iterator[ReqresExpr]:
+    with open(path, "rb") as f:
+        yield from wrr_bundle_load_exprs(f, path, sniff, remap_url)
 
 def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
     req = reqres.request

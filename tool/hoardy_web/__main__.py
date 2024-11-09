@@ -140,9 +140,10 @@ def handle_paths(cargs : _t.Any) -> None:
         cargs.paths.sort(reverse=not cargs.walk_paths)
 
 LoadElem = _t.TypeVar("LoadElem")
-def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], LoadElem],
+def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr, SniffContentType], LoadElem],
                      emit_func : _t.Callable[[_t.AnyStr, _t.AnyStr, _os.stat_result, LoadElem], None],
                      dir_or_file_path : _t.AnyStr,
+                     sniff : SniffContentType,
                      *,
                      seen_paths : set[_t.AnyStr] | None = None,
                      follow_symlinks : bool = True,
@@ -181,7 +182,7 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], Lo
 
             try:
                 try:
-                    data = load_func(fobj, abs_path)
+                    data = load_func(fobj, abs_path, sniff)
                 except Failure as exc:
                     exc.elaborate(gettext("load"))
                     raise exc
@@ -203,19 +204,24 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr], Lo
             raise exc
 
 def map_wrr_paths_extra(cargs : _t.Any,
-                        emit : _t.Callable[[_t.AnyStr, _t.AnyStr, _os.stat_result, ReqresExpr], None],
+                        load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr, SniffContentType], LoadElem],
+                        emit_func : _t.Callable[[_t.AnyStr, _t.AnyStr, _os.stat_result, LoadElem], None],
                         paths : list[_t.AnyStr],
                         **kwargs : _t.Any) -> None:
     global should_raise
     should_raise = False
     for exp_path in paths:
-        load_map_orderly(lambda x, y: wrr_load_expr(x, y, cargs.sniff), emit, exp_path, **kwargs)
+        load_map_orderly(load_func, emit_func, exp_path, cargs.sniff, ordering=cargs.walk_fs, errors=cargs.errors, **kwargs)
 
 def map_wrr_paths(cargs : _t.Any,
-                  emit : _t.Callable[[_t.AnyStr, _t.AnyStr, ReqresExpr], None],
+                  emit_one : _t.Callable[[_t.AnyStr, _t.AnyStr, ReqresExpr], None],
                   paths : list[_t.AnyStr],
                   **kwargs : _t.Any) -> None:
-    map_wrr_paths_extra(cargs, lambda x, y, a, z: emit(x, y, z), paths, **kwargs)
+    def emit(abs_in_path : _t.AnyStr, rel_in_path : _t.AnyStr, stat_result : _os.stat_result, rrexprs : _t.Iterator[ReqresExpr]) -> None:
+        for rrexpr in rrexprs:
+            emit_one(abs_in_path, rel_in_path, rrexpr)
+
+    map_wrr_paths_extra(cargs, wrr_bundle_load_exprs, emit, paths, **kwargs)
 
 def get_bytes(value : _t.Any) -> bytes:
     if value is None or isinstance(value, (bool, int, float, Epoch)):
@@ -238,7 +244,7 @@ def cmd_pprint(cargs : _t.Any) -> None:
         wrr_pprint(stdout, rrexpr.reqres, abs_in_path, cargs.abridged, cargs.sniff)
         stdout.flush()
 
-    map_wrr_paths(cargs, emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
+    map_wrr_paths(cargs, emit, cargs.paths)
 
 def print_exprs(rrexpr : ReqresExpr, exprs : list[tuple[str, LinstFunc]],
                 separator : bytes, fobj : MinimalIOWriter) -> None:
@@ -350,7 +356,7 @@ def cmd_stream(cargs : _t.Any) -> None:
 
     stream.start()
     try:
-        map_wrr_paths(cargs, emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
+        map_wrr_paths(cargs, emit, cargs.paths)
     finally:
         stream.finish()
 
@@ -364,7 +370,7 @@ def cmd_find(cargs : _t.Any) -> None:
         stdout.write_bytes(cargs.terminator)
         stdout.flush()
 
-    map_wrr_paths(cargs, emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
+    map_wrr_paths(cargs, emit, cargs.paths)
 
 example_url = [
     "https://example.org",
@@ -1353,7 +1359,7 @@ def cmd_organize(cargs : _t.Any) -> None:
         # destination is set explicitly
         emit, finish = make_organize_emit(cargs, _os.path.expanduser(cargs.destination), cargs.allow_updates)
         try:
-            map_wrr_paths_extra(cargs, emit, cargs.paths, ordering=cargs.walk_fs, errors=cargs.errors)
+            map_wrr_paths_extra(cargs, wrr_load_expr, emit, cargs.paths)
         finally:
             finish()
     else:
@@ -1373,11 +1379,11 @@ def cmd_organize(cargs : _t.Any) -> None:
         for exp_path in cargs.paths:
             emit, finish = make_organize_emit(cargs, exp_path, False)
             try:
-                map_wrr_paths_extra(cargs, emit, [exp_path], ordering=cargs.walk_fs, errors=cargs.errors)
+                map_wrr_paths_extra(cargs, wrr_load_expr, emit, [exp_path])
             finally:
                 finish()
 
-def cmd_import_generic(cargs : _t.Any, load_wrrs : _t.Callable[[_io.BufferedReader, _t.AnyStr], _t.Iterator[Reqres]]) -> None:
+def cmd_import_generic(cargs : _t.Any, load_exprs : _t.Callable[[_io.BufferedReader, _t.AnyStr, SniffContentType], _t.Iterator[ReqresExpr]]) -> None:
     compile_filters(cargs)
     elaborate_output(cargs)
     handle_paths(cargs)
@@ -1385,31 +1391,29 @@ def cmd_import_generic(cargs : _t.Any, load_wrrs : _t.Callable[[_io.BufferedRead
     emit_one : _t.Callable[[SourcedBytes[_t.AnyStr], ReqresExpr], None]
     emit_one, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", make_DeferredFileWriteIntent(cargs.allow_updates))
 
-    def emit(abs_in_path : _t.AnyStr, rel_in_path : _t.AnyStr, in_stat : _os.stat_result, rr : _t.Iterator[Reqres]) -> None:
-        dev, ino = in_stat.st_dev, in_stat.st_ino
-        n = 0
-        for reqres in rr:
+    def emit(abs_in_path : _t.AnyStr, rel_in_path : _t.AnyStr, in_stat : _os.stat_result, rrexprs : _t.Iterator[ReqresExpr]) -> None:
+        for rrexpr in rrexprs:
             if want_stop: raise KeyboardInterrupt()
 
-            rrexpr = ReqresExpr(reqres, abs_in_path, [n], cargs.sniff)
+            if not filters_allow(cargs, rrexpr): return
+
             # TODO: to fix this cast, make ReqresExpr a _t.Generic
             emit_one(SourcedBytes(_t.cast(_t.AnyStr, rrexpr.format_source()), wrr_dumps(rrexpr.reqres)), rrexpr) # type: ignore
-            n += 1
 
     global should_raise
     should_raise = False
     try:
         for exp_path in cargs.paths:
-            load_map_orderly(load_wrrs, emit, exp_path, ordering=cargs.walk_fs, errors=cargs.errors)
+            load_map_orderly(load_exprs, emit, exp_path, cargs.sniff, ordering=cargs.walk_fs, errors=cargs.errors)
     finally:
         finish()
 
 def cmd_import_bundle(cargs : _t.Any) -> None:
-    cmd_import_generic(cargs, wrr_load_bundle)
+    cmd_import_generic(cargs, wrr_bundle_load_exprs)
 
 def cmd_import_mitmproxy(cargs : _t.Any) -> None:
-    from .mitmproxy import load_as_wrrs
-    cmd_import_generic(cargs, load_as_wrrs)
+    from .mitmproxy import mitmproxy_load_exprs
+    cmd_import_generic(cargs, mitmproxy_load_exprs)
 
 def path_to_url(x : str) -> str:
     return x.replace("?", "%3F")
@@ -1609,7 +1613,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         stdout.write_bytes(b"\033[0m")
     stdout.flush()
 
-    map_wrr_paths(cargs, collect, cargs.paths, seen_paths=set(), ordering=cargs.walk_fs, errors=cargs.errors)
+    map_wrr_paths(cargs, collect, cargs.paths, seen_paths=set())
 
     for url, vu in root_url.items():
         if vu.n == 0:
