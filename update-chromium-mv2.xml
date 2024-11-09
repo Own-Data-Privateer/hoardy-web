@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gupdate xmlns="http://www.google.com/update2/response" protocol="2.0">
   <app appid="amklkmnfmgjmofkjifjgngdnajpbpefp">
-    <updatecheck codebase="https://github.com/Own-Data-Privateer/hoardy-web/releases/download/extension-v1.17.1/Hoardy-Web-chromium-mv2-v1.17.1.crx" version="1.17.1" status="ok" />
+    <updatecheck codebase="https://github.com/Own-Data-Privateer/hoardy-web/releases/download/extension-v1.17.2/Hoardy-Web-chromium-mv2-v1.17.2.crx" version="1.17.2" status="ok" />
   </app>
 </gupdate>
