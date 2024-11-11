@@ -354,7 +354,7 @@ There is also `--depth` option, which works similarly to `wget`'s `--level` opti
 When using `--root-*` options, `--remap-open` works exactly like `wget`'s `--convert-links` in that it will only remap the URLs that are going to be exported and will keep the rest as-is.
 Similarly, `--remap-closed` will consider only the URLs reachable from the `--root-*`s in no more that `--depth` jumps as available.
 
-### Prioritizing some files other others
+### Prioritizing some files over others
 
 By default, files are read, queued, and then exported in the order they are specified on the command line, in lexicographic file system walk order when an argument is a directory.
 (See `--paths-*` and `--walk-*` options below if you want to change this.)
