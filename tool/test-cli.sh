@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+#set -x
 
 usage() {
     cat << EOF
@@ -83,16 +83,16 @@ while (($# > 0)); do
     shift
 
     td=$(mktemp --tmpdir -d hoadry-web-test-cli-XXXXXXXX)
+    echo "tmpdir $td"
 
     raw() {
         python3 -m hoardy_web "$@"
     }
 
     noerr_quiet() {
-        if raw "$@" > "$td/stdout" 2> "$td/stderr"; then
-            :
-        else
-            code=$?
+        raw "$@" > "$td/stdout" 2> "$td/stderr"
+        code=$?
+        if ((code != 0)); then
             cat "$td/stderr" >&2
             die "failed with code $code"
         fi
@@ -244,7 +244,10 @@ while (($# > 0)); do
         raw organize --symlink --output hupq_msn --to "$td/organize3" "$td/organize"
     } &> "$td/reorganize-log"
 
-    [[ -s "$td/reorganize-log" ]] && die "re-organize is not a noop" || true
+    if [[ -s "$td/reorganize-log" ]]; then
+        cat "$td/reorganize-log"
+        die "re-organize is not a noop"
+    fi
 
     end
 
