@@ -97,12 +97,12 @@ def mitmproxy_load_exprs(fobj : _io.BufferedReader, abs_path : _t.AnyStr, sniff 
 
             wsstream = []
             for msg in ws.messages:
-                if type(msg.content) is bytes:
+                if isinstance(msg.content, bytes):
                     content = msg.content
-                elif type(msg.content) is str:
+                elif isinstance(msg.content, str):
                     # even though mitmproxy declares content to be `bytes`, reading
                     # dump files produced by old mitmproxy can produce `str`
-                    content = msg.content.encode("utf-8") # type: ignore
+                    content = msg.content.encode("utf-8")
                 else:
                     assert False
                 wsstream.append(WebSocketFrame(Epoch(msg.timestamp), msg.from_client, int(msg.type), content))
