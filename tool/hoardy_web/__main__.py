@@ -1327,7 +1327,7 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
                 raise exc
 
             try:
-                action_op(self.source.abs_path, abs_out_path, dsync, self.exists)
+                action_op(self.source.abs_path, abs_out_path, self.exists, dsync = dsync)
             except FileExistsError:
                 raise Failure(gettext(f"`%s` already exists"), abs_out_path)
             except OSError as exc:

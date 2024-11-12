@@ -108,6 +108,7 @@ class DeferredSync:
 
 def make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
               allow_overwrites : bool = False,
+              *,
               dsync : DeferredSync | None = None) -> None:
     if not allow_overwrites and _os.path.lexists(dst):
         # fail early
@@ -126,6 +127,7 @@ def make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
 
 def atomic_make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
                      allow_overwrites : bool = False,
+                     *,
                      dsync : DeferredSync | None = None) -> None:
     if not allow_overwrites and _os.path.lexists(dst):
         # fail early
@@ -164,6 +166,7 @@ def atomic_make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
 
 def atomic_copy2(src : _t.AnyStr, dst : _t.AnyStr,
                  allow_overwrites : bool = False,
+                 *,
                  follow_symlinks : bool = True,
                  dsync : DeferredSync | None = None) -> None:
     def make_dst(dst_part : _t.AnyStr) -> None:
@@ -182,10 +185,11 @@ def atomic_copy2(src : _t.AnyStr, dst : _t.AnyStr,
 
     # always use the atomic version here, like rsync does,
     # since copying can be interrupted in the middle
-    atomic_make_file(make_dst, dst, allow_overwrites, dsync)
+    atomic_make_file(make_dst, dst, allow_overwrites, dsync = dsync)
 
 def atomic_link(src : _t.AnyStr, dst : _t.AnyStr,
                 allow_overwrites : bool = False,
+                *,
                 follow_symlinks : bool = True,
                 dsync : DeferredSync | None = None) -> None:
     if follow_symlinks and _os.path.islink(src):
@@ -196,12 +200,13 @@ def atomic_link(src : _t.AnyStr, dst : _t.AnyStr,
 
     # _os.link is atomic, so non-atomic make_file is ok
     if allow_overwrites:
-        atomic_make_file(make_dst, dst, allow_overwrites, dsync)
+        atomic_make_file(make_dst, dst, allow_overwrites, dsync = dsync)
     else:
-        make_file(make_dst, dst, allow_overwrites, dsync)
+        make_file(make_dst, dst, allow_overwrites, dsync = dsync)
 
 def atomic_symlink(src : _t.AnyStr, dst : _t.AnyStr,
                    allow_overwrites : bool = False,
+                   *,
                    follow_symlinks : bool = True,
                    dsync : DeferredSync | None = None) -> None:
     if follow_symlinks and _os.path.islink(src):
@@ -212,26 +217,28 @@ def atomic_symlink(src : _t.AnyStr, dst : _t.AnyStr,
 
     # _os.symlink is atomic, so non-atomic make_file is ok
     if allow_overwrites:
-        atomic_make_file(make_dst, dst, allow_overwrites, dsync)
+        atomic_make_file(make_dst, dst, allow_overwrites, dsync = dsync)
     else:
-        make_file(make_dst, dst, allow_overwrites, dsync)
+        make_file(make_dst, dst, allow_overwrites, dsync = dsync)
 
 def atomic_link_or_copy2(src : _t.AnyStr, dst : _t.AnyStr,
                          allow_overwrites : bool = False,
+                         *,
                          follow_symlinks : bool = True,
                          dsync : DeferredSync | None = None) -> None:
     try:
-        atomic_link(src, dst, allow_overwrites, follow_symlinks, dsync)
+        atomic_link(src, dst, allow_overwrites, follow_symlinks = follow_symlinks, dsync = dsync)
     except OSError as exc:
         if exc.errno != _errno.EXDEV:
             raise exc
-        atomic_copy2(src, dst, allow_overwrites, follow_symlinks, dsync)
+        atomic_copy2(src, dst, allow_overwrites, follow_symlinks = follow_symlinks, dsync = dsync)
 
 def atomic_move(src : _t.AnyStr, dst : _t.AnyStr,
                 allow_overwrites : bool = False,
+                *,
                 follow_symlinks : bool = True,
                 dsync : DeferredSync | None = None) -> None:
-    atomic_link_or_copy2(src, dst, allow_overwrites, follow_symlinks, dsync)
+    atomic_link_or_copy2(src, dst, allow_overwrites, follow_symlinks = follow_symlinks, dsync = dsync)
     if dsync is None:
         _os.unlink(src)
     else:
@@ -239,6 +246,7 @@ def atomic_move(src : _t.AnyStr, dst : _t.AnyStr,
 
 def atomic_write(data : bytes, dst : _t.AnyStr,
                  allow_overwrites : bool = False,
+                 *,
                  dsync : DeferredSync | None = None) -> None:
     dirname = _os.path.dirname(dst)
     try:
@@ -252,7 +260,7 @@ def atomic_write(data : bytes, dst : _t.AnyStr,
             f.write(data)
 
     try:
-        atomic_make_file(make_dst, dst, allow_overwrites, dsync)
+        atomic_make_file(make_dst, dst, allow_overwrites, dsync = dsync)
     except FileExistsError as exc:
         raise Failure(gettext(f"trying to overwrite `%s` which already exists"), exc.filename)
     except OSError as exc:
@@ -358,7 +366,7 @@ def make_DeferredFileWriteIntent(allow_updates : bool) -> type:
                 # nothing to do
                 return self.source
 
-            atomic_write(self.source.data, abs_out_path, False, dsync)
+            atomic_write(self.source.data, abs_out_path, False, dsync = dsync)
             return self.source
 
     return DeferredFileWrite
