@@ -232,6 +232,28 @@ def atomic_move(src : _t.AnyStr, dst : _t.AnyStr,
     else:
         dsync.unlinks.add(src)
 
+def undeferred_write(data : bytes, dst : _t.AnyStr,
+                     dsync : DeferredSync[_t.AnyStr] | None = None,
+                     do_replace : bool = False) -> None:
+    dirname = _os.path.dirname(dst)
+    try:
+        _os.makedirs(dirname, exist_ok = True)
+    except OSError as exc:
+        handle_ENAMETOOLONG(exc, dirname)
+        raise exc
+
+    def make_dst(dst_part : _t.AnyStr) -> None:
+        with open(dst_part, "xb") as f:
+            f.write(data)
+
+    try:
+        atomic_make_file(make_dst, dst, dsync, do_replace)
+    except FileExistsError as exc:
+        raise Failure(gettext(f"trying to overwrite `%s` which already exists"), exc.filename)
+    except OSError as exc:
+        handle_ENAMETOOLONG(exc, dst)
+        raise exc
+
 DataSource = _t.TypeVar("DataSource")
 class DeferredIO(_t.Generic[DataSource, _t.AnyStr]):
     """A deferred IO operation over abs_out_path : _.AnyStr, which uses a DataSource
@@ -262,28 +284,6 @@ class DeferredIO(_t.Generic[DataSource, _t.AnyStr]):
             dry_run : bool = False) \
             -> DataSource | None:
         raise NotImplementedError()
-
-def undeferred_write(data : bytes, dst : _t.AnyStr,
-                     dsync : DeferredSync[_t.AnyStr] | None = None,
-                     do_replace : bool = False) -> None:
-    dirname = _os.path.dirname(dst)
-    try:
-        _os.makedirs(dirname, exist_ok = True)
-    except OSError as exc:
-        handle_ENAMETOOLONG(exc, dirname)
-        raise exc
-
-    def make_dst(dst_part : _t.AnyStr) -> None:
-        with open(dst_part, "xb") as f:
-            f.write(data)
-
-    try:
-        atomic_make_file(make_dst, dst, dsync, do_replace)
-    except FileExistsError as exc:
-        raise Failure(gettext(f"trying to overwrite `%s` which already exists"), exc.filename)
-    except OSError as exc:
-        handle_ENAMETOOLONG(exc, dst)
-        raise exc
 
 @_dc.dataclass
 class SourcedBytes(_t.Generic[_t.AnyStr]):
