@@ -27,8 +27,10 @@ from gettext import gettext, ngettext
 
 from kisstdlib.exceptions import *
 
+_have_fcntl = False
 if _sys.platform != "win32":
     import fcntl as _fcntl
+    _have_fcntl = True
 
 def fsync_maybe(fd : int) -> None:
     try:
@@ -138,7 +140,7 @@ def atomic_make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
         fsync_fpath(dst_part)
 
     dirfd = _os.open(dirname, _os.O_RDONLY | _os.O_DIRECTORY)
-    if _sys.platform != "win32":
+    if _have_fcntl:
         _fcntl.flock(dirfd, _fcntl.LOCK_EX)
 
     try:
@@ -153,7 +155,7 @@ def atomic_make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
             dsync.replaces.append((dst_part, dst))
             dsync.dirs.add(dirname)
     finally:
-        if _sys.platform != "win32":
+        if _have_fcntl:
             _fcntl.flock(dirfd, _fcntl.LOCK_UN)
         _os.close(dirfd)
 
