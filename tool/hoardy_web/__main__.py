@@ -2087,7 +2087,7 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
                 "- " + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:") + "\n" + \
                 "".join([f"  - `{name}`: {__(value)}\n" for name, value in Reqres_fields.items()]) + \
                 "- " + _("derived attributes:") + "\n" + \
-                "".join([f"  - `{name}`: {__(value)}\n" for name, value in Reqres_derived_attrs.items()]) + \
+                "".join([f"  - `{name}`: {__(value)}\n" for name, value in ReqresExpr_derived_attrs.items()]) + \
                 "- " + _("a compound expression built by piping (`|`) the above, for example") + __(f""":
 - `{default_expr["get"]}` (the default for `get` and `run`) will print raw `response.body` or an empty byte string, if there was no response;
 - `{default_expr["get"]}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
