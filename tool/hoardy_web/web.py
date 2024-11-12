@@ -127,9 +127,6 @@ html_whitespace_preserve_tags = _h5ws.Filter.spacePreserveElements
 # HTML elements that ignore whitespace completely (and so whitespeace can be added or removed arbitrarily)
 html_whitespace_ignore_tags = frozenset(["html", "head", "frameset"])
 
-def in_head(stack : list[HTML5NN]) -> bool:
-    return stack == [htmlns_html, htmlns_head]
-
 def prettify_html(indent : int, relaxed : bool, walker : _t.Iterator[HTML5Node]) \
         -> _t.Iterator[HTML5Node]:
     """HTML prettification html5lib.Filter that adds lots of indent.
@@ -587,6 +584,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 assemble_contents.append(token["data"])
                 continue
 
+            in_head = stack == [htmlns_html, htmlns_head]
             censor = censor_lvl != 0
             if censor and len(assemble_contents) > 0:
                 yield from emit_censored("character data")
@@ -600,7 +598,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 # Put them after `<base>`, `<title>`, and charset-controlling `<meta>` headers.
                 if inline_headers_undone and \
                    not goes_before_inlines(nn, attrs) and \
-                   in_head(stack):
+                   in_head:
                     # inline them before this token
                     backlog = list(headers_to_meta_http_equiv(headers)) + [token] + backlog
                     inline_headers_undone = False
@@ -609,7 +607,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 # handle <base ...> tag
                 if base_url_unset and \
                    nn == htmlns_base and \
-                   in_head(stack):
+                   in_head:
                     href = map_optional(lambda x: x.strip(), attrs.get(href_attr, None))
                     if href is not None:
                         # add root slash to the URL if it's missing one
@@ -776,7 +774,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         assemble = True
             elif typ == "EndTag":
                 # stop handling <base ...> tag
-                if in_head(stack):
+                if in_head:
                     # as a fallback, dump inlines here
                     if inline_headers_undone:
                         backlog = list(headers_to_meta_http_equiv(headers)) + [token] + backlog
