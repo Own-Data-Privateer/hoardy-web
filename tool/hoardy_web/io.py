@@ -27,10 +27,8 @@ from gettext import gettext, ngettext
 
 from kisstdlib.exceptions import *
 
-_have_fcntl = False
 if _sys.platform != "win32":
     import fcntl as _fcntl
-    _have_fcntl = True
 
 def fsync_maybe(fd : int) -> None:
     try:
@@ -41,14 +39,14 @@ def fsync_maybe(fd : int) -> None:
         # EINVAL means fd is not attached to a file, so we
         # ignore this error
 
-def fsync_fpath(fpath : _t.AnyStr, flags : int = 0) -> None:
+def fsync_fpath(fpath : str | bytes, flags : int = 0) -> None:
     fd = _os.open(fpath, _os.O_RDONLY | flags)
     try:
         _os.fsync(fd)
     finally:
         _os.close(fd)
 
-def handle_ENAMETOOLONG(exc : OSError, name : _t.AnyStr) -> None:
+def handle_ENAMETOOLONG(exc : OSError, name : str | bytes) -> None:
     if exc.errno == _errno.ENAMETOOLONG:
         raise Failure(gettext(f"target file system rejects `%s` as too long: either one of the path components is longer than the maximum allowed file name on the target file system or the whole thing is longer than kernel MAX_PATH"), name)
 
@@ -57,21 +55,26 @@ def fileobj_content_equals(f : _io.BufferedReader, data : bytes) -> bool:
     fdata = f.read()
     return fdata == data
 
-def file_content_equals(path : _t.AnyStr, data : bytes) -> bool:
+def file_content_equals(path : str | bytes, data : bytes) -> bool:
     try:
         with open(path, "rb") as f:
             return fileobj_content_equals(f, data)
     except FileNotFoundError:
         return False
 
-@_dc.dataclass
-class DeferredSync(_t.Generic[_t.AnyStr]):
+class DeferredSync:
     """Deferred file system syncs and unlinks."""
 
-    replaces : list[tuple[_t.AnyStr, _t.AnyStr]] = _dc.field(default_factory=list)
-    files : set[_t.AnyStr] = _dc.field(default_factory=set)
-    dirs : set[_t.AnyStr] = _dc.field(default_factory=set)
-    unlinks : set[_t.AnyStr] = _dc.field(default_factory=set)
+    replaces : list[tuple[str | bytes, str | bytes]]
+    files : set[str | bytes]
+    dirs : set[str | bytes]
+    unlinks : set[str | bytes]
+
+    def __init__(self) -> None:
+        self.replaces = []
+        self.files = set()
+        self.dirs = set()
+        self.unlinks = set()
 
     def sync(self) -> None:
         if len(self.replaces) > 0:
@@ -104,9 +107,9 @@ class DeferredSync(_t.Generic[_t.AnyStr]):
             self.unlinks = set()
 
 def make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
-              dsync : DeferredSync[_t.AnyStr] | None = None,
-              do_replace : bool = False) -> None:
-    if not do_replace and _os.path.lexists(dst):
+              allow_overwrites : bool = False,
+              dsync : DeferredSync | None = None) -> None:
+    if not allow_overwrites and _os.path.lexists(dst):
         # fail early
         raise FileExistsError(_errno.EEXIST, _os.strerror(_errno.EEXIST), dst)
 
@@ -122,9 +125,9 @@ def make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
         dsync.dirs.add(dirname)
 
 def atomic_make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
-                     dsync : DeferredSync[_t.AnyStr] | None = None,
-                     do_replace : bool = False) -> None:
-    if not do_replace and _os.path.lexists(dst):
+                     allow_overwrites : bool = False,
+                     dsync : DeferredSync | None = None) -> None:
+    if not allow_overwrites and _os.path.lexists(dst):
         # fail early
         raise FileExistsError(_errno.EEXIST, _os.strerror(_errno.EEXIST), dst)
 
@@ -140,12 +143,12 @@ def atomic_make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
         fsync_fpath(dst_part)
 
     dirfd = _os.open(dirname, _os.O_RDONLY | _os.O_DIRECTORY)
-    if _have_fcntl:
+    if _sys.platform != "win32":
         _fcntl.flock(dirfd, _fcntl.LOCK_EX)
 
     try:
         # this is now atomic on POSIX
-        if not do_replace and _os.path.lexists(dst):
+        if not allow_overwrites and _os.path.lexists(dst):
             raise FileExistsError(_errno.EEXIST, _os.strerror(_errno.EEXIST), dst)
 
         if dsync is None:
@@ -155,14 +158,14 @@ def atomic_make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
             dsync.replaces.append((dst_part, dst))
             dsync.dirs.add(dirname)
     finally:
-        if _have_fcntl:
+        if _sys.platform != "win32":
             _fcntl.flock(dirfd, _fcntl.LOCK_UN)
         _os.close(dirfd)
 
 def atomic_copy2(src : _t.AnyStr, dst : _t.AnyStr,
-                 dsync : DeferredSync[_t.AnyStr] | None = None,
-                 do_replace : bool = False,
-                 follow_symlinks : bool = True) -> None:
+                 allow_overwrites : bool = False,
+                 follow_symlinks : bool = True,
+                 dsync : DeferredSync | None = None) -> None:
     def make_dst(dst_part : _t.AnyStr) -> None:
         if not follow_symlinks and _os.path.islink(src):
             _os.symlink(_os.readlink(src), dst_part)
@@ -179,12 +182,12 @@ def atomic_copy2(src : _t.AnyStr, dst : _t.AnyStr,
 
     # always use the atomic version here, like rsync does,
     # since copying can be interrupted in the middle
-    atomic_make_file(make_dst, dst, dsync, do_replace)
+    atomic_make_file(make_dst, dst, allow_overwrites, dsync)
 
 def atomic_link(src : _t.AnyStr, dst : _t.AnyStr,
-                dsync : DeferredSync[_t.AnyStr] | None = None,
-                do_replace : bool = False,
-                follow_symlinks : bool = True) -> None:
+                allow_overwrites : bool = False,
+                follow_symlinks : bool = True,
+                dsync : DeferredSync | None = None) -> None:
     if follow_symlinks and _os.path.islink(src):
         src = _os.path.realpath(src)
 
@@ -192,15 +195,15 @@ def atomic_link(src : _t.AnyStr, dst : _t.AnyStr,
         _os.link(src, dst_part, follow_symlinks = follow_symlinks)
 
     # _os.link is atomic, so non-atomic make_file is ok
-    if do_replace:
-        atomic_make_file(make_dst, dst, dsync, do_replace)
+    if allow_overwrites:
+        atomic_make_file(make_dst, dst, allow_overwrites, dsync)
     else:
-        make_file(make_dst, dst, dsync, do_replace)
+        make_file(make_dst, dst, allow_overwrites, dsync)
 
 def atomic_symlink(src : _t.AnyStr, dst : _t.AnyStr,
-                   dsync : DeferredSync[_t.AnyStr] | None = None,
-                   do_replace : bool = False,
-                   follow_symlinks : bool = True) -> None:
+                   allow_overwrites : bool = False,
+                   follow_symlinks : bool = True,
+                   dsync : DeferredSync | None = None) -> None:
     if follow_symlinks and _os.path.islink(src):
         src = _os.path.realpath(src)
 
@@ -208,35 +211,35 @@ def atomic_symlink(src : _t.AnyStr, dst : _t.AnyStr,
         _os.symlink(src, dst_part)
 
     # _os.symlink is atomic, so non-atomic make_file is ok
-    if do_replace:
-        atomic_make_file(make_dst, dst, dsync, do_replace)
+    if allow_overwrites:
+        atomic_make_file(make_dst, dst, allow_overwrites, dsync)
     else:
-        make_file(make_dst, dst, dsync, do_replace)
+        make_file(make_dst, dst, allow_overwrites, dsync)
 
 def atomic_link_or_copy2(src : _t.AnyStr, dst : _t.AnyStr,
-                         dsync : DeferredSync[_t.AnyStr] | None = None,
-                         do_replace : bool = False,
-                         follow_symlinks : bool = True) -> None:
+                         allow_overwrites : bool = False,
+                         follow_symlinks : bool = True,
+                         dsync : DeferredSync | None = None) -> None:
     try:
-        atomic_link(src, dst, dsync, do_replace, follow_symlinks)
+        atomic_link(src, dst, allow_overwrites, follow_symlinks, dsync)
     except OSError as exc:
         if exc.errno != _errno.EXDEV:
             raise exc
-        atomic_copy2(src, dst, dsync, do_replace, follow_symlinks)
+        atomic_copy2(src, dst, allow_overwrites, follow_symlinks, dsync)
 
 def atomic_move(src : _t.AnyStr, dst : _t.AnyStr,
-                dsync : DeferredSync[_t.AnyStr] | None = None,
-                do_replace : bool = False,
-                follow_symlinks : bool = True) -> None:
-    atomic_link_or_copy2(src, dst, dsync, do_replace, follow_symlinks)
+                allow_overwrites : bool = False,
+                follow_symlinks : bool = True,
+                dsync : DeferredSync | None = None) -> None:
+    atomic_link_or_copy2(src, dst, allow_overwrites, follow_symlinks, dsync)
     if dsync is None:
         _os.unlink(src)
     else:
         dsync.unlinks.add(src)
 
-def undeferred_write(data : bytes, dst : _t.AnyStr,
-                     dsync : DeferredSync[_t.AnyStr] | None = None,
-                     do_replace : bool = False) -> None:
+def atomic_write(data : bytes, dst : _t.AnyStr,
+                 allow_overwrites : bool = False,
+                 dsync : DeferredSync | None = None) -> None:
     dirname = _os.path.dirname(dst)
     try:
         _os.makedirs(dirname, exist_ok = True)
@@ -249,7 +252,7 @@ def undeferred_write(data : bytes, dst : _t.AnyStr,
             f.write(data)
 
     try:
-        atomic_make_file(make_dst, dst, dsync, do_replace)
+        atomic_make_file(make_dst, dst, allow_overwrites, dsync)
     except FileExistsError as exc:
         raise Failure(gettext(f"trying to overwrite `%s` which already exists"), exc.filename)
     except OSError as exc:
@@ -282,7 +285,7 @@ class DeferredIO(_t.Generic[DataSource, _t.AnyStr]):
         raise NotImplementedError()
 
     def run(self, abs_out_path : _t.AnyStr,
-            dsync : DeferredSync[_t.AnyStr] | None = None,
+            dsync : DeferredSync | None = None,
             dry_run : bool = False) \
             -> DataSource | None:
         raise NotImplementedError()
@@ -348,14 +351,14 @@ def make_DeferredFileWriteIntent(allow_updates : bool) -> type:
             return self.source, True
 
         def run(self, abs_out_path : _t.AnyStr,
-                dsync : DeferredSync[_t.AnyStr] | None = None,
+                dsync : DeferredSync | None = None,
                 dry_run : bool = False) \
                 -> SourcedBytes[_t.AnyStr] | None:
             if dry_run or (self.updated and file_content_equals(abs_out_path, self.source.data)):
                 # nothing to do
                 return self.source
 
-            undeferred_write(self.source.data, abs_out_path, dsync, False)
+            atomic_write(self.source.data, abs_out_path, False, dsync)
             return self.source
 
     return DeferredFileWrite

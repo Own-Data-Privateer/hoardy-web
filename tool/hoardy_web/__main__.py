@@ -959,7 +959,7 @@ def make_deferred_emit(cargs : _t.Any,
     # Deferred file system updates. This collects references to everything
     # that should be fsynced to disk before proceeding to make flush_updates
     # below both atomic and efficient.
-    dsync : DeferredSync[_t.AnyStr] = DeferredSync()
+    dsync = DeferredSync()
 
     # Source info cache indexed by filesystem paths, this is purely to minimize
     # the number of calls to `stat`.
@@ -1312,7 +1312,7 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
 
             return self.source, True
 
-        def run(self, abs_out_path : _t.AnyStr, dsync : DeferredSync[_t.AnyStr] | None = None, dry_run : bool = False) \
+        def run(self, abs_out_path : _t.AnyStr, dsync : DeferredSync | None = None, dry_run : bool = False) \
                 -> OrganizeSource[_t.AnyStr] | None:
             assert self.source.abs_path != abs_out_path
 
@@ -1774,7 +1774,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 # this is a noop overwrite, skip it
                 return abs_out_path
 
-            undeferred_write(data, abs_out_path, None, allow_updates)
+            atomic_write(data, abs_out_path, allow_updates)
             return abs_out_path
         except Failure as exc:
             if cargs.errors == "ignore":
