@@ -36,6 +36,8 @@ buildPythonApplication (rec {
 
 } // lib.optionalAttrs debug {
   nativeBuildInputs = [
+    build twine pip black pylint
+    pkgs.pandoc
     mypy
     pytest
   ];
