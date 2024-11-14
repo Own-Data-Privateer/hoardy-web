@@ -1638,7 +1638,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                iobj : Indexed,
                enqueue : bool,
                new_queue : Queue,
-               level : int) -> str | None:
+               level : int) -> None:
         level0 = level == 0
         Stats.n += 1
         if level0:
@@ -1679,7 +1679,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 if stdout.isatty:
                     stdout.write_bytes(b"\033[0m")
                 stdout.flush()
-                return abs_out_path
+                return
 
             document_dir = _os.path.dirname(abs_out_path)
             known : set[str] = set() # for a better UI
@@ -1729,7 +1729,8 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                         else:
                             del index[unet_url]
                         # render it immediately
-                        uabs_out_path = render(unet_url, uobj, enqueue, new_queue, level + 1)
+                        render(unet_url, uobj, enqueue, new_queue, level + 1)
+                        uabs_out_path = uobj.load(False)[2]
                     elif is_new_queued or is_queued:
                         uabs_out_path = uobj.load(False)[2]
                     elif enqueue:
@@ -1766,17 +1767,16 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
             if exists and file_content_equals(abs_out_path, data):
                 # this is a noop overwrite, skip it
-                return abs_out_path
+                return
 
             atomic_write(data, abs_out_path, allow_updates)
-            return abs_out_path
         except Failure as exc:
             if cargs.errors == "ignore":
-                return None
+                return
             exc.elaborate(gettext(f"while processing `%s`"), abs_in_path)
             if cargs.errors != "fail":
                 _logging.error("%s", str(exc))
-                return None
+                return
             raise CatastrophicFailure("%s", str(exc))
         except Exception:
             error(gettext("while processing `%s`"), abs_in_path)
