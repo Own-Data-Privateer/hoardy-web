@@ -139,11 +139,13 @@ def handle_paths(cargs : _t.Any) -> None:
     if cargs.walk_paths is not None:
         cargs.paths.sort(reverse=not cargs.walk_paths)
 
-LoadElem = _t.TypeVar("LoadElem")
-def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr, SniffContentType], LoadElem],
-                     emit_func : _t.Callable[[_t.AnyStr, _t.AnyStr, _os.stat_result, LoadElem], None],
+LoadResult = _t.TypeVar("LoadResult")
+LoadFFunc = _t.Callable[[_t.AnyStr], LoadResult]
+EmitFunc =  _t.Callable[[LoadResult], None]
+
+def load_map_orderly(load_func : LoadFFunc[_t.AnyStr, LoadResult],
+                     emit_func : EmitFunc[LoadResult],
                      dir_or_file_path : _t.AnyStr,
-                     sniff : SniffContentType,
                      *,
                      seen_paths : set[_t.AnyStr] | None = None,
                      follow_symlinks : bool = True,
@@ -175,25 +177,18 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr, Sni
                 seen_paths.add(abs_path)
 
             try:
-                fobj = open(abs_path, "rb")
-                in_stat = _os.fstat(fobj.fileno())
+                data = load_func(abs_path)
             except OSError as exc:
                 raise Failure(gettext("failed to open `%s`"), path)
+            except Failure as exc:
+                exc.elaborate(gettext("load"))
+                raise exc
 
             try:
-                try:
-                    data = load_func(fobj, abs_path, sniff)
-                except Failure as exc:
-                    exc.elaborate(gettext("load"))
-                    raise exc
-
-                try:
-                    emit_func(abs_path, path, in_stat, data)
-                except Failure as exc:
-                    exc.elaborate(gettext("emit"))
-                    raise exc
-            finally:
-                fobj.close()
+                emit_func(data)
+            except Failure as exc:
+                exc.elaborate(gettext("emit"))
+                raise exc
         except Failure as exc:
             if errors == "ignore":
                 continue
@@ -204,24 +199,28 @@ def load_map_orderly(load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr, Sni
             raise exc
 
 def map_wrr_paths_extra(cargs : _t.Any,
-                        load_func : _t.Callable[[_io.BufferedReader, _t.AnyStr, SniffContentType], LoadElem],
-                        emit_func : _t.Callable[[_t.AnyStr, _t.AnyStr, _os.stat_result, LoadElem], None],
+                        loadf_func : LoadFFunc[_t.AnyStr, LoadResult],
+                        emit_func : EmitFunc[LoadResult],
                         paths : list[_t.AnyStr],
                         **kwargs : _t.Any) -> None:
     global should_raise
     should_raise = False
     for exp_path in paths:
-        load_map_orderly(load_func, emit_func, exp_path, cargs.sniff, ordering=cargs.walk_fs, errors=cargs.errors, **kwargs)
+        load_map_orderly(loadf_func, emit_func, exp_path, ordering=cargs.walk_fs, errors=cargs.errors, **kwargs)
 
 def map_wrr_paths(cargs : _t.Any,
-                  emit_one : _t.Callable[[_t.AnyStr, _t.AnyStr, ReqresExpr], None],
+                  emit_func : EmitFunc[ReqresExpr],
                   paths : list[_t.AnyStr],
                   **kwargs : _t.Any) -> None:
-    def emit(abs_in_path : _t.AnyStr, rel_in_path : _t.AnyStr, stat_result : _os.stat_result, rrexprs : _t.Iterator[ReqresExpr]) -> None:
+    def emit_many(rrexprs : _t.Iterator[ReqresExpr]) -> None:
         for rrexpr in rrexprs:
-            emit_one(abs_in_path, rel_in_path, rrexpr)
+            if want_stop: raise KeyboardInterrupt()
 
-    map_wrr_paths_extra(cargs, wrr_bundle_load_exprs, emit, paths, **kwargs)
+            rrexpr.sniff = cargs.sniff
+            if not filters_allow(cargs, rrexpr): return
+            emit_func(rrexpr)
+
+    map_wrr_paths_extra(cargs, rrexprs_wrr_bundle_loadf, emit_many, paths, **kwargs)
 
 def get_bytes(value : _t.Any) -> bytes:
     if value is None or isinstance(value, (bool, int, float, Epoch)):
@@ -238,10 +237,8 @@ def cmd_pprint(cargs : _t.Any) -> None:
     compile_filters(cargs)
     handle_paths(cargs)
 
-    def emit(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
-        if not filters_allow(cargs, rrexpr): return
-
-        wrr_pprint(stdout, rrexpr.reqres, abs_in_path, cargs.abridged, cargs.sniff)
+    def emit(rrexpr : ReqresExpr) -> None:
+        wrr_pprint(stdout, rrexpr.reqres, rrexpr.format_source(), cargs.abridged, cargs.sniff)
         stdout.flush()
 
     map_wrr_paths(cargs, emit, cargs.paths)
@@ -279,7 +276,8 @@ def cmd_get(cargs : _t.Any) -> None:
         cargs.mexprs = { stdout: [compile_expr(default_expr[cargs.default_expr])] }
 
     exp_path = _os.path.expanduser(cargs.path)
-    rrexpr = wrr_loadf_expr(exp_path, cargs.sniff)
+    rrexpr = rrexpr_wrr_loadf(exp_path)
+    rrexpr.sniff = cargs.sniff
 
     for fobj, exprs in cargs.mexprs.items():
         print_exprs(rrexpr, exprs, cargs.separator, fobj)
@@ -304,7 +302,8 @@ def cmd_run(cargs : _t.Any) -> None:
     tmp_paths = []
     try:
         for exp_path in cargs.paths:
-            rrexpr = wrr_loadf_expr(exp_path, cargs.sniff)
+            rrexpr = rrexpr_wrr_loadf(exp_path)
+            rrexpr.sniff = cargs.sniff
 
             # TODO: extension guessing
             fileno, tmp_path = _tempfile.mkstemp(prefix = "hoardy_wrr_run_", suffix = ".tmp")
@@ -342,9 +341,7 @@ def cmd_stream(cargs : _t.Any) -> None:
 
     stream = get_StreamEncoder(cargs)
 
-    def emit(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
-        if not filters_allow(cargs, rrexpr): return
-
+    def emit(rrexpr : ReqresExpr) -> None:
         values : list[_t.Any] = []
         for expr, func in cargs.exprs:
             try:
@@ -352,7 +349,7 @@ def cmd_stream(cargs : _t.Any) -> None:
             except CatastrophicFailure as exc:
                 exc.elaborate(gettext("while evaluating `%s`"), expr)
                 raise exc
-        stream.emit(abs_in_path, cargs.exprs, values)
+        stream.emit(_os.fsdecode(rrexpr.format_source()), cargs.exprs, values)
 
     stream.start()
     try:
@@ -364,9 +361,8 @@ def cmd_find(cargs : _t.Any) -> None:
     compile_filters(cargs)
     handle_paths(cargs)
 
-    def emit(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
-        if not filters_allow(cargs, rrexpr): return
-        stdout.write(abs_in_path)
+    def emit(rrexpr : ReqresExpr) -> None:
+        stdout.write(rrexpr.format_source())
         stdout.write_bytes(cargs.terminator)
         stdout.flush()
 
@@ -1147,7 +1143,7 @@ def make_deferred_emit(cargs : _t.Any,
     return emit, finish_updates
 
 def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) \
-        -> tuple[_t.Callable[[str, str, _os.stat_result, ReqresExpr], None],
+        -> tuple[_t.Callable[[ReqresExpr], None],
                  _t.Callable[[], None]]:
     action_op : _t.Any
     action = cargs.action
@@ -1191,10 +1187,10 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
 
             res : Epoch
             if data is not None:
-                bio = _t.cast(_io.BufferedReader, _io.BytesIO(data))
-                res = wrr_load_expr(bio, self.abs_path, cargs.sniff).stime
+                fileobj = _t.cast(_io.BufferedReader, _io.BytesIO(data))
+                res = rrexpr_wrr_load(fileobj, self.abs_path).stime
             else:
-                res = wrr_loadf_expr(self.abs_path, cargs.sniff).stime
+                res = rrexpr_wrr_loadf(self.abs_path).stime
             self.stime_maybe = res
             return res
 
@@ -1334,8 +1330,10 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
 
     emit_one, finish = make_deferred_emit(cargs, destination, action, actioning, OrganizeIntent)
 
-    def emit(abs_in_path : str, rel_in_path : str, in_stat : _os.stat_result, rrexpr : ReqresExpr) -> None:
-        emit_one(OrganizeSource(abs_in_path, in_stat, rrexpr.stime), rrexpr)
+    def emit(rrexpr : ReqresExpr) -> None:
+        assert rrexpr.fs_path is not None
+        assert rrexpr.in_stat is not None
+        emit_one(OrganizeSource(rrexpr.fs_path, rrexpr.in_stat, rrexpr.stime), rrexpr)
 
     return emit, finish
 
@@ -1349,11 +1347,12 @@ def cmd_organize(cargs : _t.Any) -> None:
     elaborate_output(cargs)
     handle_paths(cargs)
 
+    emit : EmitFunc[ReqresExpr]
     if cargs.destination is not None:
         # destination is set explicitly
         emit, finish = make_organize_emit(cargs, _os.path.expanduser(cargs.destination), cargs.allow_updates)
         try:
-            map_wrr_paths_extra(cargs, wrr_load_expr, emit, cargs.paths)
+            map_wrr_paths_extra(cargs, rrexpr_wrr_loadf, emit, cargs.paths)
         finally:
             finish()
     else:
@@ -1373,11 +1372,12 @@ def cmd_organize(cargs : _t.Any) -> None:
         for exp_path in cargs.paths:
             emit, finish = make_organize_emit(cargs, exp_path, False)
             try:
-                map_wrr_paths_extra(cargs, wrr_load_expr, emit, [exp_path])
+                map_wrr_paths_extra(cargs, rrexpr_wrr_loadf, emit, [exp_path])
             finally:
                 finish()
 
-def cmd_import_generic(cargs : _t.Any, load_exprs : _t.Callable[[_io.BufferedReader, _t.AnyStr, SniffContentType], _t.Iterator[ReqresExpr]]) -> None:
+def cmd_import_generic(cargs : _t.Any,
+                       rrexprs_loadf : _t.Callable[[str | bytes], _t.Iterator[ReqresExpr]]) -> None:
     compile_filters(cargs)
     elaborate_output(cargs)
     handle_paths(cargs)
@@ -1385,10 +1385,11 @@ def cmd_import_generic(cargs : _t.Any, load_exprs : _t.Callable[[_io.BufferedRea
     emit_one : _t.Callable[[SourcedBytes[_t.AnyStr], ReqresExpr], None]
     emit_one, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", make_DeferredFileWriteIntent(cargs.allow_updates))
 
-    def emit(abs_in_path : _t.AnyStr, rel_in_path : _t.AnyStr, in_stat : _os.stat_result, rrexprs : _t.Iterator[ReqresExpr]) -> None:
+    def emit_many(rrexprs : _t.Iterator[ReqresExpr]) -> None:
         for rrexpr in rrexprs:
             if want_stop: raise KeyboardInterrupt()
 
+            rrexpr.sniff = cargs.sniff
             if not filters_allow(cargs, rrexpr): return
 
             # TODO: to fix this cast, make ReqresExpr a _t.Generic
@@ -1398,16 +1399,16 @@ def cmd_import_generic(cargs : _t.Any, load_exprs : _t.Callable[[_io.BufferedRea
     should_raise = False
     try:
         for exp_path in cargs.paths:
-            load_map_orderly(load_exprs, emit, exp_path, cargs.sniff, ordering=cargs.walk_fs, errors=cargs.errors)
+            load_map_orderly(rrexprs_loadf, emit_many, exp_path, ordering=cargs.walk_fs, errors=cargs.errors)
     finally:
         finish()
 
 def cmd_import_bundle(cargs : _t.Any) -> None:
-    cmd_import_generic(cargs, wrr_bundle_load_exprs)
+    cmd_import_generic(cargs, rrexprs_wrr_bundle_loadf)
 
 def cmd_import_mitmproxy(cargs : _t.Any) -> None:
-    from .mitmproxy import mitmproxy_load_exprs
-    cmd_import_generic(cargs, mitmproxy_load_exprs)
+    from .mitmproxy import rrexprs_mitmproxy_loadf
+    cmd_import_generic(cargs, rrexprs_mitmproxy_loadf)
 
 def path_to_url(x : str) -> str:
     return x.replace("?", "%3F")
@@ -1444,7 +1445,8 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             rrexpr = self.rrexpr
             abs_out_path = self._abs_out_path
             if rrexpr is None and (strict or abs_out_path is None):
-                rrexpr = wrr_loadf_expr(self.abs_in_path, sniff)
+                rrexpr = rrexpr_wrr_loadf(self.abs_in_path)
+                rrexpr.sniff = sniff
                 if strict:
                     self.rrexpr = rrexpr
                     mem.consumption += rrexpr.reqres.approx_size()
@@ -1532,15 +1534,13 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
 
-    def collect(abs_in_path : str, rel_in_path : str, rrexpr : ReqresExpr) -> None:
+    def collect(rrexpr : ReqresExpr) -> None:
         reqres = rrexpr.reqres
         response = reqres.response
         if reqres.request.method != "GET" or \
            response is None or \
            response.code != 200:
             return
-
-        if not filters_allow(cargs, rrexpr): return
 
         net_url = rrexpr.net_url
         stime = rrexpr.stime
@@ -1550,13 +1550,13 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         if iobj is None:
             rrexpr.items["num"] = 0
             def_out_path = output_format % rrexpr
-            iobj = Indexed(stime, abs_in_path, def_out_path, rrexpr)
+            iobj = Indexed(stime, _os.fsdecode(rrexpr.format_source()), def_out_path, rrexpr)
             mem.consumption += iobj.approx_size()
         elif iobj.stime < stime:
             # update
             mem.consumption -= iobj.approx_size()
             iobj.stime = stime
-            iobj.abs_in_path = abs_in_path
+            iobj.abs_in_path = _os.fsdecode(rrexpr.format_source())
             iobj.rrexpr = rrexpr
             mem.consumption += iobj.approx_size()
 
@@ -2041,16 +2041,16 @@ _("Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a str
         def __call__(self, parser : _t.Any, cfg : argparse.Namespace, value : _t.Any, option_string : _t.Optional[str] = None) -> None:
             cfg.exprs.append(compile_expr(value))
 
-    fd_fobj = {0: stdin, 1: stdout, 2: stderr}
+    fd_fileobj = {0: stdin, 1: stdout, 2: stderr}
 
     class AddExprFd(argparse.Action):
         def __call__(self, parser : _t.Any, cfg : argparse.Namespace, value : _t.Any, option_string : _t.Optional[str] = None) -> None:
             fileno = cfg.expr_fd
             try:
-                fobj = fd_fobj[fileno]
+                fobj = fd_fileobj[fileno]
             except KeyError:
                 fobj = TIOWrappedWriter(_os.fdopen(fileno, "wb"))
-                fd_fobj[fileno] = fobj
+                fd_fileobj[fileno] = fobj
 
             try:
                 els = cfg.mexprs[fobj]

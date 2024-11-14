@@ -194,16 +194,10 @@ def _t_headers(n : str, x : _t.Any) -> Headers:
         return _t.cast(Headers, x)
     raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), "Headers", type(x).__name__)
 
-def wrr_load_raw(fobj : _io.BufferedReader) -> Reqres:
-    try:
-        data = _cbor2.load(fobj)
-    except _cbor2.CBORDecodeValueError:
-        raise WRRParsingError(gettext("CBOR parsing failure"))
-
-    if type(data) != list or len(data) == 0:
+def wrr_load_cbor_struct(data : _t.Any) -> Reqres:
+    if not isinstance(data, list):
         raise WRRParsingError(gettext("Reqres parsing failure: wrong spine"))
-
-    if data[0] == "WEBREQRES/1":
+    elif len(data) == 7 and data[0] == "WEBREQRES/1":
         _, source, protocol, request_, response_, finished_at, extra = data
         rq_started_at, rq_method, rq_url, rq_headers, rq_complete, rq_body = request_
         purl = parse_url(_t_str("request.url", rq_url))
@@ -244,22 +238,29 @@ def wrr_load_raw(fobj : _io.BufferedReader) -> Reqres:
     else:
         raise WRRParsingError(gettext("Reqres parsing failure: unknown format `%s`"), data[0])
 
+def wrr_load_cbor_fileobj(fobj : _io.BufferedReader) -> Reqres:
+    try:
+        struct = _cbor2.load(fobj)
+    except _cbor2.CBORDecodeValueError:
+        raise WRRParsingError(gettext("CBOR parsing failure"))
+
+    return wrr_load_cbor_struct(struct)
+
 def wrr_load(fobj : _io.BufferedReader) -> Reqres:
-    fobj = ungzip_fobj_maybe(fobj)
-    res = wrr_load_raw(fobj)
+    fobj = ungzip_fileobj_maybe(fobj)
+    res = wrr_load_cbor_fileobj(fobj)
     p = fobj.peek(16)
     if p != b"":
         # there's some junk after the end of the Reqres structure
         raise WRRParsingError(gettext("expected EOF, got `%s`"), p)
     return res
 
-def wrr_bundle_load(fobj : _io.BufferedReader, path : _t.AnyStr) -> _t.Iterator[Reqres]:
-    fobj = ungzip_fobj_maybe(fobj)
+def wrr_bundle_load(fobj : _io.BufferedReader) -> _t.Iterator[Reqres]:
+    fobj = ungzip_fileobj_maybe(fobj)
     while True:
         p = fobj.peek(16)
         if p == b"": break
-        res = wrr_load_raw(fobj)
-        yield res
+        yield wrr_load_cbor_fileobj(fobj)
 
 def wrr_loadf(path : _t.AnyStr) -> Reqres:
     with open(path, "rb") as f:
@@ -287,16 +288,13 @@ def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
 
     structure = ["WEBREQRES/1", reqres.source, reqres.protocol, request, response, _f_epoch(reqres.finished_at), extra]
 
-    data : bytes = _cbor2.dumps(structure)
-
+    data = _cbor2.dumps(structure)
     if compress:
-        return gzip_maybe(data)
-    else:
-        return data
+        data = gzip_maybe(data)
+    return data
 
 def wrr_dump(fobj : _io.BufferedWriter, reqres : Reqres, compress : bool = True) -> None:
-    data = wrr_dumps(reqres, compress)
-    fobj.write(data)
+    fobj.write(wrr_dumps(reqres, compress))
 
 ReqresExpr_derived_attrs = {
     "fs_path": "file system path for the WRR file containing this reqres; str | bytes | None",
@@ -513,6 +511,7 @@ class ReqresExpr:
     reqres : Reqres
     fs_path : str | bytes | None
     obj_path : list[int | str | bytes]
+    in_stat : _os.stat_result | None = _dc.field(default = None)
     sniff : SniffContentType = _dc.field(default=SniffContentType.NONE)
     remap_url : URLRemapper | None = _dc.field(default = None)
     items : dict[str, _t.Any] = _dc.field(default_factory = dict)
@@ -647,34 +646,24 @@ class ReqresExpr:
             raise Failure("expression `%s` evaluated to `None`", expr)
         return res
 
-def wrr_load_expr(fobj : _io.BufferedReader,
-                  path : _t.AnyStr,
-                  sniff : SniffContentType,
-                  remap_url : URLRemapper | None = None) -> ReqresExpr:
-    reqres = wrr_load(fobj)
-    res = ReqresExpr(reqres, path, [], sniff, remap_url)
-    return res
+def rrexpr_wrr_load(fobj : _io.BufferedReader, path : str | bytes) -> ReqresExpr:
+    return ReqresExpr(wrr_load(fobj), path, [])
 
-def wrr_bundle_load_exprs(fobj : _io.BufferedReader,
-                          path : _t.AnyStr,
-                          sniff : SniffContentType,
-                          remap_url : URLRemapper | None = None) -> _t.Iterator[ReqresExpr]:
+def rrexprs_wrr_bundle_load(fobj : _io.BufferedReader, path : str | bytes) -> _t.Iterator[ReqresExpr]:
     n = 0
-    for reqres in wrr_bundle_load(fobj, path):
-        yield ReqresExpr(reqres, path, [n], sniff, remap_url)
+    for reqres in wrr_bundle_load(fobj):
+        yield ReqresExpr(reqres, path, [n])
         n += 1
 
-def wrr_loadf_expr(path : _t.AnyStr,
-                   sniff : SniffContentType,
-                   remap_url : URLRemapper | None = None) -> ReqresExpr:
+def rrexpr_wrr_loadf(path : str | bytes) -> ReqresExpr:
     with open(path, "rb") as f:
-        return wrr_load_expr(f, path, sniff, remap_url)
+        res = rrexpr_wrr_load(f, path)
+        res.in_stat = _os.fstat(f.fileno())
+        return res
 
-def wrr_bundle_loadf_exprs(path : _t.AnyStr,
-                           sniff : SniffContentType,
-                           remap_url : URLRemapper | None = None) -> _t.Iterator[ReqresExpr]:
+def rrexprs_wrr_bundle_loadf(path : str | bytes) -> _t.Iterator[ReqresExpr]:
     with open(path, "rb") as f:
-        yield from wrr_bundle_load_exprs(f, path, sniff, remap_url)
+        yield from rrexprs_wrr_bundle_load(f, path)
 
 def trivial_Reqres(url : ParsedURL,
                    content_type : str = "text/html",

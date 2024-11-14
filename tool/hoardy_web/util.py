@@ -46,7 +46,7 @@ def gzip_maybe(data : bytes) -> bytes:
     else:
         return data
 
-def ungzip_fobj_maybe(fobj : _io.BufferedReader) -> _io.BufferedReader:
+def ungzip_fileobj_maybe(fobj : _io.BufferedReader) -> _io.BufferedReader:
     """UnGZip a file object if it appears to be GZipped."""
 
     head = fobj.peek(2)[:2]
