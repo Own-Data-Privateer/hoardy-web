@@ -901,12 +901,6 @@ flat_mhsn:    ==
 not_allowed = gettext("; this is not allowed to prevent accidental data loss")
 variance_help = gettext("; your `--output` format fails to provide enough variance to solve this problem automatically (did your forget to place a `%%(num)d` substitution in there?)") + not_allowed
 
-def str_anystr(x : str | bytes) -> str:
-    if isinstance(x, str):
-        return x
-    else:
-        return _os.fsdecode(x)
-
 @_dc.dataclass
 class Memory:
     consumption : int = 0
@@ -1010,8 +1004,8 @@ def make_deferred_emit(cargs : _t.Any,
                 if cargs.errors == "ignore":
                     return
                 exc.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
-                              str_anystr(intent.format_source()),
-                              str_anystr(abs_out_path))
+                              fsdecode_maybe(intent.format_source()),
+                              fsdecode_maybe(abs_out_path))
                 if cargs.errors != "fail":
                     _logging.error("%s", str(exc))
                     return
@@ -1133,8 +1127,8 @@ def make_deferred_emit(cargs : _t.Any,
                 if prev_rel_out_path == rel_out_path:
                     exc = Failure(gettext("destination already exists") + variance_help)
                     exc.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
-                                  str_anystr(new_source.format_source()), # type: ignore
-                                  str_anystr(abs_out_path))
+                                  fsdecode_maybe(new_source.format_source()), # type: ignore
+                                  fsdecode_maybe(abs_out_path))
                     raise exc
                 prev_rel_out_path = rel_out_path
                 continue

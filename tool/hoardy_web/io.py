@@ -30,6 +30,12 @@ from kisstdlib.exceptions import *
 if _sys.platform != "win32":
     import fcntl as _fcntl
 
+def fsdecode_maybe(x : str | bytes) -> str:
+    if isinstance(x, bytes):
+        return _os.fsdecode(x)
+    else:
+        return x
+
 def fsync_maybe(fd : int) -> None:
     try:
         _os.fsync(fd)
