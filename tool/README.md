@@ -81,9 +81,14 @@ ls ~/Downloads/Hoardy-Web-export-*
 When, instead of the above, you run the `Hoardy-Web` extension with both `Export via 'saveAs'` and bundling options enabled, it fills your `~/Downloads` directory with `.wrrb` files (aka "`WRR` bundles") instead.
 `WRR` bundles are simply concatenations of `WRR` dumps (optionally) compressed with `GZip`.
 
-Most sub-commands of `hoardy-web` can take both `.wrr` and `.wrrb` files as inputs, so most examples described below will work for both.
+Most sub-commands of `hoardy-web` can take both `.wrr` and `.wrrb` files as inputs.
+So, most examples described below will work fine with either or both types of files as inputs.
+However, the following sub-commands can only take plain `.wrr` files as inputs:
 
-Except, at the moment, `hoardy-web organize` and `hoardy-web run` sub-command can only take plain `.wrr` files as inputs, so to use it you will have to convert your `.wrrb` bundles into `WRR` files first by running something like:
+- `hoardy-web organize` sub-command when run with `--move`, `--hardlink`, or `--symlink` (i.e. with anything other than `--copy`), and
+- `hoardy-web run` sub-command.
+
+So, to invoke `hoardy-web` with those sub-commands you will have to convert your `.wrrb` bundles into `WRR` files first by running something like:
 
 ```bash
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
