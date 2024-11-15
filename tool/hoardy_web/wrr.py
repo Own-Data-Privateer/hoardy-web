@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import abc as _abc
 import cbor2 as _cbor2
 import dataclasses as _dc
 import gzip as _gzip
@@ -33,9 +34,10 @@ from kisstdlib.exceptions import *
 from kisstdlib.io.stdio import *
 from kisstdlib.path import *
 
-from .util import *
-from .type import *
 from .linst import *
+from .source import *
+from .type import *
+from .util import *
 from .web import *
 
 class RRCommon:
@@ -73,14 +75,14 @@ class Request(RRCommon):
     complete : bool
     body : bytes | str
 
+    def approx_size(self) -> int:
+        return 56 + 2 * len(self.url.raw_url) + len(self.body) \
+            + sum(map(lambda x: len(x[0]) + len(x[1]), self.headers))
+
     def get_content_type(self) -> tuple[str, bool]:
         ct = self.get_header("content-type", "application/x-www-form-urlencoded")
         assert ct is not None
         return ct, False
-
-    def approx_size(self) -> int:
-        return 64 + 2 * len(self.url.raw_url) + len(self.body) \
-            + sum(map(lambda x: len(x[0]) + len(x[1]), self.headers))
 
 @_dc.dataclass
 class Response(RRCommon):
@@ -90,6 +92,10 @@ class Response(RRCommon):
     headers : Headers
     complete : bool
     body : bytes | str
+
+    def approx_size(self) -> int:
+        return 56 + len(self.body) \
+            + sum(map(lambda x: len(x[0]) + len(x[1]), self.headers))
 
     def get_content_type(self) -> tuple[str, bool]:
         ct = self.get_header("content-type", "application/octet-stream")
@@ -101,10 +107,6 @@ class Response(RRCommon):
             sniff = True
         return ct, sniff
 
-    def approx_size(self) -> int:
-        return 64 + len(self.body) \
-            + sum(map(lambda x: len(x[0]) + len(x[1]), self.headers))
-
 @_dc.dataclass
 class WebSocketFrame:
     sent_at : Epoch
@@ -113,7 +115,7 @@ class WebSocketFrame:
     content : bytes
 
     def approx_size(self) -> int:
-        return 32 + len(self.content)
+        return 40 + len(self.content)
 
 Reqres_fields = {
     "version": "WEBREQRES format version; int",
@@ -507,34 +509,60 @@ ReqresExpr_lookup = linst_custom_or_env(ReqresExpr_atoms)
 ReqresExpr_time_attrs = frozenset(["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"])
 
 @_dc.dataclass
-class ReqresExpr:
-    reqres : Reqres
-    fs_path : str | bytes | None
-    obj_path : list[int | str | bytes]
-    in_stat : _os.stat_result | None = _dc.field(default = None)
+class ReqresExpr(DeferredSource, _t.Generic[DeferredSourceType]):
+    source : DeferredSourceType
+
+    _reqres : Reqres | None
+    original : _t.Any | None = _dc.field(default = None)
+
     sniff : SniffContentType = _dc.field(default=SniffContentType.NONE)
     remap_url : URLRemapper | None = _dc.field(default = None)
+
     items : dict[str, _t.Any] = _dc.field(default_factory = dict)
 
-    def format_source(self) -> bytes:
-        res = _io.BytesIO()
-        fs_path = self.fs_path
-        if fs_path is None:
-            res.write(_os.fsencode(f"<{id(self)}>"))
-        elif isinstance(fs_path, str):
-            res.write(_os.fsencode(fs_path))
-        else:
-            res.write(fs_path)
+    @property
+    def reqres(self) -> Reqres:
+        reqres = self._reqres
+        if reqres is not None:
+            return reqres
 
-        for o in self.obj_path:
-            res.write(b"/")
-            if isinstance(o, int):
-                res.write(_os.fsencode(str(o)))
-            elif isinstance(o, str):
-                res.write(_os.fsencode(o))
-            else:
-                res.write(o)
-        return res.getvalue()
+        source = self.source
+        if isinstance(self.source, FileSource):
+            reqres = wrr_load(source.get_fileobj())
+        else:
+            raise NotImplementedError()
+
+        self._reqres = reqres
+        return reqres
+
+    def unload(self, completely : bool = False) -> None:
+        if isinstance(self.source, FileSource):
+            # this `reqres` is cheap to re-load
+            self._reqres = None
+        if completely:
+            self.items = dict()
+
+    def approx_size(self) -> int:
+        return 128 + \
+            (self.source.approx_size() if self.source is not None else 0) + \
+            (self._reqres.approx_size() if self._reqres is not None else 0) + \
+            sum(map(lambda k: len(k) + 16, self.items.keys()))
+
+    def show_source(self) -> str:
+        return self.source.show_source()
+
+    def get_fileobj(self) -> _io.BufferedReader:
+        return BytesIOReader(wrr_dumps(self.reqres))
+
+    def same_as(self, other : DeferredSource) -> bool:
+        if isinstance(other, ReqresExpr):
+            return self.source.same_as(other.source)
+        return self.source.same_as(other)
+
+    def replaces(self, other : DeferredSource) -> bool:
+        if isinstance(other, ReqresExpr):
+            return self.source.replaces(other.source)
+        return self.source.replaces(other)
 
     def _fill_time(self, prefix : str, ts : Epoch) -> None:
         dt = _time.gmtime(int(ts))
@@ -555,7 +583,10 @@ class ReqresExpr:
             pass
 
         if name == "fs_path":
-            return self.fs_path
+            if isinstance(self.source, FileSource):
+                return self.source.path
+            else:
+                return None
 
         reqres = self.reqres
         if name == "method":
@@ -646,25 +677,22 @@ class ReqresExpr:
             raise Failure("expression `%s` evaluated to `None`", expr)
         return res
 
-def rrexpr_wrr_load(fobj : _io.BufferedReader, path : str | bytes) -> ReqresExpr:
-    return ReqresExpr(wrr_load(fobj), path, [])
+def rrexpr_wrr_load(fobj : _io.BufferedReader, source : DeferredSourceType) -> ReqresExpr[DeferredSourceType]:
+    return ReqresExpr(source, wrr_load(fobj))
 
-def rrexprs_wrr_bundle_load(fobj : _io.BufferedReader, path : str | bytes) -> _t.Iterator[ReqresExpr]:
+def rrexprs_wrr_bundle_load(fobj : _io.BufferedReader, source : DeferredSourceType) -> _t.Iterator[ReqresExpr[StreamElementSource[DeferredSourceType]]]:
     n = 0
     for reqres in wrr_bundle_load(fobj):
-        yield ReqresExpr(reqres, path, [n])
+        yield ReqresExpr(StreamElementSource(source, n), reqres)
         n += 1
 
-def rrexpr_wrr_loadf(path : str | bytes) -> ReqresExpr:
+def rrexpr_wrr_loadf(path : str | bytes) -> ReqresExpr[FileSource]:
     with open(path, "rb") as f:
-        res = rrexpr_wrr_load(f, path)
-        res.in_stat = _os.fstat(f.fileno())
-        return res
+        return rrexpr_wrr_load(f, make_FileSource(path, f))
 
-def rrexprs_wrr_bundle_loadf(path : str | bytes) -> _t.Iterator[ReqresExpr]:
+def rrexprs_wrr_bundle_loadf(path : str | bytes) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
-        yield from rrexprs_wrr_bundle_load(f, path)
-
+        yield from rrexprs_wrr_bundle_load(f, make_FileSource(path, f))
 def trivial_Reqres(url : ParsedURL,
                    content_type : str = "text/html",
                    qtime : Epoch = Epoch(0),
@@ -709,16 +737,16 @@ def fallback_Reqres(url : ParsedURL,
     # fallback this otherwise
     return trivial_Reqres(url, "application/octet-stream", stime, stime, stime, headers=headers, data=data)
 
-def mk_trivial_ReqresExpr(url : str, ct : str = "text/html", sniff : bool = False, headers : Headers = [], data : bytes = b"") -> ReqresExpr:
+def mk_trivial_ReqresExpr(url : str, ct : str = "text/html", sniff : bool = False, headers : Headers = [], data : bytes = b"") -> ReqresExpr[UnknownSource]:
     x = trivial_Reqres(parse_url(url), ct, sniff=sniff, headers=headers, data=data)
-    return ReqresExpr(x, None, [])
+    return ReqresExpr(UnknownSource(), x)
 
-def mk_fallback_ReqresExpr(url : str, cts : list[str] = ["text/html"], headers : Headers = [], data : bytes = b"") -> ReqresExpr:
+def mk_fallback_ReqresExpr(url : str, cts : list[str] = ["text/html"], headers : Headers = [], data : bytes = b"") -> ReqresExpr[UnknownSource]:
     x = fallback_Reqres(parse_url(url), cts, headers=headers, data=data)
-    return ReqresExpr(x, None, [])
+    return ReqresExpr(UnknownSource(), x)
 
 def test_ReqresExpr_url_parts() -> None:
-    def check(x : ReqresExpr, name : str, value : _t.Any) -> None:
+    def check(x : ReqresExpr[_t.Any], name : str, value : _t.Any) -> None:
         if x[name] != value:
             raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", name, x.reqres.request.url, value, x[name])
 
@@ -790,7 +818,7 @@ def check_request_response(cmd : str, part : str) -> bool:
         raise CatastrophicFailure("`%s`: unexpected argument, expected `request` or `response`, got `%s`", cmd, part)
     return part == "request"
 
-def check_rrexpr(cmd : str, rrexpr : _t.Any) -> ReqresExpr:
+def check_rrexpr(cmd : str, rrexpr : _t.Any) -> ReqresExpr[_t.Any]:
     if not isinstance(rrexpr, ReqresExpr):
         typ = type(rrexpr)
         raise CatastrophicFailure("`%s`: expecting `ReqresExpr` value as the command environment, got `%s`", cmd, typ.__name__)
@@ -799,7 +827,7 @@ def check_rrexpr(cmd : str, rrexpr : _t.Any) -> ReqresExpr:
 def check_scrub(opts : str, url : str, ct : str, headers : Headers, data : str, eres : str) -> None:
     def sc(sniff : bool) -> None:
         t = trivial_Reqres(parse_url(url), ct, sniff=sniff, headers=headers, data=data.encode("utf-8"))
-        x = ReqresExpr(t, None, [])
+        x = ReqresExpr(UnknownSource(), t)
 
         res = x[f"response.body|eb|scrub response {opts}"].decode("utf-8")
         if res != eres:

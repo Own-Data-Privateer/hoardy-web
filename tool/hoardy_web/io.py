@@ -20,10 +20,11 @@ import errno as _errno
 import io as _io
 import os as _os
 import shutil as _shutil
+import stat as _stat
 import sys as _sys
 import typing as _t
 
-from gettext import gettext, ngettext
+from gettext import gettext
 
 from kisstdlib.exceptions import *
 
@@ -272,107 +273,3 @@ def atomic_write(data : bytes, dst : _t.AnyStr,
     except OSError as exc:
         handle_ENAMETOOLONG(exc, dst)
         raise exc
-
-DataSource = _t.TypeVar("DataSource")
-class DeferredIO(_t.Generic[DataSource, _t.AnyStr]):
-    """A deferred IO operation over abs_out_path : _.AnyStr, which uses a DataSource
-       that has ReqresExpr inside as the source of data to be IO'd.
-
-       This exists for efficiently reasons: to eliminate away consequent
-       `os.rename` and `os.symlink` calls to the same target when updating FS
-       paths, and also so that disk writes could be batched.
-    """
-
-    def format_source(self) -> str | bytes:
-        raise NotImplementedError()
-
-    def approx_size(self) -> int:
-        raise NotImplementedError()
-
-    @staticmethod
-    def defer(abs_out_path : _t.AnyStr, old_source : DataSource | None, new_source: DataSource) \
-            -> tuple[_t.Any | None, DataSource | None, bool]:
-            #        ^ this is _t.Self
-        raise NotImplementedError()
-
-    def update_from(self, new_source : DataSource) -> tuple[DataSource | None, bool]:
-        raise NotImplementedError()
-
-    def run(self, abs_out_path : _t.AnyStr,
-            dsync : DeferredSync | None = None,
-            dry_run : bool = False) \
-            -> DataSource | None:
-        raise NotImplementedError()
-
-@_dc.dataclass
-class SourcedBytes(_t.Generic[_t.AnyStr]):
-    source : _t.AnyStr
-    data : bytes
-
-    def approx_size(self) -> int:
-        return 64 + len(self.source) + len(self.data)
-
-    def format_source(self) -> _t.AnyStr:
-        return self.source
-
-def make_DeferredFileWriteIntent(allow_updates : bool) -> type:
-    @_dc.dataclass
-    class DeferredFileWrite(DeferredIO[SourcedBytes[_t.AnyStr], _t.AnyStr], _t.Generic[_t.AnyStr]):
-        source : SourcedBytes[_t.AnyStr]
-        exists : bool
-        updated : bool = _dc.field(default = False)
-
-        def format_source(self) -> str | bytes:
-            return self.source.format_source()
-
-        def approx_size(self) -> int:
-            return 32 + self.source.approx_size()
-
-        @staticmethod
-        def defer(abs_out_path : _t.AnyStr,
-                  old_source : SourcedBytes[_t.AnyStr] | None,
-                  new_source : SourcedBytes[_t.AnyStr]) \
-                -> tuple[_t.Any | None, SourcedBytes[_t.Any], bool]:
-            if old_source is None:
-                try:
-                    with open(abs_out_path, "rb") as f:
-                        old_source = SourcedBytes(abs_out_path, f.read())
-                except FileNotFoundError:
-                    return DeferredFileWrite(new_source, False), new_source, True
-                except OSError as exc:
-                    handle_ENAMETOOLONG(exc, abs_out_path)
-                    raise exc
-
-            intent = DeferredFileWrite(old_source, True)
-            source, permitted = intent.update_from(new_source)
-            if source is old_source:
-                return None, source, permitted
-            else:
-                return intent, source, permitted
-
-        def update_from(self, new_source : SourcedBytes[_t.AnyStr]) \
-                -> tuple[SourcedBytes[_t.AnyStr], bool]:
-            if self.source.data == new_source.data:
-                # same data
-                return self.source, True
-
-            if not allow_updates:
-                return self.source, False
-
-            # update
-            self.source = new_source
-            self.updated = True
-            return self.source, True
-
-        def run(self, abs_out_path : _t.AnyStr,
-                dsync : DeferredSync | None = None,
-                dry_run : bool = False) \
-                -> SourcedBytes[_t.AnyStr] | None:
-            if dry_run or (self.updated and file_content_equals(abs_out_path, self.source.data)):
-                # nothing to do
-                return self.source
-
-            atomic_write(self.source.data, abs_out_path, False, dsync = dsync)
-            return self.source
-
-    return DeferredFileWrite

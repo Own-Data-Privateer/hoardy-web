@@ -113,7 +113,7 @@ def mitmproxy_load_flow(flow : mitmproxy.http.HTTPFlow) -> Reqres | None:
 
     return Reqres(1, "hoardy-mitmproxy/1", rq.http_version, request, response, finished_at, {}, wsstream)
 
-def rrexprs_mitmproxy_load_fileobj(fobj : _io.BufferedReader, path : str | bytes) -> _t.Iterator[ReqresExpr]:
+def rrexprs_mitmproxy_load_fileobj(fobj : _io.BufferedReader, source : DeferredSourceType) -> _t.Iterator[ReqresExpr[StreamElementSource[DeferredSourceType]]]:
     stream = mitmproxy.io.FlowReader(fobj).stream()
     n = 0
     for flow in stream:
@@ -123,9 +123,9 @@ def rrexprs_mitmproxy_load_fileobj(fobj : _io.BufferedReader, path : str | bytes
         reqres = mitmproxy_load_flow(flow)
         if reqres is None:
             continue
-        yield ReqresExpr(reqres, path, [n])
+        yield ReqresExpr(StreamElementSource(source, n), reqres)
         n += 1
 
-def rrexprs_mitmproxy_loadf(path : str | bytes) -> _t.Iterator[ReqresExpr]:
+def rrexprs_mitmproxy_loadf(path : str | bytes) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
-        yield from rrexprs_mitmproxy_load_fileobj(f, path)
+        yield from rrexprs_mitmproxy_load_fileobj(f, make_FileSource(path, f))

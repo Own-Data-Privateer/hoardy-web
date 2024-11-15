@@ -41,7 +41,6 @@ from kisstdlib.logging import *
 
 from .wrr import *
 from .output import *
-from .io import *
 
 __prog__ = "hoardy-web"
 
@@ -87,7 +86,7 @@ def compile_filters(cargs : _t.Any) -> None:
     cargs.alls = list(map(compile_filter, cargs.alls))
     cargs.anys = list(map(compile_filter, cargs.anys))
 
-def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr) -> bool:
+def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr[_t.Any]) -> bool:
     def eval_it(expr : str, func : LinstFunc) -> bool:
         ev = func(rrexpr, None)
         if not isinstance(ev, bool):
@@ -209,10 +208,10 @@ def map_wrr_paths_extra(cargs : _t.Any,
         load_map_orderly(loadf_func, emit_func, exp_path, ordering=cargs.walk_fs, errors=cargs.errors, **kwargs)
 
 def map_wrr_paths(cargs : _t.Any,
-                  emit_func : EmitFunc[ReqresExpr],
+                  emit_func : EmitFunc[ReqresExpr[DeferredSourceType]],
                   paths : list[_t.AnyStr],
                   **kwargs : _t.Any) -> None:
-    def emit_many(rrexprs : _t.Iterator[ReqresExpr]) -> None:
+    def emit_many(rrexprs : _t.Iterator[ReqresExpr[DeferredSourceType]]) -> None:
         for rrexpr in rrexprs:
             if want_stop: raise KeyboardInterrupt()
 
@@ -220,7 +219,7 @@ def map_wrr_paths(cargs : _t.Any,
             if not filters_allow(cargs, rrexpr): return
             emit_func(rrexpr)
 
-    map_wrr_paths_extra(cargs, rrexprs_wrr_bundle_loadf, emit_many, paths, **kwargs)
+    map_wrr_paths_extra(cargs, rrexprs_wrr_bundle_loadf, emit_many, paths, **kwargs) # type: ignore # type inference fail
 
 def get_bytes(value : _t.Any) -> bytes:
     if value is None or isinstance(value, (bool, int, float, Epoch)):
@@ -237,13 +236,13 @@ def cmd_pprint(cargs : _t.Any) -> None:
     compile_filters(cargs)
     handle_paths(cargs)
 
-    def emit(rrexpr : ReqresExpr) -> None:
-        wrr_pprint(stdout, rrexpr.reqres, rrexpr.format_source(), cargs.abridged, cargs.sniff)
+    def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
+        wrr_pprint(stdout, rrexpr.reqres, rrexpr.source.show_source(), cargs.abridged, cargs.sniff)
         stdout.flush()
 
     map_wrr_paths(cargs, emit, cargs.paths)
 
-def print_exprs(rrexpr : ReqresExpr, exprs : list[tuple[str, LinstFunc]],
+def print_exprs(rrexpr : ReqresExpr[_t.Any], exprs : list[tuple[str, LinstFunc]],
                 separator : bytes, fobj : MinimalIOWriter) -> None:
     not_first = False
     for expr, func in exprs:
@@ -341,7 +340,7 @@ def cmd_stream(cargs : _t.Any) -> None:
 
     stream = get_StreamEncoder(cargs)
 
-    def emit(rrexpr : ReqresExpr) -> None:
+    def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
         values : list[_t.Any] = []
         for expr, func in cargs.exprs:
             try:
@@ -349,7 +348,7 @@ def cmd_stream(cargs : _t.Any) -> None:
             except CatastrophicFailure as exc:
                 exc.elaborate(gettext("while evaluating `%s`"), expr)
                 raise exc
-        stream.emit(_os.fsdecode(rrexpr.format_source()), cargs.exprs, values)
+        stream.emit(rrexpr.source.show_source(), cargs.exprs, values)
 
     stream.start()
     try:
@@ -361,8 +360,8 @@ def cmd_find(cargs : _t.Any) -> None:
     compile_filters(cargs)
     handle_paths(cargs)
 
-    def emit(rrexpr : ReqresExpr) -> None:
-        stdout.write(rrexpr.format_source())
+    def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
+        stdout.write(rrexpr.source.show_source())
         stdout.write_bytes(cargs.terminator)
         stdout.flush()
 
@@ -463,14 +462,14 @@ output_alias = {
 
 def output_example(name : str, indent : int) -> str:
     def gen(url : str) -> str:
-        x = ReqresExpr(trivial_Reqres(parse_url(url)), None, [])
+        x = ReqresExpr(UnknownSource(), trivial_Reqres(parse_url(url)))
         x.items["num"] = 0
         return output_alias[name] % x
     return make_example(gen, indent)
 
 def test_outputs_aliases() -> None:
-    def mk(url : str) -> ReqresExpr:
-        return ReqresExpr(trivial_Reqres(parse_url(url)), None, [])
+    def mk(url : str) -> ReqresExpr[UnknownSource]:
+        return ReqresExpr(UnknownSource(), trivial_Reqres(parse_url(url)))
 
     res = []
     prev = ""
@@ -927,12 +926,74 @@ class SeenCounter(_t.Generic[_t.AnyStr]):
         self.mem.consumption -= len(abs_out_path)
         return res
 
+DeferredDestinationType = _t.TypeVar("DeferredDestinationType")
+class DeferredOperation(_t.Generic[DeferredSourceType, DeferredDestinationType]):
+    """A deferred `source` -> `destination` operation with updatable `source`.
+
+       This exists to help you to eliminatate away repeated `os.rename`,
+       `os.symlink`, etc calls to the same `destination` and to help
+       implementing disk writes batching.
+    """
+    source : DeferredSourceType
+    destination : DeferredDestinationType
+
+    def __init__(self, source : DeferredSourceType, destination : DeferredDestinationType, overwrite : bool, allow_updates : bool) -> None:
+        self.source = source
+        self.destination = destination
+        self.overwrite = overwrite
+        self.allow_updates = allow_updates
+        self.updated = False
+
+    def approx_size(self) -> int:
+        return 48 + self.source.approx_size()
+
+    def switch_source(self, new_source : DeferredSourceType, force : bool = False) -> bool:
+        """Switch source of this operation.
+
+           Returns `True` if this change was permitted.
+        """
+        if not force:
+            old_source = self.source
+            if not new_source.replaces(old_source) or \
+               new_source.same_as(old_source) or \
+               new_source.get_bytes() == old_source.get_bytes():
+                return True
+
+        if not self.allow_updates:
+            # updates are not allowed
+            return False
+
+        # update
+        self.source = new_source
+        self.updated = True
+        return True
+
+    def run(self, dsync : DeferredSync | None = None) -> None:
+        """Write the `source` to `destination`."""
+        raise NotImplementedError()
+
+class DeferredFileWrite(DeferredOperation[DeferredSourceType, _t.AnyStr], _t.Generic[DeferredSourceType, _t.AnyStr]):
+    def approx_size(self) -> int:
+        return super().approx_size() + len(self.destination)
+
+    def run(self, dsync : DeferredSync | None = None) -> None:
+        data = self.source.get_bytes()
+        if self.updated and file_content_equals(self.destination, data):
+            # nothing to do
+            return
+        atomic_write(data, self.destination, self.overwrite or self.allow_updates, dsync = dsync)
+
 def make_deferred_emit(cargs : _t.Any,
                        destination : _t.AnyStr,
                        action : str,
                        actioning : str,
-                       deferredIO : type[DeferredIO[DataSource, _t.AnyStr]]) \
-        -> tuple[_t.Callable[[DataSource, ReqresExpr], None], _t.Callable[[], None]]:
+                       defer : _t.Callable[[ReqresExpr[DeferredSourceType], _t.AnyStr, bool, bool],
+                                           DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr]],
+                       allow_updates : bool,
+                       moving : bool = False,
+                       symlinking : bool = False) \
+        -> tuple[_t.Callable[[ReqresExpr[DeferredSourceType]], None],
+                 _t.Callable[[], None]]:
     output_format = cargs.output_format + ".wrr"
 
     # current memory consumption
@@ -940,20 +1001,20 @@ def make_deferred_emit(cargs : _t.Any,
     # for each `--output` value, how many times it was seen
     seen_counter : SeenCounter[_t.AnyStr] = SeenCounter(mem)
 
+    # ReqresExpr cache indexed by destination path, this exists mainly
+    # to minimize the number of calls to `stat`.
+    rrexpr_cache : _c.OrderedDict[_t.AnyStr, ReqresExpr[DeferredSourceType]] = _c.OrderedDict()
+
     # Deferred IO operations (aka "intents") that are yet to be executed,
     # indexed by filesystem paths. This is used both as a queue and as an
     # LRU-cache so that, e.g. repeated updates to the same output file would be
     # computed in memory.
-    deferred_intents : _c.OrderedDict[_t.AnyStr, DeferredIO[DataSource, _t.AnyStr]] = _c.OrderedDict()
+    deferred : _c.OrderedDict[_t.AnyStr, DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr]] = _c.OrderedDict()
 
     # Deferred file system updates. This collects references to everything
     # that should be fsynced to disk before proceeding to make flush_updates
     # below both atomic and efficient.
     dsync = DeferredSync()
-
-    # Source info cache indexed by filesystem paths, this is purely to minimize
-    # the number of calls to `stat`.
-    source_cache : _c.OrderedDict[_t.AnyStr, DataSource] = _c.OrderedDict()
 
     max_memory_mib = cargs.max_memory * 1024 * 1024
     def flush_updates(final : bool) -> None:
@@ -964,8 +1025,8 @@ def make_deferred_emit(cargs : _t.Any,
         max_cached : int = cargs.max_cached
         max_batched : int = cargs.max_batched
 
-        num_deferred = len(deferred_intents)
-        num_cached = len(source_cache)
+        num_deferred = len(deferred)
+        num_cached = len(rrexpr_cache)
         num_seen = len(seen_counter)
         if num_deferred <= max_deferred and \
            num_cached <= max_cached and \
@@ -977,8 +1038,9 @@ def make_deferred_emit(cargs : _t.Any,
         if cargs.terminator is not None:
             done_files = []
 
-        def complete_intent(abs_out_path : _t.AnyStr, intent : DeferredIO[DataSource, _t.AnyStr]) -> None:
+        def run_intent(abs_out_path : _t.AnyStr, intent : DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr]) -> None:
             mem.consumption -= intent.approx_size() + len(abs_out_path)
+            rrexpr = intent.source
 
             if not cargs.quiet:
                 if cargs.dry_run:
@@ -988,19 +1050,20 @@ def make_deferred_emit(cargs : _t.Any,
 
                 stderr.write_str(ing)
                 stderr.write_str(": `")
-                stderr.write(intent.format_source())
+                stderr.write(rrexpr.show_source())
                 stderr.write_str("` -> `")
                 stderr.write(abs_out_path)
                 stderr.write_str_ln("`")
                 stderr.flush()
 
             try:
-                updated_source = intent.run(abs_out_path, dsync, cargs.dry_run)
+                if not cargs.dry_run:
+                    intent.run(dsync)
             except Failure as exc:
                 if cargs.errors == "ignore":
                     return
                 exc.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
-                              fsdecode_maybe(intent.format_source()),
+                              rrexpr.show_source(),
                               fsdecode_maybe(abs_out_path))
                 if cargs.errors != "fail":
                     _logging.error("%s", str(exc))
@@ -1011,14 +1074,11 @@ def make_deferred_emit(cargs : _t.Any,
             if done_files is not None:
                 done_files.append(abs_out_path)
 
-            if updated_source is not None:
-                try:
-                    old_source = source_cache[abs_out_path]
-                except KeyError: pass
-                else:
-                    mem.consumption -= old_source.approx_size() + len(abs_out_path) # type: ignore
-                source_cache[abs_out_path] = updated_source
-                mem.consumption += updated_source.approx_size() + len(abs_out_path) # type: ignore
+            old_rrexpr = rrexpr_cache.pop(abs_out_path, None)
+            if old_rrexpr is not None:
+                mem.consumption -= old_rrexpr.approx_size() + len(abs_out_path)
+            rrexpr_cache[abs_out_path] = rrexpr
+            mem.consumption += rrexpr.approx_size() + len(abs_out_path)
 
         # flush seen cache
         while num_seen > 0 and \
@@ -1030,25 +1090,26 @@ def make_deferred_emit(cargs : _t.Any,
             # about older files, we must also run all operations on the paths
             # we are eliminating so that later deferredIO could pick up newly
             # created files and number them properly
-            intent = deferred_intents.pop(abs_out_path, None)
-            if intent is None: continue
-            complete_intent(abs_out_path, intent)
+            intent = deferred.pop(abs_out_path, None)
+            if intent is None:
+                continue
+            run_intent(abs_out_path, intent)
             num_deferred -= 1
 
-        # flush deferred_intents
         if not final and \
            num_deferred <= max_deferred + max_batched and \
            mem.consumption <= max_memory:
-            # we have enough resources to delay some deferredIO, let's do so,
-            # so that when we finally hit our resource limits, we would
-            # execute max_batched or more deferred actions at once
-            # this improves IO performance
+            # we have enough resources to delay some more deferredIO, let's do
+            # so, so that when we finally hit our resource limits, we would
+            # execute max_batched or more deferred actions at once. this
+            # improves IO performance by a lot
             max_deferred += max_batched
 
+        # flush deferred
         while num_deferred > 0 and \
               (num_deferred > max_deferred or mem.consumption > max_memory):
-            abs_out_path, intent = deferred_intents.popitem(False)
-            complete_intent(abs_out_path, intent)
+            abs_out_path, intent = deferred.popitem(False)
+            run_intent(abs_out_path, intent)
             num_deferred -= 1
 
         # fsync
@@ -1066,84 +1127,141 @@ def make_deferred_emit(cargs : _t.Any,
         # delete source files when doing --move, etc
         dsync.finish()
 
-        # flush source_cache
+        # flush rrexpr_cache
         while num_cached > 0 and \
               (num_cached > max_cached or mem.consumption > max_memory):
-            abs_out_path, source = source_cache.popitem(False)
+            abs_out_path, source = rrexpr_cache.popitem(False)
             num_cached -= 1
-            mem.consumption -= source.approx_size() + len(abs_out_path) # type: ignore
+            mem.consumption -= source.approx_size() + len(abs_out_path)
 
     def finish_updates() -> None:
         """Flush all of the queue."""
         flush_updates(True)
         assert mem.consumption == 0
 
-    def emit(new_source : DataSource, rrexpr : ReqresExpr) -> None:
-        if not filters_allow(cargs, rrexpr): return
+    def load_defer(prev_rrexpr : ReqresExpr[DeferredSourceType] | None,
+                   new_rrexpr : ReqresExpr[DeferredSourceType],
+                   abs_out_path : _t.AnyStr) \
+                   -> tuple[bool, ReqresExpr[DeferredSourceType] | None, DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr] | None]:
+        if isinstance(new_rrexpr.source, FileSource) and new_rrexpr.source.path == abs_out_path:
+            # hot evaluation path: moving, copying, hardlinking, symlinking, etc to itself
+            # this is a noop
+            return True, prev_rrexpr, None
 
-        rrexpr.items["num"] = 0
-        def_out_path = output_format % rrexpr
+        old_rrexpr : ReqresExpr[_t.Any]
+        if prev_rrexpr is None:
+            try:
+                out_lstat = _os.lstat(abs_out_path)
+            except FileNotFoundError:
+                # target does not exists
+                return True, new_rrexpr, defer(new_rrexpr, abs_out_path, False, allow_updates)
+            except OSError as exc:
+                handle_ENAMETOOLONG(exc, abs_out_path)
+                raise exc
+            else:
+                if _stat.S_ISLNK(out_lstat.st_mode):
+                    # abs_out_path is a symlink
+                    try:
+                        # check symlink target is reachable
+                        out_stat = _os.stat(abs_out_path)
+                    except FileNotFoundError:
+                        # target is a broken symlink
+                        return True, new_rrexpr, defer(new_rrexpr, abs_out_path, True, allow_updates)
+                    else:
+                        if not allow_updates and not symlinking:
+                            raise Failure("destination exists and is a symlink" + not_allowed)
+
+                        # get symlink target and use it as abs_out_path, thus
+                        # (SETSRC) below will re-create the original source
+                        abs_out_path = _os.path.realpath(abs_out_path)
+                elif not allow_updates and symlinking:
+                    raise Failure("destination exists and is not a symlink" + not_allowed)
+                else:
+                    out_stat = out_lstat
+
+            # (SETSRC)
+            old_rrexpr = rrexpr_wrr_loadf(abs_out_path)
+            old_rrexpr.sniff = cargs.sniff
+        else:
+            old_rrexpr = prev_rrexpr
+
+        intent = defer(old_rrexpr, abs_out_path, False, allow_updates)
+        permitted = intent.switch_source(new_rrexpr, moving)
+        return permitted, intent.source, (intent if intent.source is not old_rrexpr else None)
+
+    def emit(new_rrexpr : ReqresExpr[DeferredSourceType]) -> None:
+        if want_stop: raise KeyboardInterrupt()
+
+        new_rrexpr.items["num"] = 0
+        def_out_path = output_format % new_rrexpr
         prev_rel_out_path = None
-        intent : DeferredIO[DataSource, _t.AnyStr] | None = None
         while True:
-            rrexpr.items["num"] = seen_counter.count(def_out_path)
+            new_rrexpr.items["num"] = seen_counter.count(def_out_path)
             if isinstance(destination, str):
-                rel_out_path = _os.path.join(destination, output_format % rrexpr)
+                rel_out_path = _os.path.join(destination, output_format % new_rrexpr)
             else:
-                rel_out_path = _os.path.join(destination, _os.fsencode(output_format % rrexpr))
-            abs_out_path = _os.path.abspath(rel_out_path)
+                rel_out_path = _os.path.join(destination, _os.fsencode(output_format % new_rrexpr))
+            abs_out_path : _t.AnyStr = _os.path.abspath(rel_out_path)
 
-            old_source : DataSource | None
-            try:
-                old_source = source_cache.pop(abs_out_path)
-            except KeyError:
-                old_source = None
-            else:
-                mem.consumption -= old_source.approx_size() + len(abs_out_path) # type: ignore
+            old_rrexpr : ReqresExpr[DeferredSourceType] | None
+            old_rrexpr = rrexpr_cache.pop(abs_out_path, None)
+            if old_rrexpr is not None:
+                mem.consumption -= old_rrexpr.approx_size() + len(abs_out_path)
 
-            updated_source : DataSource | None
-            try:
-                intent = deferred_intents.pop(abs_out_path)
-            except KeyError:
-                intent, updated_source, permitted = deferredIO.defer(abs_out_path, old_source, new_source) # type: ignore
+            updated_rrexpr : ReqresExpr[DeferredSourceType] | None
+            intent : DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr] | None
+            intent = deferred.pop(abs_out_path, None)
+            if intent is None:
+                try:
+                    permitted, updated_rrexpr, intent = load_defer(old_rrexpr, new_rrexpr, abs_out_path)
+                except Failure as exc:
+                    exc.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
+                                  new_rrexpr.show_source(),
+                                  fsdecode_maybe(abs_out_path))
+                    raise exc
+
+                if updated_rrexpr is not None:
+                    updated_rrexpr.unload(True)
             else:
                 mem.consumption -= intent.approx_size() + len(abs_out_path)
-                updated_source, permitted = intent.update_from(new_source)
-            del old_source
+                permitted = intent.switch_source(new_rrexpr, moving)
+                updated_rrexpr = intent.source
+
+            del old_rrexpr
 
             if intent is not None:
-                deferred_intents[abs_out_path] = intent
+                deferred[abs_out_path] = intent
                 mem.consumption += intent.approx_size() + len(abs_out_path)
 
-            if updated_source is not None:
-                source_cache[abs_out_path] = updated_source
-                mem.consumption += updated_source.approx_size() + len(abs_out_path) # type: ignore
+            if updated_rrexpr is not None:
+                rrexpr_cache[abs_out_path] = updated_rrexpr
+                mem.consumption += updated_rrexpr.approx_size() + len(abs_out_path)
 
             if not permitted:
                 if prev_rel_out_path == rel_out_path:
-                    exc = Failure(gettext("destination already exists") + variance_help)
-                    exc.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
-                                  fsdecode_maybe(new_source.format_source()), # type: ignore
-                                  fsdecode_maybe(abs_out_path))
-                    raise exc
+                    exc2 = Failure(gettext("destination already exists") + variance_help)
+                    exc2.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
+                                   new_rrexpr.show_source(),
+                                   fsdecode_maybe(abs_out_path))
+                    raise exc2
                 prev_rel_out_path = rel_out_path
                 continue
 
-            break
+            if intent is None:
+                # noop
+                if cargs.terminator is not None:
+                    stdout.write(abs_out_path)
+                    stdout.write_bytes(cargs.terminator)
 
-        if intent is None:
-            # noop
-            if cargs.terminator is not None:
-                stdout.write(abs_out_path)
-                stdout.write_bytes(cargs.terminator)
+            break
 
         if not cargs.lazy:
             flush_updates(False)
 
     return emit, finish_updates
 
-def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) \
-        -> tuple[_t.Callable[[ReqresExpr], None],
+def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, allow_updates : bool) \
+        -> tuple[_t.Callable[[ReqresExpr[DeferredSourceType]], None],
                  _t.Callable[[], None]]:
     action_op : _t.Any
     action = cargs.action
@@ -1152,8 +1270,9 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
     else:
         actioning = action + "ing"
     moving = False
-    check_data = True
+    copying = False
     symlinking = False
+    check_data = True
     if action == "move":
         if allow_updates:
             raise Failure(gettext("`--move` and `--latest` are not allowed together, it will lose your data"))
@@ -1164,6 +1283,7 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
         if allow_updates:
             raise Failure(gettext("`--copy` and `--latest` are not allowed together at the moment, it could lose your data"))
         action_op = atomic_copy2
+        copying = True
     elif action == "hardlink":
         if allow_updates:
             raise Failure(gettext("`--hardlink` and `--latest` are not allowed together at the moment, it could lose your data"))
@@ -1175,167 +1295,67 @@ def make_organize_emit(cargs : _t.Any, destination : str, allow_updates : bool) 
     else:
         assert False
 
-    @_dc.dataclass
-    class OrganizeSource(_t.Generic[_t.AnyStr]):
-        abs_path : _t.AnyStr
-        stat_result : _os.stat_result
-        stime_maybe : Epoch | None
+    # becase we can't explicitly reuse the type variables bound by the whole function above
+    DeferredSourceType2 = _t.TypeVar("DeferredSourceType2", bound=DeferredSource)
+    AnyStr2 = _t.TypeVar("AnyStr2", str, bytes)
 
-        def get_stime(self, data : bytes | None = None) -> Epoch:
-            if self.stime_maybe is not None:
-                return self.stime_maybe
+    class DeferredOrganize(DeferredFileWrite[ReqresExpr[DeferredSourceType2], AnyStr2], _t.Generic[DeferredSourceType2, AnyStr2]):
+        def switch_source(self, new_rrexpr : ReqresExpr[DeferredSourceType2], force : bool = False) -> bool:
+            old_rrexpr = self.source
+            old_source = old_rrexpr.source
+            new_source = new_rrexpr.source
 
-            res : Epoch
-            if data is not None:
-                fileobj = _t.cast(_io.BufferedReader, _io.BytesIO(data))
-                res = rrexpr_wrr_load(fileobj, self.abs_path).stime
-            else:
-                res = rrexpr_wrr_loadf(self.abs_path).stime
-            self.stime_maybe = res
-            return res
+            if not force:
+                if not new_source.replaces(old_source) or \
+                   new_source.same_as(old_source) or \
+                   check_data and new_rrexpr.get_bytes() == old_rrexpr.get_bytes():
+                    # noop
+                    return True
 
-        def approx_size(self) -> int:
-            return 128 + len(self.abs_path)
+            if not self.allow_updates:
+                # updates are not allowed
+                return False
 
-        def format_source(self) -> _t.AnyStr:
-            return self.abs_path
+            if old_rrexpr.stime > new_rrexpr.stime:
+                # ours is newer
+                return True
 
-    @_dc.dataclass
-    class OrganizeIntent(DeferredIO[OrganizeSource[_t.AnyStr], _t.AnyStr], _t.Generic[_t.AnyStr]):
-        source : OrganizeSource[_t.AnyStr]
-        exists : bool
+            # update
+            self.source = new_rrexpr
+            self.updated = True
+            return True
 
-        def format_source(self) -> _t.AnyStr:
-            return self.source.format_source()
-
-        def approx_size(self) -> int:
-            return 32 + self.source.approx_size()
-
-        @staticmethod
-        def defer(abs_out_path : _t.AnyStr,
-                  old_source: OrganizeSource[_t.AnyStr] | None,
-                  new_source : OrganizeSource[_t.AnyStr]) \
-                -> tuple[DeferredIO[OrganizeSource[_t.AnyStr], _t.AnyStr] | None,
-                         OrganizeSource[_t.AnyStr] | None,
-                         bool]:
-            if new_source.abs_path == abs_out_path:
-                # hot evaluation path: renaming, hardlinking,
-                # symlinking, or etc to itself; skip it
-                return None, old_source, True
-
-            if old_source is None:
-                try:
-                    out_lstat = _os.lstat(abs_out_path)
-                except FileNotFoundError:
-                    # target does not exists
-                    return OrganizeIntent(new_source, False), new_source, True
-                except OSError as exc:
-                    handle_ENAMETOOLONG(exc, abs_out_path)
-                    raise exc
-                else:
-                    if _stat.S_ISLNK(out_lstat.st_mode):
-                        # abs_out_path is a symlink
-                        try:
-                            # check symlink target is reachable
-                            out_stat = _os.stat(abs_out_path)
-                        except FileNotFoundError:
-                            # target is a broken symlink
-                            return OrganizeIntent(new_source, True), new_source, True
-                        else:
-                            if not symlinking:
-                                raise Failure(gettext(f"`--{action}` is set but `%s` exists and is a symlink") + not_allowed,
-                                              abs_out_path)
-
-                            # get symlink target and use it as abs_out_path, thus
-                            # (SETSRC) below will re-create the original source
-                            abs_out_path = _os.path.realpath(abs_out_path)
-                    elif symlinking:
-                        raise Failure(gettext(f"`--{action}` is set but `%s` exists and is not a symlink") + not_allowed,
-                                      abs_out_path)
-                    else:
-                        out_stat = out_lstat
-
-                # (SETSRC)
-                old_source = OrganizeSource(abs_out_path, out_stat, None)
-
-            # re-create an intent for the target as if it was generated from old_source
-            intent = OrganizeIntent(old_source, True)
-            # update it from new_source
-            source, permitted = intent.update_from(new_source)
-            # check the result
-            if moving and permitted:
-                # permitted moves always generate a replace
-                return OrganizeIntent(new_source, True), new_source, True
-            elif source is old_source:
-                # the source was unchanged, generate a noop
-                return None, source, permitted
-            else:
-                return intent, source, permitted
-
-        def update_from(self, new_source : OrganizeSource[_t.AnyStr]) \
-                -> tuple[OrganizeSource[_t.AnyStr], bool]:
-            if symlinking and self.source.abs_path == new_source.abs_path:
-                # same source file path
-                return self.source, True
-
-            disk_data : bytes | None = None
-            if check_data:
-                if _os.path.samestat(self.source.stat_result, new_source.stat_result):
-                    # same source file inode
-                    return self.source, True
-
-                # check if overwriting it would be a noop
-                # TODO more efficiently
-                with open(self.source.abs_path, "rb") as f:
-                    disk_data = f.read()
-
-                if file_content_equals(new_source.abs_path, disk_data):
-                    # same data on disk
-                    return self.source, True
-
-            if not allow_updates:
-                return self.source, False
-
-            if self.source.get_stime(disk_data) < new_source.get_stime():
-                # update source
-                self.source = new_source
-
-            return self.source, True
-
-        def run(self, abs_out_path : _t.AnyStr, dsync : DeferredSync | None = None, dry_run : bool = False) \
-                -> OrganizeSource[_t.AnyStr] | None:
-            assert self.source.abs_path != abs_out_path
-
-            if dry_run:
-                return self.source
+        def run(self, dsync : DeferredSync | None = None) -> None:
+            rrexpr = self.source
+            source = rrexpr.source
+            if isinstance(source, FileSource):
+                # ensure we are not generating noops in load_defer
+                assert source.path != self.destination
 
             try:
-                dirname = _os.path.dirname(abs_out_path)
+                dirname = _os.path.dirname(self.destination)
                 _os.makedirs(dirname, exist_ok = True)
             except OSError as exc:
                 handle_ENAMETOOLONG(exc, dirname)
                 raise exc
 
             try:
-                action_op(self.source.abs_path, abs_out_path, self.exists, dsync = dsync)
+                if isinstance(source, FileSource):
+                    action_op(source.path, self.destination, self.overwrite or self.allow_updates, dsync = dsync)
+                elif copying:
+                    # fallback to DeferredFileWrite in this case
+                    super().run(dsync)
+                else:
+                    raise Failure(gettext(f"can't {action} the source to the destination because the source is not stored as a separate WRR file; did you mean to run with `--copy` intead of `--{action}`?"))
             except FileExistsError:
-                raise Failure(gettext(f"`%s` already exists"), abs_out_path)
+                raise Failure(gettext(f"`%s` already exists"), self.destination)
             except OSError as exc:
-                handle_ENAMETOOLONG(exc, abs_out_path)
+                handle_ENAMETOOLONG(exc, self.destination)
                 if exc.errno == _errno.EXDEV:
                     raise Failure(gettext(f"can't {action} across file systems"))
                 raise exc
 
-            return self.source
-
-    emit_one, finish = make_deferred_emit(cargs, destination, action, actioning, OrganizeIntent)
-
-    def emit(rrexpr : ReqresExpr) -> None:
-        assert rrexpr.fs_path is not None
-        assert rrexpr.in_stat is not None
-        emit_one(OrganizeSource(rrexpr.fs_path, rrexpr.in_stat, rrexpr.stime), rrexpr)
-
-    return emit, finish
+    return make_deferred_emit(cargs, destination, action, actioning, DeferredOrganize, allow_updates, moving, symlinking)
 
 def cmd_organize(cargs : _t.Any) -> None:
     if cargs.walk_paths == "unset":
@@ -1347,12 +1367,12 @@ def cmd_organize(cargs : _t.Any) -> None:
     elaborate_output(cargs)
     handle_paths(cargs)
 
-    emit : EmitFunc[ReqresExpr]
+    emit : EmitFunc[ReqresExpr[FileSource]]
     if cargs.destination is not None:
         # destination is set explicitly
         emit, finish = make_organize_emit(cargs, _os.path.expanduser(cargs.destination), cargs.allow_updates)
         try:
-            map_wrr_paths_extra(cargs, rrexpr_wrr_loadf, emit, cargs.paths)
+            map_wrr_paths_extra(cargs, rrexpr_wrr_loadf, emit, cargs.paths) # type: ignore # type inference fail
         finally:
             finish()
     else:
@@ -1372,28 +1392,27 @@ def cmd_organize(cargs : _t.Any) -> None:
         for exp_path in cargs.paths:
             emit, finish = make_organize_emit(cargs, exp_path, False)
             try:
-                map_wrr_paths_extra(cargs, rrexpr_wrr_loadf, emit, [exp_path])
+                map_wrr_paths_extra(cargs, rrexpr_wrr_loadf, emit, [exp_path]) # type: ignore # type inference fail
             finally:
                 finish()
 
 def cmd_import_generic(cargs : _t.Any,
-                       rrexprs_loadf : _t.Callable[[str | bytes], _t.Iterator[ReqresExpr]]) -> None:
+                       rrexprs_loadf : _t.Callable[[str | bytes], _t.Iterator[ReqresExpr[DeferredSourceType]]]) -> None:
     compile_filters(cargs)
     elaborate_output(cargs)
     handle_paths(cargs)
 
-    emit_one : _t.Callable[[SourcedBytes[_t.AnyStr], ReqresExpr], None]
-    emit_one, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", make_DeferredFileWriteIntent(cargs.allow_updates))
+    emit : EmitFunc[ReqresExpr[DeferredSourceType]]
+    emit, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", DeferredFileWrite, cargs.allow_updates)
 
-    def emit_many(rrexprs : _t.Iterator[ReqresExpr]) -> None:
+    def emit_many(rrexprs : _t.Iterator[ReqresExpr[DeferredSourceType]]) -> None:
         for rrexpr in rrexprs:
             if want_stop: raise KeyboardInterrupt()
 
             rrexpr.sniff = cargs.sniff
             if not filters_allow(cargs, rrexpr): return
 
-            # TODO: to fix this cast, make ReqresExpr a _t.Generic
-            emit_one(SourcedBytes(_t.cast(_t.AnyStr, rrexpr.format_source()), wrr_dumps(rrexpr.reqres)), rrexpr) # type: ignore
+            emit(rrexpr)
 
     global should_raise
     should_raise = False
@@ -1435,65 +1454,46 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
     @_dc.dataclass
     class Indexed:
-        stime : Epoch
-        abs_in_path : str
-        def_out_path : str
-        rrexpr : ReqresExpr | None
+        rrexpr : ReqresExpr[_t.Any]
         _abs_out_path : str | None = _dc.field(default = None)
 
-        def load(self, strict : bool) -> tuple[Epoch, str, str, ReqresExpr | None]:
-            rrexpr = self.rrexpr
-            abs_out_path = self._abs_out_path
-            if rrexpr is None and (strict or abs_out_path is None):
-                rrexpr = rrexpr_wrr_loadf(self.abs_in_path)
-                rrexpr.sniff = sniff
-                if strict:
-                    self.rrexpr = rrexpr
-                    mem.consumption += rrexpr.reqres.approx_size()
+        def __post_init__(self) -> None:
+            mem.consumption += 24 + self.rrexpr.approx_size()
 
-            if abs_out_path is None:
-                assert rrexpr is not None
-                rrexpr.items["num"] = seen_counter.count(self.def_out_path)
-                rel_out_path = _os.path.join(destination, output_format % rrexpr)
-                abs_out_path = _os.path.abspath(rel_out_path)
-                self._abs_out_path = abs_out_path
-                mem.consumption += len(abs_out_path)
-
-            return self.stime, self.abs_in_path, abs_out_path, rrexpr
-
-        def approx_size(self) -> int:
-            return 64 + len(self.abs_in_path) + \
-                len(self.def_out_path) + \
-                (self.rrexpr.reqres.approx_size() if self.rrexpr is not None else 0) + \
+        def __del__(self) -> None:
+            mem.consumption -= 24 + self.rrexpr.approx_size() + \
                 (len(self._abs_out_path) if self._abs_out_path is not None else 0)
+
+        @property
+        def abs_out_path(self) -> str:
+            abs_out_path = self._abs_out_path
+            if abs_out_path is not None:
+                return abs_out_path
+
+            rrexpr = self.rrexpr
+            rrexpr.items["num"] = 0
+            def_out_path = output_format % rrexpr
+            rrexpr.items["num"] = seen_counter.count(def_out_path)
+            rel_out_path = _os.path.join(destination, output_format % rrexpr)
+            self._abs_out_path = abs_out_path = _os.path.abspath(rel_out_path)
+            mem.consumption += len(abs_out_path)
+            return abs_out_path
+
+        def unload(self) -> None:
+            rrexpr = self.rrexpr
+            mem.consumption -= rrexpr.approx_size()
+            rrexpr.unload()
+            mem.consumption += rrexpr.approx_size()
 
     net_url_t : _t.TypeAlias = str
     path_t : _t.TypeAlias = str
 
-    # `index`, `queue`, `new_queue` defined below, and `done` are all mutually disjoint
-    # `Indexed` objects migrate from disk to `index` or `queue`, then from `index` to `new_queue`,
-    # then from `new_queue` to `queue`, and from `queue` to `done`.
+    # `Indexed` objects migrate from disk to `index`, from `index` to `queue`
+    # or `new_queue`, from `new_queue` to `queue`, and from `queue` to `done`.
     index : dict[net_url_t, Indexed] = dict()
     Queue = _c.OrderedDict[net_url_t, Indexed]
     queue : Queue = _c.OrderedDict()
     done : dict[net_url_t, path_t] = dict()
-
-    def get_q_or_i(net_url : str) -> tuple[bool, bool, Indexed | None]:
-        is_queued = False
-        is_indexed = False
-        iobj = None
-        try:
-            iobj = queue[net_url]
-        except KeyError:
-            try:
-                iobj = index[net_url]
-            except KeyError:
-                pass
-            else:
-                is_indexed = True
-        else:
-            is_queued = True
-        return is_queued, is_indexed, iobj
 
     @_dc.dataclass
     class N:
@@ -1534,7 +1534,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
 
-    def collect(rrexpr : ReqresExpr) -> None:
+    def collect(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
         reqres = rrexpr.reqres
         response = reqres.response
         if reqres.request.method != "GET" or \
@@ -1543,24 +1543,17 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             return
 
         net_url = rrexpr.net_url
-        stime = rrexpr.stime
+        iobj = index.get(net_url, None)
 
-        is_queued, is_indexed, iobj = get_q_or_i(net_url)
+        if iobj is not None and iobj.rrexpr.stime > rrexpr.stime:
+            # the indexed one is newer
+            return
 
-        if iobj is None:
-            rrexpr.items["num"] = 0
-            def_out_path = output_format % rrexpr
-            iobj = Indexed(stime, _os.fsdecode(rrexpr.format_source()), def_out_path, rrexpr)
-            mem.consumption += iobj.approx_size()
-        elif iobj.stime < stime:
-            # update
-            mem.consumption -= iobj.approx_size()
-            iobj.stime = stime
-            iobj.abs_in_path = _os.fsdecode(rrexpr.format_source())
-            iobj.rrexpr = rrexpr
-            mem.consumption += iobj.approx_size()
+        index[net_url] = iobj = Indexed(rrexpr)
 
-        if not is_queued:
+        if net_url in queue:
+            queue[net_url] = iobj
+        else:
             enqueue = queue_all
             pretty_net_url : str | None = None
 
@@ -1589,16 +1582,10 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
             if enqueue:
                 queue[net_url] = iobj
-                is_queued = True
                 report_queued(net_url, rrexpr.pretty_net_url if pretty_net_url is None else pretty_net_url, 1)
 
-        if not is_queued and not is_indexed:
-            index[net_url] = iobj
-
-        if len(rrexpr.obj_path) == 0 and mem.consumption > max_memory_mib:
-            # this `rrexpr` is cheap to re-load and we are over `max_memory_mib` limit
-            iobj.rrexpr = None
-            mem.consumption -= rrexpr.reqres.approx_size()
+        if mem.consumption > max_memory_mib:
+            iobj.unload()
 
     if stdout.isatty:
         stdout.write_bytes(b"\033[32m")
@@ -1621,7 +1608,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         if vr.n == 0:
             issue(gettext("`--root-url-re` `%s` matched nothing among candidates loaded from given input `PATH`s"), url_re)
 
-    total = len(queue) + len(index)
+    total = len(index)
     depth : int = 0
 
     class Stats:
@@ -1629,7 +1616,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         doc_n = 0
 
     def remap_url_fallback(stime : Epoch, expected_content_types : list[str], purl : ParsedURL) -> str:
-        trrexpr = ReqresExpr(fallback_Reqres(purl, expected_content_types, stime, stime, stime), None, [])
+        trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime, stime, stime))
         trrexpr.items["num"] = 0
         rel_out_path : str = _os.path.join(destination, output_format % trrexpr)
         return _os.path.abspath(rel_out_path)
@@ -1639,20 +1626,28 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                enqueue : bool,
                new_queue : Queue,
                level : int) -> None:
+        try:
+            del index[net_url]
+        except KeyError:
+            pass
+
         level0 = level == 0
         Stats.n += 1
         if level0:
             Stats.doc_n += 1
 
-        try:
-            stime, abs_in_path, abs_out_path, rrexpr = iobj.load(True)
-            done[net_url] = abs_out_path
-            mem.consumption += 8 + len(abs_out_path)
+        rrexpr = iobj.rrexpr
+        abs_out_path = iobj.abs_out_path
+        source = rrexpr.source
+        stime = rrexpr.stime
+        done[net_url] = abs_out_path
+        mem.consumption += 16 + len(abs_out_path)
 
+        try:
             n = Stats.n
             doc_n = Stats.doc_n
             n100 = 100 * n
-            n_total = len(done) + len(queue) + len(new_queue)
+            n_total = n + len(new_queue) + len(queue)
 
             if stdout.isatty:
                 if level0:
@@ -1667,7 +1662,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             stdout.write_str_ln(ispace + gettext("URL %s") % (net_url,))
             if stdout.isatty:
                 stdout.write_bytes(b"\033[0m")
-            stdout.write_str_ln(ispace + gettext("src %s") % (abs_in_path,))
+            stdout.write_str_ln(ispace + gettext("src %s") % (source.show_source(),))
             stdout.write_str_ln(ispace + gettext("dst %s") % (abs_out_path,))
             stdout.flush()
 
@@ -1706,42 +1701,39 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 try:
                     uabs_out_path = done[unet_url]
                 except KeyError:
-                    uobj : Indexed | None
-                    try:
-                        uobj = new_queue[unet_url]
-                    except KeyError:
-                        is_new_queued = False
-                        is_queued, is_indexed, uobj = get_q_or_i(unet_url)
-                    else:
-                        is_new_queued = True
-                        is_indexed = False
-
+                    uobj = index.get(unet_url, None)
                     if uobj is None:
                         # unavailable, use fallback
                         uabs_out_path = None
-                    elif link_type == LinkType.REQ:
-                        # this is a requisite
-                        # unqueue and unindex it
-                        if is_new_queued:
-                            del new_queue[unet_url]
-                        elif is_queued:
-                            del queue[unet_url]
-                        else:
-                            del index[unet_url]
-                        # render it immediately
-                        render(unet_url, uobj, enqueue, new_queue, level + 1)
-                        uabs_out_path = uobj.load(False)[2]
-                    elif is_new_queued or is_queued:
-                        uabs_out_path = uobj.load(False)[2]
-                    elif enqueue:
-                        new_queue[unet_url] = uobj
-                        if is_indexed:
-                            del index[unet_url]
-                        report_queued(unet_url, purl.pretty_net_url, level + 1)
-                        uabs_out_path = uobj.load(False)[2]
                     else:
-                        # this will not be exported, use fallback
-                        uabs_out_path = None
+                        uabs_out_path = uobj.abs_out_path
+                        if link_type == LinkType.REQ:
+                            # this is a requisite
+                            # unqueue it
+                            try:
+                                del new_queue[unet_url]
+                            except KeyError: pass
+                            try:
+                                del queue[unet_url]
+                            except KeyError: pass
+                            # render it immediately
+                            render(unet_url, uobj, enqueue, new_queue, level + 1)
+                        elif unet_url in new_queue or unet_url in queue:
+                            # nothing to do
+                            pass
+                        elif enqueue:
+                            new_queue[unet_url] = uobj
+                            report_queued(unet_url, purl.pretty_net_url, level + 1)
+                        else:
+                            # this will not be exported
+                            uabs_out_path = None
+                            # NB: Not setting `done[unet_url]` here because it
+                            # might be a requisite for another page. In which
+                            # case this page will void this `unet_url`
+                            # unnecessarily, yes.
+
+                        if mem.consumption > max_memory_mib:
+                            uobj.unload()
 
                 if uabs_out_path is None:
                     if fallbacks is not None:
@@ -1773,16 +1765,14 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         except Failure as exc:
             if cargs.errors == "ignore":
                 return
-            exc.elaborate(gettext(f"while processing `%s`"), abs_in_path)
+            exc.elaborate(gettext(f"while processing `%s`"), source.show_source())
             if cargs.errors != "fail":
                 _logging.error("%s", str(exc))
                 return
             raise CatastrophicFailure("%s", str(exc))
         except Exception:
-            error(gettext("while processing `%s`"), abs_in_path)
+            error(gettext("while processing `%s`"), source.show_source())
             raise
-        finally:
-            mem.consumption -= iobj.approx_size()
 
     while len(queue) > 0:
         if want_stop: raise KeyboardInterrupt()
