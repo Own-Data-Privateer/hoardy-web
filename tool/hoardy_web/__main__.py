@@ -121,9 +121,9 @@ def elaborate_output(cargs : _t.Any) -> None:
         except KeyError:
             raise CatastrophicFailure(gettext('unknown `--output` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), cargs.output)
 
-def elaborate_paths(cargs : _t.Any) -> None:
-    for i in range(0, len(cargs.paths)):
-        cargs.paths[i] = _os.path.expanduser(cargs.paths[i])
+def elaborate_paths(paths : list[str | bytes]) -> None:
+    for i in range(0, len(paths)):
+        paths[i] = _os.path.expanduser(paths[i])
 
 def handle_paths(cargs : _t.Any) -> None:
     if cargs.stdin0:
@@ -133,7 +133,7 @@ def handle_paths(cargs : _t.Any) -> None:
             raise Failure(gettext("`--stdin0` input format error"))
         cargs.paths += paths
 
-    elaborate_paths(cargs)
+    elaborate_paths(cargs.paths)
 
     if cargs.walk_paths is not None:
         cargs.paths.sort(reverse=not cargs.walk_paths)
@@ -296,7 +296,7 @@ def cmd_run(cargs : _t.Any) -> None:
     args = cargs.args[:ntail]
     cargs.paths = cargs.args[ntail:] + cargs.paths
 
-    elaborate_paths(cargs)
+    elaborate_paths(cargs.paths)
 
     tmp_paths = []
     try:
@@ -1486,6 +1486,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     compile_filters(cargs)
     elaborate_output(cargs)
     handle_paths(cargs)
+    elaborate_paths(cargs.boring)
 
     destination = _os.path.expanduser(cargs.destination)
     output_format = cargs.output_format
@@ -1569,8 +1570,6 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     have_root_url_prefix = len(root_url_prefix) > 0
     have_root_url_re = len(root_url_re) > 0
 
-    queue_all = not have_root_url and not have_root_url_prefix and not have_root_url_re
-
     def report_queued(net_url : str, pretty_net_url : str, level : int) -> None:
         if stdout.isatty:
             stdout.write_bytes(b"\033[33m")
@@ -1581,58 +1580,60 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
 
-    def collect(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
-        reqres = rrexpr.reqres
-        response = reqres.response
-        if reqres.request.method != "GET" or \
-           response is None or \
-           response.code != 200:
-            return
+    def collect(enqueue_all : bool) -> EmitFunc[ReqresExpr[DeferredSourceType]]:
+        def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
+            reqres = rrexpr.reqres
+            response = reqres.response
+            if reqres.request.method != "GET" or \
+               response is None or \
+               response.code != 200:
+                return
 
-        net_url = rrexpr.net_url
-        iobj = index.get(net_url, None)
+            net_url = rrexpr.net_url
+            iobj = index.get(net_url, None)
 
-        if iobj is not None and iobj.rrexpr.stime > rrexpr.stime:
-            # the indexed one is newer
-            return
+            if iobj is not None and iobj.rrexpr.stime > rrexpr.stime:
+                # the indexed one is newer
+                return
 
-        index[net_url] = iobj = Indexed(rrexpr)
+            index[net_url] = iobj = Indexed(rrexpr)
 
-        if net_url in queue:
-            queue[net_url] = iobj
-        else:
-            enqueue = queue_all
-            pretty_net_url : str | None = None
-
-            if not enqueue and have_root_url:
-                vu = root_url.get(net_url, None)
-                if vu is not None:
-                    vu.n += 1
-                    enqueue = True
-
-            if not enqueue and have_root_url_prefix:
-                for pref, vp in root_url_prefix.items():
-                    if not net_url.startswith(pref):
-                        continue
-                    vp.n += 1
-                    enqueue = True
-                    break
-
-            if not enqueue and have_root_url_re:
-                pretty_net_url = rrexpr.pretty_net_url
-                for re, vr in root_url_re.items():
-                    if not vr.cre.match(net_url) and not vr.cre.match(pretty_net_url):
-                        continue
-                    vr.n += 1
-                    enqueue = True
-                    break
-
-            if enqueue:
+            if net_url in queue:
                 queue[net_url] = iobj
-                report_queued(net_url, rrexpr.pretty_net_url if pretty_net_url is None else pretty_net_url, 1)
+            else:
+                enqueue = enqueue_all
+                pretty_net_url : str | None = None
 
-        if mem.consumption > max_memory_mib:
-            iobj.unload()
+                if not enqueue and have_root_url:
+                    vu = root_url.get(net_url, None)
+                    if vu is not None:
+                        vu.n += 1
+                        enqueue = True
+
+                if not enqueue and have_root_url_prefix:
+                    for pref, vp in root_url_prefix.items():
+                        if not net_url.startswith(pref):
+                            continue
+                        vp.n += 1
+                        enqueue = True
+                        break
+
+                if not enqueue and have_root_url_re:
+                    pretty_net_url = rrexpr.pretty_net_url
+                    for re, vr in root_url_re.items():
+                        if not vr.cre.match(net_url) and not vr.cre.match(pretty_net_url):
+                            continue
+                        vr.n += 1
+                        enqueue = True
+                        break
+
+                if enqueue:
+                    queue[net_url] = iobj
+                    report_queued(net_url, rrexpr.pretty_net_url if pretty_net_url is None else pretty_net_url, 1)
+
+            if mem.consumption > max_memory_mib:
+                iobj.unload()
+        return emit
 
     if stdout.isatty:
         stdout.write_bytes(b"\033[32m")
@@ -1641,7 +1642,11 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         stdout.write_bytes(b"\033[0m")
     stdout.flush()
 
-    map_wrr_paths(cargs, collect, cargs.paths, seen_paths=set())
+    queue_all = not have_root_url and not have_root_url_prefix and not have_root_url_re
+
+    seen_paths : set[str] = set()
+    map_wrr_paths(cargs, collect(queue_all), cargs.paths, seen_paths=seen_paths)
+    map_wrr_paths(cargs, collect(False), cargs.boring, seen_paths=seen_paths)
 
     for url, vu in root_url.items():
         if vu.n == 0:
@@ -2382,7 +2387,7 @@ In short, this sub-command generates static offline website mirrors, producing r
 
     everything_allowed = (_("; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL paths and components, and UNICODE URL paths and components, in arbitrary mixes and combinations are allowed; i.e., e.g. `%s` will be silently normalized into its Punycode UTS46 and percent-encoded version of `%s` which will then be matched against `net_url` of each reqres") % (example_url[-1], example_url[-2])).replace('%', '%%')
 
-    agrp = cmd.add_argument_group("recursion roots; if none are specified, then all URLs available from input `PATH`s will be treated as roots; all of these options can be specified multiple times in arbitrary combinations")
+    agrp = cmd.add_argument_group("recursion roots; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`); all of these options can be specified multiple times in arbitrary combinations")
     agrp.add_argument("--root-url", dest="root_url", metavar="URL", action="append", type=str, default = [], help=_("a URL to be used as one of the roots for recursive export") + everything_allowed)
     agrp.add_argument("-r", "--root-url-prefix", "--root", dest="root_url_prefix", metavar="URL_PREFIX", action="append", type=str, default = [], help=_("a URL prefix for URLs that are to be used as roots for recursive export") + everything_allowed)
     agrp.add_argument("--root-url-re", dest="root_url_re", metavar="URL_RE", action="append", type=str, default = [], help=_("a regular expression matching URLs that are to be used as roots for recursive export; the regular expression will be matched against `net_url` and `pretty_net` of each reqres, so only Punycode UTS46 IDNAs with percent-encoded URL path and query components or plain UNICODE IDNAs with UNICODE URL paths and components are allowed, but regular expressions using mixes of differently encoded parts will fail to match anything"))
@@ -2391,6 +2396,9 @@ In short, this sub-command generates static offline website mirrors, producing r
     agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `%(default)s`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
 
     add_paths(cmd)
+
+    cmd.add_argument("--boring", metavar="PATH", action="append", type=str, default = [], help=_("low-priority input `PATH`; boring `PATH`s will be processed after all `PATH`s specified as positional command-line arguments and those given via `--stdin0` and will not be queued as roots even when no `--root-*` options are specified"))
+
     cmd.set_defaults(func=cmd_export_mirror)
 
     cargs = parser.parse_args(_sys.argv[1:])

@@ -385,7 +385,8 @@ hoardy-web export mirror \
 
 will export all of `~/hoardy-web/latest/archiveofourown.org`, but the web pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be exported first.
 
-This also works with `--root-*` options. E.g., the following
+This also works with `--root-*` options.
+E.g., the following
 
 ```
 hoardy-web export mirror \
@@ -396,6 +397,21 @@ hoardy-web export mirror \
 ```
 
 will export all pages those URLs start with `https://archiveofourown.org/works/` and all their requisites, but the pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be exported first.
+
+Finally, there is also the `--boring` option, which allows you to load some input `PATH`s without adding them as roots, even when no `--root-*` options are specified.
+E.g., the following
+
+```
+hoardy-web export mirror \
+  --to ~/hoardy-web/mirror8 \
+  --boring ~/hoardy-web/latest/i.imgur.com \
+  --boring ~/hoardy-web/latest/archiveofourown.org \
+  ~/hoardy-web/latest/archiveofourown.org/works__[0-9]*.wrr
+```
+
+will load (an index of) everything under `~/hoardy-web/latest/i.imgur.com` and `~/hoardy-web/latest/archiveofourown.org` into memory but will only export the contents of `~/hoardy-web/latest/archiveofourown.org/works__[0-9]*.wrr` files and their requisites.
+
+When at least one `--root-*` option is specified, using `--boring` is equivalent to simply appending its argument to the end of the positional `PATH`s.
 
 ## <span id="mitmproxy-mirror"/>How to generate a local offline website mirror, like `wget -mpk` does, from `mitmproxy` stream dumps
 
@@ -1559,6 +1575,8 @@ In short, this sub-command generates static offline website mirrors, producing r
   : don't log computed updates to stderr
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  - `--boring PATH`
+  : low-priority input `PATH`; boring `PATH`s will be processed after all `PATH`s specified as positional command-line arguments and those given via `--stdin0` and will not be queued as roots even when no `--root-*` options are specified
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -1649,7 +1667,7 @@ In short, this sub-command generates static offline website mirrors, producing r
   : export all targets while permitting overwriting of old `--output` files under `DESTINATION`;
     DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
 
-- recursion roots; if none are specified, then all URLs available from input `PATH`s will be treated as roots; all of these options can be specified multiple times in arbitrary combinations:
+- recursion roots; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`); all of these options can be specified multiple times in arbitrary combinations:
   - `--root-url URL`
   : a URL to be used as one of the roots for recursive export; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL paths and components, and UNICODE URL paths and components, in arbitrary mixes and combinations are allowed; i.e., e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` which will then be matched against `net_url` of each reqres
   - `-r URL_PREFIX, --root-url-prefix URL_PREFIX, --root URL_PREFIX`
