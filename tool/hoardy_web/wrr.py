@@ -865,68 +865,91 @@ body {
 def test_ReqresExpr_scrub_css() -> None:
     check_scrub("+verbose,+whitespace", "https://example.com/test.css", "text/css", [], test_css_in1, test_css_out1)
 
-def test_ReqresExpr_scrub_html() -> None:
-    check_scrub("+verbose,+whitespace", "https://example.com/", "text/html", [], f"""<!DOCTYPE html>
+test_html_in1 = f"""<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
+    <base href="https://base.example.com">
     <title>Test page</title>
-    <link as=script rel=preload href="https://example.com/main.js">
-    <script>x = 1;</script>
-    <script src="inc1.js"></script>
+    <link as=script rel=preload href="https://asset.example.com/asset.js">
+    <link as=script rel=preload href="base.js">
+    <link rel=stylesheet href="https://asset.example.com/asset.css">
+    <link rel=stylesheet href="base.css">
     <style>
     {test_css_in1}
     </style>
+    <script>x = 1;</script>
+    <script src="https://asset.example.com/inc1-asset.js"></script>
+    <script src="inc1-base.js"></script>
   </head>
   <body>
     <h1>Test page</h1>
     <p>Test para.</p>
     <script>x = 2;</script>
-    <script src="inc2.js"></script>
+    <script src="https://asset.example.com/inc2-asset.js"></script>
+    <script src="inc2-base.js"></script>
   </body>
 </html>
-""", f"""<!DOCTYPE html><html><head>
+"""
+
+def test_ReqresExpr_scrub_html() -> None:
+    check_scrub("-all_dyns,-verbose,-whitespace,+indent", "https://example.com/", "text/html", [], test_html_in1, f"""<!DOCTYPE html>
+<html>
+  <head>
     <meta charset=utf-8>
     <title>Test page</title>
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.</p>
+  </body>
+</html>""")
+
+    check_scrub("+verbose,+whitespace", "https://example.com/", "text/html", [], test_html_in1, """<!DOCTYPE html><html><head>
+    <meta charset=utf-8>
+    <!-- hoardy-web censored out EmptyTag base from here -->
+    <title>Test page</title>
     <!-- hoardy-web censored out EmptyTag link from here -->
+    <!-- hoardy-web censored out EmptyTag link from here -->
+    <link rel=stylesheet href="data:text/plain,%20">
+    <link rel=stylesheet href="data:text/plain,%20">
+    <style>
+    
+body {
+  background: url(data:text/plain,%20);
+  *zoom: 1;
+}
+
+    </style>
     <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out Characters from here --><!-- hoardy-web censored out EndTag script from here -->
     <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
-    <style>
-    {test_css_out1}
-    </style>
+    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
   </head>
   <body>
     <h1>Test page</h1>
     <p>Test para.</p>
     <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out Characters from here --><!-- hoardy-web censored out EndTag script from here -->
+    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
     <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
   
 
 </body></html>""")
 
     check_scrub("+all_refs,+scripts,+prefetches,+navigations,+verbose,+indent", "https://example.com/", "text/html", [
-        ("Link", b"</main.js>; as=script; rel=preload"),
-        ("Link", b"<https://example.org/first.css>; rel=stylesheet"),
+        ("Link", b"</first.js>; as=script; rel=preload"),
+        ("Link", b"<https://example.com/second.js>; as=script; rel=preload"),
+        ("Link", b"<https://example.org/third.js>; as=script; rel=preload"),
+        ("Link", b"</first.css>; rel=stylesheet"),
+        # because browsers frequently squish headers together
+        ("Link", b"""<https://example.com/second.css>; rel=stylesheet
+<https://example.org/third.css>; rel=stylesheet"""),
         ("Content-Security-Policy", b"default-src 'self' https://example.com"),
         ("Content-Security-Policy", b"script-src https://example.com/"),
         ("X-UA-Compatible", b"IE=edge"),
+        ("Refresh", b"10;url=/one.html"),
         ("Refresh", b"100;url=/two.html"),
-        ("Refresh", b"200;url=/three.html"),
-    ], """<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <base href="https://base.example.com">
-    <title>Test page</title>
-    <link rel=stylesheet href="second.css">
-    <script src="inc1.js"></script>
-  </head>
-  <body>
-    <h1>Test page</h1>
-    <p>Test para.</p>
-  </body>
-</html>
-""", """<!DOCTYPE html>
+        ("Refresh", b"200;url=https://example.org/three.html"),
+    ], test_html_in1, """<!DOCTYPE html>
 <html>
   <head>
     <meta charset=utf-8>
@@ -935,47 +958,34 @@ def test_ReqresExpr_scrub_html() -> None:
     <!-- hoardy-web censored out EmptyTag meta from here -->
     <!-- hoardy-web censored out EmptyTag meta from here -->
     <meta http-equiv=X-UA-Compatible content="IE=edge">
+    <meta http-equiv=Refresh content="10;url=https://example.com/one.html">
     <meta http-equiv=Refresh content="100;url=https://example.com/two.html">
-    <meta http-equiv=Refresh content="200;url=https://example.com/three.html">
-    <link as=script rel=preload href="https://example.com/main.js">
-    <link rel=stylesheet href="https://example.org/first.css">
-    <link rel=stylesheet href="https://base.example.com/second.css">
-    <script src="https://base.example.com/inc1.js"></script>
+    <meta http-equiv=Refresh content="200;url=https://example.org/three.html">
+    <link as=script rel=preload href="https://example.com/first.js">
+    <link as=script rel=preload href="https://example.com/second.js">
+    <link as=script rel=preload href="https://example.org/third.js">
+    <link rel=stylesheet href="https://example.com/first.css">
+    <link rel=stylesheet href="https://example.com/second.css">
+    <link rel=stylesheet href="https://example.org/third.css">
+    <link as=script rel=preload href="https://asset.example.com/asset.js">
+    <link as=script rel=preload href="https://base.example.com/base.js">
+    <link rel=stylesheet href="https://asset.example.com/asset.css">
+    <link rel=stylesheet href="https://base.example.com/base.css">
+    <style>
+      body {
+ background: url(https://base.example.com/background.jpg); *zoom: 1; 
+      }
+    </style>
+    <script>x = 1;</script>
+    <script src="https://asset.example.com/inc1-asset.js"></script>
+    <script src="https://base.example.com/inc1-base.js"></script>
   </head>
   <body>
     <h1>Test page</h1>
     <p>Test para.</p>
-  </body>
-</html>""")
-
-    # because browsers frequently squish headers together
-    check_scrub("+all_refs,+scripts,+prefetches,+navigations,+verbose,+indent", "https://example.com/", "text/html", [
-        ("Link", b"""<https://example.org/first.css>; rel=stylesheet
-<https://example.org/second.css>; rel=stylesheet"""),
-        ("Refresh", b"100;url=/one.html"),
-    ], """<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Test page</title>
-  </head>
-  <body>
-    <h1>Test page</h1>
-    <p>Test para.</p>
-  </body>
-</html>
-""", """<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset=utf-8>
-    <title>Test page</title>
-    <meta http-equiv=Refresh content="100;url=https://example.com/one.html">
-    <link rel=stylesheet href="https://example.org/first.css">
-    <link rel=stylesheet href="https://example.org/second.css">
-  </head>
-  <body>
-    <h1>Test page</h1>
-    <p>Test para.</p>
+    <script>x = 2;</script>
+    <script src="https://asset.example.com/inc2-asset.js"></script>
+    <script src="https://base.example.com/inc2-base.js"></script>
   </body>
 </html>""")
 
