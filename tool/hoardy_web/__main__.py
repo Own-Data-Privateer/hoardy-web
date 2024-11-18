@@ -377,6 +377,7 @@ example_url = [
     "https://königsgäßchen.example.org/index.html",
     "https://ジャジェメント.ですの.example.org/испытание/is/",
     "https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/",
+    "https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/",
 ]
 
 def make_example(gen : _t.Callable[[str], str], indent : int) -> str:
@@ -495,7 +496,9 @@ default:      1970/01/01/001640000_0_GET_5658_C200C_example.org_0
 default:      1970/01/01/001640000_0_GET_4f11_C200C_königsgäßchen.example.org_0
 default:      1970/01/01/001640000_0_GET_c4ae_C200C_ジャジェメント.ですの.example.org_0
 default:      ==
+default:      ==
 short:        1970/01/01/1000000_0_0
+short:        ==
 short:        ==
 short:        ==
 short:        ==
@@ -513,6 +516,7 @@ surl:         https/example.org/view?one=1&two=2&three&three=3
 surl:         https/königsgäßchen.example.org/index.html
 surl:         https/ジャジェメント.ですの.example.org/испытание/is
 surl:         ==
+surl:         ==
 surl_msn:     https/example.org/__GET_C200C_0
 surl_msn:     ==
 surl_msn:     https/example.org/index.html__GET_C200C_0
@@ -521,6 +525,7 @@ surl_msn:     ==
 surl_msn:     https/example.org/view?one=1&two=2&three&three=3__GET_C200C_0
 surl_msn:     https/königsgäßchen.example.org/index.html__GET_C200C_0
 surl_msn:     https/ジャジェメント.ですの.example.org/испытание/is__GET_C200C_0
+surl_msn:     ==
 surl_msn:     ==
 shupq:        https/example.org/index.htm
 shupq:        ==
@@ -531,6 +536,7 @@ shupq:        https/example.org/view/index?one=1&two=2&three&three=3.htm
 shupq:        https/königsgäßchen.example.org/index.html
 shupq:        https/ジャジェメント.ですの.example.org/испытание/is/index.htm
 shupq:        ==
+shupq:        ==
 shupq_n:      https/example.org/index.0.htm
 shupq_n:      ==
 shupq_n:      https/example.org/index.0.html
@@ -539,6 +545,7 @@ shupq_n:      ==
 shupq_n:      https/example.org/view/index?one=1&two=2&three&three=3.0.htm
 shupq_n:      https/königsgäßchen.example.org/index.0.html
 shupq_n:      https/ジャジェメント.ですの.example.org/испытание/is/index.0.htm
+shupq_n:      ==
 shupq_n:      ==
 shupq_msn:    https/example.org/index.GET_C200C_0.htm
 shupq_msn:    ==
@@ -549,6 +556,7 @@ shupq_msn:    https/example.org/view/index?one=1&two=2&three&three=3.GET_C200C_0
 shupq_msn:    https/königsgäßchen.example.org/index.GET_C200C_0.html
 shupq_msn:    https/ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm
 shupq_msn:    ==
+shupq_msn:    ==
 shupnq:       https/example.org/index.htm
 shupnq:       ==
 shupnq:       https/example.org/index.html
@@ -557,6 +565,7 @@ shupnq:       ==
 shupnq:       https/example.org/view/index?one=1&two=2&three=3.htm
 shupnq:       https/königsgäßchen.example.org/index.html
 shupnq:       https/ジャジェメント.ですの.example.org/испытание/is/index.htm
+shupnq:       ==
 shupnq:       ==
 shupnq_n:     https/example.org/index.0.htm
 shupnq_n:     ==
@@ -567,6 +576,7 @@ shupnq_n:     https/example.org/view/index?one=1&two=2&three=3.0.htm
 shupnq_n:     https/königsgäßchen.example.org/index.0.html
 shupnq_n:     https/ジャジェメント.ですの.example.org/испытание/is/index.0.htm
 shupnq_n:     ==
+shupnq_n:     ==
 shupnq_msn:   https/example.org/index.GET_C200C_0.htm
 shupnq_msn:   ==
 shupnq_msn:   https/example.org/index.GET_C200C_0.html
@@ -575,6 +585,7 @@ shupnq_msn:   ==
 shupnq_msn:   https/example.org/view/index?one=1&two=2&three=3.GET_C200C_0.htm
 shupnq_msn:   https/königsgäßchen.example.org/index.GET_C200C_0.html
 shupnq_msn:   https/ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm
+shupnq_msn:   ==
 shupnq_msn:   ==
 shupnq_mhs:   https/example.org/index.GET_8198_C200C.htm
 shupnq_mhs:   ==
@@ -585,6 +596,7 @@ shupnq_mhs:   https/example.org/view/index?one=1&two=2&three=3.GET_5658_C200C.ht
 shupnq_mhs:   https/königsgäßchen.example.org/index.GET_4f11_C200C.html
 shupnq_mhs:   https/ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C.htm
 shupnq_mhs:   ==
+shupnq_mhs:   ==
 shupnq_mhsn:  https/example.org/index.GET_8198_C200C_0.htm
 shupnq_mhsn:  ==
 shupnq_mhsn:  https/example.org/index.GET_f0dc_C200C_0.html
@@ -593,6 +605,7 @@ shupnq_mhsn:  https/example.org/media/index.GET_3fbb_C200C_0.htm
 shupnq_mhsn:  https/example.org/view/index?one=1&two=2&three=3.GET_5658_C200C_0.htm
 shupnq_mhsn:  https/königsgäßchen.example.org/index.GET_4f11_C200C_0.html
 shupnq_mhsn:  https/ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C_0.htm
+shupnq_mhsn:  ==
 shupnq_mhsn:  ==
 srhupq:       https/org.example/index.htm
 srhupq:       ==
@@ -603,6 +616,7 @@ srhupq:       https/org.example/view/index?one=1&two=2&three&three=3.htm
 srhupq:       https/org.example.königsgäßchen/index.html
 srhupq:       https/org.example.ですの.ジャジェメント/испытание/is/index.htm
 srhupq:       ==
+srhupq:       ==
 srhupq_n:     https/org.example/index.0.htm
 srhupq_n:     ==
 srhupq_n:     https/org.example/index.0.html
@@ -611,6 +625,7 @@ srhupq_n:     ==
 srhupq_n:     https/org.example/view/index?one=1&two=2&three&three=3.0.htm
 srhupq_n:     https/org.example.königsgäßchen/index.0.html
 srhupq_n:     https/org.example.ですの.ジャジェメント/испытание/is/index.0.htm
+srhupq_n:     ==
 srhupq_n:     ==
 srhupq_msn:   https/org.example/index.GET_C200C_0.htm
 srhupq_msn:   ==
@@ -621,6 +636,7 @@ srhupq_msn:   https/org.example/view/index?one=1&two=2&three&three=3.GET_C200C_0
 srhupq_msn:   https/org.example.königsgäßchen/index.GET_C200C_0.html
 srhupq_msn:   https/org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm
 srhupq_msn:   ==
+srhupq_msn:   ==
 srhupnq:      https/org.example/index.htm
 srhupnq:      ==
 srhupnq:      https/org.example/index.html
@@ -629,6 +645,7 @@ srhupnq:      ==
 srhupnq:      https/org.example/view/index?one=1&two=2&three=3.htm
 srhupnq:      https/org.example.königsgäßchen/index.html
 srhupnq:      https/org.example.ですの.ジャジェメント/испытание/is/index.htm
+srhupnq:      ==
 srhupnq:      ==
 srhupnq_n:    https/org.example/index.0.htm
 srhupnq_n:    ==
@@ -639,6 +656,7 @@ srhupnq_n:    https/org.example/view/index?one=1&two=2&three=3.0.htm
 srhupnq_n:    https/org.example.königsgäßchen/index.0.html
 srhupnq_n:    https/org.example.ですの.ジャジェメント/испытание/is/index.0.htm
 srhupnq_n:    ==
+srhupnq_n:    ==
 srhupnq_msn:  https/org.example/index.GET_C200C_0.htm
 srhupnq_msn:  ==
 srhupnq_msn:  https/org.example/index.GET_C200C_0.html
@@ -647,6 +665,7 @@ srhupnq_msn:  ==
 srhupnq_msn:  https/org.example/view/index?one=1&two=2&three=3.GET_C200C_0.htm
 srhupnq_msn:  https/org.example.königsgäßchen/index.GET_C200C_0.html
 srhupnq_msn:  https/org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm
+srhupnq_msn:  ==
 srhupnq_msn:  ==
 srhupnq_mhs:  https/org.example/index.GET_8198_C200C.htm
 srhupnq_mhs:  ==
@@ -657,6 +676,7 @@ srhupnq_mhs:  https/org.example/view/index?one=1&two=2&three=3.GET_5658_C200C.ht
 srhupnq_mhs:  https/org.example.königsgäßchen/index.GET_4f11_C200C.html
 srhupnq_mhs:  https/org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C.htm
 srhupnq_mhs:  ==
+srhupnq_mhs:  ==
 srhupnq_mhsn: https/org.example/index.GET_8198_C200C_0.htm
 srhupnq_mhsn: ==
 srhupnq_mhsn: https/org.example/index.GET_f0dc_C200C_0.html
@@ -665,6 +685,7 @@ srhupnq_mhsn: https/org.example/media/index.GET_3fbb_C200C_0.htm
 srhupnq_mhsn: https/org.example/view/index?one=1&two=2&three=3.GET_5658_C200C_0.htm
 srhupnq_mhsn: https/org.example.königsgäßchen/index.GET_4f11_C200C_0.html
 srhupnq_mhsn: https/org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C_0.htm
+srhupnq_mhsn: ==
 srhupnq_mhsn: ==
 url:          example.org/
 url:          ==
@@ -675,6 +696,7 @@ url:          example.org/view?one=1&two=2&three&three=3
 url:          königsgäßchen.example.org/index.html
 url:          ジャジェメント.ですの.example.org/испытание/is
 url:          ==
+url:          ==
 url_msn:      example.org/__GET_C200C_0
 url_msn:      ==
 url_msn:      example.org/index.html__GET_C200C_0
@@ -683,6 +705,7 @@ url_msn:      ==
 url_msn:      example.org/view?one=1&two=2&three&three=3__GET_C200C_0
 url_msn:      königsgäßchen.example.org/index.html__GET_C200C_0
 url_msn:      ジャジェメント.ですの.example.org/испытание/is__GET_C200C_0
+url_msn:      ==
 url_msn:      ==
 hupq:         example.org/index.htm
 hupq:         ==
@@ -693,6 +716,7 @@ hupq:         example.org/view/index?one=1&two=2&three&three=3.htm
 hupq:         königsgäßchen.example.org/index.html
 hupq:         ジャジェメント.ですの.example.org/испытание/is/index.htm
 hupq:         ==
+hupq:         ==
 hupq_n:       example.org/index.0.htm
 hupq_n:       ==
 hupq_n:       example.org/index.0.html
@@ -701,6 +725,7 @@ hupq_n:       ==
 hupq_n:       example.org/view/index?one=1&two=2&three&three=3.0.htm
 hupq_n:       königsgäßchen.example.org/index.0.html
 hupq_n:       ジャジェメント.ですの.example.org/испытание/is/index.0.htm
+hupq_n:       ==
 hupq_n:       ==
 hupq_msn:     example.org/index.GET_C200C_0.htm
 hupq_msn:     ==
@@ -711,6 +736,7 @@ hupq_msn:     example.org/view/index?one=1&two=2&three&three=3.GET_C200C_0.htm
 hupq_msn:     königsgäßchen.example.org/index.GET_C200C_0.html
 hupq_msn:     ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm
 hupq_msn:     ==
+hupq_msn:     ==
 hupnq:        example.org/index.htm
 hupnq:        ==
 hupnq:        example.org/index.html
@@ -719,6 +745,7 @@ hupnq:        ==
 hupnq:        example.org/view/index?one=1&two=2&three=3.htm
 hupnq:        königsgäßchen.example.org/index.html
 hupnq:        ジャジェメント.ですの.example.org/испытание/is/index.htm
+hupnq:        ==
 hupnq:        ==
 hupnq_n:      example.org/index.0.htm
 hupnq_n:      ==
@@ -729,6 +756,7 @@ hupnq_n:      example.org/view/index?one=1&two=2&three=3.0.htm
 hupnq_n:      königsgäßchen.example.org/index.0.html
 hupnq_n:      ジャジェメント.ですの.example.org/испытание/is/index.0.htm
 hupnq_n:      ==
+hupnq_n:      ==
 hupnq_msn:    example.org/index.GET_C200C_0.htm
 hupnq_msn:    ==
 hupnq_msn:    example.org/index.GET_C200C_0.html
@@ -737,6 +765,7 @@ hupnq_msn:    ==
 hupnq_msn:    example.org/view/index?one=1&two=2&three=3.GET_C200C_0.htm
 hupnq_msn:    königsgäßchen.example.org/index.GET_C200C_0.html
 hupnq_msn:    ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm
+hupnq_msn:    ==
 hupnq_msn:    ==
 hupnq_mhs:    example.org/index.GET_8198_C200C.htm
 hupnq_mhs:    ==
@@ -747,6 +776,7 @@ hupnq_mhs:    example.org/view/index?one=1&two=2&three=3.GET_5658_C200C.htm
 hupnq_mhs:    königsgäßchen.example.org/index.GET_4f11_C200C.html
 hupnq_mhs:    ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C.htm
 hupnq_mhs:    ==
+hupnq_mhs:    ==
 hupnq_mhsn:   example.org/index.GET_8198_C200C_0.htm
 hupnq_mhsn:   ==
 hupnq_mhsn:   example.org/index.GET_f0dc_C200C_0.html
@@ -755,6 +785,7 @@ hupnq_mhsn:   example.org/media/index.GET_3fbb_C200C_0.htm
 hupnq_mhsn:   example.org/view/index?one=1&two=2&three=3.GET_5658_C200C_0.htm
 hupnq_mhsn:   königsgäßchen.example.org/index.GET_4f11_C200C_0.html
 hupnq_mhsn:   ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C_0.htm
+hupnq_mhsn:   ==
 hupnq_mhsn:   ==
 rhupq:        org.example/index.htm
 rhupq:        ==
@@ -765,6 +796,7 @@ rhupq:        org.example/view/index?one=1&two=2&three&three=3.htm
 rhupq:        org.example.königsgäßchen/index.html
 rhupq:        org.example.ですの.ジャジェメント/испытание/is/index.htm
 rhupq:        ==
+rhupq:        ==
 rhupq_n:      org.example/index.0.htm
 rhupq_n:      ==
 rhupq_n:      org.example/index.0.html
@@ -773,6 +805,7 @@ rhupq_n:      ==
 rhupq_n:      org.example/view/index?one=1&two=2&three&three=3.0.htm
 rhupq_n:      org.example.königsgäßchen/index.0.html
 rhupq_n:      org.example.ですの.ジャジェメント/испытание/is/index.0.htm
+rhupq_n:      ==
 rhupq_n:      ==
 rhupq_msn:    org.example/index.GET_C200C_0.htm
 rhupq_msn:    ==
@@ -783,6 +816,7 @@ rhupq_msn:    org.example/view/index?one=1&two=2&three&three=3.GET_C200C_0.htm
 rhupq_msn:    org.example.königsgäßchen/index.GET_C200C_0.html
 rhupq_msn:    org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm
 rhupq_msn:    ==
+rhupq_msn:    ==
 rhupnq:       org.example/index.htm
 rhupnq:       ==
 rhupnq:       org.example/index.html
@@ -791,6 +825,7 @@ rhupnq:       ==
 rhupnq:       org.example/view/index?one=1&two=2&three=3.htm
 rhupnq:       org.example.königsgäßchen/index.html
 rhupnq:       org.example.ですの.ジャジェメント/испытание/is/index.htm
+rhupnq:       ==
 rhupnq:       ==
 rhupnq_n:     org.example/index.0.htm
 rhupnq_n:     ==
@@ -801,6 +836,7 @@ rhupnq_n:     org.example/view/index?one=1&two=2&three=3.0.htm
 rhupnq_n:     org.example.königsgäßchen/index.0.html
 rhupnq_n:     org.example.ですの.ジャジェメント/испытание/is/index.0.htm
 rhupnq_n:     ==
+rhupnq_n:     ==
 rhupnq_msn:   org.example/index.GET_C200C_0.htm
 rhupnq_msn:   ==
 rhupnq_msn:   org.example/index.GET_C200C_0.html
@@ -809,6 +845,7 @@ rhupnq_msn:   ==
 rhupnq_msn:   org.example/view/index?one=1&two=2&three=3.GET_C200C_0.htm
 rhupnq_msn:   org.example.königsgäßchen/index.GET_C200C_0.html
 rhupnq_msn:   org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm
+rhupnq_msn:   ==
 rhupnq_msn:   ==
 rhupnq_mhs:   org.example/index.GET_8198_C200C.htm
 rhupnq_mhs:   ==
@@ -819,6 +856,7 @@ rhupnq_mhs:   org.example/view/index?one=1&two=2&three=3.GET_5658_C200C.htm
 rhupnq_mhs:   org.example.königsgäßchen/index.GET_4f11_C200C.html
 rhupnq_mhs:   org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C.htm
 rhupnq_mhs:   ==
+rhupnq_mhs:   ==
 rhupnq_mhsn:  org.example/index.GET_8198_C200C_0.htm
 rhupnq_mhsn:  ==
 rhupnq_mhsn:  org.example/index.GET_f0dc_C200C_0.html
@@ -827,6 +865,7 @@ rhupnq_mhsn:  org.example/media/index.GET_3fbb_C200C_0.htm
 rhupnq_mhsn:  org.example/view/index?one=1&two=2&three=3.GET_5658_C200C_0.htm
 rhupnq_mhsn:  org.example.königsgäßchen/index.GET_4f11_C200C_0.html
 rhupnq_mhsn:  org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C_0.htm
+rhupnq_mhsn:  ==
 rhupnq_mhsn:  ==
 flat:         example.org/index.htm
 flat:         ==
@@ -837,6 +876,7 @@ flat:         example.org/view__index?one=1&two=2&three=3.htm
 flat:         königsgäßchen.example.org/index.html
 flat:         ジャジェメント.ですの.example.org/испытание__is__index.htm
 flat:         ==
+flat:         ==
 flat_n:       example.org/index.0.htm
 flat_n:       ==
 flat_n:       example.org/index.0.html
@@ -845,6 +885,7 @@ flat_n:       ==
 flat_n:       example.org/view__index?one=1&two=2&three=3.0.htm
 flat_n:       königsgäßchen.example.org/index.0.html
 flat_n:       ジャジェメント.ですの.example.org/испытание__is__index.0.htm
+flat_n:       ==
 flat_n:       ==
 flat_ms:      example.org/index.GET_C200C.htm
 flat_ms:      ==
@@ -855,6 +896,7 @@ flat_ms:      example.org/view__index?one=1&two=2&three=3.GET_C200C.htm
 flat_ms:      königsgäßchen.example.org/index.GET_C200C.html
 flat_ms:      ジャジェメント.ですの.example.org/испытание__is__index.GET_C200C.htm
 flat_ms:      ==
+flat_ms:      ==
 flat_msn:     example.org/index.GET_C200C_0.htm
 flat_msn:     ==
 flat_msn:     example.org/index.GET_C200C_0.html
@@ -863,6 +905,7 @@ flat_msn:     ==
 flat_msn:     example.org/view__index?one=1&two=2&three=3.GET_C200C_0.htm
 flat_msn:     königsgäßchen.example.org/index.GET_C200C_0.html
 flat_msn:     ジャジェメント.ですの.example.org/испытание__is__index.GET_C200C_0.htm
+flat_msn:     ==
 flat_msn:     ==
 flat_mhs:     example.org/index.GET_8198_C200C.htm
 flat_mhs:     ==
@@ -873,6 +916,7 @@ flat_mhs:     example.org/view__index?one=1&two=2&three=3.GET_5658_C200C.htm
 flat_mhs:     königsgäßchen.example.org/index.GET_4f11_C200C.html
 flat_mhs:     ジャジェメント.ですの.example.org/испытание__is__index.GET_c4ae_C200C.htm
 flat_mhs:     ==
+flat_mhs:     ==
 flat_mhsn:    example.org/index.GET_8198_C200C_0.htm
 flat_mhsn:    ==
 flat_mhsn:    example.org/index.GET_f0dc_C200C_0.html
@@ -882,7 +926,10 @@ flat_mhsn:    example.org/view__index?one=1&two=2&three=3.GET_5658_C200C_0.htm
 flat_mhsn:    königsgäßchen.example.org/index.GET_4f11_C200C_0.html
 flat_mhsn:    ジャジェメント.ですの.example.org/испытание__is__index.GET_c4ae_C200C_0.htm
 flat_mhsn:    ==
+flat_mhsn:    ==
 """
+
+    #print("\n" + "\n".join(res))
 
     pl = pristine.strip().split("\n")
     assert len(pl) == len(res)
@@ -2333,10 +2380,12 @@ In short, this sub-command generates static offline website mirrors, producing r
     add_sniff(cmd, "export")
     add_fileout(cmd, "export")
 
-    agrp = cmd.add_argument_group("recursion roots; if none are specified, then all URLs available from input `PATH`s will be treated as roots; all of these options can be specified multiple times in arbitrary combinations; you can use both Punycode UTS46 encoded IDNAs and plain UNICODE IDNAs here, both will work")
-    agrp.add_argument("--root-url", dest="root_url", metavar="URL", action="append", type=str, default = [], help=_("a URL to be used as one of the roots for recursive export"))
-    agrp.add_argument("-r", "--root-url-prefix", "--root", dest="root_url_prefix", metavar="URL_PREFIX", action="append", type=str, default = [], help=_("a URL prefix for URLs that are to be used as roots for recursive export"))
-    agrp.add_argument("--root-url-re", dest="root_url_re", metavar="URL_RE", action="append", type=str, default = [], help=_("a regular expression matching URLs that are to be used as roots for recursive export"))
+    everything_allowed = (_("; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL paths and components, and UNICODE URL paths and components, in arbitrary mixes and combinations are allowed; i.e., e.g. `%s` will be silently normalized into its Punycode UTS46 and percent-encoded version of `%s` which will then be matched against `net_url` of each reqres") % (example_url[-1], example_url[-2])).replace('%', '%%')
+
+    agrp = cmd.add_argument_group("recursion roots; if none are specified, then all URLs available from input `PATH`s will be treated as roots; all of these options can be specified multiple times in arbitrary combinations")
+    agrp.add_argument("--root-url", dest="root_url", metavar="URL", action="append", type=str, default = [], help=_("a URL to be used as one of the roots for recursive export") + everything_allowed)
+    agrp.add_argument("-r", "--root-url-prefix", "--root", dest="root_url_prefix", metavar="URL_PREFIX", action="append", type=str, default = [], help=_("a URL prefix for URLs that are to be used as roots for recursive export") + everything_allowed)
+    agrp.add_argument("--root-url-re", dest="root_url_re", metavar="URL_RE", action="append", type=str, default = [], help=_("a regular expression matching URLs that are to be used as roots for recursive export; the regular expression will be matched against `net_url` and `pretty_net` of each reqres, so only Punycode UTS46 IDNAs with percent-encoded URL path and query components or plain UNICODE IDNAs with UNICODE URL paths and components are allowed, but regular expressions using mixes of differently encoded parts will fail to match anything"))
 
     agrp = cmd.add_argument_group("recursion depth")
     agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `%(default)s`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
