@@ -495,6 +495,7 @@ ReqresExpr_atoms.update({
     - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which keeps data of unknown content `MIME` types as-is;
     - `(+|-)(styles|scripts|iepragmas|iframes|prefetches|tracking|navigations)` control which things should be kept in or censored out from `HTML`, `CSS`, and `JavaScript`; i.e. these options control whether `CSS` stylesheets (both separate files and `HTML` tags and attributes), `JavaScript` (both separate files and `HTML` tags and attributes), `HTML` Internet Explorer pragmas, `<iframe>` `HTML` tags, `HTML` content prefetch `link` tags, other tracking `HTML` tags and attributes (like `a ping` attributes), and automatic navigations (`Refresh` `HTTP` headers and `<meta http-equiv>` `HTML` tags) should be respectively kept in or censored out from the input; the default is `+styles,-scripts,-iepragmas,+iframes,-prefetches,-tracking,-navigations` which ensures the result does not contain `JavaScript` and will not produce any prefetch, tracking requests, or re-navigations elsewhere, when loaded in a web browser; `-iepragmas` is the default because censoring for contents of such pragmas is not supported yet;
     - `(+|-)all_dyns` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
+    - `(+|-)interpret_noscript` controls whether the contents of `noscript` tags should be inlined when `-scripts` is set, the default is `+interpret_noscript`;
     - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead; the default is `-verbose`;
     - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away (respectively); the default is `-whitespace`, which produces somewhat minimized outputs (because it saves a lot of space);
     - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them (respectively); the default is `+optional_tags` (because many tools fail to parse minimized `HTML` properly);
@@ -901,6 +902,7 @@ test_html_in1 = f"""<!DOCTYPE html>
     <style>
     {test_css_in1}
     </style>
+    <noscript><link rel=stylesheet href="noscript.css"></noscript>
     <script>x = 1;</script>
     <script src="https://asset.example.com/inc1-asset.js"></script>
     <script src="inc1-base.js"></script>
@@ -944,6 +946,7 @@ body {
 }
 
     </style>
+    <!-- hoardy-web censored out StartTag noscript from here --><!-- hoardy-web censored out EmptyTag link stylesheet from here --><!-- hoardy-web censored out EndTag noscript from here -->
     <!-- hoardy-web censored out AssembledTag script from here -->
     <!-- hoardy-web censored out AssembledTag script from here -->
     <!-- hoardy-web censored out AssembledTag script from here -->
@@ -999,6 +1002,7 @@ body {
  background: url(https://base.example.com/background.jpg); *zoom: 1; 
       }
     </style>
+    <noscript><link rel=stylesheet href="https://base.example.com/noscript.css"></noscript>
     <script>
       x = 1;
     </script>

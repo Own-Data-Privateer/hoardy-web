@@ -96,6 +96,7 @@ htmlns_input = (htmlns, "input")
 htmlns_ins = (htmlns, "ins")
 htmlns_link = (htmlns, "link")
 htmlns_meta= (htmlns, "meta")
+htmlns_noscript = (htmlns, "noscript")
 htmlns_object = (htmlns, "object")
 htmlns_q = (htmlns, "q")
 htmlns_script = (htmlns, "script")
@@ -255,6 +256,8 @@ class ScrubbingOptions:
     prefetches : bool = _dc.field(default=False)
     tracking : bool = _dc.field(default=False)
     navigations : bool = _dc.field(default=False)
+    interpret_noscript : bool = _dc.field(default=True)
+
     verbose : bool = _dc.field(default=False)
     whitespace : bool = _dc.field(default=False)
     optional_tags : bool = _dc.field(default=True)
@@ -377,6 +380,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     not_iepragmas = not opts.iepragmas
     not_iframes = not opts.iframes
     yes_navigations = opts.navigations
+    yes_interpret_noscript = opts.interpret_noscript
     yes_verbose = opts.verbose
     not_verbose = not yes_verbose
     not_whitespace = not opts.whitespace
@@ -630,6 +634,11 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 nn = (token["namespace"], token["name"])
                 attrs : HTML5NodeAttrValues = token["data"]
 
+                if not_scripts and yes_interpret_noscript and nn == htmlns_noscript:
+                    # ignore this
+                    yield from emit_censored_token(typ, token)
+                    continue
+
                 # Handle HTTP header inlining.
                 # Put them after `<base>`, `<title>`, and charset-controlling `<meta>` headers.
                 if inline_headers_undone and \
@@ -817,6 +826,13 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         inline_headers_undone = False
                         continue
                     base_url_unset = False
+
+                nn = (token["namespace"], token["name"])
+
+                if not_scripts and yes_interpret_noscript and nn == htmlns_noscript:
+                    # ignore this
+                    yield from emit_censored_token(typ, token)
+                    continue
 
                 stack_len = len(stack)
                 if censor:
