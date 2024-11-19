@@ -934,8 +934,8 @@ def test_ReqresExpr_scrub_html() -> None:
     <title>Test page</title>
     <!-- hoardy-web censored out EmptyTag link from here -->
     <!-- hoardy-web censored out EmptyTag link from here -->
-    <link rel=stylesheet href="data:text/plain,%20">
-    <link rel=stylesheet href="data:text/plain,%20">
+    <!-- hoardy-web censored out EmptyTag link from here -->
+    <!-- hoardy-web censored out EmptyTag link from here -->
     <style>
     
 body {

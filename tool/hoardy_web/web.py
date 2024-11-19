@@ -733,7 +733,12 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                     censor = True
                             else:
                                 link_type, cts = rel_ref_type_of(link_rels)
-                                attrs[href_attr] = remap_link_or_void(base_url, link_type, cts, remap_url, href)
+                                href = remap_link_maybe(base_url, link_type, cts, remap_url, href)
+                                if href is not None:
+                                    attrs[href_attr] = href
+                                else:
+                                    # censor the whole tag in this case
+                                    censor = True
                     else:
                         # censor the whole tag in this case
                         censor = True
