@@ -456,11 +456,31 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                     chars = "\n" + " " * (indent_step * current)
                 res.append(_tcss.ast.WhitespaceToken(0, 0, chars))
 
+        def at_import_prelude(nodes : _t.Iterator[CSSNode]) -> _t.Iterator[CSSNode]:
+            # map `@import "url.css" rest` -> `@import url("url.css") rest`
+            done = False
+            for node in nodes:
+                if done:
+                    yield node
+                    continue
+
+                if isinstance(node, _tcss.ast.StringToken):
+                    node = _tcss.ast.FunctionBlock(node.source_line, node.source_column, "url", [node])
+                    done = True
+                elif isinstance(node, (_tcss.ast.URLToken, _tcss.ast.FunctionBlock)):
+                    done = True
+
+                yield node
+
         # walk the AST tree recursively
         for node in nodes:
             if isinstance(node, (_tcss.ast.QualifiedRule, _tcss.ast.AtRule)):
                 emit_indent()
-                node.prelude = scrub_css(base_url, remap_url, node.prelude)
+                if isinstance(node, _tcss.ast.AtRule) and node.lower_at_keyword == "import":
+                    prelude = at_import_prelude(node.prelude)
+                else:
+                    prelude = node.prelude
+                node.prelude = scrub_css(base_url, remap_url, prelude)
                 if node.content is not None:
                     if current is not None:
                         try:

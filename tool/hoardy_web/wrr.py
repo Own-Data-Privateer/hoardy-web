@@ -862,8 +862,31 @@ body {
 }
 """
 
+test_css_in2 = """
+@import "main.css";
+@import "main.css" layer(default);
+@import url(main.css);
+@import url(./main.css) layer(default);
+
+@import url("media.css") print, screen;
+@import url("spports.css") supports(display: grid) screen and (max-width: 400px);
+@import url(./all.css) layer(default) supports(display: grid) screen;
+"""
+
+test_css_out2 = """
+@import url(data:text/plain,%20);
+@import url(data:text/plain,%20) layer(default);
+@import url(data:text/plain,%20);
+@import url(data:text/plain,%20) layer(default);
+
+@import url(data:text/plain,%20) print, screen;
+@import url(data:text/plain,%20) supports(display: grid) screen and (max-width: 400px);
+@import url(data:text/plain,%20) layer(default) supports(display: grid) screen;
+"""
+
 def test_ReqresExpr_scrub_css() -> None:
     check_scrub("+verbose,+whitespace", "https://example.com/test.css", "text/css", [], test_css_in1, test_css_out1)
+    check_scrub("+verbose,+whitespace", "https://example.com/test.css", "text/css", [], test_css_in2, test_css_out2)
 
 test_html_in1 = f"""<!DOCTYPE html>
 <html>
