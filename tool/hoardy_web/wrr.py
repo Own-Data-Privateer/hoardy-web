@@ -932,10 +932,10 @@ def test_ReqresExpr_scrub_html() -> None:
     <meta charset=utf-8>
     <!-- hoardy-web censored out EmptyTag base from here -->
     <title>Test page</title>
-    <!-- hoardy-web censored out EmptyTag link from here -->
-    <!-- hoardy-web censored out EmptyTag link from here -->
-    <!-- hoardy-web censored out EmptyTag link from here -->
-    <!-- hoardy-web censored out EmptyTag link from here -->
+    <!-- hoardy-web censored out EmptyTag link preload from here -->
+    <!-- hoardy-web censored out EmptyTag link preload from here -->
+    <!-- hoardy-web censored out EmptyTag link stylesheet from here -->
+    <!-- hoardy-web censored out EmptyTag link stylesheet from here -->
     <style>
     
 body {

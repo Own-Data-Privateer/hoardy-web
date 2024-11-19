@@ -583,9 +583,24 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         base_url = orig_base_url
         base_url_unset = True
 
-        def emit_censored(why : str) -> _t.Iterator[HTML5Node]:
-            if yes_verbose:
-                yield {"type": "Comment", "data": f" hoardy-web censored out {why} from here "}
+        def emit_censored_comment(what : str) -> _t.Iterator[HTML5Node]:
+            yield {"type": "Comment", "data": f" hoardy-web censored out {what.replace('-->', '-- >')} from here "}
+
+        def emit_censored_token(typ : str, token : HTML5Node) -> _t.Iterator[HTML5Node]:
+            if not_verbose: return
+            res = [typ]
+            tn = token.get("name", None)
+            if tn is not None:
+                res.append(tn)
+            if tn == "link":
+                rels = token.get("data", {}).get(rel_attr, None)
+                if rels is not None:
+                    res.append(rels)
+            yield from emit_censored_comment(" ".join(res))
+
+        def emit_censored_other(what : str) -> _t.Iterator[HTML5Node]:
+            if not_verbose: return
+            yield from emit_censored_comment(what)
 
         backlog : list[HTML5Node] = []
         witer = iter(walker)
@@ -605,7 +620,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 assemble_contents.append(token["data"])
                 continue
             elif not_iepragmas and typ == "Comment" and ie_pragma_re.match(token["data"]):
-                yield from emit_censored("a comment with an IE pragma")
+                yield from emit_censored_other("a comment with an IE pragma")
                 continue
 
             in_head = stack == [htmlns_html, htmlns_head]
@@ -838,8 +853,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
             if censor:
                 if typ != "SpaceCharacters":
-                    tn = token.get("name", "")
-                    yield from emit_censored(typ + (" " if tn != "" else "") + tn)
+                    yield from emit_censored_token(typ, token)
                 continue
 
             yield token
