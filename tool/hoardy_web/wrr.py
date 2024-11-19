@@ -944,16 +944,16 @@ body {
 }
 
     </style>
-    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out Characters from here --><!-- hoardy-web censored out EndTag script from here -->
-    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
-    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
+    <!-- hoardy-web censored out AssembledTag script from here -->
+    <!-- hoardy-web censored out AssembledTag script from here -->
+    <!-- hoardy-web censored out AssembledTag script from here -->
   </head>
   <body>
     <h1>Test page</h1>
     <p>Test para.</p>
-    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out Characters from here --><!-- hoardy-web censored out EndTag script from here -->
-    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
-    <!-- hoardy-web censored out StartTag script from here --><!-- hoardy-web censored out EndTag script from here -->
+    <!-- hoardy-web censored out AssembledTag script from here -->
+    <!-- hoardy-web censored out AssembledTag script from here -->
+    <!-- hoardy-web censored out AssembledTag script from here -->
   
 
 </body></html>""")
@@ -999,14 +999,18 @@ body {
  background: url(https://base.example.com/background.jpg); *zoom: 1; 
       }
     </style>
-    <script>x = 1;</script>
+    <script>
+      x = 1;
+    </script>
     <script src="https://asset.example.com/inc1-asset.js"></script>
     <script src="https://base.example.com/inc1-base.js"></script>
   </head>
   <body>
     <h1>Test page</h1>
     <p>Test para.</p>
-    <script>x = 2;</script>
+    <script>
+      x = 2;
+    </script>
     <script src="https://asset.example.com/inc2-asset.js"></script>
     <script src="https://base.example.com/inc2-base.js"></script>
   </body>

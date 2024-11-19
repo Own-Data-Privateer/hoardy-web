@@ -572,7 +572,8 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         censor_lvl : int = 0
         stack : list[HTML5NN] = []
 
-        assemble = False
+        assemble : HTML5Node | None
+        assemble = None
         assemble_contents : list[str] = []
 
         # `inline_headers` handling
@@ -600,15 +601,15 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
             typ = token["type"]
 
-            if assemble and (typ == "Characters" or typ == "SpaceCharacters"):
+            if assemble is not None and (typ == "Characters" or typ == "SpaceCharacters"):
                 assemble_contents.append(token["data"])
+                continue
+            elif not_iepragmas and typ == "Comment" and ie_pragma_re.match(token["data"]):
+                yield from emit_censored("a comment with an IE pragma")
                 continue
 
             in_head = stack == [htmlns_html, htmlns_head]
             censor = censor_lvl != 0
-            if censor and len(assemble_contents) > 0:
-                yield from emit_censored("character data")
-                assemble_contents = []
 
             if typ == "StartTag" or typ == "EmptyTag":
                 nn = (token["namespace"], token["name"])
@@ -794,9 +795,11 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                     stack.append(nn)
                     if censor:
                         censor_lvl += 1
-                    elif nn == htmlns_style:
-                        # start assembling <style> contents
-                        assemble = True
+
+                    if nn == htmlns_style or nn == htmlns_script:
+                        # start assembling contents
+                        assemble = token
+                        continue
             elif typ == "EndTag":
                 # stop handling <base ...> tag
                 if in_head:
@@ -806,34 +809,47 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         inline_headers_undone = False
                         continue
                     base_url_unset = False
-                # scrub <style> contents
-                elif assemble:
-                    assemble = False
-                    data = "".join(assemble_contents)
-                    assemble_contents = []
-                    stack_len = len(stack)
-                    data = _tcss.serialize(scrub_css(base_url, remap_url, _tcss.parse_stylesheet(data), stack_len if not_whitespace else None))
-                    if yes_indent:
-                        data = "\n" + " " * (2 * stack_len) + data.strip() + "\n" + " " * (2 * (stack_len - 1))
-                    elif not_whitespace:
-                        data = data.strip()
-                    yield {"type": "Characters", "data": data}
 
+                stack_len = len(stack)
+                if censor:
+                    censor_lvl -= 1
                 stack.pop()
                 #print(stack)
 
-                if censor:
-                    censor_lvl -= 1
-            elif not_iepragmas and typ == "Comment" and ie_pragma_re.match(token["data"]):
-                yield from emit_censored("a comment with an IE pragma")
+                # scrub tag contents
+                if assemble is not None:
+                    if not censor:
+                        assemble_nn = (assemble["namespace"], assemble["name"])
+                        #assemble_attrs : _c.OrderedDict[HTML5NN, str] = assemble["data"]
+                        adata = "".join(assemble_contents)
+
+                        if assemble_nn == htmlns_style:
+                            adata = _tcss.serialize(scrub_css(base_url, remap_url, _tcss.parse_stylesheet(adata), stack_len if not_whitespace else None))
+                        # TODO: scrub_js goes here
+
+                        if opt_whitespace_re.fullmatch(adata):
+                            adata = ""
+                        elif yes_indent:
+                            adata = "\n" + " " * (2 * stack_len) + adata.strip() + "\n" + " " * (2 * (stack_len - 1))
+                        elif not_whitespace:
+                            adata = adata.strip()
+
+                        yield assemble
+                        yield {"type": "Characters", "data": adata}
+                    else:
+                        token = assemble
+                        typ = "AssembledTag"
+
+                    assemble = None
+                    assemble_contents = []
+
+            if censor:
+                if typ != "SpaceCharacters":
+                    tn = token.get("name", "")
+                    yield from emit_censored(typ + (" " if tn != "" else "") + tn)
                 continue
 
-            if not censor:
-                yield token
-            elif typ != "SpaceCharacters":
-                tt = token.get("name", None)
-                tt = f"{typ} {tt}" if tt is not None else typ
-                yield from emit_censored(tt)
+            yield token
 
     stages : list[_h5fb.Filter]
     stages = []
