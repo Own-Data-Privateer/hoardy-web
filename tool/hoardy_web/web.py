@@ -707,11 +707,11 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                     # censor these out quickly
                     censor = True
 
+                new_attrs : _c.OrderedDict[HTML5NN, str | None] = _c.OrderedDict()
                 if not censor and nn == htmlns_link:
                     # scrub `link` `rel` attributes
                     link_rels = link_rels_of(attrs.get(rel_attr, ""))
                     if len(link_rels) > 0:
-                        attrs[rel_attr] = " ".join(link_rels)
                         # scrub `link` `href` attributes
                         href = map_optional(lambda x: x.strip(), attrs.get(href_attr, None))
                         if href is not None:
@@ -728,41 +728,38 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                     href_nodes, href_encoding = _tcss.parse_stylesheet_bytes(href_data, protocol_encoding=href_protocol_encoding)
                                     href_charset = href_encoding.name
                                     href_params = set_parameter(href_params, "charset", href_charset)
-                                    attrs[href_attr] = unparse_data_url(href_mime, href_params, _tcss.serialize(scrub_css(base_url, remap_url, href_nodes, None)).encode(href_charset))
+                                    href = unparse_data_url(href_mime, href_params, _tcss.serialize(scrub_css(base_url, remap_url, href_nodes, None)).encode(href_charset))
                                 except (ParseError, ValueError):
-                                    # censor the whole tag in this case
-                                    censor = True
+                                    href = None
                             else:
                                 link_type, cts = rel_ref_type_of(link_rels)
                                 href = remap_link_maybe(base_url, link_type, cts, remap_url, href)
-                                if href is not None:
-                                    attrs[href_attr] = href
-                                else:
-                                    # censor the whole tag in this case
-                                    censor = True
                     else:
+                        href = None
+
+                    new_attrs[rel_attr] = " ".join(link_rels)
+                    new_attrs[href_attr] = href
+                    if href is None:
                         # censor the whole tag in this case
                         censor = True
 
                 if not censor:
                     # scrub other attributes
-                    to_remove = []
                     for ann, value in attrs.items():
                         nnann = (nn, ann)
-                        if nnann in attr_blacklist:
-                            # censor out blacklisted attrs
-                            to_remove.append(ann)
+                        if nnann in attr_blacklist or \
+                           not_scripts and ann[0] is None and ann[1].startswith("on"):
+                            # censor out blacklisted attrs,
+                            # censor out javascript on* attributes, e.g. `onclick`
+                            new_attrs[ann] = None
                         elif ann == style_attr:
                             # scrub inline styles
                             if yes_styles:
-                                attrs[ann] = _tcss.serialize(scrub_css(base_url, remap_url, _tcss.parse_blocks_contents(value), 0 if yes_indent else None))
+                                new_attrs[ann] = _tcss.serialize(scrub_css(base_url, remap_url, _tcss.parse_blocks_contents(value), 0 if yes_indent else None))
                             elif yes_verbose:
-                                attrs[ann] = "/* hoardy-web censored out a CSS data from here */"
+                                new_attrs[ann] = "/* hoardy-web censored out a CSS data from here */"
                             else:
-                                to_remove.append(ann)
-                        elif not_scripts and ann[0] is None and ann[1].startswith("on"):
-                            # censor out inline javascript on* attributes, e.g. `onclick`
-                            to_remove.append(ann)
+                                new_attrs[ann] = None
                         elif ann == srcset_attr:
                             # scrub `srcset` attributes
                             new_srcset = []
@@ -770,26 +767,22 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                 href = remap_link_maybe(base_url, LinkType.REQ, image_mime, remap_url, url)
                                 if href is not None:
                                     new_srcset.append((href, cond))
-                            if len(new_srcset) > 0:
-                                attrs[ann] = unparse_srcset_attr(new_srcset)
-                            else:
-                                # wipe it away
-                                to_remove.append(ann)
+                            new_attrs[ann] = unparse_srcset_attr(new_srcset) if len(new_srcset) > 0 else None
                         else:
                             # handle other attributes containing URLs
                             ref = attr_ref_type.get(nnann, None)
                             if ref is not None:
                                 link_type, cts = ref
-                                href = remap_link_maybe(base_url, link_type, cts, remap_url, value.strip())
-                                if href is not None:
-                                    attrs[ann] = href
-                                else:
-                                    # wipe it away
-                                    to_remove.append(ann)
+                                new_attrs[ann] = remap_link_maybe(base_url, link_type, cts, remap_url, value.strip())
 
-                    # cleanup
-                    for ann in to_remove:
-                        del attrs[ann]
+                    # apply changes
+                    for ann, ovalue in new_attrs.items():
+                        if ovalue is not None:
+                            attrs[ann] = ovalue
+                        else:
+                            try:
+                                del attrs[ann]
+                            except KeyError: pass
 
                 if typ == "StartTag":
                     stack.append(nn)
