@@ -1591,7 +1591,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
             reqres = rrexpr.reqres
             response = reqres.response
-            if reqres.request.method != "GET" or \
+            if reqres.request.method not in ["GET", "DOM"] or \
                response is None or \
                response.code != 200:
                 return
