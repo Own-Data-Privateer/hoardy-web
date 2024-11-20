@@ -178,15 +178,8 @@ def load_map_orderly(load_func : LoadFFunc[_t.AnyStr, LoadResult],
                 data = load_func(abs_path)
             except OSError as exc:
                 raise Failure(gettext("failed to open `%s`"), path)
-            except Failure as exc:
-                exc.elaborate(gettext("load"))
-                raise exc
 
-            try:
-                emit_func(data)
-            except Failure as exc:
-                exc.elaborate(gettext("emit"))
-                raise exc
+            emit_func(data)
         except Failure as exc:
             if errors == "ignore":
                 continue
@@ -196,21 +189,12 @@ def load_map_orderly(load_func : LoadFFunc[_t.AnyStr, LoadResult],
                 continue
             raise exc
 
-def map_wrr_paths_extra(cargs : _t.Any,
-                        loadf_func : LoadFFunc[_t.AnyStr, LoadResult],
-                        emit_func : EmitFunc[LoadResult],
-                        paths : list[_t.AnyStr],
-                        **kwargs : _t.Any) -> None:
-    global should_raise
-    should_raise = False
-    for exp_path in paths:
-        load_map_orderly(loadf_func, emit_func, exp_path, ordering=cargs.walk_fs, errors=cargs.errors, **kwargs)
-
 def map_wrr_paths(cargs : _t.Any,
-                  emit_func : EmitFunc[ReqresExpr[DeferredSourceType]],
+                  loadf_func : LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]],
+                  emit_func : EmitFunc[ReqresExpr[_t.Any]],
                   paths : list[_t.AnyStr],
                   **kwargs : _t.Any) -> None:
-    def emit_many(rrexprs : _t.Iterator[ReqresExpr[DeferredSourceType]]) -> None:
+    def emit_many(rrexprs : _t.Iterator[ReqresExpr[_t.Any]]) -> None:
         for rrexpr in rrexprs:
             if want_stop: raise KeyboardInterrupt()
 
@@ -218,7 +202,71 @@ def map_wrr_paths(cargs : _t.Any,
             if not filters_allow(cargs, rrexpr): return
             emit_func(rrexpr)
 
-    map_wrr_paths_extra(cargs, rrexprs_wrr_some_loadf, emit_many, paths, **kwargs) # type: ignore # type inference fail
+    global should_raise
+    should_raise = False
+    for exp_path in paths:
+        load_map_orderly(loadf_func, emit_many, exp_path, ordering=cargs.walk_fs, errors=cargs.errors, **kwargs)
+
+def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
+    import_failed = []
+    class Mutable:
+        not_warned : bool = True
+
+    have_mitmproxy = False
+    try:
+        from .mitmproxy import rrexprs_mitmproxy_loadf
+    except ImportError as exc:
+        import_failed.append(("mitmproxy", str_Exception(exc)))
+    else:
+        have_mitmproxy = True
+
+    is_wrr : IncludeFilesFunc[_t.AnyStr] = with_extension_in([".wrr", b".wrr"])
+    is_wrrb : IncludeFilesFunc[_t.AnyStr] = with_extension_in([".wrrb", b".wrrb"])
+
+    def warn(path : _t.AnyStr, parser : str, exc : Exception) -> None:
+        _logging.warn(gettext("while processing `%s`: failed to parse with `%s` parser: %s"), path, parser, str_Exception(exc))
+
+    def rrexprs_load(path : _t.AnyStr) -> _t.Iterator[ReqresExpr[_t.Any]]:
+        if is_wrr(path):
+            try:
+                yield rrexpr_wrr_loadf(path)
+                return
+            except Exception as exc:
+                warn(path, "wrr", exc)
+        elif is_wrrb(path):
+            try:
+                yield from rrexprs_wrr_some_loadf(path)
+                return
+            except Exception as exc:
+                warn(path, "wrrb", exc)
+        elif have_mitmproxy:
+            try:
+                yield from rrexprs_mitmproxy_loadf(path)
+                return
+            except Exception as exc:
+                warn(path, "mitmproxy", exc)
+
+        if Mutable.not_warned:
+            Mutable.not_warned = False
+            for m, e in import_failed:
+                _logging.warn(gettext("failed to import `%s` parser: %s"), m, e)
+        raise Failure(gettext("failed to find a suitable parser"))
+
+    return rrexprs_load
+
+def mk_rrexprs_load(cargs : _t.Any) -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
+    loader = cargs.loader
+    if loader is None:
+        return dispatch_rrexprs_load()
+    elif loader == "wrr":
+        return rrexpr_wrr_loadf
+    elif loader == "wrrb":
+        return rrexprs_wrr_some_loadf
+    elif loader == "mitmproxy":
+        from .mitmproxy import rrexprs_mitmproxy_loadf
+        return rrexprs_mitmproxy_loadf
+    else:
+        assert False
 
 def get_bytes(value : _t.Any) -> bytes:
     if value is None or isinstance(value, (bool, int, float, Epoch)):
@@ -239,7 +287,7 @@ def cmd_pprint(cargs : _t.Any) -> None:
         wrr_pprint(stdout, rrexpr.reqres, rrexpr.source.show_source(), cargs.abridged, cargs.sniff)
         stdout.flush()
 
-    map_wrr_paths(cargs, emit, cargs.paths)
+    map_wrr_paths(cargs, mk_rrexprs_load(cargs), emit, cargs.paths)
 
 def print_exprs(rrexpr : ReqresExpr[_t.Any], exprs : list[tuple[str, LinstFunc]],
                 separator : bytes, fobj : MinimalIOWriter) -> None:
@@ -351,7 +399,7 @@ def cmd_stream(cargs : _t.Any) -> None:
 
     stream.start()
     try:
-        map_wrr_paths(cargs, emit, cargs.paths)
+        map_wrr_paths(cargs, mk_rrexprs_load(cargs), emit, cargs.paths)
     finally:
         stream.finish()
 
@@ -364,7 +412,7 @@ def cmd_find(cargs : _t.Any) -> None:
         stdout.write_bytes(cargs.terminator)
         stdout.flush()
 
-    map_wrr_paths(cargs, emit, cargs.paths)
+    map_wrr_paths(cargs, mk_rrexprs_load(cargs), emit, cargs.paths)
 
 example_url = [
     "https://example.org",
@@ -1419,12 +1467,14 @@ def cmd_organize(cargs : _t.Any) -> None:
     elaborate_output(cargs)
     handle_paths(cargs)
 
+    rrexprs_load = mk_rrexprs_load(cargs)
+
     emit : EmitFunc[ReqresExpr[FileSource]]
     if cargs.destination is not None:
         # destination is set explicitly
         emit, finish = make_organize_emit(cargs, _os.path.expanduser(cargs.destination), cargs.allow_updates)
         try:
-            map_wrr_paths_extra(cargs, rrexpr_wrr_loadf, emit, cargs.paths) # type: ignore # type inference fail
+            map_wrr_paths(cargs, rrexprs_load, emit, cargs.paths)
         finally:
             finish()
     else:
@@ -1444,7 +1494,7 @@ def cmd_organize(cargs : _t.Any) -> None:
         for exp_path in cargs.paths:
             emit, finish = make_organize_emit(cargs, exp_path, False)
             try:
-                map_wrr_paths_extra(cargs, rrexpr_wrr_loadf, emit, [exp_path]) # type: ignore # type inference fail
+                map_wrr_paths(cargs, rrexprs_load, emit, [exp_path])
             finally:
                 finish()
 
@@ -1456,21 +1506,8 @@ def cmd_import_generic(cargs : _t.Any,
 
     emit : EmitFunc[ReqresExpr[DeferredSourceType]]
     emit, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", DeferredFileWrite, cargs.allow_updates)
-
-    def emit_many(rrexprs : _t.Iterator[ReqresExpr[DeferredSourceType]]) -> None:
-        for rrexpr in rrexprs:
-            if want_stop: raise KeyboardInterrupt()
-
-            rrexpr.sniff = cargs.sniff
-            if not filters_allow(cargs, rrexpr): return
-
-            emit(rrexpr)
-
-    global should_raise
-    should_raise = False
     try:
-        for exp_path in cargs.paths:
-            load_map_orderly(rrexprs_loadf, emit_many, exp_path, ordering=cargs.walk_fs, errors=cargs.errors)
+        map_wrr_paths(cargs, rrexprs_loadf, emit, cargs.paths)
     finally:
         finish()
 
@@ -1653,9 +1690,10 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
     queue_all = not have_root_url and not have_root_url_prefix and not have_root_url_re
 
+    rrexprs_load = mk_rrexprs_load(cargs)
     seen_paths : set[str] = set()
-    map_wrr_paths(cargs, collect(queue_all), cargs.paths, seen_paths=seen_paths)
-    map_wrr_paths(cargs, collect(False), cargs.boring, seen_paths=seen_paths)
+    map_wrr_paths(cargs, rrexprs_load, collect(queue_all), cargs.paths, seen_paths=seen_paths)
+    map_wrr_paths(cargs, rrexprs_load, collect(False), cargs.boring, seen_paths=seen_paths)
 
     for url, vu in root_url.items():
         if vu.n == 0:
@@ -2060,12 +2098,20 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         grp.add_argument("--walk-reversed", dest="walk_fs", action="store_const", const = False, help=_("recursive file system walk is done in reverse lexicographic order") + def_sup)
         cmd.set_defaults(walk_fs = def_walk)
 
-        cmd.add_argument("--stdin0", action="store_true", help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments"))
+        agrp = cmd.add_argument_group("input loading")
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument("--load-any", dest="loader", action="store_const", const=None, help=_("for each given input `PATH`, decide which loader to use based on its file extension; default"))
+        grp.add_argument("--load-wrr", dest="loader", action="store_const", const="wrr", help=_("load all inputs using the single-`WRR` per-file loader"))
+        grp.add_argument("--load-wrrb", dest="loader", action="store_const", const="wrr", help=_("load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too"))
+        grp.add_argument("--load-mitmproxy", dest="loader", action="store_const", const="mitmproxy", help=_("load inputs using the `mitmproxy` dump loader"))
+        grp.set_defaults(loader = None)
+
+        agrp.add_argument("--stdin0", action="store_true", help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments"))
 
         if kind == "export mirror":
-            cmd.add_argument("--boring", metavar="PATH", action="append", type=str, default = [], help=_("low-priority input `PATH`; boring `PATH`s will be processed after all `PATH`s specified as positional command-line arguments and those given via `--stdin0` and will not be queued as roots even when no `--root-*` options are specified"))
+            agrp.add_argument("--boring", metavar="PATH", action="append", type=str, default = [], help=_("low-priority input `PATH`; boring `PATH`s will be processed after all `PATH`s specified as positional command-line arguments and those given via `--stdin0` and will not be queued as roots even when no `--root-*` options are specified"))
 
-        cmd.add_argument("paths", metavar="PATH", nargs="*", type=str, help=_("inputs, can be a mix of files and directories (which will be traversed recursively)"))
+        agrp.add_argument("paths", metavar="PATH", nargs="*", type=str, help=_("inputs, can be a mix of files and directories (which will be traversed recursively)"))
 
     def add_sniff(cmd : _t.Any, kind : str) -> None:
         oscrub = f"this influeences generated file names because `filepath_parts` and `filepath_ext` of `{__prog__} get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content"

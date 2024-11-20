@@ -526,15 +526,9 @@ Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure
 
 Pretty-print given `WRR` files to stdout.
 
-- positional arguments:
-  - `PATH`
-  : inputs, can be a mix of files and directories (which will be traversed recursively)
-
 - options:
   - `-q, --quiet`
   : don't print end-of-program warnings to stderr
-  - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
   - `-u, --unabridged`
   : print all data in full
   - `--abridged`
@@ -560,6 +554,20 @@ Pretty-print given `WRR` files to stdout.
   : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
+
+- input loading:
+  - `--load-any`
+  : for each given input `PATH`, decide which loader to use based on its file extension; default
+  - `--load-wrr`
+  : load all inputs using the single-`WRR` per-file loader
+  - `--load-wrrb`
+  : load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too
+  - `--load-mitmproxy`
+  : load inputs using the `mitmproxy` dump loader
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this simply populates the `potentially` lists in the output in various ways:
   - `--sniff-default`
@@ -848,15 +856,9 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
 
 Compute given expressions for each of given `WRR` files, encode them into a requested format, and print the result to stdout.
 
-- positional arguments:
-  - `PATH`
-  : inputs, can be a mix of files and directories (which will be traversed recursively)
-
 - options:
   - `-q, --quiet`
   : don't print end-of-program warnings to stderr
-  - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
   - `-u, --unabridged`
   : print all data in full
   - `--abridged`
@@ -888,6 +890,20 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
   : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
+
+- input loading:
+  - `--load-any`
+  : for each given input `PATH`, decide which loader to use based on its file extension; default
+  - `--load-wrr`
+  : load all inputs using the single-`WRR` per-file loader
+  - `--load-wrrb`
+  : load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too
+  - `--load-mitmproxy`
+  : load inputs using the `mitmproxy` dump loader
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
@@ -927,15 +943,9 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
 
 Print paths of `WRR` files matching specified criteria.
 
-- positional arguments:
-  - `PATH`
-  : inputs, can be a mix of files and directories (which will be traversed recursively)
-
 - options:
   - `-q, --quiet`
   : don't print end-of-program warnings to stderr
-  - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -957,6 +967,20 @@ Print paths of `WRR` files matching specified criteria.
   : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
+
+- input loading:
+  - `--load-any`
+  : for each given input `PATH`, decide which loader to use based on its file extension; default
+  - `--load-wrr`
+  : load all inputs using the single-`WRR` per-file loader
+  - `--load-wrrb`
+  : load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too
+  - `--load-mitmproxy`
+  : load inputs using the `mitmproxy` dump loader
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
@@ -985,17 +1009,11 @@ Parse given `WRR` files into their respective reqres and then rename/move/hardli
 Operations that could lead to accidental data loss are not permitted.
 E.g. `hoardy-web organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
 
-- positional arguments:
-  - `PATH`
-  : inputs, can be a mix of files and directories (which will be traversed recursively)
-
 - options:
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
   : don't log computed updates and don't print end-of-program warnings to stderr
-  - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -1041,6 +1059,20 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   : recursive file system walk is done in lexicographic order; default when `--no-overwrites`
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order; default when `--latest`
+
+- input loading:
+  - `--load-any`
+  : for each given input `PATH`, decide which loader to use based on its file extension; default
+  - `--load-wrr`
+  : load all inputs using the single-`WRR` per-file loader
+  - `--load-wrrb`
+  : load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too
+  - `--load-mitmproxy`
+  : load inputs using the `mitmproxy` dump loader
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
   - `--sniff-default`
@@ -1425,17 +1457,11 @@ In short, this is `hoardy-web organize --copy` for `INPUT` files that use differ
 
 Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
 
-- positional arguments:
-  - `PATH`
-  : inputs, can be a mix of files and directories (which will be traversed recursively)
-
 - options:
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
   : don't log computed updates and don't print end-of-program warnings to stderr
-  - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -1481,6 +1507,20 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
+
+- input loading:
+  - `--load-any`
+  : for each given input `PATH`, decide which loader to use based on its file extension; default
+  - `--load-wrr`
+  : load all inputs using the single-`WRR` per-file loader
+  - `--load-wrrb`
+  : load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too
+  - `--load-mitmproxy`
+  : load inputs using the `mitmproxy` dump loader
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
   - `--sniff-default`
@@ -1521,17 +1561,11 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
 
 Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
 
-- positional arguments:
-  - `PATH`
-  : inputs, can be a mix of files and directories (which will be traversed recursively)
-
 - options:
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
   : don't log computed updates and don't print end-of-program warnings to stderr
-  - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -1577,6 +1611,20 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
+
+- input loading:
+  - `--load-any`
+  : for each given input `PATH`, decide which loader to use based on its file extension; default
+  - `--load-wrr`
+  : load all inputs using the single-`WRR` per-file loader
+  - `--load-wrrb`
+  : load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too
+  - `--load-mitmproxy`
+  : load inputs using the `mitmproxy` dump loader
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
   - `--sniff-default`
@@ -1629,19 +1677,11 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
 
 In short, this sub-command generates static offline website mirrors, producing results similar to those of `wget -mpk`.
 
-- positional arguments:
-  - `PATH`
-  : inputs, can be a mix of files and directories (which will be traversed recursively)
-
 - options:
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
   : don't log computed updates and don't print end-of-program warnings to stderr
-  - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
-  - `--boring PATH`
-  : low-priority input `PATH`; boring `PATH`s will be processed after all `PATH`s specified as positional command-line arguments and those given via `--stdin0` and will not be queued as roots even when no `--root-*` options are specified
 
 - caching:
   - `--max-memory INT`
@@ -1669,6 +1709,22 @@ In short, this sub-command generates static offline website mirrors, producing r
   : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
+
+- input loading:
+  - `--load-any`
+  : for each given input `PATH`, decide which loader to use based on its file extension; default
+  - `--load-wrr`
+  : load all inputs using the single-`WRR` per-file loader
+  - `--load-wrrb`
+  : load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too
+  - `--load-mitmproxy`
+  : load inputs using the `mitmproxy` dump loader
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  - `--boring PATH`
+  : low-priority input `PATH`; boring `PATH`s will be processed after all `PATH`s specified as positional command-line arguments and those given via `--stdin0` and will not be queued as roots even when no `--root-*` options are specified
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content; also, higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
