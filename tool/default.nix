@@ -13,7 +13,7 @@ with pkgs.python3Packages;
 
 buildPythonApplication (rec {
   pname = "hoardy-web";
-  version = "0.17.0";
+  version = "0.18.0";
   format = "pyproject";
 
   inherit (source) src unpackPhase;

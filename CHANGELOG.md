@@ -6,6 +6,50 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is [a TODO list](#todo) with planned future changes.
 
+## [tool-v0.18.0] - 2024-11-20: Incremental improvements
+
+### Added
+
+- `export mirror`:
+
+  - Implemented the `--boring` option, which allows you to load some input `PATH`s without adding them as roots, even when no `--root-*` options are specified.
+
+    This make CLI a bit more convenient to use.
+    The [`README.md`](./tool/README.md) has a new example showcasing it.
+
+- `export mirror`, `scrub`:
+
+  - Implemented support for `@import` `CSS` rules using a string token in place of a URL.
+
+    As far as I can see, this syntax is rarely used in practice.
+    But the spec allows this, so.
+
+  - Implemented `interpret_noscript` option, which enables inlining of `noscript` tags when `scrub` is running with `-scripts`.
+
+    That is, `export mirror` will now use this feature by default.
+
+    This is needed because some websites put `link` tags with `CSS` under `noscript`, thus making such pages look broken when `scrub`bed with `-scripts` (which is the default) and then opened in a browser with scripts enabled.
+
+### Changed
+
+- `*`: Refactored/reworked a large chunk of internals, as a result:
+
+  - `organize` can now take `WRR` bundles as inputs too,
+  - `export mirror` became much faster at indexing inputs that contain archives of the same URLs, repeatedly.
+
+  In general, these changes are aimed towards making `hoardy-web` completely input-agnostic.
+  That is, wouldn't it be nice if you could feed `mitmproxy` files to `export mirror` directly, instead of going through `import mitmproxy` first?
+
+- `export mirror`, `scrub`:
+
+  - From now on, it will stop generating `link` tags with void URLs, it will simply censor them out instead.
+
+  - `scrub` with `+verbose` set will now also show original `rel` attr values for censored out tags.
+
+  - Also, in general, the outputs of `scrub` with `+verbose` set are much prettier now.
+
+- Improved documentation.
+
 ## [tool-v0.17.0] - 2024-11-09: Incremental improvements
 
 ### Added
@@ -1623,6 +1667,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.18.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.17.0...tool-v0.18.0
 [tool-v0.17.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.16.0...tool-v0.17.0
 [extension-v1.17.2]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.17.1...extension-v1.17.2
 [extension-v1.17.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.17.0...extension-v1.17.1
@@ -1703,13 +1748,11 @@ All planned features are complete now.
 ## `hoardy-web` tool
 
 - `scrub`:
-  - Handle `CSS` `@import`s.
   - Handle SRI things.
   - Handle CSP things.
 - `export mirror`:
   - Implement `export mirror --standalone`, which would inline all resources into each exported page, a-la `SingleFile`.
 - `*`:
-  - Allow most commands to take `WRR` bundles as inputs.
   - Implement automatic discernment of relatedness of `WRR` files (by URLs and similarity) and packing of related files into `WRR` bundles.
   - Maybe: Implement data de-duplication between `WRR` files.
   - Implement `un206` command, which would reassemble a bunch of `GET 206` `WRR` files into a single `GET 200` `WRR` file.
