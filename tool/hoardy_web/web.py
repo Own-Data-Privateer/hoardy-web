@@ -122,6 +122,7 @@ rel_attr = (None, "rel")
 src_attr = (None, "src")
 srcset_attr = (None, "srcset")
 style_attr = (None, "style")
+target_attr = (None, "target")
 
 # HTML elements that must preserve whitespace
 html_whitespace_preserve_tags = _h5ws.Filter.spacePreserveElements
@@ -586,6 +587,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         # `<base>` tag handling
         base_url = orig_base_url
         base_url_unset = True
+        base_target_unset = True
 
         def emit_censored_comment(what : str) -> _t.Iterator[HTML5Node]:
             yield {"type": "Comment", "data": f" hoardy-web censored out {what.replace('-->', '-- >')} from here "}
@@ -650,11 +652,9 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                     continue
 
                 # handle <base ...> tag
-                if base_url_unset and \
-                   nn == htmlns_base and \
-                   in_head:
-                    href = map_optional(lambda x: x.strip(), attrs.get(href_attr, None))
-                    if href is not None:
+                if nn == htmlns_base and in_head:
+                    href = map_optional(lambda x: x.strip(), attrs.pop(href_attr, None)) # NB: pop!
+                    if base_url_unset and href is not None:
                         # add root slash to the URL if it's missing one
                         purl = _up.urlsplit(href)
                         if purl.netloc != "" and purl.path == "":
@@ -667,8 +667,14 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         base_url = href
                         # can only be set once
                         base_url_unset = False
-                    # censor the original tag for simplicity
-                    censor = True
+
+                    target = map_optional(lambda x: x.strip(), attrs.get(target_attr, None)) # NB: get!
+                    if base_target_unset and target is not None:
+                        base_target_unset = False
+                        # and allow this tag to be emitted
+                    else:
+                        # censor the whole tag in this case
+                        censor = True
 
                 if not censor and nn == htmlns_meta and http_equiv_attr in attrs:
                     kind = attrs[http_equiv_attr].lower()

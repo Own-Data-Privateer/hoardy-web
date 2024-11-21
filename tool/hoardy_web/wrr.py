@@ -921,6 +921,9 @@ test_html_in1 = f"""<!DOCTYPE html>
   <head>
     <meta charset="utf-8">
     <base href="https://base.example.com">
+    <base target="_blank">
+    <base href="https://not-base.example.com">
+    <base target="_top">
     <title>Test page</title>
     <link as=script rel=preload href="https://asset.example.com/asset.js">
     <link as=script rel=preload href="base.js">
@@ -949,6 +952,7 @@ def test_ReqresExpr_scrub_html() -> None:
 <html>
   <head>
     <meta charset=utf-8>
+    <base target=_blank>
     <title>Test page</title>
   </head>
   <body>
@@ -959,6 +963,9 @@ def test_ReqresExpr_scrub_html() -> None:
 
     check_scrub("+verbose,+whitespace", "https://example.com/", "text/html", [], test_html_in1, """<!DOCTYPE html><html><head>
     <meta charset=utf-8>
+    <!-- hoardy-web censored out EmptyTag base from here -->
+    <base target=_blank>
+    <!-- hoardy-web censored out EmptyTag base from here -->
     <!-- hoardy-web censored out EmptyTag base from here -->
     <title>Test page</title>
     <!-- hoardy-web censored out EmptyTag link preload from here -->
@@ -1006,6 +1013,9 @@ body {
 <html>
   <head>
     <meta charset=utf-8>
+    <!-- hoardy-web censored out EmptyTag base from here -->
+    <base target=_blank>
+    <!-- hoardy-web censored out EmptyTag base from here -->
     <!-- hoardy-web censored out EmptyTag base from here -->
     <title>Test page</title>
     <!-- hoardy-web censored out EmptyTag meta from here -->
