@@ -21,8 +21,7 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
   - Implemented support for `@import` `CSS` rules using a string token in place of a URL.
 
-    As far as I can see, this syntax is rarely used in practice.
-    But the spec allows this, so.
+    As far as I can see, this syntax is rarely used in practice, but the spec allows this, so.
 
   - Implemented `interpret_noscript` option, which enables inlining of `noscript` tags when `scrub` is running with `-scripts`.
 
