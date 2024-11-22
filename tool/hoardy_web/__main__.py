@@ -87,7 +87,7 @@ def compile_filters(cargs : _t.Any) -> None:
 
 def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr[_t.Any]) -> bool:
     def eval_it(expr : str, func : LinstFunc) -> bool:
-        ev = func(rrexpr, None)
+        ev = rrexpr.eval_func(func)
         if not isinstance(ev, bool):
             e = CatastrophicFailure(gettext("while evaluating `%s`: expected a value of type `bool`, got `%s`"), expr, repr(ev))
             if rrexpr.fs_path is not None:
@@ -294,7 +294,7 @@ def print_exprs(rrexpr : ReqresExpr[_t.Any], exprs : list[tuple[str, LinstFunc]]
     not_first = False
     for expr, func in exprs:
         try:
-            data = get_bytes(func(rrexpr, None))
+            data = get_bytes(rrexpr.eval_func(func))
         except CatastrophicFailure as exc:
             exc.elaborate(gettext("while evaluating `%s`"), expr)
             raise exc
@@ -511,7 +511,7 @@ output_alias = {
 def output_example(name : str, indent : int) -> str:
     def gen(url : str) -> str:
         x = ReqresExpr(UnknownSource(), trivial_Reqres(parse_url(url)))
-        x.items["num"] = 0
+        x.values["num"] = 0
         return output_alias[name] % x
     return make_example(gen, indent)
 
@@ -524,7 +524,7 @@ def test_outputs_aliases() -> None:
     for name in output_alias:
         for url in example_url:
             x = mk(url)
-            x.items["num"] = 0
+            x.values["num"] = 0
             prefix = name + ":" + " " * (12 - len(name)) + " "
             current = output_alias[name] % x
             if prev != current:
@@ -1292,11 +1292,11 @@ def make_deferred_emit(cargs : _t.Any,
     def emit(new_rrexpr : ReqresExpr[DeferredSourceType]) -> None:
         if want_stop: raise KeyboardInterrupt()
 
-        new_rrexpr.items["num"] = 0
+        new_rrexpr.values["num"] = 0
         def_out_path = output_format % new_rrexpr
         prev_rel_out_path = None
         while True:
-            new_rrexpr.items["num"] = seen_counter.count(def_out_path)
+            new_rrexpr.values["num"] = seen_counter.count(def_out_path)
             if isinstance(destination, str):
                 rel_out_path = _os.path.join(destination, output_format % new_rrexpr)
             else:
@@ -1562,9 +1562,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 return abs_out_path
 
             rrexpr = self.rrexpr
-            rrexpr.items["num"] = 0
+            rrexpr.values["num"] = 0
             def_out_path = output_format % rrexpr
-            rrexpr.items["num"] = seen_counter.count(def_out_path)
+            rrexpr.values["num"] = seen_counter.count(def_out_path)
             rel_out_path = _os.path.join(destination, output_format % rrexpr)
             self._abs_out_path = abs_out_path = _os.path.abspath(rel_out_path)
             mem.consumption += len(abs_out_path)
@@ -1705,7 +1705,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
     def remap_url_fallback(stime : Epoch, expected_content_types : list[str], purl : ParsedURL) -> PathType:
         trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime, stime, stime))
-        trrexpr.items["num"] = 0
+        trrexpr.values["num"] = 0
         rel_out_path : PathType = _os.path.join(destination, output_format % trrexpr)
         return _os.path.abspath(rel_out_path)
 

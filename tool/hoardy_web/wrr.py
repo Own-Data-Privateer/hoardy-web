@@ -513,7 +513,7 @@ ReqresExpr_lookup = linst_custom_or_env(ReqresExpr_atoms)
 ReqresExpr_time_attrs = frozenset(["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"])
 
 @_dc.dataclass
-class ReqresExpr(DeferredSource, _t.Generic[DeferredSourceType]):
+class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType]):
     source : DeferredSourceType
 
     _reqres : Reqres | None
@@ -522,7 +522,8 @@ class ReqresExpr(DeferredSource, _t.Generic[DeferredSourceType]):
     sniff : SniffContentType = _dc.field(default=SniffContentType.NONE)
     remap_url : URLRemapper | None = _dc.field(default = None)
 
-    items : dict[str, _t.Any] = _dc.field(default_factory = dict)
+    def __post_init__(self) -> None:
+        LinstEvaluator.__init__(self, ReqresExpr_lookup)
 
     @property
     def reqres(self) -> Reqres:
@@ -544,13 +545,13 @@ class ReqresExpr(DeferredSource, _t.Generic[DeferredSourceType]):
             # this `reqres` is cheap to re-load
             self._reqres = None
         if completely:
-            self.items = dict()
+            self.values = dict()
 
     def approx_size(self) -> int:
         return 128 + \
             (self.source.approx_size() if self.source is not None else 0) + \
             (self._reqres.approx_size() if self._reqres is not None else 0) + \
-            sum(map(lambda k: len(k) + 16, self.items.keys()))
+            sum(map(lambda k: len(k) + 16, self.values.keys()))
 
     def show_source(self) -> str:
         return self.source.show_source()
@@ -570,22 +571,14 @@ class ReqresExpr(DeferredSource, _t.Generic[DeferredSourceType]):
 
     def _fill_time(self, prefix : str, ts : Epoch) -> None:
         dt = _time.gmtime(int(ts))
-        self.items[prefix + "year"] = dt.tm_year
-        self.items[prefix + "month"] = dt.tm_mon
-        self.items[prefix + "day"] = dt.tm_mday
-        self.items[prefix + "hour"] = dt.tm_hour
-        self.items[prefix + "minute"] = dt.tm_min
-        self.items[prefix + "second"] = dt.tm_sec
+        self.values[prefix + "year"] = dt.tm_year
+        self.values[prefix + "month"] = dt.tm_mon
+        self.values[prefix + "day"] = dt.tm_mday
+        self.values[prefix + "hour"] = dt.tm_hour
+        self.values[prefix + "minute"] = dt.tm_min
+        self.values[prefix + "second"] = dt.tm_sec
 
-    def get_value(self, name : str) -> _t.Any:
-        if name.startswith("."):
-            name = name[1:]
-
-        try:
-            return self.items[name]
-        except KeyError:
-            pass
-
+    def get_attr(self, name : str) -> _t.Any:
         if name == "fs_path":
             if isinstance(self.source, FileSource):
                 return self.source.path
@@ -594,16 +587,16 @@ class ReqresExpr(DeferredSource, _t.Generic[DeferredSourceType]):
 
         reqres = self.reqres
         if name == "method":
-            self.items[name] = reqres.request.method
+            self.values[name] = reqres.request.method
         elif name == "raw_url" or name == "request.url":
-            self.items[name] = reqres.request.url.raw_url
+            self.values[name] = reqres.request.url.raw_url
         elif (name.startswith("q") and \
               name[1:] in ReqresExpr_time_attrs):
             qtime = reqres.request.started_at
             qtime_ms = int(qtime * 1000)
-            self.items["qtime"] = qtime
-            self.items["qtime_ms"] = qtime_ms
-            self.items["qtime_msq"] = qtime_ms % 1000
+            self.values["qtime"] = qtime
+            self.values["qtime_ms"] = qtime_ms
+            self.values["qtime_msq"] = qtime_ms % 1000
             self._fill_time("q", qtime)
         elif (name.startswith("s") and \
               name[1:] in ReqresExpr_time_attrs) or \
@@ -623,18 +616,18 @@ class ReqresExpr(DeferredSource, _t.Generic[DeferredSourceType]):
                 stime = reqres.finished_at
                 status += "N"
             stime_ms = int(stime * 1000)
-            self.items["status"] = status
-            self.items["stime"] = stime
-            self.items["stime_ms"] = stime_ms
-            self.items["stime_msq"] = stime_ms % 1000
+            self.values["status"] = status
+            self.values["stime"] = stime
+            self.values["stime_ms"] = stime_ms
+            self.values["stime_msq"] = stime_ms % 1000
             self._fill_time("s", stime)
         elif (name.startswith("f") and \
               name[1:] in ReqresExpr_time_attrs):
             ftime = reqres.finished_at
             ftime_ms = int(ftime * 1000)
-            self.items["ftime"] = ftime
-            self.items["ftime_ms"] = ftime_ms
-            self.items["ftime_msq"] = ftime_ms % 1000
+            self.values["ftime"] = ftime
+            self.values["ftime_ms"] = ftime_ms
+            self.values["ftime_msq"] = ftime_ms % 1000
             self._fill_time("f", ftime)
         elif name == "filepath_parts" or name == "filepath_ext":
             if reqres.response is not None:
@@ -642,10 +635,10 @@ class ReqresExpr(DeferredSource, _t.Generic[DeferredSourceType]):
             else:
                 extensions = []
             parts, ext = reqres.request.url.filepath_parts_ext("index", extensions)
-            self.items["filepath_parts"] = parts
-            self.items["filepath_ext"] = ext
+            self.values["filepath_parts"] = parts
+            self.values["filepath_ext"] = ext
         elif name in ReqresExpr_url_attrs:
-            self.items[name] = getattr(reqres.request.url, name)
+            self.values[name] = getattr(reqres.request.url, name)
         elif name == "" or name in Reqres_fields:
             if name == "":
                 field = []
@@ -656,30 +649,14 @@ class ReqresExpr(DeferredSource, _t.Generic[DeferredSourceType]):
                 res = rec_get(self.reqres, field)
             except Failure:
                 res = None
-            self.items[name] = res
+            self.values[name] = res
         else:
             raise CatastrophicFailure("don't know how to derive `%s`", name)
 
         try:
-            return self.items[name]
+            return self.values[name]
         except KeyError:
             assert False
-
-    def __getattr__(self, name : str) -> _t.Any:
-        return self.get_value(name)
-
-    def __getitem__(self, expr : str) -> _t.Any:
-        # this is used in `format_string % self` expressions
-        try:
-            return self.items[expr]
-        except KeyError:
-            pass
-
-        func = linst_compile(expr, ReqresExpr_lookup)
-        res = func(self, None)
-        if res is None:
-            raise Failure("expression `%s` evaluated to `None`", expr)
-        return res
 
 def rrexpr_wrr_load(fobj : _io.BufferedReader, source : DeferredSourceType) -> ReqresExpr[DeferredSourceType]:
     return ReqresExpr(source, wrr_load(fobj))

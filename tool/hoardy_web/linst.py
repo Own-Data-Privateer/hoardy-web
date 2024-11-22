@@ -36,7 +36,8 @@ from kisstdlib.exceptions import *
 
 from .util import make_envfunc_pipe
 
-LinstFunc = _t.Callable[[_t.Any, _t.Any], _t.Any]
+LinstEnv = _t.Any # TODO: _t.Callable[[str], _t.Any]
+LinstFunc = _t.Callable[[LinstEnv, _t.Any], _t.Any]
 LinstAtom = tuple[list[type], _t.Callable[..., LinstFunc]]
 
 class LinstCompileError(Failure): pass
@@ -119,36 +120,36 @@ def linst_cast_val(v : _t.Any, arg : _t.Any) -> _t.Any:
 
 def linst_const(data : _t.Any) -> LinstAtom:
     def args0() -> _t.Callable[..., LinstFunc]:
-        def envfunc(env : _t.Any, v : _t.Any) -> _t.Any:
+        def envfunc(env : LinstEnv, v : _t.Any) -> _t.Any:
             return v if v is not None else data
         return envfunc
     return [], args0
 
 def linst_apply0(func : _t.Any) -> LinstAtom:
     def args0() -> _t.Callable[..., LinstFunc]:
-        def envfunc(env : _t.Any, v : _t.Any) -> _t.Any:
+        def envfunc(env : LinstEnv, v : _t.Any) -> _t.Any:
             return func(v)
         return envfunc
     return [], args0
 
 def linst_apply1(typ : _t.Any, func : _t.Any) -> LinstAtom:
     def args1(arg : _t.Any) -> _t.Callable[..., LinstFunc]:
-        def envfunc(env : _t.Any, v : _t.Any) -> _t.Any:
+        def envfunc(env : LinstEnv, v : _t.Any) -> _t.Any:
             return func(v, arg)
         return envfunc
     return [typ], args1
 
 def linst_apply2(typ1 : _t.Any, typ2 : _t.Any, func : _t.Any) -> LinstAtom:
     def args2(arg1 : _t.Any, arg2 : _t.Any) -> _t.Callable[..., LinstFunc]:
-        def envfunc(env : _t.Any, v : _t.Any) -> _t.Any:
+        def envfunc(env : LinstEnv, v : _t.Any) -> _t.Any:
             return func(v, arg1, arg2)
         return envfunc
     return [typ1, typ2], args2
 
 def linst_getenv(name : str) -> LinstAtom:
     def args0() -> _t.Callable[..., LinstFunc]:
-        def envfunc(env : _t.Any, v : _t.Any) -> _t.Any:
-            return v if v is not None else getattr(env, name)
+        def envfunc(env : LinstEnv, v : _t.Any) -> _t.Any:
+            return v if v is not None else env.get_value(name) # TODO: env(name)
         return envfunc
     return [], args0
 
@@ -162,7 +163,7 @@ def abbrev(v : _t.AnyStr, n : int) -> _t.AnyStr:
 
 def linst_re_match(arg : _t.Any) -> _t.Callable[..., LinstFunc]:
     rec = _re.compile(arg)
-    def envfunc(env : _t.Any, v : _t.Any) -> _t.Any:
+    def envfunc(env : LinstEnv, v : _t.Any) -> _t.Any:
         m = rec.match(v)
         if m:
             return True
@@ -253,3 +254,50 @@ def linst_custom_or_env(atoms : dict[str, tuple[str, LinstAtom]]) -> _t.Callable
     return atom_or_env
 
 linst_atom_or_env = linst_custom_or_env(linst_atoms)
+
+class LinstEvaluator:
+    lookup : _t.Callable[[str], LinstAtom]
+    values : dict[str, _t.Any]
+
+    def __init__(self, lookup : _t.Callable[[str], LinstAtom] = linst_atom_or_env, values : dict[str, _t.Any] | None = None) -> None:
+        self.lookup = lookup
+        if values is not None:
+            self.values = values
+        else:
+            self.values = dict()
+
+    def get_attr(self, name : str) -> _t.Any:
+        raise ValueError(name)
+
+    def get_value(self, name : str) -> _t.Any:
+        if name.startswith("."):
+            name = name[1:]
+
+        try:
+            return self.values[name]
+        except KeyError:
+            pass
+
+        return self.get_attr(name)
+
+    def __getattr__(self, name : str) -> _t.Any:
+        return self.get_value(name)
+
+    def eval_func(self, func : LinstFunc, v : _t.Any = None) -> _t.Any:
+        return func(self, v) # TODO: func(self.get_value, v)
+
+    def eval_expr(self, expr : str) -> _t.Any:
+        try:
+            return self.values[expr]
+        except KeyError:
+            pass
+
+        func = linst_compile(expr, self.lookup)
+        return func(self, None) # TODO: func(self.get_value, None)
+
+    def __getitem__(self, expr : str) -> _t.Any:
+        # this is used in `format_string % self` expressions
+        res = self.eval_expr(expr)
+        if res is None:
+            raise Failure("expression `%s` evaluated to `None`", expr)
+        return res
