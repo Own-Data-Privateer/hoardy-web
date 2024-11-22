@@ -1576,26 +1576,26 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             rrexpr.unload()
             mem.consumption += rrexpr.approx_size()
 
-    net_url_t : _t.TypeAlias = str
-    path_t : _t.TypeAlias = str
+    NetURLType : _t.TypeAlias = str
+    PathType : _t.TypeAlias = str
 
     # `Indexed` objects migrate from disk to `index`, from `index` to `queue`
     # or `new_queue`, from `new_queue` to `queue`, and from `queue` to `done`.
-    index : dict[net_url_t, Indexed] = dict()
-    Queue = _c.OrderedDict[net_url_t, Indexed]
+    index : dict[NetURLType, Indexed] = dict()
+    Queue = _c.OrderedDict[NetURLType, Indexed]
     queue : Queue = _c.OrderedDict()
-    done : dict[net_url_t, path_t] = dict()
+    done : dict[NetURLType, PathType] = dict()
 
     @_dc.dataclass
     class N:
         n : int
-    root_url : dict[str, N] = {}
-    root_url_prefix : dict[str, N] = {}
+    root_url : dict[NetURLType, N] = {}
+    root_url_prefix : dict[NetURLType, N] = {}
     @_dc.dataclass
     class CN:
         cre : _re.Pattern[_t.Any]
         n : int
-    root_url_re : dict[str, CN] = {}
+    root_url_re : dict[NetURLType, CN] = {}
 
     for url in cargs.root_url:
         net_url = parse_url(url).net_url
@@ -1609,11 +1609,25 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         cre = _re.compile(url_re)
         root_url_re[url_re] = CN(cre, 0)
 
-    have_root_url = len(root_url) > 0
-    have_root_url_prefix = len(root_url_prefix) > 0
-    have_root_url_re = len(root_url_re) > 0
+    def root_url_filters_allow(net_url : NetURLType, pretty_net_url : NetURLType) -> bool:
+        vu = root_url.get(net_url, None)
+        if vu is not None:
+            vu.n += 1
+            return True
 
-    def report_queued(net_url : str, pretty_net_url : str, level : int) -> None:
+        for pref, vp in root_url_prefix.items():
+            if net_url.startswith(pref):
+                vp.n += 1
+                return True
+
+        for re, vr in root_url_re.items():
+            if vr.cre.match(net_url) or vr.cre.match(pretty_net_url):
+                vr.n += 1
+                return True
+
+        return False
+
+    def report_queued(net_url : NetURLType, pretty_net_url : NetURLType, level : int) -> None:
         if stdout.isatty:
             stdout.write_bytes(b"\033[33m")
         durl = net_url if pretty_net_url == net_url else f"{net_url} ({pretty_net_url})"
@@ -1647,35 +1661,10 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 enqueue = True
                 queue[net_url] = iobj
             else:
-                enqueue = enqueue_all
-                pretty_net_url : str | None = None
-
-                if not enqueue and have_root_url:
-                    vu = root_url.get(net_url, None)
-                    if vu is not None:
-                        vu.n += 1
-                        enqueue = True
-
-                if not enqueue and have_root_url_prefix:
-                    for pref, vp in root_url_prefix.items():
-                        if not net_url.startswith(pref):
-                            continue
-                        vp.n += 1
-                        enqueue = True
-                        break
-
-                if not enqueue and have_root_url_re:
-                    pretty_net_url = rrexpr.pretty_net_url
-                    for re, vr in root_url_re.items():
-                        if not vr.cre.match(net_url) and not vr.cre.match(pretty_net_url):
-                            continue
-                        vr.n += 1
-                        enqueue = True
-                        break
-
-                if enqueue:
+                pretty_net_url = rrexpr.pretty_net_url
+                if enqueue_all or root_url_filters_allow(net_url, pretty_net_url):
                     queue[net_url] = iobj
-                    report_queued(net_url, rrexpr.pretty_net_url if pretty_net_url is None else pretty_net_url, 1)
+                    report_queued(net_url, pretty_net_url, 1)
 
             if not enqueue or mem.consumption > max_memory_mib:
                 iobj.unload()
@@ -1688,11 +1677,11 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         stdout.write_bytes(b"\033[0m")
     stdout.flush()
 
-    queue_all = not have_root_url and not have_root_url_prefix and not have_root_url_re
+    enqueue_all = len(root_url) == 0 and len(root_url_prefix) == 0 and len(root_url_re) == 0
 
     rrexprs_load = mk_rrexprs_load(cargs)
-    seen_paths : set[str] = set()
-    map_wrr_paths(cargs, rrexprs_load, collect(queue_all), cargs.paths, seen_paths=seen_paths)
+    seen_paths : set[PathType] = set()
+    map_wrr_paths(cargs, rrexprs_load, collect(enqueue_all), cargs.paths, seen_paths=seen_paths)
     map_wrr_paths(cargs, rrexprs_load, collect(False), cargs.boring, seen_paths=seen_paths)
 
     for url, vu in root_url.items():
@@ -1714,13 +1703,13 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         n = 0
         doc_n = 0
 
-    def remap_url_fallback(stime : Epoch, expected_content_types : list[str], purl : ParsedURL) -> str:
+    def remap_url_fallback(stime : Epoch, expected_content_types : list[str], purl : ParsedURL) -> PathType:
         trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime, stime, stime))
         trrexpr.items["num"] = 0
-        rel_out_path : str = _os.path.join(destination, output_format % trrexpr)
+        rel_out_path : PathType = _os.path.join(destination, output_format % trrexpr)
         return _os.path.abspath(rel_out_path)
 
-    def render(net_url : str,
+    def render(net_url : NetURLType,
                iobj : Indexed,
                enqueue : bool,
                new_queue : Queue,
@@ -1776,9 +1765,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 return
 
             document_dir = _os.path.dirname(abs_out_path)
-            known : set[str] = set() # for a better UI
+            known : set[NetURLType] = set() # for a better UI
 
-            def remap_url(link_type : LinkType, fallbacks : list[str] | None, url : str) -> str | None:
+            def remap_url(link_type : LinkType, fallbacks : list[str] | None, url : NetURLType) -> NetURLType | None:
                 if want_stop: raise KeyboardInterrupt()
 
                 try:
