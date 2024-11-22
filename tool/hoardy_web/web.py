@@ -225,7 +225,7 @@ def headers_to_meta_http_equiv(headers : Headers) -> _t.Iterator[HTML5Node]:
     # `protocol_encoding` below, so we ignore them here.
 
     # `Content-Security-Policy` can be specified multiple times.
-    for csph in get_headers(headers, "content-security-policy"):
+    for csph in get_header_values(headers, "content-security-policy"):
         yield from emit_http_eqiuv("content-security-policy", csph)
 
     # These headers should be inlined verbatim.
@@ -234,7 +234,7 @@ def headers_to_meta_http_equiv(headers : Headers) -> _t.Iterator[HTML5Node]:
             yield from emit_http_eqiuv(name, value.decode("ascii"))
 
     # `Link` can be specified multiple times.
-    for lh in get_headers(headers, "link"):
+    for lh in get_header_values(headers, "link"):
         yield from emit_http_eqiuv("link", lh)
 
 class RemapType(_enum.Enum):

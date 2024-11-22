@@ -43,11 +43,11 @@ from .web import *
 class RRCommon:
     _dtc : dict[SniffContentType, DiscernContentType]
 
-    def get_headers(self, name : str) -> list[str]:
-        return get_headers(self.headers, name) # type: ignore
+    def get_header_values(self, name : str) -> list[str]:
+        return get_header_values(self.headers, name) # type: ignore
 
-    def get_header(self, name : str, default : str | None = None) -> str | None:
-        return get_header(self.headers, name, default) # type: ignore
+    def get_header_value(self, name : str, default : str | None = None) -> str | None:
+        return get_header_value(self.headers, name, default) # type: ignore
 
     def discern_content_type(self, sniff : SniffContentType) -> DiscernContentType:
         """Run `mime.discern_content_type` on this."""
@@ -80,7 +80,7 @@ class Request(RRCommon):
             + sum(map(lambda x: len(x[0]) + len(x[1]), self.headers))
 
     def get_content_type(self) -> tuple[str, bool]:
-        ct = self.get_header("content-type", "application/x-www-form-urlencoded")
+        ct = self.get_header_value("content-type", "application/x-www-form-urlencoded")
         assert ct is not None
         return ct, False
 
@@ -98,9 +98,9 @@ class Response(RRCommon):
             + sum(map(lambda x: len(x[0]) + len(x[1]), self.headers))
 
     def get_content_type(self) -> tuple[str, bool]:
-        ct = self.get_header("content-type", "application/octet-stream")
+        ct = self.get_header_value("content-type", "application/octet-stream")
         assert ct is not None
-        ct_opts = self.get_header("x-content-type-options", "")
+        ct_opts = self.get_header_value("x-content-type-options", "")
         if ct_opts == "nosniff" or ct_opts == "no-sniff":
             sniff = False
         else:
