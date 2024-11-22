@@ -368,7 +368,10 @@ ReqresExpr_derived_attrs.update(ReqresExpr_url_attrs)
 ReqresExpr_derived_attrs.update({
     "status": '`"I"` or  `"C"` for `request.complete` (`I` for `false` , `C` for `true`) followed by either `"N"` when `response is None`, or `str(response.code)` followed by `"I"` or  `"C"` for `response.complete`; e.g. `C200C` (all "OK"), `CN` (request was sent, but it got no response), `I200C` (partial request with complete "OK" response), `C200I` (complete request with incomplete response, e.g. if download was interrupted), `C404C` (complete request with complete "Not Found" response), etc; str',
 
-    "filepath_parts": '`npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` `MIME` type; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
+    "request_mime": "`request.body` `MIME` type, note the underscore, this is not a field of `request`, this is a derived value that depends on `request` `Content-Type` header and `--sniff*` settings; str or None",
+    "response_mime": "`response.body` `MIME` type, note the underscore, this is not a field of `response`, this is a derived value that depends on `response` `Content-Type` header and `--sniff*` settings; str or None",
+
+    "filepath_parts": '`npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response_mime`; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
     "filepath_ext": 'extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str',
 })
 
@@ -629,6 +632,15 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
             self.values["ftime_ms"] = ftime_ms
             self.values["ftime_msq"] = ftime_ms % 1000
             self._fill_time("f", ftime)
+        elif name == "request_mime":
+            _, cmime, _, _= reqres.request.discern_content_type(self.sniff)
+            self.values[name] = cmime
+        elif name == "response_mime":
+            if reqres.response is None:
+                cmime = None
+            else:
+                _, cmime, _, _= reqres.response.discern_content_type(self.sniff)
+            self.values[name] = cmime
         elif name == "filepath_parts" or name == "filepath_ext":
             if reqres.response is not None:
                 _, _, _, extensions = reqres.response.discern_content_type(self.sniff)
