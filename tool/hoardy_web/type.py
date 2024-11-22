@@ -15,7 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import calendar as _calendar
 import decimal as _dec
+import re as _re
 import time as _time
 import typing as _t
 
@@ -27,6 +29,56 @@ class Epoch(_dec.Decimal):
 
     def __repr__(self) -> str:
         return f"<Epoch {self.format()}>"
+
+epoch_re = _re.compile(r"@(\d+)(?:\.(\d+))?")
+iso_epoch_re = _re.compile(r"(\d\d\d\d+)(?:-(\d+)(?:-(\d+)(?:(?:T|\s+)(\d+):(\d+)(?::(\d+)(?:\.(\d+))?)?\s*(?:([+-])(\d\d):?(\d\d))?)?)?)?")
+
+def parse_Epoch(value : str) -> Epoch:
+    m = epoch_re.match(value)
+    if m is not None:
+        hs_, qs = m.groups()
+        hs = int(hs_)
+    else:
+        m = iso_epoch_re.match(value)
+        if m is not None:
+            year, month, day, hour, minute, second, qs, sign, tzhour, tzminute = m.groups()
+            res = _time.struct_time((int(year) if year is not None else 1900,
+                                     int(month) if month is not None else 1,
+                                     int(day) if day is not None else 1,
+                                     int(hour) if hour is not None else 0,
+                                     int(minute) if minute is not None else 0,
+                                     int(second) if second is not None else 0,
+                                     0, 1, -1))
+            if tzhour is not None:
+                offset = 3600 * int(tzhour) + 60 * int(tzminute)
+                hs = _calendar.timegm(res) + (1 if sign == "+" else -1) * offset
+            else:
+                hs = int(_time.mktime(res))
+        else:
+            raise Failure("failed to parse `%s` as an Epoch value", value)
+
+    if qs is not None:
+        quotient = _dec.Decimal(int(qs)) / (10 ** len(qs))
+    else:
+        quotient = _dec.Decimal(0)
+    return Epoch(_dec.Decimal(hs) + quotient)
+
+def test_parse_Epoch() -> None:
+    def check(x : str, value : Epoch) -> None:
+        res = parse_Epoch(x)
+        if res != value:
+            raise CatastrophicFailure("while parsing `%s`, got %s, expected %s", x, res, value)
+
+    check("@123",                       Epoch(123))
+    check("@123.456",                   Epoch("123.456"))
+    check("2024",                       Epoch(1704067200))
+    check("2024-12",                    Epoch(1733011200))
+    check("2024-12-31",                 Epoch(1735603200))
+    check("2024-12-31 12:07",           Epoch(1735646820))
+    check("2024-12-31 12:07:16",        Epoch(1735646836))
+    check("2024-12-31 12:07:16.456",    Epoch("1735646836.456"))
+    check("2024-12-31 12:07:16 +0100",  Epoch(1735650436))
+    check("2024-12-31 12:07:16 -00:30", Epoch(1735645036))
 
 def fmt_epoch_diff(from_epoch : Epoch, to_epoch : Epoch) -> str:
     value = int((to_epoch - from_epoch) * 1000)
