@@ -24,8 +24,9 @@ import typing as _t
 from kisstdlib.exceptions import *
 
 class Epoch(_dec.Decimal):
-    def format(self, fmt : str = "%Y-%m-%d %H:%M:%S") -> str:
-        return _time.strftime(fmt, _time.localtime(int(self))) + "." + format(int(self * 1000) % 1000, "03")
+    def format(self, decimal : bool = True, fmt : str = "%Y-%m-%d %H:%M:%S") -> str:
+        return _time.strftime(fmt, _time.localtime(int(self))) + \
+            ("" if not decimal else "." + format(int(self * 1000) % 1000, "03"))
 
     def __repr__(self) -> str:
         return f"<Epoch {self.format()}>"
@@ -80,7 +81,7 @@ def test_parse_Epoch() -> None:
     check("2024-12-31 12:07:16 +0100",  Epoch(1735650436))
     check("2024-12-31 12:07:16 -00:30", Epoch(1735645036))
 
-def fmt_epoch_diff(from_epoch : Epoch, to_epoch : Epoch) -> str:
+def fmt_epoch_diff(from_epoch : Epoch, to_epoch : Epoch, decimal : bool = True) -> str:
     value = int((to_epoch - from_epoch) * 1000)
     hours = value // 3600000
     value = value % 3600000
@@ -88,10 +89,11 @@ def fmt_epoch_diff(from_epoch : Epoch, to_epoch : Epoch) -> str:
     value = value % 60000
     seconds = value // 1000
     value = value % 1000
-    return str(hours) + ":" + format(minutes, "02") + ":" + format(seconds, "02") + "." + format(value, "03")
+    return str(hours) + ":" + format(minutes, "02") + ":" + format(seconds, "02") + \
+        ("" if not decimal else "." + format(value, "03"))
 
-def fmt_epoch_interval(from_epoch : Epoch, to_epoch : Epoch) -> str:
-    return f"[{from_epoch.format()}]--[{to_epoch.format()}] => {fmt_epoch_diff(from_epoch, to_epoch)}"
+def fmt_epoch_interval(from_epoch : Epoch, to_epoch : Epoch, decimal : bool = True) -> str:
+    return f"[{from_epoch.format(decimal)}]--[{to_epoch.format(decimal)}] => {fmt_epoch_diff(from_epoch, to_epoch, decimal)}"
 
 def rec_get(obj : _t.Any, field : list[str]) -> _t.Any:
     if len(field) == 0:
