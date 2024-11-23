@@ -40,6 +40,7 @@ from kisstdlib.logging import *
 
 from .wrr import *
 from .output import *
+from .filter import *
 
 __prog__ = "hoardy-web"
 
@@ -75,38 +76,139 @@ def handle_signals() -> None:
     _signal.signal(_signal.SIGINT, sig_handler)
     _signal.signal(_signal.SIGTERM, sig_handler)
 
-def compile_filter(expr : str) -> tuple[str, LinstFunc]:
-    return (expr, linst_compile(expr, linst_atom_or_env))
+def pred_linst(expr : str, func : LinstFunc, rrexpr : ReqresExpr[_t.Any]) -> bool:
+    res = rrexpr.eval_func(func)
+    if isinstance(res, bool):
+        return res
+    else:
+        e = CatastrophicFailure(gettext("while evaluating `%s`: expected a value of type `bool`, got `%s`"), expr, repr(res))
+        e.elaborate(gettext("while processing `%s`"), rrexpr.source.show_source())
+        raise e
+
+def mk_linst_filter(get_attr : _t.Callable[[FilterNameType], list[str]],
+                    get_optname : _t.Callable[[FilterNameType], str],
+                    name : FilterNameType,
+                    yes : bool,
+                    matches : PredicateMatchesType[str, LinstFunc, ReqresExpr[_t.Any]]) \
+                    -> FilterType[ReqresExpr[_t.Any]]:
+    compiled = mk_conditions(str_id, lambda x: linst_compile(x, linst_atom_or_env), get_attr(name))
+    num = len(compiled)
+
+    def allows(v : ReqresExpr[_t.Any]) -> bool:
+        res = matches(pred_linst, compiled, v)
+        return res if yes else not res
+
+    def warn() -> None:
+        warn_redundant(get_optname(name), yes, compiled)
+
+    return num, allows, warn
+
+def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[ReqresExpr[_t.Any]]:
+    opt_prefix = attr_prefix.replace("_", "-")
+
+    def get_attr(x : str) -> _t.Any:
+        return getattr(cargs, attr_prefix + x)
+
+    def get_optname(x : str) -> str:
+        return f"--{opt_prefix}{x.replace('_', '-')}"
+
+    filters : list[FilterType[ReqresExpr[_t.Any]]] = []
+
+    def add_yn_epoch_filter(name : str, pred : _t.Callable[[str, Epoch, ReqresExpr[_t.Any]], bool]) -> None:
+        add_yn_filter(filters, get_attr, get_optname, name,
+                      mk_simple_filter, parse_Epoch, lambda c, v: matches_all(pred, c, v))
+
+    def is_before(k : _t.Any, stime : Epoch, rrexpr : ReqresExpr[_t.Any]) -> bool:
+        rrstime : Epoch = rrexpr.stime
+        return rrstime < stime
+
+    def is_after(k : _t.Any, stime : Epoch, rrexpr : ReqresExpr[_t.Any]) -> bool:
+        rrstime : Epoch = rrexpr.stime
+        return stime < rrstime
+
+    add_yn_epoch_filter("before", is_before)
+    add_yn_epoch_filter("after", is_after)
+
+    def add_yn_field_filter(name : str, field : str | None = None) -> None:
+        if field is None:
+            field = name
+
+        def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> StrFilterInputType:
+            value = rrexpr.get_value(field)
+            l = [ value ] if value is not None else []
+            return l, l
+
+        add_yn_filter(filters, get_attr, get_optname, name, mk_str_filter, str_id, str_id, get_inputs)
+
+    add_yn_field_filter("protocol")
+    add_yn_field_filter("request_method", "request.method")
+    add_yn_field_filter("status")
+
+    def neturlify(url : str) -> str:
+        return parse_url(url).net_url
+
+    def add_yn_url_filter(name : str) -> None:
+        def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> StrFilterInputType:
+            net_url = rrexpr.net_url
+            lnet_url = [net_url]
+            return lnet_url, lambda: [net_url, rrexpr.pretty_net_url]
+
+        add_yn_filter(filters, get_attr, get_optname, name, mk_str_filter, neturlify, neturlify, get_inputs)
+
+    add_yn_url_filter("url")
+
+    def add_yn_headers_grep_filter(name : str, field : str,
+                                   matches : PredicateMatchesType[str, PatternSB, IterSB]) -> None:
+        def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> IterSB:
+            value = rrexpr.get_value(field)
+            if value is not None:
+                return get_raw_headers(value)
+            return []
+
+        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)
+
+    def add_yn_field_grep_filter(name : str, field : str,
+                                 matches : PredicateMatchesType[str, PatternSB, IterSB]) -> None:
+        def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> list[str | bytes]:
+            value = rrexpr.get_value(field)
+            l = [ value ] if value is not None else []
+            return l
+
+        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)
+
+    def add_rr(side : str) -> None:
+        add_yn_headers_grep_filter(f"{side}_headers_or_grep", f"{side}.headers", matches_any)
+        add_yn_headers_grep_filter(f"{side}_headers_and_grep", f"{side}.headers", matches_all)
+        add_yn_field_filter(f"{side}_mime")
+        add_yn_field_grep_filter(f"{side}_body_or_grep", f"{side}.body", matches_any)
+        add_yn_field_grep_filter(f"{side}_body_and_grep", f"{side}.body", matches_all)
+
+    add_rr("request")
+    add_rr("response")
+
+    def add_yn_grep_filter(name : str, matches : PredicateMatchesType[str, PatternSB, IterSB]) -> None:
+        def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> list[str | bytes]:
+            res : list[str | bytes] = [ rrexpr.raw_url, rrexpr.url, rrexpr.pretty_url ]
+            reqres = rrexpr.reqres
+            res += get_raw_headers(reqres.request.headers)
+            res.append(reqres.request.body)
+            if reqres.response is not None:
+                res += get_raw_headers(reqres.response.headers)
+                res.append(reqres.response.body)
+            return res
+
+        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)
+
+    add_yn_grep_filter("or_grep", matches_any)
+    add_yn_grep_filter("and_grep", matches_all)
+
+    filters.append(mk_linst_filter(get_attr, get_optname, "and", True, matches_all))
+    filters.append(mk_linst_filter(get_attr, get_optname, "or", False, matches_any))
+
+    return merge_non_empty_filters(filters)
 
 def compile_expr(expr : str) -> tuple[str, LinstFunc]:
     return (expr, linst_compile(expr, ReqresExpr_lookup))
-
-def compile_filters(cargs : _t.Any) -> None:
-    cargs.alls = list(map(compile_filter, cargs.alls))
-    cargs.anys = list(map(compile_filter, cargs.anys))
-
-def filters_allow(cargs : _t.Any, rrexpr : ReqresExpr[_t.Any]) -> bool:
-    def eval_it(expr : str, func : LinstFunc) -> bool:
-        ev = rrexpr.eval_func(func)
-        if not isinstance(ev, bool):
-            e = CatastrophicFailure(gettext("while evaluating `%s`: expected a value of type `bool`, got `%s`"), expr, repr(ev))
-            if rrexpr.fs_path is not None:
-                e.elaborate(gettext("while processing `%s`"), rrexpr.fs_path)
-            raise e
-        return ev
-
-    for data in cargs.alls:
-        if not eval_it(*data):
-            return False
-
-    for data in cargs.anys:
-        if eval_it(*data):
-            return True
-
-    if len(cargs.anys) > 0:
-        return False
-    else:
-        return True
 
 def elaborate_output(cargs : _t.Any) -> None:
     if cargs.dry_run:
@@ -191,6 +293,7 @@ def load_map_orderly(load_func : LoadFFunc[_t.AnyStr, LoadResult],
 
 def map_wrr_paths(cargs : _t.Any,
                   loadf_func : LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]],
+                  filters_allow : _t.Callable[[ReqresExpr[_t.Any]], bool],
                   emit_func : EmitFunc[ReqresExpr[_t.Any]],
                   paths : list[_t.AnyStr],
                   **kwargs : _t.Any) -> None:
@@ -199,7 +302,8 @@ def map_wrr_paths(cargs : _t.Any,
             if want_stop: raise KeyboardInterrupt()
 
             rrexpr.sniff = cargs.sniff
-            if not filters_allow(cargs, rrexpr): return
+            if not filters_allow(rrexpr):
+                continue
             emit_func(rrexpr)
 
     global should_raise
@@ -280,14 +384,15 @@ def get_bytes(value : _t.Any) -> bytes:
         raise Failure(gettext("don't know how to print an expression of type `%s`"), type(value).__name__)
 
 def cmd_pprint(cargs : _t.Any) -> None:
-    compile_filters(cargs)
     handle_paths(cargs)
 
     def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
         wrr_pprint(stdout, rrexpr.reqres, rrexpr.source.show_source(), cargs.abridged, cargs.sniff)
         stdout.flush()
 
-    map_wrr_paths(cargs, mk_rrexprs_load(cargs), emit, cargs.paths)
+    _num, filters_allow, filters_warn = compile_filters(cargs)
+    map_wrr_paths(cargs, mk_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
+    filters_warn()
 
 def print_exprs(rrexpr : ReqresExpr[_t.Any], exprs : list[tuple[str, LinstFunc]],
                 separator : bytes, fobj : MinimalIOWriter) -> None:
@@ -382,7 +487,6 @@ def cmd_stream(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
 
-    compile_filters(cargs)
     handle_paths(cargs)
 
     stream = get_StreamEncoder(cargs)
@@ -397,14 +501,15 @@ def cmd_stream(cargs : _t.Any) -> None:
                 raise exc
         stream.emit(rrexpr.source.show_source(), cargs.exprs, values)
 
+    _num, filters_allow, filters_warn = compile_filters(cargs)
     stream.start()
     try:
-        map_wrr_paths(cargs, mk_rrexprs_load(cargs), emit, cargs.paths)
+        map_wrr_paths(cargs, mk_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
     finally:
         stream.finish()
+    filters_warn()
 
 def cmd_find(cargs : _t.Any) -> None:
-    compile_filters(cargs)
     handle_paths(cargs)
 
     def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
@@ -412,7 +517,9 @@ def cmd_find(cargs : _t.Any) -> None:
         stdout.write_bytes(cargs.terminator)
         stdout.flush()
 
-    map_wrr_paths(cargs, mk_rrexprs_load(cargs), emit, cargs.paths)
+    _num, filters_allow, filters_warn = compile_filters(cargs)
+    map_wrr_paths(cargs, mk_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
+    filters_warn()
 
 example_url = [
     "https://example.org",
@@ -1463,18 +1570,18 @@ def cmd_organize(cargs : _t.Any) -> None:
     if cargs.walk_fs == "unset":
         cargs.walk_fs = True if not cargs.allow_updates else False
 
-    compile_filters(cargs)
     elaborate_output(cargs)
     handle_paths(cargs)
 
     rrexprs_load = mk_rrexprs_load(cargs)
+    _num, filters_allow, filters_warn = compile_filters(cargs)
 
     emit : EmitFunc[ReqresExpr[FileSource]]
     if cargs.destination is not None:
         # destination is set explicitly
         emit, finish = make_organize_emit(cargs, _os.path.expanduser(cargs.destination), cargs.allow_updates)
         try:
-            map_wrr_paths(cargs, rrexprs_load, emit, cargs.paths)
+            map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, cargs.paths)
         finally:
             finish()
     else:
@@ -1494,22 +1601,27 @@ def cmd_organize(cargs : _t.Any) -> None:
         for exp_path in cargs.paths:
             emit, finish = make_organize_emit(cargs, exp_path, False)
             try:
-                map_wrr_paths(cargs, rrexprs_load, emit, [exp_path])
+                map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, [exp_path])
             finally:
                 finish()
 
+    filters_warn()
+
 def cmd_import_generic(cargs : _t.Any,
                        rrexprs_loadf : _t.Callable[[str | bytes], _t.Iterator[ReqresExpr[DeferredSourceType]]]) -> None:
-    compile_filters(cargs)
     elaborate_output(cargs)
     handle_paths(cargs)
+
+    _num, filters_allow, filters_warn = compile_filters(cargs)
 
     emit : EmitFunc[ReqresExpr[DeferredSourceType]]
     emit, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", DeferredFileWrite, cargs.allow_updates)
     try:
-        map_wrr_paths(cargs, rrexprs_loadf, emit, cargs.paths)
+        map_wrr_paths(cargs, rrexprs_loadf, filters_allow, emit, cargs.paths)
     finally:
         finish()
+
+    filters_warn()
 
 def cmd_import_bundle(cargs : _t.Any) -> None:
     cmd_import_generic(cargs, rrexprs_wrr_bundle_loadf)
@@ -1525,7 +1637,6 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
 
-    compile_filters(cargs)
     elaborate_output(cargs)
     handle_paths(cargs)
     elaborate_paths(cargs.boring)
@@ -1586,47 +1697,6 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     queue : Queue = _c.OrderedDict()
     done : dict[NetURLType, PathType] = dict()
 
-    @_dc.dataclass
-    class N:
-        n : int
-    root_url : dict[NetURLType, N] = {}
-    root_url_prefix : dict[NetURLType, N] = {}
-    @_dc.dataclass
-    class CN:
-        cre : _re.Pattern[_t.Any]
-        n : int
-    root_url_re : dict[NetURLType, CN] = {}
-
-    for url in cargs.root_url:
-        net_url = parse_url(url).net_url
-        root_url[net_url] = N(0)
-
-    for url_prefix in cargs.root_url_prefix:
-        net_url = parse_url(url_prefix).net_url
-        root_url_prefix[net_url] = N(0)
-
-    for url_re in cargs.root_url_re:
-        cre = _re.compile(url_re)
-        root_url_re[url_re] = CN(cre, 0)
-
-    def root_url_filters_allow(net_url : NetURLType, pretty_net_url : NetURLType) -> bool:
-        vu = root_url.get(net_url, None)
-        if vu is not None:
-            vu.n += 1
-            return True
-
-        for pref, vp in root_url_prefix.items():
-            if net_url.startswith(pref):
-                vp.n += 1
-                return True
-
-        for re, vr in root_url_re.items():
-            if vr.cre.match(net_url) or vr.cre.match(pretty_net_url):
-                vr.n += 1
-                return True
-
-        return False
-
     def report_queued(net_url : NetURLType, pretty_net_url : NetURLType, level : int) -> None:
         if stdout.isatty:
             stdout.write_bytes(b"\033[33m")
@@ -1636,6 +1706,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         if stdout.isatty:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
+
+    root_filters_num, root_filters_allow, root_filters_warn = compile_filters(cargs, "root_")
+    have_root_filters = root_filters_num > 0
 
     def collect(enqueue_all : bool) -> EmitFunc[ReqresExpr[DeferredSourceType]]:
         def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
@@ -1661,10 +1734,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 enqueue = True
                 queue[net_url] = iobj
             else:
-                pretty_net_url = rrexpr.pretty_net_url
-                if enqueue_all or root_url_filters_allow(net_url, pretty_net_url):
+                if enqueue_all or have_root_filters and root_filters_allow(rrexpr):
                     queue[net_url] = iobj
-                    report_queued(net_url, pretty_net_url, 1)
+                    report_queued(net_url, rrexpr.pretty_net_url, 1)
 
             if not enqueue or mem.consumption > max_memory_mib:
                 iobj.unload()
@@ -1677,24 +1749,12 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         stdout.write_bytes(b"\033[0m")
     stdout.flush()
 
-    enqueue_all = len(root_url) == 0 and len(root_url_prefix) == 0 and len(root_url_re) == 0
-
     rrexprs_load = mk_rrexprs_load(cargs)
+    _num, filters_allow, filters_warn = compile_filters(cargs)
+
     seen_paths : set[PathType] = set()
-    map_wrr_paths(cargs, rrexprs_load, collect(enqueue_all), cargs.paths, seen_paths=seen_paths)
-    map_wrr_paths(cargs, rrexprs_load, collect(False), cargs.boring, seen_paths=seen_paths)
-
-    for url, vu in root_url.items():
-        if vu.n == 0:
-            issue(gettext("`--root-url` `%s` was not found among candidates loaded from given input `PATH`s"), url)
-
-    for pref, vp in root_url_prefix.items():
-        if vp.n == 0:
-            issue(gettext("`--root-url-prefix` `%s` matched nothing among candidates loaded from given input `PATH`s"), url_prefix)
-
-    for re, vr in root_url_re.items():
-        if vr.n == 0:
-            issue(gettext("`--root-url-re` `%s` matched nothing among candidates loaded from given input `PATH`s"), url_re)
+    map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(not have_root_filters), cargs.paths, seen_paths=seen_paths)
+    map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(False), cargs.boring, seen_paths=seen_paths)
 
     total = len(index)
     depth : int = 0
@@ -1879,6 +1939,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         queue = new_queue
         depth += 1
 
+    filters_warn()
+    root_filters_warn()
+
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     _ : _t.Callable[[str], str] = gettext
 
@@ -1908,8 +1971,8 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f"{__prog__} run -n 2 -- diff -u ../simple_server/pwebarc-dump/path/to/file-v1.wrr ../simple_server/pwebarc-dump/path/to/file-v2.wrr")
     fmt.end_section()
 
-    fmt.start_section(_(f"List paths of all `WRR` files from `../simple_server/pwebarc-dump` that contain only complete `200 OK` responses with bodies larger than 1K"))
-    fmt.add_code(f"""{__prog__} find --and "status|~= .200C" --and "response.body|len|> 1024" ../simple_server/pwebarc-dump""")
+    fmt.start_section(_(f"""List paths of all `WRR` files from `../simple_server/pwebarc-dump` that contain complete `200 OK` responses with `text/html` bodies larger than 1K"""))
+    fmt.add_code(f"""{__prog__} find --status-re .200C --response-mime text/html --and "response.body|len|> 1024" ../simple_server/pwebarc-dump""")
     fmt.end_section()
 
     fmt.start_section(_(f"Rename all `WRR` files in `../simple_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `{__prog__} organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic)"))
@@ -1998,12 +2061,169 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
 - `skip`: report failure but skip the reqres that produced it from the output and continue
 - `ignore`: `skip`, but don't report the failure"""))
 
-    def add_filters(cmd : _t.Any, do_what : str) -> None:
-        grp = cmd.add_argument_group(f"input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `{__prog__} get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s")
-        grp.add_argument("--or", dest="anys", metavar="EXPR", action="append", type=str, default = [],
-                         help=_(f"only {do_what} reqres which match any of these expressions"))
-        grp.add_argument("--and", dest="alls", metavar="EXPR", action="append", type=str, default = [],
-                         help=_(f"only {do_what} reqres which match all of these expressions"))
+    date_spec = _("; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`")
+    date_spec_id = _("; the `DATE` format is the same as above")
+    fullmatch_re = _("; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`")
+    ie_whitelist = _("; in short, this option defines a whitelisted element rule")
+    ie_blacklist = _("; in short, this option defines a blacklisted element rule")
+
+    def add_filter_options(cmd : _t.Any) -> None:
+        agrp = cmd.add_argument_group("filtering options")
+        grp = agrp.add_mutually_exclusive_group()
+        grp.add_argument(f"--ignore-case", dest="ignore_case", action="store_const", const=True, help=_(f"when filtering with `--*grep*`, match case-insensitively"))
+        grp.add_argument(f"--case-sensitive", dest="ignore_case", action="store_const", const=False, help=_(f"when filtering with `--*grep*`, match case-sensitively"))
+        grp.add_argument(f"--smart-case", dest="ignore_case", action="store_const", const=None, help=_(f"when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default"))
+
+    def add_filters(cmd : _t.Any, do_what : str, root : bool = False) -> None:
+        if not root:
+            intro = gettext("input filters; if none are specified, then all reqres from input `PATH`s will be taken")
+            opt_prefix = ""
+            attr_prefix = ""
+            root_short = []
+        else:
+            intro = gettext("recursion root filters; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`)")
+            opt_prefix = "root-"
+            attr_prefix = "root_"
+            root_short = ["--root", "-r"]
+
+        agrp = cmd.add_argument_group(intro + gettext(f"""; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`"""))
+
+        def add_time_filter(opt : str, what : str, sub : str) -> None:
+            agrp.add_argument(f"--{opt_prefix}{opt}", metavar="DATE", action="append", type=str, default = [], help=_(f"{do_what} its `stime` is {what} than this") + sub)
+
+        add_time_filter("before", "smaller", date_spec)
+        add_time_filter("not-before", "larger or equal", date_spec_id)
+        add_time_filter("after", "larger", date_spec_id)
+        add_time_filter("not-after", "smaller or equal", date_spec_id)
+
+        def map_opts(suffix : str, *opts : str) -> list[str]:
+            return list(map(lambda opt: f"--{opt_prefix}{opt}{suffix}", opts))
+
+        def add_str_filter(opt : str, yes : bool,
+                           what : str, what_p : str, what_re : str,
+                           *,
+                           short : list[str] = [],
+                           abs_short : list[str] = [], abs_short_p : list[str] = [], abs_short_re : list[str] = [],
+                           sub : str = "", sub_p : str = "", sub_re : str = "") -> None:
+            metavar = opt.upper().replace("-", "_")
+            if yes:
+                one_of, is_equal_to, is_a_prefix, matches, wb = "one of", "is equal to", "is a prefix", "matches", ie_whitelist
+            else:
+                one_of, is_equal_to, is_a_prefix, matches, wb = "none of", "are equal to", "are a prefix", "match", ie_blacklist
+
+            agrp.add_argument(*map_opts("", opt, *short), *abs_short, metavar=metavar, action="append", type=str, default = [], help=_(f"{do_what} {one_of} the given `{metavar}` option arguments {is_equal_to} its {what}") + sub + wb)
+            agrp.add_argument(*map_opts("-prefix", opt, *short), *abs_short_p, metavar=f"{metavar}_PREFIX", action="append", type=str, default = [], help=_(f"{do_what} {one_of} the given `{metavar}_PREFIX` option arguments {is_a_prefix} of its {what_p}") + sub_p + wb)
+            agrp.add_argument(*map_opts("-re", opt, *short), *abs_short_re, metavar=f"{metavar}_RE", action="append", type=str, default = [], help=_(f"{do_what} {one_of} the given `{metavar}_RE` regular expressions {matches} its {what_re}") + sub_re + wb)
+
+        def add_yn_str_filter(opt : str, *args : _t.Any, **kwargs : _t.Any) -> None:
+            add_str_filter(opt, True, *args, **kwargs)
+            kwargs["short"] = map(lambda opt: "not-" + opt, kwargs.get("short", []))
+            add_str_filter("not-" + opt, False, *args, **kwargs)
+
+        def add_field_filter(opt : str, field : str, *args : _t.Any, **kwargs : _t.Any) -> None:
+            what = f"`{field}` (of `{__prog__} get --expr`, which see)"
+            kwargs["sub_re"] = kwargs["sub_re"] + " " + fullmatch_re if "sub_re" in kwargs else fullmatch_re
+            add_yn_str_filter(opt, what, what, what, *args, **kwargs)
+
+        add_field_filter("protocol", "protocol")
+        add_field_filter("request-method", "request.method", short = ["method"])
+        add_field_filter("status", "status")
+
+        mixed_url_allowed = (_("; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `%s` will be silently normalized into its Punycode UTS46 and percent-encoded version of `%s`, which will then be matched against") % (example_url[-1], example_url[-2])).replace('%', '%%')
+        similarly_allowed = _("; similarly to the previous option, arbitrary mixes of URL encodinds are allowed")
+        unmixed_reurl_allowed = _("; only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly")
+        same_allowed = _("; option argument format and caveats are idential to the `not-`less option above")
+
+        def add_url_filter(opt : str, field : str, yes : bool, **kwargs : _t.Any) -> None:
+            what = f"`{field}` (of `{__prog__} get --expr`, which see)"
+            add_str_filter(opt, yes,
+                           what, what,
+                           f"`{field}` or `pretty_{field}` (of `{__prog__} get --expr`, which see)",
+                           sub = mixed_url_allowed if yes else same_allowed,
+                           sub_p = similarly_allowed if yes else same_allowed,
+                           sub_re = unmixed_reurl_allowed + fullmatch_re if yes else same_allowed,
+                           **kwargs)
+
+        add_url_filter("url", "net_url", True, abs_short_p = root_short)
+        add_url_filter("not-url", "net_url", False)
+
+        def add_grep_filter(opt : str, metavar : str,
+                            what: str, what_re : str,
+                            short : list[str] = [], short_re : list[str] = [],
+                            sub : str = "", sub_re : str = "") -> None:
+            agrp.add_argument(*map_opts("", opt, *short), metavar=metavar, action="append", type=str, default = [], help=_(f"{do_what} {what}") + sub)
+            agrp.add_argument(*map_opts("-re", opt, *short), metavar=f"{metavar}_RE", action="append", type=str, default = [], help=_(f"{do_what} {what_re}") + sub_re)
+
+        grep_headers = _("; each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value")
+        grep_binary =  _("; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly")
+        def add_greps(prefix : str, opt : str, multi : bool, what : str, what_id : str, sub : str, sub_id : str) -> None:
+            if not multi:
+                mall, many, msome, mel = "", "", "", ""
+            else:
+                mall = "at least one of the elements of "
+                many = "any of the elements of "
+                msome = "some element of "
+                mel = "the elements of "
+
+            add_grep_filter(f"{prefix}or-{opt}", "OR_PATTERN",
+                            f"at least one of the given `OR_PATTERN` option arguments is a substring of {mall}{what}",
+                            f"at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of {mall}{what_id}",
+                            short = [f"{prefix}{opt}"],
+                            sub = sub + ie_whitelist, sub_re = sub_id + ie_whitelist)
+            add_grep_filter(f"not-{prefix}or-{opt}", "NOT_OR_PATTERN",
+                            f"none of the given `NOT_OR_PATTERN` option arguments are substrings of {many}{what_id}",
+                            f"none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of {many}{what_id}",
+                            short = [f"not-{prefix}{opt}"],
+                            sub = sub_id + ie_blacklist, sub_re = sub_id + ie_blacklist)
+
+            add_grep_filter(f"{prefix}and-{opt}", "AND_PATTERN",
+                            f"each of the given `AND_PATTERN` option arguments is a substring of {msome}{what_id}",
+                            f"each of the given `AND_PATTERN_RE` regular expressions matches a substring of {msome}{what_id}",
+                            sub = sub_id, sub_re = sub_id)
+            add_grep_filter(f"not-{prefix}and-{opt}", "NOT_AND_PATTERN",
+                            f"one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of {mel}{what_id}",
+                            f"one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of {mel}{what_id}",
+                            sub = sub_id, sub_re = sub_id)
+
+        example_mime = list(canonical_mime_of.items())[0]
+        mixed_mime_allowed = _("; both canonical and non-canonical MIME types are allowed; e.g., giving `%s` or `%s` will produce the same predicate") % (example_mime[0], example_mime[1])
+        unmixed_pmime_allowed = _("; given prefixes will only ever be matched against canonicalized MIME types")
+        unmixed_remime_allowed = _("; given regular expressions will only ever be matched against canonicalized MIME types")
+
+        def add_mime_filter(opt : str, side : str, yes : bool) -> None:
+            what = f"`{side}_mime` (of `{__prog__} get --expr`, which see)"
+            add_str_filter(opt, yes,
+                           what, what, what,
+                           sub = mixed_mime_allowed if yes else same_allowed,
+                           sub_p = unmixed_pmime_allowed if yes else same_allowed,
+                           sub_re = unmixed_remime_allowed + fullmatch_re if yes else same_allowed)
+
+        def add_rr_filter(side : str) -> None:
+            add_greps(f"{side}-headers-", "grep", True,
+                      f"the list containing all `{side}.headers` (of `{__prog__} get --expr`, which see)",
+                      "the above list",
+                      grep_headers + grep_binary, _("; matching caveats are the same as above"))
+
+            add_greps(f"{side}-body-", "grep", False,
+                      f"`{side}.body` (of `{__prog__} get --expr`, which see)",
+                      f"`{side}.body`",
+                      grep_binary, _("; matching caveats are the same as above"))
+
+            add_mime_filter(f"{side}-mime", side, True)
+            add_mime_filter(f"not-{side}-mime", side, False)
+
+        add_rr_filter("request")
+        add_rr_filter("response")
+
+        add_greps("", "grep", True,
+                  f"the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `{__prog__} get --expr`, which see)",
+                  "the above list",
+                  grep_headers + grep_binary, _("; matching caveats are the same as above"))
+
+        agrp.add_argument(f"--{opt_prefix}and", metavar="EXPR", action="append", type=str, default = [],
+                         help=_(f"{do_what} all of the given expressions of the same format as `{__prog__} get --expr` (which see) evaluate to `true`"))
+        agrp.add_argument(f"--{opt_prefix}or", metavar="EXPR", action="append", type=str, default = [],
+                         help=_(f"{do_what} some of the given expressions of the same format as `{__prog__} get --expr` (which see) evaluate to `true`"))
 
     def add_pure(cmd : _t.Any) -> None:
         cmd.add_argument("-q", "--quiet", action="store_true", help=_("don't print end-of-program warnings to stderr"))
@@ -2017,6 +2237,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         add_errors(cmd)
         add_paths(cmd, kind)
         add_sniff(cmd, kind)
+        add_filter_options(cmd)
         add_filters(cmd, filter_what)
 
     def add_abridged(cmd : _t.Any) -> None:
@@ -2419,12 +2640,7 @@ In short, this sub-command generates static offline website mirrors, producing r
 
     add_fileout(cmd, "export mirror")
 
-    everything_allowed = (_("; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `%s` will be silently normalized into its Punycode UTS46 and percent-encoded version of `%s` which will then be matched against `net_url` of each reqres") % (example_url[-1], example_url[-2])).replace('%', '%%')
-
-    agrp = cmd.add_argument_group("recursion roots; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`); all of these options can be specified multiple times in arbitrary combinations")
-    agrp.add_argument("--root-url", dest="root_url", metavar="URL", action="append", type=str, default = [], help=_("a URL to be used as one of the roots for recursive export") + everything_allowed)
-    agrp.add_argument("-r", "--root-url-prefix", "--root", dest="root_url_prefix", metavar="URL_PREFIX", action="append", type=str, default = [], help=_("a URL prefix for URLs that are to be used as roots for recursive export") + everything_allowed)
-    agrp.add_argument("--root-url-re", dest="root_url_re", metavar="URL_RE", action="append", type=str, default = [], help=_("a regular expression matching URLs that are to be used as roots for recursive export; the regular expression will be matched against `net_url` and `pretty_net` of each reqres, so only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed, but regular expressions using mixes of differently encoded parts will fail to match anything"))
+    add_filters(cmd, "take reqres as export root when", True)
 
     agrp = cmd.add_argument_group("recursion depth")
     agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
@@ -2436,7 +2652,7 @@ In short, this sub-command generates static offline website mirrors, producing r
     if cargs.help:
         if cargs.markdown:
             parser.set_formatter_class(argparse.MarkdownBetterHelpFormatter)
-            print(parser.format_help(4096))
+            print(parser.format_help(8192))
         else:
             print(parser.format_help())
         _sys.exit(0)
@@ -2465,6 +2681,8 @@ In short, this sub-command generates static offline website mirrors, producing r
     stdout.flush()
     stderr.flush()
 
+    if errorcnt.warnings > 0:
+        stderr.write_str_ln(ngettext("There was %d warning!", "There were %d warnings!", errorcnt.warnings) % (errorcnt.warnings,))
     if errorcnt.errors > 0:
         stderr.write_str_ln(ngettext("There was %d error!", "There were %d errors!", errorcnt.errors) % (errorcnt.errors,))
         _sys.exit(1)

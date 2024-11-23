@@ -751,7 +751,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                 # yes, this is actually allowed =/
                                 try:
                                     href_mime, href_params, href_data = parse_data_url(href)
-                                    href_mime = canonical_mime_of.get(href_mime, href_mime)
+                                    href_mime = canonicalize_mime(href_mime)
                                     if href_mime not in stylesheet_mime:
                                         raise ValueError("not a stylesheet")
                                     href_protocol_encoding = get_parameter(href_params, "charset", "utf-8")

@@ -250,14 +250,14 @@ hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
 hoardy-web organize --move --to ~/hoardy-web/raw ../simple_server/pwebarc-dump
 
 # and then organize them
-hoardy-web organize --symlink --latest --output hupq --to ~/hoardy-web/latest --and "status|~= .200C" ~/hoardy-web/raw
+hoardy-web organize --symlink --latest --output hupq --to ~/hoardy-web/latest --status-re .200C ~/hoardy-web/raw
 ```
 
 Personally, I prefer `flat_mhs` format (see the documentation of the `--output` below), as I dislike deep file hierarchies.
 Using it also simplifies filtering in my `ranger` file browser, so I do this:
 
 ```bash
-hoardy-web organize --symlink --latest --output flat_mhs --and "status|~= .200C" --to ~/hoardy-web/latest ~/hoardy-web/raw
+hoardy-web organize --symlink --latest --output flat_mhs --to ~/hoardy-web/latest --status-re .200C ~/hoardy-web/raw
 ```
 
 ### Update the tree incrementally, in real time
@@ -277,13 +277,13 @@ done > changes
 Then, you can reuse the paths saved in `changes` file to update the symlink tree, like in the above:
 
 ```
-hoardy-web organize --stdin0 --symlink --latest --output flat_mhs --and "status|~= .200C" --to ~/hoardy-web/latest ~/hoardy-web/raw < changes
+hoardy-web organize --symlink --latest --output flat_mhs --to ~/hoardy-web/latest --status-re .200C --stdin0 < changes
 ```
 
 Then, optionally, you can reuse `changes` file again to symlink all new files from `~/hoardy-web/raw` to `~/hoardy-web/all`, showing all URL versions, by using `--output hupq_msn` format:
 
 ```bash
-hoardy-web organize --stdin0 --symlink --output hupq_msn --to ~/hoardy-web/all < changes
+hoardy-web organize --symlink --output hupq_msn --to ~/hoardy-web/all --stdin0 < changes
 ```
 
 ## <span id="mirror"/>Generate a local offline static website mirror, similar to `wget -mpk`
@@ -581,11 +581,179 @@ Pretty-print given `WRR` files to stdout.
   - `--sniff-paranoid`
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
-- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only pretty-print reqres when reqres which match any of these expressions
+- filtering options:
+  - `--ignore-case`
+  : when filtering with `--*grep*`, match case-insensitively
+  - `--case-sensitive`
+  : when filtering with `--*grep*`, match case-sensitively
+  - `--smart-case`
+  : when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default
+
+- input filters; if none are specified, then all reqres from input `PATH`s will be taken; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
+  - `--before DATE`
+  : pretty-print reqres when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  - `--not-before DATE`
+  : pretty-print reqres when its `stime` is larger or equal than this; the `DATE` format is the same as above
+  - `--after DATE`
+  : pretty-print reqres when its `stime` is larger than this; the `DATE` format is the same as above
+  - `--not-after DATE`
+  : pretty-print reqres when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  - `--protocol PROTOCOL`
+  : pretty-print reqres when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-prefix PROTOCOL_PREFIX`
+  : pretty-print reqres when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-re PROTOCOL_RE`
+  : pretty-print reqres when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-protocol NOT_PROTOCOL`
+  : pretty-print reqres when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-prefix NOT_PROTOCOL_PREFIX`
+  : pretty-print reqres when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-re NOT_PROTOCOL_RE`
+  : pretty-print reqres when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--request-method REQUEST_METHOD, --method REQUEST_METHOD`
+  : pretty-print reqres when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-prefix REQUEST_METHOD_PREFIX, --method-prefix REQUEST_METHOD_PREFIX`
+  : pretty-print reqres when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-re REQUEST_METHOD_RE, --method-re REQUEST_METHOD_RE`
+  : pretty-print reqres when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-method NOT_REQUEST_METHOD, --not-method NOT_REQUEST_METHOD`
+  : pretty-print reqres when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-prefix NOT_REQUEST_METHOD_PREFIX`
+  : pretty-print reqres when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-re NOT_REQUEST_METHOD_RE`
+  : pretty-print reqres when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--status STATUS`
+  : pretty-print reqres when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-prefix STATUS_PREFIX`
+  : pretty-print reqres when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-re STATUS_RE`
+  : pretty-print reqres when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-status NOT_STATUS`
+  : pretty-print reqres when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-prefix NOT_STATUS_PREFIX`
+  : pretty-print reqres when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-re NOT_STATUS_RE`
+  : pretty-print reqres when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--url URL`
+  : pretty-print reqres when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
+  - `--url-prefix URL_PREFIX`
+  : pretty-print reqres when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
+  - `--url-re URL_RE`
+  : pretty-print reqres when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-url NOT_URL`
+  : pretty-print reqres when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-prefix NOT_URL_PREFIX`
+  : pretty-print reqres when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-re NOT_URL_RE`
+  : pretty-print reqres when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--request-headers-or-grep OR_PATTERN, --request-headers-grep OR_PATTERN`
+  : pretty-print reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-headers-or-grep-re OR_PATTERN_RE, --request-headers-grep-re OR_PATTERN_RE`
+  : pretty-print reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-headers-or-grep NOT_OR_PATTERN, --not-request-headers-grep NOT_OR_PATTERN`
+  : pretty-print reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-headers-or-grep-re NOT_OR_PATTERN_RE, --not-request-headers-grep-re NOT_OR_PATTERN_RE`
+  : pretty-print reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-headers-and-grep AND_PATTERN`
+  : pretty-print reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--request-headers-and-grep-re AND_PATTERN_RE`
+  : pretty-print reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep NOT_AND_PATTERN`
+  : pretty-print reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : pretty-print reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--request-body-or-grep OR_PATTERN, --request-body-grep OR_PATTERN`
+  : pretty-print reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-body-or-grep-re OR_PATTERN_RE, --request-body-grep-re OR_PATTERN_RE`
+  : pretty-print reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-body-or-grep NOT_OR_PATTERN, --not-request-body-grep NOT_OR_PATTERN`
+  : pretty-print reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-body-or-grep-re NOT_OR_PATTERN_RE, --not-request-body-grep-re NOT_OR_PATTERN_RE`
+  : pretty-print reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-body-and-grep AND_PATTERN`
+  : pretty-print reqres when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
+  - `--request-body-and-grep-re AND_PATTERN_RE`
+  : pretty-print reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep NOT_AND_PATTERN`
+  : pretty-print reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep-re NOT_AND_PATTERN_RE`
+  : pretty-print reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
+  - `--request-mime REQUEST_MIME`
+  : pretty-print reqres when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--request-mime-prefix REQUEST_MIME_PREFIX`
+  : pretty-print reqres when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--request-mime-re REQUEST_MIME_RE`
+  : pretty-print reqres when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-mime NOT_REQUEST_MIME`
+  : pretty-print reqres when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-prefix NOT_REQUEST_MIME_PREFIX`
+  : pretty-print reqres when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-re NOT_REQUEST_MIME_RE`
+  : pretty-print reqres when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--response-headers-or-grep OR_PATTERN, --response-headers-grep OR_PATTERN`
+  : pretty-print reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-headers-or-grep-re OR_PATTERN_RE, --response-headers-grep-re OR_PATTERN_RE`
+  : pretty-print reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-headers-or-grep NOT_OR_PATTERN, --not-response-headers-grep NOT_OR_PATTERN`
+  : pretty-print reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-headers-or-grep-re NOT_OR_PATTERN_RE, --not-response-headers-grep-re NOT_OR_PATTERN_RE`
+  : pretty-print reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-headers-and-grep AND_PATTERN`
+  : pretty-print reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--response-headers-and-grep-re AND_PATTERN_RE`
+  : pretty-print reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep NOT_AND_PATTERN`
+  : pretty-print reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : pretty-print reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--response-body-or-grep OR_PATTERN, --response-body-grep OR_PATTERN`
+  : pretty-print reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-body-or-grep-re OR_PATTERN_RE, --response-body-grep-re OR_PATTERN_RE`
+  : pretty-print reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-body-or-grep NOT_OR_PATTERN, --not-response-body-grep NOT_OR_PATTERN`
+  : pretty-print reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-body-or-grep-re NOT_OR_PATTERN_RE, --not-response-body-grep-re NOT_OR_PATTERN_RE`
+  : pretty-print reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-body-and-grep AND_PATTERN`
+  : pretty-print reqres when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
+  - `--response-body-and-grep-re AND_PATTERN_RE`
+  : pretty-print reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep NOT_AND_PATTERN`
+  : pretty-print reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep-re NOT_AND_PATTERN_RE`
+  : pretty-print reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
+  - `--response-mime RESPONSE_MIME`
+  : pretty-print reqres when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--response-mime-prefix RESPONSE_MIME_PREFIX`
+  : pretty-print reqres when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--response-mime-re RESPONSE_MIME_RE`
+  : pretty-print reqres when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-response-mime NOT_RESPONSE_MIME`
+  : pretty-print reqres when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-prefix NOT_RESPONSE_MIME_PREFIX`
+  : pretty-print reqres when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-re NOT_RESPONSE_MIME_RE`
+  : pretty-print reqres when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--or-grep OR_PATTERN, --grep OR_PATTERN`
+  : pretty-print reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--or-grep-re OR_PATTERN_RE, --grep-re OR_PATTERN_RE`
+  : pretty-print reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-or-grep NOT_OR_PATTERN, --not-grep NOT_OR_PATTERN`
+  : pretty-print reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-or-grep-re NOT_OR_PATTERN_RE, --not-grep-re NOT_OR_PATTERN_RE`
+  : pretty-print reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--and-grep AND_PATTERN`
+  : pretty-print reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--and-grep-re AND_PATTERN_RE`
+  : pretty-print reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-and-grep NOT_AND_PATTERN`
+  : pretty-print reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-and-grep-re NOT_AND_PATTERN_RE`
+  : pretty-print reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--and EXPR`
-  : only pretty-print reqres when reqres which match all of these expressions
+  : pretty-print reqres when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  - `--or EXPR`
+  : pretty-print reqres when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 ### hoardy-web get
 
@@ -919,11 +1087,179 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
   - `--sniff-paranoid`
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
-- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only stream-print reqres when reqres which match any of these expressions
+- filtering options:
+  - `--ignore-case`
+  : when filtering with `--*grep*`, match case-insensitively
+  - `--case-sensitive`
+  : when filtering with `--*grep*`, match case-sensitively
+  - `--smart-case`
+  : when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default
+
+- input filters; if none are specified, then all reqres from input `PATH`s will be taken; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
+  - `--before DATE`
+  : stream-print reqres when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  - `--not-before DATE`
+  : stream-print reqres when its `stime` is larger or equal than this; the `DATE` format is the same as above
+  - `--after DATE`
+  : stream-print reqres when its `stime` is larger than this; the `DATE` format is the same as above
+  - `--not-after DATE`
+  : stream-print reqres when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  - `--protocol PROTOCOL`
+  : stream-print reqres when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-prefix PROTOCOL_PREFIX`
+  : stream-print reqres when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-re PROTOCOL_RE`
+  : stream-print reqres when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-protocol NOT_PROTOCOL`
+  : stream-print reqres when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-prefix NOT_PROTOCOL_PREFIX`
+  : stream-print reqres when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-re NOT_PROTOCOL_RE`
+  : stream-print reqres when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--request-method REQUEST_METHOD, --method REQUEST_METHOD`
+  : stream-print reqres when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-prefix REQUEST_METHOD_PREFIX, --method-prefix REQUEST_METHOD_PREFIX`
+  : stream-print reqres when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-re REQUEST_METHOD_RE, --method-re REQUEST_METHOD_RE`
+  : stream-print reqres when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-method NOT_REQUEST_METHOD, --not-method NOT_REQUEST_METHOD`
+  : stream-print reqres when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-prefix NOT_REQUEST_METHOD_PREFIX`
+  : stream-print reqres when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-re NOT_REQUEST_METHOD_RE`
+  : stream-print reqres when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--status STATUS`
+  : stream-print reqres when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-prefix STATUS_PREFIX`
+  : stream-print reqres when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-re STATUS_RE`
+  : stream-print reqres when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-status NOT_STATUS`
+  : stream-print reqres when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-prefix NOT_STATUS_PREFIX`
+  : stream-print reqres when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-re NOT_STATUS_RE`
+  : stream-print reqres when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--url URL`
+  : stream-print reqres when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
+  - `--url-prefix URL_PREFIX`
+  : stream-print reqres when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
+  - `--url-re URL_RE`
+  : stream-print reqres when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-url NOT_URL`
+  : stream-print reqres when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-prefix NOT_URL_PREFIX`
+  : stream-print reqres when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-re NOT_URL_RE`
+  : stream-print reqres when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--request-headers-or-grep OR_PATTERN, --request-headers-grep OR_PATTERN`
+  : stream-print reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-headers-or-grep-re OR_PATTERN_RE, --request-headers-grep-re OR_PATTERN_RE`
+  : stream-print reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-headers-or-grep NOT_OR_PATTERN, --not-request-headers-grep NOT_OR_PATTERN`
+  : stream-print reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-headers-or-grep-re NOT_OR_PATTERN_RE, --not-request-headers-grep-re NOT_OR_PATTERN_RE`
+  : stream-print reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-headers-and-grep AND_PATTERN`
+  : stream-print reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--request-headers-and-grep-re AND_PATTERN_RE`
+  : stream-print reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep NOT_AND_PATTERN`
+  : stream-print reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : stream-print reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--request-body-or-grep OR_PATTERN, --request-body-grep OR_PATTERN`
+  : stream-print reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-body-or-grep-re OR_PATTERN_RE, --request-body-grep-re OR_PATTERN_RE`
+  : stream-print reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-body-or-grep NOT_OR_PATTERN, --not-request-body-grep NOT_OR_PATTERN`
+  : stream-print reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-body-or-grep-re NOT_OR_PATTERN_RE, --not-request-body-grep-re NOT_OR_PATTERN_RE`
+  : stream-print reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-body-and-grep AND_PATTERN`
+  : stream-print reqres when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
+  - `--request-body-and-grep-re AND_PATTERN_RE`
+  : stream-print reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep NOT_AND_PATTERN`
+  : stream-print reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep-re NOT_AND_PATTERN_RE`
+  : stream-print reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
+  - `--request-mime REQUEST_MIME`
+  : stream-print reqres when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--request-mime-prefix REQUEST_MIME_PREFIX`
+  : stream-print reqres when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--request-mime-re REQUEST_MIME_RE`
+  : stream-print reqres when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-mime NOT_REQUEST_MIME`
+  : stream-print reqres when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-prefix NOT_REQUEST_MIME_PREFIX`
+  : stream-print reqres when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-re NOT_REQUEST_MIME_RE`
+  : stream-print reqres when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--response-headers-or-grep OR_PATTERN, --response-headers-grep OR_PATTERN`
+  : stream-print reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-headers-or-grep-re OR_PATTERN_RE, --response-headers-grep-re OR_PATTERN_RE`
+  : stream-print reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-headers-or-grep NOT_OR_PATTERN, --not-response-headers-grep NOT_OR_PATTERN`
+  : stream-print reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-headers-or-grep-re NOT_OR_PATTERN_RE, --not-response-headers-grep-re NOT_OR_PATTERN_RE`
+  : stream-print reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-headers-and-grep AND_PATTERN`
+  : stream-print reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--response-headers-and-grep-re AND_PATTERN_RE`
+  : stream-print reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep NOT_AND_PATTERN`
+  : stream-print reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : stream-print reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--response-body-or-grep OR_PATTERN, --response-body-grep OR_PATTERN`
+  : stream-print reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-body-or-grep-re OR_PATTERN_RE, --response-body-grep-re OR_PATTERN_RE`
+  : stream-print reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-body-or-grep NOT_OR_PATTERN, --not-response-body-grep NOT_OR_PATTERN`
+  : stream-print reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-body-or-grep-re NOT_OR_PATTERN_RE, --not-response-body-grep-re NOT_OR_PATTERN_RE`
+  : stream-print reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-body-and-grep AND_PATTERN`
+  : stream-print reqres when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
+  - `--response-body-and-grep-re AND_PATTERN_RE`
+  : stream-print reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep NOT_AND_PATTERN`
+  : stream-print reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep-re NOT_AND_PATTERN_RE`
+  : stream-print reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
+  - `--response-mime RESPONSE_MIME`
+  : stream-print reqres when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--response-mime-prefix RESPONSE_MIME_PREFIX`
+  : stream-print reqres when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--response-mime-re RESPONSE_MIME_RE`
+  : stream-print reqres when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-response-mime NOT_RESPONSE_MIME`
+  : stream-print reqres when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-prefix NOT_RESPONSE_MIME_PREFIX`
+  : stream-print reqres when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-re NOT_RESPONSE_MIME_RE`
+  : stream-print reqres when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--or-grep OR_PATTERN, --grep OR_PATTERN`
+  : stream-print reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--or-grep-re OR_PATTERN_RE, --grep-re OR_PATTERN_RE`
+  : stream-print reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-or-grep NOT_OR_PATTERN, --not-grep NOT_OR_PATTERN`
+  : stream-print reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-or-grep-re NOT_OR_PATTERN_RE, --not-grep-re NOT_OR_PATTERN_RE`
+  : stream-print reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--and-grep AND_PATTERN`
+  : stream-print reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--and-grep-re AND_PATTERN_RE`
+  : stream-print reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-and-grep NOT_AND_PATTERN`
+  : stream-print reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-and-grep-re NOT_AND_PATTERN_RE`
+  : stream-print reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--and EXPR`
-  : only stream-print reqres when reqres which match all of these expressions
+  : stream-print reqres when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  - `--or EXPR`
+  : stream-print reqres when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
@@ -996,11 +1332,179 @@ Print paths of `WRR` files matching specified criteria.
   - `--sniff-paranoid`
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
-- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only print path of reqres when reqres which match any of these expressions
+- filtering options:
+  - `--ignore-case`
+  : when filtering with `--*grep*`, match case-insensitively
+  - `--case-sensitive`
+  : when filtering with `--*grep*`, match case-sensitively
+  - `--smart-case`
+  : when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default
+
+- input filters; if none are specified, then all reqres from input `PATH`s will be taken; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
+  - `--before DATE`
+  : print path of reqres when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  - `--not-before DATE`
+  : print path of reqres when its `stime` is larger or equal than this; the `DATE` format is the same as above
+  - `--after DATE`
+  : print path of reqres when its `stime` is larger than this; the `DATE` format is the same as above
+  - `--not-after DATE`
+  : print path of reqres when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  - `--protocol PROTOCOL`
+  : print path of reqres when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-prefix PROTOCOL_PREFIX`
+  : print path of reqres when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-re PROTOCOL_RE`
+  : print path of reqres when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-protocol NOT_PROTOCOL`
+  : print path of reqres when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-prefix NOT_PROTOCOL_PREFIX`
+  : print path of reqres when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-re NOT_PROTOCOL_RE`
+  : print path of reqres when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--request-method REQUEST_METHOD, --method REQUEST_METHOD`
+  : print path of reqres when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-prefix REQUEST_METHOD_PREFIX, --method-prefix REQUEST_METHOD_PREFIX`
+  : print path of reqres when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-re REQUEST_METHOD_RE, --method-re REQUEST_METHOD_RE`
+  : print path of reqres when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-method NOT_REQUEST_METHOD, --not-method NOT_REQUEST_METHOD`
+  : print path of reqres when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-prefix NOT_REQUEST_METHOD_PREFIX`
+  : print path of reqres when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-re NOT_REQUEST_METHOD_RE`
+  : print path of reqres when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--status STATUS`
+  : print path of reqres when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-prefix STATUS_PREFIX`
+  : print path of reqres when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-re STATUS_RE`
+  : print path of reqres when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-status NOT_STATUS`
+  : print path of reqres when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-prefix NOT_STATUS_PREFIX`
+  : print path of reqres when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-re NOT_STATUS_RE`
+  : print path of reqres when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--url URL`
+  : print path of reqres when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
+  - `--url-prefix URL_PREFIX`
+  : print path of reqres when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
+  - `--url-re URL_RE`
+  : print path of reqres when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-url NOT_URL`
+  : print path of reqres when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-prefix NOT_URL_PREFIX`
+  : print path of reqres when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-re NOT_URL_RE`
+  : print path of reqres when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--request-headers-or-grep OR_PATTERN, --request-headers-grep OR_PATTERN`
+  : print path of reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-headers-or-grep-re OR_PATTERN_RE, --request-headers-grep-re OR_PATTERN_RE`
+  : print path of reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-headers-or-grep NOT_OR_PATTERN, --not-request-headers-grep NOT_OR_PATTERN`
+  : print path of reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-headers-or-grep-re NOT_OR_PATTERN_RE, --not-request-headers-grep-re NOT_OR_PATTERN_RE`
+  : print path of reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-headers-and-grep AND_PATTERN`
+  : print path of reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--request-headers-and-grep-re AND_PATTERN_RE`
+  : print path of reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep NOT_AND_PATTERN`
+  : print path of reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : print path of reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--request-body-or-grep OR_PATTERN, --request-body-grep OR_PATTERN`
+  : print path of reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-body-or-grep-re OR_PATTERN_RE, --request-body-grep-re OR_PATTERN_RE`
+  : print path of reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-body-or-grep NOT_OR_PATTERN, --not-request-body-grep NOT_OR_PATTERN`
+  : print path of reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-body-or-grep-re NOT_OR_PATTERN_RE, --not-request-body-grep-re NOT_OR_PATTERN_RE`
+  : print path of reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-body-and-grep AND_PATTERN`
+  : print path of reqres when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
+  - `--request-body-and-grep-re AND_PATTERN_RE`
+  : print path of reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep NOT_AND_PATTERN`
+  : print path of reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep-re NOT_AND_PATTERN_RE`
+  : print path of reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
+  - `--request-mime REQUEST_MIME`
+  : print path of reqres when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--request-mime-prefix REQUEST_MIME_PREFIX`
+  : print path of reqres when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--request-mime-re REQUEST_MIME_RE`
+  : print path of reqres when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-mime NOT_REQUEST_MIME`
+  : print path of reqres when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-prefix NOT_REQUEST_MIME_PREFIX`
+  : print path of reqres when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-re NOT_REQUEST_MIME_RE`
+  : print path of reqres when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--response-headers-or-grep OR_PATTERN, --response-headers-grep OR_PATTERN`
+  : print path of reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-headers-or-grep-re OR_PATTERN_RE, --response-headers-grep-re OR_PATTERN_RE`
+  : print path of reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-headers-or-grep NOT_OR_PATTERN, --not-response-headers-grep NOT_OR_PATTERN`
+  : print path of reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-headers-or-grep-re NOT_OR_PATTERN_RE, --not-response-headers-grep-re NOT_OR_PATTERN_RE`
+  : print path of reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-headers-and-grep AND_PATTERN`
+  : print path of reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--response-headers-and-grep-re AND_PATTERN_RE`
+  : print path of reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep NOT_AND_PATTERN`
+  : print path of reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : print path of reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--response-body-or-grep OR_PATTERN, --response-body-grep OR_PATTERN`
+  : print path of reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-body-or-grep-re OR_PATTERN_RE, --response-body-grep-re OR_PATTERN_RE`
+  : print path of reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-body-or-grep NOT_OR_PATTERN, --not-response-body-grep NOT_OR_PATTERN`
+  : print path of reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-body-or-grep-re NOT_OR_PATTERN_RE, --not-response-body-grep-re NOT_OR_PATTERN_RE`
+  : print path of reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-body-and-grep AND_PATTERN`
+  : print path of reqres when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
+  - `--response-body-and-grep-re AND_PATTERN_RE`
+  : print path of reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep NOT_AND_PATTERN`
+  : print path of reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep-re NOT_AND_PATTERN_RE`
+  : print path of reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
+  - `--response-mime RESPONSE_MIME`
+  : print path of reqres when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--response-mime-prefix RESPONSE_MIME_PREFIX`
+  : print path of reqres when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--response-mime-re RESPONSE_MIME_RE`
+  : print path of reqres when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-response-mime NOT_RESPONSE_MIME`
+  : print path of reqres when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-prefix NOT_RESPONSE_MIME_PREFIX`
+  : print path of reqres when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-re NOT_RESPONSE_MIME_RE`
+  : print path of reqres when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--or-grep OR_PATTERN, --grep OR_PATTERN`
+  : print path of reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--or-grep-re OR_PATTERN_RE, --grep-re OR_PATTERN_RE`
+  : print path of reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-or-grep NOT_OR_PATTERN, --not-grep NOT_OR_PATTERN`
+  : print path of reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-or-grep-re NOT_OR_PATTERN_RE, --not-grep-re NOT_OR_PATTERN_RE`
+  : print path of reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--and-grep AND_PATTERN`
+  : print path of reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--and-grep-re AND_PATTERN_RE`
+  : print path of reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-and-grep NOT_AND_PATTERN`
+  : print path of reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-and-grep-re NOT_AND_PATTERN_RE`
+  : print path of reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--and EXPR`
-  : only print path of reqres when reqres which match all of these expressions
+  : print path of reqres when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  - `--or EXPR`
+  : print path of reqres when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 - found files printing:
   - `-l, --lf-terminated`
@@ -1088,11 +1592,179 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   - `--sniff-paranoid`
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
-- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only organize reqres when reqres which match any of these expressions
+- filtering options:
+  - `--ignore-case`
+  : when filtering with `--*grep*`, match case-insensitively
+  - `--case-sensitive`
+  : when filtering with `--*grep*`, match case-sensitively
+  - `--smart-case`
+  : when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default
+
+- input filters; if none are specified, then all reqres from input `PATH`s will be taken; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
+  - `--before DATE`
+  : organize reqres when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  - `--not-before DATE`
+  : organize reqres when its `stime` is larger or equal than this; the `DATE` format is the same as above
+  - `--after DATE`
+  : organize reqres when its `stime` is larger than this; the `DATE` format is the same as above
+  - `--not-after DATE`
+  : organize reqres when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  - `--protocol PROTOCOL`
+  : organize reqres when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-prefix PROTOCOL_PREFIX`
+  : organize reqres when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-re PROTOCOL_RE`
+  : organize reqres when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-protocol NOT_PROTOCOL`
+  : organize reqres when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-prefix NOT_PROTOCOL_PREFIX`
+  : organize reqres when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-re NOT_PROTOCOL_RE`
+  : organize reqres when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--request-method REQUEST_METHOD, --method REQUEST_METHOD`
+  : organize reqres when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-prefix REQUEST_METHOD_PREFIX, --method-prefix REQUEST_METHOD_PREFIX`
+  : organize reqres when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-re REQUEST_METHOD_RE, --method-re REQUEST_METHOD_RE`
+  : organize reqres when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-method NOT_REQUEST_METHOD, --not-method NOT_REQUEST_METHOD`
+  : organize reqres when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-prefix NOT_REQUEST_METHOD_PREFIX`
+  : organize reqres when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-re NOT_REQUEST_METHOD_RE`
+  : organize reqres when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--status STATUS`
+  : organize reqres when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-prefix STATUS_PREFIX`
+  : organize reqres when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-re STATUS_RE`
+  : organize reqres when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-status NOT_STATUS`
+  : organize reqres when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-prefix NOT_STATUS_PREFIX`
+  : organize reqres when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-re NOT_STATUS_RE`
+  : organize reqres when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--url URL`
+  : organize reqres when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
+  - `--url-prefix URL_PREFIX`
+  : organize reqres when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
+  - `--url-re URL_RE`
+  : organize reqres when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-url NOT_URL`
+  : organize reqres when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-prefix NOT_URL_PREFIX`
+  : organize reqres when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-re NOT_URL_RE`
+  : organize reqres when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--request-headers-or-grep OR_PATTERN, --request-headers-grep OR_PATTERN`
+  : organize reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-headers-or-grep-re OR_PATTERN_RE, --request-headers-grep-re OR_PATTERN_RE`
+  : organize reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-headers-or-grep NOT_OR_PATTERN, --not-request-headers-grep NOT_OR_PATTERN`
+  : organize reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-headers-or-grep-re NOT_OR_PATTERN_RE, --not-request-headers-grep-re NOT_OR_PATTERN_RE`
+  : organize reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-headers-and-grep AND_PATTERN`
+  : organize reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--request-headers-and-grep-re AND_PATTERN_RE`
+  : organize reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep NOT_AND_PATTERN`
+  : organize reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : organize reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--request-body-or-grep OR_PATTERN, --request-body-grep OR_PATTERN`
+  : organize reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-body-or-grep-re OR_PATTERN_RE, --request-body-grep-re OR_PATTERN_RE`
+  : organize reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-body-or-grep NOT_OR_PATTERN, --not-request-body-grep NOT_OR_PATTERN`
+  : organize reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-body-or-grep-re NOT_OR_PATTERN_RE, --not-request-body-grep-re NOT_OR_PATTERN_RE`
+  : organize reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-body-and-grep AND_PATTERN`
+  : organize reqres when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
+  - `--request-body-and-grep-re AND_PATTERN_RE`
+  : organize reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep NOT_AND_PATTERN`
+  : organize reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep-re NOT_AND_PATTERN_RE`
+  : organize reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
+  - `--request-mime REQUEST_MIME`
+  : organize reqres when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--request-mime-prefix REQUEST_MIME_PREFIX`
+  : organize reqres when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--request-mime-re REQUEST_MIME_RE`
+  : organize reqres when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-mime NOT_REQUEST_MIME`
+  : organize reqres when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-prefix NOT_REQUEST_MIME_PREFIX`
+  : organize reqres when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-re NOT_REQUEST_MIME_RE`
+  : organize reqres when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--response-headers-or-grep OR_PATTERN, --response-headers-grep OR_PATTERN`
+  : organize reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-headers-or-grep-re OR_PATTERN_RE, --response-headers-grep-re OR_PATTERN_RE`
+  : organize reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-headers-or-grep NOT_OR_PATTERN, --not-response-headers-grep NOT_OR_PATTERN`
+  : organize reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-headers-or-grep-re NOT_OR_PATTERN_RE, --not-response-headers-grep-re NOT_OR_PATTERN_RE`
+  : organize reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-headers-and-grep AND_PATTERN`
+  : organize reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--response-headers-and-grep-re AND_PATTERN_RE`
+  : organize reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep NOT_AND_PATTERN`
+  : organize reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : organize reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--response-body-or-grep OR_PATTERN, --response-body-grep OR_PATTERN`
+  : organize reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-body-or-grep-re OR_PATTERN_RE, --response-body-grep-re OR_PATTERN_RE`
+  : organize reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-body-or-grep NOT_OR_PATTERN, --not-response-body-grep NOT_OR_PATTERN`
+  : organize reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-body-or-grep-re NOT_OR_PATTERN_RE, --not-response-body-grep-re NOT_OR_PATTERN_RE`
+  : organize reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-body-and-grep AND_PATTERN`
+  : organize reqres when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
+  - `--response-body-and-grep-re AND_PATTERN_RE`
+  : organize reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep NOT_AND_PATTERN`
+  : organize reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep-re NOT_AND_PATTERN_RE`
+  : organize reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
+  - `--response-mime RESPONSE_MIME`
+  : organize reqres when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--response-mime-prefix RESPONSE_MIME_PREFIX`
+  : organize reqres when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--response-mime-re RESPONSE_MIME_RE`
+  : organize reqres when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-response-mime NOT_RESPONSE_MIME`
+  : organize reqres when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-prefix NOT_RESPONSE_MIME_PREFIX`
+  : organize reqres when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-re NOT_RESPONSE_MIME_RE`
+  : organize reqres when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--or-grep OR_PATTERN, --grep OR_PATTERN`
+  : organize reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--or-grep-re OR_PATTERN_RE, --grep-re OR_PATTERN_RE`
+  : organize reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-or-grep NOT_OR_PATTERN, --not-grep NOT_OR_PATTERN`
+  : organize reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-or-grep-re NOT_OR_PATTERN_RE, --not-grep-re NOT_OR_PATTERN_RE`
+  : organize reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--and-grep AND_PATTERN`
+  : organize reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--and-grep-re AND_PATTERN_RE`
+  : organize reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-and-grep NOT_AND_PATTERN`
+  : organize reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-and-grep-re NOT_AND_PATTERN_RE`
+  : organize reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--and EXPR`
-  : only organize reqres when reqres which match all of these expressions
+  : organize reqres when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  - `--or EXPR`
+  : organize reqres when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 - action:
   - `--move`
@@ -1536,11 +2208,179 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   - `--sniff-paranoid`
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
-- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only import reqres when reqres which match any of these expressions
+- filtering options:
+  - `--ignore-case`
+  : when filtering with `--*grep*`, match case-insensitively
+  - `--case-sensitive`
+  : when filtering with `--*grep*`, match case-sensitively
+  - `--smart-case`
+  : when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default
+
+- input filters; if none are specified, then all reqres from input `PATH`s will be taken; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
+  - `--before DATE`
+  : import reqres when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  - `--not-before DATE`
+  : import reqres when its `stime` is larger or equal than this; the `DATE` format is the same as above
+  - `--after DATE`
+  : import reqres when its `stime` is larger than this; the `DATE` format is the same as above
+  - `--not-after DATE`
+  : import reqres when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  - `--protocol PROTOCOL`
+  : import reqres when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-prefix PROTOCOL_PREFIX`
+  : import reqres when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-re PROTOCOL_RE`
+  : import reqres when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-protocol NOT_PROTOCOL`
+  : import reqres when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-prefix NOT_PROTOCOL_PREFIX`
+  : import reqres when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-re NOT_PROTOCOL_RE`
+  : import reqres when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--request-method REQUEST_METHOD, --method REQUEST_METHOD`
+  : import reqres when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-prefix REQUEST_METHOD_PREFIX, --method-prefix REQUEST_METHOD_PREFIX`
+  : import reqres when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-re REQUEST_METHOD_RE, --method-re REQUEST_METHOD_RE`
+  : import reqres when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-method NOT_REQUEST_METHOD, --not-method NOT_REQUEST_METHOD`
+  : import reqres when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-prefix NOT_REQUEST_METHOD_PREFIX`
+  : import reqres when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-re NOT_REQUEST_METHOD_RE`
+  : import reqres when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--status STATUS`
+  : import reqres when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-prefix STATUS_PREFIX`
+  : import reqres when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-re STATUS_RE`
+  : import reqres when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-status NOT_STATUS`
+  : import reqres when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-prefix NOT_STATUS_PREFIX`
+  : import reqres when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-re NOT_STATUS_RE`
+  : import reqres when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--url URL`
+  : import reqres when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
+  - `--url-prefix URL_PREFIX`
+  : import reqres when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
+  - `--url-re URL_RE`
+  : import reqres when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-url NOT_URL`
+  : import reqres when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-prefix NOT_URL_PREFIX`
+  : import reqres when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-re NOT_URL_RE`
+  : import reqres when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--request-headers-or-grep OR_PATTERN, --request-headers-grep OR_PATTERN`
+  : import reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-headers-or-grep-re OR_PATTERN_RE, --request-headers-grep-re OR_PATTERN_RE`
+  : import reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-headers-or-grep NOT_OR_PATTERN, --not-request-headers-grep NOT_OR_PATTERN`
+  : import reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-headers-or-grep-re NOT_OR_PATTERN_RE, --not-request-headers-grep-re NOT_OR_PATTERN_RE`
+  : import reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-headers-and-grep AND_PATTERN`
+  : import reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--request-headers-and-grep-re AND_PATTERN_RE`
+  : import reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep NOT_AND_PATTERN`
+  : import reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : import reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--request-body-or-grep OR_PATTERN, --request-body-grep OR_PATTERN`
+  : import reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-body-or-grep-re OR_PATTERN_RE, --request-body-grep-re OR_PATTERN_RE`
+  : import reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-body-or-grep NOT_OR_PATTERN, --not-request-body-grep NOT_OR_PATTERN`
+  : import reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-body-or-grep-re NOT_OR_PATTERN_RE, --not-request-body-grep-re NOT_OR_PATTERN_RE`
+  : import reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-body-and-grep AND_PATTERN`
+  : import reqres when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
+  - `--request-body-and-grep-re AND_PATTERN_RE`
+  : import reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep NOT_AND_PATTERN`
+  : import reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep-re NOT_AND_PATTERN_RE`
+  : import reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
+  - `--request-mime REQUEST_MIME`
+  : import reqres when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--request-mime-prefix REQUEST_MIME_PREFIX`
+  : import reqres when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--request-mime-re REQUEST_MIME_RE`
+  : import reqres when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-mime NOT_REQUEST_MIME`
+  : import reqres when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-prefix NOT_REQUEST_MIME_PREFIX`
+  : import reqres when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-re NOT_REQUEST_MIME_RE`
+  : import reqres when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--response-headers-or-grep OR_PATTERN, --response-headers-grep OR_PATTERN`
+  : import reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-headers-or-grep-re OR_PATTERN_RE, --response-headers-grep-re OR_PATTERN_RE`
+  : import reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-headers-or-grep NOT_OR_PATTERN, --not-response-headers-grep NOT_OR_PATTERN`
+  : import reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-headers-or-grep-re NOT_OR_PATTERN_RE, --not-response-headers-grep-re NOT_OR_PATTERN_RE`
+  : import reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-headers-and-grep AND_PATTERN`
+  : import reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--response-headers-and-grep-re AND_PATTERN_RE`
+  : import reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep NOT_AND_PATTERN`
+  : import reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : import reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--response-body-or-grep OR_PATTERN, --response-body-grep OR_PATTERN`
+  : import reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-body-or-grep-re OR_PATTERN_RE, --response-body-grep-re OR_PATTERN_RE`
+  : import reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-body-or-grep NOT_OR_PATTERN, --not-response-body-grep NOT_OR_PATTERN`
+  : import reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-body-or-grep-re NOT_OR_PATTERN_RE, --not-response-body-grep-re NOT_OR_PATTERN_RE`
+  : import reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-body-and-grep AND_PATTERN`
+  : import reqres when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
+  - `--response-body-and-grep-re AND_PATTERN_RE`
+  : import reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep NOT_AND_PATTERN`
+  : import reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep-re NOT_AND_PATTERN_RE`
+  : import reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
+  - `--response-mime RESPONSE_MIME`
+  : import reqres when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--response-mime-prefix RESPONSE_MIME_PREFIX`
+  : import reqres when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--response-mime-re RESPONSE_MIME_RE`
+  : import reqres when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-response-mime NOT_RESPONSE_MIME`
+  : import reqres when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-prefix NOT_RESPONSE_MIME_PREFIX`
+  : import reqres when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-re NOT_RESPONSE_MIME_RE`
+  : import reqres when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--or-grep OR_PATTERN, --grep OR_PATTERN`
+  : import reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--or-grep-re OR_PATTERN_RE, --grep-re OR_PATTERN_RE`
+  : import reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-or-grep NOT_OR_PATTERN, --not-grep NOT_OR_PATTERN`
+  : import reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-or-grep-re NOT_OR_PATTERN_RE, --not-grep-re NOT_OR_PATTERN_RE`
+  : import reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--and-grep AND_PATTERN`
+  : import reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--and-grep-re AND_PATTERN_RE`
+  : import reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-and-grep NOT_AND_PATTERN`
+  : import reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-and-grep-re NOT_AND_PATTERN_RE`
+  : import reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--and EXPR`
-  : only import reqres when reqres which match all of these expressions
+  : import reqres when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  - `--or EXPR`
+  : import reqres when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 - file outputs:
   - `-t DESTINATION, --to DESTINATION`
@@ -1640,11 +2480,179 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `--sniff-paranoid`
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
-- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only import reqres when reqres which match any of these expressions
+- filtering options:
+  - `--ignore-case`
+  : when filtering with `--*grep*`, match case-insensitively
+  - `--case-sensitive`
+  : when filtering with `--*grep*`, match case-sensitively
+  - `--smart-case`
+  : when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default
+
+- input filters; if none are specified, then all reqres from input `PATH`s will be taken; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
+  - `--before DATE`
+  : import reqres when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  - `--not-before DATE`
+  : import reqres when its `stime` is larger or equal than this; the `DATE` format is the same as above
+  - `--after DATE`
+  : import reqres when its `stime` is larger than this; the `DATE` format is the same as above
+  - `--not-after DATE`
+  : import reqres when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  - `--protocol PROTOCOL`
+  : import reqres when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-prefix PROTOCOL_PREFIX`
+  : import reqres when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-re PROTOCOL_RE`
+  : import reqres when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-protocol NOT_PROTOCOL`
+  : import reqres when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-prefix NOT_PROTOCOL_PREFIX`
+  : import reqres when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-re NOT_PROTOCOL_RE`
+  : import reqres when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--request-method REQUEST_METHOD, --method REQUEST_METHOD`
+  : import reqres when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-prefix REQUEST_METHOD_PREFIX, --method-prefix REQUEST_METHOD_PREFIX`
+  : import reqres when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-re REQUEST_METHOD_RE, --method-re REQUEST_METHOD_RE`
+  : import reqres when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-method NOT_REQUEST_METHOD, --not-method NOT_REQUEST_METHOD`
+  : import reqres when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-prefix NOT_REQUEST_METHOD_PREFIX`
+  : import reqres when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-re NOT_REQUEST_METHOD_RE`
+  : import reqres when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--status STATUS`
+  : import reqres when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-prefix STATUS_PREFIX`
+  : import reqres when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-re STATUS_RE`
+  : import reqres when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-status NOT_STATUS`
+  : import reqres when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-prefix NOT_STATUS_PREFIX`
+  : import reqres when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-re NOT_STATUS_RE`
+  : import reqres when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--url URL`
+  : import reqres when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
+  - `--url-prefix URL_PREFIX`
+  : import reqres when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
+  - `--url-re URL_RE`
+  : import reqres when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-url NOT_URL`
+  : import reqres when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-prefix NOT_URL_PREFIX`
+  : import reqres when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-re NOT_URL_RE`
+  : import reqres when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--request-headers-or-grep OR_PATTERN, --request-headers-grep OR_PATTERN`
+  : import reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-headers-or-grep-re OR_PATTERN_RE, --request-headers-grep-re OR_PATTERN_RE`
+  : import reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-headers-or-grep NOT_OR_PATTERN, --not-request-headers-grep NOT_OR_PATTERN`
+  : import reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-headers-or-grep-re NOT_OR_PATTERN_RE, --not-request-headers-grep-re NOT_OR_PATTERN_RE`
+  : import reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-headers-and-grep AND_PATTERN`
+  : import reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--request-headers-and-grep-re AND_PATTERN_RE`
+  : import reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep NOT_AND_PATTERN`
+  : import reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : import reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--request-body-or-grep OR_PATTERN, --request-body-grep OR_PATTERN`
+  : import reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-body-or-grep-re OR_PATTERN_RE, --request-body-grep-re OR_PATTERN_RE`
+  : import reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-body-or-grep NOT_OR_PATTERN, --not-request-body-grep NOT_OR_PATTERN`
+  : import reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-body-or-grep-re NOT_OR_PATTERN_RE, --not-request-body-grep-re NOT_OR_PATTERN_RE`
+  : import reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-body-and-grep AND_PATTERN`
+  : import reqres when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
+  - `--request-body-and-grep-re AND_PATTERN_RE`
+  : import reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep NOT_AND_PATTERN`
+  : import reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep-re NOT_AND_PATTERN_RE`
+  : import reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
+  - `--request-mime REQUEST_MIME`
+  : import reqres when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--request-mime-prefix REQUEST_MIME_PREFIX`
+  : import reqres when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--request-mime-re REQUEST_MIME_RE`
+  : import reqres when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-mime NOT_REQUEST_MIME`
+  : import reqres when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-prefix NOT_REQUEST_MIME_PREFIX`
+  : import reqres when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-re NOT_REQUEST_MIME_RE`
+  : import reqres when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--response-headers-or-grep OR_PATTERN, --response-headers-grep OR_PATTERN`
+  : import reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-headers-or-grep-re OR_PATTERN_RE, --response-headers-grep-re OR_PATTERN_RE`
+  : import reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-headers-or-grep NOT_OR_PATTERN, --not-response-headers-grep NOT_OR_PATTERN`
+  : import reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-headers-or-grep-re NOT_OR_PATTERN_RE, --not-response-headers-grep-re NOT_OR_PATTERN_RE`
+  : import reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-headers-and-grep AND_PATTERN`
+  : import reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--response-headers-and-grep-re AND_PATTERN_RE`
+  : import reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep NOT_AND_PATTERN`
+  : import reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : import reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--response-body-or-grep OR_PATTERN, --response-body-grep OR_PATTERN`
+  : import reqres when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-body-or-grep-re OR_PATTERN_RE, --response-body-grep-re OR_PATTERN_RE`
+  : import reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-body-or-grep NOT_OR_PATTERN, --not-response-body-grep NOT_OR_PATTERN`
+  : import reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-body-or-grep-re NOT_OR_PATTERN_RE, --not-response-body-grep-re NOT_OR_PATTERN_RE`
+  : import reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-body-and-grep AND_PATTERN`
+  : import reqres when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
+  - `--response-body-and-grep-re AND_PATTERN_RE`
+  : import reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep NOT_AND_PATTERN`
+  : import reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep-re NOT_AND_PATTERN_RE`
+  : import reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
+  - `--response-mime RESPONSE_MIME`
+  : import reqres when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--response-mime-prefix RESPONSE_MIME_PREFIX`
+  : import reqres when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--response-mime-re RESPONSE_MIME_RE`
+  : import reqres when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-response-mime NOT_RESPONSE_MIME`
+  : import reqres when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-prefix NOT_RESPONSE_MIME_PREFIX`
+  : import reqres when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-re NOT_RESPONSE_MIME_RE`
+  : import reqres when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--or-grep OR_PATTERN, --grep OR_PATTERN`
+  : import reqres when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--or-grep-re OR_PATTERN_RE, --grep-re OR_PATTERN_RE`
+  : import reqres when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-or-grep NOT_OR_PATTERN, --not-grep NOT_OR_PATTERN`
+  : import reqres when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-or-grep-re NOT_OR_PATTERN_RE, --not-grep-re NOT_OR_PATTERN_RE`
+  : import reqres when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--and-grep AND_PATTERN`
+  : import reqres when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--and-grep-re AND_PATTERN_RE`
+  : import reqres when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-and-grep NOT_AND_PATTERN`
+  : import reqres when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-and-grep-re NOT_AND_PATTERN_RE`
+  : import reqres when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--and EXPR`
-  : only import reqres when reqres which match all of these expressions
+  : import reqres when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  - `--or EXPR`
+  : import reqres when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 - file outputs:
   - `-t DESTINATION, --to DESTINATION`
@@ -1740,11 +2748,179 @@ In short, this sub-command generates static offline website mirrors, producing r
   - `--sniff-paranoid`
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
-- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only consider reqres for export when reqres which match any of these expressions
+- filtering options:
+  - `--ignore-case`
+  : when filtering with `--*grep*`, match case-insensitively
+  - `--case-sensitive`
+  : when filtering with `--*grep*`, match case-sensitively
+  - `--smart-case`
+  : when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default
+
+- input filters; if none are specified, then all reqres from input `PATH`s will be taken; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
+  - `--before DATE`
+  : consider reqres for export when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  - `--not-before DATE`
+  : consider reqres for export when its `stime` is larger or equal than this; the `DATE` format is the same as above
+  - `--after DATE`
+  : consider reqres for export when its `stime` is larger than this; the `DATE` format is the same as above
+  - `--not-after DATE`
+  : consider reqres for export when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  - `--protocol PROTOCOL`
+  : consider reqres for export when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-prefix PROTOCOL_PREFIX`
+  : consider reqres for export when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--protocol-re PROTOCOL_RE`
+  : consider reqres for export when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-protocol NOT_PROTOCOL`
+  : consider reqres for export when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-prefix NOT_PROTOCOL_PREFIX`
+  : consider reqres for export when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-protocol-re NOT_PROTOCOL_RE`
+  : consider reqres for export when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--request-method REQUEST_METHOD, --method REQUEST_METHOD`
+  : consider reqres for export when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-prefix REQUEST_METHOD_PREFIX, --method-prefix REQUEST_METHOD_PREFIX`
+  : consider reqres for export when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--request-method-re REQUEST_METHOD_RE, --method-re REQUEST_METHOD_RE`
+  : consider reqres for export when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-method NOT_REQUEST_METHOD, --not-method NOT_REQUEST_METHOD`
+  : consider reqres for export when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-prefix NOT_REQUEST_METHOD_PREFIX`
+  : consider reqres for export when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-request-method-re NOT_REQUEST_METHOD_RE`
+  : consider reqres for export when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--status STATUS`
+  : consider reqres for export when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-prefix STATUS_PREFIX`
+  : consider reqres for export when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--status-re STATUS_RE`
+  : consider reqres for export when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-status NOT_STATUS`
+  : consider reqres for export when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-prefix NOT_STATUS_PREFIX`
+  : consider reqres for export when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--not-status-re NOT_STATUS_RE`
+  : consider reqres for export when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--url URL`
+  : consider reqres for export when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
+  - `--url-prefix URL_PREFIX`
+  : consider reqres for export when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
+  - `--url-re URL_RE`
+  : consider reqres for export when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-url NOT_URL`
+  : consider reqres for export when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-prefix NOT_URL_PREFIX`
+  : consider reqres for export when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-url-re NOT_URL_RE`
+  : consider reqres for export when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--request-headers-or-grep OR_PATTERN, --request-headers-grep OR_PATTERN`
+  : consider reqres for export when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-headers-or-grep-re OR_PATTERN_RE, --request-headers-grep-re OR_PATTERN_RE`
+  : consider reqres for export when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-headers-or-grep NOT_OR_PATTERN, --not-request-headers-grep NOT_OR_PATTERN`
+  : consider reqres for export when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-headers-or-grep-re NOT_OR_PATTERN_RE, --not-request-headers-grep-re NOT_OR_PATTERN_RE`
+  : consider reqres for export when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-headers-and-grep AND_PATTERN`
+  : consider reqres for export when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--request-headers-and-grep-re AND_PATTERN_RE`
+  : consider reqres for export when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep NOT_AND_PATTERN`
+  : consider reqres for export when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-request-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : consider reqres for export when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--request-body-or-grep OR_PATTERN, --request-body-grep OR_PATTERN`
+  : consider reqres for export when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--request-body-or-grep-re OR_PATTERN_RE, --request-body-grep-re OR_PATTERN_RE`
+  : consider reqres for export when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-request-body-or-grep NOT_OR_PATTERN, --not-request-body-grep NOT_OR_PATTERN`
+  : consider reqres for export when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-request-body-or-grep-re NOT_OR_PATTERN_RE, --not-request-body-grep-re NOT_OR_PATTERN_RE`
+  : consider reqres for export when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--request-body-and-grep AND_PATTERN`
+  : consider reqres for export when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
+  - `--request-body-and-grep-re AND_PATTERN_RE`
+  : consider reqres for export when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep NOT_AND_PATTERN`
+  : consider reqres for export when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
+  - `--not-request-body-and-grep-re NOT_AND_PATTERN_RE`
+  : consider reqres for export when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
+  - `--request-mime REQUEST_MIME`
+  : consider reqres for export when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--request-mime-prefix REQUEST_MIME_PREFIX`
+  : consider reqres for export when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--request-mime-re REQUEST_MIME_RE`
+  : consider reqres for export when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-request-mime NOT_REQUEST_MIME`
+  : consider reqres for export when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-prefix NOT_REQUEST_MIME_PREFIX`
+  : consider reqres for export when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-request-mime-re NOT_REQUEST_MIME_RE`
+  : consider reqres for export when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--response-headers-or-grep OR_PATTERN, --response-headers-grep OR_PATTERN`
+  : consider reqres for export when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-headers-or-grep-re OR_PATTERN_RE, --response-headers-grep-re OR_PATTERN_RE`
+  : consider reqres for export when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-headers-or-grep NOT_OR_PATTERN, --not-response-headers-grep NOT_OR_PATTERN`
+  : consider reqres for export when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-headers-or-grep-re NOT_OR_PATTERN_RE, --not-response-headers-grep-re NOT_OR_PATTERN_RE`
+  : consider reqres for export when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-headers-and-grep AND_PATTERN`
+  : consider reqres for export when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--response-headers-and-grep-re AND_PATTERN_RE`
+  : consider reqres for export when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep NOT_AND_PATTERN`
+  : consider reqres for export when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-response-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : consider reqres for export when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--response-body-or-grep OR_PATTERN, --response-body-grep OR_PATTERN`
+  : consider reqres for export when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--response-body-or-grep-re OR_PATTERN_RE, --response-body-grep-re OR_PATTERN_RE`
+  : consider reqres for export when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-response-body-or-grep NOT_OR_PATTERN, --not-response-body-grep NOT_OR_PATTERN`
+  : consider reqres for export when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-response-body-or-grep-re NOT_OR_PATTERN_RE, --not-response-body-grep-re NOT_OR_PATTERN_RE`
+  : consider reqres for export when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--response-body-and-grep AND_PATTERN`
+  : consider reqres for export when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
+  - `--response-body-and-grep-re AND_PATTERN_RE`
+  : consider reqres for export when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep NOT_AND_PATTERN`
+  : consider reqres for export when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
+  - `--not-response-body-and-grep-re NOT_AND_PATTERN_RE`
+  : consider reqres for export when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
+  - `--response-mime RESPONSE_MIME`
+  : consider reqres for export when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--response-mime-prefix RESPONSE_MIME_PREFIX`
+  : consider reqres for export when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--response-mime-re RESPONSE_MIME_RE`
+  : consider reqres for export when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--not-response-mime NOT_RESPONSE_MIME`
+  : consider reqres for export when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-prefix NOT_RESPONSE_MIME_PREFIX`
+  : consider reqres for export when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--not-response-mime-re NOT_RESPONSE_MIME_RE`
+  : consider reqres for export when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--or-grep OR_PATTERN, --grep OR_PATTERN`
+  : consider reqres for export when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--or-grep-re OR_PATTERN_RE, --grep-re OR_PATTERN_RE`
+  : consider reqres for export when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--not-or-grep NOT_OR_PATTERN, --not-grep NOT_OR_PATTERN`
+  : consider reqres for export when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--not-or-grep-re NOT_OR_PATTERN_RE, --not-grep-re NOT_OR_PATTERN_RE`
+  : consider reqres for export when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--and-grep AND_PATTERN`
+  : consider reqres for export when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--and-grep-re AND_PATTERN_RE`
+  : consider reqres for export when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--not-and-grep NOT_AND_PATTERN`
+  : consider reqres for export when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--not-and-grep-re NOT_AND_PATTERN_RE`
+  : consider reqres for export when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--and EXPR`
-  : only consider reqres for export when reqres which match all of these expressions
+  : consider reqres for export when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  - `--or EXPR`
+  : consider reqres for export when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
@@ -1808,13 +2984,171 @@ In short, this sub-command generates static offline website mirrors, producing r
   : export all targets while permitting overwriting of old `--output` files under `DESTINATION`;
     DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
 
-- recursion roots; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`); all of these options can be specified multiple times in arbitrary combinations:
+- recursion root filters; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`); can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
+  - `--root-before DATE`
+  : take reqres as export root when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  - `--root-not-before DATE`
+  : take reqres as export root when its `stime` is larger or equal than this; the `DATE` format is the same as above
+  - `--root-after DATE`
+  : take reqres as export root when its `stime` is larger than this; the `DATE` format is the same as above
+  - `--root-not-after DATE`
+  : take reqres as export root when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  - `--root-protocol PROTOCOL`
+  : take reqres as export root when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--root-protocol-prefix PROTOCOL_PREFIX`
+  : take reqres as export root when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--root-protocol-re PROTOCOL_RE`
+  : take reqres as export root when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--root-not-protocol NOT_PROTOCOL`
+  : take reqres as export root when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--root-not-protocol-prefix NOT_PROTOCOL_PREFIX`
+  : take reqres as export root when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--root-not-protocol-re NOT_PROTOCOL_RE`
+  : take reqres as export root when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--root-request-method REQUEST_METHOD, --root-method REQUEST_METHOD`
+  : take reqres as export root when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--root-request-method-prefix REQUEST_METHOD_PREFIX, --root-method-prefix REQUEST_METHOD_PREFIX`
+  : take reqres as export root when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--root-request-method-re REQUEST_METHOD_RE, --root-method-re REQUEST_METHOD_RE`
+  : take reqres as export root when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--root-not-request-method NOT_REQUEST_METHOD, --root-not-method NOT_REQUEST_METHOD`
+  : take reqres as export root when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--root-not-request-method-prefix NOT_REQUEST_METHOD_PREFIX`
+  : take reqres as export root when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--root-not-request-method-re NOT_REQUEST_METHOD_RE`
+  : take reqres as export root when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  - `--root-status STATUS`
+  : take reqres as export root when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--root-status-prefix STATUS_PREFIX`
+  : take reqres as export root when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  - `--root-status-re STATUS_RE`
+  : take reqres as export root when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--root-not-status NOT_STATUS`
+  : take reqres as export root when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--root-not-status-prefix NOT_STATUS_PREFIX`
+  : take reqres as export root when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  - `--root-not-status-re NOT_STATUS_RE`
+  : take reqres as export root when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
   - `--root-url URL`
-  : a URL to be used as one of the roots for recursive export; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` which will then be matched against `net_url` of each reqres
-  - `-r URL_PREFIX, --root-url-prefix URL_PREFIX, --root URL_PREFIX`
-  : a URL prefix for URLs that are to be used as roots for recursive export; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` which will then be matched against `net_url` of each reqres
+  : take reqres as export root when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
+  - `--root-url-prefix URL_PREFIX, --root URL_PREFIX, -r URL_PREFIX`
+  : take reqres as export root when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
   - `--root-url-re URL_RE`
-  : a regular expression matching URLs that are to be used as roots for recursive export; the regular expression will be matched against `net_url` and `pretty_net` of each reqres, so only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed, but regular expressions using mixes of differently encoded parts will fail to match anything
+  : take reqres as export root when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--root-not-url NOT_URL`
+  : take reqres as export root when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--root-not-url-prefix NOT_URL_PREFIX`
+  : take reqres as export root when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--root-not-url-re NOT_URL_RE`
+  : take reqres as export root when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--root-request-headers-or-grep OR_PATTERN, --root-request-headers-grep OR_PATTERN`
+  : take reqres as export root when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--root-request-headers-or-grep-re OR_PATTERN_RE, --root-request-headers-grep-re OR_PATTERN_RE`
+  : take reqres as export root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--root-not-request-headers-or-grep NOT_OR_PATTERN, --root-not-request-headers-grep NOT_OR_PATTERN`
+  : take reqres as export root when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--root-not-request-headers-or-grep-re NOT_OR_PATTERN_RE, --root-not-request-headers-grep-re NOT_OR_PATTERN_RE`
+  : take reqres as export root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--root-request-headers-and-grep AND_PATTERN`
+  : take reqres as export root when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--root-request-headers-and-grep-re AND_PATTERN_RE`
+  : take reqres as export root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--root-not-request-headers-and-grep NOT_AND_PATTERN`
+  : take reqres as export root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--root-not-request-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : take reqres as export root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--root-request-body-or-grep OR_PATTERN, --root-request-body-grep OR_PATTERN`
+  : take reqres as export root when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--root-request-body-or-grep-re OR_PATTERN_RE, --root-request-body-grep-re OR_PATTERN_RE`
+  : take reqres as export root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--root-not-request-body-or-grep NOT_OR_PATTERN, --root-not-request-body-grep NOT_OR_PATTERN`
+  : take reqres as export root when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--root-not-request-body-or-grep-re NOT_OR_PATTERN_RE, --root-not-request-body-grep-re NOT_OR_PATTERN_RE`
+  : take reqres as export root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--root-request-body-and-grep AND_PATTERN`
+  : take reqres as export root when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
+  - `--root-request-body-and-grep-re AND_PATTERN_RE`
+  : take reqres as export root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
+  - `--root-not-request-body-and-grep NOT_AND_PATTERN`
+  : take reqres as export root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
+  - `--root-not-request-body-and-grep-re NOT_AND_PATTERN_RE`
+  : take reqres as export root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
+  - `--root-request-mime REQUEST_MIME`
+  : take reqres as export root when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--root-request-mime-prefix REQUEST_MIME_PREFIX`
+  : take reqres as export root when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--root-request-mime-re REQUEST_MIME_RE`
+  : take reqres as export root when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--root-not-request-mime NOT_REQUEST_MIME`
+  : take reqres as export root when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--root-not-request-mime-prefix NOT_REQUEST_MIME_PREFIX`
+  : take reqres as export root when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--root-not-request-mime-re NOT_REQUEST_MIME_RE`
+  : take reqres as export root when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--root-response-headers-or-grep OR_PATTERN, --root-response-headers-grep OR_PATTERN`
+  : take reqres as export root when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--root-response-headers-or-grep-re OR_PATTERN_RE, --root-response-headers-grep-re OR_PATTERN_RE`
+  : take reqres as export root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--root-not-response-headers-or-grep NOT_OR_PATTERN, --root-not-response-headers-grep NOT_OR_PATTERN`
+  : take reqres as export root when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--root-not-response-headers-or-grep-re NOT_OR_PATTERN_RE, --root-not-response-headers-grep-re NOT_OR_PATTERN_RE`
+  : take reqres as export root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--root-response-headers-and-grep AND_PATTERN`
+  : take reqres as export root when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--root-response-headers-and-grep-re AND_PATTERN_RE`
+  : take reqres as export root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--root-not-response-headers-and-grep NOT_AND_PATTERN`
+  : take reqres as export root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--root-not-response-headers-and-grep-re NOT_AND_PATTERN_RE`
+  : take reqres as export root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--root-response-body-or-grep OR_PATTERN, --root-response-body-grep OR_PATTERN`
+  : take reqres as export root when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--root-response-body-or-grep-re OR_PATTERN_RE, --root-response-body-grep-re OR_PATTERN_RE`
+  : take reqres as export root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--root-not-response-body-or-grep NOT_OR_PATTERN, --root-not-response-body-grep NOT_OR_PATTERN`
+  : take reqres as export root when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--root-not-response-body-or-grep-re NOT_OR_PATTERN_RE, --root-not-response-body-grep-re NOT_OR_PATTERN_RE`
+  : take reqres as export root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--root-response-body-and-grep AND_PATTERN`
+  : take reqres as export root when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
+  - `--root-response-body-and-grep-re AND_PATTERN_RE`
+  : take reqres as export root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
+  - `--root-not-response-body-and-grep NOT_AND_PATTERN`
+  : take reqres as export root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
+  - `--root-not-response-body-and-grep-re NOT_AND_PATTERN_RE`
+  : take reqres as export root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
+  - `--root-response-mime RESPONSE_MIME`
+  : take reqres as export root when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  - `--root-response-mime-prefix RESPONSE_MIME_PREFIX`
+  : take reqres as export root when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  - `--root-response-mime-re RESPONSE_MIME_RE`
+  : take reqres as export root when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  - `--root-not-response-mime NOT_RESPONSE_MIME`
+  : take reqres as export root when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--root-not-response-mime-prefix NOT_RESPONSE_MIME_PREFIX`
+  : take reqres as export root when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--root-not-response-mime-re NOT_RESPONSE_MIME_RE`
+  : take reqres as export root when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  - `--root-or-grep OR_PATTERN, --root-grep OR_PATTERN`
+  : take reqres as export root when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  - `--root-or-grep-re OR_PATTERN_RE, --root-grep-re OR_PATTERN_RE`
+  : take reqres as export root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  - `--root-not-or-grep NOT_OR_PATTERN, --root-not-grep NOT_OR_PATTERN`
+  : take reqres as export root when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--root-not-or-grep-re NOT_OR_PATTERN_RE, --root-not-grep-re NOT_OR_PATTERN_RE`
+  : take reqres as export root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  - `--root-and-grep AND_PATTERN`
+  : take reqres as export root when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  - `--root-and-grep-re AND_PATTERN_RE`
+  : take reqres as export root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  - `--root-not-and-grep NOT_AND_PATTERN`
+  : take reqres as export root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  - `--root-not-and-grep-re NOT_AND_PATTERN_RE`
+  : take reqres as export root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  - `--root-and EXPR`
+  : take reqres as export root when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  - `--root-or EXPR`
+  : take reqres as export root when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 - recursion depth:
   - `-d DEPTH, --depth DEPTH`
@@ -1861,9 +3195,9 @@ In short, this sub-command generates static offline website mirrors, producing r
   hoardy-web run -n 2 -- diff -u ../simple_server/pwebarc-dump/path/to/file-v1.wrr ../simple_server/pwebarc-dump/path/to/file-v2.wrr
   ```
 
-- List paths of all `WRR` files from `../simple_server/pwebarc-dump` that contain only complete `200 OK` responses with bodies larger than 1K:
+- List paths of all `WRR` files from `../simple_server/pwebarc-dump` that contain complete `200 OK` responses with `text/html` bodies larger than 1K:
   ```
-  hoardy-web find --and "status|~= .200C" --and "response.body|len|> 1024" ../simple_server/pwebarc-dump
+  hoardy-web find --status-re .200C --response-mime text/html --and "response.body|len|> 1024" ../simple_server/pwebarc-dump
   ```
 
 - Rename all `WRR` files in `../simple_server/pwebarc-dump/default` according to their metadata using `--output default` (see the `hoardy-web organize` section for its definition, the `default` format is designed to be human-readable while causing almost no collisions, thus making `num` substitution parameter to almost always stay equal to `0`, making things nice and deterministic):

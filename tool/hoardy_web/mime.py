@@ -72,6 +72,9 @@ canonical_mime_of = {
     "application/xml": "text/xml",
 }
 
+def canonicalize_mime(mime : str) -> str:
+    return canonical_mime_of.get(mime, mime)
+
 mime_info_of : dict[str, tuple[list[str], list[str]]]
 mime_info_of = {
     "application/gzip": (["archive"], [".gz", ".gzip"]),
@@ -201,7 +204,7 @@ def normalize_content_type(header : str) \
         # force content sniffing
         return None, ct, charset, []
 
-    ct = canonical_mime_of.get(ct, ct)
+    ct = canonicalize_mime(ct)
     try:
         kinds, exts = mime_info_of[ct]
     except KeyError:
@@ -304,7 +307,7 @@ def sniff_mime_type(data : str | bytes, charset : str | None) \
         elif data.startswith(b"\x00\x01\x00\x00"):
             ct = "font/ttf"
         elif data[34:36] == b"LP":
-            ct = canonical_mime_of["application/vnd.ms-fontobject"]
+            ct = canonicalize_mime("application/vnd.ms-fontobject")
 
         if ct is not None:
             kinds, exts = mime_info_of[ct]
