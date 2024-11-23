@@ -265,7 +265,11 @@ while (($# > 0)); do
 
     start "find..."
 
-    no_stderr_selfsame "find" "$td" "$idir" "$input0" find --and "status|~= .200C" --and "response.body|len|> 1024"
+    fixed_output_selfsame "find-200-1024" "$src" "$td" "$idir" "$input0" \
+                          find --status-re .200C --and "response.body|len|> 1024"
+
+    fixed_output_selfsame "find-html-potter" "$src" "$td" "$idir" "$input0" \
+                          find --response-mime text/html --grep-re '\bPotter\b'
 
     end
 
