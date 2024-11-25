@@ -2128,7 +2128,10 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
                 unet_url = purl.net_url
 
-                if purl.scheme not in Reqres_url_schemes:
+                if unet_url == net_url:
+                    # this is a reference to an inter-page `id`
+                    return purl.ofm + purl.fragment
+                elif purl.scheme not in Reqres_url_schemes:
                     if unet_url not in known:
                         ispace = " " * (2 * (level + 1))
                         issue(ispace + gettext("not remapping `%s`"), url)
@@ -2180,12 +2183,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                     else:
                         return None
 
-                if uabs_out_path != abs_out_path or len(purl.ofm) == 0:
-                    urel_url = path_to_url(_os.path.relpath(uabs_out_path, document_dir))
-                else:
-                    # this is a reference to an inter-page `id`
-                    urel_url = ""
-
+                urel_url = path_to_url(_os.path.relpath(uabs_out_path, document_dir))
                 return urel_url + purl.ofm + purl.fragment
 
             assert rrexpr is not None
