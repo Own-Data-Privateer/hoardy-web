@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import bisect as _bisect
 import collections as _c
 import dataclasses as _dc
 import errno as _errno
@@ -1978,20 +1979,79 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
     NetURLType : _t.TypeAlias = str
     PathType : _t.TypeAlias = str
+    PageIDType = tuple[Epoch, NetURLType]
+    NetURLOrPageIDType = NetURLType | PageIDType
 
-    # `Indexed` objects migrate from disk to `index`, from `index` to `queue`
-    # or `new_queue`, from `new_queue` to `queue`, and from `queue` to `done`.
-    index : dict[NetURLType, Indexed] = dict()
-    Queue = _c.OrderedDict[NetURLType, Indexed]
+    # `Indexed` objects migrate from `index` to `queue` or `new_queue`, from
+    # `new_queue` to `queue`.
+    index : _c.defaultdict[NetURLType, list[Indexed]] = _c.defaultdict(list)
+    Queue = _c.OrderedDict[NetURLOrPageIDType, Indexed]
     queue : Queue = _c.OrderedDict()
-    done : dict[NetURLType, PathType] = dict()
+    done : set[PageIDType] = set()
 
-    def report_queued(net_url : NetURLType, pretty_net_url : NetURLType, level : int) -> None:
+    class Stats:
+        indexed = 0
+        n = 0
+        doc_n = 0
+
+    multiples : bool
+    which : bool | Epoch | None
+    multiples, which = cargs.mode
+
+    def is_replaced_by(oobj : Indexed, nobj : Indexed) -> bool:
+        if isinstance(which, bool):
+            if not which:
+                return oobj.stime > nobj.stime
+            else:
+                return oobj.stime <= nobj.stime
+        elif which is not None:
+            return abs(which - nobj.stime) < abs(which - oobj.stime)
+        else:
+            return False
+
+    def from_index(stime : Epoch, net_url : NetURLType, precise : bool) -> Indexed | None:
+        iobjs = index.get(net_url, None)
+        if iobjs is None:
+            # unavailable
+            return None
+
+        ilen = len(iobjs)
+        if ilen == 1 or not multiples:
+            return iobjs[0]
+        elif which is not None and not precise:
+            if isinstance(which, bool):
+                if not which:
+                    # `--oldest*`
+                    return iobjs[0]
+                else:
+                    # `--latest*`
+                    return iobjs[-1]
+            else:
+                # `--nearest-*`
+                stime = which
+
+        pos = _bisect.bisect_right(iobjs, stime, key=lambda x: x.stime)
+        if pos == 0:
+            return iobjs[0]
+        elif pos >= ilen:
+            return iobjs[-1]
+
+        iprev = iobjs[pos - 1]
+        inext = iobjs[pos]
+        if abs(stime - iprev.stime) < abs(stime - inext.stime):
+            return iprev
+        else:
+            return inext
+
+    def report_queued(stime : Epoch, net_url : NetURLType, pretty_net_url : NetURLType, level : int, old_stime : Epoch | None = None) -> None:
         if stdout.isatty:
             stdout.write_bytes(b"\033[33m")
         durl = net_url if pretty_net_url == net_url else f"{net_url} ({pretty_net_url})"
         ispace = " " * (2 * level)
-        stdout.write_str_ln(ispace + gettext(f"queued %s") % (durl,))
+        if old_stime is None:
+            stdout.write_str_ln(ispace + gettext(f"queued [%s] %s") % (stime.format(), durl,))
+        else:
+            stdout.write_str_ln(ispace + gettext(f"requeued [%s] -> [%s] %s") % (old_stime.format(), stime.format(), durl,))
         if stdout.isatty:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
@@ -2010,25 +2070,46 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
             stime = rrexpr.stime
             net_url = rrexpr.net_url
-            iobj = index.get(net_url, None)
 
-            if iobj is not None and iobj.stime > stime:
-                # the indexed one is newer
-                return
+            nobj = Indexed(stime, rrexpr)
 
-            index[net_url] = iobj = Indexed(stime, rrexpr)
-
-            enqueue = False
-            if net_url in queue:
-                enqueue = True
-                queue[net_url] = iobj
+            iobjs = index.get(net_url, None)
+            if iobjs is None:
+                # first time seeing this `net_url`
+                index[net_url] = [nobj]
+            elif not multiples:
+                if is_replaced_by(iobjs[0], nobj):
+                    iobjs[0] = nobj
             else:
-                if enqueue_all or have_root_filters and root_filters_allow(rrexpr):
-                    queue[net_url] = iobj
-                    report_queued(net_url, rrexpr.pretty_net_url, 1)
+                pos = _bisect.bisect_right(iobjs, stime, key=lambda x: x.stime)
+                # NB: technically, this is O(N), but in reality this is usually O(1)
+                # for us, since most inserts are to the end of the list
+                iobjs.insert(pos, nobj)
+                Stats.indexed += 1
 
-            if not enqueue or mem.consumption > max_memory_mib:
-                iobj.unload()
+            unqueued = True
+            page_id = (stime, net_url)
+            for pid in [net_url, page_id]:
+                qobj = queue.get(pid, None)
+                if qobj is not None:
+                    if is_replaced_by(qobj, nobj):
+                        queue[pid] = nobj
+                        report_queued(stime, net_url, rrexpr.pretty_net_url, 1, qobj.stime)
+                    unqueued = False
+
+            if unqueued:
+                if enqueue_all or have_root_filters and root_filters_allow(rrexpr):
+                    if multiples and which is None:
+                        # `--all`
+                        pid = page_id
+                    else:
+                        pid = net_url
+                    queue[pid] = nobj
+                    report_queued(stime, net_url, rrexpr.pretty_net_url, 1)
+                    unqueued = False
+
+            if unqueued or mem.consumption > max_memory_mib:
+                nobj.unload()
         return emit
 
     if stdout.isatty:
@@ -2045,12 +2126,12 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(not have_root_filters), cargs.paths, seen_paths=seen_paths)
     map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(False), cargs.boring, seen_paths=seen_paths)
 
-    total = len(index)
-    depth : int = 0
+    if multiples:
+        total = Stats.indexed
+    else:
+        total = len(index)
 
-    class Stats:
-        n = 0
-        doc_n = 0
+    depth : int = 0
 
     def remap_url_fallback(stime : Epoch, expected_content_types : list[str], purl : ParsedURL) -> PathType:
         trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime, stime, stime))
@@ -2058,58 +2139,51 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         rel_out_path : PathType = _os.path.join(destination, output_format % trrexpr)
         return _os.path.abspath(rel_out_path)
 
-    def render(net_url : NetURLType,
-               iobj : Indexed,
+    def render(stime : Epoch,
+               net_url : NetURLType,
+               rrexpr : ReqresExpr[DeferredSourceType],
+               abs_out_path : PathType,
                enqueue : bool,
                new_queue : Queue,
                level : int) -> None:
-        try:
-            del index[net_url]
-        except KeyError:
-            pass
+        done.add((stime, net_url))
+
+        source = rrexpr.source
 
         level0 = level == 0
         Stats.n += 1
         if level0:
             Stats.doc_n += 1
+        n = Stats.n
+        doc_n = Stats.doc_n
+        n100 = 100 * n
+        n_total = n + len(new_queue) + len(queue)
 
-        stime = iobj.stime
-        rrexpr = iobj.rrexpr
-        abs_out_path = iobj.abs_out_path
-        source = rrexpr.source
-        done[net_url] = abs_out_path
-        mem.consumption += 16 + len(abs_out_path)
+        if stdout.isatty:
+            if level0:
+                stdout.write_bytes(b"\033[32m")
+            else:
+                stdout.write_bytes(b"\033[34m")
+        ispace = " " * (2 * level)
+        if level0:
+            stdout.write_str_ln(gettext(f"exporting input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / total, total, doc_n, depth))
+        else:
+            stdout.write_str_ln(ispace + gettext(f"exporting requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / total, total))
+        stdout.write_str_ln(ispace + gettext("URL %s") % (net_url,))
+        if stdout.isatty:
+            stdout.write_bytes(b"\033[0m")
+        stdout.write_str_ln(ispace + gettext("src %s") % (source.show_source(),))
+        stdout.flush()
 
         try:
-            n = Stats.n
-            doc_n = Stats.doc_n
-            n100 = 100 * n
-            n_total = n + len(new_queue) + len(queue)
-
-            if stdout.isatty:
-                if level0:
-                    stdout.write_bytes(b"\033[32m")
-                else:
-                    stdout.write_bytes(b"\033[34m")
-            ispace = " " * (2 * level)
-            if level0:
-                stdout.write_str_ln(gettext(f"exporting input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / total, total, doc_n, depth))
-            else:
-                stdout.write_str_ln(ispace + gettext(f"exporting requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / total, total))
-            stdout.write_str_ln(ispace + gettext("URL %s") % (net_url,))
-            if stdout.isatty:
-                stdout.write_bytes(b"\033[0m")
-            stdout.write_str_ln(ispace + gettext("src %s") % (source.show_source(),))
-            stdout.write_str_ln(ispace + gettext("dst %s") % (abs_out_path,))
-            stdout.flush()
-
             exists = _os.path.exists(abs_out_path)
             if skip_existing and exists:
                 if stdout.isatty:
                     stdout.write_bytes(b"\033[33m")
-                stdout.write_str_ln(gettext("destination exists, skipped!"))
+                stdout.write_str_ln(ispace + gettext("destination exists, skipped!"))
                 if stdout.isatty:
                     stdout.write_bytes(b"\033[0m")
+                stdout.write_str_ln(ispace + gettext("dst %s") % (abs_out_path,))
                 stdout.flush()
                 return
 
@@ -2138,44 +2212,52 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                         known.add(unet_url)
                     return url
 
-                try:
-                    uabs_out_path = done[unet_url]
-                except KeyError:
-                    uobj = index.get(unet_url, None)
-                    if uobj is None:
-                        # unavailable, use fallback
-                        uabs_out_path = None
+                is_requisite = link_type == LinkType.REQ
+                uobj = from_index(stime, unet_url, is_requisite)
+                if uobj is None:
+                    # unavailable
+                    uabs_out_path = None
+                else:
+                    ustime = uobj.stime
+                    upage_id = (ustime, unet_url)
+                    uabs_out_path = uobj.abs_out_path
+
+                    if upage_id in done:
+                        # nothing to do
+                        # NB: will be unloaded already
+                        pass
+                    elif is_requisite:
+                        # unqueue it
+                        for q in [new_queue, queue]:
+                            try:
+                                del q[upage_id]
+                            except KeyError: pass
+                            try:
+                                del q[unet_url]
+                            except KeyError: pass
+
+                        # render it immediately
+                        render(ustime, unet_url, uobj.rrexpr, uabs_out_path, enqueue, new_queue, level + 1)
+                        uobj.unload()
+                    elif upage_id in new_queue or upage_id in queue or \
+                         unet_url in new_queue or unet_url in queue:
+                        # nothing to do
+                        if mem.consumption > max_memory_mib:
+                            uobj.unload()
+                    elif enqueue:
+                        new_queue[upage_id] = uobj
+                        report_queued(ustime, unet_url, purl.pretty_net_url, level + 1)
+                        if mem.consumption > max_memory_mib:
+                            uobj.unload()
                     else:
-                        uabs_out_path = uobj.abs_out_path
-                        if link_type == LinkType.REQ:
-                            # this is a requisite
-                            # unqueue it
-                            try:
-                                del new_queue[unet_url]
-                            except KeyError: pass
-                            try:
-                                del queue[unet_url]
-                            except KeyError: pass
-                            # render it immediately
-                            render(unet_url, uobj, enqueue, new_queue, level + 1)
-                            uobj.unload()
-                        elif unet_url in new_queue or unet_url in queue:
-                            # nothing to do
-                            if mem.consumption > max_memory_mib:
-                                uobj.unload()
-                        elif enqueue:
-                            new_queue[unet_url] = uobj
-                            report_queued(unet_url, purl.pretty_net_url, level + 1)
-                            if mem.consumption > max_memory_mib:
-                                uobj.unload()
-                        else:
-                            # this will not be exported
-                            uabs_out_path = None
-                            uobj.unload()
-                            # NB: Not setting `done[unet_url]` here because it
-                            # might be a requisite for another page. In which
-                            # case this page will void this `unet_url`
-                            # unnecessarily, yes.
+                        # this will not be exported
+                        uabs_out_path = None
+                        uobj.unload()
+                        # NB: Not setting `uobj._abs_out_path = None` here
+                        # because it might be a requisite for another
+                        # page. In which case, when not running with
+                        # `--remap-all`, this page will void this
+                        # `unet_url` unnecessarily, yes.
 
                 if uabs_out_path is None:
                     if fallbacks is not None:
@@ -2186,7 +2268,6 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 urel_url = path_to_url(_os.path.relpath(uabs_out_path, document_dir))
                 return urel_url + purl.ofm + purl.fragment
 
-            assert rrexpr is not None
             rrexpr.remap_url = remap_url
 
             data : bytes
@@ -2199,6 +2280,8 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 return
 
             atomic_write(data, abs_out_path, allow_updates)
+            stdout.write_str_ln(ispace + gettext("dst %s") % (abs_out_path,))
+            stdout.flush()
         except Failure as exc:
             if cargs.errors == "ignore":
                 return
@@ -2220,8 +2303,13 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         while len(queue) > 0:
             if want_stop: raise KeyboardInterrupt()
 
-            net_url, iobj = queue.popitem(False)
-            render(net_url, iobj, enqueue, new_queue, 0)
+            pid, iobj = queue.popitem(False)
+            if isinstance(pid, NetURLType):
+                net_url = pid
+            else:
+                net_url = pid[1]
+            render(iobj.stime, net_url, iobj.rrexpr, iobj.abs_out_path, enqueue, new_queue, 0)
+            iobj.unload()
 
         queue = new_queue
         depth += 1
@@ -2924,6 +3012,32 @@ In short, this sub-command generates static offline website mirrors, producing r
     add_impure(cmd)
     add_common(cmd, "export mirror", "consider reqres for export when")
     add_expr(cmd, "export mirror")
+
+    agrp = cmd.add_argument_group("what gets exported")
+    grp = agrp.add_mutually_exclusive_group()
+
+    def which(x : str) -> str:
+        return _(f"for each URL, export {x}")
+
+    oldest = which("its oldest available version")
+    near = which("an available version that is closest to the given `DATE` value")
+    latest = which("its latest available version")
+    hybrid = _(", except, for each URL that is a requisite resource, export a version that is time-closest to the referencing document")
+    hybrid_long = hybrid + _("; i.e., this will make each exported page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `export`")
+    hybrid_short = hybrid +  _("; see `--oldest-hybrid` above for more info")
+
+    class EmitNear(argparse.Action):
+        def __call__(self, parser : _t.Any, cfg : argparse.Namespace, value : _t.Any, option_string : _t.Optional[str] = None) -> None:
+            setattr(cfg, self.dest, self.const(parse_Epoch(value)))
+
+    grp.add_argument("--oldest", dest="mode", action="store_const", const=(False, False), help=oldest)
+    grp.add_argument("--oldest-hybrid", dest="mode", action="store_const", const=(True, False), help=oldest + hybrid_long)
+    grp.add_argument("--nearest", dest="mode", metavar="DATE", action=EmitNear, const=lambda x: (False, x), help=near + date_spec)
+    grp.add_argument("--nearest-hybrid", dest="mode", metavar="DATE", action=EmitNear, const=lambda x: (True, x), help=near + hybrid_short + date_spec_id)
+    grp.add_argument("--latest", dest="mode", action="store_const", const=(False, True), help=latest + _("; default"))
+    grp.add_argument("--latest-hybrid", dest="mode", action="store_const", const=(True, True), help=latest + hybrid_short)
+    grp.add_argument("--all", dest="mode", action="store_const", const=(True, None), help=_("export all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!"))
+    cmd.set_defaults(mode=(False, True)) # `--latest`
 
     add_fileout(cmd, "export mirror")
 

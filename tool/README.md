@@ -3173,6 +3173,22 @@ In short, this sub-command generates static offline website mirrors, producing r
     
     Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
 
+- what gets exported:
+  - `--oldest`
+  : for each URL, export its oldest available version
+  - `--oldest-hybrid`
+  : for each URL, export its oldest available version, except, for each URL that is a requisite resource, export a version that is time-closest to the referencing document; i.e., this will make each exported page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `export`
+  - `--nearest DATE`
+  : for each URL, export an available version that is closest to the given `DATE` value; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  - `--nearest-hybrid DATE`
+  : for each URL, export an available version that is closest to the given `DATE` value, except, for each URL that is a requisite resource, export a version that is time-closest to the referencing document; see `--oldest-hybrid` above for more info; the `DATE` format is the same as above
+  - `--latest`
+  : for each URL, export its latest available version; default
+  - `--latest-hybrid`
+  : for each URL, export its latest available version, except, for each URL that is a requisite resource, export a version that is time-closest to the referencing document; see `--oldest-hybrid` above for more info
+  - `--all`
+  : export all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!
+
 - file outputs:
   - `-t DESTINATION, --to DESTINATION`
   : destination directory
