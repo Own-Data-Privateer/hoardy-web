@@ -2043,15 +2043,15 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         else:
             return inext
 
-    def report_queued(stime : Epoch, net_url : NetURLType, pretty_net_url : NetURLType, level : int, old_stime : Epoch | None = None) -> None:
+    def report_queued(stime : Epoch, net_url : NetURLType, pretty_net_url : NetURLType, source : DeferredSourceType, level : int, old_stime : Epoch | None = None) -> None:
         if stdout.isatty:
             stdout.write_bytes(b"\033[33m")
         durl = net_url if pretty_net_url == net_url else f"{net_url} ({pretty_net_url})"
         ispace = " " * (2 * level)
         if old_stime is None:
-            stdout.write_str_ln(ispace + gettext(f"queued [%s] %s") % (stime.format(), durl,))
+            stdout.write_str_ln(ispace + gettext(f"queued [%s] %s from %s") % (stime.format(), durl, source.show_source()))
         else:
-            stdout.write_str_ln(ispace + gettext(f"requeued [%s] -> [%s] %s") % (old_stime.format(), stime.format(), durl,))
+            stdout.write_str_ln(ispace + gettext(f"requeued [%s] -> [%s] %s from %s") % (old_stime.format(), stime.format(), durl, source.show_source()))
         if stdout.isatty:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
@@ -2094,7 +2094,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 if qobj is not None:
                     if is_replaced_by(qobj, nobj):
                         queue[pid] = nobj
-                        report_queued(stime, net_url, rrexpr.pretty_net_url, 1, qobj.stime)
+                        report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1, qobj.stime)
                     unqueued = False
 
             if unqueued:
@@ -2105,7 +2105,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                     else:
                         pid = net_url
                     queue[pid] = nobj
-                    report_queued(stime, net_url, rrexpr.pretty_net_url, 1)
+                    report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1)
                     unqueued = False
 
             if unqueued or mem.consumption > max_memory_mib:
@@ -2169,10 +2169,11 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             stdout.write_str_ln(gettext(f"exporting input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / total, total, doc_n, depth))
         else:
             stdout.write_str_ln(ispace + gettext(f"exporting requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / total, total))
-        stdout.write_str_ln(ispace + gettext("URL %s") % (net_url,))
+        stdout.write_str_ln(ispace + gettext("stime [%s]") % (stime.format(),))
+        stdout.write_str_ln(ispace + gettext("net_url %s") % (net_url,))
+        stdout.write_str_ln(ispace + gettext("src %s") % (source.show_source(),))
         if stdout.isatty:
             stdout.write_bytes(b"\033[0m")
-        stdout.write_str_ln(ispace + gettext("src %s") % (source.show_source(),))
         stdout.flush()
 
         try:
@@ -2253,7 +2254,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                             uobj.unload()
                     elif enqueue:
                         new_queue[upage_id] = uobj
-                        report_queued(ustime, unet_url, purl.pretty_net_url, level + 1)
+                        report_queued(ustime, unet_url, purl.pretty_net_url, uobj.rrexpr.source, level + 1)
                         if mem.consumption > max_memory_mib:
                             uobj.unload()
                     else:
