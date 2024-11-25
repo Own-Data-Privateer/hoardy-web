@@ -2188,31 +2188,38 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 return
 
             document_dir = _os.path.dirname(abs_out_path)
-            known : set[NetURLType] = set() # for a better UI
+            remap_cache : dict[tuple[str, bool], str] = dict()
 
             def remap_url(link_type : LinkType, fallbacks : list[str] | None, url : NetURLType) -> NetURLType | None:
                 if want_stop: raise KeyboardInterrupt()
+
+                is_requisite = link_type == LinkType.REQ
+                cache_id = (url, is_requisite)
+                try:
+                    return remap_cache[cache_id]
+                except KeyError:
+                    pass
 
                 try:
                     purl = parse_url(url)
                 except URLParsingError:
                     ispace = " " * (2 * (level + 1))
                     issue(ispace + gettext("malformed URL `%s`"), url)
-                    return get_void_url(link_type)
+                    remap_cache[cache_id] = res = get_void_url(link_type)
+                    return res
 
                 unet_url = purl.net_url
 
                 if unet_url == net_url:
                     # this is a reference to an inter-page `id`
-                    return purl.ofm + purl.fragment
+                    remap_cache[cache_id] = res = purl.ofm + purl.fragment
+                    return res
                 elif purl.scheme not in Reqres_url_schemes:
-                    if unet_url not in known:
-                        ispace = " " * (2 * (level + 1))
-                        issue(ispace + gettext("not remapping `%s`"), url)
-                        known.add(unet_url)
+                    ispace = " " * (2 * (level + 1))
+                    issue(ispace + gettext("not remapping `%s`"), url)
+                    remap_cache[cache_id] = url
                     return url
 
-                is_requisite = link_type == LinkType.REQ
                 uobj = from_index(stime, unet_url, is_requisite)
                 if uobj is None:
                     # unavailable
@@ -2266,7 +2273,8 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                         return None
 
                 urel_url = path_to_url(_os.path.relpath(uabs_out_path, document_dir))
-                return urel_url + purl.ofm + purl.fragment
+                remap_cache[cache_id] = res = urel_url + purl.ofm + purl.fragment
+                return res
 
             rrexpr.remap_url = remap_url
 
