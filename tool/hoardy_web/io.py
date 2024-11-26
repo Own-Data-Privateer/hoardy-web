@@ -118,6 +118,13 @@ class DeferredSync:
                     pass
             self.unlinks = set()
 
+def _makedirs(dirname : str | bytes) -> None:
+    try:
+        _os.makedirs(dirname, exist_ok = True)
+    except OSError as exc:
+        handle_ENAMETOOLONG(exc, dirname)
+        raise exc
+
 def make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
               allow_overwrites : bool = False,
               *,
@@ -128,6 +135,7 @@ def make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
 
     dirname = _os.path.dirname(dst)
 
+    _makedirs(dirname)
     make_dst(dst)
 
     if dsync is None:
@@ -151,6 +159,7 @@ def atomic_make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
     else:
         dst_part = dst + b".part"
 
+    _makedirs(dirname)
     make_dst(dst_part)
 
     if dsync is None:
@@ -260,13 +269,6 @@ def atomic_write(data : bytes, dst : _t.AnyStr,
                  allow_overwrites : bool = False,
                  *,
                  dsync : DeferredSync | None = None) -> None:
-    dirname = _os.path.dirname(dst)
-    try:
-        _os.makedirs(dirname, exist_ok = True)
-    except OSError as exc:
-        handle_ENAMETOOLONG(exc, dirname)
-        raise exc
-
     def make_dst(dst_part : _t.AnyStr) -> None:
         with open(dst_part, "xb") as f:
             f.write(data)

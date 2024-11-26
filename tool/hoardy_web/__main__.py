@@ -1830,13 +1830,6 @@ def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, allow_updates : 
                 return
 
             try:
-                dirname = _os.path.dirname(self.destination)
-                _os.makedirs(dirname, exist_ok = True)
-            except OSError as exc:
-                handle_ENAMETOOLONG(exc, dirname)
-                raise exc
-
-            try:
                 if isinstance(source, FileSource):
                     action_op(source.path, self.destination, self.overwrite or self.allow_updates, dsync = dsync)
                 elif copying:
