@@ -570,7 +570,7 @@ ofpsq  = "%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 
 ofpnq  = "%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s"
 ofpsnq = "%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s"
 ofp_snq = "%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s"
-ofh4 = "%(net_url|to_ascii|sha256|take_prefix 4)s"
+ofh4 = "%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s"
 
 output_alias = {
     "default":       f"{ofdsd}/{ofdms}_%(qtime_ms)s_%(method)s_{ofh4}_%(status)s_%(hostname)s_%(num)d",
@@ -2336,8 +2336,8 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f'{__prog__} get -e "response.body|eb|scrub response defaults" ../simple_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
-    fmt.start_section(_("Get first 4 characters of a hex digest of sha256 hash computed on the URL without the fragment/hash part"))
-    fmt.add_code(f'{__prog__} get -e "net_url|to_ascii|sha256|take_prefix 4" ../simple_server/pwebarc-dump/path/to/file.wrr')
+    fmt.start_section(_("Get first 2 bytes (4 characters) of a hex digest of sha256 hash computed on the URL without the fragment/hash part"))
+    fmt.add_code(f'{__prog__} get -e "net_url|to_ascii|sha256|take_prefix 2|to_hex" ../simple_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
     fmt.start_section(_("Pipe response body from a given `WRR` file to stdout, but less efficiently, by generating a temporary file and giving it to `cat`"))
@@ -2775,8 +2775,8 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
 - `{default_expr["get"]}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
 - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
 - `response.complete|false` will print `response.complete` or `False`;
-- `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
-- `net_url|to_ascii|sha256|take_prefix 4` will print the first 4 characters of the above;
+- `net_url|to_ascii|sha256|to_hex` will print a hexadecimal representation of the `sha256` hash of the URL that was actually sent over the network;
+- `net_url|to_ascii|sha256|take_prefix 2|to_hex` will print the first 2 bytes (4 characters) of the above;
 - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
 - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""", 2) + \
                 "\n\nExample URL mappings:\n" + \

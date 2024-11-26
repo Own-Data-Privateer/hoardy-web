@@ -210,8 +210,8 @@ while (($# > 0)); do
     )
     exprs=( \
         "${uexprs[@]}" \
-        -e "net_url|to_ascii|sha256|take_prefix 4" \
-        -e "response.body|eb|to_utf8|sha256" \
+        -e "net_url|to_ascii|sha256|take_prefix 2|to_hex" \
+        -e "response.body|eb|to_utf8|sha256|to_hex" \
     )
 
     do_fixed_dir=1

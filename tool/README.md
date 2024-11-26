@@ -889,7 +889,9 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `unquote_plus`: URL-percent-encoding unquote value and replace `+` symbols with spaces
       - `to_ascii`: encode `str` value into `bytes` with "ascii" codec, do nothing if the value is already `bytes`
       - `to_utf8`: encode `str` value into `bytes` with "utf-8" codec, do nothing if the value is already `bytes`
-      - `sha256`: replace `bytes` value with its `sha256` hex digest (`hex(sha256(value))`)
+      - `to_hex`: replace `bytes` value with its hexadecimal `str` representation
+      - `from_hex`: replace hexadecimal `str` value with its decoded `bytes` value
+      - `sha256`: replace `bytes` value with its `sha256` hash digest
       - `~=`: check if the current value matches the regular exprission `arg`
       - `==`: apply `== arg`, `arg` is cast to the same type as the current value
       - `!=`: apply `!= arg`, similarly
@@ -1015,8 +1017,8 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `response.body|eb|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
       - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
       - `response.complete|false` will print `response.complete` or `False`;
-      - `net_url|to_ascii|sha256` will print `sha256` hash of the URL that was actually sent over the network;
-      - `net_url|to_ascii|sha256|take_prefix 4` will print the first 4 characters of the above;
+      - `net_url|to_ascii|sha256|to_hex` will print a hexadecimal representation of the `sha256` hash of the URL that was actually sent over the network;
+      - `net_url|to_ascii|sha256|take_prefix 2|to_hex` will print the first 2 bytes (4 characters) of the above;
       - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
       - `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;
     
@@ -1873,7 +1875,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   - `-o FORMAT, --output FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
-      - `default`     : `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(hostname)s_%(num)d`; the default
+      - `default`     : `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(hostname)s_%(num)d`; the default
             - `https://example.org`, `https://example.org/` -> `1970/01/01/001640000_0_GET_8198_C200C_example.org_0`
             - `https://example.org/index.html` -> `1970/01/01/001640000_0_GET_f0dc_C200C_example.org_0`
             - `https://example.org/media` -> `1970/01/01/001640000_0_GET_086d_C200C_example.org_0`
@@ -1974,7 +1976,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=3.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm`
-      - `shupnq_mhs`  : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
+      - `shupnq_mhs`  : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/example.org/index.GET_8198_C200C.htm`
             - `https://example.org/index.html` -> `https/example.org/index.GET_f0dc_C200C.html`
             - `https://example.org/media` -> `https/example.org/media/index.GET_086d_C200C.htm`
@@ -1982,7 +1984,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=3.GET_5658_C200C.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.GET_4f11_C200C.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C.htm`
-      - `shupnq_mhsn` : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s`
+      - `shupnq_mhsn` : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/example.org/index.GET_8198_C200C_0.htm`
             - `https://example.org/index.html` -> `https/example.org/index.GET_f0dc_C200C_0.html`
             - `https://example.org/media` -> `https/example.org/media/index.GET_086d_C200C_0.htm`
@@ -1990,7 +1992,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=3.GET_5658_C200C_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.GET_4f11_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C_0.htm`
-      - `shupnq_mhstn`: `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
+      - `shupnq_mhstn`: `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/example.org/index.GET_8198_C200C_1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `https/example.org/index.GET_f0dc_C200C_1970-01-01_001640000_0.html`
             - `https://example.org/media` -> `https/example.org/media/index.GET_086d_C200C_1970-01-01_001640000_0.htm`
@@ -2068,7 +2070,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=3.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm`
-      - `srhupnq_mhs` : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
+      - `srhupnq_mhs` : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/org.example/index.GET_8198_C200C.htm`
             - `https://example.org/index.html` -> `https/org.example/index.GET_f0dc_C200C.html`
             - `https://example.org/media` -> `https/org.example/media/index.GET_086d_C200C.htm`
@@ -2076,7 +2078,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=3.GET_5658_C200C.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.GET_4f11_C200C.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C.htm`
-      - `srhupnq_mhsn`: `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s`
+      - `srhupnq_mhsn`: `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/org.example/index.GET_8198_C200C_0.htm`
             - `https://example.org/index.html` -> `https/org.example/index.GET_f0dc_C200C_0.html`
             - `https://example.org/media` -> `https/org.example/media/index.GET_086d_C200C_0.htm`
@@ -2084,7 +2086,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=3.GET_5658_C200C_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.GET_4f11_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C_0.htm`
-      - `srhupnq_mhstn`: `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
+      - `srhupnq_mhstn`: `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/org.example/index.GET_8198_C200C_1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `https/org.example/index.GET_f0dc_C200C_1970-01-01_001640000_0.html`
             - `https://example.org/media` -> `https/org.example/media/index.GET_086d_C200C_1970-01-01_001640000_0.htm`
@@ -2183,7 +2185,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=3.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm`
-      - `hupnq_mhs`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
+      - `hupnq_mhs`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.GET_8198_C200C.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_f0dc_C200C.html`
             - `https://example.org/media` -> `example.org/media/index.GET_086d_C200C.htm`
@@ -2191,7 +2193,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=3.GET_5658_C200C.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_4f11_C200C.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C.htm`
-      - `hupnq_mhsn`  : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s`
+      - `hupnq_mhsn`  : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.GET_8198_C200C_0.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_f0dc_C200C_0.html`
             - `https://example.org/media` -> `example.org/media/index.GET_086d_C200C_0.htm`
@@ -2199,7 +2201,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=3.GET_5658_C200C_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_4f11_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.GET_c4ae_C200C_0.htm`
-      - `hupnq_mhstn` : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
+      - `hupnq_mhstn` : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.GET_8198_C200C_1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_f0dc_C200C_1970-01-01_001640000_0.html`
             - `https://example.org/media` -> `example.org/media/index.GET_086d_C200C_1970-01-01_001640000_0.htm`
@@ -2277,7 +2279,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=3.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm`
-      - `rhupnq_mhs`  : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
+      - `rhupnq_mhs`  : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `org.example/index.GET_8198_C200C.htm`
             - `https://example.org/index.html` -> `org.example/index.GET_f0dc_C200C.html`
             - `https://example.org/media` -> `org.example/media/index.GET_086d_C200C.htm`
@@ -2285,7 +2287,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=3.GET_5658_C200C.htm`
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.GET_4f11_C200C.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C.htm`
-      - `rhupnq_mhsn` : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s`
+      - `rhupnq_mhsn` : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `org.example/index.GET_8198_C200C_0.htm`
             - `https://example.org/index.html` -> `org.example/index.GET_f0dc_C200C_0.html`
             - `https://example.org/media` -> `org.example/media/index.GET_086d_C200C_0.htm`
@@ -2293,7 +2295,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=3.GET_5658_C200C_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.GET_4f11_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.GET_c4ae_C200C_0.htm`
-      - `rhupnq_mhstn`: `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
+      - `rhupnq_mhstn`: `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `org.example/index.GET_8198_C200C_1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `org.example/index.GET_f0dc_C200C_1970-01-01_001640000_0.html`
             - `https://example.org/media` -> `org.example/media/index.GET_086d_C200C_1970-01-01_001640000_0.htm`
@@ -2343,7 +2345,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index.GET_C200C_1970-01-01_001640000_0.htm`
-      - `flat_mhs`    : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s%(filepath_ext)s`
+      - `flat_mhs`    : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.GET_8198_C200C.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_f0dc_C200C.html`
             - `https://example.org/media` -> `example.org/media__index.GET_086d_C200C.htm`
@@ -2351,7 +2353,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3.GET_5658_C200C.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_4f11_C200C.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index.GET_c4ae_C200C.htm`
-      - `flat_mhsn`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(num)d%(filepath_ext)s`
+      - `flat_mhsn`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.GET_8198_C200C_0.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_f0dc_C200C_0.html`
             - `https://example.org/media` -> `example.org/media__index.GET_086d_C200C_0.htm`
@@ -2359,7 +2361,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view__index?one=1&two=2&three=3.GET_5658_C200C_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_4f11_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание__is__index.GET_c4ae_C200C_0.htm`
-      - `flat_mhstn`  : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 4)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
+      - `flat_mhstn`  : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path|replace / __|abbrev 120)s%(oqm)s%(mq_nquery|abbrev 100)s.%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.GET_8198_C200C_1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_f0dc_C200C_1970-01-01_001640000_0.html`
             - `https://example.org/media` -> `example.org/media__index.GET_086d_C200C_1970-01-01_001640000_0.htm`
@@ -3458,9 +3460,9 @@ In short, this sub-command generates static offline website mirrors, producing r
   hoardy-web get -e "response.body|eb|scrub response defaults" ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
 
-- Get first 4 characters of a hex digest of sha256 hash computed on the URL without the fragment/hash part:
+- Get first 2 bytes (4 characters) of a hex digest of sha256 hash computed on the URL without the fragment/hash part:
   ```
-  hoardy-web get -e "net_url|to_ascii|sha256|take_prefix 4" ../simple_server/pwebarc-dump/path/to/file.wrr
+  hoardy-web get -e "net_url|to_ascii|sha256|take_prefix 2|to_hex" ../simple_server/pwebarc-dump/path/to/file.wrr
   ```
 
 - Pipe response body from a given `WRR` file to stdout, but less efficiently, by generating a temporary file and giving it to `cat`:

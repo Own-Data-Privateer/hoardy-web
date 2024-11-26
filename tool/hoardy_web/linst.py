@@ -22,7 +22,7 @@
 
 """LINear State Transformer Domain Specific Language (DSL).
 
-   A caching translator that compiles expressions like "net_url|sha256|prefix 4"
+   A caching translator that compiles expressions like "net_url|sha256|take_prefix 2|to_hex"
    into Python functions.
 """
 
@@ -213,8 +213,12 @@ linst_atoms : dict[str, tuple[str, LinstAtom]] = {
           linst_apply0(lambda v: v.encode("ascii") if isinstance(v, str) else v)),
     "to_utf8": ('encode `str` value into `bytes` with "utf-8" codec, do nothing if the value is already `bytes`',
           linst_apply0(lambda v: v.encode("utf-8") if isinstance(v, str) else v)),
-    "sha256": ('replace `bytes` value with its `sha256` hex digest (`hex(sha256(value))`)',
-          linst_apply0(lambda v: _hashlib.sha256(v).hexdigest())),
+    "to_hex": ('replace `bytes` value with its hexadecimal `str` representation',
+          linst_apply0(lambda v: v.hex())),
+    "from_hex": ('replace hexadecimal `str` value with its decoded `bytes` value',
+          linst_apply0(lambda v: bytes.fromhex(v))),
+    "sha256": ('replace `bytes` value with its `sha256` hash digest',
+          linst_apply0(lambda v: _hashlib.sha256(v).digest())),
     "~=": ("check if the current value matches the regular exprission `arg`",
           ([str], linst_re_match)),
     "==": ("apply `== arg`, `arg` is cast to the same type as the current value",
