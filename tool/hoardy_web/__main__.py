@@ -211,17 +211,14 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
 def compile_expr(expr : str) -> tuple[str, LinstFunc]:
     return (expr, linst_compile(expr, ReqresExpr_lookup))
 
-def elaborate_output(cargs : _t.Any) -> None:
-    if cargs.dry_run:
-        cargs.terminator = None
-
-    if cargs.output.startswith("format:"):
-        cargs.output_format = cargs.output[7:]
+def elaborate_output(kind : str, aliases : dict[str, str], value : str) -> str:
+    if value.startswith("format:"):
+        return value[7:]
     else:
         try:
-            cargs.output_format = output_alias[cargs.output]
+            return aliases[value]
         except KeyError:
-            raise CatastrophicFailure(gettext('unknown `--output` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), cargs.output)
+            raise CatastrophicFailure(gettext('unknown `%s` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), kind, value)
 
 def elaborate_paths(paths : list[str | bytes]) -> None:
     for i in range(0, len(paths)):
@@ -1476,6 +1473,7 @@ class DeferredFileWrite(DeferredOperation[DeferredSourceType, _t.AnyStr], _t.Gen
 
 def make_deferred_emit(cargs : _t.Any,
                        destination : _t.AnyStr,
+                       output_format : _t.AnyStr,
                        action : str,
                        actioning : str,
                        defer : _t.Callable[[ReqresExpr[DeferredSourceType], _t.AnyStr, bool, bool],
@@ -1485,7 +1483,7 @@ def make_deferred_emit(cargs : _t.Any,
                        symlinking : bool = False) \
         -> tuple[_t.Callable[[ReqresExpr[DeferredSourceType]], None],
                  _t.Callable[[], None]]:
-    output_format = cargs.output_format + ".wrr"
+    terminator = cargs.terminator if cargs.dry_run is not None else None
 
     # current memory consumption
     mem = Memory()
@@ -1526,7 +1524,7 @@ def make_deferred_emit(cargs : _t.Any,
             return
 
         done_files : list[_t.AnyStr] | None = None
-        if cargs.terminator is not None:
+        if terminator is not None:
             done_files = []
 
         def run_intent(abs_out_path : _t.AnyStr, intent : DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr]) -> None:
@@ -1610,7 +1608,7 @@ def make_deferred_emit(cargs : _t.Any,
         if done_files is not None:
             for abs_out_path in done_files:
                 stdout.write(abs_out_path)
-                stdout.write_bytes(cargs.terminator)
+                stdout.write_bytes(terminator)
 
             stdout.flush()
             fsync_maybe(stdout.fobj.fileno())
@@ -1746,9 +1744,9 @@ def make_deferred_emit(cargs : _t.Any,
 
             if intent is None:
                 # noop
-                if cargs.terminator is not None:
+                if terminator is not None:
                     stdout.write(abs_out_path)
-                    stdout.write_bytes(cargs.terminator)
+                    stdout.write_bytes(terminator)
 
             break
 
@@ -1757,7 +1755,7 @@ def make_deferred_emit(cargs : _t.Any,
 
     return emit, finish_updates
 
-def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, allow_updates : bool) \
+def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, output_format : _t.AnyStr, allow_updates : bool) \
         -> tuple[_t.Callable[[ReqresExpr[DeferredSourceType]], None],
                  _t.Callable[[], None]]:
     action_op : _t.Any
@@ -1845,7 +1843,7 @@ def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, allow_updates : 
                     raise Failure(gettext(f"can't {action} across file systems"))
                 raise exc
 
-    return make_deferred_emit(cargs, destination, action, actioning, DeferredOrganize, allow_updates, moving, symlinking)
+    return make_deferred_emit(cargs, destination, output_format, action, actioning, DeferredOrganize, allow_updates, moving, symlinking)
 
 def cmd_organize(cargs : _t.Any) -> None:
     if cargs.walk_paths == "unset":
@@ -1853,7 +1851,7 @@ def cmd_organize(cargs : _t.Any) -> None:
     if cargs.walk_fs == "unset":
         cargs.walk_fs = True if not cargs.allow_updates else False
 
-    elaborate_output(cargs)
+    output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
     handle_paths(cargs)
 
     rrexprs_load = mk_rrexprs_load(cargs)
@@ -1862,7 +1860,7 @@ def cmd_organize(cargs : _t.Any) -> None:
     emit : EmitFunc[ReqresExpr[FileSource]]
     if cargs.destination is not None:
         # destination is set explicitly
-        emit, finish = make_organize_emit(cargs, _os.path.expanduser(cargs.destination), cargs.allow_updates)
+        emit, finish = make_organize_emit(cargs, _os.path.expanduser(cargs.destination), output_format, cargs.allow_updates)
         try:
             map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, cargs.paths)
         finally:
@@ -1882,7 +1880,7 @@ def cmd_organize(cargs : _t.Any) -> None:
                 raise Failure(gettext("`%s` is not a directory but no `--to` is specified"), exp_path)
 
         for exp_path in cargs.paths:
-            emit, finish = make_organize_emit(cargs, exp_path, False)
+            emit, finish = make_organize_emit(cargs, exp_path, output_format, False)
             try:
                 map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, [exp_path])
             finally:
@@ -1892,13 +1890,13 @@ def cmd_organize(cargs : _t.Any) -> None:
 
 def cmd_import_generic(cargs : _t.Any,
                        rrexprs_loadf : _t.Callable[[str | bytes], _t.Iterator[ReqresExpr[DeferredSourceType]]]) -> None:
-    elaborate_output(cargs)
+    output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
     handle_paths(cargs)
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
     emit : EmitFunc[ReqresExpr[DeferredSourceType]]
-    emit, finish = make_deferred_emit(cargs, cargs.destination, "import", "importing", DeferredFileWrite, cargs.allow_updates)
+    emit, finish = make_deferred_emit(cargs, cargs.destination, output_format, "import", "importing", DeferredFileWrite, cargs.allow_updates)
     try:
         map_wrr_paths(cargs, rrexprs_loadf, filters_allow, emit, cargs.paths)
     finally:
@@ -1920,12 +1918,12 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
 
-    elaborate_output(cargs)
     handle_paths(cargs)
     elaborate_paths(cargs.boring)
 
     destination = _os.path.expanduser(cargs.destination)
-    output_format = cargs.output_format
+    output_format = elaborate_output("--output", output_alias, cargs.output)
+
     max_depth : int = cargs.depth
     sniff = cargs.sniff
     allow_updates = cargs.allow_updates == True
