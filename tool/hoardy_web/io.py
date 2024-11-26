@@ -28,8 +28,13 @@ from gettext import gettext
 
 from kisstdlib.exceptions import *
 
-if _sys.platform != "win32":
+_have_fcntl = False
+try:
     import fcntl as _fcntl
+except ImportError:
+    pass
+else:
+    _have_fcntl = True
 
 def fsdecode_maybe(x : str | bytes) -> str:
     if isinstance(x, bytes):
@@ -152,7 +157,7 @@ def atomic_make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
         fsync_fpath(dst_part)
 
     dirfd = _os.open(dirname, _os.O_RDONLY | _os.O_DIRECTORY)
-    if _sys.platform != "win32":
+    if _have_fcntl:
         _fcntl.flock(dirfd, _fcntl.LOCK_EX)
 
     try:
@@ -167,7 +172,7 @@ def atomic_make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
             dsync.replaces.append((dst_part, dst))
             dsync.dirs.add(dirname)
     finally:
-        if _sys.platform != "win32":
+        if _have_fcntl:
             _fcntl.flock(dirfd, _fcntl.LOCK_UN)
         _os.close(dirfd)
 
