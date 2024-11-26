@@ -63,6 +63,7 @@ def main() -> None:
                 except KeyError:
                     seen[ino] = fpath
                 else:
+                    hardlink = os.path.relpath(hardlink, fpath)
                     printbin(opath, "=>", hardlink)
                     continue
 
