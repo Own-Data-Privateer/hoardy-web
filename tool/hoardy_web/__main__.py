@@ -1928,6 +1928,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     sniff = cargs.sniff
     allow_updates = cargs.allow_updates == True
     skip_existing = cargs.allow_updates == "partial"
+    relative = not cargs.absolute
 
     mem = Memory()
     seen_counter : SeenCounter[str] = SeenCounter(mem)
@@ -2264,8 +2265,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                     else:
                         return None
 
-                urel_url = path_to_url(_os.path.relpath(uabs_out_path, document_dir))
-                remap_cache[cache_id] = res = urel_url + purl.ofm + purl.fragment
+                if relative:
+                    uabs_out_path = _os.path.relpath(uabs_out_path, document_dir)
+                remap_cache[cache_id] = res = path_to_url(uabs_out_path) + purl.ofm + purl.fragment
                 return res
 
             rrexpr.remap_url = remap_url
@@ -2819,6 +2821,13 @@ I.e. this allows `{__prog__} export mirror` to be used incrementally.
 Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
 """))
             cmd.set_defaults(default_expr = "all")
+
+            agrp = cmd.add_argument_group("link conversions")
+            grp = agrp.add_mutually_exclusive_group()
+
+            grp.add_argument("--relative", dest="absolute", action="store_const", const=False, help=_("when remapping URLs to local files, produce links and references with relative URLs (relative to the `--output` files under `OUTPUT_DESTINATION`); default"))
+            grp.add_argument("--absolute", dest="absolute", action="store_const", const=True, help=_("when remapping URLs to local files, produce links and references with absolute URLs"))
+            cmd.set_defaults(absolute = False)
 
     # get
     cmd = subparsers.add_parser("get", help=_("print values produced by computing given expressions on a given `WRR` file"),

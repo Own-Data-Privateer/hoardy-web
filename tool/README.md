@@ -3229,6 +3229,12 @@ In short, this sub-command generates static offline website mirrors, producing r
     
     Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
 
+- link conversions:
+  - `--relative`
+  : when remapping URLs to local files, produce links and references with relative URLs (relative to the `--output` files under `OUTPUT_DESTINATION`); default
+  - `--absolute`
+  : when remapping URLs to local files, produce links and references with absolute URLs
+
 - what gets exported:
   - `--oldest`
   : for each URL, export its oldest available version
