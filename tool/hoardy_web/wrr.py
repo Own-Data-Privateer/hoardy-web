@@ -147,17 +147,16 @@ class Reqres:
     finished_at : Epoch
     extra : dict[str, _t.Any]
     websocket : _t.Optional[list[WebSocketFrame]]
-    _approx_size : int | None = _dc.field(default = None)
+    _approx_size : int = 0
 
-    def approx_size(self) -> int:
-        if self._approx_size is not None:
-            return self._approx_size
-        size = 128 \
+    def __post_init__(self) -> None:
+        self._approx_size = 128 \
             + self.request.approx_size() \
             + (self.response.approx_size() if self.response is not None else 0) \
             + (sum(map(lambda x: x.approx_size(), self.websocket)) if self.websocket is not None else 0)
-        self._approx_size = size
-        return size
+
+    def approx_size(self) -> int:
+        return self._approx_size
 
 Reqres_url_schemes = frozenset(["http", "https", "ftp", "ftps", "ws", "wss"])
 

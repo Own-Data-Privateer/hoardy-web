@@ -362,7 +362,7 @@ while (($# > 0)); do
     start "export urls..."
 
     fixed_output "export-urls" "$src" "$td" \
-        export mirror --to "$td/export-urls" --output hupq_n \
+        export mirror --copy --to "$td/export-urls" --output hupq_n \
         "${uexprs[@]}" \
         "$idir"
     [[ -n "$do_fixed_dir" ]] && fixed_dir "export-urls" "$src" "$td"

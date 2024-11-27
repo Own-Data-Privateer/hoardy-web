@@ -42,6 +42,13 @@ def fsdecode_maybe(x : str | bytes) -> str:
     else:
         return x
 
+def read_whole_file_maybe(path : str | bytes) -> bytes | None:
+    try:
+        with open(path, "rb") as f:
+            return f.read()
+    except FileNotFoundError:
+        return None
+
 def fsync_maybe(fd : int) -> None:
     try:
         _os.fsync(fd)

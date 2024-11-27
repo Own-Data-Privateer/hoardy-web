@@ -19,6 +19,7 @@ import bisect as _bisect
 import collections as _c
 import dataclasses as _dc
 import errno as _errno
+import hashlib as _hashlib
 import io as _io
 import logging as _logging
 import os as _os
@@ -650,6 +651,10 @@ output_alias = {
     "flat_mhs":      f"%(hostname)s/{ofp_snq}.%(method)s_{ofh4}_%(status)s%(filepath_ext)s",
     "flat_mhsn":     f"%(hostname)s/{ofp_snq}.%(method)s_{ofh4}_%(status)s_%(num)d%(filepath_ext)s",
     "flat_mhstn":    f"%(hostname)s/{ofp_snq}.%(method)s_{ofh4}_%(status)s_{ofdd}_%(num)d%(filepath_ext)s",
+}
+
+content_output_alias = {
+    "default": "_content/sha256/%(content_sha256|take_prefix 1|to_hex)s/%(content_sha256|to_hex)s%(filepath_ext)s"
 }
 
 def output_example(name : str, indent : int) -> str:
@@ -1924,11 +1929,33 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     destination = _os.path.expanduser(cargs.destination)
     output_format = elaborate_output("--output", output_alias, cargs.output)
 
+    if cargs.content_destination is not None:
+        content_destination = _os.path.expanduser(cargs.content_destination)
+    else:
+        content_destination = destination
+    content_output_format = elaborate_output("--content-output", content_output_alias, cargs.content_output)
+
+    action_op : _t.Any
+    action = cargs.content_action
+    copying = False
+    if action == "copy":
+        copying = True
+    elif action == "hardlink":
+        action_op = atomic_link
+    elif action == "symlink":
+        action_op = atomic_symlink
+    else:
+        assert False
+
+    if cargs.absolute is None:
+        relative = action != "symlink"
+    else:
+        relative = not cargs.absolute
+
     max_depth : int = cargs.depth
     sniff = cargs.sniff
     allow_updates = cargs.allow_updates == True
     skip_existing = cargs.allow_updates == "partial"
-    relative = not cargs.absolute
 
     mem = Memory()
     seen_counter : SeenCounter[str] = SeenCounter(mem)
@@ -1940,12 +1967,14 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         stime : Epoch
         rrexpr : ReqresExpr[_t.Any]
         _abs_out_path : str | None = _dc.field(default = None)
+        _rrapprox_size : int = 0
 
         def __post_init__(self) -> None:
-            mem.consumption += 32 + self.rrexpr.approx_size()
+            self._rrapprox_size = res = self.rrexpr.approx_size()
+            mem.consumption += 40 + res
 
         def __del__(self) -> None:
-            mem.consumption -= 32 + self.rrexpr.approx_size() + \
+            mem.consumption -= 40 + self._rrapprox_size + \
                 (len(self._abs_out_path) if self._abs_out_path is not None else 0)
 
         @property
@@ -1965,9 +1994,10 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
         def unload(self) -> None:
             rrexpr = self.rrexpr
-            mem.consumption -= rrexpr.approx_size()
             rrexpr.unload()
-            mem.consumption += rrexpr.approx_size()
+            res = rrexpr.approx_size()
+            mem.consumption += res - self._rrapprox_size
+            self._rrapprox_size = res
 
     NetURLType : _t.TypeAlias = str
     PathType : _t.TypeAlias = str
@@ -1979,7 +2009,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
     index : _c.defaultdict[NetURLType, list[Indexed]] = _c.defaultdict(list)
     Queue = _c.OrderedDict[NetURLOrPageIDType, Indexed]
     queue : Queue = _c.OrderedDict()
-    done : set[PageIDType] = set()
+    done : dict[PageIDType, PathType | None] = dict()
 
     class Stats:
         indexed = 0
@@ -2137,9 +2167,8 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                abs_out_path : PathType,
                enqueue : bool,
                new_queue : Queue,
-               level : int) -> None:
-        done.add((stime, net_url))
-
+               level : int) -> PathType | None:
+        page_id = (stime, net_url)
         source = rrexpr.source
 
         level0 = level == 0
@@ -2169,16 +2198,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         stdout.flush()
 
         try:
-            exists = _os.path.exists(abs_out_path)
-            if skip_existing and exists:
-                if stdout.isatty:
-                    stdout.write_bytes(b"\033[33m")
-                stdout.write_str_ln(ispace + gettext("destination exists, skipped!"))
-                if stdout.isatty:
-                    stdout.write_bytes(b"\033[0m")
-                stdout.write_str_ln(ispace + gettext("dst %s") % (abs_out_path,))
-                stdout.flush()
-                return
+            done[page_id] = None # (breakCycles)
 
             document_dir = _os.path.dirname(abs_out_path)
             remap_cache : dict[tuple[str, bool], str] = dict()
@@ -2220,31 +2240,37 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 else:
                     ustime = uobj.stime
                     upage_id = (ustime, unet_url)
-                    uabs_out_path = uobj.abs_out_path
 
-                    if upage_id in done:
+                    if is_requisite:
+                        # use content_destination path here
+                        try:
+                            uabs_out_path = done[upage_id]
+                        except KeyError:
+                            # unqueue it
+                            for q in [new_queue, queue]:
+                                try:
+                                    del q[upage_id]
+                                except KeyError: pass
+                                try:
+                                    del q[unet_url]
+                                except KeyError: pass
+
+                            # render it immediately
+                            # NB: (breakCycles) breaks dependency cycles that can make this loop infinitely
+                            uabs_out_path = render(ustime, unet_url, uobj.rrexpr, uobj.abs_out_path, enqueue, new_queue, level + 1)
+                            uobj.unload()
+                    elif upage_id in done:
                         # nothing to do
+                        uabs_out_path = uobj.abs_out_path
                         # NB: will be unloaded already
-                        pass
-                    elif is_requisite:
-                        # unqueue it
-                        for q in [new_queue, queue]:
-                            try:
-                                del q[upage_id]
-                            except KeyError: pass
-                            try:
-                                del q[unet_url]
-                            except KeyError: pass
-
-                        # render it immediately
-                        render(ustime, unet_url, uobj.rrexpr, uabs_out_path, enqueue, new_queue, level + 1)
-                        uobj.unload()
                     elif upage_id in new_queue or upage_id in queue or \
                          unet_url in new_queue or unet_url in queue:
                         # nothing to do
+                        uabs_out_path = uobj.abs_out_path
                         if mem.consumption > max_memory_mib:
                             uobj.unload()
                     elif enqueue:
+                        uabs_out_path = uobj.abs_out_path
                         new_queue[upage_id] = uobj
                         report_queued(ustime, unet_url, purl.pretty_net_url, uobj.rrexpr.source, level + 1)
                         if mem.consumption > max_memory_mib:
@@ -2252,7 +2278,6 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                     else:
                         # this will not be exported
                         uabs_out_path = None
-                        uobj.unload()
                         # NB: Not setting `uobj._abs_out_path = None` here
                         # because it might be a requisite for another
                         # page. In which case, when not running with
@@ -2272,25 +2297,57 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
             rrexpr.remap_url = remap_url
 
+            old_data = read_whole_file_maybe(abs_out_path)
+
             data : bytes
-            with TIOWrappedWriter(_io.BytesIO()) as f:
-                print_exprs(rrexpr, cargs.exprs, cargs.separator, f)
-                data = f.fobj.getvalue()
+            if skip_existing and old_data is not None:
+                data = old_data
 
-            if exists and file_content_equals(abs_out_path, data):
-                # this is a noop overwrite, skip it
-                return
+                if stdout.isatty:
+                    stdout.write_bytes(b"\033[33m")
+                stdout.write_str_ln(ispace + gettext("reusing file content: destination exists and `--skip-existing` is set"))
+                if stdout.isatty:
+                    stdout.write_bytes(b"\033[0m")
+            else:
+                with TIOWrappedWriter(_io.BytesIO()) as f:
+                    print_exprs(rrexpr, cargs.exprs, cargs.separator, f)
+                    data = f.fobj.getvalue()
 
-            atomic_write(data, abs_out_path, allow_updates)
+            if copying:
+                real_out_path = abs_out_path
+                if old_data != data:
+                    atomic_write(data, abs_out_path, allow_updates)
+            else:
+                rrexpr.values["content"] = data
+                rrexpr.values["content_sha256"] = sha256_raw = _hashlib.sha256(data).digest()
+                sha256_hex = sha256_raw.hex()
+
+                real_out_path = _os.path.join(content_destination, content_output_format % rrexpr)
+
+                old_content = read_whole_file_maybe(real_out_path)
+
+                if old_content is None:
+                    atomic_write(data, real_out_path, False)
+                elif old_content != data:
+                    raise Failure(gettext("wrong file content in `%s`: expected sha256 `%s`, got sha256 `%s`"), real_out_path, sha256_hex, _hashlib.sha256(old_content).hexdigest())
+
+                if old_data != data:
+                    action_op(real_out_path, abs_out_path, allow_updates)
+
+                stdout.write_str_ln(ispace + gettext("content_dst %s") % (real_out_path,))
+
             stdout.write_str_ln(ispace + gettext("dst %s") % (abs_out_path,))
             stdout.flush()
+
+            done[page_id] = real_out_path
+            return real_out_path
         except Failure as exc:
             if cargs.errors == "ignore":
-                return
+                return abs_out_path
             exc.elaborate(gettext(f"while processing `%s`"), source.show_source())
             if cargs.errors != "fail":
                 _logging.error("%s", str(exc))
-                return
+                return abs_out_path
             raise CatastrophicFailure("%s", str(exc))
         except Exception:
             error(gettext("while processing `%s`"), source.show_source())
@@ -2825,9 +2882,9 @@ Note however, that using fallbacks when the `--output` format depends on anythin
             agrp = cmd.add_argument_group("link conversions")
             grp = agrp.add_mutually_exclusive_group()
 
-            grp.add_argument("--relative", dest="absolute", action="store_const", const=False, help=_("when remapping URLs to local files, produce links and references with relative URLs (relative to the `--output` files under `OUTPUT_DESTINATION`); default"))
-            grp.add_argument("--absolute", dest="absolute", action="store_const", const=True, help=_("when remapping URLs to local files, produce links and references with absolute URLs"))
-            cmd.set_defaults(absolute = False)
+            grp.add_argument("--relative", dest="absolute", action="store_const", const=False, help=_("when remapping URLs to local files, produce links and references with relative URLs (relative to the `--output` files under `OUTPUT_DESTINATION`); default when `--copy` or `--hardlink`"))
+            grp.add_argument("--absolute", dest="absolute", action="store_const", const=True, help=_("when remapping URLs to local files, produce links and references with absolute URLs; default when `--symlink`"))
+            cmd.set_defaults(absolute = None)
 
     # get
     cmd = subparsers.add_parser("get", help=_("print values produced by computing given expressions on a given `WRR` file"),
@@ -2900,8 +2957,8 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
         agrp = cmd.add_argument_group("file outputs")
 
         if kind == "organize":
-            agrp.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, help=_("destination directory; when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`"))
-            agrp.add_argument("-o", "--output", metavar="FORMAT", default="default", type=str, help=_("""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""") + "\n" + \
+            agrp.add_argument("-t", "--to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, help=_("destination directory; when unset each source `PATH` must be a directory which will be treated as its own `OUTPUT_DESTINATION`"))
+            agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default="default", type=str, help=_("""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""") + "\n" + \
                          "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
                          "".join([f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`" + ("; the default" if name == "default" else "") + "\n" + output_example(name, 8) + "\n" for name, value in output_alias.items()]) + \
                          "- " + _("available substitutions:") + "\n" + \
@@ -2913,8 +2970,8 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
             else:
                 def_def = "hupq_n"
 
-            agrp.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("destination directory"))
-            agrp.add_argument("-o", "--output", metavar="FORMAT", default=def_def, type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same expression format as `{__prog__} organize --output` (which see); default: %(default)s"""))
+            agrp.add_argument("-t", "--to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, required=True, help=_("destination directory"))
+            agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default=def_def, type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same expression format as `{__prog__} organize --output` (which see); default: %(default)s"""))
         else:
             assert False
 
@@ -2923,10 +2980,10 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
         agrp = cmd.add_argument_group("updates to `--output`s")
         grp = agrp.add_mutually_exclusive_group()
 
-        def_disallow = _("disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default")
+        def_disallow = _("disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default")
 
         def def_dangerous(what : str) -> str:
-            return _(f"DANGEROUS! not recommended, {what} to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this")
+            return _(f"DANGEROUS! not recommended, {what} to a new `OUTPUT_DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this")
 
         if kind == "organize":
             grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
@@ -2934,30 +2991,30 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
 when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
 the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap files will still fail
 """))
-            grp.add_argument("--latest", dest="allow_updates", action="store_const", const=True, help=_("""replace files under `DESTINATION` with their latest version;
+            grp.add_argument("--latest", dest="allow_updates", action="store_const", const=True, help=_("""replace files under `OUTPUT_DESTINATION` with their latest version;
 this is only allowed in combination with `--symlink` at the moment;
 for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
 """))
         elif kind == "import":
             grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow)
-            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("permit overwriting of old `--output` files under `DESTINATION`") + ";\n" + def_dangerous("importing"))
+            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("permit overwrites to files under `OUTPUT_DESTINATION`") + ";\n" + def_dangerous("importing"))
         elif kind == "export mirror":
             grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
                 _("""repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
-however, trying to overwrite existing `--output` files under `DESTINATION` with any new data will produce errors;
-this allows reusing the `DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
+however, trying to overwrite existing files under `OUTPUT_DESTINATION` with any new data will produce errors;
+this allows reusing the `OUTPUT_DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
 """))
-            grp.add_argument("--skip-existing", "--partial", dest="allow_updates", action="store_const", const="partial", help=_("""skip exporting of targets which have a corresponding `--output` file under `DESTINATION`;
+            grp.add_argument("--skip-existing", "--partial", dest="allow_updates", action="store_const", const="partial", help=_("""skip rendering of targets which have a corresponding file under `OUTPUT_DESTINATION`, use the contents of such files instead;
 using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
 on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
 """))
-            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("export all targets while permitting overwriting of old `--output` files under `DESTINATION`") + ";\n" + def_dangerous("exporting"))
+            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("export all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`") + ";\n" + def_dangerous("exporting"))
 
         cmd.set_defaults(allow_updates = False)
 
     # organize
     cmd = subparsers.add_parser("organize", help=_("programmatically rename/move/hardlink/symlink `WRR` files based on their contents"),
-                                description = _(f"""Parse given `WRR` files into their respective reqres and then rename/move/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
+                                description = _(f"""Parse given `WRR` files into their respective reqres and then rename/move/hardlink/symlink each file to `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
 
 Operations that could lead to accidental data loss are not permitted.
 E.g. `{__prog__} organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`."""))
@@ -2967,10 +3024,10 @@ E.g. `{__prog__} organize --move` will not overwrite any files, which is why the
 
     agrp = cmd.add_argument_group("action")
     grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--move", dest="action", action="store_const", const="move", help=_("move source files under `DESTINATION`; default"))
-    grp.add_argument("--copy", dest="action", action="store_const", const="copy", help=_("copy source files to files under `DESTINATION`"))
-    grp.add_argument("--hardlink", dest="action", action="store_const", const="hardlink", help=_("create hardlinks from source files to paths under `DESTINATION`"))
-    grp.add_argument("--symlink", dest="action", action="store_const", const="symlink", help=_("create symlinks from source files to paths under `DESTINATION`"))
+    grp.add_argument("--move", dest="action", action="store_const", const="move", help=_("move source files under `OUTPUT_DESTINATION`; default"))
+    grp.add_argument("--copy", dest="action", action="store_const", const="copy", help=_("copy source files to files under `OUTPUT_DESTINATION`"))
+    grp.add_argument("--hardlink", dest="action", action="store_const", const="hardlink", help=_("create hardlinks from source files to paths under `OUTPUT_DESTINATION`"))
+    grp.add_argument("--symlink", dest="action", action="store_const", const="symlink", help=_("create symlinks from source files to paths under `OUTPUT_DESTINATION`"))
     cmd.set_defaults(action = "move")
 
     add_fileout(cmd, "organize")
@@ -2985,17 +3042,17 @@ E.g. `{__prog__} organize --move` will not overwrite any files, which is why the
 
     # import
     supcmd = subparsers.add_parser("import", help=_("convert other `HTTP` archive formats into `WRR`"),
-                                   description = _(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
+                                   description = _(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
 In short, this is `{__prog__} organize --copy` for `INPUT` files that use different files formats."""))
     supsub = supcmd.add_subparsers(title="file formats")
 
     cmd = supsub.add_parser("bundle", help=_("convert `WRR` bundles into separate `WRR` files"),
-                            description = _(f"""Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata."""))
+                            description = _(f"""Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""))
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_bundle)
 
     cmd = supsub.add_parser("mitmproxy", help=_("convert `mitmproxy` stream dumps into `WRR` files"),
-                            description = _(f"""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata."""))
+                            description = _(f"""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""))
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_mitmproxy)
 
@@ -3007,12 +3064,12 @@ the actual maximum whole-program memory consumption is `O(<size of the largest r
 
     # export
     supcmd = subparsers.add_parser("export", help=_(f"convert `WRR` archives into other formats"),
-                                   description = _(f"""Parse given `WRR` files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata.
+                                   description = _(f"""Parse given `WRR` files into their respective reqres, convert to another file format, and then dump the result under `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
 """))
     supsub = supcmd.add_subparsers(title="file formats")
 
     cmd = supsub.add_parser("mirror", help=_("convert given `WRR` files into a local website mirror stored in interlinked plain files"),
-                            description = _(f"""Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
+                            description = _(f"""Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
 Essentially, this is a combination of `{__prog__} organize --copy` followed by in-place `{__prog__} get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
 
 In short, this sub-command generates static offline website mirrors, producing results similar to those of `wget -mpk`.
@@ -3049,6 +3106,24 @@ In short, this sub-command generates static offline website mirrors, producing r
     cmd.set_defaults(mode=(False, True)) # `--latest`
 
     add_fileout(cmd, "export mirror")
+
+    agrp = cmd.add_argument_group("content-addressed file output mode")
+
+    agrp.add_argument("--copy", dest="content_action", action="store_const", const="copy", help=_("do not use content-addressed outputs, simply write rendered output data to files under `OUTPUT_DESTINATION`"))
+    agrp.add_argument("--hardlink", dest="content_action", action="store_const", const="hardlink", help=_("write rendered output data to files under `CONTENT_DESTINATION`, then hardlink them to paths under `OUTPUT_DESTINATION`; default"))
+    agrp.add_argument("--symlink", dest="content_action", action="store_const", const="symlink", help=_("write rendered output data to files under `CONTENT_DESTINATION`, then symlink them to paths under `OUTPUT_DESTINATION`"))
+    cmd.set_defaults(content_action = "hardlink")
+
+    agrp = cmd.add_argument_group("content-addressed file output settings")
+
+    agrp.add_argument("--content-to", dest="content_destination", metavar="CONTENT_DESTINATION", type=str, help=_("content-addressed destination directory; if not specified, reuses `OUTPUT_DESTINATION`"))
+    agrp.add_argument("--content-output", metavar="CONTENT_FORMAT", default="default", type=str, help=_("""format describing generated content-addressed output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""") + "\n" + \
+                      "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
+                      "".join([f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`" + ("; the default" if name == "default" else "") + "\n" for name, value in content_output_alias.items()]) + \
+                      "- " + _("available substitutions:") + "\n" + \
+                      "  - " + _(f"all expressions of `{__prog__} get --expr` (which see)") + ";\n" + \
+                      "  - `content`: " + _("rendered content") + "\n" + \
+                      "  - `content_sha256`: " + _("alias for `content|sha256`"))
 
     add_filters(cmd, "take reqres as export root when", True)
 

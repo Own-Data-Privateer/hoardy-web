@@ -1607,7 +1607,7 @@ Print paths of `WRR` files matching specified criteria.
 
 ### hoardy-web organize
 
-Parse given `WRR` files into their respective reqres and then rename/move/hardlink/symlink each file to `DESTINATION` with the new path derived from each reqres' metadata.
+Parse given `WRR` files into their respective reqres and then rename/move/hardlink/symlink each file to `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
 
 Operations that could lead to accidental data loss are not permitted.
 E.g. `hoardy-web organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
@@ -1861,18 +1861,18 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
 
 - action:
   - `--move`
-  : move source files under `DESTINATION`; default
+  : move source files under `OUTPUT_DESTINATION`; default
   - `--copy`
-  : copy source files to files under `DESTINATION`
+  : copy source files to files under `OUTPUT_DESTINATION`
   - `--hardlink`
-  : create hardlinks from source files to paths under `DESTINATION`
+  : create hardlinks from source files to paths under `OUTPUT_DESTINATION`
   - `--symlink`
-  : create symlinks from source files to paths under `DESTINATION`
+  : create symlinks from source files to paths under `OUTPUT_DESTINATION`
 
 - file outputs:
-  - `-t DESTINATION, --to DESTINATION`
-  : destination directory; when unset each source `PATH` must be a directory which will be treated as its own `DESTINATION`
-  - `-o FORMAT, --output FORMAT`
+  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
+  : destination directory; when unset each source `PATH` must be a directory which will be treated as its own `OUTPUT_DESTINATION`
+  - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
     - available aliases and corresponding %-substitutions:
       - `default`     : `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(method)s_%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s_%(status)s_%(hostname)s_%(num)d`; the default
@@ -2383,18 +2383,18 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
 
 - updates to `--output`s:
   - `--no-overwrites`
-  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default;
+  : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default;
     `--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
     when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
     the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap files will still fail
   - `--latest`
-  : replace files under `DESTINATION` with their latest version;
+  : replace files under `OUTPUT_DESTINATION` with their latest version;
     this is only allowed in combination with `--symlink` at the moment;
     for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
 
 ### hoardy-web import
 
-Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
+Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
 In short, this is `hoardy-web organize --copy` for `INPUT` files that use different files formats.
 
 - file formats:
@@ -2406,7 +2406,7 @@ In short, this is `hoardy-web organize --copy` for `INPUT` files that use differ
 
 ### hoardy-web import bundle
 
-Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
+Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
 
 - options:
   - `--dry-run`
@@ -2656,9 +2656,9 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   : import reqres when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 - file outputs:
-  - `-t DESTINATION, --to DESTINATION`
+  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
   : destination directory
-  - `-o FORMAT, --output FORMAT`
+  - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: default
 
 - new `--output`s printing:
@@ -2671,14 +2671,14 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
 
 - updates to `--output`s:
   - `--no-overwrites`
-  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default
+  : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default
   - `--overwrite-dangerously`
-  : permit overwriting of old `--output` files under `DESTINATION`;
-    DANGEROUS! not recommended, importing to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
+  : permit overwrites to files under `OUTPUT_DESTINATION`;
+    DANGEROUS! not recommended, importing to a new `OUTPUT_DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
 
 ### hoardy-web import mitmproxy
 
-Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
+Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
 
 - options:
   - `--dry-run`
@@ -2928,9 +2928,9 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   : import reqres when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 - file outputs:
-  - `-t DESTINATION, --to DESTINATION`
+  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
   : destination directory
-  - `-o FORMAT, --output FORMAT`
+  - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: default
 
 - new `--output`s printing:
@@ -2943,14 +2943,14 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
 
 - updates to `--output`s:
   - `--no-overwrites`
-  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default
+  : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default
   - `--overwrite-dangerously`
-  : permit overwriting of old `--output` files under `DESTINATION`;
-    DANGEROUS! not recommended, importing to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
+  : permit overwrites to files under `OUTPUT_DESTINATION`;
+    DANGEROUS! not recommended, importing to a new `OUTPUT_DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
 
 ### hoardy-web export
 
-Parse given `WRR` files into their respective reqres, convert to another file format, and then dump the result under `DESTINATION` with the new path derived from each reqres' metadata.
+Parse given `WRR` files into their respective reqres, convert to another file format, and then dump the result under `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
 
 - file formats:
   - `{mirror}`
@@ -2959,7 +2959,7 @@ Parse given `WRR` files into their respective reqres, convert to another file fo
 
 ### hoardy-web export mirror
 
-Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `DESTINATION` with the new path derived from each reqres' metadata.
+Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
 Essentially, this is a combination of `hoardy-web organize --copy` followed by in-place `hoardy-web get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
 
 In short, this sub-command generates static offline website mirrors, producing results similar to those of `wget -mpk`.
@@ -3231,9 +3231,9 @@ In short, this sub-command generates static offline website mirrors, producing r
 
 - link conversions:
   - `--relative`
-  : when remapping URLs to local files, produce links and references with relative URLs (relative to the `--output` files under `OUTPUT_DESTINATION`); default
+  : when remapping URLs to local files, produce links and references with relative URLs (relative to the `--output` files under `OUTPUT_DESTINATION`); default when `--copy` or `--hardlink`
   - `--absolute`
-  : when remapping URLs to local files, produce links and references with absolute URLs
+  : when remapping URLs to local files, produce links and references with absolute URLs; default when `--symlink`
 
 - what gets exported:
   - `--oldest`
@@ -3252,9 +3252,9 @@ In short, this sub-command generates static offline website mirrors, producing r
   : export all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!
 
 - file outputs:
-  - `-t DESTINATION, --to DESTINATION`
+  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
   : destination directory
-  - `-o FORMAT, --output FORMAT`
+  - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: hupq_n
 
 - new `--output`s printing:
@@ -3267,17 +3267,37 @@ In short, this sub-command generates static offline website mirrors, producing r
 
 - updates to `--output`s:
   - `--no-overwrites`
-  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default;
+  : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default;
     repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
-    however, trying to overwrite existing `--output` files under `DESTINATION` with any new data will produce errors;
-    this allows reusing the `DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
+    however, trying to overwrite existing files under `OUTPUT_DESTINATION` with any new data will produce errors;
+    this allows reusing the `OUTPUT_DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
   - `--skip-existing, --partial`
-  : skip exporting of targets which have a corresponding `--output` file under `DESTINATION`;
+  : skip rendering of targets which have a corresponding file under `OUTPUT_DESTINATION`, use the contents of such files instead;
     using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
     on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
   - `--overwrite-dangerously`
-  : export all targets while permitting overwriting of old `--output` files under `DESTINATION`;
-    DANGEROUS! not recommended, exporting to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
+  : export all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`;
+    DANGEROUS! not recommended, exporting to a new `OUTPUT_DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
+
+- content-addressed file output mode:
+  - `--copy`
+  : do not use content-addressed outputs, simply write rendered output data to files under `OUTPUT_DESTINATION`
+  - `--hardlink`
+  : write rendered output data to files under `CONTENT_DESTINATION`, then hardlink them to paths under `OUTPUT_DESTINATION`; default
+  - `--symlink`
+  : write rendered output data to files under `CONTENT_DESTINATION`, then symlink them to paths under `OUTPUT_DESTINATION`
+
+- content-addressed file output settings:
+  - `--content-to CONTENT_DESTINATION`
+  : content-addressed destination directory; if not specified, reuses `OUTPUT_DESTINATION`
+  - `--content-output CONTENT_FORMAT`
+  : format describing generated content-addressed output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
+    - available aliases and corresponding %-substitutions:
+      - `default`     : `_content/sha256/%(content_sha256|take_prefix 1|to_hex)s/%(content_sha256|to_hex)s%(filepath_ext)s`; the default
+    - available substitutions:
+      - all expressions of `hoardy-web get --expr` (which see);
+      - `content`: rendered content
+      - `content_sha256`: alias for `content|sha256`
 
 - recursion root filters; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`); can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
   - `--root-before DATE`
