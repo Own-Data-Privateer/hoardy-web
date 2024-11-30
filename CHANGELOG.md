@@ -6,6 +6,31 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is [a TODO list](#todo) with planned future changes.
 
+## [tool-v0.18.1] - 2024-11-30: Hotfixes
+
+### Fixed
+
+`tool-v0.18` introduced a bunch of issues:
+
+- `organize`:
+
+  - Fixed `organize --symlink --latest` **sometimes overwriting (plain `WRR`) source files with symlinks to their newer versions**.
+
+    The good news is that this bug is only triggered when `organize --symlink --latest` is run with some newly archived data and it only overwrites a second to last `WRR` archive with a latest one for each updated `URL`.
+    Unfortunately, this error is self-propagating, so those files can then get overwritten again by the next invocation of `organize --symlink --latest` with some more new data.
+
+    A reminder that it is good to do daily backups, I suppose.
+
+    The next version will have a test for this, but I'm releasing this hotfix an hour after I discovered this.
+
+  - Fixed it `assert`-crashing sometimes when running with `--symlink`.
+
+  - Improved memory consumption a bit.
+
+- `export mirror`:
+
+  - Fixed overly large memory consumption.
+
 ## [tool-v0.18.0] - 2024-11-20: Incremental improvements
 
 ### Added
@@ -1666,6 +1691,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.18.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.18.0...tool-v0.18.1
 [tool-v0.18.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.17.0...tool-v0.18.0
 [tool-v0.17.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.16.0...tool-v0.17.0
 [extension-v1.17.2]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.17.1...extension-v1.17.2
