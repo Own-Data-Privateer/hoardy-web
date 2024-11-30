@@ -1190,7 +1190,8 @@ def make_deferred_emit(cargs : _t.Any,
                    new_rrexpr : ReqresExpr[DeferredSourceType],
                    abs_out_path : _t.AnyStr) \
                    -> tuple[bool, ReqresExpr[DeferredSourceType] | None, DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr] | None]:
-        if isinstance(new_rrexpr.source, FileSource) and new_rrexpr.source.path == abs_out_path:
+        new_source = new_rrexpr.source
+        if isinstance(new_source, FileSource) and new_source.path == abs_out_path:
             # hot evaluation path: moving, copying, hardlinking, symlinking, etc to itself
             # this is a noop
             return True, prev_rrexpr, None
@@ -1221,6 +1222,10 @@ def make_deferred_emit(cargs : _t.Any,
                         # get symlink target and use it as abs_out_path, thus
                         # (SETSRC) below will re-create the original source
                         abs_out_path = _os.path.realpath(abs_out_path)
+
+                        if isinstance(new_source, FileSource) and new_source.path == abs_out_path:
+                            # similarly to the above
+                            return True, prev_rrexpr, None
                 elif not allow_updates and symlinking:
                     raise Failure("destination exists and is not a symlink" + not_allowed)
                 else:
@@ -1271,7 +1276,7 @@ def make_deferred_emit(cargs : _t.Any,
                     updated_rrexpr.unload(True)
             else:
                 mem.consumption -= intent.approx_size() + len(abs_out_path)
-                permitted = intent.switch_source(new_rrexpr, moving)
+                permitted = intent.switch_source(new_rrexpr, moving) # (switchSource)
                 updated_rrexpr = intent.source
 
             del old_rrexpr
@@ -1375,9 +1380,9 @@ def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, allow_updates : 
         def run(self, dsync : DeferredSync | None = None) -> None:
             rrexpr = self.source
             source = rrexpr.source
-            if isinstance(source, FileSource):
-                # ensure we are not generating noops in load_defer
-                assert source.path != self.destination
+            if isinstance(source, FileSource) and source.path == self.destination:
+                # noop, this could happen after (switchSource)
+                return
 
             try:
                 dirname = _os.path.dirname(self.destination)
