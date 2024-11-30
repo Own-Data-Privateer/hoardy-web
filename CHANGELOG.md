@@ -10,14 +10,22 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
 ### Fixed
 
-`tool-v0.18` introduced a bunch of issues:
+`tool-v0.18.0` introduced a bunch of issues:
 
 - `organize`:
 
-  - Fixed `organize --symlink --latest` **sometimes overwriting (plain `WRR`) source files with symlinks to their newer versions**.
+  - **Fixed `organize --symlink --latest` sometimes overwriting (plain `WRR`) source files with symlinks to their newer versions**.
 
-    The good news is that this bug is only triggered when `organize --symlink --latest` is run with some newly archived data and it only overwrites a second to last `WRR` archive with a latest one for each updated `URL`.
-    Unfortunately, this error is self-propagating, so those files can then get overwritten again by the next invocation of `organize --symlink --latest` with some more new data.
+    The good news is that this bug was only triggered when `organize --symlink --latest` was run with some newly archived data and,  for each updated `URL`, it only overwrote the second to last `WRR` file with a symlink to the latest `WRR` file.
+    Unfortunately, this error was self-propagating, so those files could then get overwritten again by the next invocation of `organize --symlink --latest` with some more new data.
+
+    You can check if you were affected by running:
+
+    ```bash
+    cd ~/web/raw ; find . -type l
+    ```
+
+    The paths it outputs will be the paths of lost `WRR` files.
 
     A reminder that it is good to do daily backups, I suppose.
 
