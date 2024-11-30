@@ -219,7 +219,7 @@ def map_wrr_paths(cargs : _t.Any,
             if not filters_allow(cargs, rrexpr): return
             emit_func(rrexpr)
 
-    map_wrr_paths_extra(cargs, rrexprs_wrr_bundle_loadf, emit_many, paths, **kwargs) # type: ignore # type inference fail
+    map_wrr_paths_extra(cargs, rrexprs_wrr_some_loadf, emit_many, paths, **kwargs) # type: ignore # type inference fail
 
 def get_bytes(value : _t.Any) -> bytes:
     if value is None or isinstance(value, (bool, int, float, Epoch)):
@@ -1273,7 +1273,7 @@ def make_deferred_emit(cargs : _t.Any,
                     raise exc
 
                 if updated_rrexpr is not None:
-                    updated_rrexpr.unload(True)
+                    updated_rrexpr.unload()
             else:
                 mem.consumption -= intent.approx_size() + len(abs_out_path)
                 permitted = intent.switch_source(new_rrexpr, moving) # (switchSource)
@@ -1507,14 +1507,15 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
 
     @_dc.dataclass
     class Indexed:
+        stime : Epoch
         rrexpr : ReqresExpr[_t.Any]
         _abs_out_path : str | None = _dc.field(default = None)
 
         def __post_init__(self) -> None:
-            mem.consumption += 24 + self.rrexpr.approx_size()
+            mem.consumption += 32 + self.rrexpr.approx_size()
 
         def __del__(self) -> None:
-            mem.consumption -= 24 + self.rrexpr.approx_size() + \
+            mem.consumption -= 32 + self.rrexpr.approx_size() + \
                 (len(self._abs_out_path) if self._abs_out_path is not None else 0)
 
         @property
@@ -1594,16 +1595,19 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                response.code != 200:
                 return
 
+            stime = rrexpr.stime
             net_url = rrexpr.net_url
             iobj = index.get(net_url, None)
 
-            if iobj is not None and iobj.rrexpr.stime > rrexpr.stime:
+            if iobj is not None and iobj.stime > stime:
                 # the indexed one is newer
                 return
 
-            index[net_url] = iobj = Indexed(rrexpr)
+            index[net_url] = iobj = Indexed(stime, rrexpr)
 
+            enqueue = False
             if net_url in queue:
+                enqueue = True
                 queue[net_url] = iobj
             else:
                 enqueue = enqueue_all
@@ -1636,7 +1640,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                     queue[net_url] = iobj
                     report_queued(net_url, rrexpr.pretty_net_url if pretty_net_url is None else pretty_net_url, 1)
 
-            if mem.consumption > max_memory_mib:
+            if not enqueue or mem.consumption > max_memory_mib:
                 iobj.unload()
         return emit
 
@@ -1693,10 +1697,10 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
         if level0:
             Stats.doc_n += 1
 
+        stime = iobj.stime
         rrexpr = iobj.rrexpr
         abs_out_path = iobj.abs_out_path
         source = rrexpr.source
-        stime = rrexpr.stime
         done[net_url] = abs_out_path
         mem.consumption += 16 + len(abs_out_path)
 
@@ -1775,22 +1779,24 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                             except KeyError: pass
                             # render it immediately
                             render(unet_url, uobj, enqueue, new_queue, level + 1)
+                            uobj.unload()
                         elif unet_url in new_queue or unet_url in queue:
                             # nothing to do
-                            pass
+                            if mem.consumption > max_memory_mib:
+                                uobj.unload()
                         elif enqueue:
                             new_queue[unet_url] = uobj
                             report_queued(unet_url, purl.pretty_net_url, level + 1)
+                            if mem.consumption > max_memory_mib:
+                                uobj.unload()
                         else:
                             # this will not be exported
                             uabs_out_path = None
+                            uobj.unload()
                             # NB: Not setting `done[unet_url]` here because it
                             # might be a requisite for another page. In which
                             # case this page will void this `unet_url`
                             # unnecessarily, yes.
-
-                        if mem.consumption > max_memory_mib:
-                            uobj.unload()
 
                 if uabs_out_path is None:
                     if fallbacks is not None:

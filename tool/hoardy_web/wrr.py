@@ -250,18 +250,19 @@ def wrr_load_cbor_fileobj(fobj : _io.BufferedReader) -> Reqres:
 
 def wrr_load(fobj : _io.BufferedReader) -> Reqres:
     fobj = ungzip_fileobj_maybe(fobj)
-    res = wrr_load_cbor_fileobj(fobj)
-    p = fobj.peek(16)
+    if fobj.peek(1) == b"":
+        raise WRRParsingError(gettext("expected CBOR data, got EOF"))
+    reqres = wrr_load_cbor_fileobj(fobj)
+    p = fobj.peek(1)
     if p != b"":
         # there's some junk after the end of the Reqres structure
         raise WRRParsingError(gettext("expected EOF, got `%s`"), p)
-    return res
+    return reqres
 
 def wrr_bundle_load(fobj : _io.BufferedReader) -> _t.Iterator[Reqres]:
     fobj = ungzip_fileobj_maybe(fobj)
     while True:
-        p = fobj.peek(16)
-        if p == b"": break
+        if fobj.peek(1) == b"": break
         yield wrr_load_cbor_fileobj(fobj)
 
 def wrr_loadf(path : _t.AnyStr) -> Reqres:
@@ -536,7 +537,7 @@ class ReqresExpr(DeferredSource, _t.Generic[DeferredSourceType]):
         self._reqres = reqres
         return reqres
 
-    def unload(self, completely : bool = False) -> None:
+    def unload(self, completely : bool = True) -> None:
         if isinstance(self.source, FileSource):
             # this `reqres` is cheap to re-load
             self._reqres = None
@@ -687,6 +688,25 @@ def rrexprs_wrr_bundle_load(fobj : _io.BufferedReader, source : DeferredSourceTy
         yield ReqresExpr(StreamElementSource(source, n), reqres)
         n += 1
 
+def rrexprs_wrr_some_load(fobj : _io.BufferedReader, source : DeferredSourceType) -> _t.Iterator[ReqresExpr[DeferredSourceType | StreamElementSource[DeferredSourceType]]]:
+    fobj = ungzip_fileobj_maybe(fobj)
+    if fobj.peek(1) == b"":
+        raise WRRParsingError(gettext("expected CBOR data, got EOF"))
+
+    reqres = wrr_load_cbor_fileobj(fobj)
+    if fobj.peek(1) == b"":
+        yield ReqresExpr(source, reqres)
+        return
+
+    yield ReqresExpr(StreamElementSource(source, 0), reqres)
+
+    n = 1
+    while True:
+        reqres = wrr_load_cbor_fileobj(fobj)
+        yield ReqresExpr(StreamElementSource(source, n), reqres)
+        n += 1
+        if fobj.peek(1) == b"": break
+
 def rrexpr_wrr_loadf(path : str | bytes, in_stat : _os.stat_result | None = None) -> ReqresExpr[FileSource]:
     with open(path, "rb") as f:
         return rrexpr_wrr_load(f, make_FileSource(path, f, in_stat))
@@ -694,6 +714,10 @@ def rrexpr_wrr_loadf(path : str | bytes, in_stat : _os.stat_result | None = None
 def rrexprs_wrr_bundle_loadf(path : str | bytes, in_stat : _os.stat_result | None = None) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
         yield from rrexprs_wrr_bundle_load(f, make_FileSource(path, f, in_stat))
+
+def rrexprs_wrr_some_loadf(path : str | bytes, in_stat : _os.stat_result | None = None) -> _t.Iterator[ReqresExpr[FileSource | StreamElementSource[FileSource]]]:
+    with open(path, "rb") as f:
+        yield from rrexprs_wrr_some_load(f, make_FileSource(path, f, in_stat))
 
 def trivial_Reqres(url : ParsedURL,
                    content_type : str = "text/html",
