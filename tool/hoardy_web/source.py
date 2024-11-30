@@ -122,8 +122,9 @@ class FileSource(DeferredSource):
             return False
         return True
 
-def make_FileSource(path : str | bytes, fobj : _io.BufferedReader) -> FileSource:
-    in_stat = _os.fstat(fobj.fileno())
+def make_FileSource(path : str | bytes, fobj : _io.BufferedReader, in_stat : _os.stat_result | None = None) -> FileSource:
+    if in_stat is None:
+        in_stat = _os.fstat(fobj.fileno())
     return FileSource(path, in_stat.st_mtime_ns, in_stat.st_dev, in_stat.st_ino)
 
 DeferredSourceType = _t.TypeVar("DeferredSourceType", bound=DeferredSource)

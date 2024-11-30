@@ -1232,7 +1232,7 @@ def make_deferred_emit(cargs : _t.Any,
                     out_stat = out_lstat
 
             # (SETSRC)
-            old_rrexpr = rrexpr_wrr_loadf(abs_out_path)
+            old_rrexpr = rrexpr_wrr_loadf(abs_out_path, out_stat)
             old_rrexpr.sniff = cargs.sniff
         else:
             old_rrexpr = prev_rrexpr

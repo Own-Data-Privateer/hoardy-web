@@ -687,13 +687,14 @@ def rrexprs_wrr_bundle_load(fobj : _io.BufferedReader, source : DeferredSourceTy
         yield ReqresExpr(StreamElementSource(source, n), reqres)
         n += 1
 
-def rrexpr_wrr_loadf(path : str | bytes) -> ReqresExpr[FileSource]:
+def rrexpr_wrr_loadf(path : str | bytes, in_stat : _os.stat_result | None = None) -> ReqresExpr[FileSource]:
     with open(path, "rb") as f:
-        return rrexpr_wrr_load(f, make_FileSource(path, f))
+        return rrexpr_wrr_load(f, make_FileSource(path, f, in_stat))
 
-def rrexprs_wrr_bundle_loadf(path : str | bytes) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
+def rrexprs_wrr_bundle_loadf(path : str | bytes, in_stat : _os.stat_result | None = None) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
-        yield from rrexprs_wrr_bundle_load(f, make_FileSource(path, f))
+        yield from rrexprs_wrr_bundle_load(f, make_FileSource(path, f, in_stat))
+
 def trivial_Reqres(url : ParsedURL,
                    content_type : str = "text/html",
                    qtime : Epoch = Epoch(0),
