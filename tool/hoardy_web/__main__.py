@@ -1221,7 +1221,7 @@ def make_deferred_emit(cargs : _t.Any,
 
                         # get symlink target and use it as abs_out_path, thus
                         # (SETSRC) below will re-create the original source
-                        abs_out_path = _os.path.realpath(abs_out_path)
+                        abs_in_path = _os.path.realpath(abs_out_path)
 
                         if isinstance(new_source, FileSource) and new_source.path == abs_out_path:
                             # similarly to the above
@@ -1230,9 +1230,10 @@ def make_deferred_emit(cargs : _t.Any,
                     raise Failure("destination exists and is not a symlink" + not_allowed)
                 else:
                     out_stat = out_lstat
+                    abs_in_path = abs_out_path
 
             # (SETSRC)
-            old_rrexpr = rrexpr_wrr_loadf(abs_out_path, out_stat)
+            old_rrexpr = rrexpr_wrr_loadf(abs_in_path, out_stat)
             old_rrexpr.sniff = cargs.sniff
         else:
             old_rrexpr = prev_rrexpr
