@@ -47,19 +47,137 @@ errors=0
 task_errors=0
 error() {
     echo -e "\e[1;31m" >&2
-    echo -n "$@" >&2
+    echo -n "$*" >&2
     echo -e "\e[0m" >&2
     ((errors+=1))
     ((task_errors+=1))
 }
 
 die() {
-    error "$@"
+    error "$*"
     exit 1
 }
 
-[[ $# < 1 ]] && die "need at least one source"
+equal_file() {
+    if ! diff -U 0 "$2" "$3"; then
+        error "$1: equal_file failed"
+    fi
+}
 
+equal_dir() {
+    if ! diff -U 0 <(./development/describe-dir.py --no-mtime "$2") <(./development/describe-dir.py --no-mtime "$3"); then
+        error "$1: equal_dir failed"
+    fi
+}
+
+fixed_target() {
+    local target="$1"
+    local expected="$2.$target"
+    local got="$3/$target"
+
+    if ! [[ -e "$expected" ]]; then
+        cp "$got" "$expected"
+        echo " created $expected"
+    elif ! diff -U 0 "$expected" "$got"; then
+        cp "$got" "$expected.new"
+        error "$target: fixed_target failed"
+    else
+        rm -f "$expected.new"
+    fi
+}
+
+fixed_dir() {
+    ./development/describe-dir.py --no-mtime "$3/$1" > "$3/$1.describe-dir"
+    fixed_target "$1.describe-dir" "$2" "$3"
+}
+
+raw() {
+    python3 -m hoardy_web "$@"
+}
+
+ok_raw() {
+    raw "$@"
+    code=$?
+    if ((code != 0)); then
+        die "$*: return code $code"
+    fi
+}
+
+ok_separate() {
+    local target="$1"
+    local dst="$2"
+    shift 2
+
+    raw "$@" > "$dst/$target.stdout" 2> "$dst/$target.stderr"
+    code=$?
+    if ((code != 0)); then
+        cat "$dst/$target.stderr" >&2
+        die "$target: $*: return code $code"
+    fi
+}
+
+ok_mixed() {
+    local target="$1"
+    local dst="$2"
+    shift 2
+
+    raw "$@" &> "$dst/$target.out"
+    code=$?
+    if ((code != 0)); then
+        cat "$dst/$target.out" >&2
+        die "$target: $*: return code $code"
+    fi
+}
+
+no_stderr() {
+    local target="$1"
+    local dst="$2"
+    shift 2
+
+    ok_separate "$target" "$dst" "$@"
+    if [[ -s "$dst/$target.stderr" ]]; then
+        cat "$dst/$target.stderr" >&2
+        error "$target: $*: stderr is not empty"
+    fi
+}
+
+fixed_output() {
+    local target="$1"
+    local src="$2"
+    local dst="$3"
+    shift 3
+
+    ok_mixed "$target" "$dst" "$@"
+    sed -i "s%$dst/%./%g" "$dst/$target.out"
+    fixed_target "$target.out" "$src" "$dst"
+}
+
+no_stderr_selfsame() {
+    local target="$1"
+    local dst="$2"
+    local input="$3"
+    local stdin0="$4"
+    shift 4
+
+    ok_mixed "$target" "$dst" "$@" "$input"
+    ok_mixed "$target.stdin0" "$dst" "$@" --stdin0 < "$stdin0"
+    equal_file "$target: selfsame: $*" "$dst/$target.out" "$dst/$target.stdin0.out"
+}
+
+fixed_output_selfsame() {
+    local target="$1"
+    local src="$2"
+    local dst="$3"
+    local input="$4"
+    local stdin0="$5"
+    shift 5
+
+    no_stderr_selfsame "$target" "$dst" "$input" "$stdin0" "$@"
+    sed -i "s%$dst/%./%g" "$dst/$target.out"
+    fixed_target "$target.out" "$src" "$dst"
+}
+
+[[ $# < 1 ]] && die "need at least one source"
 umask 077
 trap '[[ -n "$td" ]] && rm -rf "$td"' 0
 
@@ -83,48 +201,7 @@ while (($# > 0)); do
     shift
 
     td=$(mktemp --tmpdir -d hoadry-web-test-cli-XXXXXXXX)
-    echo "tmpdir $td"
-
-    raw() {
-        python3 -m hoardy_web "$@"
-    }
-
-    noerr_quiet() {
-        raw "$@" > "$td/stdout" 2> "$td/stderr"
-        code=$?
-        if ((code != 0)); then
-            cat "$td/stderr" >&2
-            die "failed with code $code"
-        fi
-    }
-
-    noerr() {
-        noerr_quiet "$@"
-        cat "$td/stderr" >&2
-    }
-
-    nostderr() {
-        noerr "$@"
-        if [[ -s "$td/stderr" ]]; then
-            error "$@ failed because stderr is not empty"
-        fi
-    }
-
-    nostderr_eq() {
-        input=$1
-        stdin0=$2
-        shift 2
-
-        nostderr "$@" "$input"
-        mv "$td/stdout" "$td/stdout_a"
-
-        nostderr "$@" --stdin0 < "$stdin0"
-        mv "$td/stdout" "$td/stdout_b"
-
-        if ! diff -U 0 "$td/stdout_a" "$td/stdout_b" ; then
-            error "$@ failed because outputs on plain PATHs and on \`--stdin0\` are not equal"
-        fi
-    }
+    td=$(readlink -f "$td")
 
     uexprs=( \
         -e net_url \
@@ -137,69 +214,47 @@ while (($# > 0)); do
         -e "response.body|eb|to_utf8|sha256" \
     )
 
-    do_compare=1
+    do_fixed_dir=1
     if [[ -f "$src" ]] && [[ "$src" =~ .*\.wrrb ]]; then
         # these can be made with `cat`ting a bunch of .wrr files together
-        echo "Running tests on bundle $src..."
+        echo "# Testing on bundle $src in $td ..."
         stdin0="$td/input"
         find "$src" -type f -print0 > "$stdin0"
     elif [[ -f "$src" ]]; then
         # these can be made with `hoardy-web find -z`
-        echo "Running tests on stdin0 $src..."
+        echo "# Testing on stdin0 $src in $td ..."
         stdin0="$src"
     elif [[ -d "$src" ]]; then
         stdin0="$td/input"
         if [[ -z "$subset" ]]; then
-            echo "Running tests on all of $src..."
+            echo "# Testing on whole dir $src in $td ..."
             find "$src" -type f -print0 | sort -z > "$stdin0"
         else
-            echo "Running tests on a random subset (n=$subset) of $src..."
+            echo "# Testing on a random subset (n=$subset) of dir $src in $td ..."
             find "$src" -type f -print0 | shuf -z | head -zn "$subset" > "$stdin0"
-            do_compare=
+            do_fixed_dir=
         fi
     else
         die "can't run tests on $src"
     fi
 
-    compare_dir() {
-        if [[ -z "$do_compare" ]]; then
-            return
-        fi
-
-        expected="$src.$1.describe-dir"
-        got="$td/$1.describe-dir"
-
-        ./development/describe-dir.py --no-mtime "$td/$1" > "$got"
-
-        if ! [[ -e "$expected" ]]; then
-            mv "$got" "$expected"
-            echo -n " created $expected"
-            return
-        fi
-
-        if ! diff -U 0 "$expected" "$got"; then
-            mv "$got" "$expected.got"
-            error "failed to compare_dir on $1"
-        fi
-    }
-
     task_started=
 
     start() {
-        echo -n "$1"
+        echo -n "## $1"
         task_started=$(date +%s)
         task_errors=0
     }
 
     end() {
-        now=$(date +%s)
+        local now=$(date +%s)
         echo " $task_errors errors, $((now-task_started)) seconds"
     }
 
-    start "  import bundle..."
+    start "import bundle..."
 
-    noerr_quiet import bundle --stdin0 --to "$td/import-bundle" < "$stdin0"
-    compare_dir "import-bundle"
+    no_stderr "import-bundle" "$td" import bundle --quiet --stdin0 --to "$td/import-bundle" < "$stdin0"
+    [[ -n "$do_fixed_dir" ]] && fixed_dir "import-bundle" "$src" "$td"
 
     end
 
@@ -208,40 +263,46 @@ while (($# > 0)); do
     input0="$td/input0"
     find "$idir" -type f -print0 | sort -z > "$input0"
 
-    start "  find..."
+    start "find..."
 
-    nostderr_eq "$idir" "$input0" find --and "status|~= .200C" --and "response.body|len|> 1024"
-
-    end
-
-    start "  pprint..."
-
-    nostderr_eq "$idir" "$input0" pprint
-    nostderr_eq "$idir" "$input0" pprint -u
+    no_stderr_selfsame "find" "$td" "$idir" "$input0" find --and "status|~= .200C" --and "response.body|len|> 1024"
 
     end
 
-    start "  stream..."
+    start "pprint..."
 
-    nostderr_eq "$idir" "$input0" stream "${exprs[@]}"
-    nostderr_eq "$idir" "$input0" stream -u "${exprs[@]}"
+    no_stderr_selfsame "pprint" "$td" "$idir" "$input0" pprint
+    no_stderr_selfsame "pprint-u" "$td" "$idir" "$input0" pprint -u
 
     end
 
-    start "  organize..."
+    start "stream..."
 
-    noerr_quiet organize --copy --to "$td/organize" "$idir"
-    noerr_quiet organize --hardlink --to "$td/organize2" "$td/organize"
-    noerr_quiet organize --symlink --output hupq_msn --to "$td/organize3" "$td/organize"
+    no_stderr_selfsame "stream" "$td" "$idir" "$input0" stream "${exprs[@]}"
+    no_stderr_selfsame "stream-u" "$td" "$idir" "$input0" stream -u "${exprs[@]}"
+
+    end
+
+    start "organize..."
+
+    no_stderr "organize-copy" "$td" \
+              organize --quiet --copy --to "$td/organize" "$idir"
+
+    no_stderr "organize-hardlink" "$td" \
+              organize --quiet --hardlink --to "$td/organize2" "$td/organize"
+
+    no_stderr "organize-symlink" "$td" \
+              organize --quiet --symlink --output hupq_msn \
+              --to "$td/organize3" "$td/organize"
 
     {
-        raw organize --copy --to "$td/organize" "$td/organize2"
-        raw organize --hardlink --to "$td/organize" "$td/organize2"
-        raw organize --copy --to "$td/organize2" "$td/organize"
-        raw organize --hardlink --to "$td/organize2" "$td/organize"
+        ok_raw organize --copy --to "$td/organize" "$td/organize2"
+        ok_raw organize --hardlink --to "$td/organize" "$td/organize2"
+        ok_raw organize --copy --to "$td/organize2" "$td/organize"
+        ok_raw organize --hardlink --to "$td/organize2" "$td/organize"
 
-        raw organize --hardlink --to "$td/organize" "$td/organize3"
-        raw organize --symlink --output hupq_msn --to "$td/organize3" "$td/organize"
+        ok_raw organize --hardlink --to "$td/organize" "$td/organize3"
+        ok_raw organize --symlink --output hupq_msn --to "$td/organize3" "$td/organize"
     } &> "$td/reorganize-log"
 
     if [[ -s "$td/reorganize-log" ]]; then
@@ -251,20 +312,22 @@ while (($# > 0)); do
 
     end
 
-    start "  export urls..."
+    start "export urls..."
 
-    noerr export mirror --to "$td/export-urls" --output hupq_n \
-          "${uexprs[@]}" \
-          "$idir"
-    compare_dir "export-urls"
+    fixed_output "export-urls" "$src" "$td" \
+        export mirror --to "$td/export-urls" --output hupq_n \
+        "${uexprs[@]}" \
+        "$idir"
+    [[ -n "$do_fixed_dir" ]] && fixed_dir "export-urls" "$src" "$td"
 
     end
 
-    start "  export mirror..."
+    start "export mirror..."
 
-    noerr export mirror --to "$td/export-mirror" --output hupq_n \
-          "$idir"
-    compare_dir "export-mirror"
+    fixed_output "export-mirror" "$src" "$td" \
+       export mirror --to "$td/export-mirror" --output hupq_n \
+       "$idir"
+    [[ -n "$do_fixed_dir" ]] && fixed_dir "export-mirror" "$src" "$td"
 
     end
 
@@ -275,43 +338,43 @@ while (($# > 0)); do
         sinput0="$input0"
     fi
 
-    start "  get..."
+    start "get..."
 
     cat "$sinput0" | while IFS= read -r -d $'\0' path; do
-        nostderr get "${exprs[@]}" "$path"
-        nostderr get --sniff-force "${exprs[@]}" "$path"
-        nostderr get --sniff-paranoid "${exprs[@]}" "$path"
+        no_stderr "get-sniff-default" "$td"  get "${exprs[@]}" "$path"
+        no_stderr "get-sniff-force" "$td"    get --sniff-force "${exprs[@]}" "$path"
+        no_stderr "get-sniff-paranoid" "$td" get --sniff-paranoid "${exprs[@]}" "$path"
     done
 
     end
 
-    start "  run..."
+    start "run..."
 
     cat "$sinput0" | while IFS= read -r -d $'\0' path; do
-        nostderr run cat "$path"
-        nostderr run -n 2 -- diff "$path" "$path"
+        no_stderr "run-cat" "$td"  run cat "$path"
+        no_stderr "run-diff" "$td" run -n 2 -- diff "$path" "$path"
     done
 
     end
 
-    start "  stream --format=raw..."
+    start "stream --format=raw..."
 
-    nostderr_eq "$idir" "$input0" stream --format=raw "${exprs[@]}"
-    nostderr_eq "$idir" "$input0" stream --format=raw -u "${exprs[@]}"
-
-    end
-
-    start "  stream --format=json..."
-
-    nostderr_eq "$idir" "$input0" stream --format=json "${exprs[@]}"
-    nostderr_eq "$idir" "$input0" stream --format=json -u "${exprs[@]}"
+    no_stderr_selfsame "stream-raw" "$td"   "$idir" "$input0" stream --format=raw "${exprs[@]}"
+    no_stderr_selfsame "stream-raw-u" "$td" "$idir" "$input0" stream --format=raw -u "${exprs[@]}"
 
     end
 
-    #start "  stream --format=cbor..."
+    start "stream --format=json..."
 
-    #nostderr_eq "$idir" "$input0" stream --format=cbor "${exprs[@]}"
-    #nostderr_eq "$idir" "$input0" stream --format=cbor -u "${exprs[@]}"
+    no_stderr_selfsame "stream-json" "$td"   "$idir" "$input0" stream --format=json "${exprs[@]}"
+    no_stderr_selfsame "stream-json-u" "$td" "$idir" "$input0" stream --format=json -u "${exprs[@]}"
+
+    end
+
+    #start "stream --format=cbor..."
+
+    #no_stderr_selfsame "stream-cbor" "$td"   "$idir" "$input0" stream --format=cbor "${exprs[@]}"
+    #no_stderr_selfsame "stream-cbor-u" "$td" "$idir" "$input0" stream --format=cbor -u "${exprs[@]}"
 
     #end
 
