@@ -287,9 +287,11 @@ while (($# > 0)); do
 
     no_stderr "organize-copy" "$td" \
               organize --quiet --copy --to "$td/organize" "$idir"
+    equal_dir "organize-copy == import-bundle" "$td/organize" "$idir"
 
     no_stderr "organize-hardlink" "$td" \
               organize --quiet --hardlink --to "$td/organize2" "$td/organize"
+    equal_dir "organize-hardlink == organize-copy" "$td/organize2" "$idir"
 
     no_stderr "organize-symlink" "$td" \
               organize --quiet --symlink --output hupq_msn \
