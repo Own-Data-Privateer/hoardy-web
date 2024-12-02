@@ -314,6 +314,47 @@ while (($# > 0)); do
 
     end
 
+    start "organize --symlink --latest..."
+
+    fixed_output "organize-sl" "$src" "$td" \
+                 organize --symlink --latest --output hupq \
+                 --to "$td/organize-sl" \
+                 "$idir"
+
+    fixed_output "organize-sls" "$src" "$td" \
+                 organize --symlink --latest --output hupq \
+                 --paths-sorted --walk-sorted \
+                 --to "$td/organize-sls" \
+                 "$idir"
+
+    # TODO: this, currently broken
+    # equal_dir "organize-sls == organizes-sl" "$td/organize-sl" "$td/organize-sls"
+
+    lines=$(cat "$input0" | tr '\0' '\n' | wc -l)
+
+    cat "$input0" | head -zn $((lines/3 + 1)) | \
+        fixed_output "organize-seq1" "$src" "$td" \
+                     organize --symlink --latest --output hupq \
+                     --to "$td/organize-seq" --stdin0
+
+    cat "$input0" | head -zn $((lines*2/3 + 1)) | \
+        fixed_output "organize-seq2" "$src" "$td" \
+                     organize --symlink --latest --output hupq \
+                     --to "$td/organize-seq" --stdin0
+
+    cat "$input0" | tail -zn $((lines*2/3 + 1)) | \
+        fixed_output "organize-seq3" "$src" "$td" \
+                     organize --symlink --latest --output hupq \
+                     --to "$td/organize-seq" --stdin0
+
+    equal_dir "organize-seq = organize-sl" "$td/organize-sl" "$td/organize-seq"
+
+    # ensure `organize` did not touch the source dir
+    ./development/describe-dir.py --no-mtime "$td/import-bundle" > "$td/import-bundle.describe-dir.2"
+    equal_file "organize-seq is src-pure" "$td/import-bundle.describe-dir" "$td/import-bundle.describe-dir.2"
+
+    end
+
     start "export urls..."
 
     fixed_output "export-urls" "$src" "$td" \
