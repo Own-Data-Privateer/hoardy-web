@@ -169,6 +169,63 @@ hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.w
 
 In fact, internally, `hoardy-web import bundle` is actually an alias for `hoardy-web organize --copy --load-wrrb --defer-number 0`.
 
+## Find and filter things
+
+You can search your archive directory by using `hoardy-web find` sub-command, that prints paths to those of its inputs which match given conditions.
+For example, to list reqres from `~/hoardy-web/raw` that contain complete `GET` requests with `200 OK` responses, you can run:
+
+```bash
+hoardy-web find --method GET --status-re .200C ~/hoardy-web/raw
+```
+
+To limit the above to responses containing `text/html` bodies with a (whole) word "Potter" in them:
+
+```bash
+hoardy-web find --method GET --status-re .200C --response-mime text/html \
+  --response-body-grep-re "\bPotter\b" ~/hoardy-web/raw
+```
+
+Most other sub-commands also accept the same filtering options.
+So, for instance, you can pretty-print or export such files instead:
+
+```bash
+hoardy-web pprint --method GET --status-re .200C --response-mime text/html \
+  --response-body-grep-re "\bPotter\b" \
+  ~/hoardy-web/raw
+
+hoardy-web export mirror --method GET --status-re .200C --response-mime text/html \
+  --response-body-grep-re "\bPotter\b" \
+  --to ~/hoardy-web/mirror-potter ~/hoardy-web/raw
+```
+
+Or, say, you want a list of all domains you ever visited that use CloudFlare:
+
+```bash
+hoardy-web stream --format=raw -ue hostname \
+  --response-headers-grep-re '^server: cloudflare' \
+  ~/hoardy-web/raw | sort | uniq
+```
+
+Or, say, you want to get all responses from a certain host with `JSON`s, except when they were fetched from CloudFlare and encoded with `br`, and then feed them to a script:
+
+```bash
+hoardy-web find -z --url-re 'https://example\.org/.*' --response-mime text/json \
+  --not-response-headers-and-grep-re '^server: cloudflare' \
+  --not-response-headers-and-grep-re '^content-encoding: br' \
+  ~/hoardy-web/raw > found-paths
+xargs -0 my-example-org-json-parser < found-paths
+```
+
+See the ["Usage"](#usage) section below for all possible filtering options.
+
+In principle, the possibilities are limitless since `hoardy-web` has a tiny expression language which you can use to do things not directly supported by the command-line options:
+
+```bash
+hoardy-web find --and "response.body|eb|len|> 10240" ~/hoardy-web/raw
+```
+
+and, if you are a developer, you can easily add your own custom functions [into there](./hoardy_web/linst.py).
+
 ## Merge multiple archive directories
 
 To merge multiple input directories into one you can simply `hoardy-web organize` them `--to` a new directory.
