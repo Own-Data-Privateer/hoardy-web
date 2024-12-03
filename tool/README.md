@@ -524,6 +524,60 @@ will load (an index of) everything under `~/hoardy-web/latest/i.imgur.com` and `
 
 When at least one `--root-*` option is specified, using `--boring` is equivalent to simply appending its argument to the end of the positional `PATH`s.
 
+### Control which URL visits get exported
+
+By default, `hoardy-web export mirror` runs with the implied `--latest` option, which exports the latest available version (visit) to each URL.
+Usually, this is fine, as most modern web-sites use versioned page requisites to improve caching.
+But it can produce broken results sometimes.
+For instance, when two different web pages share an unversioned `CSS` file and one those pages was recently revisited while the other was not, then, with the default `--latest`, only the latter version of the `CSS` file in question will be exported, making the older page broken.
+
+To fix this, you can run `export mirror` with `--latest-hybrid` option
+
+```
+hoardy-web export mirror \
+  --to ~/hoardy-web/mirror8 \
+  --root-url-prefix 'https://en.wikipedia.org/wiki/'
+  --latest-hybrid \
+  ~/hoardy-web/raw
+```
+
+which will export each web page with its date-vise closest available resource requisites.
+This takes quite a bit of memory, though, since `export mirror` has to index and keep in memory references to all versions of all reqres to produce such hybrid results.
+
+Similarly, you can also export the `--oldest` available version of each URL:
+
+```
+hoardy-web export mirror \
+  --to ~/hoardy-web/mirror9 \
+  --root-url-prefix 'https://archiveofourown.org/works/'
+  --oldest \
+  ~/hoardy-web/raw
+```
+
+or a version closest to a certain date:
+
+```
+hoardy-web export mirror \
+  --to ~/hoardy-web/mirror9 \
+  --root-url-prefix 'https://en.wikipedia.org/wiki/'
+  --nearest 2020-10-31 \
+  ~/hoardy-web/raw
+```
+
+both of which also have `--*-hybrid` variants.
+
+There is also `--all`, which exports all available versions of all roots and `--depth`-reachable URLs.
+When using `--all`, you'll probably want to switch to a time-versioned output format, otherwise those default simply-numbered `hupq_n` outputs will be impossible to interpret:
+
+```
+hoardy-web export mirror \
+  --to ~/hoardy-web/mirror9 \
+  --root-url-prefix 'https://en.wikipedia.org/wiki/'
+  --all \
+  --output hupq_tn \
+  ~/hoardy-web/raw
+```
+
 ## Generate previews for `WRR` files, listen to them via TTS, open them with `xdg-open`, etc
 
 See [the `script` sub-directory](./script/) for examples that show how to use `pandoc` and/or `w3m` to turn `WRR` files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
