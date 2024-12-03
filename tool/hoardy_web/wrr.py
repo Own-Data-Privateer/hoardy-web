@@ -302,6 +302,9 @@ def wrr_dump(fobj : _io.BufferedWriter, reqres : Reqres, compress : bool = True)
 ReqresExpr_derived_attrs = {
     "fs_path": "file system path for the WRR file containing this reqres; str | bytes | None",
 
+    "raw_url": "aliast for `request.url`; str",
+    "method": "aliast for `request.method`; str",
+
     "qtime": 'aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; decimal float',
     "qtime_ms": "`qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "qtime_msq": "three least significant digits of `qtime_ms`; int",
@@ -331,11 +334,6 @@ ReqresExpr_derived_attrs = {
     "fhour": "similar to `qhour`, but for `ftime`; int",
     "fminute": "similar to `qminute`, but for `ftime`; int",
     "fsecond": "similar to `qsecond`, but for `ftime`; int",
-
-    "status": '`"I"` or  `"C"` depending on the value of `request.complete` (`false` or `true`, respectively) followed by either `"N"`, whene `response == None`, or `str(response.code)` followed by `"I"` or  `"C"` depending on the value of `response.complete`; str',
-
-    "method": "aliast for `request.method`; str",
-    "raw_url": "aliast for `request.url`; str",
 }
 
 ReqresExpr_url_attrs = {
@@ -357,8 +355,6 @@ ReqresExpr_url_attrs = {
     "npath_parts": '`raw_path_parts` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]',
     "mq_raw_path": "`raw_path_parts` turned back into a minimally-quoted string; str",
     "mq_npath": "`npath_parts` turned back into a minimally-quoted string; str",
-    "filepath_parts": '`npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` `MIME` type; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
-    "filepath_ext": 'extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str',
     "raw_query": "query part of `raw_url` (i.e. everything after the `?` character and before the `#` character) as it is recorded in the reqres; str",
     "query_parts": "parsed (and component-wise unquoted) `raw_query`; list[tuple[str, str]]",
     "query_ne_parts": "`query_parts` with empty query parameters removed; list[tuple[str, str]]",
@@ -369,6 +365,12 @@ ReqresExpr_url_attrs = {
     "ofm": "optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str",
 }
 ReqresExpr_derived_attrs.update(ReqresExpr_url_attrs)
+ReqresExpr_derived_attrs.update({
+    "status": '`"I"` or  `"C"` for `request.complete` (`I` for `false` , `C` for `true`) followed by either `"N"` when `response is None`, or `str(response.code)` followed by `"I"` or  `"C"` for `response.complete`; e.g. `C200C` (all "OK"), `CN` (request was sent, but it got no response), `I200C` (partial request with complete "OK" response), `C200I` (complete request with incomplete response, e.g. if download was interrupted), `C404C` (complete request with complete "Not Found" response), etc; str',
+
+    "filepath_parts": '`npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` `MIME` type; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
+    "filepath_ext": 'extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str',
+})
 
 def _parse_rt(opt : str) -> RemapType:
     x = opt[:1]

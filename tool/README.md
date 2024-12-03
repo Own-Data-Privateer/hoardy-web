@@ -531,12 +531,14 @@ Pretty-print given `WRR` files to stdout.
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - options:
+  - `-q, --quiet`
+  : don't print end-of-program warnings to stderr
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
   - `-u, --unabridged`
   : print all data in full
   - `--abridged`
   : shorten long strings for brevity, useful when you want to visually scan through batch data dumps; default
-  - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -545,21 +547,7 @@ Pretty-print given `WRR` files to stdout.
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only print reqres which match any of these expressions
-  - `--and EXPR`
-  : only print reqres which match all of these expressions
-
-- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this simply populates the `potentially` lists in the output in various ways:
-  - `--sniff-default`
-  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
-  - `--sniff-force`
-  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
-  - `--sniff-paranoid`
-  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
-
-- file system path ordering:
+- path ordering:
   - `--paths-given-order`
   : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
   - `--paths-sorted`
@@ -573,6 +561,20 @@ Pretty-print given `WRR` files to stdout.
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
 
+- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this simply populates the `potentially` lists in the output in various ways:
+  - `--sniff-default`
+  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
+  - `--sniff-force`
+  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
+  - `--sniff-paranoid`
+  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+
+- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+  - `--or EXPR`
+  : only pretty-print reqres when reqres which match any of these expressions
+  - `--and EXPR`
+  : only pretty-print reqres when reqres which match all of these expressions
+
 ### hoardy-web get
 
 Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified.
@@ -581,11 +583,19 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   - `PATH`
   : input `WRR` file path
 
+- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+  - `--sniff-default`
+  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
+  - `--sniff-force`
+  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
+  - `--sniff-paranoid`
+  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+
 - expression evaluation:
   - `--expr-fd INT`
   : file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `1`, i.e. `stdout`
   - `-e EXPR, --expr EXPR`
-  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially; see also "printing" options below; the default depends on `--remap-*` options, without any them set it is `response.body|eb`, which will dump the `HTTP` response body; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
+  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially (see also "printing" options below); the default depends on `--remap-*` options below; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
     - constants and functions:
       - `es`: replace `None` value with an empty string `""`
       - `eb`: replace `None` value with an empty byte string `b""`
@@ -669,6 +679,8 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `websocket`: a list of WebSocket frames
     - derived attributes:
       - `fs_path`: file system path for the WRR file containing this reqres; str | bytes | None
+      - `raw_url`: aliast for `request.url`; str
+      - `method`: aliast for `request.method`; str
       - `qtime`: aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; decimal float
       - `qtime_ms`: `qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int
       - `qtime_msq`: three least significant digits of `qtime_ms`; int
@@ -696,9 +708,6 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `fhour`: similar to `qhour`, but for `ftime`; int
       - `fminute`: similar to `qminute`, but for `ftime`; int
       - `fsecond`: similar to `qsecond`, but for `ftime`; int
-      - `status`: `"I"` or  `"C"` depending on the value of `request.complete` (`false` or `true`, respectively) followed by either `"N"`, whene `response == None`, or `str(response.code)` followed by `"I"` or  `"C"` depending on the value of `response.complete`; str
-      - `method`: aliast for `request.method`; str
-      - `raw_url`: aliast for `request.url`; str
       - `net_url`: a variant of `raw_url` that uses Punycode UTS46 IDNA encoded `net_hostname`, has all unsafe characters of `raw_path` and `raw_query` quoted, and comes without the `fragment`/hash part; this is the URL that actually gets sent to an `HTTP` server when you request `raw_url`; str
       - `url`: `net_url` with `fragment`/hash part appended; str
       - `pretty_net_url`: a variant of `raw_url` that uses UNICODE IDNA `hostname` without Punycode, minimally quoted `mq_raw_path` and `mq_query`, and comes without the `fragment`/hash part; this is a human-readable version of `net_url`; str
@@ -717,8 +726,6 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `npath_parts`: `raw_path_parts` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]
       - `mq_raw_path`: `raw_path_parts` turned back into a minimally-quoted string; str
       - `mq_npath`: `npath_parts` turned back into a minimally-quoted string; str
-      - `filepath_parts`: `npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` `MIME` type; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]
-      - `filepath_ext`: extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str
       - `raw_query`: query part of `raw_url` (i.e. everything after the `?` character and before the `#` character) as it is recorded in the reqres; str
       - `query_parts`: parsed (and component-wise unquoted) `raw_query`; list[tuple[str, str]]
       - `query_ne_parts`: `query_parts` with empty query parameters removed; list[tuple[str, str]]
@@ -727,6 +734,9 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `oqm`: optional query mark: `?` character if `query` is non-empty, an empty string otherwise; str
       - `fragment`: fragment (hash) part of the url; str
       - `ofm`: optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str
+      - `status`: `"I"` or  `"C"` for `request.complete` (`I` for `false` , `C` for `true`) followed by either `"N"` when `response is None`, or `str(response.code)` followed by `"I"` or  `"C"` for `response.complete`; e.g. `C200C` (all "OK"), `CN` (request was sent, but it got no response), `I200C` (partial request with complete "OK" response), `C200I` (complete request with incomplete response, e.g. if download was interrupted), `C404C` (complete request with complete "Not Found" response), etc; str
+      - `filepath_parts`: `npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response` `MIME` type; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]
+      - `filepath_ext`: extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str
     - a compound expression built by piping (`|`) the above, for example:
       - `response.body|eb` (the default for `get` and `run`) will print raw `response.body` or an empty byte string, if there was no response;
       - `response.body|eb|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
@@ -774,29 +784,21 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
         - `https://königsgäßchen.example.org/index.html` -> `https://königsgäßchen.example.org/index.html`
         - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https://ジャジェメント.ですの.example.org/испытание/is/`
 
-- the default value of `--expr`:
-  - `--no-remap`
-  : do not touch the default value of `--expr`, use the default value shown above; default
-  - `--remap-id`
-  : set the default value for `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs with an identity function; i.e. don't remap anything; results will NOT be self-contained
-  - `--remap-void`
-  : set the default value for `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained
-
-- printing:
+- printing of `--expr` values:
   - `--not-separated`
-  : print values without separating them with anything, just concatenate them
+  : print `--expr` values without separating them with anything, just concatenate them
   - `-l, --lf-separated`
-  : print values separated with `\n` (LF) newline characters; default
+  : print `--expr` values separated with `\n` (LF) newline characters; default
   - `-z, --zero-separated`
-  : print values separated with `\0` (NUL) bytes
+  : print `--expr` values separated with `\0` (NUL) bytes
 
-- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
-  - `--sniff-default`
-  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
-  - `--sniff-force`
-  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
-  - `--sniff-paranoid`
-  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+- default value of `--expr`:
+  - `--no-remap`
+  : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body; default
+  - `--remap-id`
+  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
+  - `--remap-void`
+  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs of response body into `javascript:void(0)` and empty `data:` URLs and censor out all dynamic content; results will be self-contained
 
 ### hoardy-web run
 
@@ -814,26 +816,6 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   - `-n NUM, --num-args NUM`
   : number of `PATH`s; default: `1`
 
-- expression evaluation:
-  - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options, without any them set it is `response.body|eb`, which will simply dump the `HTTP` response body
-
-- the default value of `--expr`:
-  - `--no-remap`
-  : do not touch the default value of `--expr`, use the default value shown above; default
-  - `--remap-id`
-  : set the default value for `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs with an identity function; i.e. don't remap anything; results will NOT be self-contained
-  - `--remap-void`
-  : set the default value for `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained
-
-- printing:
-  - `--not-separated`
-  : print values without separating them with anything, just concatenate them
-  - `-l, --lf-separated`
-  : print values separated with `\n` (LF) newline characters; default
-  - `-z, --zero-separated`
-  : print values separated with `\0` (NUL) bytes
-
 - `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
@@ -841,6 +823,26 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
   - `--sniff-paranoid`
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+
+- expression evaluation:
+  - `-e EXPR, --expr EXPR`
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options below
+
+- printing of `--expr` values:
+  - `--not-separated`
+  : print `--expr` values without separating them with anything, just concatenate them
+  - `-l, --lf-separated`
+  : print `--expr` values separated with `\n` (LF) newline characters; default
+  - `-z, --zero-separated`
+  : print `--expr` values separated with `\0` (NUL) bytes
+
+- default value of `--expr`:
+  - `--no-remap`
+  : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body; default
+  - `--remap-id`
+  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
+  - `--remap-void`
+  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs of response body into `javascript:void(0)` and empty `data:` URLs and censor out all dynamic content; results will be self-contained
 
 ### hoardy-web stream
 
@@ -851,6 +853,10 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - options:
+  - `-q, --quiet`
+  : don't print end-of-program warnings to stderr
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
   - `-u, --unabridged`
   : print all data in full
   - `--abridged`
@@ -861,8 +867,6 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
     - cbor: Concise Binary Object Representation aka `CBOR` (RFC8949)
     - json: JavaScript Object Notation aka `JSON`; **binary data can't be represented, UNICODE replacement characters will be used**
     - raw: concatenate raw values; termination is controlled by `*-terminated` options
-  - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -871,41 +875,7 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only print reqres which match any of these expressions
-  - `--and EXPR`
-  : only print reqres which match all of these expressions
-
-- expression evaluation:
-  - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options, without any them set it is `.`, which will simply dump the whole reqres structure
-
-- the default value of `--expr`:
-  - `--no-remap`
-  : do not touch the default value of `--expr`, use the default value shown above; default
-  - `--remap-id`
-  : set the default value for `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs with an identity function; i.e. don't remap anything; results will NOT be self-contained
-  - `--remap-void`
-  : set the default value for `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained
-
-- `--format=raw` output printing:
-  - `--not-terminated`
-  : print `--format=raw` output values without terminating them with anything, just concatenate them
-  - `-l, --lf-terminated`
-  : print `--format=raw` output values terminated with `\n` (LF) newline characters; default
-  - `-z, --zero-terminated`
-  : print `--format=raw` output values terminated with `\0` (NUL) bytes
-
-- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
-  - `--sniff-default`
-  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
-  - `--sniff-force`
-  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
-  - `--sniff-paranoid`
-  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
-
-- file system path ordering:
+- path ordering:
   - `--paths-given-order`
   : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
   - `--paths-sorted`
@@ -918,6 +888,40 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
   : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
+
+- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+  - `--sniff-default`
+  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
+  - `--sniff-force`
+  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
+  - `--sniff-paranoid`
+  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+
+- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+  - `--or EXPR`
+  : only stream-print reqres when reqres which match any of these expressions
+  - `--and EXPR`
+  : only stream-print reqres when reqres which match all of these expressions
+
+- expression evaluation:
+  - `-e EXPR, --expr EXPR`
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options below
+
+- `--format=raw` `--expr` printing:
+  - `--not-terminated`
+  : print `--format=raw` `--expr` output values without terminating them with anything, just concatenate them
+  - `-l, --lf-terminated`
+  : print `--format=raw` `--expr` output values terminated with `\n` (LF) newline characters; default
+  - `-z, --zero-terminated`
+  : print `--format=raw` `--expr` output values terminated with `\0` (NUL) bytes
+
+- default value of `--expr`:
+  - `--no-remap`
+  : set the default value of `--expr` to `.`; i.e. produce the raw response body; default
+  - `--remap-id`
+  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
+  - `--remap-void`
+  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs of response body into `javascript:void(0)` and empty `data:` URLs and censor out all dynamic content; results will be self-contained
 
 ### hoardy-web find
 
@@ -928,6 +932,8 @@ Print paths of `WRR` files matching specified criteria.
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
 - options:
+  - `-q, --quiet`
+  : don't print end-of-program warnings to stderr
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
 
@@ -938,19 +944,7 @@ Print paths of `WRR` files matching specified criteria.
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only print paths to reqres which match any of these expressions
-  - `--and EXPR`
-  : only print paths to reqres which match all of these expressions
-
-- found files printing:
-  - `-l, --lf-terminated`
-  : print absolute paths of matching `WRR` files terminated with `\n` (LF) newline characters; default
-  - `-z, --zero-terminated`
-  : print absolute paths of matching `WRR` files terminated with `\0` (NUL) bytes
-
-- file system path ordering:
+- path ordering:
   - `--paths-given-order`
   : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
   - `--paths-sorted`
@@ -963,6 +957,26 @@ Print paths of `WRR` files matching specified criteria.
   : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
+
+- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+  - `--sniff-default`
+  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
+  - `--sniff-force`
+  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
+  - `--sniff-paranoid`
+  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+
+- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+  - `--or EXPR`
+  : only print path of reqres when reqres which match any of these expressions
+  - `--and EXPR`
+  : only print path of reqres when reqres which match all of these expressions
+
+- found files printing:
+  - `-l, --lf-terminated`
+  : print absolute paths of matching `WRR` files terminated with `\n` (LF) newline characters; default
+  - `-z, --zero-terminated`
+  : print absolute paths of matching `WRR` files terminated with `\0` (NUL) bytes
 
 ### hoardy-web organize
 
@@ -979,9 +993,33 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates to stderr
+  : don't log computed updates and don't print end-of-program warnings to stderr
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+
+- caching, deferring, and batching:
+  - `--seen-number INT`
+  : track at most this many distinct generated `--output` values; default: `16384`;
+    making this larger improves disk performance at the cost of increased memory consumption;
+    setting it to zero will force force `hoardy-web` to constantly re-check existence of `--output` files and force `hoardy-web` to execute  all IO actions immediately, disregarding `--defer-number` setting
+  - `--cache-number INT`
+  : cache `stat(2)` information about this many files in memory; default: `8192`;
+    making this larger improves performance at the cost of increased memory consumption;
+    setting this to a too small number will likely force `hoardy-web` into repeatedly performing lots of `stat(2)` system calls on the same files;
+    setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
+  - `--defer-number INT`
+  : defer at most this many IO actions; default: `1024`;
+    making this larger improves performance at the cost of increased memory consumption;
+    setting it to zero will force all IO actions to be applied immediately
+  - `--batch-number INT`
+  : queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: `128`
+  - `--max-memory INT`
+  : the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `1024`;
+    making this larger improves performance;
+    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`
+  - `--lazy`
+  : sets all of the above options to positive infinity;
+    most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -990,11 +1028,33 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+- path ordering:
+  - `--paths-given-order`
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default when `--no-overwrites`
+  - `--paths-sorted`
+  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
+  - `--paths-reversed`
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order; default when `--latest`
+  - `--walk-fs-order`
+  : recursive file system walk is done in the order `readdir(2)` gives results
+  - `--walk-sorted`
+  : recursive file system walk is done in lexicographic order; default when `--no-overwrites`
+  - `--walk-reversed`
+  : recursive file system walk is done in reverse lexicographic order; default when `--latest`
+
+- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
+  - `--sniff-default`
+  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
+  - `--sniff-force`
+  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
+  - `--sniff-paranoid`
+  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+
+- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
-  : only work on reqres which match any of these expressions
+  : only organize reqres when reqres which match any of these expressions
   - `--and EXPR`
-  : only work on reqres which match all of these expressions
+  : only organize reqres when reqres which match all of these expressions
 
 - action:
   - `--move`
@@ -1349,52 +1409,6 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
     this is only allowed in combination with `--symlink` at the moment;
     for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
 
-- caching, deferring, and batching:
-  - `--seen-number INT`
-  : track at most this many distinct generated `--output` values; default: `16384`;
-    making this larger improves disk performance at the cost of increased memory consumption;
-    setting it to zero will force force `hoardy-web` to constantly re-check existence of `--output` files and force `hoardy-web` to execute  all IO actions immediately, disregarding `--defer-number` setting
-  - `--cache-number INT`
-  : cache `stat(2)` information about this many files in memory; default: `8192`;
-    making this larger improves performance at the cost of increased memory consumption;
-    setting this to a too small number will likely force `hoardy-web` into repeatedly performing lots of `stat(2)` system calls on the same files;
-    setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
-  - `--defer-number INT`
-  : defer at most this many IO actions; default: `1024`;
-    making this larger improves performance at the cost of increased memory consumption;
-    setting it to zero will force all IO actions to be applied immediately
-  - `--batch-number INT`
-  : queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: `128`
-  - `--max-memory INT`
-  : the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `1024`;
-    making this larger improves performance;
-    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`
-  - `--lazy`
-  : sets all of the above options to positive infinity;
-    most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
-
-- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` depend on both the original file extension present in the URL and the detected `MIME` type of its content:
-  - `--sniff-default`
-  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
-  - `--sniff-force`
-  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
-  - `--sniff-paranoid`
-  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
-
-- file system path ordering:
-  - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default when `--keep`
-  - `--paths-sorted`
-  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
-  - `--paths-reversed`
-  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order; default when `--latest`
-  - `--walk-fs-order`
-  : recursive file system walk is done in the order `readdir(2)` gives results
-  - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order; default when `--keep`
-  - `--walk-reversed`
-  : recursive file system walk is done in reverse lexicographic order; default when `--latest`
-
 ### hoardy-web import
 
 Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `DESTINATION` with paths derived from their metadata.
@@ -1419,43 +1433,9 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates to stderr
+  : don't log computed updates and don't print end-of-program warnings to stderr
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
-
-- error handling:
-  - `--errors {fail,skip,ignore}`
-  : when an error occurs:
-    - `fail`: report failure and stop the execution; default
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
-
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only import reqres which match any of these expressions
-  - `--and EXPR`
-  : only import reqres which match all of these expressions
-
-- file outputs:
-  - `-t DESTINATION, --to DESTINATION`
-  : destination directory
-  - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: default
-
-- new `--output`s printing:
-  - `--no-print`
-  : don't print anything; default
-  - `-l, --lf-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
-  - `-z, --zero-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
-
-- updates to `--output`s:
-  - `--no-overwrites`
-  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default
-  - `--overwrite-dangerously`
-  : permit overwriting of old `--output` files under `DESTINATION`;
-    DANGEROUS! not recommended, importing to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -1481,15 +1461,14 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   : sets all of the above options to positive infinity;
     most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
 
-- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` depend on both the original file extension present in the URL and the detected `MIME` type of its content:
-  - `--sniff-default`
-  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
-  - `--sniff-force`
-  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
-  - `--sniff-paranoid`
-  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+- error handling:
+  - `--errors {fail,skip,ignore}`
+  : when an error occurs:
+    - `fail`: report failure and stop the execution; default
+    - `skip`: report failure but skip the reqres that produced it from the output and continue
+    - `ignore`: `skip`, but don't report the failure
 
-- file system path ordering:
+- path ordering:
   - `--paths-given-order`
   : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
   - `--paths-sorted`
@@ -1502,6 +1481,41 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
+
+- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
+  - `--sniff-default`
+  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
+  - `--sniff-force`
+  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
+  - `--sniff-paranoid`
+  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+
+- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+  - `--or EXPR`
+  : only import reqres when reqres which match any of these expressions
+  - `--and EXPR`
+  : only import reqres when reqres which match all of these expressions
+
+- file outputs:
+  - `-t DESTINATION, --to DESTINATION`
+  : destination directory
+  - `-o FORMAT, --output FORMAT`
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: default
+
+- new `--output`s printing:
+  - `--no-print`
+  : don't print anything; default
+  - `-l, --lf-terminated`
+  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
+  - `-z, --zero-terminated`
+  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
+
+- updates to `--output`s:
+  - `--no-overwrites`
+  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default
+  - `--overwrite-dangerously`
+  : permit overwriting of old `--output` files under `DESTINATION`;
+    DANGEROUS! not recommended, importing to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
 
 ### hoardy-web import mitmproxy
 
@@ -1515,43 +1529,9 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates to stderr
+  : don't log computed updates and don't print end-of-program warnings to stderr
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
-
-- error handling:
-  - `--errors {fail,skip,ignore}`
-  : when an error occurs:
-    - `fail`: report failure and stop the execution; default
-    - `skip`: report failure but skip the reqres that produced it from the output and continue
-    - `ignore`: `skip`, but don't report the failure
-
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
-  - `--or EXPR`
-  : only import reqres which match any of these expressions
-  - `--and EXPR`
-  : only import reqres which match all of these expressions
-
-- file outputs:
-  - `-t DESTINATION, --to DESTINATION`
-  : destination directory
-  - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: default
-
-- new `--output`s printing:
-  - `--no-print`
-  : don't print anything; default
-  - `-l, --lf-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
-  - `-z, --zero-terminated`
-  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
-
-- updates to `--output`s:
-  - `--no-overwrites`
-  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default
-  - `--overwrite-dangerously`
-  : permit overwriting of old `--output` files under `DESTINATION`;
-    DANGEROUS! not recommended, importing to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -1577,15 +1557,14 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   : sets all of the above options to positive infinity;
     most useful when doing `hoardy-web organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `hoardy-web` needs to keep in memory is small, in which case it will force `hoardy-web` to compute the desired file system state first and then perform all disk writes in a single batch
 
-- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` depend on both the original file extension present in the URL and the detected `MIME` type of its content:
-  - `--sniff-default`
-  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
-  - `--sniff-force`
-  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
-  - `--sniff-paranoid`
-  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+- error handling:
+  - `--errors {fail,skip,ignore}`
+  : when an error occurs:
+    - `fail`: report failure and stop the execution; default
+    - `skip`: report failure but skip the reqres that produced it from the output and continue
+    - `ignore`: `skip`, but don't report the failure
 
-- file system path ordering:
+- path ordering:
   - `--paths-given-order`
   : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
   - `--paths-sorted`
@@ -1598,6 +1577,41 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   : recursive file system walk is done in lexicographic order; default
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order
+
+- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
+  - `--sniff-default`
+  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
+  - `--sniff-force`
+  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
+  - `--sniff-paranoid`
+  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+
+- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+  - `--or EXPR`
+  : only import reqres when reqres which match any of these expressions
+  - `--and EXPR`
+  : only import reqres when reqres which match all of these expressions
+
+- file outputs:
+  - `-t DESTINATION, --to DESTINATION`
+  : destination directory
+  - `-o FORMAT, --output FORMAT`
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: default
+
+- new `--output`s printing:
+  - `--no-print`
+  : don't print anything; default
+  - `-l, --lf-terminated`
+  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
+  - `-z, --zero-terminated`
+  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
+
+- updates to `--output`s:
+  - `--no-overwrites`
+  : disallow overwrites and replacements of any existing `--output` files under `DESTINATION`, i.e. only ever create new files under `DESTINATION`, producing errors instead of attempting any other updates; default
+  - `--overwrite-dangerously`
+  : permit overwriting of old `--output` files under `DESTINATION`;
+    DANGEROUS! not recommended, importing to a new `DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `DESTINATION` is a safer way to do this
 
 ### hoardy-web export
 
@@ -1623,11 +1637,17 @@ In short, this sub-command generates static offline website mirrors, producing r
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates to stderr
+  : don't log computed updates and don't print end-of-program warnings to stderr
   - `--stdin0`
   : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
   - `--boring PATH`
   : low-priority input `PATH`; boring `PATH`s will be processed after all `PATH`s specified as positional command-line arguments and those given via `--stdin0` and will not be queued as roots even when no `--root-*` options are specified
+
+- caching:
+  - `--max-memory INT`
+  : the caches, all taken together, must not take more than this much memory in MiB; default: `1024`;
+    making this larger improves performance;
+    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -1636,29 +1656,59 @@ In short, this sub-command generates static offline website mirrors, producing r
     - `skip`: report failure but skip the reqres that produced it from the output and continue
     - `ignore`: `skip`, but don't report the failure
 
-- filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
+- path ordering:
+  - `--paths-given-order`
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
+  - `--paths-sorted`
+  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
+  - `--paths-reversed`
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
+  - `--walk-fs-order`
+  : recursive file system walk is done in the order `readdir(2)` gives results
+  - `--walk-sorted`
+  : recursive file system walk is done in lexicographic order; default
+  - `--walk-reversed`
+  : recursive file system walk is done in reverse lexicographic order
+
+- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content; also, higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+  - `--sniff-default`
+  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
+  - `--sniff-force`
+  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
+  - `--sniff-paranoid`
+  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+
+- input filters; both can be specified at the same time, both can be specified multiple times, both use the same expression format as `hoardy-web get --expr` (which see), the resulting logical expression that will checked is `(O1 or O2 or ... or (A1 and A2 and ...))`, where `O1`, `O2`, ... are the arguments to `--or`s and `A1`, `A2`, ... are the arguments to `--and`s:
   - `--or EXPR`
-  : only export reqres which match any of these expressions
+  : only consider reqres for export when reqres which match any of these expressions
   - `--and EXPR`
-  : only export reqres which match all of these expressions
+  : only consider reqres for export when reqres which match all of these expressions
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
-  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options, without any them set it is `response.body|eb|scrub response &all_refs`, which will export `scrub`bed versions of all files with all links and references remapped using fallback `--output` paths
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options below
 
-- the default value of `--expr`:
+- exporting of `--expr`:
+  - `--not-separated`
+  : export `--expr` values without separating them with anything, just concatenate them
+  - `--lf-separated`
+  : export `--expr` values separated with `\n` (LF) newline characters; default
+  - `--zero-separated`
+  : export `--expr` values separated with `\0` (NUL) bytes
+
+- default value of `--expr`:
   - `--remap-id`
-  : set the default value for `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs with an identity function; i.e. don't remap anything; results will NOT be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
   - `--remap-void`
-  : set the default value for `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs into `javascript:void(0)` and empty `data:` URLs; results will be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs of response body into `javascript:void(0)` and empty `data:` URLs and censor out all dynamic content; results will be self-contained
   - `--remap-open, -k, --convert-links`
-  : set the default value for `--expr` to `response.body|eb|scrub response *all_refs`; i.e. remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does; results almost certainly will NOT be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response *all_refs`; i.e. remap all URLs of response body present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does, and censor out all dynamic content; results almost certainly will NOT be self-contained
   - `--remap-closed`
-  : set the default value for `--expr` to `response.body|eb|scrub response /all_refs`; i.e. remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does; results will be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response /all_refs`; i.e. remap all URLs of response body present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does, and censor out all dynamic content; results will be self-contained
   - `--remap-semi`
-  : set the default value for `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs`; i.e. remap all jump links like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does; this is a better version of `--remap-open` which keeps the `export`ed `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs`; i.e. remap all jump links of response body like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does, and censor out all dynamic content; this is a better version of `--remap-open` which keeps the `export`ed `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained
   - `--remap-all`
-  : set the default value for `--expr` to `response.body|eb|scrub response &all_refs`; i.e. remap all links and references like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble; results will be self-contained; default
+  : set the default value of `--expr` to `response.body|eb|scrub response &all_refs`; i.e. remap all links and references of response body like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble, and censor out all dynamic content; results will be self-contained; default
     
     `hoardy-web export mirror` uses `--output` paths of trivial `GET <URL> -> 200 OK` as fallbacks for `&(jumps|actions|reqs)` options of `scrub`.
     This will remap links pointing to missing and unreachable URLs to missing files.
@@ -1667,28 +1717,6 @@ In short, this sub-command generates static offline website mirrors, producing r
     I.e. this allows `hoardy-web export mirror` to be used incrementally.
     
     Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
-
-- exporting:
-  - `--not-separated`
-  : export values without separating them with anything, just concatenate them
-  - `--lf-separated`
-  : export values separated with `\n` (LF) newline characters; default
-  - `--zero-separated`
-  : export values separated with `\0` (NUL) bytes
-
-- caching:
-  - `--max-memory INT`
-  : the caches, all taken together, must not take more than this much memory in MiB; default: `1024`;
-    making this larger improves performance;
-    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`
-
-- `MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` depend on both the original file extension present in the URL and the detected `MIME` type of its content; also, higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
-  - `--sniff-default`
-  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
-  - `--sniff-force`
-  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
-  - `--sniff-paranoid`
-  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
 - file outputs:
   - `-t DESTINATION, --to DESTINATION`
@@ -1720,29 +1748,15 @@ In short, this sub-command generates static offline website mirrors, producing r
 
 - recursion roots; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`); all of these options can be specified multiple times in arbitrary combinations:
   - `--root-url URL`
-  : a URL to be used as one of the roots for recursive export; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL paths and components, and UNICODE URL paths and components, in arbitrary mixes and combinations are allowed; i.e., e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` which will then be matched against `net_url` of each reqres
+  : a URL to be used as one of the roots for recursive export; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` which will then be matched against `net_url` of each reqres
   - `-r URL_PREFIX, --root-url-prefix URL_PREFIX, --root URL_PREFIX`
-  : a URL prefix for URLs that are to be used as roots for recursive export; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL paths and components, and UNICODE URL paths and components, in arbitrary mixes and combinations are allowed; i.e., e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` which will then be matched against `net_url` of each reqres
+  : a URL prefix for URLs that are to be used as roots for recursive export; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` which will then be matched against `net_url` of each reqres
   - `--root-url-re URL_RE`
-  : a regular expression matching URLs that are to be used as roots for recursive export; the regular expression will be matched against `net_url` and `pretty_net` of each reqres, so only Punycode UTS46 IDNAs with percent-encoded URL path and query components or plain UNICODE IDNAs with UNICODE URL paths and components are allowed, but regular expressions using mixes of differently encoded parts will fail to match anything
+  : a regular expression matching URLs that are to be used as roots for recursive export; the regular expression will be matched against `net_url` and `pretty_net` of each reqres, so only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed, but regular expressions using mixes of differently encoded parts will fail to match anything
 
 - recursion depth:
   - `-d DEPTH, --depth DEPTH`
   : maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
-
-- file system path ordering:
-  - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
-  - `--paths-sorted`
-  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
-  - `--paths-reversed`
-  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
-  - `--walk-fs-order`
-  : recursive file system walk is done in the order `readdir(2)` gives results
-  - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order; default
-  - `--walk-reversed`
-  : recursive file system walk is done in reverse lexicographic order
 
 ## Examples
 
