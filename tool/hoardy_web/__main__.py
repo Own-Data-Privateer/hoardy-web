@@ -2418,7 +2418,7 @@ In short, this sub-command generates static offline website mirrors, producing r
     if cargs.help:
         if cargs.markdown:
             parser.set_formatter_class(argparse.MarkdownBetterHelpFormatter)
-            print(parser.format_help(1024))
+            print(parser.format_help(4096))
         else:
             print(parser.format_help())
         _sys.exit(0)
