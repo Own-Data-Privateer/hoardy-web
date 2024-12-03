@@ -136,14 +136,23 @@ All sub-commands of `hoardy-web` except for
 - `get`, and
 - `run`
 
-can take both `.wrr` and `.wrrb` files as inputs.
+can take all supported file formats as inputs.
 So, most examples described below will work fine with any mix of inputs as arguments.
+
+You can, however, force `hoardy-web` to use a specific loader for all given inputs, e.g.:
+
+```
+hoardy-web export mirror --to ~/hoardy-web/mirror1 \
+  --load-mitmproxy mitmproxy.*.dump
+```
+
+This is slightly faster than the default `--load-any` and, for most loaders, produces more specific errors that explain exactly what failed to parse, instead of simply saying that all tried parsers failed to work.
 
 # Recipes
 
 ## Convert anything to `WRR`
 
-To use `hoardy-web organize` and `run` sub-commands on data stored in `WRR` bundles or `mitmproxy` dumps, you will have to import them into separate `WRR` files first:
+To use `hoardy-web organize`, `get`, and `run` sub-commands on data stored in file formats other than separate `WRR` files, you will have to import them first:
 
 ```bash
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
@@ -157,6 +166,8 @@ So, essentially, the first command above command is equivalent to
 hoardy-web organize --copy --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.wrr
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.wrrb
 ```
+
+In fact, internally, `hoardy-web import bundle` is actually an alias for `hoardy-web organize --copy --load-wrrb --defer-number 0`.
 
 ## Merge multiple archive directories
 
@@ -275,12 +286,25 @@ Then, optionally, you can reuse `changes` file again to symlink all new files fr
 hoardy-web organize --stdin0 --symlink --output hupq_msn --to ~/hoardy-web/all < changes
 ```
 
-## <span id="mirror"/>Generate a local offline website mirror, similar to `wget -mpk`
+## <span id="mirror"/>Generate a local offline static website mirror, similar to `wget -mpk`
 
-To render all your archived `WRR` files into a local offline website mirror containing interlinked `HTML` files and their requisite resources similar to (but better than) what `wget -mpk` (`wget --mirror --page-requisites --convert-links`) does, you need to run something like this:
+To render your archived data into a local offline static website mirror containing interlinked `HTML` files and their requisite resources similar to (but better than) what `wget -mpk` (`wget --mirror --page-requisites --convert-links`) does, you need to run something like this:
 
 ```bash
+# separate `WRR` files
 hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/raw
+
+# separate `WRR` files and/or `WRR` bundles
+hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/Downloads/Hoardy-Web-export-*
+
+# `mitmproxy` dumps
+hoardy-web export mirror --to ~/hoardy-web/mirror1 mitmproxy.*.dump
+
+# any mix of these
+hoardy-web export mirror --to ~/hoardy-web/mirror1 \
+  ~/hoardy-web/raw \
+  ~/Downloads/Hoardy-Web-export-* \
+  mitmproxy.*.dump
 ```
 
 On completion, `~/hoardy-web/mirror1` will contain said newly generated interlinked `HTML` files, their resource requisites, and everything else available from given archive files.
@@ -462,26 +486,6 @@ hoardy-web export mirror \
 will load (an index of) everything under `~/hoardy-web/latest/i.imgur.com` and `~/hoardy-web/latest/archiveofourown.org` into memory but will only export the contents of `~/hoardy-web/latest/archiveofourown.org/works__[0-9]*.wrr` files and their requisites.
 
 When at least one `--root-*` option is specified, using `--boring` is equivalent to simply appending its argument to the end of the positional `PATH`s.
-
-## <span id="mitmproxy-mirror"/>Generate a local offline website mirror, like `wget -mpk` does, from `mitmproxy` stream dumps
-
-Assuming `mitmproxy.001.dump`, `mitmproxy.002.dump`, etc are files that were produced by running something like
-
-```bash
-mitmdump -w +mitmproxy.001.dump
-```
-
-at some point, you can generate website mirrors from them by first importing them all to WRR
-
-```bash
-hoardy-web import mitmproxy --to ~/hoardy-web/mitmproxy mitmproxy.*.dump
-```
-
-and then `export mirror` like above, e.g. to generate mirrors for all URLs:
-
-```bash
-hoardy-web export mirror --to ~/hoardy-web/mirror ~/hoardy-web/mitmproxy
-```
 
 ## Generate previews for `WRR` files, listen to them via TTS, open them with `xdg-open`, etc
 

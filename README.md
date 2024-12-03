@@ -143,7 +143,7 @@ Technically, `Hoardy-Web` is most similar to
 Or, to summarize it another way, you can view `Hoardy-Web` as an alternative for [mitmproxy](https://github.com/mitmproxy/mitmproxy) which leaves SSL/TLS layer alone and hooks into target application's runtime instead.
 
 In fact, an unpublished and now irrelevant ancestor project of `Hoardy-Web` was a tool to generate website mirrors from `mitmproxy` stream captures.
-[(By the way, if you want that, `hoardy-web` CLI tool can do that for you. It can take `mitmproxy` dumps as inputs.)](./tool/#mitmproxy-mirror)
+[(By the way, if you want that, `hoardy-web` CLI tool can do that for you. It can take `mitmproxy` dumps as inputs.)](./tool/README.md#mirror)
 But then I got annoyed by all the sites that don't work under `mitmproxy`, did some research into the alternatives, decided there were none I wanted to use, and so I made my own.
 
 ## Parts and pieces
@@ -228,7 +228,7 @@ This way, if `hoardy-web` has some unexpected bug, or `hoardy-web import` adds s
 
 Currently, `Hoardy-Web` has two main use cases for regular users, in both of which you first capture some data using [the add-on](./extension/) and then you either
 
-- feed a subset of your archives to [the `hoardy-web` CLI tool](./tool/) to [generate a static offline website mirror a-la `wget -mpk`](./tool/#mirror), which you can then view with your favorite web-browser as normal;
+- feed a subset of your archives to [the `hoardy-web` CLI tool](./tool/) to [generate a static offline website mirror a-la `wget -mpk`](./tool/README.md#mirror), which you can then view with your favorite web-browser as normal;
   except, unlike with `wget`, you can discover you dislike the result, change some options, and re-generate the mirror **without re-downloading anything**;
 
 - you use `hoardy-web` to simply maintain a tree of symlinks pointing to latest `WRR` file for each URL and then read them --- by using `w3m`, `pandoc`, any other `HTML` reader you want, or feed them to TTS engine, or a Braille display --- via some [scripts](./tool/script/);
