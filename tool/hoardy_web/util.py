@@ -17,6 +17,7 @@
 
 import gzip as _gzip
 import io as _io
+import traceback as _traceback
 import typing as _t
 
 InType = _t.TypeVar("InType")
@@ -32,6 +33,11 @@ def map_optionals(f : _t.Callable[[InType], list[OutType]], x : InType | None) -
         return []
     else:
         return f(x)
+
+def str_Exception(exc : Exception) -> str:
+    fobj = _io.StringIO()
+    _traceback.print_exception(type(exc), exc, exc.__traceback__, 100, fobj)
+    return fobj.getvalue()
 
 def gzip_maybe(data : bytes) -> bytes:
     """Given some bytes, return their GZipped version if they compress, return the original otherwise."""

@@ -28,7 +28,6 @@ import stat as _stat
 import subprocess as _subprocess
 import sys as _sys
 import tempfile as _tempfile
-import traceback as _traceback
 import typing as _t
 
 from gettext import gettext, ngettext
@@ -2425,7 +2424,7 @@ In short, this sub-command generates static offline website mirrors, producing r
         error("%s", str(exc))
         errorcnt.errors += 1
     except Exception as exc:
-        _traceback.print_exception(type(exc), exc, exc.__traceback__, 100, stderr)
+        stderr.write_str(str_Exception(exc))
         errorcnt.errors += 1
 
     stdout.flush()
