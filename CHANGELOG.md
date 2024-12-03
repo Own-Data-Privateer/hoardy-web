@@ -86,9 +86,9 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
 ### Added
 
-- `*` except `organize` and `run`:
+- `*` except `organize`, `get`, and `run`:
 
-  - All `WRR`-processing sub-commands except for `organize` and `run` can now take `WRR` bundles as inputs.
+  - All `WRR`-processing sub-commands except for above can now take `WRR` bundles as inputs.
 
     That is, you can now directly do
 
