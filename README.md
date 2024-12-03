@@ -199,7 +199,7 @@ To conform to the above design principles
 
 - also the `Hoardy-Web` extension collects data as browser gives it, without any data normalization and conversion, when possible;
 
-- the dumps are generated using [the simplest, trivially parsable with many third-party libraries, yet most space-efficient on-disk file format representing separate `HTTP` requests+responses there currently is (aka `Web Request+Response`, `WRR`)](./doc/data-on-disk.md), which is a file format that is both more general and more simple than `WARC`, much simpler than that `mitmproxy` uses, and much more efficient than `HAR`;
+- the dumps are generated using [the simplest, trivially parsable with many third-party libraries, yet most space-efficient on-disk file format representing separate `HTTP` requests+responses there currently is (aka `Web Request+Response`, `WRR`)](./doc/data-on-disk.md), which is a file format that is [both more general and more simple than `WARC`, much simpler than that `mitmproxy` uses, and much more efficient than `HAR`](./tool/README.md#glossary);
 
 - the `Hoardy-Web` extension can write the dumps it produces to disk by itself by generating fake-Dowloads containing bundles of `WRR` dumps, but because of limitations of browser APIs, `Hoardy-Web` can't tell if a file generated this way succeeds at being written to disk;
 
@@ -488,10 +488,13 @@ Most similar and easier to use projects first, harder to use and less similar pr
 
 ## [archiveweb.page](https://github.com/webrecorder/archiveweb.page) and [replayweb.page](https://github.com/webrecorder/replayweb.page)
 
+[What is `WARC`?](./tool/README.md#glossary)
+
 Tools most similar to `Hoardy-Web` in their implementation, though not in their philosophy and intended use.
 
 Pros:
 
+- they produce archives in `WARC` format, which is a de-facto standard;
 - their replay is more mature than what `Hoardy-Web` currently has.
 
 Cons:
@@ -596,6 +599,8 @@ Differences in design:
 
 ## But you could just enable request logging in your browser's Network Monitor and manually save your data as `HAR` archives from time to time.
 
+[What is `HAR`?](./tool/README.md#glossary)
+
 Cons:
 
 - to do what `Hoardy-Web` does, you will have to manually enable it for each browser tab;
@@ -625,6 +630,8 @@ Cons:
 Though, the latter issue can be solved via [this project's `hoardy-web` tool](./tool/) as it can take `mitmproxy` dumps as inputs.
 
 ## But you could setup SSL keys dumping then use Wireshark to capture your web traffic.
+
+[What is `PCAP`?](./tool/README.md#glossary)
 
 Pros:
 

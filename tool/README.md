@@ -1,6 +1,12 @@
 # What is `hoardy-web`?
 
-`hoardy-web` is a tool to display, search, programmatically extract values from, organize (rename/move/symlink/hardlink files based on their metadata), manipulate, import, and export Web Request+Response (`WRR`) files produced by [the `Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/) (also [there](https://oxij.org/software/hoardy-web/tree/master/)).
+`hoardy-web` is a tool to display, search, programmatically extract values from, organize (rename/move/symlink/hardlink files based on their metadata), manipulate, import, and export Web Request+Response (`WRR`) files produced by the [`Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/) (also [there](https://oxij.org/software/hoardy-web/tree/master/)).
+
+# How to read this document
+
+The top part of this `README` file (from here to ["Usage"](#usage)) is designed to be read in a linear fashion, not piece-meal.
+
+The ["Usage"](#usage) section can be read and referenced to in arbitrary order.
 
 # Quickstart
 
@@ -49,67 +55,110 @@
 
   Though, in this case, you'll probably want to do the first command from the parent directory, to install everything all at once.
 
-## Archived data -> Website mirror
+## Get some archived web data
 
-You can then use your archived data to generate a local offline website mirror that can be opened in a web browser without accesing the Internet, similar to what `wget -mpk` does.
-The invocation is identical regardless of if the data was saved by [the `hoardy-web-sas` archiving server](../simple_server/) or exported via `saveAs` by [the `Hoardy-Web` extension](../extension/) itself:
+Install the [`Hoardy-Web` extension](../extension/) and get some archive data by browsing some websites.
+
+## Make a website mirror from archived data
+
+You can then use your archived data to generate a local offline static website mirror that can be opened in a web browser without accesing the Internet, similar to what `wget -mpk` does.
+
+The invocation is slightly different depending on if the data was exported via `saveAs` by the [`Hoardy-Web` extension](../extension/) itself or saved by using the [`hoardy-web-sas` archiving server](../simple_server/):
 
 ```bash
-hoardy-web export mirror --to ~/hoardy-web/mirror1 ../simple_server/pwebarc-dump
+# for "Export via `saveAs`"
 hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/Downloads/Hoardy-Web-export-*
+
+# for `hoardy-web-sas`
+hoardy-web export mirror --to ~/hoardy-web/mirror1 ../simple_server/pwebarc-dump
 ```
 
-[A section below](#mirror) contains more `export mirror` examples.
-Though, the top part of this `README` file (from here to ["Usage"](#usage)) is designed to be read in a linear fashion, not piece-meal.
+The default settings should work for most simple websites, but a [section below](#mirror) contains more info and more usage examples.
+
+## ... and you are done
+
+If you are not interested in searching, organizing, and/or manipulating your archives in various ways, then, at the moment, that's everything `hoardy-web` can do for you.
+See the [TODO list](../CHANGELOG.md#todo) for a list of planned features.
+
+If you are interested, continue reading.
+
+# Glossary
+
+- A *`reqres`* (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata.
+
+- [*`WARC`*](https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1-annotated/) is an ISO web archiving file format used by the [Wayback Machine](https://web.archive.org/) ([heritrix](https://github.com/internetarchive/heritrix3)) and many other tools.
+
+- [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) is a tool stripping TLS from a connection, dumping and/or modifying the traffic going through it, and re-adding TLS back.
+  I.e. a Man-In-The-Middle proxy.
+
+  In the context of this project, *`mitmproxy`* is also a file format produced by the `mitmdump` tool.
+
+- [*`WRR`*](../doc/data-on-disk.md) is a native archiving format used by `Hoardy-Web` project.
+
+  It is very much inspired by `mitmproxy` in that it stores a raw `HTTP` request+response pairs (instead of encoding `GET` documents like `WARC` does), but, unlike, `mitmproxy`, `WRR` is a [CBOR (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) encoding of `HTTP` request+response pairs, not some custom binary encoding.
+
+- *`WRR` file* is a file with a single `WRR` dump in it.
+  Typically, these use `.wrr` file extension.
+
+  When you use the [`Hoardy-Web` extension](../extension/) together with the [`hoardy-web-sas` archiving server](../simple_server/), the latter writes `WRR` dumps the extension generates, one dump per file, into separate `.wrr` files in its dumping directory.
+
+  The situation is similar if you instead use the `Hoardy-Web` extension with `Export via 'saveAs'` option enabled but `Export via 'saveAs' > Bundle dumps` option disabled.
+  The only difference is that `WRR` files get written to your `~/Downloads` or similar.
+
+  ```bash
+  ls ~/Downloads/Hoardy-Web-export-*
+  ```
+
+- *`WRR` bundle* is a file containing a concatenation of a bunch of plain uncompressed `WRR` dumps, which are then optionally compressed with `GZip`.
+  Typically, these use `.wrrb` file extension.
+
+  When you use the `Hoardy-Web` extension together with both `Export via 'saveAs'` and bundling options enabled, it archives your data by generating `WRR` bundles, which then get written to your `~/Downloads` or similar.
+
+- *`HAR`* ([abandoned W3C spec](https://w3c.github.io/web-performance/specs/HAR/Overview.html), a [nicer spec](http://www.softwareishard.com/blog/har-12-spec/)) is an archiving file format used by the "Network Monitor" tools of most modern browsers.
+
+  It is similar `mitmproxy` and `WRR` in that it, too, stores `HTTP` request+response pairs, but it uses a very inefficient `JSON` encoding with body data encoded as `base64` and a lot of the metadata duplicated multiple times across the structure.
+
+- [*`PCAP`*](https://en.wikipedia.org/wiki/Pcap) is a file format used by many raw packet capture tools.
 
 # Supported input file formats
 
-## Simple `WRR` dumps (`*.wrr`)
+At the moment `hoardy-web` tool supports
 
-When you use [the `Hoardy-Web` extension](../extension/) together with [`hoardy-web-sas` archiving server](../simple_server/), the latter writes [`WRR` dumps the extension generates](../doc/data-on-disk.md), one dump per file, into separate `.wrr` files (aka "`WRR` files") in its dumping directory.
-No further actions to use such files are required.
+- `WRR` files (both compressed and not),
+- `WRR` bundles (similarly), and
+- `mitmproxy` dumps.
 
-The situation is similar if you instead use the `Hoardy-Web` extension with `Export via 'saveAs'` option enabled but `Export via 'saveAs' > Bundle dumps` option disabled.
-The only difference is that `WRR` files will be put into `~/Downloads` or similar.
+`WARC` and `HAR` support will be added [soon-ish](../CHANGELOG.md#todo), `PCAP` support will be added eventually.
 
-```bash
-ls ~/Downloads/Hoardy-Web-export-*
-```
+All sub-commands of `hoardy-web` except for
 
-## Bundles of `WRR` dumps (`*.wrrb`)
+- `organize` when run with `--move`, `--hardlink`, or `--symlink` (i.e. with anything other than `--copy`),
+- `get`, and
+- `run`
 
-When, instead of the above, you run the `Hoardy-Web` extension with both `Export via 'saveAs'` and bundling options enabled, it fills your `~/Downloads` directory with `.wrrb` files (aka "`WRR` bundles") instead.
-`WRR` bundles are simply concatenations of `WRR` dumps (optionally) compressed with `GZip`.
+can take both `.wrr` and `.wrrb` files as inputs.
+So, most examples described below will work fine with any mix of inputs as arguments.
 
-Most sub-commands of `hoardy-web` can take both `.wrr` and `.wrrb` files as inputs.
-So, most examples described below will work fine with either or both types of files as inputs.
-However, the following sub-commands can only take plain `.wrr` files as inputs:
+# Recipes
 
-- `hoardy-web organize` sub-command when run with `--move`, `--hardlink`, or `--symlink` (i.e. with anything other than `--copy`), and
-- `hoardy-web run` sub-command.
+## Convert anything to `WRR`
 
-So, to invoke `hoardy-web` with those sub-commands you will have to convert your `.wrrb` bundles into `WRR` files first by running something like:
+To use `hoardy-web organize` and `run` sub-commands on data stored in `WRR` bundles or `mitmproxy` dumps, you will have to import them into separate `WRR` files first:
 
 ```bash
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
+hoardy-web import mitmproxy --to ~/hoardy-web/mitmproxy ~/mitmproxy/mitmproxy.*.dump
 ```
 
-Note that `.wrr` files can be parsed as single-dump `.wrrb` files, so the above will work even when some of the exported dumps were exported as separate `.wrr` files by the `Hoardy-Web` extension (because you configured it to do that, because it exported a bucket with a single dump as a separate file, because it exported a dump that was larger than set maximum bundle size as a separate file, etc).
-So, essentially, the above command is equivalent to
+Note that `.wrr` files can be parsed as single-dump `.wrrb` files, so the first command above will work even when some of the exported dumps were exported as separate `.wrr` files by the `Hoardy-Web` extension (because you configured it to do that, because it exported a bucket with a single dump as a separate file, because it exported a dump that was larger than set maximum bundle size as a separate file, etc).
+So, essentially, the first command above command is equivalent to
 
 ```bash
 hoardy-web organize --copy --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.wrr
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.wrrb
 ```
 
-## Other file formats
-
-`hoardy-web` can also use some other file formats as inputs.
-See the documentation of the `hoardy-web import` sub-command below for more info.
-
-# Recipes
-
-## How to merge multiple archive directories
+## Merge multiple archive directories
 
 To merge multiple input directories into one you can simply `hoardy-web organize` them `--to` a new directory.
 `hoardy-web` will automatically deduplicate all the files in the generated result.
@@ -179,7 +228,7 @@ hoardy-web organize --symlink --output hupq_msn --to ~/hoardy-web/pointers ~/hoa
 
 I.e. the above will produce `~/hoardy-web/pointers` with unique symlinks pointing to each file in `~/hoardy-web/original` only once.
 
-## How to build a file system tree of latest versions of all hoarded URLs
+## Build a file system tree of latest versions of all hoarded URLs
 
 Assuming you keep your `WRR` dumps in `~/hoardy-web/raw`, the following commands will generate a file system hierarchy under `~/hoardy-web/latest` organized in such a way that, for each URL from `~/hoardy-web/raw`, it will contain a symlink from under `~/hoardy-web/latest` to a file in `~/hoardy-web/raw` pointing to the most recent `WRR` file containing `200 OK` response for that URL:
 
@@ -226,7 +275,7 @@ Then, optionally, you can reuse `changes` file again to symlink all new files fr
 hoardy-web organize --stdin0 --symlink --output hupq_msn --to ~/hoardy-web/all < changes
 ```
 
-## <span id="mirror"/>How to generate a local offline website mirror, similar to `wget -mpk`
+## <span id="mirror"/>Generate a local offline website mirror, similar to `wget -mpk`
 
 To render all your archived `WRR` files into a local offline website mirror containing interlinked `HTML` files and their requisite resources similar to (but better than) what `wget -mpk` (`wget --mirror --page-requisites --convert-links`) does, you need to run something like this:
 
@@ -234,9 +283,10 @@ To render all your archived `WRR` files into a local offline website mirror cont
 hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/raw
 ```
 
-On completion, `~/hoardy-web/mirror1` will contain a bunch of interlinked `HTML` files, their requisites, and everything else available from `WRR` files living under `~/hoardy-web/raw`.
+On completion, `~/hoardy-web/mirror1` will contain said newly generated interlinked `HTML` files, their resource requisites, and everything else available from given archive files.
+The set of exported files can be limited with using several methods described below.
 
-The resulting `HTML` files will be stripped of all `JavaScript` and other stuff of various levels of evil and then minimized a bit to save space.
+By default, the resulting `HTML` files will be stripped of all `JavaScript` and other stuff of various levels of evil and then minimized a bit to save space.
 The results should be completely self-contained (i.e., work inside a browser running in "Work offline" mode) and safe to view in a dumb unconfigured browser (i.e., the resulting web pages should not request any page requisites --- like images, media, `CSS`, fonts, etc --- from the Internet).
 
 (In practice, though, `hoardy-web export mirror` is not completely free of bugs and `HTML5` spec is constantly evolving, with new things getting added there all the time.
@@ -308,7 +358,7 @@ After the first of the above commands, links from pages generated from `WRR` fil
 I.e. those links will be broken.
 Running the second or the third command from the example above will then export additional files from `~/hoardy-web/raw/*/2024`, thus fixing some or all of those links.
 
-### How to treat missing links exactly like `wget -mpk` does
+### Treat missing links exactly like `wget -mpk` does
 
 If you want to treat links pointing to not yet hoarded URLs exactly like `wget -mpk` does, i.e. you want to keep them pointing to their original URLs instead of remapping them to yet non-existent local files (like the default `--remap-all` does), you need to run `export mirror` with `--remap-open` option:
 
@@ -327,7 +377,7 @@ See the documentation for the `--remap-*` options below for more info.
 
 Obviously, using `--remap-open` or `--remap-semi` will make incremental updates to your mirror impossible.
 
-### How to export a subset of archived data
+### Export a subset of archived data
 
 #### .. by using a symlink hierarchy
 
@@ -359,7 +409,7 @@ There is also `--depth` option, which works similarly to `wget`'s `--level` opti
 When using `--root-*` options, `--remap-open` works exactly like `wget`'s `--convert-links` in that it will only remap the URLs that are going to be exported and will keep the rest as-is.
 Similarly, `--remap-closed` will consider only the URLs reachable from the `--root-*`s in no more that `--depth` jumps as available.
 
-### Prioritizing some files over others
+### Prioritize some files over others
 
 By default, files are read, queued, and then exported in the order they are specified on the command line, in lexicographic file system walk order when an argument is a directory.
 (See `--paths-*` and `--walk-*` options below if you want to change this.)
@@ -413,7 +463,7 @@ will load (an index of) everything under `~/hoardy-web/latest/i.imgur.com` and `
 
 When at least one `--root-*` option is specified, using `--boring` is equivalent to simply appending its argument to the end of the positional `PATH`s.
 
-## <span id="mitmproxy-mirror"/>How to generate a local offline website mirror, like `wget -mpk` does, from `mitmproxy` stream dumps
+## <span id="mitmproxy-mirror"/>Generate a local offline website mirror, like `wget -mpk` does, from `mitmproxy` stream dumps
 
 Assuming `mitmproxy.001.dump`, `mitmproxy.002.dump`, etc are files that were produced by running something like
 
@@ -433,7 +483,7 @@ and then `export mirror` like above, e.g. to generate mirrors for all URLs:
 hoardy-web export mirror --to ~/hoardy-web/mirror ~/hoardy-web/mitmproxy
 ```
 
-## How to generate previews for `WRR` files, listen to them via TTS, open them with `xdg-open`, etc
+## Generate previews for `WRR` files, listen to them via TTS, open them with `xdg-open`, etc
 
 See [the `script` sub-directory](./script/) for examples that show how to use `pandoc` and/or `w3m` to turn `WRR` files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
 
@@ -443,7 +493,7 @@ See [the `script` sub-directory](./script/) for examples that show how to use `p
 
 A tool to display, search, programmatically extract values from, organize, manipulate, import, and export Web Request+Response (`WRR`) archive files produced by the `Hoardy-Web` Web Extension browser add-on.
 
-Terminology: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata.
+Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata.
 
 - options:
   - `--version`
