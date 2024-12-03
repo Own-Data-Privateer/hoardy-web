@@ -14,10 +14,11 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
 - `organize`:
 
-  - **Fixed `organize --symlink --latest` sometimes overwriting (plain `WRR`) source files with symlinks to their newer versions**.
+  - **Fixed `organize --symlink --latest` dereferencing output files, which lead to it overwriting plain `WRR` source files containing updated URLs with symlinks to their newer versions.**
 
     The good news is that this bug was only triggered when `organize --symlink --latest` was run with some newly archived data and,  for each updated `URL`, it only overwrote the second to last `WRR` file with a symlink to the latest `WRR` file.
     Unfortunately, this error was self-propagating, so those files could then get overwritten again by the next invocation of `organize --symlink --latest` with some more new data.
+    This could happen up to 7 times, at which point it would start crashing, because of the OS symlink deferencing limit.
 
     You can check if you were affected by running:
 
