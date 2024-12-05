@@ -579,6 +579,64 @@ hoardy-web export mirror \
   ~/hoardy-web/raw
 ```
 
+### Content-addressed outputs and de-duplication
+
+Note that, by default, `hoardy-web export mirror` runs with the implied `--hardlink` option, which makes it render and write each exported file to `<--to>/_content/<hash/based/path>.<ext>` and only then hardlink the result to `<--to>/<output/format/based/path>.<ext>` target destination.
+The `<hash/based/path>` is derived from the `sha256` hash of the generated file content.
+
+This trick saves quite a bit of space in many cases.
+E.g., when pages refer to the same resource requisites by slightly different URLs, same images and fonts get distributed via different CDN hosts, when you export `--all` visits to some URLs and many of those are absolutely identical, etc.
+
+You can change the destination those hash-based paths get written to by specifying `--content-to`.
+This allows you to easily share files between different exports:
+
+```
+hoardy-web export mirror \
+  --content-to ~/hoardy-web/shared \
+  --to ~/hoardy-web/mirror10 \
+  --root-url-prefix 'https://archiveofourown.org/works/'
+  ~/hoardy-web/raw
+
+hoardy-web export mirror \
+  --content-to ~/hoardy-web/shared \
+  --to ~/hoardy-web/mirror11 \
+  --root-url-prefix 'https://www.royalroad.com/'
+  ~/hoardy-web/raw
+```
+
+You can also control the path of the generated files by setting `--content-output`, e.g.:
+
+```
+hoardy-web export mirror \
+  --content-output 'format:%(content_sha256|take_prefix 1|to_hex)s/%(content_sha256|take_prefix 2|take_suffix 1|to_hex)s/%(content_sha256|to_hex)s'
+  --content-to ~/storage/sha256 \
+  --to ~/hoardy-web/mirror12 \
+  ~/hoardy-web/raw
+```
+
+`hoardy-web export mirror` never overwrites any files under `--content-to`.
+It does, however, check that any existing files it references from there have the contents it expects, and generates errors if they do not.
+That is, you can set `--content-output` to anything and give any directory as `--content-to`, and `hoardy-web` will still ensure that the results are consistent, even when the `--content-to` cache is poisoned, or when different file contents compute to the same hash (produce a hash collision).
+
+Also note that, by default, `export mirror` treats jump-links (`a href`, etc) and links to resource requisites quite differently, remappings jump-links to normal `--to` destination paths, while remapping resource requisites to their hash-based `--content-to` paths instead.
+This renders identical `HTML` and `CSS` files referencing identical resources into identical results, which also saves quite a bit of space.
+
+Note, however, that all of the above does make `export mirror` slightly slower, since it needs to compute a lot of hashes and check contents of many files on disk.
+It also requires hardlink support on the target file system.
+Also, pointing `--content-to` outside of `--to` stops the exported results in `--to` from being self-contained.
+
+Which is why you can disable all of this by specifying `--copy`:
+
+```
+hoardy-web export mirror \
+  --to ~/hoardy-web/mirror10 \
+  --copy \
+  ~/hoardy-web/raw
+```
+
+Also, you can make it use `--symlink`s instead of hardlinks.
+Though, enabling `--symlink` also enables the `--absolute` option by default because browsers treat `file://` URLs pointing to symlinks as redirects.
+
 ## Generate previews for `WRR` files, listen to them via TTS, open them with `xdg-open`, etc
 
 See [the `script` sub-directory](./script/) for examples that show how to use `pandoc` and/or `w3m` to turn `WRR` files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
