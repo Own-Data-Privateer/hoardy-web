@@ -699,15 +699,18 @@ def rrexprs_wrr_some_load(fobj : _io.BufferedReader, source : DeferredSourceType
 
 def rrexpr_wrr_loadf(path : str | bytes, in_stat : _os.stat_result | None = None) -> ReqresExpr[FileSource]:
     with open(path, "rb") as f:
-        return rrexpr_wrr_load(f, make_FileSource(path, f, in_stat))
+        in_stat = _os.fstat(f.fileno())
+        return rrexpr_wrr_load(f, make_FileSource(path, in_stat))
 
 def rrexprs_wrr_bundle_loadf(path : str | bytes, in_stat : _os.stat_result | None = None) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
-        yield from rrexprs_wrr_bundle_load(f, make_FileSource(path, f, in_stat))
+        in_stat = _os.fstat(f.fileno())
+        yield from rrexprs_wrr_bundle_load(f, make_FileSource(path, in_stat))
 
 def rrexprs_wrr_some_loadf(path : str | bytes, in_stat : _os.stat_result | None = None) -> _t.Iterator[ReqresExpr[FileSource | StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
-        yield from rrexprs_wrr_some_load(f, make_FileSource(path, f, in_stat))
+        in_stat = _os.fstat(f.fileno())
+        yield from rrexprs_wrr_some_load(f, make_FileSource(path, in_stat))
 
 def trivial_Reqres(url : ParsedURL,
                    content_type : str = "text/html",

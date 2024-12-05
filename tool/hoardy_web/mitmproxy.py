@@ -16,6 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import io as _io
+import os as _os
 import struct as _struct
 import typing as _t
 
@@ -128,4 +129,5 @@ def rrexprs_mitmproxy_load_fileobj(fobj : _io.BufferedReader, source : DeferredS
 
 def rrexprs_mitmproxy_loadf(path : str | bytes) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
-        yield from rrexprs_mitmproxy_load_fileobj(f, make_FileSource(path, f))
+        in_stat = _os.fstat(f.fileno())
+        yield from rrexprs_mitmproxy_load_fileobj(f, make_FileSource(path, in_stat))
