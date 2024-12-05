@@ -2078,18 +2078,25 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
 
+    if cargs.default_filters:
+        cargs.request_method += ["GET", "DOM"]
+        cargs.status_re += [".200C"]
+
+    _num, filters_allow, filters_warn = compile_filters(cargs)
+    rrexprs_load = mk_rrexprs_load(cargs)
+
     root_filters_num, root_filters_allow, root_filters_warn = compile_filters(cargs, "root_")
     have_root_filters = root_filters_num > 0
 
+    if stdout.isatty:
+        stdout.write_bytes(b"\033[32m")
+    stdout.write_str_ln(gettext("loading input `PATH`s..."))
+    if stdout.isatty:
+        stdout.write_bytes(b"\033[0m")
+    stdout.flush()
+
     def collect(enqueue_all : bool) -> EmitFunc[ReqresExpr[DeferredSourceType]]:
         def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
-            reqres = rrexpr.reqres
-            response = reqres.response
-            if reqres.request.method not in ["GET", "DOM"] or \
-               response is None or \
-               response.code != 200:
-                return
-
             stime = rrexpr.stime
             net_url = rrexpr.net_url
 
@@ -2133,16 +2140,6 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
             if unqueued or mem.consumption > max_memory_mib:
                 nobj.unload()
         return emit
-
-    if stdout.isatty:
-        stdout.write_bytes(b"\033[32m")
-    stdout.write_str_ln(gettext("loading input `PATH`s..."))
-    if stdout.isatty:
-        stdout.write_bytes(b"\033[0m")
-    stdout.flush()
-
-    rrexprs_load = mk_rrexprs_load(cargs)
-    _num, filters_allow, filters_warn = compile_filters(cargs)
 
     seen_paths : set[PathType] = set()
     map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(not have_root_filters), cargs.paths, seen_paths=seen_paths)
@@ -2508,7 +2505,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         grp.add_argument(f"--case-sensitive", dest="ignore_case", action="store_const", const=False, help=_(f"when filtering with `--*grep*`, match case-sensitively"))
         grp.add_argument(f"--smart-case", dest="ignore_case", action="store_const", const=None, help=_(f"when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default"))
 
-    def add_filters(cmd : _t.Any, do_what : str, root : bool = False) -> None:
+    def add_filters(cmd : _t.Any, kind : str, do_what : str, root : bool = False) -> None:
         if not root:
             intro = gettext("input filters; if none are specified, then all reqres from input `PATH`s will be taken")
             opt_prefix = ""
@@ -2659,6 +2656,14 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         agrp.add_argument(f"--{opt_prefix}or", metavar="EXPR", action="append", type=str, default = [],
                          help=_(f"{do_what} some of the given expressions of the same format as `{__prog__} get --expr` (which see) evaluate to `true`"))
 
+        if kind == "export mirror" and not root:
+            agrp = cmd.add_argument_group("default input filters")
+            default_filters = '--method "GET" --method "DOM" --status-re ".200C"'
+            ddest = f"default_filters"
+            agrp.add_argument(f"--ignore-bad-inputs", dest=ddest, action="store_const", const=True, help=_("initialize input filters to `%s`; default") % (default_filters,))
+            agrp.add_argument(f"--index-all-inputs", dest=ddest, action="store_const", const=False, help=_("do not set any input filters by default; note, however, that this sub-command expects input filters to be at least as restrictive as the above default and is likely to produce broken outputs if those filters are unset; use this option at your own risk"))
+            cmd.set_defaults(**{ddest: True})
+
     def add_pure(cmd : _t.Any) -> None:
         cmd.add_argument("-q", "--quiet", action="store_true", help=_("don't print end-of-program warnings to stderr"))
 
@@ -2672,7 +2677,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         add_paths(cmd, kind)
         add_sniff(cmd, kind)
         add_filter_options(cmd)
-        add_filters(cmd, filter_what)
+        add_filters(cmd, kind, filter_what)
 
     def add_abridged(cmd : _t.Any) -> None:
         grp = cmd.add_mutually_exclusive_group()
@@ -3125,7 +3130,7 @@ In short, this sub-command generates static offline website mirrors, producing r
                       "  - `content`: " + _("rendered content") + "\n" + \
                       "  - `content_sha256`: " + _("alias for `content|sha256`"))
 
-    add_filters(cmd, "take reqres as export root when", True)
+    add_filters(cmd, "export mirror", "take reqres as export root when", True)
 
     agrp = cmd.add_argument_group("recursion depth")
     agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
