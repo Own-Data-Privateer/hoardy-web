@@ -2527,7 +2527,7 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
             if kind != "export mirror":
                 def_def = "default"
             else:
-                def_def = "hupq"
+                def_def = "hupq_n"
 
             agrp.add_argument("-t", "--to", dest="destination", metavar="DESTINATION", type=str, required=True, help=_("destination directory"))
             agrp.add_argument("-o", "--output", metavar="FORMAT", default=def_def, type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same expression format as `{__prog__} organize --output` (which see); default: %(default)s"""))

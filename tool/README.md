@@ -398,26 +398,6 @@ Though, this is not very characteristic of the overall exporting speed, since im
 
 Also, enabling `+indent` (or `+pretty`) in `scrub` will make `HTML` scrubbing slightly slower (since it will have to track more stuff) and `CSS` scrubbing a lot slower (since it will force complete structural parsing, not just tokenization).
 
-### Handling outputs to the same file
-
-The above commands might fail if the set of `WRR` dumps you are trying to export contains two or more dumps with distinct URLs that map to the same `--output` path.
-This will produce an error since `hoardy-web` does not permit file overwrites.
-With the default `--output hupq` format this can happen, for instance, when the URLs recorded in the `WRR` dumps are long and so they end up truncated into the same file system paths.
-
-In this case you can either switch to a more verbose `--output` format
-
-```bash
-hoardy-web export mirror --output hupq_n --to ~/hoardy-web/mirror3 ~/hoardy-web/raw
-```
-
-or just skip all operations that would cause overwrites
-
-```bash
-hoardy-web export mirror --skip-existing --to ~/hoardy-web/mirror1 ~/hoardy-web/raw
-```
-
-The latter method also allow for incremental updates, discussed in the next section.
-
 ### Update your mirror incrementally
 
 By default, `hoardy-web export mirror` runs with an implied `--remap-all` option which remaps *all* links in exported `HTML` files to local files, even if source `WRR` files for those would-be exported files are missing.
@@ -3017,7 +2997,7 @@ In short, this sub-command generates static offline website mirrors, producing r
   - `-t DESTINATION, --to DESTINATION`
   : destination directory
   - `-o FORMAT, --output FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: hupq
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: hupq_n
 
 - new `--output`s printing:
   - `--no-print`
