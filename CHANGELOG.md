@@ -6,6 +6,115 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is [a TODO list](#todo) with planned future changes.
 
+## [tool-v0.19.0] - 2024-12-07: Powerful filtering, exporting of different URL visits, hybrid export modes
+
+### Changed: Semantics
+
+- `*`:
+
+  - In `--expr` expressions, `sha256` function changed semantics.
+    From now on it returns the raw hash digest instead of the hexadecimal one.
+    To get the old value, use `sha256|to_hex`.
+
+### Added
+
+- `*` except `organize --move`, `organize --hardlink`, `organize --symlink`, `get`, and `run`:
+
+  - From now on, all sub-commands except for above can take inputs in all supported file formats.
+
+    I.e., you can now do
+
+    ```bash
+    hoardy-web export mirror --to ~/hoardy-web/mirror1 mitmproxy.*.dump
+    ```
+
+    on `mitmproxy` dumps without even `import`ing them first.
+
+  - By default, the above commands now also automatically dispatch between loaders of different file formats based on file extensions.
+    So you can mix and match different file formats on the same command line.
+
+  - Added a bunch of `--load-*` options that force a specific loader instead, e.g. `--load-wrrb`, `--load-mitmproxy`.
+
+- `*`:
+
+  - Added a ton of new filtering options.
+
+    For example, you can now do:
+
+    ```bash
+    hoardy-web find --method GET --method DOM --status-re .200C --response-mime text/html \
+      --response-body-grep-re "\bPotter\b" ~/hoardy-web/raw
+    ```
+
+    As before, these filters can still be used with other commands, like `stream`, or `export mirror`, etc.
+
+    `--root-*` options of `export mirror` now use the same syntax and machinery as the normal input filters.
+
+    Also, the overall filtering semantics changed a bit.
+    The top-level logical expression the filters compute is now a large conjunction.
+    I.e. the above example now compiles to, a bit simplified, `(response.method == "GET" or response.method == "DOM") and re.match(".200C", status) and (response_mime == "text/html") and re.match("\\bPotter\\b", response.body)`.
+
+  - Added a bunch of new `--output` formats.
+    Mostly, this adds a bunch of output formats that refer to `stime`s.
+    Mainly, to simplify `export mirror --all` usage, described below.
+
+- `export mirror`:
+
+  - Implemented exporting of different URL visits.
+
+    I.e., you can now export not just `--latest` visit to each URL, but an `--oldest` one, or one `--nearest` to a given date, or `--all` of them.
+
+  - Implemented `--latest-hybrid`, `--oldest-hybrid`, and `--nearest-hybrid` options.
+
+    These allow you to export each page with resource requisites that are date-vise closest to the `stime` of the page itself, instead of taking globally `--latest`, `--oldest`, or `--nearest` versions of all requisite URLs.
+
+    At the moment, this takes a lot more memory, but makes the results much more consistent for websites that do not use versioned resource requisites.
+
+  - Implemented `--hardlink` and `--symlink` options, which allow exporting into content-addressed destinations.
+
+    I.e. `export mirror --hardlink` will render and write each exported file to `<--to>/_content/<hash/based/path>.<ext>` and only then hardlink the result to `<--to>/<output/format/based/path>.<ext>` target destination.
+    And similarly for `--symlink`.
+
+    Typically, doing this saves quite a bit of space, e.g., when pages refer to the same resource requisites by slightly different URLs, same images and fonts get distributed via different CDN hosts, when you export `--all` visits to some URLs and many of those are absolutely identical, etc.
+
+    So, from now on, `--hardlink` is the default.
+    The old behavior can be archived by running it with `--copy` instead.
+
+  - Implemented `--relative` and `--absolute` options, which control if URLs should be remapped to relative or absolute `file:` URLs, respectively.
+
+- Documented all the new things.
+
+- Added a bunch of new `test-cli.sh` tests.
+
+### Changed
+
+- `export mirror`:
+
+  - Switched default `--output` to `hupq_n` to prevent collisions when using `--*-hybrid` and `--all`.
+
+  - Improved handling of `base` `HTML` tags, `_target`s are supported now.
+
+  - Links that reference a page from itself will no longer refer to the page's filename, even when the link has no `fragment`.
+
+    The results can be a bit confusing, but this makes the new content de-duplication options much more effective.
+
+  - Made `export mirror` default filters explicit and changed them from `--method "GET" --status-re ".200C"` to `--method "GET" --method "DOM" --status-re ".200C"`.
+
+  - Implemented `--ignore-bad-inputs` and `--index-all-inputs` options to allow you to change the above default.
+
+  - Improved output log format.
+
+- Improved file loading performance a bit.
+
+- Improved documentation.
+
+### Fixed
+
+  - Added a bunch of new tests for `organize`, which cover the `organize --symlink --latest` bug of `tool-v0.18.0`.
+    Won't happen again.
+
+  - Fixed a couple of silly filtering-related bugs.
+
 ## [tool-v0.18.1] - 2024-11-30: Hotfixes
 
 ### Fixed
@@ -1700,6 +1809,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.19.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.18.1...tool-v0.19.0
 [tool-v0.18.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.18.0...tool-v0.18.1
 [tool-v0.18.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.17.0...tool-v0.18.0
 [tool-v0.17.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.16.0...tool-v0.17.0
@@ -1781,16 +1891,18 @@ All planned features are complete now.
 
 ## `hoardy-web` tool
 
-- `scrub`:
+- `export mirror`, `scrub`:
   - Handle SRI things.
   - Handle CSP things.
 - `export mirror`:
   - Implement `export mirror --standalone`, which would inline all resources into each exported page, a-la `SingleFile`.
-- `*`:
+- `organize`:
   - Implement automatic discernment of relatedness of `WRR` files (by URLs and similarity) and packing of related files into `WRR` bundles.
   - Maybe: Implement data de-duplication between `WRR` files.
-  - Implement `un206` command, which would reassemble a bunch of `GET 206` `WRR` files into a single `GET 200` `WRR` file.
+  - Implement `un206` command/option, which would reassemble a bunch of `GET 206` `WRR` files into a single `GET 200` `WRR` file.
 - `export mirror`, `organize`:
+  - Allow unloading and lazy re-loading of reqres loaded from anything other than separate `WRR` files.
+    The fact that this is not possible at the moment makes memory consumption in those cases rather abysmal.
   - Implement on-the-fly mangling of reqres, so that, e.g. you could `organize` or `export` a reqres containing `https://web.archive.org/web/<something>/<URL>` as if it was just a `<URL>`.
 - `*`:
   - Non-dumb `HTTP` server with time+URL index and replay, i.e. a local `HTTP` UI a-la [Wayback Machine](https://web.archive.org/).
