@@ -48,8 +48,6 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
     As before, these filters can still be used with other commands, like `stream`, or `export mirror`, etc.
 
-    `--root-*` options of `export mirror` now use the same syntax and machinery as the normal input filters.
-
     Also, the overall filtering semantics changed a bit.
     The top-level logical expression the filters compute is now a large conjunction.
     I.e. the above example now compiles to, a bit simplified, `(response.method == "GET" or response.method == "DOM") and re.match(".200C", status) and (response_mime == "text/html") and re.match("\\bPotter\\b", response.body)`.
@@ -75,7 +73,7 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
     I.e. `export mirror --hardlink` will render and write each exported file to `<--to>/_content/<hash/based/path>.<ext>` and only then hardlink the result to `<--to>/<output/format/based/path>.<ext>` target destination.
     And similarly for `--symlink`.
 
-    Typically, doing this saves quite a bit of space, e.g., when pages refer to the same resource requisites by slightly different URLs, same images and fonts get distributed via different CDN hosts, when you export `--all` visits to some URLs and many of those are absolutely identical, etc.
+    This saves quite a bit of space when pages refer to the same resource requisites by slightly different URLs, same images and fonts get distributed via different CDN hosts, when you export `--all` visits to some URLs and many of those are absolutely identical, etc.
 
     So, from now on, `--hardlink` is the default.
     The old behavior can be archived by running it with `--copy` instead.
@@ -90,9 +88,11 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
 - `export mirror`:
 
+  - `--root-*` options now use the same syntax and machinery and support the same filtering options as the normal input filters.
+
   - Switched default `--output` to `hupq_n` to prevent collisions when using `--*-hybrid` and `--all`.
 
-  - Improved handling of `base` `HTML` tags, `_target`s are supported now.
+  - Improved handling of `base` `HTML` tags, `target` attributes are supported now.
 
   - Links that reference a page from itself will no longer refer to the page's filename, even when the link has no `fragment`.
 
