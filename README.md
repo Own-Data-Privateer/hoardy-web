@@ -285,7 +285,7 @@ Also, as far as I'm aware, `hoardy-web` is a tool that can do more useful stuff 
 
 # Does the author eat what he cooks?
 
-Yes, as of October 2024, I archive all of my web traffic using `Hoardy-Web`, without any interruptions, since October 2023.
+Yes, as of December 2024, I archive all of my web traffic using `Hoardy-Web`, without any interruptions, since October 2023.
 Before that my preferred tool was [mitmproxy](https://github.com/mitmproxy/mitmproxy).
 
 After adding each new feature to [the `hoardy-web` tool](./tool/), as a rule, I feed at least the last 5 years of my web browsing into it (at the moment, most of it converted from other formats to `.wrr`, obviously) to see if everything works as expected.
