@@ -21,8 +21,8 @@ buildPythonApplication (rec {
 
   propagatedBuildInputs = [
     setuptools
-    mycbor2
     kisstdlib
+    mycbor2
     idna
     html5lib
     tinycss2
