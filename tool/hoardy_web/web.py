@@ -249,7 +249,6 @@ class ScrubbingOptions:
     jumps : RemapType = _dc.field(default=RemapType.OPEN)
     actions : RemapType = _dc.field(default=RemapType.FALLBACK)
     reqs : RemapType = _dc.field(default=RemapType.FALLBACK)
-    unknown : bool = _dc.field(default=True)
     styles : bool = _dc.field(default=True)
     scripts : bool = _dc.field(default=False)
     iepragmas : bool = _dc.field(default=False)
@@ -258,6 +257,7 @@ class ScrubbingOptions:
     tracking : bool = _dc.field(default=False)
     navigations : bool = _dc.field(default=False)
     interpret_noscript : bool = _dc.field(default=True)
+    unknown : bool = _dc.field(default=True)
 
     verbose : bool = _dc.field(default=False)
     whitespace : bool = _dc.field(default=False)

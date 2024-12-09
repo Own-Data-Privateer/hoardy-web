@@ -1,6 +1,6 @@
 # What is `hoardy-web`?
 
-`hoardy-web` is a tool to display, search, programmatically extract values from, organize (rename/move/symlink/hardlink files based on their metadata), manipulate, import, and export Web Request+Response (`WRR`) files produced by the [`Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/) (also [there](https://oxij.org/software/hoardy-web/tree/master/)).
+`hoardy-web` is a tool to inspect, search, organize, programmatically extract values from, generate static website mirrors from `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/), also [there](https://oxij.org/software/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.
 
 # How to read this document
 
@@ -59,7 +59,7 @@ The ["Usage"](#usage) section can be read and referenced to in arbitrary order.
 
 Install the [`Hoardy-Web` extension](../extension/) and get some archive data by browsing some websites.
 
-## Make a website mirror from archived data
+## Make a website mirror from your archived data
 
 You can then use your archived data to generate a local offline static website mirror that can be opened in a web browser without accessing the Internet, similar to what `wget -mpk` does.
 
@@ -72,6 +72,8 @@ hoardy-web mirror --to ~/hoardy-web/mirror1 ~/Downloads/Hoardy-Web-export-*
 # for `hoardy-web-sas`
 hoardy-web mirror --to ~/hoardy-web/mirror1 ../simple_server/pwebarc-dump
 ```
+
+You can then, e.g. `rsync`/copy `~/hoardy-web/mirror1` to your e-book reader/phone before hopping on a plane or going on a deep-sea dive, and still be able to read all those pages.
 
 The default settings should work for most simple websites, but a [section below](#mirror) contains more info and more usage examples.
 
@@ -484,7 +486,7 @@ Meaning, you can go ahead and open it in your browser, even if `mirror` did not 
 
 Moreover, unlike all other sub-commands `mirror` handles duplication in its input files in a special way: it remembers the files it has already seen and ignores them when they are given the second time.
 (All other commands don't, they will just process the same file the second time, the third time, and so on.
-This is by design, other commands are designed to handle potentially enormous file hierarchies in near-constant memory.)
+This is by design, other commands are designed to handle potentially enormous file hierarchies in constant memory.)
 
 The combination of all of the above means you can prioritize rendering of some documents over others by specifying them earlier on the command line and then, in a later argument, specifying their containing directory to allow `mirror` to also see their requisites and documents they link to.
 For instance,
@@ -646,7 +648,7 @@ See the [`script` sub-directory](./script/) for examples that show how to use `p
 
 ## hoardy-web
 
-A tool to display, search, programmatically extract values from, organize, manipulate, import, and export Web Request+Response (`WRR`) archive files produced by the `Hoardy-Web` Web Extension browser add-on.
+Inspect, search, organize, programmatically extract values from, generate static website mirrors from `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.
 
 Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata.
 
@@ -659,27 +661,27 @@ Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure
   : show help messages formatted in Markdown
 
 - subcommands:
-  - `{pprint,get,run,stream,find,organize,import,mirror}`
-    - `pprint`
-    : pretty-print given `WRR` files
+  - `{pprint,print,inspect,get,run,spawn,stream,find,organize,import,mirror}`
+    - `pprint (print, inspect)`
+    : pretty-print given inputs
     - `get`
-    : print values produced by computing given expressions on a given `WRR` file
-    - `run`
-    : spawn a process with generated temporary files produced by given expressions computed on given `WRR` files as arguments
+    : print values produced by evaluating given expressions on a given input
+    - `run (spawn)`
+    : spawn a process with temporary files generated from given expressions evaluated on given inputs
     - `stream`
-    : produce a stream of structured lists containing values produced by computing given expressions on given `WRR` files, a generalized `hoardy-web get`
+    : stream lists containing values produced by evaluating given expressions on given inputs, a generalized `hoardy-web get`
     - `find`
-    : print paths of `WRR` files matching specified criteria
+    : print paths of inputs matching specified criteria
     - `organize`
-    : programmatically rename/move/hardlink/symlink `WRR` files based on their contents
+    : programmatically copy/rename/move/hardlink/symlink given input files based on their metadata and/or contents
     - `import`
     : convert other `HTTP` archive formats into `WRR`
     - `mirror`
-    : convert given `WRR` files into a local website mirror stored in interlinked plain files
+    : convert given inputs into a local offline static website mirror stored in interlinked files, a-la `wget -mpk`
 
 ### hoardy-web pprint
 
-Pretty-print given `WRR` files to stdout.
+Pretty-print given inputs to stdout.
 
 - options:
   - `-q, --quiet`
@@ -908,7 +910,15 @@ Pretty-print given `WRR` files to stdout.
 
 ### hoardy-web get
 
-Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified.
+Print results produced by evaluating given `EXPR`essions on a given input to stdout.
+
+Algorithm:
+
+- Load input `PATH`;
+- evaluate all `EXPR` expressions on the resulting reqres;
+- print all the results to stdout, terminating each value as specified.
+
+The end.
 
 - positional arguments:
   - `PATH`
@@ -972,26 +982,45 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
       - `scrub`: scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on the `MIME` type of the value itself and the scrubbing options described below; this function takes two arguments:
             - the first must be either of `request|response`, it controls which `HTTP` headers `scrub` should inspect to help it detect the `MIME` type;
             - the second is either `defaults` or ","-separated string of tokens which control the scrubbing behaviour:
-              - `(+|-|*|/|&)(jumps|actions|reqs)` control how jump-links (`a href`, `area href`, and similar `HTML` tag attributes), action-links (`a ping`, `form action`, and similar `HTML` tag attributes), and references to page requisites (`img src`, `iframe src`, and similar `HTML` tag attributes, as well as `link src` attributes which have `rel` attribute of their `HTML` tag set to `stylesheet` or `icon`, `CSS` `url` references, etc) should be remapped or censored out:
-                - `+` leave links of this kind pointing to their original URLs;
-                - `-` void links of this kind, i.e. rewrite these links to `javascript:void(0)` and empty `data:` URLs;
-                - `*` rewrite links of this kind in an "open"-ended way, i.e. point them to locally mirrored versions of their URLs when available, leave them pointing to their original URL otherwise; this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `+`;
-                - `/` rewrite links of this kind in a "close"-ended way, i.e. point them to locally mirrored versions URLs when available, and void them otherwise; this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `-`;
-                - `&` rewrite links of this kind in a "close"-ended way like `/` does, except use fallbacks to remap unavailable URLs whenever possible; this is only supported when `scrub` is used with `mirror` sub-command, see the documentation of the `--remap-all` option for more info; under other sub-commands this is equivalent to `-`;
+              - `(+|-|*|/|&)jumps` controls how jump-links (`a href`, `area href`, and similar `HTML` tag attributes) should be remapped or censored out:
+                - `+` rewrites their values into full URLs, e.g. `<a href="/path?query">` -> `a href="https://example.org/path?query">`;
+                - `-` "voids" all of them, i.e. rewrites them to `javascript:void(0)` and empty `data:` URLs;
+                - `*` rewrites links in an "open"-ended way, i.e. points them to locally mirrored versions of their URLs when available and leaves them pointing to their original URL otherwise; this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `+`;
+                - `/` rewrites links in a "close"-ended way, i.e. points them to locally mirrored versions of their URLs when available and voids them otherwise; this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `-`;
+                - `&` rewrites links in a "close"-ended way like `/` does, except this option uses fallbacks to remap unavailable URLs whenever possible; this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `-`; see the documentation of the `--remap-all` option for more info;
+              - `(+|-|*|/|&)actions` controls how action-links (`a ping`, `form action`, and similar `HTML` tag attributes) should be remapped or censored out; same rewrite options as above;
+              - `(+|-|*|/|&)reqs` controls how references to page requisites (`img src`, `iframe src`, and similar `HTML` tag attributes, as well as `link src` attributes which have `rel` attribute of their `HTML` tag set to `stylesheet` or `icon`, `CSS` `url` references, etc) should be remapped or censored out; same rewrite options as above;
+              - `(+|-|*|/|&)all_refs` is equivalent to setting all of `jumps`, `actions`, and `reqs` simultaneously;
+              - `(+|-)styles` controls whether `CSS` stylesheets (both separate files and `HTML` tags and attributes) should be kept in or censored out;
+              - `(+|-)scripts` controls whether `JavaScript` (both separate files and `HTML` tags and attributes) should be kept in or censored out;
+              - `(+|-)iepragmas` controls whether Internet Explorer's `HTML` pragmas should be kept in or censored out;
+              - `(+|-)iframes` controls whether `<iframe>` `HTML` tags should be kept in or censored out;
+              - `(+|-)prefetches` controls whether `HTML` content prefetch `link` tags should be kept in or censored out;
+              - `(+|-)tracking` controls whether other tracking `HTML` tags and attributes (like `a ping`) should be kept in or censored out;
+              - `(+|-)navigations` controls whether automatic navigations (`Refresh` `HTTP` headers and `<meta http-equiv>` `HTML` tags) should be kept in or censored out;
+              - `(+|-)all_dyns` is equivalent to setting all of `styles`, `scripts`, `iepragmas`, `iframes`, `prefetches`, `tracking`, and `navigations` simultaneously;
+              - `(+|-)interpret_noscript` controls whether the contents of `noscript` tags should be inlined when `-scripts` is set;
+              - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively);
+              - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead;
+              - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away;
+              - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them;
+              - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not;
+              - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics;
+              - `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied;
+              - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it indents `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging;
+              - `-debug` is a noop;
+            - the `defaults` are:
+              - `*jumps,&actions,&reqs`, because these produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
+              - `-prefetches,-tracking,-navigations`, because these ensure the result will not try to prefetch or track anything, or re-navigate elsewhere, when loaded in a web browser;
+              - `+styles,+iframes`, because these are are `scrub`bed properly;
+              - `-scripts`, because `scrub`bing of `JavaScript` (code whitelisting) is not supported yet;
+              - `-iepragmas`, because censoring of contents of such pragmas is not supported yet;
+              - `+interpret_noscript`, because this usually helps;
+              - `-verbose,-whitespace,-indent`, because it saves a lot of space;
+              - `+optional_tags`, because many tools fail to parse minimized `HTML` properly;
+              - `+unknown` which keeps data of unknown content `MIME` types as-is;
+            - note however, that most `--remap-*` options set different defaults;
           
-                when `scrub` is called manually, the default is `*jumps,&actions,&reqs` which produces a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
-                usually, however, the default is derived from `--remap-*` options, which see;
-              - `(+|-|*|/|&)all_refs` is equivalent to setting all of the options listed in the previous item simultaneously;
-              - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which keeps data of unknown content `MIME` types as-is;
-              - `(+|-)(styles|scripts|iepragmas|iframes|prefetches|tracking|navigations)` control which things should be kept in or censored out from `HTML`, `CSS`, and `JavaScript`; i.e. these options control whether `CSS` stylesheets (both separate files and `HTML` tags and attributes), `JavaScript` (both separate files and `HTML` tags and attributes), `HTML` Internet Explorer pragmas, `<iframe>` `HTML` tags, `HTML` content prefetch `link` tags, other tracking `HTML` tags and attributes (like `a ping` attributes), and automatic navigations (`Refresh` `HTTP` headers and `<meta http-equiv>` `HTML` tags) should be respectively kept in or censored out from the input; the default is `+styles,-scripts,-iepragmas,+iframes,-prefetches,-tracking,-navigations` which ensures the result does not contain `JavaScript` and will not produce any prefetch, tracking requests, or re-navigations elsewhere, when loaded in a web browser; `-iepragmas` is the default because censoring for contents of such pragmas is not supported yet;
-              - `(+|-)all_dyns` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
-              - `(+|-)interpret_noscript` controls whether the contents of `noscript` tags should be inlined when `-scripts` is set, the default is `+interpret_noscript`;
-              - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead; the default is `-verbose`;
-              - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away (respectively); the default is `-whitespace`, which produces somewhat minimized outputs (because it saves a lot of space);
-              - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them (respectively); the default is `+optional_tags` (because many tools fail to parse minimized `HTML` properly);
-              - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent` (to save space);
-              - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics; `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied; neither is the default;
-              - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it indents `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging; `-debug` is noop, which is the default;
     - reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:
       - `version`: WEBREQRES format version; int
       - `agent`: `+`-separated list of applications that produced this reqres; str
@@ -1133,19 +1162,34 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   - `--raw-sbody, --no-remap`
   : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body; default
   - `--remap-id`
-  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. `scrub` response body as follows: remap all URLs with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones), censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
   - `--remap-void`
-  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs of response body into `javascript:void(0)` and empty `data:` URLs and censor out all dynamic content; results will be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. `scrub` response body as follows: remap all URLs into `javascript:void(0)` and empty `data:` URLs, censor out all dynamic content; results will be self-contained
 
 ### hoardy-web run
 
-Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files terminating each value as specified, spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process.
+Spawn `COMMAND` with given static `ARG`uments and `NUM` additional arguments generated by evaluating given `EXPR`essions on given `PATH`s into temporary files.
+
+Algorithm:
+
+- Load `NUM` given `PATH`s (`--num-args` decides the point at which `argv` get split into `ARG`s and `PATH`s);
+- for each of `NUM` resulting reqres:
+  - evaluate `EXPR` expressions;
+  - write the results into a newly generated temporary file, terminating each value as specified;
+- spawn given `COMMAND` with given `ARG` arguments and `NUM` additional arguments that are paths of the files generated in the previous step,
+- wait for it to finish,
+- delete the temporary files,
+- exit with the return code of the spawned process.
+
+The end.
+
+Essentially, this is `{__prog__} get` into a temporary file for each given `PATH`, followed by spawning of `COMMAND`, followed by cleanup when it finishes.
 
 - positional arguments:
   - `COMMAND`
   : command to spawn
   - `ARG`
-  : additional arguments to give to the `COMMAND`
+  : static arguments to give to the `COMMAND`
   - `PATH`
   : input `WRR` file paths to be mapped into new temporary files
 
@@ -1179,13 +1223,25 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   - `--raw-sbody, --no-remap`
   : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body; default
   - `--remap-id`
-  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. `scrub` response body as follows: remap all URLs with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones), censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
   - `--remap-void`
-  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs of response body into `javascript:void(0)` and empty `data:` URLs and censor out all dynamic content; results will be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. `scrub` response body as follows: remap all URLs into `javascript:void(0)` and empty `data:` URLs, censor out all dynamic content; results will be self-contained
 
 ### hoardy-web stream
 
-Compute given expressions for each of given `WRR` files, encode them into a requested format, and print the result to stdout.
+Stream lists of results produced by evaluating given `EXPR`essions on given inputs to stdout.
+
+Algorithm:
+
+- For each input `PATH`:
+  - load it;
+  - evaluate all `EXPR` expressions on the resulting reqres;
+  - encode the resulting list into a requested `FORMAT`;
+  - print it to stdout.
+
+The end.
+
+Esentially, this is a generalized `{__prog__} get`.
 
 - options:
   - `-q, --quiet`
@@ -1194,7 +1250,7 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
   : print all data in full
   - `--abridged`
   : shorten long strings for brevity, useful when you want to visually scan through batch data dumps; default
-  - `--format {py,cbor,json,raw}`
+  - `--format FORMAT`
   : generate output in:
     - py: Pythonic Object Representation aka `repr`; default
     - cbor: Concise Binary Object Representation aka `CBOR` (RFC8949)
@@ -1438,13 +1494,22 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
   - `--raw-sbody, --no-remap`
   : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body
   - `--remap-id`
-  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. `scrub` response body as follows: remap all URLs with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones), censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
   - `--remap-void`
-  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs of response body into `javascript:void(0)` and empty `data:` URLs and censor out all dynamic content; results will be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. `scrub` response body as follows: remap all URLs into `javascript:void(0)` and empty `data:` URLs, censor out all dynamic content; results will be self-contained
 
 ### hoardy-web find
 
-Print paths of `WRR` files matching specified criteria.
+Print paths of inputs matching specified criteria.
+
+Algorithm:
+
+- For each input `PATH`:
+  - load it;
+  - check this reqres satisfies given filters and skip it if it does not,
+  - print its path to stdout.
+
+The end.
 
 - options:
   - `-q, --quiet`
@@ -1675,7 +1740,16 @@ Print paths of `WRR` files matching specified criteria.
 
 ### hoardy-web organize
 
-Parse given `WRR` files into their respective reqres and then rename/move/hardlink/symlink each file to `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
+Programmatically copy/rename/move/hardlink/symlink given input files based on their metadata and/or contents.
+
+Algorithm:
+
+- For each input `PATH`:
+  - load it;
+  - check this reqres satisfies given filters and skip it if it does not,
+  - copy/rename/move/hardlink/symlink each file to `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
+
+The end.
 
 Operations that could lead to accidental data loss are not permitted.
 E.g. `hoardy-web organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
@@ -2466,13 +2540,13 @@ Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) r
 In short, this is `hoardy-web organize --copy` for `INPUT` files that use different files formats.
 
 - file formats:
-  - `{bundle,mitmproxy}`
-    - `bundle`
+  - `{wrrb,bundle,mitmproxy,mitmdump}`
+    - `wrrb (bundle)`
     : convert `WRR` bundles into separate `WRR` files
-    - `mitmproxy`
-    : convert `mitmproxy` stream dumps into `WRR` files
+    - `mitmproxy (mitmdump)`
+    : convert `mitmproxy` stream dumps (files produced by `mitmdump`) into `WRR` files
 
-### hoardy-web import bundle
+### hoardy-web import wrrb
 
 Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
 
@@ -2725,9 +2799,9 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
 
 - file outputs:
   - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
-  : destination directory
+  : destination directory; required
   - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: default
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
 
 - new `--output`s printing:
   - `--no-print`
@@ -2997,9 +3071,9 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
 
 - file outputs:
   - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
-  : destination directory
+  : destination directory; required
   - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: default
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
 
 - new `--output`s printing:
   - `--no-print`
@@ -3018,10 +3092,24 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
 
 ### hoardy-web mirror
 
-Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
-Essentially, this is a combination of `hoardy-web organize --copy` followed by in-place `hoardy-web get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
+Generate a local offline static website mirror from given intuts, producing results similar to those of `wget -mpk`.
 
-In short, this sub-command generates static offline website mirrors, producing results similar to those of `wget -mpk`.
+Algorithm:
+
+- index all given inputs, for each input `PATH`:
+  - load it;
+  - check this reqres satisfies given filters and skip it if it does not,
+  - if there are no root filters set or if it satisfies given root filters, queue it for mirroring;
+  - either remember its location (or, for some types of files, its contents) for future use or forget about it (e.g., if running with `--latest` and this input is older than the already indexed one);
+- then, for each reqres in the queue, mirror it:
+  - evaluate all `EXPR` expressions on the reqres (which, by default, takes its response body and rewrites all links to point to locally mirrored files);
+  - if the document being mirrored has resource requisites, mirror them recursively,
+  - if the document being mirrored references other documents and the current depth is smaller than `DEPTH`, queue those documents for mirroring too,
+  - write the result of evaluating `EXPR`s into a separate file under `OUTPUT_DESTINATION` with its path derived from reqres' metadata.
+
+The end.
+
+Essentially, this is a combination of `hoardy-web organize --copy` followed by in-place `hoardy-web get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
 
 - options:
   - `--dry-run`
@@ -3278,17 +3366,17 @@ In short, this sub-command generates static offline website mirrors, producing r
   - `--raw-sbody, --no-remap`
   : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body
   - `--remap-id`
-  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. `scrub` response body as follows: remap all URLs with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones), censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
   - `--remap-void`
-  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. remap all URLs of response body into `javascript:void(0)` and empty `data:` URLs and censor out all dynamic content; results will be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. `scrub` response body as follows: remap all URLs into `javascript:void(0)` and empty `data:` URLs, censor out all dynamic content; results will be self-contained
   - `--remap-open, -k, --convert-links`
-  : set the default value of `--expr` to `response.body|eb|scrub response *all_refs`; i.e. remap all URLs of response body present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does, and censor out all dynamic content; results almost certainly will NOT be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response *all_refs`; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does, censor out all dynamic content; results almost certainly will NOT be self-contained
   - `--remap-closed`
-  : set the default value of `--expr` to `response.body|eb|scrub response /all_refs`; i.e. remap all URLs of response body present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does, and censor out all dynamic content; results will be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response /all_refs`; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does, censor out all dynamic content; results will be self-contained
   - `--remap-semi`
-  : set the default value of `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs`; i.e. remap all jump links of response body like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does, and censor out all dynamic content; this is a better version of `--remap-open` which keeps the `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs`; i.e. `scrub` response body as follows: remap all jump links like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does, censor out all dynamic content; this is a better version of `--remap-open` which keeps the `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained
   - `--remap-all`
-  : set the default value of `--expr` to `response.body|eb|scrub response &all_refs`; i.e. remap all links and references of response body like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble, and censor out all dynamic content; results will be self-contained; default
+  : set the default value of `--expr` to `response.body|eb|scrub response &all_refs`; i.e. `scrub` response body as follows: remap all links and references like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble, censor out all dynamic content; results will be self-contained; default
     
     `hoardy-web mirror` uses `--output` paths of trivial `GET <URL> -> 200 OK` as fallbacks for `&(jumps|actions|reqs)` options of `scrub`.
     This will remap links pointing to missing and unreachable URLs to missing files.
@@ -3322,9 +3410,9 @@ In short, this sub-command generates static offline website mirrors, producing r
 
 - file outputs:
   - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
-  : destination directory
+  : destination directory; required
   - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
-  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: hupq_n
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `hupq_n`
 
 - new `--output`s printing:
   - `--no-print`

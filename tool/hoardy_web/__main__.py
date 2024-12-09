@@ -2469,7 +2469,7 @@ def main() -> None:
 
     parser = ArgumentParser(
         prog=__prog__,
-        description=_("A tool to display, search, programmatically extract values from, organize, manipulate, import, and export Web Request+Response (`WRR`) archive files produced by the `Hoardy-Web` Web Extension browser add-on.") + "\n\n" +
+        description=_("Inspect, search, organize, programmatically extract values from, generate static website mirrors from `HTTP` archives/dumps in `WRR` (\"Web Request+Response\", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.") + "\n\n" +
 _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata."),
         additional_sections = [add_doc],
         allow_abbrev = False,
@@ -2782,8 +2782,8 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         grp.set_defaults(sniff = SniffContentType.NONE)
 
     # pprint
-    cmd = subparsers.add_parser("pprint", help=_("pretty-print given `WRR` files"),
-                                description = _("""Pretty-print given `WRR` files to stdout."""))
+    cmd = subparsers.add_parser("pprint", aliases=["print", "inspect"], help=_("pretty-print given inputs"),
+                                description = _("""Pretty-print given inputs to stdout."""))
     add_pure(cmd)
     add_common(cmd, "pprint", "pretty-print reqres when")
     add_abridged(cmd)
@@ -2868,16 +2868,16 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         grp.add_argument("--raw-qbody", dest="default_expr", action="store_const", const="raw_qbody", help=alias("raw_qbody") + _("; i.e. produce the raw request body"))
         grp.add_argument("--raw-sbody", "--no-remap", dest="default_expr", action="store_const", const="raw_sbody", help=alias("raw_sbody") + _("; i.e. produce the raw response body") + (_("; default") if kind in ["get", "run"] else ""))
 
-        grp.add_argument("--remap-id", dest="default_expr", action="store_const", const="id", help=alias("id") + _("; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained"))
-        grp.add_argument("--remap-void", dest="default_expr", action="store_const", const="void", help=alias("void") + _("; i.e. remap all URLs of response body into `javascript:void(0)` and empty `data:` URLs and censor out all dynamic content; results will be self-contained"))
+        grp.add_argument("--remap-id", dest="default_expr", action="store_const", const="id", help=alias("id") + _("; i.e. `scrub` response body as follows: remap all URLs with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones), censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained"))
+        grp.add_argument("--remap-void", dest="default_expr", action="store_const", const="void", help=alias("void") + _("; i.e. `scrub` response body as follows: remap all URLs into `javascript:void(0)` and empty `data:` URLs, censor out all dynamic content; results will be self-contained"))
 
         if kind != "mirror":
-            cmd.set_defaults(default_expr = kind)
-        else:
-            grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open", help=alias("open") + _("; i.e. remap all URLs of response body present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does, and censor out all dynamic content; results almost certainly will NOT be self-contained"))
-            grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="open", help=alias("closed") + _("; i.e. remap all URLs of response body present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does, and censor out all dynamic content; results will be self-contained"))
-            grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi", help=alias("semi") + _("; i.e. remap all jump links of response body like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does, and censor out all dynamic content; this is a better version of `--remap-open` which keeps the `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained"))
-            grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _(f"""; i.e. remap all links and references of response body like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble, and censor out all dynamic content; results will be self-contained; default
+            return
+
+        grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open", help=alias("open") + _("; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does, censor out all dynamic content; results almost certainly will NOT be self-contained"))
+        grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="open", help=alias("closed") + _("; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does, censor out all dynamic content; results will be self-contained"))
+        grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi", help=alias("semi") + _("; i.e. `scrub` response body as follows: remap all jump links like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does, censor out all dynamic content; this is a better version of `--remap-open` which keeps the `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained"))
+        grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _(f"""; i.e. `scrub` response body as follows: remap all links and references like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble, censor out all dynamic content; results will be self-contained; default
 
 `{__prog__} mirror` uses `--output` paths of trivial `GET <URL> -> 200 OK` as fallbacks for `&(jumps|actions|reqs)` options of `scrub`.
 This will remap links pointing to missing and unreachable URLs to missing files.
@@ -2888,16 +2888,25 @@ I.e. this allows `{__prog__} mirror` to be used incrementally.
 Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
 """))
 
-            agrp = cmd.add_argument_group("link conversions")
-            grp = agrp.add_mutually_exclusive_group()
+        agrp = cmd.add_argument_group("link conversions")
+        grp = agrp.add_mutually_exclusive_group()
 
-            grp.add_argument("--relative", dest="absolute", action="store_const", const=False, help=_("when remapping URLs to local files, produce links and references with relative URLs (relative to the `--output` files under `OUTPUT_DESTINATION`); default when `--copy` or `--hardlink`"))
-            grp.add_argument("--absolute", dest="absolute", action="store_const", const=True, help=_("when remapping URLs to local files, produce links and references with absolute URLs; default when `--symlink`"))
-            cmd.set_defaults(absolute = None)
+        grp.add_argument("--relative", dest="absolute", action="store_const", const=False, help=_("when remapping URLs to local files, produce links and references with relative URLs (relative to the `--output` files under `OUTPUT_DESTINATION`); default when `--copy` or `--hardlink`"))
+        grp.add_argument("--absolute", dest="absolute", action="store_const", const=True, help=_("when remapping URLs to local files, produce links and references with absolute URLs; default when `--symlink`"))
+        cmd.set_defaults(absolute = None)
 
     # get
-    cmd = subparsers.add_parser("get", help=_("print values produced by computing given expressions on a given `WRR` file"),
-                                description = _(f"""Compute output values by evaluating expressions `EXPR`s on a given reqres stored at `PATH`, then print them to stdout terminating each value as specified."""))
+    cmd = subparsers.add_parser("get", help=_("print values produced by evaluating given expressions on a given input"),
+                                description = _(f"""Print results produced by evaluating given `EXPR`essions on a given input to stdout.
+
+Algorithm:
+
+- Load input `PATH`;
+- evaluate all `EXPR` expressions on the resulting reqres;
+- print all the results to stdout, terminating each value as specified.
+
+The end.
+"""))
 
     add_sniff(cmd, "get")
     add_expr(cmd, "get")
@@ -2906,25 +2915,54 @@ Note however, that using fallbacks when the `--output` format depends on anythin
     cmd.set_defaults(func=cmd_get)
 
     # run
-    cmd = subparsers.add_parser("run", help=_("spawn a process with generated temporary files produced by given expressions computed on given `WRR` files as arguments"),
-                                description = _("""Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres stored at `PATH`s, dump the results into into newly generated temporary files terminating each value as specified, spawn a given `COMMAND` with given arguments `ARG`s and the resulting temporary file paths appended as the last `NUM` arguments, wait for it to finish, delete the temporary files, exit with the return code of the spawned process."""))
+    cmd = subparsers.add_parser("run", aliases=["spawn"], help=_("spawn a process with temporary files generated from given expressions evaluated on given inputs"),
+                                description = _("""Spawn `COMMAND` with given static `ARG`uments and `NUM` additional arguments generated by evaluating given `EXPR`essions on given `PATH`s into temporary files.
+
+Algorithm:
+
+- Load `NUM` given `PATH`s (`--num-args` decides the point at which `argv` get split into `ARG`s and `PATH`s);
+- for each of `NUM` resulting reqres:
+  - evaluate `EXPR` expressions;
+  - write the results into a newly generated temporary file, terminating each value as specified;
+- spawn given `COMMAND` with given `ARG` arguments and `NUM` additional arguments that are paths of the files generated in the previous step,
+- wait for it to finish,
+- delete the temporary files,
+- exit with the return code of the spawned process.
+
+The end.
+
+Essentially, this is `{__prog__} get` into a temporary file for each given `PATH`, followed by spawning of `COMMAND`, followed by cleanup when it finishes.
+"""))
 
     add_sniff(cmd, "run")
     add_expr(cmd, "run")
 
     cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of `PATH`s; default: `%(default)s`"))
     cmd.add_argument("command", metavar="COMMAND", type=str, help=_("command to spawn"))
-    cmd.add_argument("args", metavar="ARG", nargs="*", type=str, help=_("additional arguments to give to the `COMMAND`"))
+    cmd.add_argument("args", metavar="ARG", nargs="*", type=str, help=_("static arguments to give to the `COMMAND`"))
     cmd.add_argument("paths", metavar="PATH", nargs="+", type=str, help=_("input `WRR` file paths to be mapped into new temporary files"))
     cmd.set_defaults(func=cmd_run)
 
     # stream
-    cmd = subparsers.add_parser("stream", help=_(f"produce a stream of structured lists containing values produced by computing given expressions on given `WRR` files, a generalized `{__prog__} get`"),
-                                description = _("""Compute given expressions for each of given `WRR` files, encode them into a requested format, and print the result to stdout."""))
+    cmd = subparsers.add_parser("stream", help=_(f"stream lists containing values produced by evaluating given expressions on given inputs, a generalized `{__prog__} get`"),
+                                description = _("""Stream lists of results produced by evaluating given `EXPR`essions on given inputs to stdout.
+
+Algorithm:
+
+- For each input `PATH`:
+  - load it;
+  - evaluate all `EXPR` expressions on the resulting reqres;
+  - encode the resulting list into a requested `FORMAT`;
+  - print it to stdout.
+
+The end.
+
+Esentially, this is a generalized `{__prog__} get`.
+"""))
     add_pure(cmd)
     add_common(cmd, "stream", "stream-print reqres when")
     add_abridged(cmd)
-    cmd.add_argument("--format", choices=["py", "cbor", "json", "raw"], default="py", help=_("""generate output in:
+    cmd.add_argument("--format", metavar="FORMAT", choices=["py", "cbor", "json", "raw"], default="py", help=_("""generate output in:
 - py: Pythonic Object Representation aka `repr`; default
 - cbor: Concise Binary Object Representation aka `CBOR` (RFC8949)
 - json: JavaScript Object Notation aka `JSON`; **binary data can't be represented, UNICODE replacement characters will be used**
@@ -2934,8 +2972,18 @@ Note however, that using fallbacks when the `--output` format depends on anythin
     cmd.set_defaults(func=cmd_stream)
 
     # find
-    cmd = subparsers.add_parser("find", help=_("print paths of `WRR` files matching specified criteria"),
-                                description = _(f"""Print paths of `WRR` files matching specified criteria."""))
+    cmd = subparsers.add_parser("find", help=_("print paths of inputs matching specified criteria"),
+                                description = _(f"""Print paths of inputs matching specified criteria.
+
+Algorithm:
+
+- For each input `PATH`:
+  - load it;
+  - check this reqres satisfies given filters and skip it if it does not,
+  - print its path to stdout.
+
+The end.
+"""))
     add_pure(cmd)
     add_common(cmd, "find", "print path of reqres when")
     add_terminator(cmd, "found files printing", "print absolute paths of matching `WRR` files", allow_not=False)
@@ -2974,13 +3022,9 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
                          "  - " + _(f"all expressions of `{__prog__} get --expr` (which see)") + ";\n" + \
                          "  - `num`: " + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique"))
         elif kind == "import" or kind == "mirror":
-            if kind != "mirror":
-                def_def = "default"
-            else:
-                def_def = "hupq_n"
-
-            agrp.add_argument("-t", "--to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, required=True, help=_("destination directory"))
-            agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default=def_def, type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same expression format as `{__prog__} organize --output` (which see); default: %(default)s"""))
+            agrp.add_argument("-t", "--to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, required=True, help=_("destination directory; required"))
+            def_def = "hupq_n" if kind == "mirror" else "default"
+            agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default=def_def, type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same expression format as `{__prog__} organize --output` (which see); default: `%(default)s`"""))
         else:
             assert False
 
@@ -3022,11 +3066,21 @@ on the other hand, this is quite useful when growing a partial mirror generated 
         cmd.set_defaults(allow_updates = False)
 
     # organize
-    cmd = subparsers.add_parser("organize", help=_("programmatically rename/move/hardlink/symlink `WRR` files based on their contents"),
-                                description = _(f"""Parse given `WRR` files into their respective reqres and then rename/move/hardlink/symlink each file to `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
+    cmd = subparsers.add_parser("organize", help=_("programmatically copy/rename/move/hardlink/symlink given input files based on their metadata and/or contents"),
+                                description = _(f"""Programmatically copy/rename/move/hardlink/symlink given input files based on their metadata and/or contents.
+
+Algorithm:
+
+- For each input `PATH`:
+  - load it;
+  - check this reqres satisfies given filters and skip it if it does not,
+  - copy/rename/move/hardlink/symlink each file to `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
+
+The end.
 
 Operations that could lead to accidental data loss are not permitted.
-E.g. `{__prog__} organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`."""))
+E.g. `{__prog__} organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
+"""))
     add_organize_memory(cmd)
     add_impure(cmd)
     add_common(cmd, "organize", "organize reqres when")
@@ -3055,12 +3109,12 @@ E.g. `{__prog__} organize --move` will not overwrite any files, which is why the
 In short, this is `{__prog__} organize --copy` for `INPUT` files that use different files formats."""))
     supsub = supcmd.add_subparsers(title="file formats")
 
-    cmd = supsub.add_parser("bundle", help=_("convert `WRR` bundles into separate `WRR` files"),
+    cmd = supsub.add_parser("wrrb", aliases=["bundle"], help=_("convert `WRR` bundles into separate `WRR` files"),
                             description = _(f"""Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""))
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_bundle)
 
-    cmd = supsub.add_parser("mitmproxy", help=_("convert `mitmproxy` stream dumps into `WRR` files"),
+    cmd = supsub.add_parser("mitmproxy", aliases=["mitmdump"], help=_("convert `mitmproxy` stream dumps (files produced by `mitmdump`) into `WRR` files"),
                             description = _(f"""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""))
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_mitmproxy)
@@ -3072,11 +3126,25 @@ making this larger improves performance;
 the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`"""))
 
     # mirror
-    cmd = subparsers.add_parser("mirror", help=_("convert given `WRR` files into a local website mirror stored in interlinked plain files"),
-                                description = _(f"""Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
-Essentially, this is a combination of `{__prog__} organize --copy` followed by in-place `{__prog__} get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
+    cmd = subparsers.add_parser("mirror", help=_("convert given inputs into a local offline static website mirror stored in interlinked files, a-la `wget -mpk`"),
+                                description = _(f"""Generate a local offline static website mirror from given intuts, producing results similar to those of `wget -mpk`.
 
-In short, this sub-command generates static offline website mirrors, producing results similar to those of `wget -mpk`.
+Algorithm:
+
+- index all given inputs, for each input `PATH`:
+  - load it;
+  - check this reqres satisfies given filters and skip it if it does not,
+  - if there are no root filters set or if it satisfies given root filters, queue it for mirroring;
+  - either remember its location (or, for some types of files, its contents) for future use or forget about it (e.g., if running with `--latest` and this input is older than the already indexed one);
+- then, for each reqres in the queue, mirror it:
+  - evaluate all `EXPR` expressions on the reqres (which, by default, takes its response body and rewrites all links to point to locally mirrored files);
+  - if the document being mirrored has resource requisites, mirror them recursively,
+  - if the document being mirrored references other documents and the current depth is smaller than `DEPTH`, queue those documents for mirroring too,
+  - write the result of evaluating `EXPR`s into a separate file under `OUTPUT_DESTINATION` with its path derived from reqres' metadata.
+
+The end.
+
+Essentially, this is a combination of `{__prog__} organize --copy` followed by in-place `{__prog__} get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
 """))
     add_index_memory(cmd)
     add_impure(cmd)

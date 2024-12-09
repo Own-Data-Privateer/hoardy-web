@@ -476,6 +476,10 @@ def linst_scrub() -> LinstAtom:
         return envfunc
     return [str, str], func
 
+def _scrub_to(x : str) -> str:
+    return "this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `%s`" % (x,)
+_in_out = "should be kept in or censored out"
+
 ReqresExpr_atoms = linst_atoms.copy()
 ReqresExpr_atoms.update({
     "pp_to_path": ("encode `*path_parts` `list` into a POSIX path, quoting as little as needed",
@@ -484,29 +488,48 @@ ReqresExpr_atoms.update({
         linst_apply0(lambda v: _up.urlencode(v))),
     "qsl_to_path": ("encode `query` `list` into a POSIX path, quoting as little as needed",
         linst_apply0(lambda v: qsl_to_path(v))),
-    "scrub": ("""scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on the `MIME` type of the value itself and the scrubbing options described below; this function takes two arguments:
+    "scrub": (f"""scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on the `MIME` type of the value itself and the scrubbing options described below; this function takes two arguments:
   - the first must be either of `request|response`, it controls which `HTTP` headers `scrub` should inspect to help it detect the `MIME` type;
   - the second is either `defaults` or ","-separated string of tokens which control the scrubbing behaviour:
-    - `(+|-|*|/|&)(jumps|actions|reqs)` control how jump-links (`a href`, `area href`, and similar `HTML` tag attributes), action-links (`a ping`, `form action`, and similar `HTML` tag attributes), and references to page requisites (`img src`, `iframe src`, and similar `HTML` tag attributes, as well as `link src` attributes which have `rel` attribute of their `HTML` tag set to `stylesheet` or `icon`, `CSS` `url` references, etc) should be remapped or censored out:
-      - `+` leave links of this kind pointing to their original URLs;
-      - `-` void links of this kind, i.e. rewrite these links to `javascript:void(0)` and empty `data:` URLs;
-      - `*` rewrite links of this kind in an "open"-ended way, i.e. point them to locally mirrored versions of their URLs when available, leave them pointing to their original URL otherwise; this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `+`;
-      - `/` rewrite links of this kind in a "close"-ended way, i.e. point them to locally mirrored versions URLs when available, and void them otherwise; this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `-`;
-      - `&` rewrite links of this kind in a "close"-ended way like `/` does, except use fallbacks to remap unavailable URLs whenever possible; this is only supported when `scrub` is used with `mirror` sub-command, see the documentation of the `--remap-all` option for more info; under other sub-commands this is equivalent to `-`;
-
-      when `scrub` is called manually, the default is `*jumps,&actions,&reqs` which produces a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
-      usually, however, the default is derived from `--remap-*` options, which see;
-    - `(+|-|*|/|&)all_refs` is equivalent to setting all of the options listed in the previous item simultaneously;
-    - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively); the default is `+unknown`, which keeps data of unknown content `MIME` types as-is;
-    - `(+|-)(styles|scripts|iepragmas|iframes|prefetches|tracking|navigations)` control which things should be kept in or censored out from `HTML`, `CSS`, and `JavaScript`; i.e. these options control whether `CSS` stylesheets (both separate files and `HTML` tags and attributes), `JavaScript` (both separate files and `HTML` tags and attributes), `HTML` Internet Explorer pragmas, `<iframe>` `HTML` tags, `HTML` content prefetch `link` tags, other tracking `HTML` tags and attributes (like `a ping` attributes), and automatic navigations (`Refresh` `HTTP` headers and `<meta http-equiv>` `HTML` tags) should be respectively kept in or censored out from the input; the default is `+styles,-scripts,-iepragmas,+iframes,-prefetches,-tracking,-navigations` which ensures the result does not contain `JavaScript` and will not produce any prefetch, tracking requests, or re-navigations elsewhere, when loaded in a web browser; `-iepragmas` is the default because censoring for contents of such pragmas is not supported yet;
-    - `(+|-)all_dyns` is equivalent to enabling or disabling all of the options listed in the previous item simultaneously;
-    - `(+|-)interpret_noscript` controls whether the contents of `noscript` tags should be inlined when `-scripts` is set, the default is `+interpret_noscript`;
-    - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead; the default is `-verbose`;
-    - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away (respectively); the default is `-whitespace`, which produces somewhat minimized outputs (because it saves a lot of space);
-    - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them (respectively); the default is `+optional_tags` (because many tools fail to parse minimized `HTML` properly);
-    - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not (respectively); the default is `-indent` (to save space);
-    - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics; `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied; neither is the default;
-    - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it indents `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging; `-debug` is noop, which is the default;""",
+    - `(+|-|*|/|&)jumps` controls how jump-links (`a href`, `area href`, and similar `HTML` tag attributes) should be remapped or censored out:
+      - `+` rewrites their values into full URLs, e.g. `<a href="/path?query">` -> `a href="https://example.org/path?query">`;
+      - `-` "voids" all of them, i.e. rewrites them to `javascript:void(0)` and empty `data:` URLs;
+      - `*` rewrites links in an "open"-ended way, i.e. points them to locally mirrored versions of their URLs when available and leaves them pointing to their original URL otherwise; {_scrub_to("+")};
+      - `/` rewrites links in a "close"-ended way, i.e. points them to locally mirrored versions of their URLs when available and voids them otherwise; {_scrub_to("-")};
+      - `&` rewrites links in a "close"-ended way like `/` does, except this option uses fallbacks to remap unavailable URLs whenever possible; {_scrub_to("-")}; see the documentation of the `--remap-all` option for more info;
+    - `(+|-|*|/|&)actions` controls how action-links (`a ping`, `form action`, and similar `HTML` tag attributes) should be remapped or censored out; same rewrite options as above;
+    - `(+|-|*|/|&)reqs` controls how references to page requisites (`img src`, `iframe src`, and similar `HTML` tag attributes, as well as `link src` attributes which have `rel` attribute of their `HTML` tag set to `stylesheet` or `icon`, `CSS` `url` references, etc) should be remapped or censored out; same rewrite options as above;
+    - `(+|-|*|/|&)all_refs` is equivalent to setting all of `jumps`, `actions`, and `reqs` simultaneously;
+    - `(+|-)styles` controls whether `CSS` stylesheets (both separate files and `HTML` tags and attributes) {_in_out};
+    - `(+|-)scripts` controls whether `JavaScript` (both separate files and `HTML` tags and attributes) {_in_out};
+    - `(+|-)iepragmas` controls whether Internet Explorer's `HTML` pragmas {_in_out};
+    - `(+|-)iframes` controls whether `<iframe>` `HTML` tags {_in_out};
+    - `(+|-)prefetches` controls whether `HTML` content prefetch `link` tags {_in_out};
+    - `(+|-)tracking` controls whether other tracking `HTML` tags and attributes (like `a ping`) {_in_out};
+    - `(+|-)navigations` controls whether automatic navigations (`Refresh` `HTTP` headers and `<meta http-equiv>` `HTML` tags) {_in_out};
+    - `(+|-)all_dyns` is equivalent to setting all of `styles`, `scripts`, `iepragmas`, `iframes`, `prefetches`, `tracking`, and `navigations` simultaneously;
+    - `(+|-)interpret_noscript` controls whether the contents of `noscript` tags should be inlined when `-scripts` is set;
+    - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively);
+    - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead;
+    - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away;
+    - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them;
+    - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not;
+    - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics;
+    - `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied;
+    - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it indents `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging;
+    - `-debug` is a noop;
+  - the `defaults` are:
+    - `*jumps,&actions,&reqs`, because these produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
+    - `-prefetches,-tracking,-navigations`, because these ensure the result will not try to prefetch or track anything, or re-navigate elsewhere, when loaded in a web browser;
+    - `+styles,+iframes`, because these are are `scrub`bed properly;
+    - `-scripts`, because `scrub`bing of `JavaScript` (code whitelisting) is not supported yet;
+    - `-iepragmas`, because censoring of contents of such pragmas is not supported yet;
+    - `+interpret_noscript`, because this usually helps;
+    - `-verbose,-whitespace,-indent`, because it saves a lot of space;
+    - `+optional_tags`, because many tools fail to parse minimized `HTML` properly;
+    - `+unknown` which keeps data of unknown content `MIME` types as-is;
+  - note however, that most `--remap-*` options set different defaults;
+""",
         linst_scrub()),
 })
 
