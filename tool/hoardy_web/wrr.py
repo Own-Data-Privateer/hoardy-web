@@ -535,7 +535,8 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
 
         source = self.source
         if isinstance(self.source, FileSource):
-            reqres = wrr_load(source.get_fileobj())
+            with source.get_fileobj() as f:
+                reqres = wrr_load(f)
         else:
             raise NotImplementedError()
 
