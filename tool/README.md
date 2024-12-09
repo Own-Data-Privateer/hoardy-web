@@ -1719,7 +1719,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
 
 - path ordering:
   - `--paths-given-order`
-  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default when `--no-overwrites`
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default when `--no-overwrite`
   - `--paths-sorted`
   : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
   - `--paths-reversed`
@@ -1727,7 +1727,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   - `--walk-fs-order`
   : recursive file system walk is done in the order `readdir(2)` gives results
   - `--walk-sorted`
-  : recursive file system walk is done in lexicographic order; default when `--no-overwrites`
+  : recursive file system walk is done in lexicographic order; default when `--no-overwrite`
   - `--walk-reversed`
   : recursive file system walk is done in reverse lexicographic order; default when `--latest`
 
@@ -2450,7 +2450,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
 - updates to `--output`s:
-  - `--no-overwrites`
+  - `--no-overwrite`
   : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default;
     `--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
     when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
@@ -2738,11 +2738,11 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
 - updates to `--output`s:
-  - `--no-overwrites`
+  - `--no-overwrite`
   : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default
   - `--overwrite-dangerously`
   : permit overwrites to files under `OUTPUT_DESTINATION`;
-    DANGEROUS! not recommended, importing to a new `OUTPUT_DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
+    DANGEROUS! not recommended, importing to a new `OUTPUT_DESTINATION` with the default `--no-overwrite` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
 
 ### hoardy-web import mitmproxy
 
@@ -3010,11 +3010,11 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
 - updates to `--output`s:
-  - `--no-overwrites`
+  - `--no-overwrite`
   : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default
   - `--overwrite-dangerously`
   : permit overwrites to files under `OUTPUT_DESTINATION`;
-    DANGEROUS! not recommended, importing to a new `OUTPUT_DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
+    DANGEROUS! not recommended, importing to a new `OUTPUT_DESTINATION` with the default `--no-overwrite` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
 
 ### hoardy-web mirror
 
@@ -3335,7 +3335,7 @@ In short, this sub-command generates static offline website mirrors, producing r
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
 - updates to `--output`s:
-  - `--no-overwrites`
+  - `--no-overwrite`
   : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default;
     repeated `mirror`s of the same targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
     however, trying to overwrite existing files under `OUTPUT_DESTINATION` with any new data will produce errors;
@@ -3346,7 +3346,7 @@ In short, this sub-command generates static offline website mirrors, producing r
     on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
   - `--overwrite-dangerously`
   : mirror all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`;
-    DANGEROUS! not recommended, mirroring to a new `OUTPUT_DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
+    DANGEROUS! not recommended, mirroring to a new `OUTPUT_DESTINATION` with the default `--no-overwrite` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
 
 - content-addressed file output mode:
   - `--copy`

@@ -2724,7 +2724,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         def_paths : bool | str | None
         def_walk : bool | str | None
         if kind == "organize":
-            def_def = "; " + _("default when `--no-overwrites`")
+            def_def = "; " + _("default when `--no-overwrite`")
             def_sup = "; " + _("default when `--latest`")
             def_paths = "unset"
             def_walk = "unset"
@@ -2992,10 +2992,10 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
         def_disallow = _("disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default")
 
         def def_dangerous(what : str) -> str:
-            return _(f"DANGEROUS! not recommended, {what} to a new `OUTPUT_DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this")
+            return _(f"DANGEROUS! not recommended, {what} to a new `OUTPUT_DESTINATION` with the default `--no-overwrite` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this")
 
         if kind == "organize":
-            grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
+            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
                 _("""`--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
 when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
 the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap files will still fail
@@ -3005,10 +3005,10 @@ this is only allowed in combination with `--symlink` at the moment;
 for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
 """))
         elif kind == "import":
-            grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow)
+            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False, help=def_disallow)
             grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("permit overwrites to files under `OUTPUT_DESTINATION`") + ";\n" + def_dangerous("importing"))
         elif kind == "mirror":
-            grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
+            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
                 _("""repeated `mirror`s of the same targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
 however, trying to overwrite existing files under `OUTPUT_DESTINATION` with any new data will produce errors;
 this allows reusing the `OUTPUT_DESTINATION` between unrelated `mirror`s and between `mirror`s that produce the same data on disk in their common parts
