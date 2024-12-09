@@ -359,22 +359,22 @@ while (($# > 0)); do
 
     end
 
-    start "export urls..."
+    start "mirror urls..."
 
-    fixed_output "export-urls" "$src" "$td" \
-        export mirror --copy --to "$td/export-urls" --output hupq_n \
+    fixed_output "mirror-urls" "$src" "$td" \
+        mirror --copy --to "$td/mirror-urls" --output hupq_n \
         "${uexprs[@]}" \
         "$idir"
-    [[ -n "$do_fixed_dir" ]] && fixed_dir "export-urls" "$src" "$td"
+    [[ -n "$do_fixed_dir" ]] && fixed_dir "mirror-urls" "$src" "$td"
 
     end
 
-    start "export mirror..."
+    start "mirror responses..."
 
-    fixed_output "export-mirror" "$src" "$td" \
-       export mirror --to "$td/export-mirror" --output hupq_n \
+    fixed_output "mirror-responses" "$src" "$td" \
+       mirror --to "$td/mirror-responses" --output hupq_n \
        "$idir"
-    [[ -n "$do_fixed_dir" ]] && fixed_dir "export-mirror" "$src" "$td"
+    [[ -n "$do_fixed_dir" ]] && fixed_dir "mirror-responses" "$src" "$td"
 
     end
 

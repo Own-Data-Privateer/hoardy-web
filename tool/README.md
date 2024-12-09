@@ -67,10 +67,10 @@ The invocation is slightly different depending on if the data was exported via `
 
 ```bash
 # for "Export via `saveAs`"
-hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/Downloads/Hoardy-Web-export-*
+hoardy-web mirror --to ~/hoardy-web/mirror1 ~/Downloads/Hoardy-Web-export-*
 
 # for `hoardy-web-sas`
-hoardy-web export mirror --to ~/hoardy-web/mirror1 ../simple_server/pwebarc-dump
+hoardy-web mirror --to ~/hoardy-web/mirror1 ../simple_server/pwebarc-dump
 ```
 
 The default settings should work for most simple websites, but a [section below](#mirror) contains more info and more usage examples.
@@ -142,7 +142,7 @@ So, most examples described below will work fine with any mix of inputs as argum
 You can, however, force `hoardy-web` to use a specific loader for all given inputs, e.g.:
 
 ```
-hoardy-web export mirror --to ~/hoardy-web/mirror1 \
+hoardy-web mirror --to ~/hoardy-web/mirror1 \
   --load-mitmproxy mitmproxy.*.dump
 ```
 
@@ -186,7 +186,7 @@ hoardy-web find --method GET --method DOM --status-re .200C --response-mime text
 ```
 
 Most other sub-commands also accept the same filtering options.
-So, for instance, you can pretty-print or export such files instead:
+So, for instance, you can pretty-print or generate a static mirror from such files instead:
 
 ```bash
 hoardy-web pprint --method GET --method DOM --status-re .200C --response-mime text/html \
@@ -194,7 +194,7 @@ hoardy-web pprint --method GET --method DOM --status-re .200C --response-mime te
   ~/hoardy-web/raw
 
 # the first three of the above filters are actually the default here
-hoardy-web export mirror --response-mime text/html \
+hoardy-web mirror --response-mime text/html \
   --response-body-grep-re "\bPotter\b" \
   --to ~/hoardy-web/mirror-potter ~/hoardy-web/raw
 ```
@@ -350,113 +350,113 @@ To render your archived data into a local offline static website mirror containi
 
 ```bash
 # separate `WRR` files
-hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/raw
+hoardy-web mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/raw
 
 # separate `WRR` files and/or `WRR` bundles
-hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/Downloads/Hoardy-Web-export-*
+hoardy-web mirror --to ~/hoardy-web/mirror1 ~/Downloads/Hoardy-Web-export-*
 
 # `mitmproxy` dumps
-hoardy-web export mirror --to ~/hoardy-web/mirror1 mitmproxy.*.dump
+hoardy-web mirror --to ~/hoardy-web/mirror1 mitmproxy.*.dump
 
 # any mix of these
-hoardy-web export mirror --to ~/hoardy-web/mirror1 \
+hoardy-web mirror --to ~/hoardy-web/mirror1 \
   ~/hoardy-web/raw \
   ~/Downloads/Hoardy-Web-export-* \
   mitmproxy.*.dump
 ```
 
 On completion, `~/hoardy-web/mirror1` will contain said newly generated interlinked `HTML` files, their resource requisites, and everything else available from given archive files.
-The set of exported files can be limited with using several methods described below.
+The set of mirrored files can be limited with using several methods described below.
 
 By default, the resulting `HTML` files will be stripped of all `JavaScript` and other stuff of various levels of evil and then minimized a bit to save space.
 The results should be completely self-contained (i.e., work inside a browser running in "Work offline" mode) and safe to view in a dumb unconfigured browser (i.e., the resulting web pages should not request any page requisites --- like images, media, `CSS`, fonts, etc --- from the Internet).
 
-(In practice, though, `hoardy-web export mirror` is not completely free of bugs and `HTML5` spec is constantly evolving, with new things getting added there all the time.
-So, it is entirely possible that the output of the above `hoardy-web export mirror` invocation will not be completely self-contained.
+(In practice, though, `hoardy-web mirror` is not completely free of bugs and `HTML5` spec is constantly evolving, with new things getting added there all the time.
+So, it is entirely possible that the output of the above `hoardy-web mirror` invocation will not be completely self-contained.
 Which is why the `Hoardy-Web` extension has its own per-tab `Work offline` mode which, by default, gets enabled for tabs with `file:` URLs.
-That feature prevents the outputs of `hoardy-web export mirror` from accessing the Internet regardless of any bugs or missing features in `hoardy-web`.
+That feature prevents the outputs of `hoardy-web mirror` from accessing the Internet regardless of any bugs or missing features in `hoardy-web`.
 It also helps with debugging.)
 
 If you are unhappy with the above and, for instance, want to keep `JavaScript` and produce unminimized human-readable `HTML`s, you can run the following instead:
 
 ```bash
-hoardy-web export mirror \
+hoardy-web mirror \
   -e 'response.body|eb|scrub response &all_refs,+scripts,+pretty' \
   --to ~/hoardy-web/mirror2 ~/hoardy-web/raw
 ```
 
-See the documentation for the `--remap-*` options of `export mirror` sub-command and the options of the `scrub` function below for more info.
+See the documentation for the `--remap-*` options of `mirror` sub-command and the options of the `scrub` function below for more info.
 
 If you instead want a mirror made of raw files without any content censorship or link conversions, run:
 
 ```bash
-hoardy-web export mirror -e 'response.body|eb' --to ~/hoardy-web/mirror-raw ~/hoardy-web/raw
+hoardy-web mirror -e 'response.body|eb' --to ~/hoardy-web/mirror-raw ~/hoardy-web/raw
 ```
 
-The later command will render your mirror pretty quickly, but the other `export mirror` commands use the `scrub` function, and that will be pretty slow, mostly because `html5lib` and `tinycss2` that `hoardy-web` uses for paranoid `HTML` and `CSS` parsing and filtering are fairly slow.
-Under `CPython` on my 2013-era laptop `hoardy-web export mirror` manages to render, on average, 3 `HTML` and `CSS` files per second.
-Though, this is not very characteristic of the overall exporting speed, since images and other media just get copied around at expected speeds of 300+ files per second.
+The later command will render your mirror pretty quickly, but the other `mirror` commands use the `scrub` function, and that will be pretty slow, mostly because `html5lib` and `tinycss2` that `hoardy-web` uses for paranoid `HTML` and `CSS` parsing and filtering are fairly slow.
+Under `CPython` on my 2013-era laptop `hoardy-web mirror` manages to render, on average, 3 `HTML` and `CSS` files per second.
+Though, this is not very characteristic of the overall mirroring speed, since images and other media just get copied around at expected speeds of 300+ files per second.
 
 Also, enabling `+indent` (or `+pretty`) in `scrub` will make `HTML` scrubbing slightly slower (since it will have to track more stuff) and `CSS` scrubbing a lot slower (since it will force complete structural parsing, not just tokenization).
 
 ### Update your mirror incrementally
 
-By default, `hoardy-web export mirror` runs with an implied `--remap-all` option which remaps *all* links in exported `HTML` files to local files, even if source `WRR` files for those would-be exported files are missing.
-This allows you to easily update your mirror directory incrementally by re-running `hoardy-web export mirror` with the same `--to` argument on new inputs.
+By default, `hoardy-web mirror` runs with an implied `--remap-all` option which remaps *all* links in mirrored `HTML` files to local files, even if source `WRR` files for those would-be mirrored files are missing.
+This allows you to easily update your mirror directory incrementally by re-running `hoardy-web mirror` with the same `--to` argument on new inputs.
 For instance:
 
 ```bash
 # render everything archived in 2023
-hoardy-web export mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2023
+hoardy-web mirror --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2023
 
 # now, add new stuff archived in 2024, keeping already exported files as-is
-hoardy-web export mirror --skip-existing --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2024
+hoardy-web mirror --skip-existing --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2024
 
 # same, but updating old files
-hoardy-web export mirror --overwrite-dangerously --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2024
+hoardy-web mirror --overwrite-dangerously --to ~/hoardy-web/mirror1 ~/hoardy-web/raw/*/2024
 ```
 
-After the first of the above commands, links from pages generated from `WRR` files of `~/hoardy-web/raw/*/2023` to URLs contained in files from `~/hoardy-web/raw/*/2024` but not contained in files from `~/hoardy-web/raw/*/2023` will point to non-existent, yet unexported, files on disk.
+After the first of the above commands, links from pages generated from `WRR` files of `~/hoardy-web/raw/*/2023` to URLs contained in files from `~/hoardy-web/raw/*/2024` but not contained in files from `~/hoardy-web/raw/*/2023` will point to non-existent, yet unmirrored, files on disk.
 I.e. those links will be broken.
-Running the second or the third command from the example above will then export additional files from `~/hoardy-web/raw/*/2024`, thus fixing some or all of those links.
+Running the second or the third command from the example above will then mirror additional files from `~/hoardy-web/raw/*/2024`, thus fixing some or all of those links.
 
 ### Treat missing links exactly like `wget -mpk` does
 
-If you want to treat links pointing to not yet hoarded URLs exactly like `wget -mpk` does, i.e. you want to keep them pointing to their original URLs instead of remapping them to yet non-existent local files (like the default `--remap-all` does), you need to run `export mirror` with `--remap-open` option:
+If you want to treat links pointing to not yet hoarded URLs exactly like `wget -mpk` does, i.e. you want to keep them pointing to their original URLs instead of remapping them to yet non-existent local files (like the default `--remap-all` does), you need to run `mirror` with `--remap-open` option:
 
 ```bash
-hoardy-web export mirror --remap-open --to ~/hoardy-web/mirror4 ~/hoardy-web/raw
+hoardy-web mirror --remap-open --to ~/hoardy-web/mirror4 ~/hoardy-web/raw
 ```
 
 In practice, however, you probably won't want the exact behaviour of `wget -mpk`, since opening pages generated that way is likely to make your web browser try to access the Internet to load missing page requisites.
 To solve this problem, `hoardy-web` provides `--remap-semi` option, which does what `--remap-open` does, except it also remaps unavailable action links and page requisites into void links, fixing that problem:
 
 ```bash
-hoardy-web export mirror --remap-semi --to ~/hoardy-web/mirror4 ~/hoardy-web/raw
+hoardy-web mirror --remap-semi --to ~/hoardy-web/mirror4 ~/hoardy-web/raw
 ```
 
 See the documentation for the `--remap-*` options below for more info.
 
 Obviously, using `--remap-open` or `--remap-semi` will make incremental updates to your mirror impossible.
 
-### Export a subset of archived data
+### Mirror a subset of archived data
 
 #### .. by using a symlink hierarchy
 
-The simplest way to export a subset of your data is to run one of `hoardy-web organize --symlink --latest` commands described above, and then do something like this:
+The simplest way to mirror a subset of your data is to run one of `hoardy-web organize --symlink --latest` commands described above, and then do something like this:
 
 ```bash
-hoardy-web export mirror --to ~/hoardy-web/mirror5 ~/hoardy-web/latest/archiveofourown.org
+hoardy-web mirror --to ~/hoardy-web/mirror5 ~/hoardy-web/latest/archiveofourown.org
 ```
 
-thus exporting everything ever archived from <https://archiveofourown.org>.
+thus mirroring everything ever archived from <https://archiveofourown.org>.
 
 #### ... by using `--root-*` and `--depth`
 
-As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of `WRR` files into `hoardy-web`'s memory but then `export mirror` only select URLs (and all requisites needed to properly render those pages) by running something like:
+As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of `WRR` files into `hoardy-web`'s memory but then `mirror` only select URLs (and all requisites needed to properly render those pages) by running something like:
 
 ```
-hoardy-web export mirror \
+hoardy-web mirror \
   --to ~/hoardy-web/mirror6 ~/hoardy-web/raw/*/2023 \
   --root-url-prefix 'https://archiveofourown.org/works/3733123' \
   --root-url-prefix 'https://archiveofourown.org/works/30186441'
@@ -464,91 +464,91 @@ hoardy-web export mirror \
 
 See the documentation for the `--root-*` options below for more info and more `--root-*` variants.
 
-`hoardy-web` loads (indexes) `WRR` files pretty fast, so if you are running from an SSD, you can totally feed it years of `WRR` files and then only export a couple of URLs, and it will take a couple of seconds to finish anyway, since only a couple of files will get `scrub`bed.
+`hoardy-web` loads (indexes) `WRR` files pretty fast, so if you are running from an SSD, you can totally feed it years of `WRR` files and then only mirror a couple of URLs, and it will take a couple of seconds to finish anyway, since only a couple of files will get `scrub`bed.
 
-There is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root-*`s and then `export mirror` all those URLs (and their requisites) too.
+There is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root-*`s and then `mirror` all those URLs (and their requisites) too.
 
-When using `--root-*` options, `--remap-open` works exactly like `wget`'s `--convert-links` in that it will only remap the URLs that are going to be exported and will keep the rest as-is.
+When using `--root-*` options, `--remap-open` works exactly like `wget`'s `--convert-links` in that it will only remap the URLs that are going to be mirrored and will keep the rest as-is.
 Similarly, `--remap-closed` will consider only the URLs reachable from the `--root-*`s in no more that `--depth` jumps as available.
 
 ### Prioritize some files over others
 
-By default, files are read, queued, and then exported in the order they are specified on the command line, in lexicographic file system walk order when an argument is a directory.
+By default, files are read, queued, and then mirrored in the order they are specified on the command line, in lexicographic file system walk order when an argument is a directory.
 (See `--paths-*` and `--walk-*` options below if you want to change this.)
 
-However, the above rule does not apply to page requisites, those are always (with or without `--root-*`, regardless of `--paths-*` and `--walk-*` options) get exported just after their parent `HTML` document gets parsed and before that document gets written to disk.
-I.e., `export mirror` will produce a new file containing an `HTML` document only after first producing all of its requisites.
-I.e., when exporting into an empty directory, if you see `export mirror` generated an `HTML` document, you can be sure that all of its requisites loaded (indexed) by this `export mirror` invocation are rendered too.
-Meaning, you can go ahead and open it in your browser, even if `export mirror` did not finish yet.
+However, the above rule does not apply to page requisites, those are always (with or without `--root-*`, regardless of `--paths-*` and `--walk-*` options) get mirrored just after their parent `HTML` document gets parsed and before that document gets written to disk.
+I.e., `mirror` will produce a new file containing an `HTML` document only after first producing all of its requisites.
+I.e., when mirroring into an empty directory, if you see `mirror` generated an `HTML` document, you can be sure that all of its requisites loaded (indexed) by this `mirror` invocation are rendered too.
+Meaning, you can go ahead and open it in your browser, even if `mirror` did not finish yet.
 
-Moreover, unlike all other sub-commands `export mirror` handles duplication in its input files in a special way: it remembers the files it has already seen and ignores them when they are given the second time.
+Moreover, unlike all other sub-commands `mirror` handles duplication in its input files in a special way: it remembers the files it has already seen and ignores them when they are given the second time.
 (All other commands don't, they will just process the same file the second time, the third time, and so on.
 This is by design, other commands are designed to handle potentially enormous file hierarchies in near-constant memory.)
 
-The combination of all of the above means you can prioritize rendering of some documents over others by specifying them earlier on the command line and then, in a later argument, specifying their containing directory to allow `export mirror` to also see their requisites and documents they link to.
+The combination of all of the above means you can prioritize rendering of some documents over others by specifying them earlier on the command line and then, in a later argument, specifying their containing directory to allow `mirror` to also see their requisites and documents they link to.
 For instance,
 
 ```
-hoardy-web export mirror \
+hoardy-web mirror \
   --to ~/hoardy-web/mirror7 \
   ~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr \
   ~/hoardy-web/latest/archiveofourown.org
 ```
 
-will export all of `~/hoardy-web/latest/archiveofourown.org`, but the web pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be exported first.
+will mirror all of `~/hoardy-web/latest/archiveofourown.org`, but the web pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be mirrored first.
 
 This also works with `--root-*` options.
 E.g., the following
 
 ```
-hoardy-web export mirror \
+hoardy-web mirror \
   --to ~/hoardy-web/mirror7 \
   ~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr \
   ~/hoardy-web/latest/archiveofourown.org \
   --root-url-prefix 'https://archiveofourown.org/works/'
 ```
 
-will export all pages those URLs start with `https://archiveofourown.org/works/` and all their requisites, but the pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be exported first.
+will mirror all pages those URLs start with `https://archiveofourown.org/works/` and all their requisites, but the pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be mirrored first.
 
 Finally, there is also the `--boring` option, which allows you to load some input `PATH`s without adding them as roots, even when no `--root-*` options are specified.
 E.g., the following
 
 ```
-hoardy-web export mirror \
+hoardy-web mirror \
   --to ~/hoardy-web/mirror8 \
   --boring ~/hoardy-web/latest/i.imgur.com \
   --boring ~/hoardy-web/latest/archiveofourown.org \
   ~/hoardy-web/latest/archiveofourown.org/works__[0-9]*.wrr
 ```
 
-will load (an index of) everything under `~/hoardy-web/latest/i.imgur.com` and `~/hoardy-web/latest/archiveofourown.org` into memory but will only export the contents of `~/hoardy-web/latest/archiveofourown.org/works__[0-9]*.wrr` files and their requisites.
+will load (an index of) everything under `~/hoardy-web/latest/i.imgur.com` and `~/hoardy-web/latest/archiveofourown.org` into memory but will only mirror the contents of `~/hoardy-web/latest/archiveofourown.org/works__[0-9]*.wrr` files and their requisites.
 
 When at least one `--root-*` option is specified, using `--boring` is equivalent to simply appending its argument to the end of the positional `PATH`s.
 
-### Control which URL visits get exported
+### Control which versions (visits) get mirrored
 
-By default, `hoardy-web export mirror` runs with the implied `--latest` option, which exports the latest available version (visit) to each URL.
+By default, `hoardy-web mirror` runs with the implied `--latest` option, which mirrors the latest available version (visit) to each URL.
 Usually, this is fine, as most modern web-sites use versioned page requisites to improve caching.
 But it can produce broken results sometimes.
-For instance, when two different web pages share an unversioned `CSS` file and one those pages was recently revisited while the other was not, then, with the default `--latest`, only the latter version of the `CSS` file in question will be exported, making the older page broken.
+For instance, when two different web pages share an unversioned `CSS` file and one those pages was recently revisited while the other was not, then, with the default `--latest`, only the latter version of the `CSS` file in question will be mirrored, making the older page broken.
 
-To fix this, you can run `export mirror` with `--latest-hybrid` option
+To fix this, you can run `mirror` with `--latest-hybrid` option
 
 ```
-hoardy-web export mirror \
+hoardy-web mirror \
   --to ~/hoardy-web/mirror8 \
   --root-url-prefix 'https://en.wikipedia.org/wiki/'
   --latest-hybrid \
   ~/hoardy-web/raw
 ```
 
-which will export each web page with its date-vise closest available resource requisites.
-This takes quite a bit of memory, though, since `export mirror` has to index and keep in memory references to all versions of all reqres to produce such hybrid results.
+which will mirror each web page with its date-vise closest available resource requisites.
+This takes quite a bit of memory, though, since `mirror` has to index and keep in memory references to all versions of all reqres to produce such hybrid results.
 
-Similarly, you can also export the `--oldest` available version of each URL:
+Similarly, you can also mirror the `--oldest` available version of each URL:
 
 ```
-hoardy-web export mirror \
+hoardy-web mirror \
   --to ~/hoardy-web/mirror9 \
   --root-url-prefix 'https://archiveofourown.org/works/'
   --oldest \
@@ -558,7 +558,7 @@ hoardy-web export mirror \
 or a version closest to a certain date:
 
 ```
-hoardy-web export mirror \
+hoardy-web mirror \
   --to ~/hoardy-web/mirror9 \
   --root-url-prefix 'https://en.wikipedia.org/wiki/'
   --nearest 2020-10-31 \
@@ -567,11 +567,11 @@ hoardy-web export mirror \
 
 both of which also have `--*-hybrid` variants.
 
-There is also `--all`, which exports all available versions of all roots and `--depth`-reachable URLs.
+There is also `--all`, which mirrors all available versions of all roots and `--depth`-reachable URLs.
 When using `--all`, you'll probably want to switch to a time-versioned output format, otherwise those default simply-numbered `hupq_n` outputs will be impossible to interpret:
 
 ```
-hoardy-web export mirror \
+hoardy-web mirror \
   --to ~/hoardy-web/mirror9 \
   --root-url-prefix 'https://en.wikipedia.org/wiki/'
   --all \
@@ -581,23 +581,23 @@ hoardy-web export mirror \
 
 ### Content-addressed outputs and de-duplication
 
-Note that, by default, `hoardy-web export mirror` runs with the implied `--hardlink` option, which makes it render and write each exported file to `<--to>/_content/<hash/based/path>.<ext>` and only then hardlink the result to `<--to>/<output/format/based/path>.<ext>` target destination.
+Note that, by default, `hoardy-web mirror` runs with the implied `--hardlink` option, which makes it render and write each mirrored file to `<--to>/_content/<hash/based/path>.<ext>` and only then hardlink the result to `<--to>/<output/format/based/path>.<ext>` target destination.
 The `<hash/based/path>` is derived from the `sha256` hash of the generated file content.
 
 This trick saves quite a bit of space in many cases.
-E.g., when pages refer to the same resource requisites by slightly different URLs, same images and fonts get distributed via different CDN hosts, when you export `--all` visits to some URLs and many of those are absolutely identical, etc.
+E.g., when pages refer to the same resource requisites by slightly different URLs, same images and fonts get distributed via different CDN hosts, when you mirror `--all` visits to some URLs and many of those are absolutely identical, etc.
 
 You can change the destination those hash-based paths get written to by specifying `--content-to`.
-This allows you to easily share files between different exports:
+This allows you to easily share files between different mirrors:
 
 ```
-hoardy-web export mirror \
+hoardy-web mirror \
   --content-to ~/hoardy-web/shared \
   --to ~/hoardy-web/mirror10 \
   --root-url-prefix 'https://archiveofourown.org/works/'
   ~/hoardy-web/raw
 
-hoardy-web export mirror \
+hoardy-web mirror \
   --content-to ~/hoardy-web/shared \
   --to ~/hoardy-web/mirror11 \
   --root-url-prefix 'https://www.royalroad.com/'
@@ -607,28 +607,28 @@ hoardy-web export mirror \
 You can also control the path of the generated files by setting `--content-output`, e.g.:
 
 ```
-hoardy-web export mirror \
+hoardy-web mirror \
   --content-output 'format:%(content_sha256|take_prefix 1|to_hex)s/%(content_sha256|take_prefix 2|take_suffix 1|to_hex)s/%(content_sha256|to_hex)s'
   --content-to ~/storage/sha256 \
   --to ~/hoardy-web/mirror12 \
   ~/hoardy-web/raw
 ```
 
-`hoardy-web export mirror` never overwrites any files under `--content-to`.
+`hoardy-web mirror` never overwrites any files under `--content-to`.
 It does, however, check that any existing files it references from there have the contents it expects, and generates errors if they do not.
 That is, you can set `--content-output` to anything and give any directory as `--content-to`, and `hoardy-web` will still ensure that the results are consistent, even when the `--content-to` cache is poisoned, or when different file contents compute to the same hash (produce a hash collision).
 
-Also note that, by default, `export mirror` treats jump-links (`a href`, etc) and links to resource requisites quite differently, remappings jump-links to normal `--to` destination paths, while remapping resource requisites to their hash-based `--content-to` paths instead.
+Also note that, by default, `mirror` treats jump-links (`a href`, etc) and links to resource requisites quite differently, remappings jump-links to normal `--to` destination paths, while remapping resource requisites to their hash-based `--content-to` paths instead.
 This renders identical `HTML` and `CSS` files referencing identical resources into identical results, which also saves quite a bit of space.
 
-Note, however, that all of the above does make `export mirror` slightly slower, since it needs to compute a lot of hashes and check contents of many files on disk.
+Note, however, that all of the above does make `mirror` slightly slower, since it needs to compute a lot of hashes and check contents of many files on disk.
 It also requires hardlink support on the target file system.
-Also, pointing `--content-to` outside of `--to` stops the exported results in `--to` from being self-contained.
+Also, pointing `--content-to` outside of `--to` stops the mirrored results in `--to` from being self-contained.
 
 Which is why you can disable all of this by specifying `--copy`:
 
 ```
-hoardy-web export mirror \
+hoardy-web mirror \
   --to ~/hoardy-web/mirror10 \
   --copy \
   ~/hoardy-web/raw
@@ -658,7 +658,7 @@ Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure
   : show help messages formatted in Markdown
 
 - subcommands:
-  - `{pprint,get,run,stream,find,organize,import,export}`
+  - `{pprint,get,run,stream,find,organize,import,mirror}`
     - `pprint`
     : pretty-print given `WRR` files
     - `get`
@@ -673,8 +673,8 @@ Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure
     : programmatically rename/move/hardlink/symlink `WRR` files based on their contents
     - `import`
     : convert other `HTTP` archive formats into `WRR`
-    - `export`
-    : convert `WRR` archives into other formats
+    - `mirror`
+    : convert given `WRR` files into a local website mirror stored in interlinked plain files
 
 ### hoardy-web pprint
 
@@ -974,9 +974,9 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
               - `(+|-|*|/|&)(jumps|actions|reqs)` control how jump-links (`a href`, `area href`, and similar `HTML` tag attributes), action-links (`a ping`, `form action`, and similar `HTML` tag attributes), and references to page requisites (`img src`, `iframe src`, and similar `HTML` tag attributes, as well as `link src` attributes which have `rel` attribute of their `HTML` tag set to `stylesheet` or `icon`, `CSS` `url` references, etc) should be remapped or censored out:
                 - `+` leave links of this kind pointing to their original URLs;
                 - `-` void links of this kind, i.e. rewrite these links to `javascript:void(0)` and empty `data:` URLs;
-                - `*` rewrite links of this kind in an "open"-ended way, i.e. point them to locally mirrored versions of their URLs when available, leave them pointing to their original URL otherwise; this is only supported when `scrub` is used with `export mirror` sub-command; under other sub-commands this is equivalent to `+`;
-                - `/` rewrite links of this kind in a "close"-ended way, i.e. point them to locally mirrored versions URLs when available, and void them otherwise; this is only supported when `scrub` is used with `export mirror` sub-command; under other sub-commands this is equivalent to `-`;
-                - `&` rewrite links of this kind in a "close"-ended way like `/` does, except use fallbacks to remap unavailable URLs whenever possible; this is only supported when `scrub` is used with `export mirror` sub-command, see the documentation of the `--remap-all` option for more info; under other sub-commands this is equivalent to `-`;
+                - `*` rewrite links of this kind in an "open"-ended way, i.e. point them to locally mirrored versions of their URLs when available, leave them pointing to their original URL otherwise; this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `+`;
+                - `/` rewrite links of this kind in a "close"-ended way, i.e. point them to locally mirrored versions URLs when available, and void them otherwise; this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `-`;
+                - `&` rewrite links of this kind in a "close"-ended way like `/` does, except use fallbacks to remap unavailable URLs whenever possible; this is only supported when `scrub` is used with `mirror` sub-command, see the documentation of the `--remap-all` option for more info; under other sub-commands this is equivalent to `-`;
           
                 when `scrub` is called manually, the default is `*jumps,&actions,&reqs` which produces a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
                 usually, however, the default is derived from `--remap-*` options, which see;
@@ -3007,16 +3007,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   : permit overwrites to files under `OUTPUT_DESTINATION`;
     DANGEROUS! not recommended, importing to a new `OUTPUT_DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
 
-### hoardy-web export
-
-Parse given `WRR` files into their respective reqres, convert to another file format, and then dump the result under `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
-
-- file formats:
-  - `{mirror}`
-    - `mirror`
-    : convert given `WRR` files into a local website mirror stored in interlinked plain files
-
-### hoardy-web export mirror
+### hoardy-web mirror
 
 Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
 Essentially, this is a combination of `hoardy-web organize --copy` followed by in-place `hoardy-web get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
@@ -3090,169 +3081,169 @@ In short, this sub-command generates static offline website mirrors, producing r
 
 - input filters; if none are specified, then all reqres from input `PATH`s will be taken; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
   - `--before DATE`
-  : consider reqres for export when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  : consider reqres for mirroring when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
   - `--not-before DATE`
-  : consider reqres for export when its `stime` is larger or equal than this; the `DATE` format is the same as above
+  : consider reqres for mirroring when its `stime` is larger or equal than this; the `DATE` format is the same as above
   - `--after DATE`
-  : consider reqres for export when its `stime` is larger than this; the `DATE` format is the same as above
+  : consider reqres for mirroring when its `stime` is larger than this; the `DATE` format is the same as above
   - `--not-after DATE`
-  : consider reqres for export when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  : consider reqres for mirroring when its `stime` is smaller or equal than this; the `DATE` format is the same as above
   - `--protocol PROTOCOL`
-  : consider reqres for export when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--protocol-prefix PROTOCOL_PREFIX`
-  : consider reqres for export when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--protocol-re PROTOCOL_RE`
-  : consider reqres for export when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--not-protocol NOT_PROTOCOL`
-  : consider reqres for export when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--not-protocol-prefix NOT_PROTOCOL_PREFIX`
-  : consider reqres for export when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--not-protocol-re NOT_PROTOCOL_RE`
-  : consider reqres for export when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
   - `--request-method REQUEST_METHOD, --method REQUEST_METHOD`
-  : consider reqres for export when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--request-method-prefix REQUEST_METHOD_PREFIX, --method-prefix REQUEST_METHOD_PREFIX`
-  : consider reqres for export when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--request-method-re REQUEST_METHOD_RE, --method-re REQUEST_METHOD_RE`
-  : consider reqres for export when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--not-request-method NOT_REQUEST_METHOD, --not-method NOT_REQUEST_METHOD`
-  : consider reqres for export when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--not-request-method-prefix NOT_REQUEST_METHOD_PREFIX`
-  : consider reqres for export when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--not-request-method-re NOT_REQUEST_METHOD_RE`
-  : consider reqres for export when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
   - `--status STATUS`
-  : consider reqres for export when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--status-prefix STATUS_PREFIX`
-  : consider reqres for export when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--status-re STATUS_RE`
-  : consider reqres for export when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--not-status NOT_STATUS`
-  : consider reqres for export when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--not-status-prefix NOT_STATUS_PREFIX`
-  : consider reqres for export when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--not-status-re NOT_STATUS_RE`
-  : consider reqres for export when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
   - `--url URL`
-  : consider reqres for export when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
   - `--url-prefix URL_PREFIX`
-  : consider reqres for export when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
   - `--url-re URL_RE`
-  : consider reqres for export when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--not-url NOT_URL`
-  : consider reqres for export when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--not-url-prefix NOT_URL_PREFIX`
-  : consider reqres for export when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--not-url-re NOT_URL_RE`
-  : consider reqres for export when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--request-headers-or-grep OR_PATTERN, --request-headers-grep OR_PATTERN`
-  : consider reqres for export when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
   - `--request-headers-or-grep-re OR_PATTERN_RE, --request-headers-grep-re OR_PATTERN_RE`
-  : consider reqres for export when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
   - `--not-request-headers-or-grep NOT_OR_PATTERN, --not-request-headers-grep NOT_OR_PATTERN`
-  : consider reqres for export when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--not-request-headers-or-grep-re NOT_OR_PATTERN_RE, --not-request-headers-grep-re NOT_OR_PATTERN_RE`
-  : consider reqres for export when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--request-headers-and-grep AND_PATTERN`
-  : consider reqres for export when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
   - `--request-headers-and-grep-re AND_PATTERN_RE`
-  : consider reqres for export when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
   - `--not-request-headers-and-grep NOT_AND_PATTERN`
-  : consider reqres for export when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
   - `--not-request-headers-and-grep-re NOT_AND_PATTERN_RE`
-  : consider reqres for export when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--request-body-or-grep OR_PATTERN, --request-body-grep OR_PATTERN`
-  : consider reqres for export when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
   - `--request-body-or-grep-re OR_PATTERN_RE, --request-body-grep-re OR_PATTERN_RE`
-  : consider reqres for export when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
   - `--not-request-body-or-grep NOT_OR_PATTERN, --not-request-body-grep NOT_OR_PATTERN`
-  : consider reqres for export when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--not-request-body-or-grep-re NOT_OR_PATTERN_RE, --not-request-body-grep-re NOT_OR_PATTERN_RE`
-  : consider reqres for export when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--request-body-and-grep AND_PATTERN`
-  : consider reqres for export when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
+  : consider reqres for mirroring when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
   - `--request-body-and-grep-re AND_PATTERN_RE`
-  : consider reqres for export when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
+  : consider reqres for mirroring when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
   - `--not-request-body-and-grep NOT_AND_PATTERN`
-  : consider reqres for export when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
+  : consider reqres for mirroring when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
   - `--not-request-body-and-grep-re NOT_AND_PATTERN_RE`
-  : consider reqres for export when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
+  : consider reqres for mirroring when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
   - `--request-mime REQUEST_MIME`
-  : consider reqres for export when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
   - `--request-mime-prefix REQUEST_MIME_PREFIX`
-  : consider reqres for export when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
   - `--request-mime-re REQUEST_MIME_RE`
-  : consider reqres for export when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--not-request-mime NOT_REQUEST_MIME`
-  : consider reqres for export when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--not-request-mime-prefix NOT_REQUEST_MIME_PREFIX`
-  : consider reqres for export when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--not-request-mime-re NOT_REQUEST_MIME_RE`
-  : consider reqres for export when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--response-headers-or-grep OR_PATTERN, --response-headers-grep OR_PATTERN`
-  : consider reqres for export when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
   - `--response-headers-or-grep-re OR_PATTERN_RE, --response-headers-grep-re OR_PATTERN_RE`
-  : consider reqres for export when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
   - `--not-response-headers-or-grep NOT_OR_PATTERN, --not-response-headers-grep NOT_OR_PATTERN`
-  : consider reqres for export when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--not-response-headers-or-grep-re NOT_OR_PATTERN_RE, --not-response-headers-grep-re NOT_OR_PATTERN_RE`
-  : consider reqres for export when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--response-headers-and-grep AND_PATTERN`
-  : consider reqres for export when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
   - `--response-headers-and-grep-re AND_PATTERN_RE`
-  : consider reqres for export when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
   - `--not-response-headers-and-grep NOT_AND_PATTERN`
-  : consider reqres for export when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
   - `--not-response-headers-and-grep-re NOT_AND_PATTERN_RE`
-  : consider reqres for export when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--response-body-or-grep OR_PATTERN, --response-body-grep OR_PATTERN`
-  : consider reqres for export when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
   - `--response-body-or-grep-re OR_PATTERN_RE, --response-body-grep-re OR_PATTERN_RE`
-  : consider reqres for export when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
   - `--not-response-body-or-grep NOT_OR_PATTERN, --not-response-body-grep NOT_OR_PATTERN`
-  : consider reqres for export when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--not-response-body-or-grep-re NOT_OR_PATTERN_RE, --not-response-body-grep-re NOT_OR_PATTERN_RE`
-  : consider reqres for export when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--response-body-and-grep AND_PATTERN`
-  : consider reqres for export when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
+  : consider reqres for mirroring when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
   - `--response-body-and-grep-re AND_PATTERN_RE`
-  : consider reqres for export when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
+  : consider reqres for mirroring when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
   - `--not-response-body-and-grep NOT_AND_PATTERN`
-  : consider reqres for export when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
+  : consider reqres for mirroring when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
   - `--not-response-body-and-grep-re NOT_AND_PATTERN_RE`
-  : consider reqres for export when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
+  : consider reqres for mirroring when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
   - `--response-mime RESPONSE_MIME`
-  : consider reqres for export when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
   - `--response-mime-prefix RESPONSE_MIME_PREFIX`
-  : consider reqres for export when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
   - `--response-mime-re RESPONSE_MIME_RE`
-  : consider reqres for export when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--not-response-mime NOT_RESPONSE_MIME`
-  : consider reqres for export when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--not-response-mime-prefix NOT_RESPONSE_MIME_PREFIX`
-  : consider reqres for export when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--not-response-mime-re NOT_RESPONSE_MIME_RE`
-  : consider reqres for export when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--or-grep OR_PATTERN, --grep OR_PATTERN`
-  : consider reqres for export when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
   - `--or-grep-re OR_PATTERN_RE, --grep-re OR_PATTERN_RE`
-  : consider reqres for export when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  : consider reqres for mirroring when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
   - `--not-or-grep NOT_OR_PATTERN, --not-grep NOT_OR_PATTERN`
-  : consider reqres for export when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--not-or-grep-re NOT_OR_PATTERN_RE, --not-grep-re NOT_OR_PATTERN_RE`
-  : consider reqres for export when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : consider reqres for mirroring when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--and-grep AND_PATTERN`
-  : consider reqres for export when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
   - `--and-grep-re AND_PATTERN_RE`
-  : consider reqres for export when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
   - `--not-and-grep NOT_AND_PATTERN`
-  : consider reqres for export when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
   - `--not-and-grep-re NOT_AND_PATTERN_RE`
-  : consider reqres for export when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  : consider reqres for mirroring when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--and EXPR`
-  : consider reqres for export when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  : consider reqres for mirroring when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
   - `--or EXPR`
-  : consider reqres for export when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  : consider reqres for mirroring when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 - default input filters:
   - `--ignore-bad-inputs`
@@ -3264,13 +3255,13 @@ In short, this sub-command generates static offline website mirrors, producing r
   - `-e EXPR, --expr EXPR`
   : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options below
 
-- exporting of `--expr`:
+- rendering of `--expr` values:
   - `--not-separated`
-  : export `--expr` values without separating them with anything, just concatenate them
+  : render `--expr` values into outputs without separating them with anything, just concatenate them
   - `--lf-separated`
-  : export `--expr` values separated with `\n` (LF) newline characters; default
+  : render `--expr` values into outputs separated with `\n` (LF) newline characters; default
   - `--zero-separated`
-  : export `--expr` values separated with `\0` (NUL) bytes
+  : render `--expr` values into outputs separated with `\0` (NUL) bytes
 
 - default value of `--expr`:
   - `--remap-id`
@@ -3282,15 +3273,15 @@ In short, this sub-command generates static offline website mirrors, producing r
   - `--remap-closed`
   : set the default value of `--expr` to `response.body|eb|scrub response /all_refs`; i.e. remap all URLs of response body present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does, and censor out all dynamic content; results will be self-contained
   - `--remap-semi`
-  : set the default value of `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs`; i.e. remap all jump links of response body like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does, and censor out all dynamic content; this is a better version of `--remap-open` which keeps the `export`ed `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs`; i.e. remap all jump links of response body like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does, and censor out all dynamic content; this is a better version of `--remap-open` which keeps the `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained
   - `--remap-all`
   : set the default value of `--expr` to `response.body|eb|scrub response &all_refs`; i.e. remap all links and references of response body like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble, and censor out all dynamic content; results will be self-contained; default
     
-    `hoardy-web export mirror` uses `--output` paths of trivial `GET <URL> -> 200 OK` as fallbacks for `&(jumps|actions|reqs)` options of `scrub`.
+    `hoardy-web mirror` uses `--output` paths of trivial `GET <URL> -> 200 OK` as fallbacks for `&(jumps|actions|reqs)` options of `scrub`.
     This will remap links pointing to missing and unreachable URLs to missing files.
-    However, for simple `--output` formats (like the default `hupq`), those files can later be generated by running `hoardy-web export mirror` with `WRR` files containing those missing or unreachable URLs as inputs.
-    I.e. this behaviour allows you to add new data to an already `export`ed mirror without regenerating old files that reference newly added URLs.
-    I.e. this allows `hoardy-web export mirror` to be used incrementally.
+    However, for simple `--output` formats (like the default `hupq`), those files can later be generated by running `hoardy-web mirror` with `WRR` files containing those missing or unreachable URLs as inputs.
+    I.e. this behaviour allows you to add new data to an already existing mirror without regenerating old files that reference newly added URLs.
+    I.e. this allows `hoardy-web mirror` to be used incrementally.
     
     Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
 
@@ -3300,21 +3291,21 @@ In short, this sub-command generates static offline website mirrors, producing r
   - `--absolute`
   : when remapping URLs to local files, produce links and references with absolute URLs; default when `--symlink`
 
-- what gets exported:
+- what gets mirrored:
   - `--oldest`
-  : for each URL, export its oldest available version
+  : for each URL, mirror its oldest available version
   - `--oldest-hybrid`
-  : for each URL, export its oldest available version, except, for each URL that is a requisite resource, export a version that is time-closest to the referencing document; i.e., this will make each exported page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `export`
+  : for each URL, mirror its oldest available version, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`
   - `--nearest DATE`
-  : for each URL, export an available version that is closest to the given `DATE` value; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  : for each URL, mirror an available version that is closest to the given `DATE` value; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
   - `--nearest-hybrid DATE`
-  : for each URL, export an available version that is closest to the given `DATE` value, except, for each URL that is a requisite resource, export a version that is time-closest to the referencing document; see `--oldest-hybrid` above for more info; the `DATE` format is the same as above
+  : for each URL, mirror an available version that is closest to the given `DATE` value, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; see `--oldest-hybrid` above for more info; the `DATE` format is the same as above
   - `--latest`
-  : for each URL, export its latest available version; default
+  : for each URL, mirror its latest available version; default
   - `--latest-hybrid`
-  : for each URL, export its latest available version, except, for each URL that is a requisite resource, export a version that is time-closest to the referencing document; see `--oldest-hybrid` above for more info
+  : for each URL, mirror its latest available version, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; see `--oldest-hybrid` above for more info
   - `--all`
-  : export all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!
+  : mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!
 
 - file outputs:
   - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
@@ -3333,16 +3324,16 @@ In short, this sub-command generates static offline website mirrors, producing r
 - updates to `--output`s:
   - `--no-overwrites`
   : disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default;
-    repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
+    repeated `mirror`s of the same targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
     however, trying to overwrite existing files under `OUTPUT_DESTINATION` with any new data will produce errors;
-    this allows reusing the `OUTPUT_DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
+    this allows reusing the `OUTPUT_DESTINATION` between unrelated `mirror`s and between `mirror`s that produce the same data on disk in their common parts
   - `--skip-existing, --partial`
   : skip rendering of targets which have a corresponding file under `OUTPUT_DESTINATION`, use the contents of such files instead;
-    using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
+    using this together with `--depth` is likely to produce a partially broken result, since skipping of a document will also skip all of the things it references;
     on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
   - `--overwrite-dangerously`
-  : export all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`;
-    DANGEROUS! not recommended, exporting to a new `OUTPUT_DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
+  : mirror all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`;
+    DANGEROUS! not recommended, mirroring to a new `OUTPUT_DESTINATION` with the default `--no-overwrites` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
 
 - content-addressed file output mode:
   - `--copy`
@@ -3366,173 +3357,173 @@ In short, this sub-command generates static offline website mirrors, producing r
 
 - recursion root filters; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`); can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
   - `--root-before DATE`
-  : take reqres as export root when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
+  : take reqres as a root when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
   - `--root-not-before DATE`
-  : take reqres as export root when its `stime` is larger or equal than this; the `DATE` format is the same as above
+  : take reqres as a root when its `stime` is larger or equal than this; the `DATE` format is the same as above
   - `--root-after DATE`
-  : take reqres as export root when its `stime` is larger than this; the `DATE` format is the same as above
+  : take reqres as a root when its `stime` is larger than this; the `DATE` format is the same as above
   - `--root-not-after DATE`
-  : take reqres as export root when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  : take reqres as a root when its `stime` is smaller or equal than this; the `DATE` format is the same as above
   - `--root-protocol PROTOCOL`
-  : take reqres as export root when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--root-protocol-prefix PROTOCOL_PREFIX`
-  : take reqres as export root when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `PROTOCOL_PREFIX` option arguments is a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--root-protocol-re PROTOCOL_RE`
-  : take reqres as export root when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `PROTOCOL_RE` regular expressions matches its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--root-not-protocol NOT_PROTOCOL`
-  : take reqres as export root when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_PROTOCOL` option arguments are equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--root-not-protocol-prefix NOT_PROTOCOL_PREFIX`
-  : take reqres as export root when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_PROTOCOL_PREFIX` option arguments are a prefix of its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--root-not-protocol-re NOT_PROTOCOL_RE`
-  : take reqres as export root when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_PROTOCOL_RE` regular expressions match its `protocol` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
   - `--root-request-method REQUEST_METHOD, --root-method REQUEST_METHOD`
-  : take reqres as export root when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `REQUEST_METHOD` option arguments is equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--root-request-method-prefix REQUEST_METHOD_PREFIX, --root-method-prefix REQUEST_METHOD_PREFIX`
-  : take reqres as export root when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `REQUEST_METHOD_PREFIX` option arguments is a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--root-request-method-re REQUEST_METHOD_RE, --root-method-re REQUEST_METHOD_RE`
-  : take reqres as export root when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `REQUEST_METHOD_RE` regular expressions matches its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--root-not-request-method NOT_REQUEST_METHOD, --root-not-method NOT_REQUEST_METHOD`
-  : take reqres as export root when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_REQUEST_METHOD` option arguments are equal to its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--root-not-request-method-prefix NOT_REQUEST_METHOD_PREFIX`
-  : take reqres as export root when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_REQUEST_METHOD_PREFIX` option arguments are a prefix of its `request.method` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--root-not-request-method-re NOT_REQUEST_METHOD_RE`
-  : take reqres as export root when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_REQUEST_METHOD_RE` regular expressions match its `request.method` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
   - `--root-status STATUS`
-  : take reqres as export root when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `STATUS` option arguments is equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--root-status-prefix STATUS_PREFIX`
-  : take reqres as export root when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `STATUS_PREFIX` option arguments is a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--root-status-re STATUS_RE`
-  : take reqres as export root when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `STATUS_RE` regular expressions matches its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--root-not-status NOT_STATUS`
-  : take reqres as export root when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_STATUS` option arguments are equal to its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--root-not-status-prefix NOT_STATUS_PREFIX`
-  : take reqres as export root when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_STATUS_PREFIX` option arguments are a prefix of its `status` (of `hoardy-web get --expr`, which see); in short, this option defines a blacklisted element rule
   - `--root-not-status-re NOT_STATUS_RE`
-  : take reqres as export root when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_STATUS_RE` regular expressions match its `status` (of `hoardy-web get --expr`, which see); this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a blacklisted element rule
   - `--root-url URL`
-  : take reqres as export root when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `URL` option arguments is equal to its `net_url` (of `hoardy-web get --expr`, which see); Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` will be silently normalized into its Punycode UTS46 and percent-encoded version of `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, which will then be matched against; in short, this option defines a whitelisted element rule
   - `--root-url-prefix URL_PREFIX, --root URL_PREFIX, -r URL_PREFIX`
-  : take reqres as export root when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `URL_PREFIX` option arguments is a prefix of its `net_url` (of `hoardy-web get --expr`, which see); similarly to the previous option, arbitrary mixes of URL encodinds are allowed; in short, this option defines a whitelisted element rule
   - `--root-url-re URL_RE`
-  : take reqres as export root when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `URL_RE` regular expressions matches its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--root-not-url NOT_URL`
-  : take reqres as export root when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_URL` option arguments are equal to its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--root-not-url-prefix NOT_URL_PREFIX`
-  : take reqres as export root when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_URL_PREFIX` option arguments are a prefix of its `net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--root-not-url-re NOT_URL_RE`
-  : take reqres as export root when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_URL_RE` regular expressions match its `net_url` or `pretty_net_url` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--root-request-headers-or-grep OR_PATTERN, --root-request-headers-grep OR_PATTERN`
-  : take reqres as export root when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  : take reqres as a root when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `request.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
   - `--root-request-headers-or-grep-re OR_PATTERN_RE, --root-request-headers-grep-re OR_PATTERN_RE`
-  : take reqres as export root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  : take reqres as a root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
   - `--root-not-request-headers-or-grep NOT_OR_PATTERN, --root-not-request-headers-grep NOT_OR_PATTERN`
-  : take reqres as export root when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--root-not-request-headers-or-grep-re NOT_OR_PATTERN_RE, --root-not-request-headers-grep-re NOT_OR_PATTERN_RE`
-  : take reqres as export root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--root-request-headers-and-grep AND_PATTERN`
-  : take reqres as export root when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  : take reqres as a root when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
   - `--root-request-headers-and-grep-re AND_PATTERN_RE`
-  : take reqres as export root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  : take reqres as a root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
   - `--root-not-request-headers-and-grep NOT_AND_PATTERN`
-  : take reqres as export root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  : take reqres as a root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
   - `--root-not-request-headers-and-grep-re NOT_AND_PATTERN_RE`
-  : take reqres as export root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  : take reqres as a root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--root-request-body-or-grep OR_PATTERN, --root-request-body-grep OR_PATTERN`
-  : take reqres as export root when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  : take reqres as a root when at least one of the given `OR_PATTERN` option arguments is a substring of `request.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
   - `--root-request-body-or-grep-re OR_PATTERN_RE, --root-request-body-grep-re OR_PATTERN_RE`
-  : take reqres as export root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  : take reqres as a root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
   - `--root-not-request-body-or-grep NOT_OR_PATTERN, --root-not-request-body-grep NOT_OR_PATTERN`
-  : take reqres as export root when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_OR_PATTERN` option arguments are substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--root-not-request-body-or-grep-re NOT_OR_PATTERN_RE, --root-not-request-body-grep-re NOT_OR_PATTERN_RE`
-  : take reqres as export root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `request.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--root-request-body-and-grep AND_PATTERN`
-  : take reqres as export root when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
+  : take reqres as a root when each of the given `AND_PATTERN` option arguments is a substring of `request.body`; matching caveats are the same as above
   - `--root-request-body-and-grep-re AND_PATTERN_RE`
-  : take reqres as export root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
+  : take reqres as a root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `request.body`; matching caveats are the same as above
   - `--root-not-request-body-and-grep NOT_AND_PATTERN`
-  : take reqres as export root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
+  : take reqres as a root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `request.body`; matching caveats are the same as above
   - `--root-not-request-body-and-grep-re NOT_AND_PATTERN_RE`
-  : take reqres as export root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
+  : take reqres as a root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `request.body`; matching caveats are the same as above
   - `--root-request-mime REQUEST_MIME`
-  : take reqres as export root when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `REQUEST_MIME` option arguments is equal to its `request_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
   - `--root-request-mime-prefix REQUEST_MIME_PREFIX`
-  : take reqres as export root when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `REQUEST_MIME_PREFIX` option arguments is a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
   - `--root-request-mime-re REQUEST_MIME_RE`
-  : take reqres as export root when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `REQUEST_MIME_RE` regular expressions matches its `request_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--root-not-request-mime NOT_REQUEST_MIME`
-  : take reqres as export root when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_REQUEST_MIME` option arguments are equal to its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--root-not-request-mime-prefix NOT_REQUEST_MIME_PREFIX`
-  : take reqres as export root when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_REQUEST_MIME_PREFIX` option arguments are a prefix of its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--root-not-request-mime-re NOT_REQUEST_MIME_RE`
-  : take reqres as export root when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_REQUEST_MIME_RE` regular expressions match its `request_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--root-response-headers-or-grep OR_PATTERN, --root-response-headers-grep OR_PATTERN`
-  : take reqres as export root when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  : take reqres as a root when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing all `response.headers` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
   - `--root-response-headers-or-grep-re OR_PATTERN_RE, --root-response-headers-grep-re OR_PATTERN_RE`
-  : take reqres as export root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  : take reqres as a root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
   - `--root-not-response-headers-or-grep NOT_OR_PATTERN, --root-not-response-headers-grep NOT_OR_PATTERN`
-  : take reqres as export root when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--root-not-response-headers-or-grep-re NOT_OR_PATTERN_RE, --root-not-response-headers-grep-re NOT_OR_PATTERN_RE`
-  : take reqres as export root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--root-response-headers-and-grep AND_PATTERN`
-  : take reqres as export root when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  : take reqres as a root when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
   - `--root-response-headers-and-grep-re AND_PATTERN_RE`
-  : take reqres as export root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  : take reqres as a root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
   - `--root-not-response-headers-and-grep NOT_AND_PATTERN`
-  : take reqres as export root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  : take reqres as a root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
   - `--root-not-response-headers-and-grep-re NOT_AND_PATTERN_RE`
-  : take reqres as export root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  : take reqres as a root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--root-response-body-or-grep OR_PATTERN, --root-response-body-grep OR_PATTERN`
-  : take reqres as export root when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  : take reqres as a root when at least one of the given `OR_PATTERN` option arguments is a substring of `response.body` (of `hoardy-web get --expr`, which see); at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
   - `--root-response-body-or-grep-re OR_PATTERN_RE, --root-response-body-grep-re OR_PATTERN_RE`
-  : take reqres as export root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  : take reqres as a root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above; in short, this option defines a whitelisted element rule
   - `--root-not-response-body-or-grep NOT_OR_PATTERN, --root-not-response-body-grep NOT_OR_PATTERN`
-  : take reqres as export root when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_OR_PATTERN` option arguments are substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--root-not-response-body-or-grep-re NOT_OR_PATTERN_RE, --root-not-response-body-grep-re NOT_OR_PATTERN_RE`
-  : take reqres as export root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of `response.body`; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--root-response-body-and-grep AND_PATTERN`
-  : take reqres as export root when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
+  : take reqres as a root when each of the given `AND_PATTERN` option arguments is a substring of `response.body`; matching caveats are the same as above
   - `--root-response-body-and-grep-re AND_PATTERN_RE`
-  : take reqres as export root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
+  : take reqres as a root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of `response.body`; matching caveats are the same as above
   - `--root-not-response-body-and-grep NOT_AND_PATTERN`
-  : take reqres as export root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
+  : take reqres as a root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of `response.body`; matching caveats are the same as above
   - `--root-not-response-body-and-grep-re NOT_AND_PATTERN_RE`
-  : take reqres as export root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
+  : take reqres as a root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of `response.body`; matching caveats are the same as above
   - `--root-response-mime RESPONSE_MIME`
-  : take reqres as export root when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `RESPONSE_MIME` option arguments is equal to its `response_mime` (of `hoardy-web get --expr`, which see); both canonical and non-canonical MIME types are allowed; e.g., giving `application/x-grip` or `application/gzip` will produce the same predicate; in short, this option defines a whitelisted element rule
   - `--root-response-mime-prefix RESPONSE_MIME_PREFIX`
-  : take reqres as export root when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `RESPONSE_MIME_PREFIX` option arguments is a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); given prefixes will only ever be matched against canonicalized MIME types; in short, this option defines a whitelisted element rule
   - `--root-response-mime-re RESPONSE_MIME_RE`
-  : take reqres as export root when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
+  : take reqres as a root when one of the given `RESPONSE_MIME_RE` regular expressions matches its `response_mime` (of `hoardy-web get --expr`, which see); given regular expressions will only ever be matched against canonicalized MIME types; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`; in short, this option defines a whitelisted element rule
   - `--root-not-response-mime NOT_RESPONSE_MIME`
-  : take reqres as export root when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_RESPONSE_MIME` option arguments are equal to its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--root-not-response-mime-prefix NOT_RESPONSE_MIME_PREFIX`
-  : take reqres as export root when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_RESPONSE_MIME_PREFIX` option arguments are a prefix of its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--root-not-response-mime-re NOT_RESPONSE_MIME_RE`
-  : take reqres as export root when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_RESPONSE_MIME_RE` regular expressions match its `response_mime` (of `hoardy-web get --expr`, which see); option argument format and caveats are idential to the `not-`less option above; in short, this option defines a blacklisted element rule
   - `--root-or-grep OR_PATTERN, --root-grep OR_PATTERN`
-  : take reqres as export root when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
+  : take reqres as a root when at least one of the given `OR_PATTERN` option arguments is a substring of at least one of the elements of the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `hoardy-web get --expr`, which see); each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly; in short, this option defines a whitelisted element rule
   - `--root-or-grep-re OR_PATTERN_RE, --root-grep-re OR_PATTERN_RE`
-  : take reqres as export root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
+  : take reqres as a root when at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of at least one of the elements of the above list; matching caveats are the same as above; in short, this option defines a whitelisted element rule
   - `--root-not-or-grep NOT_OR_PATTERN, --root-not-grep NOT_OR_PATTERN`
-  : take reqres as export root when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_OR_PATTERN` option arguments are substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--root-not-or-grep-re NOT_OR_PATTERN_RE, --root-not-grep-re NOT_OR_PATTERN_RE`
-  : take reqres as export root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
+  : take reqres as a root when none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of any of the elements of the above list; matching caveats are the same as above; in short, this option defines a blacklisted element rule
   - `--root-and-grep AND_PATTERN`
-  : take reqres as export root when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
+  : take reqres as a root when each of the given `AND_PATTERN` option arguments is a substring of some element of the above list; matching caveats are the same as above
   - `--root-and-grep-re AND_PATTERN_RE`
-  : take reqres as export root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
+  : take reqres as a root when each of the given `AND_PATTERN_RE` regular expressions matches a substring of some element of the above list; matching caveats are the same as above
   - `--root-not-and-grep NOT_AND_PATTERN`
-  : take reqres as export root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
+  : take reqres as a root when one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of the elements of the above list; matching caveats are the same as above
   - `--root-not-and-grep-re NOT_AND_PATTERN_RE`
-  : take reqres as export root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
+  : take reqres as a root when one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of the elements of the above list; matching caveats are the same as above
   - `--root-and EXPR`
-  : take reqres as export root when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  : take reqres as a root when all of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
   - `--root-or EXPR`
-  : take reqres as export root when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
+  : take reqres as a root when some of the given expressions of the same format as `hoardy-web get --expr` (which see) evaluate to `true`
 
 - recursion depth:
   - `-d DEPTH, --depth DEPTH`
-  : maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
+  : maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also mirror one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
 
 ## Examples
 

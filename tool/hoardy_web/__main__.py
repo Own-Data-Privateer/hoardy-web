@@ -1919,7 +1919,7 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
 def path_to_url(x : str) -> str:
     return x.replace("?", "%3F")
 
-def cmd_export_mirror(cargs : _t.Any) -> None:
+def cmd_mirror(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
 
@@ -2184,9 +2184,9 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                 stdout.write_bytes(b"\033[34m")
         ispace = " " * (2 * level)
         if level0:
-            stdout.write_str_ln(gettext(f"exporting input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / total, total, doc_n, depth))
+            stdout.write_str_ln(gettext(f"mirroring input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / total, total, doc_n, depth))
         else:
-            stdout.write_str_ln(ispace + gettext(f"exporting requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / total, total))
+            stdout.write_str_ln(ispace + gettext(f"mirroring requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / total, total))
         stdout.write_str_ln(ispace + gettext("stime [%s]") % (stime.format(),))
         stdout.write_str_ln(ispace + gettext("net_url %s") % (net_url,))
         stdout.write_str_ln(ispace + gettext("src %s") % (source.show_source(),))
@@ -2273,7 +2273,7 @@ def cmd_export_mirror(cargs : _t.Any) -> None:
                         if mem.consumption > max_memory_mib:
                             uobj.unload()
                     else:
-                        # this will not be exported
+                        # this will not be mirrored
                         uabs_out_path = None
                         # NB: Not setting `uobj._abs_out_path = None` here
                         # because it might be a requisite for another
@@ -2656,7 +2656,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         agrp.add_argument(f"--{opt_prefix}or", metavar="EXPR", action="append", type=str, default = [],
                          help=_(f"{do_what} some of the given expressions of the same format as `{__prog__} get --expr` (which see) evaluate to `true`"))
 
-        if kind == "export mirror" and not root:
+        if kind == "mirror" and not root:
             agrp = cmd.add_argument_group("default input filters")
             default_filters = '--method "GET" --method "DOM" --status-re ".200C"'
             ddest = f"default_filters"
@@ -2757,7 +2757,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
 
         agrp.add_argument("--stdin0", action="store_true", help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments"))
 
-        if kind == "export mirror":
+        if kind == "mirror":
             agrp.add_argument("--boring", metavar="PATH", action="append", type=str, default = [], help=_("low-priority input `PATH`; boring `PATH`s will be processed after all `PATH`s specified as positional command-line arguments and those given via `--stdin0` and will not be queued as roots even when no `--root-*` options are specified"))
 
         agrp.add_argument("paths", metavar="PATH", nargs="*", type=str, help=_("inputs, can be a mix of files and directories (which will be traversed recursively)"))
@@ -2769,7 +2769,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
             what = "this simply populates the `potentially` lists in the output in various ways"
         elif kind == "organize" or kind == "import":
             what = oscrub
-        elif kind != "export mirror":
+        elif kind != "mirror":
             what = wscrub
         else:
             what = f"{oscrub}; also, {wscrub}"
@@ -2849,10 +2849,10 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
 
         if kind == "stream":
             add_terminator(cmd, "`--format=raw` `--expr` printing", "print `--format=raw` `--expr` output values")
-        elif kind != "export mirror":
-            add_separator(cmd)
+        elif kind == "mirror":
+            add_separator(cmd, "rendering of `--expr` values", "render `--expr` values into outputs", short = False)
         else:
-            add_separator(cmd, "exporting of `--expr`", "export `--expr` values", short = False)
+            add_separator(cmd)
 
         def alias(what : str) -> str:
             return _("set the default value of `--expr` to `%s`") % (default_expr[what],)
@@ -2860,25 +2860,25 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         agrp = cmd.add_argument_group("default value of `--expr`")
         grp = agrp.add_mutually_exclusive_group()
 
-        if kind != "export mirror":
+        if kind != "mirror":
             grp.add_argument("--no-remap", dest="default_expr", action="store_const", const=kind, help=alias(kind) + _("; i.e. produce the raw response body; default"))
 
         grp.add_argument("--remap-id", dest="default_expr", action="store_const", const="id", help=alias("id") + _("; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained"))
         grp.add_argument("--remap-void", dest="default_expr", action="store_const", const="void", help=alias("void") + _("; i.e. remap all URLs of response body into `javascript:void(0)` and empty `data:` URLs and censor out all dynamic content; results will be self-contained"))
 
-        if kind != "export mirror":
+        if kind != "mirror":
             cmd.set_defaults(default_expr = kind)
         else:
             grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open", help=alias("open") + _("; i.e. remap all URLs of response body present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does, and censor out all dynamic content; results almost certainly will NOT be self-contained"))
             grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="open", help=alias("closed") + _("; i.e. remap all URLs of response body present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does, and censor out all dynamic content; results will be self-contained"))
-            grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi", help=alias("semi") + _("; i.e. remap all jump links of response body like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does, and censor out all dynamic content; this is a better version of `--remap-open` which keeps the `export`ed `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained"))
+            grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi", help=alias("semi") + _("; i.e. remap all jump links of response body like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does, and censor out all dynamic content; this is a better version of `--remap-open` which keeps the `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained"))
             grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _(f"""; i.e. remap all links and references of response body like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble, and censor out all dynamic content; results will be self-contained; default
 
-`{__prog__} export mirror` uses `--output` paths of trivial `GET <URL> -> 200 OK` as fallbacks for `&(jumps|actions|reqs)` options of `scrub`.
+`{__prog__} mirror` uses `--output` paths of trivial `GET <URL> -> 200 OK` as fallbacks for `&(jumps|actions|reqs)` options of `scrub`.
 This will remap links pointing to missing and unreachable URLs to missing files.
-However, for simple `--output` formats (like the default `hupq`), those files can later be generated by running `{__prog__} export mirror` with `WRR` files containing those missing or unreachable URLs as inputs.
-I.e. this behaviour allows you to add new data to an already `export`ed mirror without regenerating old files that reference newly added URLs.
-I.e. this allows `{__prog__} export mirror` to be used incrementally.
+However, for simple `--output` formats (like the default `hupq`), those files can later be generated by running `{__prog__} mirror` with `WRR` files containing those missing or unreachable URLs as inputs.
+I.e. this behaviour allows you to add new data to an already existing mirror without regenerating old files that reference newly added URLs.
+I.e. this allows `{__prog__} mirror` to be used incrementally.
 
 Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
 """))
@@ -2969,8 +2969,8 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
                          "- " + _("available substitutions:") + "\n" + \
                          "  - " + _(f"all expressions of `{__prog__} get --expr` (which see)") + ";\n" + \
                          "  - `num`: " + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique"))
-        elif kind == "import" or kind == "export mirror":
-            if kind != "export mirror":
+        elif kind == "import" or kind == "mirror":
+            if kind != "mirror":
                 def_def = "default"
             else:
                 def_def = "hupq_n"
@@ -3003,17 +3003,17 @@ for each source `PATH` file, the destination `--output` file will be replaced wi
         elif kind == "import":
             grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow)
             grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("permit overwrites to files under `OUTPUT_DESTINATION`") + ";\n" + def_dangerous("importing"))
-        elif kind == "export mirror":
+        elif kind == "mirror":
             grp.add_argument("--no-overwrites", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
-                _("""repeated exports of the same export targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
+                _("""repeated `mirror`s of the same targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
 however, trying to overwrite existing files under `OUTPUT_DESTINATION` with any new data will produce errors;
-this allows reusing the `OUTPUT_DESTINATION` between unrelated exports and between exports that produce the same data on disk in their common parts
+this allows reusing the `OUTPUT_DESTINATION` between unrelated `mirror`s and between `mirror`s that produce the same data on disk in their common parts
 """))
             grp.add_argument("--skip-existing", "--partial", dest="allow_updates", action="store_const", const="partial", help=_("""skip rendering of targets which have a corresponding file under `OUTPUT_DESTINATION`, use the contents of such files instead;
-using this together with `--depth` is likely to produce a partially broken result, since skipping an export target will also skip all the documents it references;
+using this together with `--depth` is likely to produce a partially broken result, since skipping of a document will also skip all of the things it references;
 on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
 """))
-            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("export all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`") + ";\n" + def_dangerous("exporting"))
+            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("mirror all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`") + ";\n" + def_dangerous("mirroring"))
 
         cmd.set_defaults(allow_updates = False)
 
@@ -3061,40 +3061,35 @@ In short, this is `{__prog__} organize --copy` for `INPUT` files that use differ
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_mitmproxy)
 
-    def add_export_memory(cmd : _t.Any) -> None:
+    def add_index_memory(cmd : _t.Any) -> None:
         agrp = cmd.add_argument_group("caching")
         agrp.add_argument("--max-memory", metavar = "INT", dest="max_memory", type=int, default=1024, help=_("""the caches, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
 making this larger improves performance;
 the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`"""))
 
-    # export
-    supcmd = subparsers.add_parser("export", help=_(f"convert `WRR` archives into other formats"),
-                                   description = _(f"""Parse given `WRR` files into their respective reqres, convert to another file format, and then dump the result under `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
-"""))
-    supsub = supcmd.add_subparsers(title="file formats")
-
-    cmd = supsub.add_parser("mirror", help=_("convert given `WRR` files into a local website mirror stored in interlinked plain files"),
-                            description = _(f"""Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
+    # mirror
+    cmd = subparsers.add_parser("mirror", help=_("convert given `WRR` files into a local website mirror stored in interlinked plain files"),
+                                description = _(f"""Parse given `WRR` files, filter out those that have no responses, transform and then dump their response bodies into separate files under `OUTPUT_DESTINATION` with the new path derived from each reqres' metadata.
 Essentially, this is a combination of `{__prog__} organize --copy` followed by in-place `{__prog__} get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
 
 In short, this sub-command generates static offline website mirrors, producing results similar to those of `wget -mpk`.
 """))
-    add_export_memory(cmd)
+    add_index_memory(cmd)
     add_impure(cmd)
-    add_common(cmd, "export mirror", "consider reqres for export when")
-    add_expr(cmd, "export mirror")
+    add_common(cmd, "mirror", "consider reqres for mirroring when")
+    add_expr(cmd, "mirror")
 
-    agrp = cmd.add_argument_group("what gets exported")
+    agrp = cmd.add_argument_group("what gets mirrored")
     grp = agrp.add_mutually_exclusive_group()
 
     def which(x : str) -> str:
-        return _(f"for each URL, export {x}")
+        return _(f"for each URL, mirror {x}")
 
     oldest = which("its oldest available version")
     near = which("an available version that is closest to the given `DATE` value")
     latest = which("its latest available version")
-    hybrid = _(", except, for each URL that is a requisite resource, export a version that is time-closest to the referencing document")
-    hybrid_long = hybrid + _("; i.e., this will make each exported page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `export`")
+    hybrid = _(", except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document")
+    hybrid_long = hybrid + _("; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`")
     hybrid_short = hybrid +  _("; see `--oldest-hybrid` above for more info")
 
     class EmitNear(argparse.Action):
@@ -3107,10 +3102,10 @@ In short, this sub-command generates static offline website mirrors, producing r
     grp.add_argument("--nearest-hybrid", dest="mode", metavar="DATE", action=EmitNear, const=lambda x: (True, x), help=near + hybrid_short + date_spec_id)
     grp.add_argument("--latest", dest="mode", action="store_const", const=(False, True), help=latest + _("; default"))
     grp.add_argument("--latest-hybrid", dest="mode", action="store_const", const=(True, True), help=latest + hybrid_short)
-    grp.add_argument("--all", dest="mode", action="store_const", const=(True, None), help=_("export all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!"))
+    grp.add_argument("--all", dest="mode", action="store_const", const=(True, None), help=_("mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!"))
     cmd.set_defaults(mode=(False, True)) # `--latest`
 
-    add_fileout(cmd, "export mirror")
+    add_fileout(cmd, "mirror")
 
     agrp = cmd.add_argument_group("content-addressed file output mode")
 
@@ -3130,12 +3125,12 @@ In short, this sub-command generates static offline website mirrors, producing r
                       "  - `content`: " + _("rendered content") + "\n" + \
                       "  - `content_sha256`: " + _("alias for `content|sha256`"))
 
-    add_filters(cmd, "export mirror", "take reqres as export root when", True)
+    add_filters(cmd, "mirror", "take reqres as a root when", True)
 
     agrp = cmd.add_argument_group("recursion depth")
-    agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also export one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
+    agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also mirror one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
 
-    cmd.set_defaults(func=cmd_export_mirror)
+    cmd.set_defaults(func=cmd_mirror)
 
     cargs = parser.parse_args(_sys.argv[1:])
 
