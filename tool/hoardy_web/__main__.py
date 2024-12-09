@@ -2464,7 +2464,7 @@ class ArgumentParser(argparse.BetterArgumentParser):
         self.print_usage(_sys.stderr)
         die(2, "%s", message)
 
-def main() -> None:
+def make_argparser(real : bool = True) -> ArgumentParser:
     _ : _t.Callable[[str], str] = gettext
 
     parser = ArgumentParser(
@@ -2479,11 +2479,6 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
     parser.add_argument("--markdown", action="store_true", help=_("show help messages formatted in Markdown"))
 
     subparsers = parser.add_subparsers(title="subcommands")
-
-    def no_cmd(cargs : _t.Any) -> None:
-        parser.print_help(stderr) # type: ignore
-        _sys.exit(2)
-    parser.set_defaults(func=no_cmd)
 
     def add_errors(cmd : _t.Any) -> None:
         grp = cmd.add_argument_group("error handling")
@@ -2505,7 +2500,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         grp.add_argument(f"--case-sensitive", dest="ignore_case", action="store_const", const=False, help=_(f"when filtering with `--*grep*`, match case-sensitively"))
         grp.add_argument(f"--smart-case", dest="ignore_case", action="store_const", const=None, help=_(f"when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default"))
 
-    def add_filters(cmd : _t.Any, kind : str, do_what : str, root : bool = False) -> None:
+    def add_filters(cmd : _t.Any, do_what : str, root : bool = False) -> None:
         if not root:
             intro = gettext("input filters; if none are specified, then all reqres from input `PATH`s will be taken")
             opt_prefix = ""
@@ -2656,13 +2651,13 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         agrp.add_argument(f"--{opt_prefix}or", metavar="EXPR", action="append", type=str, default = [],
                          help=_(f"{do_what} some of the given expressions of the same format as `{__prog__} get --expr` (which see) evaluate to `true`"))
 
-        if kind == "mirror" and not root:
-            agrp = cmd.add_argument_group("default input filters")
-            default_filters = '--method "GET" --method "DOM" --status-re ".200C"'
-            ddest = f"default_filters"
-            agrp.add_argument(f"--ignore-bad-inputs", dest=ddest, action="store_const", const=True, help=_("initialize input filters to `%s`; default") % (default_filters,))
-            agrp.add_argument(f"--index-all-inputs", dest=ddest, action="store_const", const=False, help=_("do not set any input filters by default; note, however, that this sub-command expects input filters to be at least as restrictive as the above default and is likely to produce broken outputs if those filters are unset; use this option at your own risk"))
-            cmd.set_defaults(**{ddest: True})
+    def add_default_filters(cmd : _t.Any) -> None:
+        agrp = cmd.add_argument_group("default input filters")
+        default_filters = '--method "GET" --method "DOM" --status-re ".200C"'
+        ddest = f"default_filters"
+        agrp.add_argument(f"--ignore-bad-inputs", dest=ddest, action="store_const", const=True, help=_("initialize input filters to `%s`; default") % (default_filters,))
+        agrp.add_argument(f"--index-all-inputs", dest=ddest, action="store_const", const=False, help=_("do not set any input filters by default; note, however, that this sub-command expects input filters to be at least as restrictive as the above default and is likely to produce broken outputs if those filters are unset; use this option at your own risk"))
+        cmd.set_defaults(**{ddest: True})
 
     def add_pure(cmd : _t.Any) -> None:
         cmd.add_argument("-q", "--quiet", action="store_true", help=_("don't print end-of-program warnings to stderr"))
@@ -2676,8 +2671,11 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         add_errors(cmd)
         add_paths(cmd, kind)
         add_sniff(cmd, kind)
-        add_filter_options(cmd)
-        add_filters(cmd, kind, filter_what)
+        if real:
+            add_filter_options(cmd)
+            add_filters(cmd, filter_what)
+        if kind == "mirror":
+            add_default_filters(cmd)
 
     def add_abridged(cmd : _t.Any) -> None:
         grp = cmd.add_mutually_exclusive_group()
@@ -2780,6 +2778,15 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         grp.add_argument("--sniff-force", dest="sniff", action="store_const", const=SniffContentType.FORCE, help=_("run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`"))
         grp.add_argument("--sniff-paranoid", dest="sniff", action="store_const", const=SniffContentType.PARANOID, help=_(f"do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script"))
         grp.set_defaults(sniff = SniffContentType.NONE)
+
+    def no_cmd(cargs : _t.Any) -> None:
+        parser.print_help(stderr) # type: ignore
+        _sys.exit(2)
+    parser.set_defaults(func=no_cmd)
+
+    if not real:
+        add_filter_options(parser)
+        add_filters(parser, "accept reqres for processing when")
 
     # pprint
     cmd = subparsers.add_parser("pprint", aliases=["print", "inspect"], help=_("pretty-print given inputs"),
@@ -3197,17 +3204,29 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
                       "  - `content`: " + _("rendered content") + "\n" + \
                       "  - `content_sha256`: " + _("alias for `content|sha256`"))
 
-    add_filters(cmd, "mirror", "take reqres as a root when", True)
+    add_filters(cmd, "take reqres as a root when", True)
 
     agrp = cmd.add_argument_group("recursion depth")
     agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also mirror one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
 
     cmd.set_defaults(func=cmd_mirror)
 
-    cargs = parser.parse_args(_sys.argv[1:])
+    return parser
+
+def main() -> None:
+    _ : _t.Callable[[str], str] = gettext
+
+    parser = make_argparser()
+
+    try:
+        cargs = parser.parse_args(_sys.argv[1:])
+    except CatastrophicFailure as exc:
+        error(str(exc))
+        _sys.exit(1)
 
     if cargs.help:
         if cargs.markdown:
+            parser = make_argparser(False)
             parser.set_formatter_class(argparse.MarkdownBetterHelpFormatter)
             print(parser.format_help(8192))
         else:
