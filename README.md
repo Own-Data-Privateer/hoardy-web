@@ -427,7 +427,11 @@ See ["Setup recommendations"](#setup) section for best practices for configuring
 
   or similar by default to switch between profiles on browser startup.
 
-- It is highly recommended you make separate browser profiles for anonymous and logged-in browsing with separate extension instances pointing to separate archiving server instances dumping data to different directories on disk.
+- In case you plan to ever share some of your captures, it is highly recommended you make separate browser profiles for anonymous and logged-in browsing with separate extension instances either
+
+  - pointing to separate archiving server instances dumping data to different directories on disk;
+
+  - or, alternatively, using the same archiving server, but using different default `Bucket` values in the `Hoardy-Web` extension.
 
   Set the "anonymous" browser profile to always run in `Private Browsing` mode to prevent login persistence there.
   If you do accidentally login in "anonymous" profile, move those dumps out of the "anonymous" directory immediately.
