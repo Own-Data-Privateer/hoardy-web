@@ -24,9 +24,7 @@ from kisstdlib.exceptions import *
 from kisstdlib.io import *
 from kisstdlib.io.stdio import *
 
-from .type import *
 from .wrr import *
-from .mime import *
 
 def abridge_anystr(value : _t.AnyStr, length : int, ln : bool) -> tuple[bool, _t.AnyStr]:
     hlength = length // 2

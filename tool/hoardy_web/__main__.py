@@ -40,9 +40,9 @@ from kisstdlib.io import *
 from kisstdlib.io.stdio import *
 from kisstdlib.logging import *
 
+from .filter import *
 from .wrr import *
 from .output import *
-from .filter import *
 
 __prog__ = "hoardy-web"
 
@@ -383,13 +383,12 @@ def get_bytes(value : _t.Any) -> bytes:
         raise Failure(gettext("don't know how to print an expression of type `%s`"), type(value).__name__)
 
 def cmd_pprint(cargs : _t.Any) -> None:
-    handle_paths(cargs)
-
     def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
         wrr_pprint(stdout, rrexpr.reqres, rrexpr.source.show_source(), cargs.abridged, cargs.sniff)
         stdout.flush()
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
+    handle_paths(cargs)
     map_wrr_paths(cargs, mk_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
     filters_warn()
 
@@ -486,8 +485,6 @@ def cmd_stream(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
 
-    handle_paths(cargs)
-
     stream = get_StreamEncoder(cargs)
 
     def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
@@ -501,23 +498,27 @@ def cmd_stream(cargs : _t.Any) -> None:
         stream.emit(rrexpr.source.show_source(), cargs.exprs, values)
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
+
+    handle_paths(cargs)
     stream.start()
     try:
         map_wrr_paths(cargs, mk_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
     finally:
         stream.finish()
+
     filters_warn()
 
 def cmd_find(cargs : _t.Any) -> None:
-    handle_paths(cargs)
-
     def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
         stdout.write(rrexpr.source.show_source())
         stdout.write_bytes(cargs.terminator)
         stdout.flush()
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
+
+    handle_paths(cargs)
     map_wrr_paths(cargs, mk_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
+
     filters_warn()
 
 example_url = [
@@ -1857,11 +1858,10 @@ def cmd_organize(cargs : _t.Any) -> None:
         cargs.walk_fs = True if not cargs.allow_updates else False
 
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
-    handle_paths(cargs)
-
-    rrexprs_load = mk_rrexprs_load(cargs)
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
+    rrexprs_load = mk_rrexprs_load(cargs)
+    handle_paths(cargs)
     emit : EmitFunc[ReqresExpr[FileSource]]
     if cargs.destination is not None:
         # destination is set explicitly
@@ -1896,10 +1896,10 @@ def cmd_organize(cargs : _t.Any) -> None:
 def cmd_import_generic(cargs : _t.Any,
                        rrexprs_loadf : _t.Callable[[str | bytes], _t.Iterator[ReqresExpr[DeferredSourceType]]]) -> None:
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
-    handle_paths(cargs)
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
+    handle_paths(cargs)
     emit : EmitFunc[ReqresExpr[DeferredSourceType]]
     emit, finish = make_deferred_emit(cargs, cargs.destination, output_format, "import", "importing", DeferredFileWrite, cargs.allow_updates)
     try:

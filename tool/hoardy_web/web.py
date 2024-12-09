@@ -883,7 +883,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     stages : list[_h5fb.Filter]
     stages = []
 
-    if not opts.whitespace:
+    if not_whitespace:
         stages.append(_h5ws.Filter)
     if opts.debug:
         stages.append(lambda x: prettify_html(opts.indent_step, True, x))

@@ -34,10 +34,10 @@ from kisstdlib.exceptions import *
 from kisstdlib.io.stdio import *
 from kisstdlib.path import *
 
+from .util import *
+from .type import *
 from .linst import *
 from .source import *
-from .type import *
-from .util import *
 from .web import *
 
 class RRCommon:

@@ -351,7 +351,7 @@ def parse_url(url : str) -> ParsedURL:
 def test_parse_url() -> None:
     def check(x : ParsedURL, name : str, value : _t.Any) -> None:
         if getattr(x, name) != value:
-            raise CatastrophicFailure("while evaluating %s of %s, got %s, expected %s", name, x.raw_url, getattr(x, name), value)
+            raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", name, x.raw_url, value, getattr(x, name))
 
     tests1 : list[list[str| None]]
     tests1 = [
