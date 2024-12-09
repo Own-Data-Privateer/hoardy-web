@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Also, at the bottom of this file there is [a TODO list](#todo) with planned future changes.
+Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
 ## [tool-v0.19.0] - 2024-12-07: Powerful filtering, exporting of different URL visits, hybrid export modes
 
@@ -258,7 +258,7 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
 ### Changed
 
-- [The `Help` page](./extension/page/help.org):
+- The [`Help` page](./extension/page/help.org):
 
   - Rewrote "Conventions" and "'Work offline' mode" sections of to be much more readable.
 
@@ -336,7 +336,7 @@ Also, at the bottom of this file there is [a TODO list](#todo) with planned futu
 
 ### Added
 
-- [The `Help` page](./extension/page/help.org):
+- The [`Help` page](./extension/page/help.org):
 
   - Documented what `webNavigation` permission is used for, improved the rest a bit.
 
@@ -384,20 +384,20 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
     - Setting `Bucket` of `This tab` to nothing will reset it to `Bucket` value of `New root tabs`.
     - Setting `Bucket` of `New root tabs` to nothing will reset it to `default`.
 
-- [The `Help` page](./extension/page/help.org):
+- The [`Help` page](./extension/page/help.org):
 
   - The previous "Desktop" `JavaScript`-generated layout became `columns` `CSS` layout and `JS`-operation mode, while the "Mobile" `JavaScript`-generated layout became `linear` `CSS` layout and `JS`-operation mode.
     The page will now automatically switch between these two layouts and modes synchronously, depending on viewport width.
 
     (As before, in `linear` mode hovering over a link does nothing, but in `columns` mode, hovering over a link referring to a target in popup UI scrolls the popup UI column to that target and highlights it.)
 
-    I.e., this means that on a Desktop browser, you can now zoom [the `Help` page](./extension/page/help.org) to arbitrary zoom levels and it will just switch between layouts and link-hover behaviors depending on available viewport width.
+    I.e., this means that on a Desktop browser, you can now zoom the [`Help` page](./extension/page/help.org) to arbitrary zoom levels and it will just switch between layouts and link-hover behaviors depending on available viewport width.
 
-  - Greatly improved the styling of all links and documented it in [the "Conventions" section](./extension/page/help.org#conventions).
+  - Greatly improved the styling of all links and documented it in the ["Conventions" section](./extension/page/help.org#conventions).
 
 - All internal pages:
 
-  - All internal pages now color-code links depending on where they point to, using exactly the same `CSS` as [the `Help` page](./extension/page/help.org).
+  - All internal pages now color-code links depending on where they point to, using exactly the same `CSS` as the [`Help` page](./extension/page/help.org).
 
   - All pages now use the same history state handling behaviour.
 
@@ -500,7 +500,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
     In fact, from now on, by default, `Hoardy-Web` will enable `Work offline` in all tabs pointing to `file:` URLs.
     This can be disabled in the settings.
 
-  - Documented it in more detain on [the `Help` page](./extension/page/help.org#work-offline).
+  - Documented it in more detain on the [`Help` page](./extension/page/help.org#work-offline).
 
   - Added a new `offline` toolbar icon to display the above state.
 
@@ -519,7 +519,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
   - Implemented `Auto-reload on updates` setting to automate away clicking of that button on updates.
     Though, it is currently disabled by default, because this feature is a bit experimental at the moment.
 
-  - Documented it a little bit on [the `Help` page](./extension/page/help.org#bugs).
+  - Documented it a little bit on the [`Help` page](./extension/page/help.org#bugs).
 
   - That is, from now on, after the browser notifies the add-on that it ready to be updated, the popup UI will display a button allowing you to reload it, so that the browser could load the new version instead.
     Alternatively, you can now enable `Auto-reload on updates` and it would do that automatically.
@@ -544,14 +544,14 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
 - Notifications + Documentation:
 
-  - From now on, clicking an error notification will open [the relevant section of the `Help` page](./extension/page/help.org#error-notifications) while doing nothing for other notifications.
+  - From now on, clicking an error notification will open the [relevant section of the `Help` page](./extension/page/help.org#error-notifications) while doing nothing for other notifications.
 
   - Also, improved that section a little bit.
 
 - Documentation:
 
   - Moved re-archival instructions from the top-level [`README.md`](./README.md) to
-    [the `Help` page](./extension/page/help.org#re-archival) and generalized them a bit.
+    the [`Help` page](./extension/page/help.org#re-archival) and generalized them a bit.
 
   - Improved many random bits of documentation in random places.
 
@@ -580,7 +580,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
   - Fixed handling of interactions between page scrolling, node hilighting, and help tooltips.
 
-    I.e., on [the `Help` page](./extension/page/help.org), highlighting an option in the popup UI by hovering over a link there, and then clicking on the help tooltip of the highlighted option will no longer make the UI look weird.
+    I.e., on the [`Help` page](./extension/page/help.org), highlighting an option in the popup UI by hovering over a link there, and then clicking on the help tooltip of the highlighted option will no longer make the UI look weird.
 
 - Core + Notifications:
 
@@ -964,7 +964,7 @@ But the current state is quite usable.
 
 - `pWebArc` is now officially supported on Fenix (Firefox for Android). It is quite usable there now, so go forth and test it.
 
-- Chromium version now has a `update_url` set in the `manifest.json`, so if you use [`chromium-web-store`](https://github.com/NeverDecaf/chromium-web-store) or some such, it can be updated semi-automatically now, see [the extension's `README.md`](./extension/README.md) for more info.
+- Chromium version now has a `update_url` set in the `manifest.json`, so if you use [`chromium-web-store`](https://github.com/NeverDecaf/chromium-web-store) or some such, it can be updated semi-automatically now, see the [extension's `README.md`](./extension/README.md) for more info.
 
 - Implemented `User Interface and Accessibility > Verbose` option.
 
@@ -1016,7 +1016,7 @@ Moreover:
 
 - pWebArc now runs under Fenix aka Firefox-for-Android-based browsers, including at least Fennec and Mull.
 
-  Thought, `Export via 'saveAs'` archival method is broken there, because of [a bug in Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=1914360).
+  Thought, `Export via 'saveAs'` archival method is broken there, because of a [bug in Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=1914360).
   Other methods do work, though.
 
   (Also, it is not marked as compatible with Firefox on Android on addons.mozilla.org at the moment, it probably will be in the next version.)
@@ -1031,7 +1031,7 @@ Moreover:
 
 - Split `in_flight` stat into a sum of two numbers.
 
-  This makes things less confusing on Chromium, [the `Help` page](./extension/page/help.org) explains it in more detail.
+  This makes things less confusing on Chromium, the [`Help` page](./extension/page/help.org) explains it in more detail.
 
 - Added toolbar button's badge as a prefix to its title, changed its format a bit.
 
@@ -1042,7 +1042,7 @@ Moreover:
 
 - Improved documentation.
 
-  In particular, among other things, added a lot of new anchors to [the `Help` page](./extension/page/help.org), most internal links referencing some fact discussed in another section now point directly to the relevant paragraph instead of pointing to its section header.
+  In particular, among other things, added a lot of new anchors to the [`Help` page](./extension/page/help.org), most internal links referencing some fact discussed in another section now point directly to the relevant paragraph instead of pointing to its section header.
 
 ### Fixed
 
@@ -1050,7 +1050,7 @@ On Firefox:
 
 - Fixed capture of responses produced by service/shared workers.
 
-  Also, added a new error code for when it (very rarely) fails because of a race condition inherent in `webRequest` API and documented all of it on [the `Help` page](./extension/page/help.org).
+  Also, added a new error code for when it (very rarely) fails because of a race condition inherent in `webRequest` API and documented all of it on the [`Help` page](./extension/page/help.org).
 
 - Fixed `HTTP` protocol version detection, requests fetched via `HTTP/3` will now be marked as such.
 
@@ -1062,7 +1062,7 @@ On Chromium:
 
 Generally:
 
-- Fixed navigation with browser's `Back` and `Forward` buttons to work properly on [the `Help` page](./extension/page/help.org).
+- Fixed navigation with browser's `Back` and `Forward` buttons to work properly on the [`Help` page](./extension/page/help.org).
 
 - Fixed a bug where force-stopping all in-flight reqres in a single tab could also drop some of the others.
 
@@ -1074,7 +1074,7 @@ Generally:
 
 ### Changed
 
-- Improved documentation, especially [the `Help` page](./extension/page/help.org).
+- Improved documentation, especially the [`Help` page](./extension/page/help.org).
 - Tiny improvement in popup UI `HTML` layout.
 - Changed `config.history` default value.
 
@@ -1279,7 +1279,7 @@ Generally:
 - Improved keyboard shortcuts:
 
   - In popup UI, toggles and buttons with bound keyboard shortcuts will now get those shortcuts displayed in their tooltips.
-  - [The "Keyboard shortcuts" section of the `Help` page](./extension/page/help.org#keyboard-shortcuts) will now show currently active shortcuts (when viewed via the `Help` button from the extension UI).
+  - The ["Keyboard shortcuts" section of the `Help` page](./extension/page/help.org#keyboard-shortcuts) will now show currently active shortcuts (when viewed via the `Help` button from the extension UI).
   - The changes to the code there mean all the shortcuts will be reset to their default keys, but it makes stuff much cleaner internally, so.
   - Collecting all reqres from currently active tab's limbo is bound to `Alt+S` by default now (similarly to how `Ctrl+S` saves the page).
   - Discarding all reqres from currently active tab's limbo is bound to `Alt+W` by default now (similarly to how `Ctrl+W` closes the tab).
@@ -1379,7 +1379,7 @@ Generally:
 
   Terminology-wise, most notably, `picked` and `dropped` now mean what `collected` and `discarded` meant before.
 
-  See [the `Help` page](./extension/page/help.org) for more info.
+  See the [`Help` page](./extension/page/help.org) for more info.
 
 - A lot of changes to make pWebArc consistently use the above terminology --- both in the source and in the documentation --- were performed for this release.
 
@@ -1391,7 +1391,7 @@ Generally:
 
   - Similarly, the `Help` button will now get highlighted when that page gets updated.
 
-  - The popup, [the `Help` page](./extension/page/help.org), [the `Internal State` aka the `Log` page](#state-in-extension-ui-only) all had their UI improved greatly.
+  - The popup, the [`Help` page](./extension/page/help.org), the [`Internal State` aka the `Log` page](#state-in-extension-ui-only) all had their UI improved greatly.
 
   - All the toggles in the popup are now color-coded with their expected values, so if something looks red(-dish), you might want to check the help string in question just in case.
 
@@ -1539,7 +1539,7 @@ Generally:
                   \-> (failed to archive) -/
   ```
 
-- [The `Log` page became the `Internal State` page](#state-in-extension-ui-only), now shows in-flight and in-limbo reqres.
+- The [`Log` page became the `Internal State` page](#state-in-extension-ui-only), now shows in-flight and in-limbo reqres.
   It also allows narrowing to data belonging to a single tab now.
 
 - Improved UI.
@@ -1762,7 +1762,7 @@ Paths produced by `wrrarms organize` are expected to change:
 ### Changed
 
 - Improved handling of `304 Not Modified` responses.
-- Improved UI and [the `Help` page](./extension/page/help.org).
+- Improved UI and the [`Help` page](./extension/page/help.org).
 
 ### Fixed
 
@@ -1790,8 +1790,8 @@ All planned features are complete now.
 ### Changed
 
 - Improved popup UI.
-- Improved [the `Help` page](./extension/page/help.org): it's much more helpful now.
-- Improved [the `Log` page](#state-in-extension-ui-only): it's an interactive page that gets updated automatically now.
+- Improved the [`Help` page](./extension/page/help.org): it's much more helpful now.
+- Improved the [`Log` page](#state-in-extension-ui-only): it's an interactive page that gets updated automatically now.
 
 ### Fixed
 

@@ -2774,7 +2774,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         else:
             what = f"{oscrub}; also, {wscrub}"
 
-        agrp = cmd.add_argument_group(_("`MIME` type sniffing; this controls the use of [the `mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command " + what))
+        agrp = cmd.add_argument_group(_("`MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command " + what))
         grp = agrp.add_mutually_exclusive_group()
         grp.add_argument("--sniff-default", dest="sniff", action="store_const", const=SniffContentType.NONE, help=_("run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default"))
         grp.add_argument("--sniff-force", dest="sniff", action="store_const", const=SniffContentType.FORCE, help=_("run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`"))

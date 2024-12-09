@@ -15,7 +15,7 @@ Doing that will make this page interactive: the settings popup will be displayed
 See [[../../doc/gallery.md][screenshots]] if you want to see how it will look.
 
 You can still read this page outside of the extension's UI, but be prepared for all links pointing to =popup.html= to be useless.
-Also, [[https://oxij.org/software/hoardy-web/tree/master/extension/page/help.org][the version hosted on the author's web site]] is superior to what GitHub's web UI renders (this pages is written in =org-mode= markup language, converting it to GitHub Markdown will make things much harder, since it uses a lot of advanced markup features of =org-mode= to simplify things, and GitHub does not render =org-mode= files very well at the moment).
+Also, the [[https://oxij.org/software/hoardy-web/tree/master/extension/page/help.org][version hosted on the author's web site]] is superior to what GitHub's web UI renders (this pages is written in =org-mode= markup language, converting it to GitHub Markdown will make things much harder, since it uses a lot of advanced markup features of =org-mode= to simplify things, and GitHub does not render =org-mode= files very well at the moment).
 #+BEGIN_EXPORT html
 </div>
 #+END_EXPORT
@@ -25,10 +25,10 @@ Also, [[https://oxij.org/software/hoardy-web/tree/master/extension/page/help.org
 - by generating fake-Downloads containing either
   - separate dumps ([[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/doc/data-on-disk.md][one dump of an =HTTP= request+response per file]], also [[https://oxij.org/software/hoardy-web/tree/master/doc/data-on-disk.md][there]]) or
   - bundles of them (many dumps in a single file),
-- by archiving separate dumps to your own private archiving server (like [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/simple_server/][the =hoardy-web-sas= simple archiving server]], also [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][there]]), or
+- by archiving separate dumps to your own private archiving server (like the [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/simple_server/][=hoardy-web-sas= simple archiving server]], also [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][there]]), or
 - by archiving separate dumps to your browser's local storage.
 
-To view your archived data, see [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool][the accompanying =hoardy-web= CLI tool]] (also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]).
+To view your archived data, see the [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool][accompanying =hoardy-web= CLI tool]] (also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]).
 * Conventions
 :PROPERTIES:
 :CUSTOM_ID: conventions
@@ -62,7 +62,7 @@ In cases when clicking on a link scrolls this page around or navigates to anothe
 
 **Go forth and try it by clicking one or more of the above links.**
 
-The above rules are also apply on all other internal pages of =Hoardy-Web=, e.g. [[./changelog.html][the =Changelog= page]].
+The above rules are also apply on all other internal pages of =Hoardy-Web=, e.g. the [[./changelog.html][=Changelog= page]].
 * General operation
 ** Glossary
 - A /reqres/ (/REQuest/ + /RESponse/) is an internal object containing captured information about an =HTTP= request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
@@ -158,7 +158,7 @@ As shown on the above diagram, a new reqres proceeds through the following netwo
 *** The states after the =finished= state
 In principle, at reaching =finished= state the reqres can be serialized and saved to disk, but =Hoardy-Web= provides more states and UI for convenience and to workaround limitations of various browser APIs (a =WebExtensions= API function call that writes a data chunk into a file on a local file system while reporting out-of-disk-space errors does not exists).
 *** Glossary
-- [[./popup.html#div-stats.in_flight][An /in-flight reqres/]] ([[./popup.html#div-tabstats.in_flight][current tab]]) is a reqres that did not reach the =finished= state yet, in [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]] such reqres will be shown to be in =in_flight= state.
+- An [[./popup.html#div-stats.in_flight][/in-flight reqres/]] ([[./popup.html#div-tabstats.in_flight][current tab]]) is a reqres that did not reach the =finished= state yet, in [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]] such reqres will be shown to be in =in_flight= state.
 
   These two stats are represented as sums of two numbers:
 
@@ -218,11 +218,11 @@ If [[./popup.html#div-config.problematicNotify][this option]] is enabled =Hoardy
 If you don't care about the /problematic/ flag and it annoys you, you should disable that option, not options under [[./popup.html#problematic-options][=Mark reqres as 'problematic' when they finish= settings]].
 This way you could then still see the number of =problematic= reqres in extension's toolbar button's badge.
 *** Glossary
-- [[./popup.html#div-stats.picked][A /picked reqres/]] ([[./popup.html#div-tabstats.picked][current tab]]) is a /finished reqres/ that satisfied the conditions controlled by [[./popup.html#pick-options][=Pick reqres for archival when they finish= settings]] on entering the =finished= state.
+- A [[./popup.html#div-stats.picked][/picked reqres/]] ([[./popup.html#div-tabstats.picked][current tab]]) is a /finished reqres/ that satisfied the conditions controlled by [[./popup.html#pick-options][=Pick reqres for archival when they finish= settings]] on entering the =finished= state.
 
-- [[./popup.html#div-stats.dropped][A /dropped reqres/]] ([[./popup.html#div-tabstats.dropped][current tab]]) is a /finished reqres/ that did /NOT/ satisfy the conditions controlled by [[./popup.html#pick-options][=Pick reqres for archival when they finish= settings]] on entering the =finished= state.
+- A [[./popup.html#div-stats.dropped][/dropped reqres/]] ([[./popup.html#div-tabstats.dropped][current tab]]) is a /finished reqres/ that did /NOT/ satisfy the conditions controlled by [[./popup.html#pick-options][=Pick reqres for archival when they finish= settings]] on entering the =finished= state.
 
-- [[./popup.html#div-stats.problematic][A /problematic reqres/]] ([[./popup.html#div-tabstats.problematic][current tab]]) is a /finished reqres/ that satisfies the conditions set by [[./popup.html#problematic-options][=Mark reqres as 'problematic' when they finish= settings]].
+- A [[./popup.html#div-stats.problematic][/problematic reqres/]] ([[./popup.html#div-tabstats.problematic][current tab]]) is a /finished reqres/ that satisfies the conditions set by [[./popup.html#problematic-options][=Mark reqres as 'problematic' when they finish= settings]].
 ** Step 3: Collection, Discarding, and Limbo
 On exit from the =finished= state each reqres gets split into
 
@@ -254,13 +254,13 @@ Similarly, a /dropped reqres/ will be put into =in_limbo= when [[./popup.html#di
 
 If [[./popup.html#div-config.limboNotify][this option]] is enabled and there are more than [[./popup.html#div-config.limboMaxNumber][this number]] reqres =in_limbo= or the total size of all dumps =in_limbo= is more than [[./popup.html#div-config.limboMaxSize][this size]] (in MiB), =Hoardy-Web= will complain to remind you to /collect/ or /discard/ some of them so that your browser does not waste too much memory (and so that you won't loose too much data if something crashes while [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] discussed below is disabled).
 *** Glossary
-- [[./popup.html#div-stats.collected][A /collected reqres/]] ([[./popup.html#div-tabstats.collected][current tab]]) is a reqres that was (either automatically or manually) sent to the =collected= state.
+- A [[./popup.html#div-stats.collected][/collected reqres/]] ([[./popup.html#div-tabstats.collected][current tab]]) is a reqres that was (either automatically or manually) sent to the =collected= state.
 
-- [[./popup.html#div-stats.discarded][A /discarded reqres/]] ([[./popup.html#div-tabstats.discarded][current tab]]) is a reqres that was (either automatically or manually) sent to the =discarded= state.
+- A [[./popup.html#div-stats.discarded][/discarded reqres/]] ([[./popup.html#div-tabstats.discarded][current tab]]) is a reqres that was (either automatically or manually) sent to the =discarded= state.
 
-- [[./popup.html#div-stats.in_limbo][An /in-limbo reqres/]] ([[./popup.html#div-tabstats.in_limbo][current tab]]) is a reqres that is being held =in_limbo= until you manually /collect/ or /discard/ it.
+- An [[./popup.html#div-stats.in_limbo][/in-limbo reqres/]] ([[./popup.html#div-tabstats.in_limbo][current tab]]) is a reqres that is being held =in_limbo= until you manually /collect/ or /discard/ it.
 
-- [[./popup.html#stats.queued][A /queued reqres/]] (displayed on the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line) is a =collected= reqres that is still =queued= for archival.
+- A [[./popup.html#stats.queued][/queued reqres/]] (displayed on the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line) is a =collected= reqres that is still =queued= for archival.
 ** Step 3.5: Stashing
 :PROPERTIES:
 :CUSTOM_ID: stash
@@ -297,14 +297,14 @@ When both [[./popup.html#div-config.archive][=Archive 'collected' reqres= option
 
 You can also forcefully stash all currently =queued=, =in_limbo=, and =unarchived= reqres by pressing [[./popup.html#stashAll][this button]].
 It stashes everything immediately and unconditionally, ignoring all other stashing settings.
-When reloading the extension via [[./popup.html#div-reloadSelf][the =Reload= button]] or via [[./popup.html#div-config.autoReloadOnUpdates][=Auto-reload on updates= option]], this action will be run automatically.
+When reloading the extension via the [[./popup.html#div-reloadSelf][=Reload= button]] or via [[./popup.html#div-config.autoReloadOnUpdates][=Auto-reload on updates= option]], this action will be run automatically.
 *** Glossary
 - A /stuck queued reqres/ is a =queued= reqres that got stuck in the archival queue, e.g. because it got queued while [[./popup.html#div-config.archive][=Archive 'collected' reqres= option]] was disabled.
 
-- [[./popup.html#div-stats.stashed][A /stashed reqres/]] is a reqres that was temporarily =stashed= (backed-up) into browser's local storage while it is still being kept in =Hoardy-Web='s memory.
+- A [[./popup.html#div-stats.stashed][/stashed reqres/]] is a reqres that was temporarily =stashed= (backed-up) into browser's local storage while it is still being kept in =Hoardy-Web='s memory.
   I.e., the stash is a persistent on-disk backup for in-memory reqres.
 
-- [[./popup.html#div-stats.unstashed][A /failed to stash reqres/]] is a reqres that is currently =unstashed=, i.e. a reqres that failed to be stashed into browser's local storage.
+- A [[./popup.html#div-stats.unstashed][/failed to stash reqres/]] is a reqres that is currently =unstashed=, i.e. a reqres that failed to be stashed into browser's local storage.
   Note that reqres for which stashing was not even attempted are not included in this set.
   It is also a part of the sum of the "Failed" part of the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line.
 
@@ -346,7 +346,7 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres= toggle]] is
 - finally, if [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is disabled or if saving to local storage succeeds, =Hoardy-Web= will discard the reqres from memory.
 
 You can enable more than one [[./popup.html#on-archive][archival method]] at the same time.
-For a given =loggable=, =Hoardy-Web= will remember and skip previously successful archival methods if the =loggable= ever returns to the archival queue again (e.g., when one of the archival methods fails and you later ask =Hoardy-Web= to retry the archival, or when you re-queue a reqres from local storage from [[./popup.html#showSaved][the =Saved in Local Storage= page]]).
+For a given =loggable=, =Hoardy-Web= will remember and skip previously successful archival methods if the =loggable= ever returns to the archival queue again (e.g., when one of the archival methods fails and you later ask =Hoardy-Web= to retry the archival, or when you re-queue a reqres from local storage from the [[./popup.html#showSaved][=Saved in Local Storage= page]]).
 
 Note the difference between /stashed/ and /saved/ reqres:
 
@@ -377,11 +377,11 @@ When submitting to an =HTTP= server, =Hoardy-Web= will specify =bucket= as a que
 When stashing or saving to local storage, =Hoardy-Web= will record the value of =bucket= into each =loggable= before saving data to disk.
 If you restart your browser, thus starting a new =Hoardy-Web= session, =Hoardy-Web= will use the old stashed/saved =bucket= values for all new attempted archivals of old reqres generated by previous sessions.
 *** Glossary
-- [[./popup.html#div-stats.exportedAs][An /exported reqres/]] is a reqres that was successfully =exported= by generating a fake-Download containing its =dump=.
+- An [[./popup.html#div-stats.exportedAs][/exported reqres/]] is a reqres that was successfully =exported= by generating a fake-Download containing its =dump=.
 
-- [[./popup.html#div-stats.submittedHTTP][A /submitted reqres/]] is a reqres that was successfully =submitted= to the archiving server and thus was discarded from memory.
+- A [[./popup.html#div-stats.submittedHTTP][/submitted reqres/]] is a reqres that was successfully =submitted= to the archiving server and thus was discarded from memory.
 
-- [[./popup.html#div-stats.saved][A /saved reqres/]] is a reqres that was successfully =saved= by being archived into browser's local storage.
+- A [[./popup.html#div-stats.saved][/saved reqres/]] is a reqres that was successfully =saved= by being archived into browser's local storage.
 
 - /An archived reqres/ is either /exported/, /submitted/, or /saved/ reqres.
 ** Handling of failures
@@ -397,7 +397,7 @@ E.g., after the extension got reloaded with a non-empty queue, or if you previou
 If [[./popup.html#div-config.archiveFailedNotify][this option]] is enabled and a new reqres recently moved to the =unarchived= state, a new notification will be generated.
 If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
-- [[./popup.html#div-stats.unarchived][A /failed to archive reqres/]] is a reqres that is currently =unarchived=, i.e. a reqres that failed to be archived by one of the enabled [[./popup.html#on-archive][archival methods]].
+- A [[./popup.html#div-stats.unarchived][/failed to archive reqres/]] is a reqres that is currently =unarchived=, i.e. a reqres that failed to be archived by one of the enabled [[./popup.html#on-archive][archival methods]].
   It is also a part of the sum of the "Failed" part of the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line.
 
   You can retry archiving these by pressing [[./popup.html#retryUnarchived][this button]].
@@ -408,22 +408,22 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
 
 If you archived some data [[./popup.html#div-config.archiveSaveLS][by saving it into local storage]] and you now want to re-archive the same data using another method, do the following:
 
-- enable [[./popup.html#on-archive][the option for your desired archival method]] (e.g., [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'=]]),
+- enable the [[./popup.html#on-archive][option for your desired archival method]] (e.g., [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'=]]),
 - but keep the [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] enabled,
 - if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=exporting them via 'saveAs'= option]], you should probably temporarily set [[./popup.html#div-config.exportAsTimeout][this timeout]] to =0= to prevent idle waiting,
-- press the [[./popup.html#showSaved][the =Show= button on =Saved in LS= line]] in the popup to open the =Saved in Local Storage= page;
+- press the [[./popup.html#showSaved][=Show= button on =Saved in LS= line]] in the popup to open the =Saved in Local Storage= page;
 - set the filter of you desired archival method there to =false= (red) to make it only display reqres that were not yet archived using that archival method (e.g., set =Exported via 'saveAs'= to =false=);
 - then re-queue the data saved in local storage:
   - press the =Re-queue= button;
   - wait for =Hoardy-Web= to finish archival of newly re-queued reqres;
-  - (if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=exporting them via 'saveAs'= option]] while running on a truly ancient hardware and the above process is slow, you can disable [[./popup.html#div-config.gzipExportAs][the =GZip outputs= option]]; though, the resulting =WRR= bundles will take a lot of disk space in this case);
+  - (if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=exporting them via 'saveAs'= option]] while running on a truly ancient hardware and the above process is slow, you can disable the [[./popup.html#div-config.gzipExportAs][=GZip outputs= option]]; though, the resulting =WRR= bundles will take a lot of disk space in this case);
   - (also, if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=exporting them via 'saveAs'= option]], then after each =Re-queue= you should wait for the browser to save the resulting generated =WRR= bundles to disk and then confirm that each generated fake-Download did not fail; why? because if you re-archive a lot of data, thus generating many =WRR= bundles at once, and you run out of disk space in the process, the browser might fail a random subset of the generated fake-Downloads without telling =Hoardy-Web= anything about it; this is not an issue when archiving by [[./popup.html#div-config.archiveSubmitHTTP][=... submitting them via 'HTTP'=]], because archiving servers report their errors properly);
   - =Re-queue= more data, repeat until everything is re-archived.
 - set [[./popup.html#div-config.exportAsTimeout][this timeout]] to its previous value, if you changed it.
 
 If after you confirming everything was properly re-archived you now want to wipe that re-archived data from local storage, do the following:
 
-- press the [[./popup.html#showSaved][the =Show= button on =Saved in LS= line]] in the popup to open the =Saved in Local Storage= page;
+- press the [[./popup.html#showSaved][=Show= button on =Saved in LS= line]] in the popup to open the =Saved in Local Storage= page;
 - set the filter of you desired archival method there to =true= (green) to make it only display reqres that were already archived using that archived method;
 - press the =Delete= button there repeatedly, until everything is deleted.
 ** "Work offline" mode
@@ -452,10 +452,10 @@ And in some of those cases you might even want to prevent your browser from open
 
 To solve all of the above issues --- and to add an equivalent of =File > Work Offline= to Chromium-based browsers --- =Hoardy-Web= implements its own =Work offline= mode controlled via the following toggles:
 
-- [[./popup.html#div-config.workOffline][the global toggle]] is pretty much equivalent to the Firefox's own option and enables canceling of all new requests browser-wise;
+- the [[./popup.html#div-config.workOffline][global toggle]] is pretty much equivalent to the Firefox's own option and enables canceling of all new requests browser-wise;
 - [[./popup.html#div-tabconfig.workOffline][this toggle]] enables "Work offline" mode in the currently active tab, thus also preventing you from navigating to any Internet URLs by clicking any links that open in the same tab;
 - [[./popup.html#div-tabconfig.children.workOffline][this toggle]] enables it for the currently active tab's new children, thus also preventing you from opening any Internet URLs by spawning new tabs from it;
-- there is also [[./popup.html#div-config.root.workOffline][a toggle]] for controlling the default value of the above two options in newly spawned root tabs,
+- there is also a [[./popup.html#div-config.root.workOffline][toggle]] for controlling the default value of the above two options in newly spawned root tabs,
 - as well as toggles controlling "Work offline" mode for [[./popup.html#div-config.background.workOffline][background requests]] and [[./popup.html#div-config.extension.workOffline][requests generated by extensions]].
 
 Unlike the =File > Work Offline= option of Firefox, enabling any of these toggles:
@@ -464,9 +464,9 @@ Unlike the =File > Work Offline= option of Firefox, enabling any of these toggle
 - does not prevent generation of new =canceled= reqres when a corresponding =Track new requests= toggle is also enabled, and they can be seen in the [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]].
 
 In the latter case, those newly generated =canceled= reqres will also be marked as =problematic= if [[./popup.html#div-config.markProblematicWithImportantErrors][that]] option is enabled.
-So, for convenience, there is also [[./popup.html#div-config.workOfflineImpure][a toggle]] that controls whether toggling =Work offline= options (from the popup or with [[#keyboard-shortcuts][keyboard shortcuts]]) should also automatically set the corresponding =Track new requests= option to the opposite value.
+So, for convenience, there is also a [[./popup.html#div-config.workOfflineImpure][toggle]] that controls whether toggling =Work offline= options (from the popup or with [[#keyboard-shortcuts][keyboard shortcuts]]) should also automatically set the corresponding =Track new requests= option to the opposite value.
 
-Finally, there is also [[./popup.html#work-offline-url-options][a bunch options]] that automatically enable "Work offline" mode in tabs with various classes of URLs.
+Finally, there is also a [[./popup.html#work-offline-url-options][bunch options]] that automatically enable "Work offline" mode in tabs with various classes of URLs.
 By default, "Work offline" mode is enabled for =file:= URLs to stop any pages generated by =hoardy-web export mirror= to accessing the Internet.
 * Shortcuts
 =Hoardy-Web= provides a bunch of keyboard and context menu shortcuts to allow using it in more efficient ways.
@@ -480,13 +480,13 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 
 =Hoardy-Web= provides shortcuts to:
 
-- open [[./popup.html#showState][the =Internal State and Logs= page]], {{{shortcut(showState)}}};
+- open the [[./popup.html#showState][=Internal State and Logs= page]], {{{shortcut(showState)}}};
 - open the =Internal State and Logs= page, scrolled to the end of the log, {{{shortcut(showLog)}}};
-- open [[./popup.html#showTabState][the =Internal State and Logs= page]] narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
+- open the [[./popup.html#showTabState][=Internal State and Logs= page]] narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
 - open the =Internal State and Logs= page narrowed to the currently active tab's data, scrolled to the end of the log, {{{shortcut(showTabLog)}}};
 - toggle [[./popup.html#div-tabconfig.snapshottable][inclusion of the currently active tab in global snapshots]], then set [[./popup.html#div-tabconfig.children.snapshottable][inclusion of its children]] to the same value, {{{shortcut(toggleTabConfigSnapshottable)}}};
 - toggle [[./popup.html#div-tabconfig.children.snapshottable][inclusion of the currently active tab's children in global snapshots]], {{{shortcut(toggleTabConfigChildrenSnapshottable)}}};
-- toggle [[./popup.html#div-tabconfig.workOffline][work offline mode in the currently active tab]], then, if [[./popup.html#div-config.workOfflineImpure][impure]], set [[./popup.html#div-tabconfig.collecting][tracking]] to the opposite value, then set [[./popup.html#div-tabconfig.children.workOffline][the same options]] in [[./popup.html#div-tabconfig.children.collecting][its children]] to the same values, {{{shortcut(toggleTabConfigWorkOffline)}}};
+- toggle [[./popup.html#div-tabconfig.workOffline][work offline mode in the currently active tab]], then, if [[./popup.html#div-config.workOfflineImpure][impure]], set [[./popup.html#div-tabconfig.collecting][tracking]] to the opposite value, then set the [[./popup.html#div-tabconfig.children.workOffline][same options]] in [[./popup.html#div-tabconfig.children.collecting][its children]] to the same values, {{{shortcut(toggleTabConfigWorkOffline)}}};
 - toggle [[./popup.html#div-tabconfig.children.workOffline][work offline mode in the currently active tab's new children]], then, if [[./popup.html#div-config.workOfflineImpure][impure]], set [[./popup.html#div-tabconfig.children.collecting][tracking]] to the opposite value, {{{shortcut(toggleTabConfigChildrenWorkOffline)}}};
 - toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned =HTTP= requests in the currently active tab]], then set [[./popup.html#div-tabconfig.children.collecting][tracking in its children]] to the same value, {{{shortcut(toggleTabConfigTracking)}}};
 - toggle [[./popup.html#div-tabconfig.children.collecting][tracking of newly spawned =HTTP= requests currently active tab's children]], {{{shortcut(toggleTabConfigChildrenTracking)}}};
@@ -531,7 +531,7 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 
 - =Failed to archive <N> items because `Hoardy-Web` can't establish a connection to the archiving server at <URL>=
 
-  Are you running the [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][the archiving server script]]?
+  Are you running the [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][archiving server script]]?
 
 - =Failed to archive <N> items because requests to the archiving server failed with: <STATUS> <REASON>: <RESPONSE>=
 
@@ -562,12 +562,12 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
   - Ensure [[./popup.html#div-config.preferIndexedDB][=Prefer 'IndexedDB' API= setting]] is disabled.
   - Ensure [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is enabled.
   - Ensure [[./popup.html#div-config.archive][=Archive 'collected' reqres=]] is enabled.
-  - Open [[./popup.html#showSaved][the =Saved in Local Storage= page]].
+  - Open the [[./popup.html#showSaved][=Saved in Local Storage= page]].
   - Set =In 'storage.local'= filter there to =false= (red).
   - Press =Re-queue= button there to re-archive all those saved reqres from =IndexedDB= to =storage.local=.
   - Now, you can re-enable the =Always use private browsing mode= browser setting and restart you browser again.
 
-  All old data should be available from [[./popup.html#showSaved][the =Saved in Local Storage= page]] now.
+  All old data should be available from the [[./popup.html#showSaved][=Saved in Local Storage= page]] now.
 
 - =Failed to process <N> items becase <reason>=
 
@@ -626,7 +626,7 @@ In particular:
 #+BEGIN_EXPORT html
 <div class="hidden">
 #+END_EXPORT
-If you are reading this page outside of the extension's UI be sure to read [[#top][the very top of this page]] first.
+If you are reading this page outside of the extension's UI be sure to read the [[#top][very top of this page]] first.
 #+BEGIN_EXPORT html
 </div>
 #+END_EXPORT
@@ -643,9 +643,9 @@ If you are reading this page outside of the extension's UI be sure to read [[#to
 
 - On Firefox, fetches that spawn new downloads will be marked as =problematic= by default, since Firefox's implementation of =webRequest.filterResponseData= API does not provide their contents to the extension and I have not figured out how to distinguish them from other fetches yet.
 ** Known issues that are consequences of issues of all supported browsers
-- When =Hoardy-Web= is reloaded without using [[./popup.html#div-reloadSelf][the =Reload= button]] or [[./popup.html#div-config.autoReloadOnUpdates][=Auto-reload on updates= option]], i.e. when =Hoardy-Web= is reloaded by clicking the "Reload" button in browser's extension list, then all [[./popup.html#this-tab-options][per-tab setting]] of all tabs will be reset to [[./popup.html#root-tab-options][the values used by the newly spawned root tabs]].
+- When =Hoardy-Web= is reloaded without using the [[./popup.html#div-reloadSelf][=Reload= button]] or [[./popup.html#div-config.autoReloadOnUpdates][=Auto-reload on updates= option]], i.e. when =Hoardy-Web= is reloaded by clicking the "Reload" button in browser's extension list, then all [[./popup.html#this-tab-options][per-tab setting]] of all tabs will be reset to the [[./popup.html#root-tab-options][values used by the newly spawned root tabs]].
 
-  This issue is not applicable in the case when the reload happens because the extension was updated, in that case the browser will notify =Hoardy-Web= about it and =Hoardy-Web= will handle it properly, see the help string of [[./popup.html#div-reloadSelf][the =Reload= button]] for more info.
+  This issue is not applicable in the case when the reload happens because the extension was updated, in that case the browser will notify =Hoardy-Web= about it and =Hoardy-Web= will handle it properly, see the help string of the [[./popup.html#div-reloadSelf][=Reload= button]] for more info.
 
   But in the case of =Reload= buttons, the browser does not ask the extension nicely, so all unsaved internal state will be lost.
 
@@ -774,13 +774,13 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
 #+BEGIN_EXPORT html
 <div class="hidden">
 #+END_EXPORT
-If you are reading this page outside of the extension's UI be sure to read [[#top][the very top of this page]] first.
+If you are reading this page outside of the extension's UI be sure to read the [[#top][very top of this page]] first.
 #+BEGIN_EXPORT html
 </div>
 #+END_EXPORT
 ** General
 *** Does =Hoardy-Web= send any of my captured web browsing data anywhere?
-=Hoardy-Web= only ever sends your data to [[./popup.html#div-config.submitHTTPURLBase][the archiving =Server URL=]] you specify when [[./popup.html#div-config.archiveSubmitHTTP][the =Submit dumps via 'HTTP'= option]] is enabled.
+=Hoardy-Web= only ever sends your data to the [[./popup.html#div-config.submitHTTPURLBase][archiving =Server URL=]] you specify when the [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'= option]] is enabled.
 
 Nowhere else.
 Never else.
@@ -792,7 +792,7 @@ However, none of those are ever sent anywhere and [[./popup.html#resetPersistent
 No.
 I (the author) hate non-consensual data collection.
 
-In fact, as you might have noticed, =Hoardy-Web=, unlike most other browser extensions, is almost trivial to reproducible-build from source on a POSIX-compliant system with a Nix package manager installed, and it has [[https://oxij.org/software/hoardy-web/][a privately operated source code mirror]].
+In fact, as you might have noticed, =Hoardy-Web=, unlike most other browser extensions, is almost trivial to reproducible-build from source on a POSIX-compliant system with a Nix package manager installed, and it has a [[https://oxij.org/software/hoardy-web/][privately operated source code mirror]].
 
 This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough to only ever build it from source and install the results manually into their LibreWolf or some such, leaving zero telemetry fingerprints anywhere.
 *** =Hoardy-Web= asks for a lot of permissions, what does it use all those permissions for?
@@ -888,14 +888,14 @@ Also, [[#chromium-bug-autodetach][Chromium will occasionally detach its debugger
 :CUSTOM_ID: faq-disable-sw
 :END:
 
-This is a rare error caused by [[#error-race][a race condition between webpage's service/shared worker and browser's networking code]].
+This is a rare error caused by a [[#error-race][race condition between webpage's service/shared worker and browser's networking code]].
 
 Usually, you can ignore this error, since loading another related page is likely to fulfill the same URL.
 
 However, if this happens a lot to you, or if it annoys you, you can go to =about:config=, toggle =dom.serviceWorkers.enabled= to =false=, and restart the browser.
 Alternatively, you can use =NoScript= or some such extension to disable =JavaScript=, and thus the offending service/shared workers, on the page in question.
 *** Why does a (specific) URL or some part of it fails to be properly captured by =Hoardy-Web=?
-Did you read the notes on [[#bugs][the bugs of the browser you are using]]?
+Did you read the notes on the [[#bugs][bugs of the browser you are using]]?
 
 Most notably:
 

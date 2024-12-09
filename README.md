@@ -8,21 +8,21 @@ Practically speaking, you [install the `Hoardy-Web` browser extension/add-on int
 `Hoardy-Web` has a lot of configuration options to help you tweak what should or should not be archived and a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless explicitly configured otherwise to, e.g., minimize writes to disk instead).
 
 If you just want to start saving your browsing history, you can [start using the `Hoardy-Web` extension](#quickstart) independently of other tools that are being developed in this repository.
-But to display, search, extract useful values from, organize, manipulate, and run scripts over your archived data, you will eventually need to install and use at least [the accompanying `hoardy-web` CLI tool](./tool/).
+But to display, search, extract useful values from, organize, manipulate, and run scripts over your archived data, you will eventually need to install and use at least the [accompanying `hoardy-web` CLI tool](./tool/).
 
 To learn more:
 
-- See ["Why"](#why) section for why you might want to do this.
-- See ["Highlights"](#highlights) section for a longer description of what `Hoardy-Web` does and does not do.
+- See ["Why" section](#why) for why you might want to do this.
+- See ["Highlights" section](#highlights) for a longer description of what `Hoardy-Web` does and does not do.
 - See ["Alternatives"](#alternatives) for comparisons to alternatives.
 - See ["Frequently Asked Questions"](./extension/page/help.org#faq) for the answers to those.
   Additionally, see ["Quirks and Bugs"](./extension/page/help.org#bugs) for a full list of currently known quirks and issues/bugs.
-  These two sections of [the `Help` page](./extension/page/help.org) answer questions about most common issues you can encounter while using `Hoardy-Web` extension/add-on.
-- See ["Quickstart"](#quickstart) section for setup instructions.
+  These two sections of the [`Help` page](./extension/page/help.org) answer questions about most common issues you can encounter while using `Hoardy-Web` extension/add-on.
+- See ["Quickstart" section](#quickstart) for setup instructions.
 
 `Hoardy-Web` was previously known as "Personal Private Passive Web Archive" aka "pwebarc".
 
-If you are reading this on GitHub, be aware that this repository is [a mirror of a repository on the author's web site](https://oxij.org/software/hoardy-web/).
+If you are reading this on GitHub, be aware that this repository is a [mirror of a repository on the author's web site](https://oxij.org/software/hoardy-web/).
 In author's humble opinion, the rendering of the documentation pages there is superior to what can be seen on GitHub (its implemented via [`pandoc`](https://pandoc.org/) there).
 
 # Screenshots
@@ -92,7 +92,7 @@ Meanwhile, `Hoardy-Web` provides some of the tools to help you build your own li
 
 # <span id="highlights"/>Highlights
 
-[The `Hoardy-Web` browser extension](./extension/) runs under desktop versions of both Firefox- and Chromium-based browsers as well as under Firefox-for-Android-based browsers.
+The [`Hoardy-Web` browser extension](./extension/) runs under desktop versions of both Firefox- and Chromium-based browsers as well as under Firefox-for-Android-based browsers.
 
 `Hoardy-Web`'s main workflow is to passively collect and archive `HTTP` requests and responses (and, if you ask, also [`DOM` snapshots](./extension/page/help.org#faq-snapshot), i.e. the contents of the page after all `JavaScript` was run) directly from your browser as you browse the web.
 
@@ -130,10 +130,10 @@ Compared to [most of its alternatives](#alternatives), `Hoardy-Web` **DOES NOT**
 - send [any of your data anywhere (unless you explicitly configure it to do so)](./extension/page/help.org#faq);
 - send [any telemetry anywhere](./extension/page/help.org#faq);
 
-- require you to store all the things in browser's local storage where they can vanish at any moment (though, saving to local storage is the default because it simplifies on-boarding, but switching to another archival method takes a couple of clicks and [re-archival of old data from browser's local storage to elsewhere is easy](#in-tb));
+- require you to store all the things in browser's local storage where they can vanish at any moment (though, saving to local storage is the default because it simplifies on-boarding, but switching to another archival method takes a couple of clicks and [re-archival of old data from browser's local storage to elsewhere is easy](./extension/page/help.org#re-archival));
 - require you to run a database server;
 
-- require you to run a web browser to view the data you've already archived (in fact, [the `hoardy-web` tool](./tool/) comes with [a bunch of scripts](./tool/script/) which allow you to use other tools for that; e.g., a script to view `HTML` documents via `pandoc` piped into `less` in [your favorite tty emulator](https://st.suckless.org/)).
+- require you to run a web browser to view the data you've already archived (in fact, the [`hoardy-web` tool](./tool/) comes with a [bunch of scripts](./tool/script/) which allow you to use other tools for that; e.g., a script to view `HTML` documents via `pandoc` piped into `less` in [your favorite tty emulator](https://st.suckless.org/)).
 
 Technically, `Hoardy-Web` is most similar to
 
@@ -150,7 +150,7 @@ But then I got annoyed by all the sites that don't work under `mitmproxy`, did s
 
 ### Required
 
-- [The `Hoardy-Web` browser extension](./extension/) that captures all `HTTP` requests and responses (and [`DOM` snapshots](./extension/page/help.org#faq-snapshot)) your browser fetches, dumps them [into `WRR` format](./doc/data-on-disk.md), and then exports them by generating fake-Downloads containing bundles of those dumps, submits them to the specified archiving server (by `POST`ing them to the specified URL), or saves the to browser's local storage.
+- The [`Hoardy-Web` browser extension](./extension/) that captures all `HTTP` requests and responses (and [`DOM` snapshots](./extension/page/help.org#faq-snapshot)) your browser fetches, dumps them [into `WRR` format](./doc/data-on-disk.md), and then exports them by generating fake-Downloads containing bundles of those dumps, submits them to the specified archiving server (by `POST`ing them to the specified URL), or saves the to browser's local storage.
 
   The extension is
 
@@ -158,28 +158,28 @@ But then I got annoyed by all the sites that don't work under `mitmproxy`, did s
 
   - *beta* while running under Fenix-based (Firefox-for-Android-based) browsers.
 
-  See [the "Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for known issues.
+  See the ["Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for known issues.
   Also, `Hoardy-Web` is tested much less on Chromium than on Firefox.
 
 ### Optional, but convenient
 
-- [The `hoardy-web-sas` simple archiving server](./simple_server/) that simply dumps everything the `Hoardy-Web` extension submits to it to disk, one file per `HTTP` request+response.
+- The [`hoardy-web-sas` simple archiving server](./simple_server/) that simply dumps everything the `Hoardy-Web` extension submits to it to disk, one file per `HTTP` request+response.
 
   The simple archiving server is *stable* (it's so simple there hardly could be any bugs there).
 
 ### Optional, but almost always required at some point
 
-- [The `hoardy-web` CLI tool](./tool/) that allows you to display, search, programmatically extract values from, organize, manipulate, import, and export web archives stored in [`WRR`](./doc/data-on-disk.md) and `mitmproxy` formats.
+- The [`hoardy-web` CLI tool](./tool/) that allows you to display, search, programmatically extract values from, organize, manipulate, import, and export web archives stored in [`WRR`](./doc/data-on-disk.md) and `mitmproxy` formats.
 
   `hoardy-web` tool is deep in its *beta* stage.
   At the moment, it does about 70% of the stuff I want it to do, and the things it does it does not do as well as I'd like.
-  See [the TODO list](./CHANGELOG.md#todo) for more info.
+  See the [TODO list](./CHANGELOG.md#todo) for more info.
 
 ### Optional, but useful
 
-- [A patch for Firefox](./firefox/) to allow `Hoardy-Web` extension to collect request `POST` data as-is. This is not required and even without that patch `Hoardy-Web` will collect everything in most cases, but it could be useful if you want to correctly capture `POST` requests that upload files.
+- A [patch for Firefox](./firefox/) to allow `Hoardy-Web` extension to collect request `POST` data as-is. This is not required and even without that patch `Hoardy-Web` will collect everything in most cases, but it could be useful if you want to correctly capture `POST` requests that upload files.
 
-  See [the "Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for more info.
+  See the ["Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for more info.
 
 ## <span id="philosophy"/>Technical Philosophy
 
@@ -195,21 +195,21 @@ But then I got annoyed by all the sites that don't work under `mitmproxy`, did s
 
 To conform to the above design principles
 
-- [the `Hoardy-Web` Web Extension browser add-on](./extension/) does almost no actual work, simply generating `HTTP` request+response dumps, archiving them, and then freeing the memory as soon as possible (unless you enable [limbo mode](./extension/page/help.org#faq-limbo), but then you asked for it), thus keeping your browsing experience snappy even on ancient hardware;
+- the [`Hoardy-Web` Web Extension browser add-on](./extension/) does almost no actual work, simply generating `HTTP` request+response dumps, archiving them, and then freeing the memory as soon as possible (unless you enable [limbo mode](./extension/page/help.org#faq-limbo), but then you asked for it), thus keeping your browsing experience snappy even on ancient hardware;
 
 - also the `Hoardy-Web` extension collects data as browser gives it, without any data normalization and conversion, when possible;
 
-- the dumps are generated using [the simplest, trivially parsable with many third-party libraries, yet most space-efficient on-disk file format representing separate `HTTP` requests+responses there currently is (aka `Web Request+Response`, `WRR`)](./doc/data-on-disk.md), which is a file format that is [both more general and more simple than `WARC`, much simpler than that `mitmproxy` uses, and much more efficient than `HAR`](./tool/README.md#glossary);
+- the dumps are generated using the [simplest, trivially parsable with many third-party libraries, yet most space-efficient on-disk file format representing separate `HTTP` requests+responses there currently is (aka `Web Request+Response`, `WRR`)](./doc/data-on-disk.md), which is a file format that is [both more general and more simple than `WARC`, much simpler than that `mitmproxy` uses, and much more efficient than `HAR`](./tool/README.md#glossary);
 
 - the `Hoardy-Web` extension can write the dumps it produces to disk by itself by generating fake-Dowloads containing bundles of `WRR` dumps, but because of limitations of browser APIs, `Hoardy-Web` can't tell if a file generated this way succeeds at being written to disk;
 
 - which is why, for users who want write guarantees and error reporting, the extension has other archival methods, which includes archival by submission via `HTTP`;
 
-  server-side part of submission via `HTTP` uses [the `hoardy-web-sas` simple archiving server](./simple_server/), which is tiny (less than 250 lines of code) pure-Python script that provides an `HTTP` interface for archival of dumps given via `HTTP POST` requests;
+  server-side part of submission via `HTTP` uses the [`hoardy-web-sas` simple archiving server](./simple_server/), which is tiny (less than 250 lines of code) pure-Python script that provides an `HTTP` interface for archival of dumps given via `HTTP POST` requests;
 
 - both the `Hoardy-Web` extension and the `hoardy-web-sas` simple archiving server write those dumps to disk as-is, with optional compression for data storage efficiency;
 
-- meanwhile, viewing of, generation of website mirrors from, organization and management, data normalization (massaging), post-processing, other ways of extraction of useful values from archived `WRR` files --- i.e. basically everything that is computationally expensive --- is delegated to [the `hoardy-web` CLI tool](./tool/);
+- meanwhile, viewing of, generation of website mirrors from, organization and management, data normalization (massaging), post-processing, other ways of extraction of useful values from archived `WRR` files --- i.e. basically everything that is computationally expensive --- is delegated to the [`hoardy-web` CLI tool](./tool/);
 
 - the `hoardy-web` CLI tool is [very easy to use in your own scripts](./tool/script/);
 
@@ -226,9 +226,9 @@ This way, if `hoardy-web` has some unexpected bug, or `hoardy-web import` adds s
 
 ### For a relatively layman user
 
-Currently, `Hoardy-Web` has two main use cases for regular users, in both of which you first capture some data using [the add-on](./extension/) and then you either
+Currently, `Hoardy-Web` has two main use cases for regular users, in both of which you first capture some data using the [add-on](./extension/) and then you either
 
-- feed a subset of your archives to [the `hoardy-web` CLI tool](./tool/) to [generate a static offline website mirror a-la `wget -mpk`](./tool/README.md#mirror), which you can then view with your favorite web-browser as normal;
+- feed a subset of your archives to the [`hoardy-web` CLI tool](./tool/) to [generate a static offline website mirror a-la `wget -mpk`](./tool/README.md#mirror), which you can then view with your favorite web-browser as normal;
   except, unlike with `wget`, you can discover you dislike the result, change some options, and re-generate the mirror **without re-downloading anything**;
 
 - you use `hoardy-web` to simply maintain a tree of symlinks pointing to latest `WRR` file for each URL and then read them --- by using `w3m`, `pandoc`, any other `HTML` reader you want, or feed them to TTS engine, or a Braille display --- via some [scripts](./tool/script/);
@@ -238,9 +238,9 @@ Currently, `Hoardy-Web` has two main use cases for regular users, in both of whi
 
 ### For a more technical user
 
-Alternatively, you can programmatically access that data by asking [the `hoardy-web` CLI tool](./tool/) to dump `WRR` files into JSONs or verbose CBORs for you, or you can [just parse `WRR` files yourself](./doc/data-on-disk.md) with readily-available libraries.
+Alternatively, you can programmatically access that data by asking the [`hoardy-web` CLI tool](./tool/) to dump `WRR` files into JSONs or verbose CBORs for you, or you can [just parse `WRR` files yourself](./doc/data-on-disk.md) with readily-available libraries.
 
-Since the whole of `hoardy-web` (the project) adheres to [the philosophy described above](#philosophy), the simultaneous use of `Hoardy-Web` (the extension) and `hoardy-web` (the tool) helps immensely when developing scrapers for uncooperative websites: you just visit them via your web browser as normal, then, possibly years later, use the `hoardy-web` tool to organize your archives and conveniently programmatically feed the archived data into your scraper without the need to re-fetch anything.
+Since the whole of `hoardy-web` (the project) adheres to the [philosophy described above](#philosophy), the simultaneous use of `Hoardy-Web` (the extension) and `hoardy-web` (the tool) helps immensely when developing scrapers for uncooperative websites: you just visit them via your web browser as normal, then, possibly years later, use the `hoardy-web` tool to organize your archives and conveniently programmatically feed the archived data into your scraper without the need to re-fetch anything.
 
 Given how simple the `WRR` file format is, you can modify any `HTTP` library to generate `WRR` files, thus allowing you to use the `hoardy-web` tool with data captured by other software, and use data produced by the `Hoardy-Web` extension as inputs to your own tools.
 
@@ -254,9 +254,9 @@ Also, as far as I'm aware, `hoardy-web` is a tool that can do more useful stuff 
 
     It is a must-read, though instead of reading that file raw I highly recommend you read it via the `Help` button of the extension's UI, since doing that will make the whole thing pretty interactive.
 
-  - See [the "Frequently Asked Questions" section of extension's `Help` page](./extension/page/help.org#faq) for the answers to the frequently asked questions, including those about common quirks you can encounter while using it.
+  - See the ["Frequently Asked Questions" section of extension's `Help` page](./extension/page/help.org#faq) for the answers to the frequently asked questions, including those about common quirks you can encounter while using it.
 
-  - See [the "Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for more info on quirks and limitations of `Hoardy-Web` when used on different browsers.
+  - See the ["Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for more info on quirks and limitations of `Hoardy-Web` when used on different browsers.
 
 - See [below](#alternatives) for a long list of comparisons to its alternatives.
 
@@ -266,7 +266,7 @@ Also, as far as I'm aware, `hoardy-web` is a tool that can do more useful stuff 
 
   - See [CHANGELOG.md](./CHANGELOG.md) for the progress log and human-readable description of recent changes (which is much shorter and more comprehensible than the commit log).
 
-  - See [the TODO list](./CHANGELOG.md#todo) for the list of things that are not implemented/ready yet.
+  - See the [TODO list](./CHANGELOG.md#todo) for the list of things that are not implemented/ready yet.
 
 - If you want to learn to use the `hoardy-web` tool, see [its README](./tool/README.md), which has a bunch of extended and explained usage examples.
 
@@ -279,7 +279,7 @@ Also, as far as I'm aware, `hoardy-web` is a tool that can do more useful stuff 
 
 - If you want to build the extension from source, see [its README](./extension/README.md).
 
-- If you are a developer, see all the `hoardy-web`-related links above, and also see the description of [the on-disk file format used by all these tools](./doc/data-on-disk.md).
+- If you are a developer, see all the `hoardy-web`-related links above, and also see the description of the [on-disk file format used by all these tools](./doc/data-on-disk.md).
 
 - If your questions are not unanswered by these, then [open an issue on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues) or [get in touch otherwise](https://oxij.org/#contact).
 
@@ -288,7 +288,7 @@ Also, as far as I'm aware, `hoardy-web` is a tool that can do more useful stuff 
 Yes, as of December 2024, I archive all of my web traffic using `Hoardy-Web`, without any interruptions, since October 2023.
 Before that my preferred tool was [mitmproxy](https://github.com/mitmproxy/mitmproxy).
 
-After adding each new feature to [the `hoardy-web` tool](./tool/), as a rule, I feed at least the last 5 years of my web browsing into it (at the moment, most of it converted from other formats to `.wrr`, obviously) to see if everything works as expected.
+After adding each new feature to the [`hoardy-web` tool](./tool/), as a rule, I feed at least the last 5 years of my web browsing into it (at the moment, most of it converted from other formats to `.wrr`, obviously) to see if everything works as expected.
 
 # Quickstart
 
@@ -342,7 +342,7 @@ It took me about 6 months before I had to refer back to previously archived data
 So, I recommend you start collecting immediately and be lazy about the rest.
 Also, I learned a lot about nefarious things some of the websites I visit do in the background while doing that, now you are going to learn the same.
 
-In practice, though, your will probably want to install at least [the `hoardy-web-sas` simple archiving server](./simple_server/) (see below for instructions) and switch `Hoardy-Web` to `Submit dumps via 'HTTP'` mode pretty soon [**because it is very easy to accidentally loose data using other archival methods**](./extension/page/help.org#faq-unsafe) and, assuming you have Python installed on your computer, it is also the most convenient archival method there is.
+In practice, though, your will probably want to install at least the [`hoardy-web-sas` simple archiving server](./simple_server/) (see below for instructions) and switch `Hoardy-Web` to `Submit dumps via 'HTTP'` mode pretty soon [**because it is very easy to accidentally loose data using other archival methods**](./extension/page/help.org#faq-unsafe) and, assuming you have Python installed on your computer, it is also the most convenient archival method there is.
 
 Or, alternatively, you can use the combination of archiving by saving of data to browser's local storage (the default) followed by manual export into `WRR` bundles [as described below in the section on using `Hoardy-Web` together with Tor Browser](#in-tb).
 
@@ -369,9 +369,9 @@ See ["Setup recommendations"](#setup) section for best practices for configuring
 
 - Install the Pythonic parts:
 
-  - Install [the `hoardy-web-sas` simple archiving server by following its "Installation" instructions](./simple_server/#quickstart).
+  - Install the [`hoardy-web-sas` simple archiving server by following its "Installation" instructions](./simple_server/#quickstart).
 
-  - Install [the `hoardy-web` CLI tool by following its "Installation" instructions](./tool/#quickstart).
+  - Install the [`hoardy-web` CLI tool by following its "Installation" instructions](./tool/#quickstart).
 
 - Test the results actually work:
 
@@ -411,7 +411,7 @@ See ["Setup recommendations"](#setup) section for best practices for configuring
   ```
 
   instead.
-  See [the extension's README](./extension/#build) for more info on how to install them manually.
+  See the [extension's README](./extension/#build) for more info on how to install them manually.
 
 # <span id="setup"/>Setup recommendations
 
@@ -446,7 +446,7 @@ When using `Hoardy-Web` with Tor Browser, you probably want to configure it all 
 
 So, in the mostly convenient yet sufficiently paranoid setup, you would only ever use `Hoardy-Web` extension configured to archive captured data to browser's local storage (which is the default) and then export your dumps manually at the end of a browsing session, see [re-archival intructions](./extension/page/help.org#re-archival).
 
-Yes, this is slightly annoying, but this is [the only absolutely safe way to export data out of `Hoardy-Web` without using submission via `HTTP`](./extension/page/help.org#faq-unsafe), and you don't need to do this at the end of each and every browsing session.
+Yes, this is slightly annoying, but this is the [only absolutely safe way to export data out of `Hoardy-Web` without using submission via `HTTP`](./extension/page/help.org#faq-unsafe), and you don't need to do this at the end of each and every browsing session.
 
 ### Simpler, but slightly unsafe
 
@@ -481,7 +481,7 @@ In theory, you can have the benefits of both invisibility of archival to local s
 - Then, at the end of the session, after you closed all the tabs, set `network.proxy.no_proxies_on`, enable submission via `HTTP` while disabling saving to local storage, re-archive, your local storage should now be empty, unset `network.proxy.no_proxies_on` again.
 
 In practice, doing this manually all the time is prone to errors.
-Automating this away is on [the TODO list](./CHANGELOG.md#todo).
+Automating this away is on the [TODO list](./CHANGELOG.md#todo).
 
 Then, you can improve on this setup even more by running both the Tor Browser and `./hoardy_web_sas.py` in separate containers/VMs.
 
@@ -522,9 +522,9 @@ Same issues:
 
   On the other hand, this is both inefficient and dangerous for long-term preservation of said data, since [it is very easy to accidentally loose data archived to browser's local storage (e.g., by uninstalling the extension)](./extension/page/help.org#faq-unsafe).
 
-  Which is why [`Hoardy-Web`](./extension/) has `Submit dumps via 'HTTP'` mode which will automatically submit your dumps to [the `hoardy-web-sas` simple archiving server](./simple_server/) instead.
+  Which is why [`Hoardy-Web`](./extension/) has `Submit dumps via 'HTTP'` mode which will automatically submit your dumps to the [`hoardy-web-sas` simple archiving server](./simple_server/) instead.
 
-- When running under Chromium, [a bunch of Chromium's bugs](./extension/page/help.org#chromium-bugs) make many things [pretty annoying](./extension/page/help.org#faq-debugger).
+- When running under Chromium, a [bunch of Chromium's bugs](./extension/page/help.org#chromium-bugs) make many things [pretty annoying](./extension/page/help.org#faq-debugger).
 
   Both `Hoardy-Web` and `archiveweb.page` suffer from exactly the same issues, which --- if you know what to look for --- you can notice straight in the advertisement animation [on their "Usage" page](https://archiveweb.page/en/usage/).
 
@@ -791,7 +791,7 @@ See [`CHANGELOG.md`](./CHANGELOG.md).
 
 ## TODO?
 
-See [the bottom of `CHANGELOG.md`](./CHANGELOG.md#todo).
+See the [bottom of `CHANGELOG.md`](./CHANGELOG.md#todo).
 
 ## License
 

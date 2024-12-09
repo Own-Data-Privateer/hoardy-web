@@ -1,6 +1,6 @@
 # What is `hoardy-web-sas`?
 
-`hoardy-web-sas` is a very simple archiving server for [the `Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/extension/) (also [there](https://oxij.org/software/hoardy-web/tree/master/extension/)).
+`hoardy-web-sas` is a very simple archiving server for the [`Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/extension/) (also [there](https://oxij.org/software/hoardy-web/tree/master/extension/)).
 
 I.e. this is the thing you run and then paste the URL of into the `Server URL` setting of the `Hoardy-Web` add-on.
 
