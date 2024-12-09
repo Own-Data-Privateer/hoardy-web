@@ -409,9 +409,9 @@ def print_exprs(rrexpr : ReqresExpr[_t.Any], exprs : list[tuple[str, LinstFunc]]
         fobj.write_bytes(data)
 
 default_expr = {
-    "get": "response.body|eb",
-    "run": "response.body|eb",
-    "stream": ".",
+    "dot": ".",
+    "raw_qbody": "request.body|eb",
+    "raw_sbody": "response.body|eb",
     "id": "response.body|eb|scrub response +all_refs",
     "void": "response.body|eb|scrub response -all_refs",
     "open": "response.body|eb|scrub response *all_refs",
@@ -2823,8 +2823,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         if kind == "get":
             agrp.add_argument("--expr-fd", metavar="INT", type=int, default = 1, help=_(f"file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `%(default)s`, i.e. `stdout`"))
 
-            def_expr = f"`{default_expr[kind]}`, which will dump the `HTTP` response body"
-            agrp.add_argument("-e", "--expr", dest="mexprs", metavar="EXPR", action=AddExprFd, type=str, default = {}, help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially (see also "printing" options below); the default depends on `--remap-*` options below') + \
+            agrp.add_argument("-e", "--expr", dest="mexprs", metavar="EXPR", action=AddExprFd, type=str, default = {}, help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially (see also "printing" options below); the default depends on options below') + \
                 _("; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following") + ":\n" + \
                 "- " + _("constants and functions:") + "\n" + \
                 "".join([f"  - `{name}`: {__(value[0])}\n" for name, value in ReqresExpr_atoms.items()]) + \
@@ -2833,8 +2832,8 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
                 "- " + _("derived attributes:") + "\n" + \
                 "".join([f"  - `{name}`: {__(value)}\n" for name, value in ReqresExpr_derived_attrs.items()]) + \
                 "- " + _("a compound expression built by piping (`|`) the above, for example") + __(f""":
-- `{default_expr["get"]}` (the default for `get` and `run`) will print raw `response.body` or an empty byte string, if there was no response;
-- `{default_expr["get"]}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
+- `{default_expr["raw_sbody"]}` (the default for `get` and `run`) will print raw `response.body` or an empty byte string, if there was no response;
+- `{default_expr["raw_sbody"]}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
 - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
 - `response.complete|false` will print `response.complete` or `False`;
 - `net_url|to_ascii|sha256|to_hex` will print a hexadecimal representation of the `sha256` hash of the URL that was actually sent over the network;
@@ -2849,10 +2848,13 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
 
         if kind == "stream":
             add_terminator(cmd, "`--format=raw` `--expr` printing", "print `--format=raw` `--expr` output values")
+            cmd.set_defaults(default_expr = "dot")
         elif kind == "mirror":
             add_separator(cmd, "rendering of `--expr` values", "render `--expr` values into outputs", short = False)
+            cmd.set_defaults(default_expr = "all")
         else:
             add_separator(cmd)
+            cmd.set_defaults(default_expr = "raw_sbody")
 
         def alias(what : str) -> str:
             return _("set the default value of `--expr` to `%s`") % (default_expr[what],)
@@ -2860,8 +2862,11 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         agrp = cmd.add_argument_group("default value of `--expr`")
         grp = agrp.add_mutually_exclusive_group()
 
-        if kind != "mirror":
-            grp.add_argument("--no-remap", dest="default_expr", action="store_const", const=kind, help=alias(kind) + _("; i.e. produce the raw response body; default"))
+        if kind == "stream":
+            grp.add_argument("--structure", dest="default_expr", action="store_const", const="dot", help=alias("dot") + _("; i.e. dump the whole structure; default"))
+
+        grp.add_argument("--raw-qbody", dest="default_expr", action="store_const", const="raw_qbody", help=alias("raw_qbody") + _("; i.e. produce the raw request body"))
+        grp.add_argument("--raw-sbody", "--no-remap", dest="default_expr", action="store_const", const="raw_sbody", help=alias("raw_sbody") + _("; i.e. produce the raw response body") + (_("; default") if kind in ["get", "run"] else ""))
 
         grp.add_argument("--remap-id", dest="default_expr", action="store_const", const="id", help=alias("id") + _("; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained"))
         grp.add_argument("--remap-void", dest="default_expr", action="store_const", const="void", help=alias("void") + _("; i.e. remap all URLs of response body into `javascript:void(0)` and empty `data:` URLs and censor out all dynamic content; results will be self-contained"))
@@ -2882,7 +2887,6 @@ I.e. this allows `{__prog__} mirror` to be used incrementally.
 
 Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
 """))
-            cmd.set_defaults(default_expr = "all")
 
             agrp = cmd.add_argument_group("link conversions")
             grp = agrp.add_mutually_exclusive_group()

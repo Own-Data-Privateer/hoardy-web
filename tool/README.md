@@ -390,7 +390,8 @@ See the documentation for the `--remap-*` options of `mirror` sub-command and th
 If you instead want a mirror made of raw files without any content censorship or link conversions, run:
 
 ```bash
-hoardy-web mirror -e 'response.body|eb' --to ~/hoardy-web/mirror-raw ~/hoardy-web/raw
+# --raw-(re)s(ponse)body
+hoardy-web mirror --raw-sbody --to ~/hoardy-web/mirror-raw ~/hoardy-web/raw
 ```
 
 The later command will render your mirror pretty quickly, but the other `mirror` commands use the `scrub` function, and that will be pretty slow, mostly because `html5lib` and `tinycss2` that `hoardy-web` uses for paranoid `HTML` and `CSS` parsing and filtering are fairly slow.
@@ -925,7 +926,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   - `--expr-fd INT`
   : file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `1`, i.e. `stdout`
   - `-e EXPR, --expr EXPR`
-  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially (see also "printing" options below); the default depends on `--remap-*` options below; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
+  : an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially (see also "printing" options below); the default depends on options below; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following:
     - constants and functions:
       - `es`: replace `None` value with an empty string `""`
       - `eb`: replace `None` value with an empty byte string `b""`
@@ -1127,7 +1128,9 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
   : print `--expr` values separated with `\0` (NUL) bytes
 
 - default value of `--expr`:
-  - `--no-remap`
+  - `--raw-qbody`
+  : set the default value of `--expr` to `request.body|eb`; i.e. produce the raw request body
+  - `--raw-sbody, --no-remap`
   : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body; default
   - `--remap-id`
   : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
@@ -1171,7 +1174,9 @@ Compute output values by evaluating expressions `EXPR`s for each of `NUM` reqres
   : print `--expr` values separated with `\0` (NUL) bytes
 
 - default value of `--expr`:
-  - `--no-remap`
+  - `--raw-qbody`
+  : set the default value of `--expr` to `request.body|eb`; i.e. produce the raw request body
+  - `--raw-sbody, --no-remap`
   : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body; default
   - `--remap-id`
   : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
@@ -1426,8 +1431,12 @@ Compute given expressions for each of given `WRR` files, encode them into a requ
   : print `--format=raw` `--expr` output values terminated with `\0` (NUL) bytes
 
 - default value of `--expr`:
-  - `--no-remap`
-  : set the default value of `--expr` to `.`; i.e. produce the raw response body; default
+  - `--structure`
+  : set the default value of `--expr` to `.`; i.e. dump the whole structure; default
+  - `--raw-qbody`
+  : set the default value of `--expr` to `request.body|eb`; i.e. produce the raw request body
+  - `--raw-sbody, --no-remap`
+  : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body
   - `--remap-id`
   : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
   - `--remap-void`
@@ -3264,6 +3273,10 @@ In short, this sub-command generates static offline website mirrors, producing r
   : render `--expr` values into outputs separated with `\0` (NUL) bytes
 
 - default value of `--expr`:
+  - `--raw-qbody`
+  : set the default value of `--expr` to `request.body|eb`; i.e. produce the raw request body
+  - `--raw-sbody, --no-remap`
+  : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body
   - `--remap-id`
   : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. remap all URLs of response body with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones) and will censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
   - `--remap-void`
