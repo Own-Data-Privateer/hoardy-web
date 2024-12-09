@@ -993,7 +993,7 @@ Compute output values by evaluating expressions `EXPR`s on a given reqres stored
               - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it indents `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging; `-debug` is noop, which is the default;
     - reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:
       - `version`: WEBREQRES format version; int
-      - `source`: `+`-separated list of applications that produced this reqres; str
+      - `agent`: `+`-separated list of applications that produced this reqres; str
       - `protocol`: protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str
       - `request.started_at`: request start time in seconds since 1970-01-01 00:00; Epoch
       - `request.method`: request `HTTP` method; e.g. `"GET"`, `"POST"`, etc; str

@@ -9,7 +9,7 @@ reqres = reqresV1
 
 reqresV1 = [
     "WEBREQRES/1",
-    source,
+    agent,
     protocol,
     requestV1,
     responseV1,
@@ -38,7 +38,7 @@ responseV1 = null | [
 optionalData = <map from str to anything>
 ```
 
-- `source` is a short description of the data source, like `Firefox/102.0+Hoardy-Web/0.1`;
+- `agent` is a short description of the agent used to create this `reqres`, like `Firefox/102.0+Hoardy-Web/0.1`;
 - `optionalData` currently stores optional `origin_url` and `document_url` when different from both the URL in question and `Referer` request header (this is useful for indexing and search by URL);
 - `responseV1` can be `null` when the request got no response, like when experiencing a network issue (archival of such request+response pairs is disabled by default, see extension's settings).
 

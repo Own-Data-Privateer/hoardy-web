@@ -119,7 +119,7 @@ class WebSocketFrame:
 
 Reqres_fields = {
     "version": "WEBREQRES format version; int",
-    "source": "`+`-separated list of applications that produced this reqres; str",
+    "agent": "`+`-separated list of applications that produced this reqres; str",
     "protocol": 'protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str',
     "request.started_at": "request start time in seconds since 1970-01-01 00:00; Epoch",
     "request.method": 'request `HTTP` method; e.g. `"GET"`, `"POST"`, etc; str',
@@ -140,7 +140,7 @@ Reqres_fields = {
 @_dc.dataclass
 class Reqres:
     version : int
-    source : str
+    agent : str
     protocol : str
     request : Request
     response : _t.Optional[Response]
@@ -199,7 +199,7 @@ def wrr_load_cbor_struct(data : _t.Any) -> Reqres:
     if not isinstance(data, list):
         raise WRRParsingError(gettext("Reqres parsing failure: wrong spine"))
     elif len(data) == 7 and data[0] == "WEBREQRES/1":
-        _, source, protocol, request_, response_, finished_at, extra = data
+        _, agent, protocol, request_, response_, finished_at, extra = data
         rq_started_at, rq_method, rq_url, rq_headers, rq_complete, rq_body = request_
         purl = parse_url(_t_str("request.url", rq_url))
         if purl.scheme not in Reqres_url_schemes:
@@ -235,7 +235,7 @@ def wrr_load_cbor_struct(data : _t.Any) -> Reqres:
                                                 _t_int("ws.opcode", opcode),
                                                 _t_bytes("ws.content", content)))
 
-        return Reqres(1, source, protocol, request, response, _t_epoch("finished_at", finished_at), extra, websocket)
+        return Reqres(1, agent, protocol, request, response, _t_epoch("finished_at", finished_at), extra, websocket)
     else:
         raise WRRParsingError(gettext("Reqres parsing failure: unknown format `%s`"), data[0])
 
@@ -288,7 +288,7 @@ def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
             wsframes.append([_f_epoch(frame.sent_at), frame.from_client, frame.opcode, frame.content])
         extra["websocket"] = wsframes
 
-    structure = ["WEBREQRES/1", reqres.source, reqres.protocol, request, response, _f_epoch(reqres.finished_at), extra]
+    structure = ["WEBREQRES/1", reqres.agent, reqres.protocol, request, response, _f_epoch(reqres.finished_at), extra]
 
     data = _cbor2.dumps(structure)
     if compress:

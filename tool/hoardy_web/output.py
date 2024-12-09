@@ -55,7 +55,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
         else:
             assert False
     fobj.write_str_ln(f"WEBREQRES/{str(reqres.version)} {reqres.protocol} {req.method} {req.url.raw_url} {code} {reason}")
-    fobj.write_str_ln(f"source {reqres.source}")
+    fobj.write_str_ln(f"agent {reqres.agent}")
 
     req_complete = "incomplete"
     if req.complete:
