@@ -36,6 +36,7 @@ from kisstdlib.path import *
 
 from .util import *
 from .type import *
+from .tracking import *
 from .linst import *
 from .source import *
 from .web import *
@@ -149,13 +150,16 @@ class Reqres:
     websocket : _t.Optional[list[WebSocketFrame]]
     _approx_size : int = 0
 
-    def __post_init__(self) -> None:
-        self._approx_size = 128 \
-            + self.request.approx_size() \
-            + (self.response.approx_size() if self.response is not None else 0) \
-            + (sum(map(lambda x: x.approx_size(), self.websocket)) if self.websocket is not None else 0)
+    def _resize(self) -> int:
+        self._approx_size = res = 128 + \
+            self.request.approx_size() + \
+            (self.response.approx_size() if self.response is not None else 0) + \
+            (sum(map(lambda x: x.approx_size(), self.websocket)) if self.websocket is not None else 0)
+        return res
 
     def approx_size(self) -> int:
+        if self._approx_size == 0:
+            return self._resize()
         return self._approx_size
 
 Reqres_url_schemes = frozenset(["http", "https", "ftp", "ftps", "ws", "wss"])
@@ -542,13 +546,29 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
     source : DeferredSourceType
 
     _reqres : Reqres | None
-    original : _t.Any | None = _dc.field(default = None)
 
     sniff : SniffContentType = _dc.field(default=SniffContentType.NONE)
     remap_url : URLRemapper | None = _dc.field(default = None)
 
+    _original : _t.Any | None = _dc.field(default = None)
+    _approx_size : int = _dc.field(default = 0)
+
     def __post_init__(self) -> None:
         LinstEvaluator.__init__(self, ReqresExpr_lookup)
+        mem.consumption += self._resize()
+
+    def __del__(self) -> None:
+        mem.consumption -= self._approx_size
+
+    def _resize(self) -> int:
+        self._approx_size = res = 128 + \
+            (self.source.approx_size() if self.source is not None else 0) + \
+            (self._reqres._resize() if self._reqres is not None else 0) + \
+            sum(map(lambda k: len(k) + 16, self.values.keys()))
+        return res
+
+    def approx_size(self) -> int:
+        return self._approx_size
 
     @property
     def reqres(self) -> Reqres:
@@ -564,6 +584,7 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
             raise NotImplementedError()
 
         self._reqres = reqres
+        mem.consumption -= self._approx_size - self._resize()
         return reqres
 
     def unload(self, completely : bool = True) -> None:
@@ -572,12 +593,7 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
             self._reqres = None
         if completely:
             self.values = dict()
-
-    def approx_size(self) -> int:
-        return 128 + \
-            (self.source.approx_size() if self.source is not None else 0) + \
-            (self._reqres.approx_size() if self._reqres is not None else 0) + \
-            sum(map(lambda k: len(k) + 16, self.values.keys()))
+        mem.consumption -= self._approx_size - self._resize()
 
     def show_source(self) -> str:
         return self.source.show_source()

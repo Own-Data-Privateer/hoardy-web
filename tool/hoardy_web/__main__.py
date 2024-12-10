@@ -1390,36 +1390,6 @@ flat_mhstn:   ==
 not_allowed = gettext("; this is not allowed to prevent accidental data loss")
 variance_help = gettext("; your `--output` format fails to provide enough variance to solve this problem automatically (did your forget to place a `%%(num)d` substitution in there?)") + not_allowed
 
-@_dc.dataclass
-class Memory:
-    consumption : int = 0
-
-@_dc.dataclass
-class SeenCounter(_t.Generic[_t.AnyStr]):
-    mem : Memory
-    state : _c.OrderedDict[_t.AnyStr, int] = _dc.field(default_factory=_c.OrderedDict)
-
-    def __len__(self) -> int:
-        return len(self.state)
-
-    def count(self, value : _t.AnyStr) -> int:
-        try:
-            count = self.state[value]
-        except KeyError:
-            self.state[value] = 0
-            self.mem.consumption += len(value)
-            return 0
-        else:
-            count += 1
-            self.state[value] = count
-            return count
-
-    def pop(self) -> tuple[_t.AnyStr, int]:
-        res = self.state.popitem(False)
-        abs_out_path, _ = res
-        self.mem.consumption -= len(abs_out_path)
-        return res
-
 DeferredDestinationType = _t.TypeVar("DeferredDestinationType")
 class DeferredOperation(_t.Generic[DeferredSourceType, DeferredDestinationType]):
     """A deferred `source` -> `destination` operation with updatable `source`.
@@ -1439,7 +1409,7 @@ class DeferredOperation(_t.Generic[DeferredSourceType, DeferredDestinationType])
         self.updated = False
 
     def approx_size(self) -> int:
-        return 48 + self.source.approx_size()
+        return 48
 
     def switch_source(self, new_source : DeferredSourceType, force : bool = False) -> bool:
         """Switch source of this operation.
@@ -1491,10 +1461,8 @@ def make_deferred_emit(cargs : _t.Any,
                  _t.Callable[[], None]]:
     terminator = cargs.terminator if cargs.dry_run is not None else None
 
-    # current memory consumption
-    mem = Memory()
     # for each `--output` value, how many times it was seen
-    seen_counter : SeenCounter[_t.AnyStr] = SeenCounter(mem)
+    seen_counter : SeenCounter[_t.AnyStr] = SeenCounter()
 
     # ReqresExpr cache indexed by destination path, this exists mainly
     # to minimize the number of calls to `stat`.
@@ -1571,9 +1539,9 @@ def make_deferred_emit(cargs : _t.Any,
 
             old_rrexpr = rrexpr_cache.pop(abs_out_path, None)
             if old_rrexpr is not None:
-                mem.consumption -= old_rrexpr.approx_size() + len(abs_out_path)
+                mem.consumption -= len(abs_out_path)
             rrexpr_cache[abs_out_path] = rrexpr
-            mem.consumption += rrexpr.approx_size() + len(abs_out_path)
+            mem.consumption += len(abs_out_path)
 
         # flush seen cache
         while num_seen > 0 and \
@@ -1590,6 +1558,7 @@ def make_deferred_emit(cargs : _t.Any,
                 continue
             run_intent(abs_out_path, intent)
             num_deferred -= 1
+            del intent
 
         if not final and \
            num_deferred <= max_deferred + max_batched and \
@@ -1627,7 +1596,7 @@ def make_deferred_emit(cargs : _t.Any,
               (num_cached > max_cached or mem.consumption > max_memory):
             abs_out_path, source = rrexpr_cache.popitem(False)
             num_cached -= 1
-            mem.consumption -= source.approx_size() + len(abs_out_path)
+            mem.consumption -= len(abs_out_path)
 
     def finish_updates() -> None:
         """Flush all of the queue."""
@@ -1707,7 +1676,7 @@ def make_deferred_emit(cargs : _t.Any,
             old_rrexpr : ReqresExpr[DeferredSourceType] | None
             old_rrexpr = rrexpr_cache.pop(abs_out_path, None)
             if old_rrexpr is not None:
-                mem.consumption -= old_rrexpr.approx_size() + len(abs_out_path)
+                mem.consumption -= len(abs_out_path)
 
             updated_rrexpr : ReqresExpr[DeferredSourceType] | None
             intent : DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr] | None
@@ -1736,7 +1705,7 @@ def make_deferred_emit(cargs : _t.Any,
 
             if updated_rrexpr is not None:
                 rrexpr_cache[abs_out_path] = updated_rrexpr
-                mem.consumption += updated_rrexpr.approx_size() + len(abs_out_path)
+                mem.consumption += len(abs_out_path)
 
             if not permitted:
                 if prev_rel_out_path == rel_out_path:
@@ -1957,8 +1926,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
     allow_updates = cargs.allow_updates == True
     skip_existing = cargs.allow_updates == "partial"
 
-    mem = Memory()
-    seen_counter : SeenCounter[str] = SeenCounter(mem)
+    seen_counter : SeenCounter[str] = SeenCounter()
 
     max_memory_mib = cargs.max_memory * 1024 * 1024
 
