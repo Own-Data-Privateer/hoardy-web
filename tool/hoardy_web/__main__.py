@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import bisect as _bisect
 import collections as _c
 import dataclasses as _dc
 import errno as _errno
@@ -41,6 +40,7 @@ from kisstdlib.io.stdio import *
 from kisstdlib.logging import *
 
 from .filter import *
+from .sorted_index import *
 from .wrr import *
 from .output import *
 
@@ -1896,17 +1896,14 @@ def cmd_mirror(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
 
-    handle_paths(cargs)
-    elaborate_paths(cargs.boring)
-
-    destination = _os.path.expanduser(cargs.destination)
     output_format = elaborate_output("--output", output_alias, cargs.output)
+    destination = _os.path.expanduser(cargs.destination)
 
+    content_output_format = elaborate_output("--content-output", content_output_alias, cargs.content_output)
     if cargs.content_destination is not None:
         content_destination = _os.path.expanduser(cargs.content_destination)
     else:
         content_destination = destination
-    content_output_format = elaborate_output("--content-output", content_output_alias, cargs.content_output)
 
     action_op : _t.Any
     action = cargs.content_action
@@ -1925,116 +1922,56 @@ def cmd_mirror(cargs : _t.Any) -> None:
     else:
         relative = not cargs.absolute
 
-    max_depth : int = cargs.depth
-    sniff = cargs.sniff
     allow_updates = cargs.allow_updates == True
     skip_existing = cargs.allow_updates == "partial"
 
-    seen_counter : SeenCounter[str] = SeenCounter()
+    singletons : bool
+    nearest : TimeStamp | None
+    singletons, nearest = cargs.mode
 
-    max_memory_mib = cargs.max_memory * 1024 * 1024
+    PathType : _t.TypeAlias = str
+    seen_counter : SeenCounter[PathType] = SeenCounter()
 
-    @_dc.dataclass
-    class Indexed:
-        stime : TimeStamp
-        rrexpr : ReqresExpr[_t.Any]
-        _abs_out_path : str | None = _dc.field(default = None)
-        _rrapprox_size : int = 0
+    PageIDType = tuple[TimeStamp, URLType]
+    committed : dict[PageIDType, PathType] = dict()
+    done : dict[PageIDType, PathType | None] = dict()
 
-        def __post_init__(self) -> None:
-            self._rrapprox_size = res = self.rrexpr.approx_size()
-            mem.consumption += 40 + res
-
-        def __del__(self) -> None:
-            mem.consumption -= 40 + self._rrapprox_size + \
-                (len(self._abs_out_path) if self._abs_out_path is not None else 0)
-
-        @property
-        def abs_out_path(self) -> str:
-            abs_out_path = self._abs_out_path
-            if abs_out_path is not None:
-                return abs_out_path
-
-            rrexpr = self.rrexpr
+    def get_abs_out_path(page_id : PageIDType, rrexpr : ReqresExpr[_t.Any]) -> PathType:
+        try:
+            return committed[page_id]
+        except KeyError:
             rrexpr.values["num"] = 0
             def_out_path = output_format % rrexpr
             rrexpr.values["num"] = seen_counter.count(def_out_path)
             rel_out_path = _os.path.join(destination, output_format % rrexpr)
-            self._abs_out_path = abs_out_path = _os.path.abspath(rel_out_path)
-            mem.consumption += len(abs_out_path)
+            committed[page_id] = abs_out_path = _os.path.abspath(rel_out_path)
+            mem.consumption += 8 + len(abs_out_path)
             return abs_out_path
 
-        def unload(self) -> None:
-            rrexpr = self.rrexpr
-            rrexpr.unload()
-            res = rrexpr.approx_size()
-            mem.consumption += res - self._rrapprox_size
-            self._rrapprox_size = res
+    if cargs.default_filters:
+        cargs.request_method += ["GET", "DOM"]
+        cargs.status_re += [".200C"]
 
-    PathType : _t.TypeAlias = str
-    PageIDType = tuple[TimeStamp, URLType]
+    _num, filters_allow, filters_warn = compile_filters(cargs)
+
+    root_filters_num, root_filters_allow, root_filters_warn = compile_filters(cargs, "root_")
+    have_root_filters = root_filters_num > 0
+
+    max_depth : int = cargs.depth
+    max_memory_mib = cargs.max_memory * 1024 * 1024
+
+    index : SortedIndex[URLType, TimeStamp, ReqresExpr[_t.Any]] = SortedIndex(nearest if singletons else None)
+
     NetURLOrPageIDType = URLType | PageIDType
-
-    # `Indexed` objects migrate from `index` to `queue` or `new_queue`, from
-    # `new_queue` to `queue`.
-    index : _c.defaultdict[URLType, list[Indexed]] = _c.defaultdict(list)
-    Queue = _c.OrderedDict[NetURLOrPageIDType, Indexed]
+    Queue = _c.OrderedDict[NetURLOrPageIDType, tuple[TimeStamp, ReqresExpr[_t.Any]]]
     queue : Queue = _c.OrderedDict()
-    done : dict[PageIDType, PathType | None] = dict()
 
-    class Stats:
-        indexed = 0
-        n = 0
-        doc_n = 0
-
-    multiples : bool
-    which : bool | TimeStamp | None
-    multiples, which = cargs.mode
-
-    def is_replaced_by(oobj : Indexed, nobj : Indexed) -> bool:
-        if isinstance(which, bool):
-            if not which:
-                return oobj.stime > nobj.stime
-            else:
-                return oobj.stime <= nobj.stime
-        elif which is not None:
-            return abs(which - nobj.stime) < abs(which - oobj.stime)
-        else:
-            return False
-
-    def from_index(stime : TimeStamp, net_url : URLType, precise : bool) -> Indexed | None:
-        iobjs = index.get(net_url, None)
-        if iobjs is None:
-            # unavailable
-            return None
-
-        ilen = len(iobjs)
-        if ilen == 1 or not multiples:
-            return iobjs[0]
-        elif which is not None and not precise:
-            if isinstance(which, bool):
-                if not which:
-                    # `--oldest*`
-                    return iobjs[0]
-                else:
-                    # `--latest*`
-                    return iobjs[-1]
-            else:
-                # `--nearest-*`
-                stime = which
-
-        pos = _bisect.bisect_right(iobjs, stime, key=lambda x: x.stime)
-        if pos == 0:
-            return iobjs[0]
-        elif pos >= ilen:
-            return iobjs[-1]
-
-        iprev = iobjs[pos - 1]
-        inext = iobjs[pos]
-        if abs(stime - iprev.stime) < abs(stime - inext.stime):
-            return iprev
-        else:
-            return inext
+    if stdout.isatty:
+        stdout.write_bytes(b"\033[32m")
+    stdout.write_str_ln(gettext("loading input `PATH`s..."))
+    if stdout.isatty:
+        stdout.write_bytes(b"\033[0m")
+    stdout.flush()
 
     def report_queued(stime : TimeStamp, net_url : URLType, pretty_net_url : URLType, source : DeferredSourceType, level : int, old_stime : TimeStamp | None = None) -> None:
         if stdout.isatty:
@@ -2049,85 +1986,57 @@ def cmd_mirror(cargs : _t.Any) -> None:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
 
-    if cargs.default_filters:
-        cargs.request_method += ["GET", "DOM"]
-        cargs.status_re += [".200C"]
-
-    _num, filters_allow, filters_warn = compile_filters(cargs)
-    rrexprs_load = mk_rrexprs_load(cargs)
-
-    root_filters_num, root_filters_allow, root_filters_warn = compile_filters(cargs, "root_")
-    have_root_filters = root_filters_num > 0
-
-    if stdout.isatty:
-        stdout.write_bytes(b"\033[32m")
-    stdout.write_str_ln(gettext("loading input `PATH`s..."))
-    if stdout.isatty:
-        stdout.write_bytes(b"\033[0m")
-    stdout.flush()
-
     def collect(enqueue_all : bool) -> EmitFunc[ReqresExpr[DeferredSourceType]]:
         def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
             stime = rrexpr.stime
             net_url = rrexpr.net_url
-
-            nobj = Indexed(stime, rrexpr)
-
-            iobjs = index.get(net_url, None)
-            if iobjs is None:
-                # first time seeing this `net_url`
-                index[net_url] = [nobj]
-            elif not multiples:
-                if is_replaced_by(iobjs[0], nobj):
-                    iobjs[0] = nobj
-            else:
-                pos = _bisect.bisect_right(iobjs, stime, key=lambda x: x.stime)
-                # NB: technically, this is O(N), but in reality this is usually O(1)
-                # for us, since most inserts are to the end of the list
-                iobjs.insert(pos, nobj)
-                Stats.indexed += 1
+            if not index.insert(net_url, stime, rrexpr):
+                return
 
             unqueued = True
             page_id = (stime, net_url)
-            for pid in [net_url, page_id]:
-                qobj = queue.get(pid, None)
-                if qobj is not None:
-                    if is_replaced_by(qobj, nobj):
-                        queue[pid] = nobj
-                        report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1, qobj.stime)
-                    unqueued = False
+            if nearest is not None:
+                for pid in [net_url, page_id]:
+                    qobj = queue.get(pid, None)
+                    if qobj is not None:
+                        qstime, qrrexpr = qobj
+                        if nearer_to_than(nearest, stime, qstime):
+                            queue[pid] = (stime, rrexpr)
+                            report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1, qstime)
+                        unqueued = False
 
             if unqueued:
                 if enqueue_all or have_root_filters and root_filters_allow(rrexpr):
-                    if multiples and which is None:
-                        # `--all`
-                        pid = page_id
-                    else:
-                        pid = net_url
-                    queue[pid] = nobj
+                    pid = net_url if nearest is not None else page_id
+                    #     ^ not `--all`                       ^ otherwise
+                    queue[pid] = (stime, rrexpr)
                     report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1)
                     unqueued = False
 
             if unqueued or mem.consumption > max_memory_mib:
-                nobj.unload()
+                rrexpr.unload()
         return emit
 
+    handle_paths(cargs)
+    elaborate_paths(cargs.boring)
+
+    rrexprs_load = mk_rrexprs_load(cargs)
     seen_paths : set[PathType] = set()
     map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(not have_root_filters), cargs.paths, seen_paths=seen_paths)
     map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(False), cargs.boring, seen_paths=seen_paths)
 
-    if multiples:
-        total = Stats.indexed
-    else:
-        total = len(index)
-
-    depth : int = 0
+    indexed_num = len(index)
 
     def remap_url_fallback(stime : TimeStamp, purl : ParsedURL, expected_content_types : list[str]) -> PathType:
         trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime, stime, stime))
         trrexpr.values["num"] = 0
         rel_out_path : PathType = _os.path.join(destination, output_format % trrexpr)
         return _os.path.abspath(rel_out_path)
+
+    class Mutable:
+        n : int = 0
+        doc_n : int = 0
+        depth : int = 0
 
     def render(stime : TimeStamp,
                net_url : URLType,
@@ -2140,11 +2049,11 @@ def cmd_mirror(cargs : _t.Any) -> None:
         source = rrexpr.source
 
         level0 = level == 0
-        Stats.n += 1
+        Mutable.n += 1
         if level0:
-            Stats.doc_n += 1
-        n = Stats.n
-        doc_n = Stats.doc_n
+            Mutable.doc_n += 1
+        n = Mutable.n
+        doc_n = Mutable.doc_n
         n100 = 100 * n
         n_total = n + len(new_queue) + len(queue)
 
@@ -2155,9 +2064,9 @@ def cmd_mirror(cargs : _t.Any) -> None:
                 stdout.write_bytes(b"\033[34m")
         ispace = " " * (2 * level)
         if level0:
-            stdout.write_str_ln(gettext(f"mirroring input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / total, total, doc_n, depth))
+            stdout.write_str_ln(gettext(f"mirroring input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / indexed_num, indexed_num, doc_n, Mutable.depth))
         else:
-            stdout.write_str_ln(ispace + gettext(f"mirroring requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / total, total))
+            stdout.write_str_ln(ispace + gettext(f"mirroring requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / indexed_num, indexed_num))
         stdout.write_str_ln(ispace + gettext("stime [%s]") % (stime.format(precision=3),))
         stdout.write_str_ln(ispace + gettext("net_url %s") % (net_url,))
         stdout.write_str_ln(ispace + gettext("src %s") % (source.show_source(),))
@@ -2181,12 +2090,12 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
                 is_requisite = link_type == LinkType.REQ
 
-                uobj = from_index(stime, unet_url, is_requisite)
+                uobj = index.get_nearest(unet_url, stime if nearest is None or is_requisite else nearest)
                 if uobj is None:
                     # unavailable
                     uabs_out_path = None
                 else:
-                    ustime = uobj.stime
+                    ustime, urrexpr = uobj
                     upage_id = (ustime, unet_url)
 
                     if is_requisite:
@@ -2205,28 +2114,28 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
                             # render it immediately
                             # NB: (breakCycles) breaks dependency cycles that can make this loop infinitely
-                            uabs_out_path = render(ustime, unet_url, uobj.rrexpr, uobj.abs_out_path, enqueue, new_queue, level + 1)
-                            uobj.unload()
+                            uabs_out_path = render(ustime, unet_url, urrexpr, get_abs_out_path(upage_id, urrexpr), enqueue, new_queue, level + 1)
+                            urrexpr.unload()
                     elif upage_id in done:
                         # nothing to do
-                        uabs_out_path = uobj.abs_out_path
+                        uabs_out_path = get_abs_out_path(upage_id, urrexpr)
                         # NB: will be unloaded already
                     elif upage_id in new_queue or upage_id in queue or \
                          unet_url in new_queue or unet_url in queue:
                         # nothing to do
-                        uabs_out_path = uobj.abs_out_path
+                        uabs_out_path = get_abs_out_path(upage_id, urrexpr)
                         if mem.consumption > max_memory_mib:
-                            uobj.unload()
+                            urrexpr.unload()
                     elif enqueue:
-                        uabs_out_path = uobj.abs_out_path
+                        uabs_out_path = get_abs_out_path(upage_id, urrexpr)
                         new_queue[upage_id] = uobj
-                        report_queued(ustime, unet_url, upurl.pretty_net_url, uobj.rrexpr.source, level + 1)
+                        report_queued(ustime, unet_url, upurl.pretty_net_url, urrexpr.source, level + 1)
                         if mem.consumption > max_memory_mib:
-                            uobj.unload()
+                            rrexpr.unload()
                     else:
                         # this will not be mirrored
                         uabs_out_path = None
-                        # NB: Not setting `uobj._abs_out_path = None` here
+                        # NB: Not setting `committed[upage_id] = None` here
                         # because it might be a requisite for another
                         # page. In which case, when not running with
                         # `--remap-all`, this page will void this
@@ -2312,21 +2221,23 @@ def cmd_mirror(cargs : _t.Any) -> None:
         if want_stop: raise KeyboardInterrupt()
 
         new_queue : Queue = _c.OrderedDict()
-        enqueue = depth < max_depth
+        enqueue = Mutable.depth < max_depth
 
         while len(queue) > 0:
             if want_stop: raise KeyboardInterrupt()
 
-            pid, iobj = queue.popitem(False)
-            if isinstance(pid, URLType):
-                net_url = pid
+            qpid, qobj = queue.popitem(False)
+            qstime, qrrexpr = qobj
+            if isinstance(qpid, URLType):
+                qnet_url = qpid
             else:
-                net_url = pid[1]
-            render(iobj.stime, net_url, iobj.rrexpr, iobj.abs_out_path, enqueue, new_queue, 0)
-            iobj.unload()
+                qnet_url = qpid[1]
+            qpage_id = (qstime, qnet_url)
+            render(qstime, qnet_url, qrrexpr, get_abs_out_path(qpage_id, qrrexpr), enqueue, new_queue, 0)
+            qrrexpr.unload()
 
         queue = new_queue
-        depth += 1
+        Mutable.depth += 1
 
     filters_warn()
     root_filters_warn()
@@ -3133,14 +3044,14 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
         def __call__(self, parser : _t.Any, cfg : argparse.Namespace, value : _t.Any, option_string : _t.Optional[str] = None) -> None:
             setattr(cfg, self.dest, self.const(timestamp(value)))
 
-    grp.add_argument("--oldest", dest="mode", action="store_const", const=(False, False), help=oldest)
-    grp.add_argument("--oldest-hybrid", dest="mode", action="store_const", const=(True, False), help=oldest + hybrid_long)
-    grp.add_argument("--nearest", dest="mode", metavar="DATE", action=EmitNear, const=lambda x: (False, x), help=near + date_spec)
-    grp.add_argument("--nearest-hybrid", dest="mode", metavar="DATE", action=EmitNear, const=lambda x: (True, x), help=near + hybrid_short + date_spec_id)
-    grp.add_argument("--latest", dest="mode", action="store_const", const=(False, True), help=latest + _("; default"))
-    grp.add_argument("--latest-hybrid", dest="mode", action="store_const", const=(True, True), help=latest + hybrid_short)
-    grp.add_argument("--all", dest="mode", action="store_const", const=(True, None), help=_("mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!"))
-    cmd.set_defaults(mode=(False, True)) # `--latest`
+    grp.add_argument("--oldest", dest="mode", action="store_const", const=(True, anytime.start), help=oldest)
+    grp.add_argument("--oldest-hybrid", dest="mode", action="store_const", const=(False, anytime.start), help=oldest + hybrid_long)
+    grp.add_argument("--nearest", dest="mode", metavar="DATE", action=EmitNear, const=lambda x: (True, x), help=near + date_spec)
+    grp.add_argument("--nearest-hybrid", dest="mode", metavar="DATE", action=EmitNear, const=lambda x: (False, x), help=near + hybrid_short + date_spec_id)
+    grp.add_argument("--latest", dest="mode", action="store_const", const=(True, anytime.end), help=latest + _("; default"))
+    grp.add_argument("--latest-hybrid", dest="mode", action="store_const", const=(False, anytime.end), help=latest + hybrid_short)
+    grp.add_argument("--all", dest="mode", action="store_const", const=(False, None), help=_("mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!"))
+    cmd.set_defaults(mode=(True, anytime.end)) # `--latest`
 
     add_fileout(cmd, "mirror")
 
