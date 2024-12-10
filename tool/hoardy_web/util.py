@@ -20,6 +20,18 @@ import io as _io
 import traceback as _traceback
 import typing as _t
 
+def getattr_rec(obj : _t.Any, names : list[str]) -> _t.Any:
+    if len(names) == 0:
+        return obj
+
+    this, *rest = names
+    if hasattr(obj, this):
+        return getattr_rec(getattr(obj, this), rest)
+    elif isinstance(obj, dict) and this in obj:
+        return getattr_rec(obj[this], rest)
+
+    raise AttributeError(name=this, obj=obj)
+
 InType = _t.TypeVar("InType")
 OutType = _t.TypeVar("OutType")
 def map_optional(f : _t.Callable[[InType], OutType], x : InType | None) -> OutType | None:

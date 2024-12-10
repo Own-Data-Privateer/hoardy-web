@@ -681,8 +681,8 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
                 field = name.split(".")
             # set to None if it does not exist
             try:
-                res = rec_get(self.reqres, field)
-            except Failure:
+                res = getattr_rec(self.reqres, field)
+            except AttributeError:
                 res = None
             self.values[name] = res
         else:

@@ -94,15 +94,3 @@ def fmt_epoch_diff(from_epoch : Epoch, to_epoch : Epoch, decimal : bool = True) 
 
 def fmt_epoch_interval(from_epoch : Epoch, to_epoch : Epoch, decimal : bool = True) -> str:
     return f"[{from_epoch.format(decimal)}]--[{to_epoch.format(decimal)}] => {fmt_epoch_diff(from_epoch, to_epoch, decimal)}"
-
-def rec_get(obj : _t.Any, field : list[str]) -> _t.Any:
-    if len(field) == 0:
-        return obj
-
-    this, *rest = field
-    if isinstance(obj, dict) and this in obj:
-        return rec_get(obj[this], rest)
-    elif hasattr(obj, "__dataclass_fields__") and this in obj.__dataclass_fields__:
-        return rec_get(getattr(obj, this), rest)
-    else:
-        raise Failure("object of type `%s` does not have an attribute named `%s'", type(obj).__name__, this)
