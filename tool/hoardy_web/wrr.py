@@ -548,7 +548,7 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
     _reqres : Reqres | None
 
     sniff : SniffContentType = _dc.field(default=SniffContentType.NONE)
-    remap_url : URLRemapper | None = _dc.field(default = None)
+    remap_url : URLRemapperType | None = _dc.field(default = None)
 
     _original : _t.Any | None = _dc.field(default = None)
     _approx_size : int = _dc.field(default = 0)

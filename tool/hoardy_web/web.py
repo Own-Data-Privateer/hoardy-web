@@ -39,13 +39,15 @@ from .wire import *
 from .mime import *
 from .util import map_optional, map_optionals, make_func_pipe
 
-def is_data_url(url : str) -> bool:
+URLType : _t.TypeAlias = str
+
+def is_data_url(url : URLType) -> bool:
     return url.startswith("data:")
 
-def is_script_url(url : str) -> bool:
+def is_script_url(url : URLType) -> bool:
     return url.startswith("javascript:")
 
-def is_page_url(url : str) -> bool:
+def is_page_url(url : URLType) -> bool:
     return url.startswith("http:") or url.startswith("https:")
 
 class LinkType(_enum.Enum):
@@ -59,8 +61,76 @@ def get_void_url(link_type : LinkType) -> str:
     else:
         return "javascript:void(0)"
 
-RefType = tuple[LinkType, list[str]] # tuple[LinkType, possible mime types]
-URLRemapper = _t.Callable[[LinkType, list[str] | None, str], str | None] | None
+RefType = tuple[LinkType, list[URLType]] # tuple[LinkType, possible mime types]
+URLRemapperType = _t.Callable[[URLType, LinkType, list[str] | None], URLType | None]
+
+web_url_schemes = frozenset(["http", "https", "ftp", "ftps"])
+noop_url_schemes = frozenset(["mailto", "irc", "magnet"])
+
+def remappable_web(scheme : str) -> bool | None:
+    if scheme in noop_url_schemes:
+        return None
+    elif scheme in web_url_schemes:
+        return True
+    return False
+
+def cached_remap_url(document_net_url : URLType,
+                     remap_url : _t.Callable[[URLType, ParsedURL, LinkType, list[str] | None], URLType | None],
+                     *,
+                     remappable : _t.Callable[[str], bool | None] = remappable_web,
+                     paranoid : bool = True,
+                     handle_warning : _t.Callable[..., None] | None = None) \
+                     -> URLRemapperType:
+    remap_cache : dict[tuple[URLType, bool], URLType | None] = dict()
+
+    def our_remap_url(url : URLType, link_type : LinkType, fallbacks : list[str] | None) -> URLType | None:
+        is_requisite = link_type == LinkType.REQ
+        cache_id = (url, is_requisite)
+        try:
+            return remap_cache[cache_id]
+        except KeyError:
+            pass
+
+        res : URLType | None
+        try:
+            purl = parse_url(url)
+        except URLParsingError:
+            if handle_warning is not None:
+                handle_warning("malformed URL `%s`", url)
+            if is_requisite or paranoid:
+                remap_cache[cache_id] = res = get_void_url(link_type)
+                return res
+            else:
+                remap_cache[cache_id] = url
+                return url
+
+        cr = remappable(purl.scheme)
+        if cr is None:
+            remap_cache[cache_id] = url
+            return url
+        elif not cr:
+            if is_requisite:
+                if handle_warning is not None:
+                    handle_warning("malformed requisite URL `%s`", url)
+                remap_cache[cache_id] = res = get_void_url(link_type)
+                return res
+            else:
+                if handle_warning is not None:
+                    handle_warning("not remapping `%s`", url)
+                remap_cache[cache_id] = url
+                return url
+
+        net_url = purl.net_url
+
+        if net_url == document_net_url:
+            # this is a reference to an inter-page `id`
+            remap_cache[cache_id] = res = purl.ofm + purl.fragment
+            return res
+
+        remap_cache[cache_id] = res = remap_url(net_url, purl, link_type, fallbacks)
+        return res
+
+    return our_remap_url
 
 HTML5Node = dict[str, _t.Any]
 HTML5NN = tuple[str | None, str] # NN = namespaced name
@@ -272,8 +342,8 @@ ScrubbingDynamicOpts = ["styles", "scripts", "iepragmas", "iframes", "prefetches
 class CSSScrubbingError(Failure): pass
 
 Scrubbers = tuple[
-    _t.Callable[[str, URLRemapper, Headers, _t.Iterator[HTML5Node]], _t.Iterator[HTML5Node]],
-    _t.Callable[[str, URLRemapper, Headers, _t.Iterator[CSSNode]], list[CSSNode]],
+    _t.Callable[[URLType, URLRemapperType | None, Headers, _t.Iterator[HTML5Node]], _t.Iterator[HTML5Node]],
+    _t.Callable[[URLType, URLRemapperType | None, Headers, _t.Iterator[CSSNode]], list[CSSNode]],
 ]
 
 ie_pragma_re = _re.compile(r"^\s*(\[if IE [^]]*\].*\[endif\]|\[if !IE\]><!|<!\[endif\])\s*$")
@@ -388,11 +458,12 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     yes_indent = opts.indent
     indent_step = opts.indent_step
 
-    def remap_link_maybe(base_url : str,
+    def remap_link_maybe(base_url : URLType,
+                         url : URLType,
                          link_type : LinkType,
                          fallbacks : list[str],
-                         remap_url : URLRemapper,
-                         url : str) -> str | None:
+                         remap_url : URLRemapperType | None) \
+                         -> URLType | None:
         try:
             url = _up.urljoin(base_url, url)
         except ValueError:
@@ -417,9 +488,9 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         elif rt == RemapType.VOID:
             return None
 
-        rurl : str | None = None
+        rurl : URLType | None = None
         if remap_url is not None:
-            rurl = remap_url(link_type, None if rt != RemapType.FALLBACK else fallbacks, url)
+            rurl = remap_url(url, link_type, None if rt != RemapType.FALLBACK else fallbacks)
 
         if rurl is not None:
             return rurl
@@ -428,18 +499,19 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         else: # rt == RemapType.CLOSED or rt == RemapType.FALLBACK
             return None
 
-    def remap_link_or_void(base_url : str,
+    def remap_link_or_void(base_url : URLType,
+                           url : URLType,
                            link_type : LinkType,
                            fallbacks : list[str],
-                           remap_url : URLRemapper,
-                           url : str) -> str:
-        res = remap_link_maybe(base_url, link_type, fallbacks, remap_url, url)
+                           remap_url : URLRemapperType | None) \
+                           -> URLType:
+        res = remap_link_maybe(base_url, url, link_type, fallbacks, remap_url)
         if res is None:
             return get_void_url(link_type)
         return res
 
-    def scrub_css(base_url : str,
-                  remap_url : URLRemapper,
+    def scrub_css(base_url : URLType,
+                  remap_url : URLRemapperType | None,
                   nodes : _t.Iterator[CSSNode],
                   current : int | None = None,
                   errors : bool = False) -> list[CSSNode]:
@@ -506,14 +578,15 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 node.value = scrub_css(base_url, remap_url, node.value)
             elif isinstance(node, _tcss.ast.URLToken):
                 # remap the URL
-                url = remap_link_or_void(base_url, LinkType.REQ, css_url_mime, remap_url, node.value)
+                url = remap_link_or_void(base_url, node.value, LinkType.REQ, css_url_mime, remap_url)
                 rep = f"url({_tcss.serializer.serialize_url(url)})"
                 node.value = url
                 node.representation = rep
             elif isinstance(node, _tcss.ast.FunctionBlock):
                 if node.lower_name == "url":
                     # technically, this is a bug in the CSS we are processing, but browsers work around this, so do we
-                    url = remap_link_or_void(base_url, LinkType.REQ, css_url_mime, remap_url, "".join([n.value for n in node.arguments if n.type == "string"]))
+                    url = remap_link_or_void(base_url, "".join([n.value for n in node.arguments if n.type == "string"]),
+                                             LinkType.REQ, css_url_mime, remap_url)
                     rep = f"url({_tcss.serializer.serialize_url(url)})"
                     res.append(_tcss.ast.URLToken(node.source_line, node.source_column, url, rep))
                     continue
@@ -570,8 +643,8 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         link_type = slink_type if slink_type is not None else LinkType.JUMP
         return link_type, cts
 
-    def scrub_html(orig_base_url : str,
-                   remap_url : URLRemapper,
+    def scrub_html(orig_base_url : URLType,
+                   remap_url : URLRemapperType | None,
                    headers : Headers,
                    walker : _t.Iterator[HTML5Node]) -> _t.Iterator[HTML5Node]:
         censor_lvl : int = 0
@@ -690,7 +763,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                 if href is None:
                                     attrs[content_attr] = str(osecs)
                                 else:
-                                    href = remap_link_maybe(orig_base_url, LinkType.JUMP, page_mime, remap_url, href)
+                                    href = remap_link_maybe(orig_base_url, href, LinkType.JUMP, page_mime, remap_url)
                                     if href is not None and is_page_url(href):
                                         attrs[content_attr] = str(osecs) + ";url=" + href
                                     else:
@@ -763,7 +836,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                     href = None
                             else:
                                 link_type, cts = rel_ref_type_of(link_rels)
-                                href = remap_link_maybe(base_url, link_type, cts, remap_url, href)
+                                href = remap_link_maybe(base_url, href, link_type, cts, remap_url)
                     else:
                         href = None
 
@@ -794,7 +867,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                             # scrub `srcset` attributes
                             new_srcset = []
                             for url, cond in parse_srcset_attr(value):
-                                href = remap_link_maybe(base_url, LinkType.REQ, image_mime, remap_url, url)
+                                href = remap_link_maybe(base_url, url, LinkType.REQ, image_mime, remap_url)
                                 if href is not None:
                                     new_srcset.append((href, cond))
                             new_attrs[ann] = unparse_srcset_attr(new_srcset) if len(new_srcset) > 0 else None
@@ -803,7 +876,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                             ref = attr_ref_type.get(nnann, None)
                             if ref is not None:
                                 link_type, cts = ref
-                                new_attrs[ann] = remap_link_maybe(base_url, link_type, cts, remap_url, value.strip())
+                                new_attrs[ann] = remap_link_maybe(base_url, value.strip(), link_type, cts, remap_url)
 
                     # apply changes
                     for ann, ovalue in new_attrs.items():
@@ -899,8 +972,8 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     return process_html, process_css
 
 def scrub_css(scrubbers : Scrubbers,
-              base_url : str,
-              remap_url : URLRemapper,
+              base_url : URLType,
+              remap_url : URLRemapperType | None,
               headers : Headers,
               body : str | bytes,
               protocol_encoding : str | None) -> bytes:
@@ -919,8 +992,8 @@ _html5walker = _h5.treewalkers.getTreeWalker("etree")
 _html5serializer = _h5.serializer.HTMLSerializer(strip_whitespace = False, omit_optional_tags = False)
 
 def scrub_html(scrubbers : Scrubbers,
-               base_url : str,
-               remap_url : URLRemapper,
+               base_url : URLType,
+               remap_url : URLRemapperType | None,
                headers : Headers,
                body : str | bytes,
                protocol_encoding : str | None) -> bytes:

@@ -1971,14 +1971,13 @@ def cmd_mirror(cargs : _t.Any) -> None:
             mem.consumption += res - self._rrapprox_size
             self._rrapprox_size = res
 
-    NetURLType : _t.TypeAlias = str
     PathType : _t.TypeAlias = str
-    PageIDType = tuple[Epoch, NetURLType]
-    NetURLOrPageIDType = NetURLType | PageIDType
+    PageIDType = tuple[Epoch, URLType]
+    NetURLOrPageIDType = URLType | PageIDType
 
     # `Indexed` objects migrate from `index` to `queue` or `new_queue`, from
     # `new_queue` to `queue`.
-    index : _c.defaultdict[NetURLType, list[Indexed]] = _c.defaultdict(list)
+    index : _c.defaultdict[URLType, list[Indexed]] = _c.defaultdict(list)
     Queue = _c.OrderedDict[NetURLOrPageIDType, Indexed]
     queue : Queue = _c.OrderedDict()
     done : dict[PageIDType, PathType | None] = dict()
@@ -2003,7 +2002,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
         else:
             return False
 
-    def from_index(stime : Epoch, net_url : NetURLType, precise : bool) -> Indexed | None:
+    def from_index(stime : Epoch, net_url : URLType, precise : bool) -> Indexed | None:
         iobjs = index.get(net_url, None)
         if iobjs is None:
             # unavailable
@@ -2037,7 +2036,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
         else:
             return inext
 
-    def report_queued(stime : Epoch, net_url : NetURLType, pretty_net_url : NetURLType, source : DeferredSourceType, level : int, old_stime : Epoch | None = None) -> None:
+    def report_queued(stime : Epoch, net_url : URLType, pretty_net_url : URLType, source : DeferredSourceType, level : int, old_stime : Epoch | None = None) -> None:
         if stdout.isatty:
             stdout.write_bytes(b"\033[33m")
         durl = net_url if pretty_net_url == net_url else f"{net_url} ({pretty_net_url})"
@@ -2124,14 +2123,14 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
     depth : int = 0
 
-    def remap_url_fallback(stime : Epoch, expected_content_types : list[str], purl : ParsedURL) -> PathType:
+    def remap_url_fallback(stime : Epoch, purl : ParsedURL, expected_content_types : list[str]) -> PathType:
         trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime, stime, stime))
         trrexpr.values["num"] = 0
         rel_out_path : PathType = _os.path.join(destination, output_format % trrexpr)
         return _os.path.abspath(rel_out_path)
 
     def render(stime : Epoch,
-               net_url : NetURLType,
+               net_url : URLType,
                rrexpr : ReqresExpr[DeferredSourceType],
                abs_out_path : PathType,
                enqueue : bool,
@@ -2166,41 +2165,21 @@ def cmd_mirror(cargs : _t.Any) -> None:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
 
+        def handle_warning(msg : str, *args : _t.Any) -> None:
+            ispace = " " * (2 * (level + 1))
+            issue(ispace + gettext(msg), *args)
+
         try:
             done[page_id] = None # (breakCycles)
 
             document_dir = _os.path.dirname(abs_out_path)
-            remap_cache : dict[tuple[str, bool], str] = dict()
 
-            def remap_url(link_type : LinkType, fallbacks : list[str] | None, url : NetURLType) -> NetURLType | None:
+            def remap_url(unet_url : URLType, upurl : ParsedURL,
+                          link_type : LinkType, fallbacks : list[str] | None) \
+                          -> URLType | None:
                 if want_stop: raise KeyboardInterrupt()
 
                 is_requisite = link_type == LinkType.REQ
-                cache_id = (url, is_requisite)
-                try:
-                    return remap_cache[cache_id]
-                except KeyError:
-                    pass
-
-                try:
-                    purl = parse_url(url)
-                except URLParsingError:
-                    ispace = " " * (2 * (level + 1))
-                    issue(ispace + gettext("malformed URL `%s`"), url)
-                    remap_cache[cache_id] = res = get_void_url(link_type)
-                    return res
-
-                unet_url = purl.net_url
-
-                if unet_url == net_url:
-                    # this is a reference to an inter-page `id`
-                    remap_cache[cache_id] = res = purl.ofm + purl.fragment
-                    return res
-                elif purl.scheme not in Reqres_url_schemes:
-                    ispace = " " * (2 * (level + 1))
-                    issue(ispace + gettext("not remapping `%s`"), url)
-                    remap_cache[cache_id] = url
-                    return url
 
                 uobj = from_index(stime, unet_url, is_requisite)
                 if uobj is None:
@@ -2241,7 +2220,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
                     elif enqueue:
                         uabs_out_path = uobj.abs_out_path
                         new_queue[upage_id] = uobj
-                        report_queued(ustime, unet_url, purl.pretty_net_url, uobj.rrexpr.source, level + 1)
+                        report_queued(ustime, unet_url, upurl.pretty_net_url, uobj.rrexpr.source, level + 1)
                         if mem.consumption > max_memory_mib:
                             uobj.unload()
                     else:
@@ -2255,16 +2234,15 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
                 if uabs_out_path is None:
                     if fallbacks is not None:
-                        uabs_out_path = remap_url_fallback(stime, fallbacks, purl)
+                        uabs_out_path = remap_url_fallback(stime, upurl, fallbacks)
                     else:
                         return None
 
                 if relative:
                     uabs_out_path = _os.path.relpath(uabs_out_path, document_dir)
-                remap_cache[cache_id] = res = path_to_url(uabs_out_path) + purl.ofm + purl.fragment
-                return res
+                return path_to_url(uabs_out_path) + upurl.ofm + upurl.fragment
 
-            rrexpr.remap_url = remap_url
+            rrexpr.remap_url = cached_remap_url(net_url, remap_url, handle_warning=handle_warning)
 
             old_data = read_whole_file_maybe(abs_out_path)
 
@@ -2340,7 +2318,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
             if want_stop: raise KeyboardInterrupt()
 
             pid, iobj = queue.popitem(False)
-            if isinstance(pid, NetURLType):
+            if isinstance(pid, URLType):
                 net_url = pid
             else:
                 net_url = pid[1]
