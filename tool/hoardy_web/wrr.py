@@ -35,7 +35,7 @@ from kisstdlib.io.stdio import *
 from kisstdlib.path import *
 
 from .util import *
-from .type import *
+from .time import *
 from .tracking import *
 from .linst import *
 from .source import *
@@ -69,7 +69,7 @@ class RRCommon:
 
 @_dc.dataclass
 class Request(RRCommon):
-    started_at : Epoch
+    started_at : TimeStamp
     method : str
     url : ParsedURL
     headers : Headers
@@ -87,7 +87,7 @@ class Request(RRCommon):
 
 @_dc.dataclass
 class Response(RRCommon):
-    started_at : Epoch
+    started_at : TimeStamp
     code : int
     reason : str
     headers : Headers
@@ -110,7 +110,7 @@ class Response(RRCommon):
 
 @_dc.dataclass
 class WebSocketFrame:
-    sent_at : Epoch
+    sent_at : TimeStamp
     from_client : bool
     opcode : int
     content : bytes
@@ -122,19 +122,19 @@ Reqres_fields = {
     "version": "WEBREQRES format version; int",
     "agent": "`+`-separated list of applications that produced this reqres; str",
     "protocol": 'protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str',
-    "request.started_at": "request start time in seconds since 1970-01-01 00:00; Epoch",
+    "request.started_at": "request start time in seconds since 1970-01-01 00:00; TimeStamp",
     "request.method": 'request `HTTP` method; e.g. `"GET"`, `"POST"`, etc; str',
     "request.url": "request URL, including the `fragment`/hash part; str",
     "request.headers": "request headers; list[tuple[str, bytes]]",
     "request.complete": "is request body complete?; bool",
     "request.body": "request body; bytes",
-    "response.started_at": "response start time in seconds since 1970-01-01 00:00; Epoch",
+    "response.started_at": "response start time in seconds since 1970-01-01 00:00; TimeStamp",
     "response.code": "`HTTP` response code; e.g. `200`, `404`, etc; int",
     "response.reason": '`HTTP` response reason; e.g. `"OK"`, `"Not Found"`, etc; usually empty for Chromium and filled for Firefox; str',
     "response.headers": "response headers; list[tuple[str, bytes]]",
     "response.complete": "is response body complete?; bool",
     "response.body": "response body; Firefox gives raw bytes, Chromium gives UTF-8 encoded strings; bytes | str",
-    "finished_at": "request completion time in seconds since 1970-01-01 00:00; Epoch",
+    "finished_at": "request completion time in seconds since 1970-01-01 00:00; TimeStamp",
     "websocket": "a list of WebSocket frames",
 }
 
@@ -145,7 +145,7 @@ class Reqres:
     protocol : str
     request : Request
     response : _t.Optional[Response]
-    finished_at : Epoch
+    finished_at : TimeStamp
     extra : dict[str, _t.Any]
     websocket : _t.Optional[list[WebSocketFrame]]
     _approx_size : int = 0
@@ -188,10 +188,10 @@ def _t_int(n : str, x : _t.Any) -> int:
     if isinstance(x, int): return x
     raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "int", type(x).__name__)
 
-def _t_epoch(n : str, x : _t.Any) -> Epoch:
-    return Epoch(Decimal(_t_int(n, x)) / 1000)
+def _t_timestamp(n : str, x : _t.Any) -> TimeStamp:
+    return TimeStamp(Decimal(_t_int(n, x)) / 1000)
 
-def _f_epoch(x : Epoch) -> int:
+def _f_timestamp(x : TimeStamp) -> int:
     return int(x * 1000)
 
 def _t_headers(n : str, x : _t.Any) -> Headers:
@@ -208,7 +208,7 @@ def wrr_load_cbor_struct(data : _t.Any) -> Reqres:
         purl = parse_url(_t_str("request.url", rq_url))
         if purl.scheme not in Reqres_url_schemes:
             raise WRRParsingError(gettext("Reqres field `request.url`: unsupported URL scheme `%s`"), purl.scheme)
-        request = Request(_t_epoch("request.started_at", rq_started_at),
+        request = Request(_t_timestamp("request.started_at", rq_started_at),
                           _t_str("request.method", rq_method),
                           purl,
                           _t_headers("request.headers", rq_headers),
@@ -218,7 +218,7 @@ def wrr_load_cbor_struct(data : _t.Any) -> Reqres:
             response = None
         else:
             rs_started_at, rs_code, rs_reason, rs_headers, rs_complete, rs_body = response_
-            response = Response(_t_epoch("response.started_at", rs_started_at),
+            response = Response(_t_timestamp("response.started_at", rs_started_at),
                                 _t_int("response.code", rs_code),
                                 _t_str("responese.reason", rs_reason),
                                 _t_headers("responese.headers", rs_headers),
@@ -234,12 +234,12 @@ def wrr_load_cbor_struct(data : _t.Any) -> Reqres:
             websocket = []
             for frame in wsframes:
                 sent_at, from_client, opcode, content = frame
-                websocket.append(WebSocketFrame(_t_epoch("ws.sent_at", sent_at),
+                websocket.append(WebSocketFrame(_t_timestamp("ws.sent_at", sent_at),
                                                 _t_bool("ws.from_client", from_client),
                                                 _t_int("ws.opcode", opcode),
                                                 _t_bytes("ws.content", content)))
 
-        return Reqres(1, agent, protocol, request, response, _t_epoch("finished_at", finished_at), extra, websocket)
+        return Reqres(1, agent, protocol, request, response, _t_timestamp("finished_at", finished_at), extra, websocket)
     else:
         raise WRRParsingError(gettext("Reqres parsing failure: unknown format `%s`"), data[0])
 
@@ -274,14 +274,14 @@ def wrr_loadf(path : _t.AnyStr) -> Reqres:
 
 def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
     req = reqres.request
-    request = _f_epoch(req.started_at), req.method, req.url.raw_url, req.headers, req.complete, req.body
+    request = _f_timestamp(req.started_at), req.method, req.url.raw_url, req.headers, req.complete, req.body
     del req
 
     if reqres.response is None:
         response = None
     else:
         res = reqres.response
-        response = _f_epoch(res.started_at), res.code, res.reason, res.headers, res.complete, res.body
+        response = _f_timestamp(res.started_at), res.code, res.reason, res.headers, res.complete, res.body
         del res
 
     extra = reqres.extra
@@ -289,10 +289,10 @@ def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
         extra = extra.copy()
         wsframes = []
         for frame in reqres.websocket:
-            wsframes.append([_f_epoch(frame.sent_at), frame.from_client, frame.opcode, frame.content])
+            wsframes.append([_f_timestamp(frame.sent_at), frame.from_client, frame.opcode, frame.content])
         extra["websocket"] = wsframes
 
-    structure = ["WEBREQRES/1", reqres.agent, reqres.protocol, request, response, _f_epoch(reqres.finished_at), extra]
+    structure = ["WEBREQRES/1", reqres.agent, reqres.protocol, request, response, _f_timestamp(reqres.finished_at), extra]
 
     data = _cbor2.dumps(structure)
     if compress:
@@ -308,7 +308,7 @@ ReqresExpr_derived_attrs = {
     "raw_url": "aliast for `request.url`; str",
     "method": "aliast for `request.method`; str",
 
-    "qtime": 'aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; decimal float',
+    "qtime": 'aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; TimeStamp',
     "qtime_ms": "`qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "qtime_msq": "three least significant digits of `qtime_ms`; int",
     "qyear": "year number of `gmtime(qtime)` (UTC year number of `qtime`); int",
@@ -318,8 +318,8 @@ ReqresExpr_derived_attrs = {
     "qminute": "minute of `gmtime(qtime)`; int",
     "qsecond": "second of `gmtime(qtime)`; int",
 
-    "stime": '`response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; seconds since UNIX epoch; decimal float',
-    "stime_ms": "`stime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch, int",
+    "stime": '`response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; seconds since UNIX epoch; TimeStamp',
+    "stime_ms": "`stime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "stime_msq": "three least significant digits of `stime_ms`; int",
     "syear": "similar to `qyear`, but for `stime`; int",
     "smonth": "similar to `qmonth`, but for `stime`; int",
@@ -328,7 +328,7 @@ ReqresExpr_derived_attrs = {
     "sminute": "similar to `qminute`, but for `stime`; int",
     "ssecond": "similar to `qsecond`, but for `stime`; int",
 
-    "ftime": "aliast for `finished_at`; seconds since UNIX epoch; decimal float",
+    "ftime": "aliast for `finished_at`; seconds since UNIX epoch; TimeStamp",
     "ftime_ms": "`ftime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "ftime_msq": "three least significant digits of `ftime_ms`; int",
     "fyear": "similar to `qyear`, but for `ftime`; int",
@@ -611,7 +611,7 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
             return self.source.replaces(other.source)
         return self.source.replaces(other)
 
-    def _fill_time(self, prefix : str, ts : Epoch) -> None:
+    def _fill_time(self, prefix : str, ts : TimeStamp) -> None:
         dt = _time.gmtime(int(ts))
         self.values[prefix + "year"] = dt.tm_year
         self.values[prefix + "month"] = dt.tm_mon
@@ -754,9 +754,9 @@ def rrexprs_wrr_some_loadf(path : str | bytes, in_stat : _os.stat_result | None 
 
 def trivial_Reqres(url : ParsedURL,
                    content_type : str = "text/html",
-                   qtime : Epoch = Epoch(0),
-                   stime : Epoch = Epoch(1000),
-                   ftime : Epoch = Epoch(2000),
+                   qtime : TimeStamp = TimeStamp(0),
+                   stime : TimeStamp = TimeStamp(1000),
+                   ftime : TimeStamp = TimeStamp(2000),
                    sniff : bool = False,
                    headers : Headers = [],
                    data : bytes = b"") -> Reqres:
@@ -769,9 +769,9 @@ def trivial_Reqres(url : ParsedURL,
 
 def fallback_Reqres(url : ParsedURL,
                     expected_mime : list[str],
-                    qtime : Epoch = Epoch(0),
-                    stime : Epoch = Epoch(1000),
-                    ftime : Epoch = Epoch(2000),
+                    qtime : TimeStamp = TimeStamp(0),
+                    stime : TimeStamp = TimeStamp(1000),
+                    ftime : TimeStamp = TimeStamp(2000),
                     headers : Headers = [],
                     data : bytes = b"") -> Reqres:
     """Similar to `trivial_Reqres`, but trying to guess the `Content-Type` from the given `expected_content_types` and the extension."""

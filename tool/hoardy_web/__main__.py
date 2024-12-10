@@ -116,20 +116,20 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
 
     filters : list[FilterType[ReqresExpr[_t.Any]]] = []
 
-    def add_yn_epoch_filter(name : str, pred : _t.Callable[[str, Epoch, ReqresExpr[_t.Any]], bool]) -> None:
+    def add_yn_timestamp_filter(name : str, pred : _t.Callable[[str, TimeStamp, ReqresExpr[_t.Any]], bool]) -> None:
         add_yn_filter(filters, get_attr, get_optname, name,
-                      mk_simple_filter, parse_Epoch, lambda c, v: matches_all(pred, c, v))
+                      mk_simple_filter, timestamp, lambda c, v: matches_all(pred, c, v))
 
-    def is_before(k : _t.Any, stime : Epoch, rrexpr : ReqresExpr[_t.Any]) -> bool:
-        rrstime : Epoch = rrexpr.stime
+    def is_before(k : _t.Any, stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
+        rrstime : TimeStamp = rrexpr.stime
         return rrstime < stime
 
-    def is_after(k : _t.Any, stime : Epoch, rrexpr : ReqresExpr[_t.Any]) -> bool:
-        rrstime : Epoch = rrexpr.stime
+    def is_after(k : _t.Any, stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
+        rrstime : TimeStamp = rrexpr.stime
         return stime < rrstime
 
-    add_yn_epoch_filter("before", is_before)
-    add_yn_epoch_filter("after", is_after)
+    add_yn_timestamp_filter("before", is_before)
+    add_yn_timestamp_filter("after", is_after)
 
     def add_yn_field_filter(name : str, field : str | None = None) -> None:
         if field is None:
@@ -372,7 +372,7 @@ def mk_rrexprs_load(cargs : _t.Any) -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresEx
         assert False
 
 def get_bytes(value : _t.Any) -> bytes:
-    if value is None or isinstance(value, (bool, int, float, Epoch)):
+    if value is None or isinstance(value, (bool, int, float, TimeStamp)):
         value = str(value)
 
     if isinstance(value, str):
@@ -1936,7 +1936,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
     @_dc.dataclass
     class Indexed:
-        stime : Epoch
+        stime : TimeStamp
         rrexpr : ReqresExpr[_t.Any]
         _abs_out_path : str | None = _dc.field(default = None)
         _rrapprox_size : int = 0
@@ -1972,7 +1972,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
             self._rrapprox_size = res
 
     PathType : _t.TypeAlias = str
-    PageIDType = tuple[Epoch, URLType]
+    PageIDType = tuple[TimeStamp, URLType]
     NetURLOrPageIDType = URLType | PageIDType
 
     # `Indexed` objects migrate from `index` to `queue` or `new_queue`, from
@@ -1988,7 +1988,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
         doc_n = 0
 
     multiples : bool
-    which : bool | Epoch | None
+    which : bool | TimeStamp | None
     multiples, which = cargs.mode
 
     def is_replaced_by(oobj : Indexed, nobj : Indexed) -> bool:
@@ -2002,7 +2002,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
         else:
             return False
 
-    def from_index(stime : Epoch, net_url : URLType, precise : bool) -> Indexed | None:
+    def from_index(stime : TimeStamp, net_url : URLType, precise : bool) -> Indexed | None:
         iobjs = index.get(net_url, None)
         if iobjs is None:
             # unavailable
@@ -2036,15 +2036,15 @@ def cmd_mirror(cargs : _t.Any) -> None:
         else:
             return inext
 
-    def report_queued(stime : Epoch, net_url : URLType, pretty_net_url : URLType, source : DeferredSourceType, level : int, old_stime : Epoch | None = None) -> None:
+    def report_queued(stime : TimeStamp, net_url : URLType, pretty_net_url : URLType, source : DeferredSourceType, level : int, old_stime : TimeStamp | None = None) -> None:
         if stdout.isatty:
             stdout.write_bytes(b"\033[33m")
         durl = net_url if pretty_net_url == net_url else f"{net_url} ({pretty_net_url})"
         ispace = " " * (2 * level)
         if old_stime is None:
-            stdout.write_str_ln(ispace + gettext(f"queued [%s] %s from %s") % (stime.format(), durl, source.show_source()))
+            stdout.write_str_ln(ispace + gettext(f"queued [%s] %s from %s") % (stime.format(precision=3), durl, source.show_source()))
         else:
-            stdout.write_str_ln(ispace + gettext(f"requeued [%s] -> [%s] %s from %s") % (old_stime.format(), stime.format(), durl, source.show_source()))
+            stdout.write_str_ln(ispace + gettext(f"requeued [%s] -> [%s] %s from %s") % (old_stime.format(precision=3), stime.format(precision=3), durl, source.show_source()))
         if stdout.isatty:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
@@ -2123,13 +2123,13 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
     depth : int = 0
 
-    def remap_url_fallback(stime : Epoch, purl : ParsedURL, expected_content_types : list[str]) -> PathType:
+    def remap_url_fallback(stime : TimeStamp, purl : ParsedURL, expected_content_types : list[str]) -> PathType:
         trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime, stime, stime))
         trrexpr.values["num"] = 0
         rel_out_path : PathType = _os.path.join(destination, output_format % trrexpr)
         return _os.path.abspath(rel_out_path)
 
-    def render(stime : Epoch,
+    def render(stime : TimeStamp,
                net_url : URLType,
                rrexpr : ReqresExpr[DeferredSourceType],
                abs_out_path : PathType,
@@ -2158,7 +2158,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
             stdout.write_str_ln(gettext(f"mirroring input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / total, total, doc_n, depth))
         else:
             stdout.write_str_ln(ispace + gettext(f"mirroring requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / total, total))
-        stdout.write_str_ln(ispace + gettext("stime [%s]") % (stime.format(),))
+        stdout.write_str_ln(ispace + gettext("stime [%s]") % (stime.format(precision=3),))
         stdout.write_str_ln(ispace + gettext("net_url %s") % (net_url,))
         stdout.write_str_ln(ispace + gettext("src %s") % (source.show_source(),))
         if stdout.isatty:
@@ -3131,7 +3131,7 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
 
     class EmitNear(argparse.Action):
         def __call__(self, parser : _t.Any, cfg : argparse.Namespace, value : _t.Any, option_string : _t.Optional[str] = None) -> None:
-            setattr(cfg, self.dest, self.const(parse_Epoch(value)))
+            setattr(cfg, self.dest, self.const(timestamp(value)))
 
     grp.add_argument("--oldest", dest="mode", action="store_const", const=(False, False), help=oldest)
     grp.add_argument("--oldest-hybrid", dest="mode", action="store_const", const=(True, False), help=oldest + hybrid_long)

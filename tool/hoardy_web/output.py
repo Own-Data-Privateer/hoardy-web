@@ -27,7 +27,7 @@ from kisstdlib.io.stdio import *
 from .wrr import *
 
 def plainify(obj : _t.Any) -> _t.Any:
-    if isinstance(obj, Epoch):
+    if isinstance(obj, TimeStamp):
         return float(obj)
     elif hasattr(obj, "__dataclass_fields__"):
         res = dict()
@@ -81,7 +81,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
     else:
         fobj.write_str_ln("response none")
 
-    fobj.write_str_ln(f"clock {fmt_epoch_interval(req.started_at, reqres.finished_at)}")
+    fobj.write_str_ln(f"clock {TimeRange(req.started_at, reqres.finished_at).format_org(precision=3)}")
 
     if len(reqres.extra) > 0:
         for k, v in reqres.extra.items():
@@ -248,7 +248,7 @@ class PyStreamEncoder(StreamEncoder):
 
     @staticmethod
     def encode_py(enc : PyReprEncoder, obj : _t.Any) -> None:
-        if isinstance(obj, Epoch):
+        if isinstance(obj, TimeStamp):
             enc.lexeme(str(obj))
             enc.comment(obj.format())
         else:
@@ -341,7 +341,7 @@ class RawStreamEncoder(StreamEncoder):
 
     @staticmethod
     def encode_raw(enc : TIOEncoder, obj : _t.Any) -> None:
-        if isinstance(obj, Epoch):
+        if isinstance(obj, TimeStamp):
             enc.write_str(str(obj))
         else:
             raise Failure("can't raw-encode a value of type `%s`", type(obj).__name__)

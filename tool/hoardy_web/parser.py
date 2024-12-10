@@ -37,6 +37,9 @@ opt_whitespace_re = _re.compile(r"(\s*)")
 class ParseError(Failure):
     pass
 
+ParsedValueType = _t.TypeVar("ParsedValueType")
+ParserParamSpec = _t.ParamSpec("ParserParamSpec")
+
 class Parser:
     """Parser combinator with regexes."""
 
@@ -59,6 +62,19 @@ class Parser:
             return
         raise ParseError("while parsing %s: expected EOF, got %s", repr(self.buffer), repr(self.leftovers))
 
+    def chomp(self,
+              parser : _t.Callable[_t.Concatenate[str, ParserParamSpec],
+                                   tuple[ParsedValueType, str]],
+              *args : ParserParamSpec.args, **kwargs : ParserParamSpec.kwargs) \
+              -> ParsedValueType:
+        if self.pos == 0:
+            res, leftovers = parser(self.buffer, *args, **kwargs)
+        else:
+            res, leftovers = parser(self.buffer[self.pos:], *args, **kwargs)
+            self.pos = 0
+        self.buffer = leftovers
+        return res
+
     def have_at_least(self, n : int) -> bool:
         return self.pos + n <= len(self.buffer)
 
@@ -79,13 +95,16 @@ class Parser:
         return self.buffer[old_pos:new_pos]
 
     def at_string(self, s : str) -> bool:
-        if self.buffer.startswith(s, self.pos):
+        return self.buffer.startswith(s, self.pos)
+
+    def opt_string(self, s : str) -> bool:
+        if self.at_string(s):
+            self.pos += len(s)
             return True
         return False
 
     def string(self, s : str) -> None:
-        if self.at_string(s):
-            self.pos += len(s)
+        if self.opt_string(s):
             return
         raise ParseError("while parsing %s: expected %s, got %s", repr(self.buffer), repr(s), repr(self.leftovers))
 
@@ -95,11 +114,16 @@ class Parser:
                 return True
         return False
 
-    def string_in(self, ss : list[str]) -> None:
+    def opt_string_in(self, ss : list[str]) -> bool:
         for s in ss:
             if self.at_string(s):
                 self.pos += len(s)
-                return
+                return True
+        return False
+
+    def string_in(self, ss : list[str]) -> None:
+        if self.opt_string_in(ss):
+            return
         raise ParseError("while parsing %s: expected one of %s, got %s", repr(self.buffer), repr(ss), repr(self.leftovers))
 
     def take_until_p(self, p : _t.Callable[[_t.Any], bool]) -> str:
