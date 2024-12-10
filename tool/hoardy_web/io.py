@@ -24,10 +24,6 @@ import stat as _stat
 import sys as _sys
 import typing as _t
 
-from gettext import gettext
-
-from kisstdlib.exceptions import *
-
 _have_fcntl = False
 try:
     import fcntl as _fcntl
@@ -64,10 +60,6 @@ def fsync_fpath(fpath : str | bytes, flags : int = 0) -> None:
         _os.fsync(fd)
     finally:
         _os.close(fd)
-
-def handle_ENAMETOOLONG(exc : OSError, name : str | bytes) -> None:
-    if exc.errno == _errno.ENAMETOOLONG:
-        raise Failure(gettext(f"target file system rejects `%s` as too long: either one of the path components is longer than the maximum allowed file name on the target file system or the whole thing is longer than kernel MAX_PATH"), name)
 
 def fileobj_content_equals(f : _io.BufferedReader, data : bytes) -> bool:
     # TODO more efficiently
@@ -125,13 +117,6 @@ class DeferredSync:
                     pass
             self.unlinks = set()
 
-def _makedirs(dirname : str | bytes) -> None:
-    try:
-        _os.makedirs(dirname, exist_ok = True)
-    except OSError as exc:
-        handle_ENAMETOOLONG(exc, dirname)
-        raise exc
-
 def make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
               allow_overwrites : bool = False,
               *,
@@ -142,7 +127,7 @@ def make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
 
     dirname = _os.path.dirname(dst)
 
-    _makedirs(dirname)
+    _os.makedirs(dirname, exist_ok = True)
     make_dst(dst)
 
     if dsync is None:
@@ -166,7 +151,7 @@ def atomic_make_file(make_dst : _t.Callable[[_t.AnyStr], None], dst : _t.AnyStr,
     else:
         dst_part = dst + b".part"
 
-    _makedirs(dirname)
+    _os.makedirs(dirname, exist_ok = True)
     make_dst(dst_part)
 
     if dsync is None:
@@ -280,10 +265,4 @@ def atomic_write(data : bytes, dst : _t.AnyStr,
         with open(dst_part, "xb") as f:
             f.write(data)
 
-    try:
-        atomic_make_file(make_dst, dst, allow_overwrites, dsync = dsync)
-    except FileExistsError as exc:
-        raise Failure(gettext(f"trying to overwrite `%s` which already exists"), exc.filename)
-    except OSError as exc:
-        handle_ENAMETOOLONG(exc, dst)
-        raise exc
+    atomic_make_file(make_dst, dst, allow_overwrites, dsync = dsync)

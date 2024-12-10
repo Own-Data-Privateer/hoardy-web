@@ -1436,6 +1436,10 @@ class DeferredOperation(_t.Generic[DeferredSourceType, DeferredDestinationType])
         """Write the `source` to `destination`."""
         raise NotImplementedError()
 
+def handle_ENAMETOOLONG(exc : OSError, name : str | bytes) -> None:
+    if exc.errno == _errno.ENAMETOOLONG:
+        raise Failure(gettext(f"target file system rejects `%s` as too long: either one of the path components is longer than the maximum allowed file name on the target file system or the whole thing is longer than kernel MAX_PATH"), name)
+
 class DeferredFileWrite(DeferredOperation[DeferredSourceType, _t.AnyStr], _t.Generic[DeferredSourceType, _t.AnyStr]):
     def approx_size(self) -> int:
         return super().approx_size() + len(self.destination)
@@ -2278,34 +2282,42 @@ def cmd_mirror(cargs : _t.Any) -> None:
                     print_exprs(rrexpr, cargs.exprs, cargs.separator, f)
                     data = f.fobj.getvalue()
 
-            if copying:
-                real_out_path = abs_out_path
-                if old_data != data:
-                    atomic_write(data, abs_out_path, allow_updates)
-            else:
-                rrexpr.values["content"] = data
-                rrexpr.values["content_sha256"] = sha256_raw = _hashlib.sha256(data).digest()
-                sha256_hex = sha256_raw.hex()
+            try:
+                if copying:
+                    real_out_path = abs_out_path
+                    if old_data != data:
+                        atomic_write(data, abs_out_path, allow_updates)
+                else:
+                    rrexpr.values["content"] = data
+                    rrexpr.values["content_sha256"] = sha256_raw = _hashlib.sha256(data).digest()
+                    sha256_hex = sha256_raw.hex()
 
-                real_out_path = _os.path.join(content_destination, content_output_format % rrexpr)
+                    real_out_path = _os.path.join(content_destination, content_output_format % rrexpr)
 
-                old_content = read_whole_file_maybe(real_out_path)
+                    old_content = read_whole_file_maybe(real_out_path)
 
-                if old_content is None:
-                    atomic_write(data, real_out_path, False)
-                elif old_content != data:
-                    raise Failure(gettext("wrong file content in `%s`: expected sha256 `%s`, got sha256 `%s`"), real_out_path, sha256_hex, _hashlib.sha256(old_content).hexdigest())
+                    if old_content is None:
+                        atomic_write(data, real_out_path, False)
+                    elif old_content != data:
+                        raise Failure(gettext("wrong file content in `%s`: expected sha256 `%s`, got sha256 `%s`"), real_out_path, sha256_hex, _hashlib.sha256(old_content).hexdigest())
 
-                if old_data != data:
-                    action_op(real_out_path, abs_out_path, allow_updates)
+                    if old_data != data:
+                        action_op(real_out_path, abs_out_path, allow_updates)
 
-                stdout.write_str_ln(ispace + gettext("content_dst %s") % (real_out_path,))
+                    stdout.write_str_ln(ispace + gettext("content_dst %s") % (real_out_path,))
 
-            stdout.write_str_ln(ispace + gettext("dst %s") % (abs_out_path,))
-            stdout.flush()
+                stdout.write_str_ln(ispace + gettext("dst %s") % (abs_out_path,))
+                stdout.flush()
 
-            done[page_id] = real_out_path
-            return real_out_path
+                done[page_id] = real_out_path
+                return real_out_path
+            except FileExistsError as exc:
+                raise Failure(gettext(f"trying to overwrite `%s` which already exists"), exc.filename)
+            except OSError as exc:
+                handle_ENAMETOOLONG(exc, exc.filename)
+                if exc.errno == _errno.EXDEV:
+                    raise Failure(gettext(f"can't {action} across file systems"))
+                raise exc
         except Failure as exc:
             if cargs.errors == "ignore":
                 return abs_out_path
