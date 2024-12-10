@@ -26,6 +26,17 @@ from kisstdlib.io.stdio import *
 
 from .wrr import *
 
+def plainify(obj : _t.Any) -> _t.Any:
+    if isinstance(obj, Epoch):
+        return float(obj)
+    elif hasattr(obj, "__dataclass_fields__"):
+        res = dict()
+        for k in obj.__dataclass_fields__:
+            res[k] = getattr(obj, k)
+        return res
+    else:
+        raise Failure("can't plainify a value of type `%s`", type(obj).__name__)
+
 def abridge_anystr(value : _t.AnyStr, length : int, ln : bool) -> tuple[bool, _t.AnyStr]:
     hlength = length // 2
     if len(value) > length:

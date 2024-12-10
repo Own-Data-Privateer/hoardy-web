@@ -106,14 +106,3 @@ def rec_get(obj : _t.Any, field : list[str]) -> _t.Any:
         return rec_get(getattr(obj, this), rest)
     else:
         raise Failure("object of type `%s` does not have an attribute named `%s'", type(obj).__name__, this)
-
-def plainify(obj : _t.Any) -> _t.Any:
-    if isinstance(obj, Epoch):
-        return float(obj)
-    elif hasattr(obj, "__dataclass_fields__"):
-        res = dict()
-        for k in obj.__dataclass_fields__:
-            res[k] = getattr(obj, k)
-        return res
-    else:
-        raise Failure("can't plainify a value of type `%s`", type(obj).__name__)
