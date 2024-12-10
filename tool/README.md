@@ -195,8 +195,8 @@ hoardy-web pprint --method GET --method DOM --status-re .200C --response-mime te
   --response-body-grep-re "\bPotter\b" \
   ~/hoardy-web/raw
 
-# the first three of the above filters are actually the default here
-hoardy-web mirror --response-mime text/html \
+# the `--status-re` filter above is actually the default here
+hoardy-web mirror --method GET --method DOM --response-mime text/html \
   --response-body-grep-re "\bPotter\b" \
   --to ~/hoardy-web/mirror-potter ~/hoardy-web/raw
 ```
@@ -2300,7 +2300,7 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
 
 - default input filters:
   - `--ignore-bad-inputs`
-  : initialize input filters to `--method "GET" --method "DOM" --status-re ".200C"`; default
+  : initialize input filters to `--status-re ".200C"`; default
   - `--index-all-inputs`
   : do not set any input filters by default; note, however, that this sub-command expects input filters to be at least as restrictive as the above default and is likely to produce broken outputs if those filters are unset; use this option at your own risk
 

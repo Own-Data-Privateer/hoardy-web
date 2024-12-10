@@ -1892,6 +1892,13 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
 def path_to_url(x : str) -> str:
     return x.replace("?", "%3F")
 
+def complete_response(stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
+    response = rrexpr.reqres.response
+    return response is not None and response.complete
+
+def normal_document(stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
+    return complete_response(stime, rrexpr) and rrexpr.reqres.request.method in ["GET", "DOM"]
+
 def cmd_mirror(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
@@ -1932,24 +1939,32 @@ def cmd_mirror(cargs : _t.Any) -> None:
     PathType : _t.TypeAlias = str
     seen_counter : SeenCounter[PathType] = SeenCounter()
 
-    PageIDType = tuple[TimeStamp, URLType]
-    committed : dict[PageIDType, PathType] = dict()
-    done : dict[PageIDType, PathType | None] = dict()
+    RequestIDType : _t.TypeAlias = bytes
+    PageIDType = tuple[TimeStamp, RequestIDType]
+    RequestOrPageIDType = RequestIDType | PageIDType
 
-    def get_abs_out_path(page_id : PageIDType, rrexpr : ReqresExpr[_t.Any]) -> PathType:
+    def get_request_id(net_url : URLType, rrexpr: ReqresExpr[_t.Any]) -> RequestIDType:
+        request = rrexpr.reqres.request
+        body = request.body or b""
+        body_ = body if isinstance(body, bytes) else body.encode("utf-8")
+        return f"{request.method} {net_url} ".encode("utf-8") + _hashlib.sha256(body_).digest()
+
+    committed : dict[int, PathType] = dict()
+    done : dict[int, PathType | None] = dict()
+
+    def get_abs_out_path(rrexpr : ReqresExpr[_t.Any]) -> PathType:
         try:
-            return committed[page_id]
+            return committed[id(rrexpr)]
         except KeyError:
             rrexpr.values["num"] = 0
             def_out_path = output_format % rrexpr
             rrexpr.values["num"] = seen_counter.count(def_out_path)
             rel_out_path = _os.path.join(destination, output_format % rrexpr)
-            committed[page_id] = abs_out_path = _os.path.abspath(rel_out_path)
+            committed[id(rrexpr)] = abs_out_path = _os.path.abspath(rel_out_path)
             mem.consumption += 8 + len(abs_out_path)
             return abs_out_path
 
     if cargs.default_filters:
-        cargs.request_method += ["GET", "DOM"]
         cargs.status_re += [".200C"]
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
@@ -1962,8 +1977,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
     index : SortedIndex[URLType, TimeStamp, ReqresExpr[_t.Any]] = SortedIndex(nearest if singletons else None)
 
-    NetURLOrPageIDType = URLType | PageIDType
-    Queue = _c.OrderedDict[NetURLOrPageIDType, tuple[TimeStamp, ReqresExpr[_t.Any]]]
+    Queue = _c.OrderedDict[RequestOrPageIDType, tuple[TimeStamp, ReqresExpr[_t.Any]]]
     queue : Queue = _c.OrderedDict()
 
     if stdout.isatty:
@@ -1994,9 +2008,11 @@ def cmd_mirror(cargs : _t.Any) -> None:
                 return
 
             unqueued = True
-            page_id = (stime, net_url)
+            request_id = get_request_id(net_url, rrexpr)
+            page_id : PageIDType = (stime, request_id)
+            pid : RequestOrPageIDType
             if nearest is not None:
-                for pid in [net_url, page_id]:
+                for pid in (request_id, page_id):
                     qobj = queue.get(pid, None)
                     if qobj is not None:
                         qstime, qrrexpr = qobj
@@ -2007,8 +2023,8 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
             if unqueued:
                 if enqueue_all or have_root_filters and root_filters_allow(rrexpr):
-                    pid = net_url if nearest is not None else page_id
-                    #     ^ not `--all`                       ^ otherwise
+                    pid = request_id if nearest is not None else page_id
+                    #     ^ not `--all`                          ^ otherwise
                     queue[pid] = (stime, rrexpr)
                     report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1)
                     unqueued = False
@@ -2040,12 +2056,12 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
     def render(stime : TimeStamp,
                net_url : URLType,
+               page_id : PageIDType,
                rrexpr : ReqresExpr[DeferredSourceType],
                abs_out_path : PathType,
                enqueue : bool,
                new_queue : Queue,
                level : int) -> PathType | None:
-        page_id = (stime, net_url)
         source = rrexpr.source
 
         level0 = level == 0
@@ -2079,7 +2095,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
             issue(ispace + gettext(msg), *args)
 
         try:
-            done[page_id] = None # (breakCycles)
+            done[id(rrexpr)] = None # (breakCycles)
 
             document_dir = _os.path.dirname(abs_out_path)
 
@@ -2090,44 +2106,47 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
                 is_requisite = link_type == LinkType.REQ
 
-                uobj = index.get_nearest(unet_url, stime if nearest is None or is_requisite else nearest)
+                uobj = index.get_nearest(unet_url,
+                                         stime if nearest is None or is_requisite else nearest,
+                                         normal_document if link_type != LinkType.ACTION else complete_response)
                 if uobj is None:
                     # unavailable
                     uabs_out_path = None
                 else:
                     ustime, urrexpr = uobj
-                    upage_id = (ustime, unet_url)
+                    urequest_id = get_request_id(unet_url, urrexpr)
+                    upage_id = (ustime, urequest_id)
 
                     if is_requisite:
                         # use content_destination path here
                         try:
-                            uabs_out_path = done[upage_id]
+                            uabs_out_path = done[id(urrexpr)]
                         except KeyError:
                             # unqueue it
-                            for q in [new_queue, queue]:
+                            for q in (new_queue, queue):
                                 try:
                                     del q[upage_id]
                                 except KeyError: pass
                                 try:
-                                    del q[unet_url]
+                                    del q[urequest_id]
                                 except KeyError: pass
 
                             # render it immediately
                             # NB: (breakCycles) breaks dependency cycles that can make this loop infinitely
-                            uabs_out_path = render(ustime, unet_url, urrexpr, get_abs_out_path(upage_id, urrexpr), enqueue, new_queue, level + 1)
+                            uabs_out_path = render(ustime, unet_url, upage_id, urrexpr, get_abs_out_path(urrexpr), enqueue, new_queue, level + 1)
                             urrexpr.unload()
-                    elif upage_id in done:
+                    elif id(urrexpr) in done:
                         # nothing to do
-                        uabs_out_path = get_abs_out_path(upage_id, urrexpr)
+                        uabs_out_path = get_abs_out_path(urrexpr)
                         # NB: will be unloaded already
                     elif upage_id in new_queue or upage_id in queue or \
-                         unet_url in new_queue or unet_url in queue:
+                         urequest_id in new_queue or urequest_id in queue:
                         # nothing to do
-                        uabs_out_path = get_abs_out_path(upage_id, urrexpr)
+                        uabs_out_path = get_abs_out_path(urrexpr)
                         if mem.consumption > max_memory_mib:
                             urrexpr.unload()
                     elif enqueue:
-                        uabs_out_path = get_abs_out_path(upage_id, urrexpr)
+                        uabs_out_path = get_abs_out_path(urrexpr)
                         new_queue[upage_id] = uobj
                         report_queued(ustime, unet_url, upurl.pretty_net_url, urrexpr.source, level + 1)
                         if mem.consumption > max_memory_mib:
@@ -2135,7 +2154,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
                     else:
                         # this will not be mirrored
                         uabs_out_path = None
-                        # NB: Not setting `committed[upage_id] = None` here
+                        # NB: Not setting `committed[id(rrexpr)] = None` here
                         # because it might be a requisite for another
                         # page. In which case, when not running with
                         # `--remap-all`, this page will void this
@@ -2196,7 +2215,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
                 stdout.write_str_ln(ispace + gettext("dst %s") % (abs_out_path,))
                 stdout.flush()
 
-                done[page_id] = real_out_path
+                done[id(rrexpr)] = real_out_path
                 return real_out_path
             except FileExistsError as exc:
                 raise Failure(gettext(f"trying to overwrite `%s` which already exists"), exc.filename)
@@ -2228,12 +2247,12 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
             qpid, qobj = queue.popitem(False)
             qstime, qrrexpr = qobj
-            if isinstance(qpid, URLType):
-                qnet_url = qpid
+            if isinstance(qpid, RequestIDType):
+                qrequest_id = qpid
             else:
-                qnet_url = qpid[1]
-            qpage_id = (qstime, qnet_url)
-            render(qstime, qnet_url, qrrexpr, get_abs_out_path(qpage_id, qrrexpr), enqueue, new_queue, 0)
+                qrequest_id = qpid[1]
+            qpage_id = (qstime, qrequest_id)
+            render(qstime, qrrexpr.net_url, qpage_id, qrrexpr, get_abs_out_path(qrrexpr), enqueue, new_queue, 0)
             qrrexpr.unload()
 
         queue = new_queue
@@ -2524,7 +2543,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
 
     def add_default_filters(cmd : _t.Any) -> None:
         agrp = cmd.add_argument_group("default input filters")
-        default_filters = '--method "GET" --method "DOM" --status-re ".200C"'
+        default_filters = '--status-re ".200C"'
         ddest = f"default_filters"
         agrp.add_argument(f"--ignore-bad-inputs", dest=ddest, action="store_const", const=True, help=_("initialize input filters to `%s`; default") % (default_filters,))
         agrp.add_argument(f"--index-all-inputs", dest=ddest, action="store_const", const=False, help=_("do not set any input filters by default; note, however, that this sub-command expects input filters to be at least as restrictive as the above default and is likely to produce broken outputs if those filters are unset; use this option at your own risk"))
