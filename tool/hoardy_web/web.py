@@ -78,7 +78,7 @@ def cached_remap_url(document_net_url : URLType,
                      remap_url : _t.Callable[[URLType, ParsedURL, LinkType, list[str] | None], URLType | None],
                      *,
                      remappable : _t.Callable[[str], bool | None] = remappable_web,
-                     paranoid : bool = True,
+                     paranoid : bool = False,
                      handle_warning : _t.Callable[..., None] | None = None) \
                      -> URLRemapperType:
     remap_cache : dict[tuple[URLType, bool], URLType | None] = dict()
