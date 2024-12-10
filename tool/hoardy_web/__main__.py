@@ -2358,6 +2358,8 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
 
     date_spec = _("; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`")
     date_spec_id = _("; the `DATE` format is the same as above")
+    interval_date_spec = _("; the `INTERVAL_DATE` is parsed as a time interval the middle point of which is taken as target value; e.g., `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year), `2024-12-31` becomes `2024-12-31 12:00:00`, `2024-12-31 12` -> `2024-12-31 12:30:00`, `2024-12-31 12:00` -> `2024-12-31 12:00:30`, `2024-12-31 12:00:01` -> `2024-12-31 12:00:01.5`, etc")
+    interval_date_spec_id = _("; the `INTERVAL_DATE` format and semantics is the same as above")
     fullmatch_re = _("; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`")
     ie_whitelist = _("; in short, this option defines a whitelisted element rule")
     ie_blacklist = _("; in short, this option defines a blacklisted element rule")
@@ -3034,7 +3036,9 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
         return _(f"for each URL, mirror {x}")
 
     oldest = which("its oldest available version")
-    near = which("an available version that is closest to the given `DATE` value")
+    near = which("an available version that is closest to the given `INTERVAL_DATE` value")
+    near_long = near + interval_date_spec
+    near_short = near + interval_date_spec_id
     latest = which("its latest available version")
     hybrid = _(", except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document")
     hybrid_long = hybrid + _("; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`")
@@ -3042,12 +3046,12 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
 
     class EmitNear(argparse.Action):
         def __call__(self, parser : _t.Any, cfg : argparse.Namespace, value : _t.Any, option_string : _t.Optional[str] = None) -> None:
-            setattr(cfg, self.dest, self.const(timestamp(value)))
+            setattr(cfg, self.dest, self.const(timerange(value).middle))
 
     grp.add_argument("--oldest", dest="mode", action="store_const", const=(True, anytime.start), help=oldest)
     grp.add_argument("--oldest-hybrid", dest="mode", action="store_const", const=(False, anytime.start), help=oldest + hybrid_long)
-    grp.add_argument("--nearest", dest="mode", metavar="DATE", action=EmitNear, const=lambda x: (True, x), help=near + date_spec)
-    grp.add_argument("--nearest-hybrid", dest="mode", metavar="DATE", action=EmitNear, const=lambda x: (False, x), help=near + hybrid_short + date_spec_id)
+    grp.add_argument("--nearest", dest="mode", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: (True, x), help=near_long)
+    grp.add_argument("--nearest-hybrid", dest="mode", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: (False, x), help=near_short + hybrid_short)
     grp.add_argument("--latest", dest="mode", action="store_const", const=(True, anytime.end), help=latest + _("; default"))
     grp.add_argument("--latest-hybrid", dest="mode", action="store_const", const=(False, anytime.end), help=latest + hybrid_short)
     grp.add_argument("--all", dest="mode", action="store_const", const=(False, None), help=_("mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!"))

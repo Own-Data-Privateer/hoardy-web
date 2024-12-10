@@ -2353,10 +2353,10 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
   : for each URL, mirror its oldest available version
   - `--oldest-hybrid`
   : for each URL, mirror its oldest available version, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`
-  - `--nearest DATE`
-  : for each URL, mirror an available version that is closest to the given `DATE` value; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
-  - `--nearest-hybrid DATE`
-  : for each URL, mirror an available version that is closest to the given `DATE` value, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; see `--oldest-hybrid` above for more info; the `DATE` format is the same as above
+  - `--nearest INTERVAL_DATE`
+  : for each URL, mirror an available version that is closest to the given `INTERVAL_DATE` value; the `INTERVAL_DATE` is parsed as a time interval the middle point of which is taken as target value; e.g., `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year), `2024-12-31` becomes `2024-12-31 12:00:00`, `2024-12-31 12` -> `2024-12-31 12:30:00`, `2024-12-31 12:00` -> `2024-12-31 12:00:30`, `2024-12-31 12:00:01` -> `2024-12-31 12:00:01.5`, etc
+  - `--nearest-hybrid INTERVAL_DATE`
+  : for each URL, mirror an available version that is closest to the given `INTERVAL_DATE` value; the `INTERVAL_DATE` format and semantics is the same as above, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; see `--oldest-hybrid` above for more info
   - `--latest`
   : for each URL, mirror its latest available version; default
   - `--latest-hybrid`
