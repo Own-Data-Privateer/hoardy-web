@@ -105,7 +105,7 @@ class HTTPDumpServer(threading.Thread):
                     print(rparsed[-1500:])
                 del rparsed
 
-            if not cargs.uncompressed:
+            if cargs.compress:
                 # gzip it, if it gzips
                 buf = io.BytesIO()
                 with gzip.GzipFile(fileobj=buf, filename="", mtime=0, mode="wb", compresslevel=9) as gz:
@@ -167,9 +167,15 @@ def main():
     parser.add_argument("--host", type=str, default="127.0.0.1", help="listen on what host/IP; default: `%(default)s`")
     parser.add_argument("--port", type=int, default=3210, help="listen on what port; default: `%(default)s`")
     parser.add_argument("--root", type=str, default="pwebarc-dump", help="path to dump data into; default: `%(default)s`")
-    parser.add_argument("--uncompressed", action="store_true", help="dump new archivals to disk without compression; the default is to try to compress each new archive first")
+
+    grp = parser.add_mutually_exclusive_group()
+    grp.add_argument("--compress", dest="compress", action="store_const", const=True, help="compress new archivals before dumping them to disk; default")
+    grp.add_argument("--no-compress", "--uncompressed", dest="compress", action="store_const", const=False, help="dump new archivals to disk without compression")
+    parser.set_defaults(compress = True)
+
     parser.add_argument("--default-bucket", "--default-profile", metavar="NAME", default="default", type=str, help="default bucket to use when no `profile` query parameter is supplied by the extension; default: `%(default)s`")
     parser.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension and use the value of `--default-bucket` instead")
+
     parser.add_argument("--no-print", "--no-print-cbors", action="store_true", help="don't print parsed representations of newly archived CBORs to stdout even if `cbor2` module is available")
 
     cargs = parser.parse_args(sys.argv[1:])
