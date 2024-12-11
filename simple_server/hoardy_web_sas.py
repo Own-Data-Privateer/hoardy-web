@@ -41,7 +41,7 @@ class HTTPDumpServer(threading.Thread):
         super().__init__(*args, **kwargs)
         self.httpd = make_server(cargs.host, cargs.port, validator(self.handle_request))
         self.cargs = cargs
-        self.prevsec = 0
+        self.epoch = 0
         self.num = 0
         print(f"Listening for archive requests on http://{cargs.host}:{cargs.port}/pwebarc/dump")
 
@@ -51,24 +51,24 @@ class HTTPDumpServer(threading.Thread):
     def stop(self):
         self.httpd.shutdown()
 
-    def handle_request(self, environ, start_response):
+    def handle_request(self, env, start_response):
         def end_with(explanation, more):
             start_response(explanation, [("Content-Type", "text/plain; charset=utf-8")])
             yield more
 
-        method = environ["REQUEST_METHOD"]
-        path = environ["PATH_INFO"]
+        method = env["REQUEST_METHOD"]
+        path = env["PATH_INFO"]
 
         if method == "POST" and path == "/pwebarc/dump":
             # sanity check
-            ctype = environ["CONTENT_TYPE"]
+            ctype = env["CONTENT_TYPE"]
             if ctype != "application/cbor":
                 yield from end_with("400 Bad Request", b"expecting CBOR data")
                 return
 
             cargs = self.cargs
             try:
-                query = environ["QUERY_STRING"]
+                query = env["QUERY_STRING"]
             except KeyError:
                 query = ""
             params = up.parse_qs(query)
@@ -87,9 +87,9 @@ class HTTPDumpServer(threading.Thread):
                 profile_dir = "default"
 
             # read request body data
-            fp = environ["wsgi.input"]
+            fp = env["wsgi.input"]
             data = b""
-            todo = int(environ["CONTENT_LENGTH"])
+            todo = int(env["CONTENT_LENGTH"])
             while todo > 0:
                 res = fp.read(todo)
                 data += res
@@ -123,12 +123,12 @@ class HTTPDumpServer(threading.Thread):
 
             # because time.time() gives a float
             epoch = time.time_ns() // 1000000000
-            # number reqres sequentially while in the same second
-            if (self.prevsec != epoch):
+            # number reqres sequentially within the same second
+            if (self.epoch != epoch):
                 self.num = 0
             else:
                 self.num += 1
-            self.prevsec = epoch
+            self.epoch = epoch
 
             dd = list(map(lambda x: format(x, "02"), time.gmtime(epoch)[0:3]))
             directory = os.path.join(cargs.root, profile_dir, *dd)
