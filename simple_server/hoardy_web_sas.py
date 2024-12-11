@@ -61,9 +61,9 @@ class HTTPDumpServer(threading.Thread):
 
         if method == "POST" and path == "/pwebarc/dump":
             # sanity check
-            ctype = env["CONTENT_TYPE"]
-            if ctype != "application/cbor":
-                yield from end_with("400 Bad Request", b"expecting CBOR data")
+            ctype = env.get("CONTENT_TYPE", "")
+            if ctype not in ["application/x-wrr+cbor", "application/cbor"]:
+                yield from end_with("400 Bad Request", f"expected CBOR data, got `{ctype}`".encode("utf-8"))
                 return
 
             cargs = self.cargs
