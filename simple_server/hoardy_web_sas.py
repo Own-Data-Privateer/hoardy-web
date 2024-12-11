@@ -175,7 +175,7 @@ def main():
 
     parser.add_argument("--host", type=str, default="127.0.0.1", help="listen on what host/IP; default: `%(default)s`")
     parser.add_argument("--port", type=int, default=3210, help="listen on what port; default: `%(default)s`")
-    parser.add_argument("--root", type=str, default="pwebarc-dump", help="path to dump data into; default: `%(default)s`")
+    parser.add_argument("-t", "--to", "--archive-to", "--root", dest="root", type=str, default="pwebarc-dump", help="path to dump data into; default: `%(default)s`")
 
     grp = parser.add_mutually_exclusive_group()
     grp.add_argument("--compress", dest="compress", action="store_const", const=True, help="compress new archivals before dumping them to disk; default")

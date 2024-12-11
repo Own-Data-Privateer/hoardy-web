@@ -60,7 +60,7 @@ This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/hoardy
 # Usage
 
 ```
-usage: hoardy_web_sas.py [-h] [--version] [--host HOST] [--port PORT] [--root ROOT] [--compress | --no-compress] [--default-bucket NAME] [--ignore-buckets] [--no-print]
+usage: hoardy_web_sas.py [-h] [--version] [--host HOST] [--port PORT] [-t ROOT] [--compress | --no-compress] [--default-bucket NAME] [--ignore-buckets] [--no-print]
 
 Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.
 
@@ -69,7 +69,8 @@ options:
   --version             show program's version number and exit
   --host HOST           listen on what host/IP; default: `127.0.0.1`
   --port PORT           listen on what port; default: `3210`
-  --root ROOT           path to dump data into; default: `pwebarc-dump`
+  -t ROOT, --to ROOT, --archive-to ROOT, --root ROOT
+                        path to dump data into; default: `pwebarc-dump`
   --compress            compress new archivals before dumping them to disk; default
   --no-compress, --uncompressed
                         dump new archivals to disk without compression
