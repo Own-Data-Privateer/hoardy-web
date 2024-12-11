@@ -159,15 +159,16 @@ def main():
     global cbor2
 
     parser = argparse.ArgumentParser(prog=__package__,
-                                     description="Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
+                                     description="Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
                                      add_help = False)
     parser.add_argument("-h", "--help", action="store_true", help="show this help message and exit")
     parser.add_argument("--version", action="version", version=f"{__package__} {version}")
-    parser.add_argument("--host", default="127.0.0.1", type=str, help="listen on what host/IP (default: 127.0.0.1)")
-    parser.add_argument("--port", default=3210, type=int, help="listen on what port (default: 3210)")
-    parser.add_argument("--root", default="pwebarc-dump", type=str, help="path to dump data into (default: pwebarc-dump)")
+
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="listen on what host/IP; default: `%(default)s`")
+    parser.add_argument("--port", type=int, default=3210, help="listen on what port; default: `%(default)s`")
+    parser.add_argument("--root", type=str, default="pwebarc-dump", help="path to dump data into; default: `%(default)s`")
     parser.add_argument("--uncompressed", action="store_true", help="dump new archivals to disk without compression; the default is to try to compress each new archive first")
-    parser.add_argument("--default-bucket", "--default-profile", metavar="NAME", default="default", type=str, help="default bucket to use when no `profile` query parameter is supplied by the extension (default: `default`)")
+    parser.add_argument("--default-bucket", "--default-profile", metavar="NAME", default="default", type=str, help="default bucket to use when no `profile` query parameter is supplied by the extension; default: `%(default)s`")
     parser.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension and use the value of `--default-bucket` instead")
     parser.add_argument("--no-print", "--no-print-cbors", action="store_true", help="don't print parsed representations of newly archived CBORs to stdout even if `cbor2` module is available")
 

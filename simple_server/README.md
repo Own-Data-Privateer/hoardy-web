@@ -62,17 +62,17 @@ This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/hoardy
 ```
 usage: hoardy_web_sas.py [-h] [--version] [--host HOST] [--port PORT] [--root ROOT] [--uncompressed] [--default-bucket NAME] [--ignore-buckets] [--no-print]
 
-Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<profile>/<year>/<month>/<day>/<epoch>_<number>.wrr`.
+Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.
 
 options:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
-  --host HOST           listen on what host/IP (default: 127.0.0.1)
-  --port PORT           listen on what port (default: 3210)
-  --root ROOT           path to dump data into (default: pwebarc-dump)
+  --host HOST           listen on what host/IP; default: `127.0.0.1`
+  --port PORT           listen on what port; default: `3210`
+  --root ROOT           path to dump data into; default: `pwebarc-dump`
   --uncompressed        dump new archivals to disk without compression; the default is to try to compress each new archive first
   --default-bucket NAME, --default-profile NAME
-                        default bucket to use when no `profile` query parameter is supplied by the extension (default: `default`)
+                        default bucket to use when no `profile` query parameter is supplied by the extension; default: `default`
   --ignore-buckets, --ignore-profiles
                         ignore `profile` query parameter supplied by the extension and use the value of `--default-bucket` instead
   --no-print, --no-print-cbors
