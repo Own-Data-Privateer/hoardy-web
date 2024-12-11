@@ -87,13 +87,21 @@ class HTTPDumpServer(threading.Thread):
                 profile_dir = "default"
 
             # read request body data
-            fp = env["wsgi.input"]
-            data = b""
-            todo = int(env["CONTENT_LENGTH"])
-            while todo > 0:
-                res = fp.read(todo)
-                data += res
-                todo -= len(res)
+            with io.BytesIO() as cborf:
+                inf = env["wsgi.input"]
+                try:
+                    todo = int(env["CONTENT_LENGTH"])
+                except Exception:
+                    yield from end_with("400 Bad Request", b"need `content-length`")
+                    return
+                while todo > 0:
+                    res = inf.read(todo)
+                    if len(res) == 0:
+                        yield from end_with("400 Bad Request", b"incomplete data")
+                        return
+                    cborf.write(res)
+                    todo -= len(res)
+                data = cborf.getvalue()
 
             if cbor2 is not None:
                 rparsed = repr(cbor2.loads(data))
@@ -107,19 +115,16 @@ class HTTPDumpServer(threading.Thread):
 
             if cargs.compress:
                 # gzip it, if it gzips
-                buf = io.BytesIO()
-                with gzip.GzipFile(fileobj=buf, filename="", mtime=0, mode="wb", compresslevel=9) as gz:
-                    gz.write(data)
-                compressed_data = buf.getvalue()
+                with io.BytesIO() as gz_outf:
+                    with gzip.GzipFile(fileobj=gz_outf, filename="", mtime=0, mode="wb", compresslevel=9) as gz_inf:
+                        gz_inf.write(data)
+                    compressed_data = gz_outf.getvalue()
 
                 if len(compressed_data) < len(data):
                     data = compressed_data
-
-                # free the memory immediately
-                del buf
                 del compressed_data
 
-            # write it out to a file in {cargs.root}/<year>/<month>/<day>/<epoch>_<number>.wrr
+            # write it out to a file in {cargs.root}/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr
 
             # because time.time() gives a float
             epoch = time.time_ns() // 1000000000
