@@ -10,6 +10,7 @@ import argparse
 import gzip
 import io
 import os
+import re
 import sys
 import threading
 import time
@@ -28,6 +29,8 @@ except Exception:
 cbor2 = None
 
 mypid = str(os.getpid())
+
+bucket_re = re.compile(r"[\w -]+")
 
 class HTTPDumpServer(threading.Thread):
     """HTTP server that accepts HTTP dumps as POST data, tries to compresses them
@@ -67,24 +70,19 @@ class HTTPDumpServer(threading.Thread):
                 return
 
             cargs = self.cargs
-            try:
-                query = env["QUERY_STRING"]
-            except KeyError:
-                query = ""
+            query = env.get("QUERY_STRING", "")
             params = up.parse_qs(query)
 
-            if cargs.ignore_buckets:
-                profile = cargs.default_bucket
-            else:
+            bucket = ""
+            if not cargs.ignore_buckets:
                 try:
-                    profile = params["profile"][0]
+                    bucket_param = params["profile"][-1]
                 except KeyError:
-                    profile = cargs.default_bucket
-            pp = [p for p in profile.replace("\\", "/").split("/") if p != "" and not p.startswith(".")]
-            if len(pp) != 0:
-                profile_dir = os.path.join(*pp)
-            else:
-                profile_dir = "default"
+                    pass
+                else:
+                    bucket = "".join(bucket_re.findall(bucket_param))
+            if len(bucket) == 0:
+                bucket = cargs.default_bucket
 
             # read request body data
             with io.BytesIO() as cborf:
@@ -136,7 +134,7 @@ class HTTPDumpServer(threading.Thread):
             self.epoch = epoch
 
             dd = list(map(lambda x: format(x, "02"), time.gmtime(epoch)[0:3]))
-            directory = os.path.join(cargs.root, profile_dir, *dd)
+            directory = os.path.join(cargs.root, bucket, *dd)
             path = os.path.join(directory, f"{str(epoch)}_{mypid}_{str(self.num)}.wrr")
             os.makedirs(directory, exist_ok=True)
 
