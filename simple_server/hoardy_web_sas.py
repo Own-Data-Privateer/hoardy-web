@@ -9,6 +9,7 @@
 import argparse
 import gzip
 import io
+import json
 import os
 import re
 import sys
@@ -44,9 +45,13 @@ class HTTPDumpServer(threading.Thread):
         super().__init__(*args, **kwargs)
         self.httpd = make_server(cargs.host, cargs.port, validator(self.handle_request))
         self.cargs = cargs
+        self.server_info_json = json.dumps({
+            "version": 1,
+            "dump_wrr": "/pwebarc/dump",
+        }).encode("utf-8")
         self.epoch = 0
         self.num = 0
-        print(f"Listening for archive requests on http://{cargs.host}:{cargs.port}/pwebarc/dump")
+        print(f"Working as an archiving server at http://{cargs.host}:{cargs.port}/")
 
     def run(self):
         self.httpd.serve_forever()
@@ -62,7 +67,10 @@ class HTTPDumpServer(threading.Thread):
         method = env["REQUEST_METHOD"]
         path = env["PATH_INFO"]
 
-        if method == "POST" and path == "/pwebarc/dump":
+        if method == "GET" and path == "/hoardy-web/server-info":
+            start_response("200 OK", [("Content-Type", "application/json")])
+            yield self.server_info_json
+        elif method == "POST" and path == "/pwebarc/dump":
             # sanity check
             ctype = env.get("CONTENT_TYPE", "")
             if ctype not in ["application/x-wrr+cbor", "application/cbor"]:
@@ -153,8 +161,6 @@ class HTTPDumpServer(threading.Thread):
             print("dumped", path)
 
             yield from end_with("200 OK", b"")
-        elif method == "GET" and path == "/pwebarc/version":
-            yield from end_with("200 OK", b"1")
         else:
             yield from end_with("404 Not Found", b"")
 
