@@ -6,34 +6,32 @@
 #
 # This file can be distributed under the terms of the GNU GPL, version 3 or later.
 
-import argparse
-import gzip
-import io
-import json
-import os
-import re
-import sys
-import threading
-import time
+import argparse as _argparse
+import gzip as _gzip
+import io as _io
+import json as _json
+import os as _os
+import re as _re
+import sys as _sys
+import threading as _threading
+import time as _time
+import typing as _t
+import urllib.parse as _up
+import wsgiref.simple_server as _wsgiss
+import wsgiref.validate as _wsgival
 
-import urllib.parse as up
-
-from wsgiref.validate import validator
-from wsgiref.simple_server import make_server
+_cbor2 = None
 
 try:
-    import importlib.metadata as meta
-    version = meta.version(__package__)
+    import importlib.metadata as _meta
+    version = _meta.version(__package__)
 except Exception:
     version = "dev"
 
-cbor2 = None
+mypid = str(_os.getpid())
+bucket_re = _re.compile(r"[\w -]+")
 
-mypid = str(os.getpid())
-
-bucket_re = re.compile(r"[\w -]+")
-
-class HTTPDumpServer(threading.Thread):
+class HTTPDumpServer(_threading.Thread):
     """HTTP server that accepts HTTP dumps as POST data, tries to compresses them
        with gzip, and saves them in a given directory.
 
@@ -41,11 +39,11 @@ class HTTPDumpServer(threading.Thread):
        would not interrupt a dump in the middle.
     """
 
-    def __init__(self, cargs, *args, **kwargs):
+    def __init__(self, cargs : _argparse.Namespace, *args : _t.Any, **kwargs : _t.Any) -> None:
         super().__init__(*args, **kwargs)
-        self.httpd = make_server(cargs.host, cargs.port, validator(self.handle_request))
+        self.httpd = _wsgiss.make_server(cargs.host, cargs.port, _wsgival.validator(self.handle_request))
         self.cargs = cargs
-        self.server_info_json = json.dumps({
+        self.server_info_json = _json.dumps({
             "version": 1,
             "dump_wrr": "/pwebarc/dump",
         }).encode("utf-8")
@@ -53,14 +51,14 @@ class HTTPDumpServer(threading.Thread):
         self.num = 0
         print(f"Working as an archiving server at http://{cargs.host}:{cargs.port}/")
 
-    def run(self):
+    def run(self) -> None:
         self.httpd.serve_forever()
 
-    def stop(self):
+    def stop(self) -> None:
         self.httpd.shutdown()
 
-    def handle_request(self, env, start_response):
-        def end_with(explanation, more):
+    def handle_request(self, env : _t.Any, start_response : _t.Any) -> _t.Iterator[bytes]:
+        def end_with(explanation : str, more : bytes) -> _t.Iterator[bytes]:
             start_response(explanation, [("Content-Type", "text/plain; charset=utf-8")])
             yield more
 
@@ -79,7 +77,7 @@ class HTTPDumpServer(threading.Thread):
 
             cargs = self.cargs
             query = env.get("QUERY_STRING", "")
-            params = up.parse_qs(query)
+            params = _up.parse_qs(query)
 
             bucket = ""
             if not cargs.ignore_buckets:
@@ -93,7 +91,7 @@ class HTTPDumpServer(threading.Thread):
                 bucket = cargs.default_bucket
 
             # read request body data
-            with io.BytesIO() as cborf:
+            with _io.BytesIO() as cborf:
                 inf = env["wsgi.input"]
                 try:
                     todo = int(env["CONTENT_LENGTH"])
@@ -109,8 +107,8 @@ class HTTPDumpServer(threading.Thread):
                     todo -= len(res)
                 data = cborf.getvalue()
 
-            if cbor2 is not None:
-                rparsed = repr(cbor2.loads(data))
+            if _cbor2 is not None:
+                rparsed = repr(_cbor2.loads(data))
                 if len(rparsed) < 3000:
                     print("parsed", rparsed)
                 else:
@@ -121,8 +119,8 @@ class HTTPDumpServer(threading.Thread):
 
             if cargs.compress:
                 # gzip it, if it gzips
-                with io.BytesIO() as gz_outf:
-                    with gzip.GzipFile(fileobj=gz_outf, filename="", mtime=0, mode="wb", compresslevel=9) as gz_inf:
+                with _io.BytesIO() as gz_outf:
+                    with _gzip.GzipFile(fileobj=gz_outf, filename="", mtime=0, mode="wb", compresslevel=9) as gz_inf:
                         gz_inf.write(data)
                     compressed_data = gz_outf.getvalue()
 
@@ -133,7 +131,7 @@ class HTTPDumpServer(threading.Thread):
             # write it out to a file in {cargs.root}/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr
 
             # because time.time() gives a float
-            epoch = time.time_ns() // 1000000000
+            epoch = _time.time_ns() // 1000000000
             # number reqres sequentially within the same second
             if (self.epoch != epoch):
                 self.num = 0
@@ -141,10 +139,10 @@ class HTTPDumpServer(threading.Thread):
                 self.num += 1
             self.epoch = epoch
 
-            dd = list(map(lambda x: format(x, "02"), time.gmtime(epoch)[0:3]))
-            directory = os.path.join(cargs.root, bucket, *dd)
-            path = os.path.join(directory, f"{str(epoch)}_{mypid}_{str(self.num)}.wrr")
-            os.makedirs(directory, exist_ok=True)
+            dd = list(map(lambda x: format(x, "02"), _time.gmtime(epoch)[0:3]))
+            directory = _os.path.join(cargs.root, bucket, *dd)
+            path = _os.path.join(directory, f"{str(epoch)}_{mypid}_{str(self.num)}.wrr")
+            _os.makedirs(directory, exist_ok=True)
 
             tmp_path = path + ".part"
             try:
@@ -152,24 +150,25 @@ class HTTPDumpServer(threading.Thread):
                     f.write(data)
             except Exception as exc:
                 try:
-                    os.unlink(tmp_path)
+                    _os.unlink(tmp_path)
                 except Exception:
                     pass
                 raise exc
 
-            os.rename(tmp_path, path)
+            _os.rename(tmp_path, path)
             print("dumped", path)
 
             yield from end_with("200 OK", b"")
         else:
             yield from end_with("404 Not Found", b"")
 
-def main():
-    global cbor2
+def main() -> None:
+    global _cbor2
 
-    parser = argparse.ArgumentParser(prog=__package__,
-                                     description="Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
-                                     add_help = False)
+    parser = _argparse.ArgumentParser(
+        prog=__package__,
+        description="Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
+        add_help = False)
     parser.add_argument("-h", "--help", action="store_true", help="show this help message and exit")
     parser.add_argument("--version", action="version", version=f"{__package__} {version}")
 
@@ -187,24 +186,24 @@ def main():
 
     parser.add_argument("--no-print", "--no-print-cbors", action="store_true", help="don't print parsed representations of newly archived CBORs to stdout even if `cbor2` module is available")
 
-    cargs = parser.parse_args(sys.argv[1:])
+    cargs = parser.parse_args(_sys.argv[1:])
 
     if cargs.help:
-        if not sys.stdout.isatty():
-            parser.formatter_class = lambda *args, **kwargs: argparse.HelpFormatter(*args, width=1024, **kwargs)
+        if not _sys.stdout.isatty():
+            parser.formatter_class = lambda *args, **kwargs: _argparse.HelpFormatter(*args, width=1024, **kwargs) # type: ignore
         print(parser.format_help())
-        sys.exit(0)
+        _sys.exit(0)
 
-    cargs.root = os.path.expanduser(cargs.root)
+    cargs.root = _os.path.expanduser(cargs.root)
 
     if not cargs.no_print:
         try:
             import cbor2 as cbor2_
         except ImportError:
-            sys.stderr.write("warning: `cbor2` module is not available, forcing `--no-print` option\n")
-            sys.stderr.flush()
+            _sys.stderr.write("warning: `cbor2` module is not available, forcing `--no-print` option\n")
+            _sys.stderr.flush()
         else:
-            cbor2 = cbor2_
+            _cbor2 = cbor2_
             del cbor2_
 
     t = HTTPDumpServer(cargs)
