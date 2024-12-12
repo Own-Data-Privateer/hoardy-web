@@ -3420,6 +3420,8 @@ function handleBeforeNavigate(e) {
 let workaroundFirstRequest = true;
 
 function handleBeforeRequest(e) {
+    let url = e.url;
+
     // Ignore data, file, end extension URLs.
     // NB: `file:` URLs only happen on Chromium, Firefox does not emit
     // any `webRequest` events for those.
@@ -3463,14 +3465,14 @@ function handleBeforeRequest(e) {
     // start debugging, and then reload the tab.
     if (useDebugger && e.tabId !== -1
         && !tabsDebugging.has(e.tabId)
-        && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
+        && (url.startsWith("http://") || url.startsWith("https://"))) {
         if (config.debugging)
-            console.warn("canceling and restarting request to", e.url, "as tab", e.tabId, "is not managed yet");
+            console.warn("canceling and restarting request to", url, "as tab", e.tabId, "is not managed yet");
         if (e.type == "main_frame") {
             // attach debugger and reload the main frame
             attachDebuggerAndReloadTab(e.tabId).catch(logError);
             // not using
-            //   resetAttachDebuggerAndNavigateTab(e.tabId, e.url).catch(logError);
+            //   resetAttachDebuggerAndNavigateTab(e.tabId, url).catch(logError);
             // or
             //   resetAttachDebuggerAndReloadTab(e.tabId).catch(logError);
             // bacause they reset the referrer
@@ -3491,10 +3493,10 @@ function handleBeforeRequest(e) {
             && e.tabId !== -1
             && initiator === undefined
             && e.type == "main_frame"
-            && (e.url.startsWith("http://") || e.url.startsWith("https://"))) {
+            && (url.startsWith("http://") || url.startsWith("https://"))) {
             if (config.debugging)
-                console.warn("canceling and restarting request to", e.url, "to workaround a bug in Firefox");
-            resetAndNavigateTab(e.tabId, e.url).catch(logError);
+                console.warn("canceling and restarting request to", url, "to workaround a bug in Firefox");
+            resetAndNavigateTab(e.tabId, url).catch(logError);
             return { cancel: true };
         }
     }
@@ -3508,7 +3510,7 @@ function handleBeforeRequest(e) {
         fromExtension,
 
         method: e.method,
-        url: e.url,
+        url,
 
         errors: [],
 
