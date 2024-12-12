@@ -4423,6 +4423,8 @@ function fixConfig(config, oldConfig) {
             }).catch(logError);
     }
 
+    if (!config.submitHTTPURLBase)
+        config.submitHTTPURLBase = configDefaults.submitHTTPURLBase;
     if (!config.background.bucket)
         config.background.bucket = configDefaults.background.bucket;
     if (!config.extension.bucket)
