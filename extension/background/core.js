@@ -209,6 +209,113 @@ function asyncSaveConfig() {
     // NB: needs scheduleUpdateDisplay afterwards
 }
 
+// archiving/replay server config
+let serverConfigDefaults = {
+    ok: false,
+    baseURL: configDefaults.submitHTTPURLBase,
+    info: {
+        version: 0,
+        dump_wrr: "/pwebarc/dump",
+    },
+};
+let serverConfig = assignRec({}, serverConfigDefaults);
+let wantCheckServer = true;
+
+function setServerBaseURL() {
+    let serverURL;
+    try {
+        serverURL = new URL(config.submitHTTPURLBase);
+    } catch (err) {
+        logError(err);
+        browser.notifications.create("error-server-url", {
+            title: "Hoardy-Web: ERROR",
+            message: escapeHTMLTags(`Malformed \`Server URL\` \`${config.submitHTTPURLBase}\`:\n${errorMessageOf(err)}`),
+            iconUrl: iconURL("error", 128),
+            type: "basic",
+        }).catch(logError);
+        return;
+    }
+
+    // clear stale
+    browser.notifications.clear("error-server-url").catch(logError);
+
+    if (serverURL.pathname == "/pwebarc/dump")
+        // handle old-style URLs
+        serverURL.pathname = "/";
+    // just in case
+    serverURL.search = "";
+    serverURL.hash = "";
+
+    serverConfig.baseURL = serverURL.href;
+}
+
+async function checkServer() {
+    serverConfig = assignRec({}, serverConfigDefaults);
+
+    setServerBaseURL();
+
+    let serverURL = new URL("hoardy-web/server-info", serverConfig.baseURL);
+
+    let response;
+    try {
+        response = await fetch(serverURL.href);
+    } catch (err) {
+        logError(err);
+        await browser.notifications.create("error-server-connection", {
+            title: "Hoardy-Web: ERROR",
+            message: escapeHTMLTags(`\`Hoardy-Web\` can't establish a connection to the archiving server at \`${serverConfig.baseURL}\`:\n${errorMessageOf(err)}`),
+            iconUrl: iconURL("failed", 128),
+            type: "basic",
+        });
+        return;
+    }
+
+    // clear stale
+    await browser.notifications.clear("error-server-connection");
+
+    if (response.status === 200) {
+        let info;
+        try {
+            info = await response.json();
+        } catch (err) {
+            logError(err);
+        }
+        if (info !== undefined && info.dump_wrr !== undefined) {
+            serverConfig.ok = true;
+            serverConfig.info = info;
+        }
+    } else if (response.status === 404) {
+        // an old version of `hoardy-web-sas`
+        serverConfig.ok = true;
+        serverConfig.info = assignRec({}, serverConfigDefaults.info);
+    }
+
+    if (!serverConfig.ok) {
+        await browser.notifications.create("error-server", {
+            title: "Hoardy-Web: ERROR",
+            message: escapeHTMLTags(`The archiving server at \`${serverConfig.baseURL}\` appears to be defunct.`),
+            iconUrl: iconURL("failed", 128),
+            type: "basic",
+        });
+        return;
+    } else
+        // clear stale
+        await browser.notifications.clear("error-server");
+
+    if (serverConfig.info.version < 0) {
+        await browser.notifications.create("warning-server", {
+            title: "Hoardy-Web: WARNING",
+            message: escapeHTMLTags(`You are running a deprecated version of an archival server at \`${serverConfig.baseURL}\`, please update it.`),
+            iconUrl: iconURL("archiving", 128),
+            type: "basic",
+        });
+    } else
+        // clear stale
+        await browser.notifications.clear("warning-server");
+
+    retryOneUnarchived(config.submitHTTPURLBase, true);
+}
+
 let runningActions = new Set();
 
 // a list of [function, args] pairs; these are closures that need to be run synchronously
@@ -1527,6 +1634,12 @@ function scheduleEndgame(updatedTabId) {
             // explicitly instead or use `mergeUpdatedTabIds` above instead
             scheduleEndgame(null);
         });
+    } else if (wantCheckServer && config.archive && config.archiveSubmitHTTP) {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
+            wantCheckServer = false;
+            await checkServer();
+            scheduleEndgame(updatedTabId);
+        });
     } else if (config.archive && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             // reset
@@ -1599,7 +1712,7 @@ function scheduleEndgame(updatedTabId) {
                                   , null);
             }
 
-            if (wantRetryUnarchived) {
+            if (wantRetryUnarchived || !serverConfig.ok) {
                 wantRetryUnarchived = false;
                 if (config.archive && reqresUnarchivedByArchivable.size > 0)
                     // retry unarchived in 60s
@@ -1674,6 +1787,11 @@ function retryOneUnarchived(archiveURL, unrecoverable) {
 }
 
 function syncRetryUnarchived(unrecoverable) {
+    wantCheckServer = true;
+
+    if (reqresUnarchivedByArchiveError.size == 0)
+        return;
+
     for (let archiveURL of Array.from(reqresUnarchivedByArchiveError.keys()))
         retryOneUnarchived(archiveURL, unrecoverable);
 
@@ -2540,9 +2658,20 @@ async function submitHTTPOne(archivable) {
     if (isArchivedVia(loggable, archivedViaSubmitHTTP))
         return true;
 
-    dump = await loadDump(archivable, true, false);
+    function broken(archiveURL, reason, recoverable) {
+        logHandledError(reason);
+        recordOneUnarchived(archiveURL, reason, recoverable, archivable, dumpSize);
+    }
 
-    let archiveURL = config.submitHTTPURLBase + "?profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
+    if (!serverConfig.ok) {
+        broken(config.submitHTTPURLBase, "this archiving server is defunct", false);
+        return false;
+    }
+
+    let serverURL = new URL(serverConfig.baseURL);
+    serverURL.pathname = serverConfig.info.dump_wrr;
+    serverURL.search = "profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
+    let archiveURL = serverURL.href;
 
     if (recordOneAssumedBroken(archiveURL, archivable, dumpSize))
         return false;
@@ -2550,10 +2679,7 @@ async function submitHTTPOne(archivable) {
     if (config.debugging)
         console.log("trying to archive", loggable);
 
-    function broken(reason, recoverable) {
-        logHandledError(reason);
-        recordOneUnarchived(archiveURL, reason, recoverable, archivable, dumpSize);
-    }
+    dump = await loadDump(archivable, true, false);
 
     let response;
     try {
@@ -2566,14 +2692,16 @@ async function submitHTTPOne(archivable) {
             body: dump,
         });
     } catch (err) {
-        broken(`\`Hoardy-Web\` can't establish a connection to the archiving server: ${errorMessageOf(err)}`, true);
+        broken(archiveURL, `\`Hoardy-Web\` can't establish a connection to the archiving server: ${errorMessageOf(err)}`, true);
+        // NB: not defuncting here because this might simply be a networking error
         return false;
     }
 
     let responseText = await response.text();
 
     if (response.status !== 200) {
-        broken(`request to the archiving server failed with ${response.status} ${response.statusText}: ${responseText}`, false);
+        broken(archiveURL, `request to the archiving server failed with ${response.status} ${response.statusText}: ${responseText}`, false);
+        serverConfig.ok = false;
         return false;
     }
 
@@ -4022,22 +4150,13 @@ function handleMessage(request, sender, sendResponse) {
 
         fixConfig(config, oldConfig);
 
-        if (!config.ephemeral && !equalRec(oldConfig, config))
+        if (!config.ephemeral && !equalRec(config, oldConfig))
             // save config after a little pause to give the user time to click
             // the same toggle again without torturing the SSD
             asyncSaveConfig();
 
         if (useDebugger)
             syncDebuggersState();
-
-        if (oldConfig.archiveSubmitHTTP !== config.archiveSubmitHTTP)
-            wantArchiveDoneNotify = true;
-
-        if (config.stash && oldConfig.stash != config.stash)
-            syncStashAll(false);
-
-        if (config.archive && oldConfig.archive !== config.archive)
-            syncRetryUnarchived(false);
 
         scheduleEndgame(null);
         broadcast(["updateConfig", config]);
@@ -4101,8 +4220,8 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(getUnarchivedLog());
         return;
     case "retryFailed":
-        syncRetryUnarchived(true);
         syncRetryUnstashed();
+        syncRetryUnarchived(true);
         scheduleEndgame(null);
         break;
     case "retryUnarchived":
@@ -4441,6 +4560,20 @@ function fixConfig(config, oldConfig) {
     // these are mutually exclusive
     if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard)
         config.autoPopInLimboDiscard = false;
+
+    if (config.stash && config.stash != oldConfig.stash)
+        syncStashAll(false);
+
+    if (config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)
+        setServerBaseURL();
+
+    if (config.archive && config.archiveSubmitHTTP
+        && (config.archive !== oldConfig.archive
+            || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
+            || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)) {
+        syncRetryUnarchived(true);
+        wantArchiveDoneNotify = true;
+    }
 }
 
 function upgradeConfig(config) {
