@@ -541,11 +541,15 @@ function isBoringURL(url) {
     return isLocalURL(url) || isExtensionURL(url);
 }
 
-function escapeHTML(text) {
+function escapeHTMLTags(text) {
     return text
-        .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
+        .replaceAll(">", "&gt;");
+}
+
+function escapeHTML(text) {
+    return escapeHTMLTags(text)
+        .replaceAll("&", "&amp;")
         .replaceAll("\"", "&quot;")
         .replaceAll("'", "&#039;");
 }
