@@ -1054,7 +1054,7 @@ function setTitle(windowId, tabId, title) {
     return browser.browserAction.setTitle(attrs).catch(logErrorExceptWhenStartsWith("No tab with id:"));
 }
 
-let windowIdIcons = new Map();
+let windowIdIcon = new Map();
 
 // `browser.browserAction.setIcon` but with multiple icons. The given
 // icons will be rotated in a loop N times, and then the process will
@@ -1071,12 +1071,12 @@ async function setIcons(windowId, tabId, active, icons, force) {
         else if (!force) {
             // NB: `force` happens when `scheduleUpdateDisplay` is called from
             // `handleTabActivated` or `handleTabUpdated`.
-            let wicons = windowIdIcons.get(windowId);
+            let wicons = windowIdIcon.get(windowId);
             if (equalRec(wicons, icons))
                 // nothing to do
                 return;
         }
-        windowIdIcons.set(windowId, icons);
+        windowIdIcon.set(windowId, icons);
     }
 
     let attrs = icons.map((v) => perWindowUpdates

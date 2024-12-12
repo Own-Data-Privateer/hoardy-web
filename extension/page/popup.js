@@ -376,21 +376,21 @@ async function popupMain() {
     show(!!hash);
 
     async function processUpdate(update) {
-        let [what, data] = update;
+        let [what, arg1, arg2] = update;
         switch (what) {
         case "updateConfig":
-            await updateConfig(data);
+            await updateConfig(arg1);
             break;
         case "updateStats":
-            await updateStats(data);
+            await updateStats(arg1);
             break;
         case "updateTabConfig":
-            if (tabbing && data === null || data === tabId)
-                await updateTabConfig(update[2]);
+            if (tabbing && (arg1 === null || arg1 === tabId))
+                await updateTabConfig(arg2);
             break;
         case "updateTabStats":
-            if (tabbing && data === null || data === tabId)
-                await updateTabStats(update[2]);
+            if (tabbing && (arg1 === null || arg1 === tabId))
+                await updateTabStats(arg2);
             break;
         default:
             await handleDefaultUpdate(update, "popup");
