@@ -1117,7 +1117,7 @@ async function setIcons(windowId, tabId, active, icons, force) {
 let udStats = null;
 let udBadge = null;
 let udColor = null;
-let udTitle = null;
+let udGTitle = null;
 
 // `updatedTabId === null` means "config changed or any tab could have been updated"
 // `updatedTabId === undefined` means "no tabs changed"
@@ -1129,13 +1129,10 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
     let stats = udStats;
     let badge = udBadge;
     let color = udColor;
-    let title = udTitle;
+    let gtitle = udGTitle;
 
     if (statsChanged || wantUpdate) {
         stats = getStats();
-
-        if (statsChanged)
-            broadcast(["updateStats", stats]);
 
         badge = "";
         color = 0;
@@ -1242,16 +1239,19 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
             chunks.push(`${stats.scheduled_low} low-priority scheduled actions`);
         }
 
-        title = chunks.join(", ");
+        gtitle = chunks.join(", ");
 
         wantUpdate = wantUpdate
-            || udBadge !== badge || udColor !== color || udTitle !== title
+            || udBadge !== badge || udColor !== color || udGTitle !== gtitle
             || udStats === null
             // because these global stats influence the tab's icon
             || stats.errored !== udStats.errored
             || stats.failed !== udStats.failed
             || stats.queued != udStats.queued
             || stats.bundledAs !== udStats.bundledAs;
+
+        if (statsChanged)
+            broadcast(["updateStats", stats]);
 
         udStats = stats;
     }
@@ -1268,26 +1268,30 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
     }
 
     if (udColor !== color) {
+        let backgroundRGB;
+        let colorRGB;
         switch (color) {
         case 0:
-            await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
-            await browser.browserAction.setBadgeBackgroundColor({ color: "#777777" });
+            backgroundRGB = "#777";
+            colorRGB = "#fff";
             break;
         case 1:
-            await browser.browserAction.setBadgeTextColor({ color: "#000000" });
-            await browser.browserAction.setBadgeBackgroundColor({ color: "#e0e020" });
+            backgroundRGB = "#e0e020";
+            colorRGB = "#000";
             break;
         default:
-            await browser.browserAction.setBadgeTextColor({ color: "#ffffff" });
-            await browser.browserAction.setBadgeBackgroundColor({ color: "#e02020" });
+            backgroundRGB = "#e02020";
+            colorRGB = "#fff";
         }
+        await browser.browserAction.setBadgeBackgroundColor({ color: backgroundRGB });
+        await browser.browserAction.setBadgeTextColor({ color: colorRGB });
         udColor = color;
         if (config.debugging)
             console.log(`updated browserAction: color "${color}"`);
     }
 
-    if (udTitle !== title)
-        udTitle = title;
+    if (udGTitle !== gtitle)
+        udGTitle = gtitle;
 
     let tabs;
     if (useDebugger && updatedTabId == null)
@@ -1401,12 +1405,15 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
         addSub(icons, tchunks, tabcfg);
         addSub(icons, cchunks, tabcfg.children, true);
 
-        let gbadge = badge !== "" ? badge + ": " : badge;
-        let tdesc = tchunks.join(", ");
-        let cdesc = cchunks.join(", ");
-        let gtitle = `${gbadge}${title}; this tab: ${tdesc}; its new children: ${cdesc !== tdesc ? cdesc : "same"}`;
+        let ttitle = tchunks.join(", ");
+        let ctitle = cchunks.join(", ");
+        if (ctitle === ttitle)
+            ctitle = "same";
 
-        await setTitle(windowId, tabId, gtitle);
+        let title = `${badge}${badge ? ": " : ""}${gtitle}; this tab: ${ttitle}; its new children: ${ctitle}`;
+
+        // update browserAction
+        await setTitle(windowId, tabId, title);
         await setIcons(windowId, tabId, tab.active, icons, forceResetIcons);
 
         if (config.debugging)
