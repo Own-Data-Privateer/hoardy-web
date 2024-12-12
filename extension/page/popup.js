@@ -73,30 +73,17 @@ async function popupMain() {
             windowId = tab.windowId;
             tabId = getStateTabIdOrTabId(tab);
         } else {
-            // This happens when the user open the "Help" page from the
+            // This happens when the user opens the "Help" page from the
             // settings menu on Fenix. Disabling `tabbing` will make the page
             // useless, so we fake these values instead.
-            windowId = 1;
-            tabId = 1;
+            windowId = 0;
+            tabId = 0;
         }
         tabbing = true;
     } else {
         document.getElementById("this-tab-options").style.display = "none";
         document.getElementById("this-tab-children-options").style.display = "none";
     }
-
-    // start recording tabId changes
-    async function recordTabId(event) {
-        if (event.windowId !== windowId)
-            return;
-
-        let tab = await browser.tabs.get(event.tabId);
-        tabId = getStateTabIdOrTabId(tab);
-    }
-    let recordTabIdFunc = catchAll(recordTabId);
-
-    if (tabbing)
-        browser.tabs.onActivated.addListener(recordTabIdFunc);
 
     // generate UI
     let body = document.getElementById("body");
@@ -357,19 +344,8 @@ async function popupMain() {
     async function updateTabStats(tabstats) {
         if (tabstats === undefined)
             tabstats = await browser.runtime.sendMessage(["getTabStats", tabId]);
+
         setUI(document, "tabstats", present(tabstats));
-    }
-
-    // replace recordTabId with this
-    async function recordUpdateTabId(event) {
-        await recordTabId(event);
-        await updateTabConfig();
-        await updateTabStats();
-    }
-
-    if (tabbing) {
-        browser.tabs.onActivated.removeListener(recordTabIdFunc);
-        browser.tabs.onActivated.addListener(catchAll(recordUpdateTabId));
     }
 
     // set default UI state
@@ -392,6 +368,11 @@ async function popupMain() {
             if (tabbing && (arg1 === null || arg1 === tabId))
                 await updateTabStats(arg2);
             break;
+        case "switchTab":
+            // the tab was switched
+            if (arg1 === windowId)
+                tabId = arg2;
+            break;
         default:
             await handleDefaultUpdate(update, "popup");
         }
@@ -407,7 +388,7 @@ async function popupMain() {
         }
     }), (event) => {
         let cmd = event[0];
-        return !cmd.startsWith("update");
+        return !(cmd.startsWith("update") || cmd === "switchTab");
     }, setPageLoading, setPageSettling);
 
     // show UI

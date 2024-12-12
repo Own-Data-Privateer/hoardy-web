@@ -1122,7 +1122,7 @@ let udGTitle = null;
 // `updatedTabId === null` means "config changed or any tab could have been updated"
 // `updatedTabId === undefined` means "no tabs changed"
 // otherwise, it's a tabId of a changed tab
-async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
+async function doUpdateDisplay(statsChanged, updatedTabId, tabSwitched, tabUpdated) {
     statsChanged = statsChanged || udStats === null;
     let wantUpdate = updatedTabId === null;
 
@@ -1329,9 +1329,6 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
             tabcfg = prefillChildren(config.root);
         let tabstats = getTabStats(stateTabId);
 
-        if (statsChanged)
-            broadcast(["updateTabStats", stateTabId, tabstats]);
-
         let icons = [];
 
         if (stats.errored > 0)
@@ -1412,9 +1409,18 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
 
         let title = `${badge}${badge ? ": " : ""}${gtitle}; this tab: ${ttitle}; its new children: ${ctitle}`;
 
+        // update popup UI
+        if (tabSwitched && tab.active) {
+            broadcast(["switchTab", windowId, stateTabId]);
+            broadcast(["updateTabConfig", stateTabId, tabcfg]);
+        }
+
+        if (statsChanged || tabSwitched)
+            broadcast(["updateTabStats", stateTabId, tabstats]);
+
         // update browserAction
         await setTitle(windowId, tabId, title);
-        await setIcons(windowId, tabId, tab.active, icons, forceResetIcons);
+        await setIcons(windowId, tabId, tab.active, icons, tabSwitched || tabUpdated);
 
         if (config.debugging)
             console.log(`updated browserAction: tabId ${tabId}: icons ${icons.join(", ")}, title "${title}"`);
@@ -1424,13 +1430,15 @@ async function doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons) {
 let udStatsChanged = false;
 let udUpdatedTabId;
 let udEpisode = 1;
-let udForceResetIcons = false;
+let udTabSwitched = false;
+let udTabUpdated = false;
 
-function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, timeout, forceResetIcons) {
+function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, timeout, tabSwitched, tabUpdated) {
     // merge succesive arguments
     statsChanged = udStatsChanged = udStatsChanged || statsChanged;
     updatedTabId = udUpdatedTabId = mergeUpdatedTabIds(udUpdatedTabId, updatedTabId);
-    forceResetIcons = udForceResetIcons = udForceResetIcons || forceResetIcons;
+    tabSwitched = udTabSwitched = udTabSwitched || tabSwitched;
+    tabUpdated = udTabUpdated = udTabUpdated || tabUpdated;
 
     // only run the rest every `episodic` updates, when it's set
     if (udEpisode < episodic) {
@@ -1443,9 +1451,10 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, timeout, fo
         // reset
         udStatsChanged = false;
         udUpdatedTabId = undefined;
-        udForceResetIcons = false;
+        udTabSwitched = false;
+        udTabUpdated = false;
 
-        await doUpdateDisplay(statsChanged, updatedTabId, forceResetIcons);
+        await doUpdateDisplay(statsChanged, updatedTabId, tabSwitched, tabUpdated);
 
         // we schedule this here because otherwise we will have to schedule it
         // almost everywhere `scheduleUpdateDisplay` is used
@@ -3832,7 +3841,7 @@ function handleTabUpdated(tabId, changeInfo, tab) {
         // narrowed to a tracked tab. So, we skip updates until `tab.url` is
         // set.
         return;
-    scheduleUpdateDisplay(false, tabId, 1, 0, true);
+    scheduleUpdateDisplay(false, tabId, 1, 0, false, true);
 }
 
 // do we actually want to be reloaded?
@@ -4675,7 +4684,7 @@ async function init() {
 
     asyncNotifications(1000);
 
-    scheduleUpdateDisplay(true, null);
+    scheduleUpdateDisplay(true, null, 1, 0, true, true);
 }
 
 init();
