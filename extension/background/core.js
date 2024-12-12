@@ -3993,25 +3993,23 @@ function handleMessage(request, sender, sendResponse) {
     if (config.debugging)
         console.log("got message", request);
 
-    let cmd = request[0];
+    let [cmd, arg1, arg2, arg3, arg4] = request;
     switch (cmd) {
     case "reloadSelf":
         reloadSelf();
-        sendResponse(null);
         break;
     case "cancelReloadSelf":
         cancelReloadSelf();
-        sendResponse(null);
         break;
     case "getSessionId":
         sendResponse(sessionId);
-        break;
+        return;
     case "getConfig":
         sendResponse(config);
-        break;
+        return;
     case "setConfig":
         let oldConfig = config;
-        config = updateFromRec(assignRec({}, oldConfig), request[1]);
+        config = updateFromRec(assignRec({}, oldConfig), arg1);
 
         fixConfig(config, oldConfig);
 
@@ -4034,146 +4032,125 @@ function handleMessage(request, sender, sendResponse) {
 
         scheduleEndgame(null);
         broadcast(["updateConfig", config]);
-        sendResponse(null);
         break;
     case "resetConfig":
         config = assignRec({}, configDefaults);
         asyncSaveConfig();
         scheduleUpdateDisplay(true, null);
         broadcast(["updateConfig", config]);
-        sendResponse(null);
         break;
     case "getTabConfig":
-        sendResponse(getOriginConfig(request[1]));
-        break;
+        sendResponse(getOriginConfig(arg1));
+        return;
     case "setTabConfig":
-        setTabConfig(request[1], request[2]);
-        sendResponse(null);
+        setTabConfig(arg1, arg2);
         break;
     case "getStats":
         sendResponse(getStats());
-        break;
+        return;
     case "resetPersistentStats":
         resetPersistentStats();
         break;
     case "getTabStats":
-        sendResponse(getTabStats(request[1]));
-        break;
+        sendResponse(getTabStats(arg1));
+        return;
     case "getProblematicLog":
         sendResponse(getProblematicLog());
-        break;
+        return;
     case "unmarkProblematic":
-        unmarkProblematic(request[1], request[2], request[3]);
-        sendResponse(null);
+        unmarkProblematic(arg1, arg2, arg3);
         break;
     case "rotateProblematic":
-        rotateProblematic(request[1], request[2], request[3]);
-        sendResponse(null);
+        rotateProblematic(arg1, arg2, arg3);
         break;
     case "getInFlightLog":
         sendResponse(getInFlightLog());
-        break;
+        return;
     case "stopInFlight":
-        let updatedTabId = syncStopInFlight(request[1], "capture::EMIT_FORCED::BY_USER");
+        let updatedTabId = syncStopInFlight(arg1, "capture::EMIT_FORCED::BY_USER");
         scheduleEndgame(updatedTabId);
-        sendResponse(null);
         break;
     case "getInLimboLog":
         sendResponse(getInLimboLog());
-        break;
+        return;
     case "popInLimbo":
-        popInLimbo(request[1], request[2], request[3], request[4]);
-        sendResponse(null);
+        popInLimbo(arg1, arg2, arg3, arg4);
         break;
     case "rotateInLimbo":
-        rotateInLimbo(request[1], request[2], request[3]);
-        sendResponse(null);
+        rotateInLimbo(arg1, arg2, arg3);
         break;
     case "getLog":
         sendResponse(reqresLog);
-        break;
+        return;
     case "forgetHistory":
-        forgetHistory(request[1], request[2]);
-        sendResponse(null);
+        forgetHistory(arg1, arg2);
         break;
     case "getQueuedLog":
         sendResponse(getQueuedLog());
-        break;
+        return;
     case "getUnarchivedLog":
         sendResponse(getUnarchivedLog());
-        break;
+        return;
     case "retryFailed":
         syncRetryUnarchived(true);
         syncRetryUnstashed();
         scheduleEndgame(null);
-        sendResponse(null);
         break;
     case "retryUnarchived":
         syncRetryUnarchived(true);
         scheduleEndgame(null);
-        sendResponse(null);
         break;
     case "getSavedFilters":
         sendResponse(savedFilters);
-        break;
+        return;
     case "setSavedFilters":
-        savedFilters = updateFromRec(savedFilters, request[1]);
+        savedFilters = updateFromRec(savedFilters, arg1);
         broadcast(["setSavedFilters", savedFilters]);
         broadcast(["resetSaved", [null]]); // invalidate UI
         wantBroadcastSaved = true;
         scheduleEndgame(null);
-        sendResponse(null);
         break;
     case "requeueSaved":
-        requeueSaved(request[1]);
-        sendResponse(null);
+        requeueSaved(arg1);
         break;
     case "deleteSaved":
         deleteSaved();
-        sendResponse(null);
         break;
     case "forgetErrored":
         syncForgetErrored();
         scheduleEndgame(null);
-        sendResponse(null);
         break;
     case "stashAll":
         syncStashAll(true);
         scheduleEndgame(null);
-        sendResponse(null);
         break;
     case "retryUnstashed":
         syncRetryUnstashed();
         scheduleEndgame(null);
-        sendResponse(null);
         break;
     case "snapshot":
-        snapshot(request[1]);
-        sendResponse(null);
+        snapshot(arg1);
         break;
     case "runActions":
         syncRunActions();
         scheduleEndgame(null);
-        sendResponse(null);
         break;
     case "cancelActions":
         syncCancelActions();
         scheduleEndgame(null);
-        sendResponse(null);
         break;
     case "exportAs":
-        asyncBucketSaveAs(0, request[1]);
+        asyncBucketSaveAs(0, arg1);
         scheduleUpdateDisplay(true);
-        sendResponse(null);
         break;
     case "broadcast":
-        broadcast(request[1]);
-        sendResponse(null);
+        broadcast(arg1);
         break;
     default:
         console.error("what?", request);
         throw new Error("what request?");
     }
+    sendResponse(null);
 }
 
 let menuTitleTab = {
