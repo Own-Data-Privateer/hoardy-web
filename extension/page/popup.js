@@ -154,7 +154,7 @@ async function popupMain() {
                 // Firefox on Android does not switch to new tabs opened from the settings
                 browser.notifications.create("pageSpawnedAway", {
                     title: "Hoardy-Web: REMINDER",
-                    message: "The newly spawned page might be hidden. See the list of open tabs or the list open private tabs, depending on the browser's mode." + annoyingNotification(config, "Generate notifications about > ... mobile UI quirks"),
+                    message: escapeHTMLTags("The newly spawned page might be hidden. See the list of open tabs or the list open private tabs, depending on the browser's mode." + annoyingNotification(config, "Generate notifications about > ... mobile UI quirks")),
                     iconUrl: iconURL("main", 128),
                     type: "basic",
                 }).catch(logError);
@@ -162,7 +162,7 @@ async function popupMain() {
                 // Firefox on Android does not switch to new tabs opened from the settings
                 browser.notifications.create("pageNotSpawnedAway", {
                     title: "Hoardy-Web: REMINDER",
-                    message: `To make the search work on the "Help" page, enable "User Interface and Accessibility > Spawn internal pages in new tabs" option, open the "Help" page again, and then switch to the newly spawned tab.` + annoyingNotification(config, "Generate notifications about > ... mobile UI quirks"),
+                    message: escapeHTMLTags(`To make the search work on the "Help" page, enable "User Interface and Accessibility > Spawn internal pages in new tabs" option, open the "Help" page again, and then switch to the newly spawned tab.` + annoyingNotification(config, "Generate notifications about > ... mobile UI quirks")),
                     iconUrl: iconURL("main", 128),
                     type: "basic",
                 }).catch(logError);
