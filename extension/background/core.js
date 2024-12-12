@@ -91,7 +91,7 @@ let configDefaults = {
 
     // submission via HTTP
     archiveSubmitHTTP: false,
-    submitHTTPURLBase: "http://127.0.0.1:3210/pwebarc/dump",
+    submitHTTPURLBase: "http://127.0.0.1:3210/",
 
     // saving to local storage
     archiveSaveLS: true,
