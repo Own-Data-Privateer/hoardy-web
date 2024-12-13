@@ -346,7 +346,7 @@ Scrubbers = tuple[
     _t.Callable[[URLType, URLRemapperType | None, Headers, _t.Iterator[CSSNode]], list[CSSNode]],
 ]
 
-ie_pragma_re = _re.compile(r"^\s*(\[if IE [^]]*\].*\[endif\]|\[if !IE\]><!|<!\[endif\])\s*$")
+iepragma_re = _re.compile(r"\s*(\[if ((lt|lte|gt|gte)\s+)?IE [^]]*\].*\[endif\]|\[if !IE\]><!|<!\[endif\])\s*")
 
 jump_ref : RefType = (LinkType.JUMP, page_mime)
 action_ref : RefType = (LinkType.ACTION, page_mime)
@@ -698,7 +698,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
             if assemble is not None and (typ == "Characters" or typ == "SpaceCharacters"):
                 assemble_contents.append(token["data"])
                 continue
-            elif not_iepragmas and typ == "Comment" and ie_pragma_re.match(token["data"]):
+            elif not_iepragmas and typ == "Comment" and iepragma_re.fullmatch(token["data"]):
                 yield from emit_censored_other("a comment with an IE pragma")
                 continue
 
