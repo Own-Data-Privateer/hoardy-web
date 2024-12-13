@@ -342,9 +342,9 @@ ReqresExpr_derived_attrs = {
 ReqresExpr_url_attrs = {
     "net_url": "a variant of `raw_url` that uses Punycode UTS46 IDNA encoded `net_hostname`, has all unsafe characters of `raw_path` and `raw_query` quoted, and comes without the `fragment`/hash part; this is the URL that actually gets sent to an `HTTP` server when you request `raw_url`; str",
     "url": "`net_url` with `fragment`/hash part appended; str",
-    "pretty_net_url": "a variant of `raw_url` that uses UNICODE IDNA `hostname` without Punycode, minimally quoted `mq_raw_path` and `mq_query`, and comes without the `fragment`/hash part; this is a human-readable version of `net_url`; str",
+    "pretty_net_url": "a variant of `raw_url` that uses UNICODE IDNA `hostname` without Punycode, minimally quoted `mq_path` and `mq_query`, and comes without the `fragment`/hash part; this is a human-readable version of `net_url`; str",
     "pretty_url": "`pretty_net_url` with `fragment`/hash part appended; str",
-    "pretty_net_nurl": "a variant of `pretty_net_url` that uses `mq_npath` instead of `mq_raw_path` and `mq_nquery` instead of `mq_query`; i.e. this is `pretty_net_url` with normalized path and query; str",
+    "pretty_net_nurl": "a variant of `pretty_net_url` that uses `mq_npath` instead of `mq_path` and `mq_nquery` instead of `mq_query`; i.e. this is `pretty_net_url` with normalized path and query; str",
     "pretty_nurl": "`pretty_net_nurl` with `fragment`/hash part appended; str",
     "scheme": "scheme part of `raw_url`; e.g. `http`, `https`, etc; str",
     "raw_hostname": "hostname part of `raw_url` as it is recorded in the reqres; str",
@@ -354,15 +354,17 @@ ReqresExpr_url_attrs = {
     "port": 'port part of `raw_url`; str',
     "netloc": "netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str",
     "raw_path": 'raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str',
-    "raw_path_parts": 'component-wise unquoted "/"-split `raw_path`; list[str]',
-    "npath_parts": '`raw_path_parts` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]',
-    "mq_raw_path": "`raw_path_parts` turned back into a minimally-quoted string; str",
+    "path_parts": 'component-wise unquoted "/"-split `raw_path`; list[str]',
+    "path": "`path_parts` turned back into a quoted string, i.e. `raw_path` normalized like browsers do it; str",
+    "npath_parts": '`path_parts` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]',
+    "mq_path": "`path_parts` turned back into a minimally-quoted string; str",
     "mq_npath": "`npath_parts` turned back into a minimally-quoted string; str",
-    "raw_query": "query part of `raw_url` (i.e. everything after the `?` character and before the `#` character) as it is recorded in the reqres; str",
-    "query_parts": "parsed (and component-wise unquoted) `raw_query`; list[tuple[str, str]]",
-    "query_ne_parts": "`query_parts` with empty query parameters removed; list[tuple[str, str]]",
-    "mq_query": "`query_parts` turned back into a minimally-quoted string; str",
-    "mq_nquery": "`query_ne_parts` turned back into a minimally-quoted string; str",
+    "raw_query": "query part of `raw_url`, i.e. everything after the `?` character and before the `#` character; str",
+    "query_parts": "parsed and component-wise unquoted `raw_query`; list[tuple[str, str | None]]",
+    "query": "`query_parts` turned back into a quoted string, i.e. `raw_query` normalized like browsers do it; str",
+    "query_nparts": "`query_parts` with empty query parameters removed; list[tuple[str, str]]",
+    "mq_query": "`query_parts` turned back into a minimally-quoted string appropriate for use in filenames; str",
+    "mq_nquery": "`query_ne_parts` turned back into a minimally-quoted string appropriate for use in filenames; str",
     "oqm": "optional query mark: `?` character if `query` is non-empty, an empty string otherwise; str",
     "fragment": "fragment (hash) part of the url; str",
     "ofm": "optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str",
@@ -485,11 +487,17 @@ _in_out = "should be kept in or censored out"
 
 ReqresExpr_atoms = linst_atoms.copy()
 ReqresExpr_atoms.update({
+    "parse_path": ("parse a URL path component `str` into `path_parts` `list`",
+        linst_apply0(lambda v: parse_path(v))),
+    "unparse_path": ("encode `path_parts` `list` into a URL path component `str`",
+        linst_apply0(lambda v: unparse_path(v))),
+    "parse_query": ("parse a URL query component `str` into `query_parts` `list`",
+        linst_apply0(lambda v: parse_query(v))),
+    "unparse_query": ("encode `query_parts` `list` into a URL query component `str`",
+        linst_apply0(lambda v: unparse_query(v))),
     "pp_to_path": ("encode `*path_parts` `list` into a POSIX path, quoting as little as needed",
         linst_apply0(lambda v: pp_to_path(v))),
-    "qsl_urlencode": ("encode parsed `query` `list` into a URL's query component `str`",
-        linst_apply0(lambda v: _up.urlencode(v))),
-    "qsl_to_path": ("encode `query` `list` into a POSIX path, quoting as little as needed",
+    "qsl_to_path": ("encode `query_parts` `list` into a POSIX path, quoting as little as needed",
         linst_apply0(lambda v: qsl_to_path(v))),
     "scrub": (f"""scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on the `MIME` type of the value itself and the scrubbing options described below; this function takes two arguments:
   - the first must be either of `request|response`, it controls which `HTTP` headers `scrub` should inspect to help it detect the `MIME` type;
@@ -859,9 +867,9 @@ def test_ReqresExpr_url_parts() -> None:
 
     hostname = "ジャジェメント.ですの.example.org"
     ehostname = "xn--hck7aa9d8fj9i.xn--88j1aw.example.org"
-    path_query="/how%2Fdo%3Fyou%26like/these/components%E3%81%A7%E3%81%99%E3%81%8B%3F?empty&not=abit=%2F%3F%26weird"
+    path_query="/how%2Fdo%3Fyou%26like/these/components%E3%81%A7%E3%81%99%E3%81%8B%3F?empty&not=abit%3D%2F%3F%26weird"
     path_components = ["how/do?you&like", "these", "componentsですか?"]
-    query_components = [("empty", ""), ("not", "abit=/?&weird")]
+    query_components = [("empty", None), ("not", "abit=/?&weird")]
     x = mk_trivial_ReqresExpr(f"https://{hostname}{path_query}#hash")
     check(x, "hostname", hostname)
     check(x, "net_hostname", ehostname)

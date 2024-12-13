@@ -986,9 +986,12 @@ The end.
       - `abbrev`: leave the current value as-is if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters
       - `abbrev_each`: `abbrev arg` each element in a value `list`
       - `replace`: replace all occurences of the first argument in the current value with the second argument, casts arguments to the same type as the current value
+      - `parse_path`: parse a URL path component `str` into `path_parts` `list`
+      - `unparse_path`: encode `path_parts` `list` into a URL path component `str`
+      - `parse_query`: parse a URL query component `str` into `query_parts` `list`
+      - `unparse_query`: encode `query_parts` `list` into a URL query component `str`
       - `pp_to_path`: encode `*path_parts` `list` into a POSIX path, quoting as little as needed
-      - `qsl_urlencode`: encode parsed `query` `list` into a URL's query component `str`
-      - `qsl_to_path`: encode `query` `list` into a POSIX path, quoting as little as needed
+      - `qsl_to_path`: encode `query_parts` `list` into a POSIX path, quoting as little as needed
       - `scrub`: scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on the `MIME` type of the value itself and the scrubbing options described below; this function takes two arguments:
             - the first must be either of `request|response`, it controls which `HTTP` headers `scrub` should inspect to help it detect the `MIME` type;
             - the second is either `defaults` or ","-separated string of tokens which control the scrubbing behaviour:
@@ -1083,9 +1086,9 @@ The end.
       - `fsecond`: similar to `qsecond`, but for `ftime`; int
       - `net_url`: a variant of `raw_url` that uses Punycode UTS46 IDNA encoded `net_hostname`, has all unsafe characters of `raw_path` and `raw_query` quoted, and comes without the `fragment`/hash part; this is the URL that actually gets sent to an `HTTP` server when you request `raw_url`; str
       - `url`: `net_url` with `fragment`/hash part appended; str
-      - `pretty_net_url`: a variant of `raw_url` that uses UNICODE IDNA `hostname` without Punycode, minimally quoted `mq_raw_path` and `mq_query`, and comes without the `fragment`/hash part; this is a human-readable version of `net_url`; str
+      - `pretty_net_url`: a variant of `raw_url` that uses UNICODE IDNA `hostname` without Punycode, minimally quoted `mq_path` and `mq_query`, and comes without the `fragment`/hash part; this is a human-readable version of `net_url`; str
       - `pretty_url`: `pretty_net_url` with `fragment`/hash part appended; str
-      - `pretty_net_nurl`: a variant of `pretty_net_url` that uses `mq_npath` instead of `mq_raw_path` and `mq_nquery` instead of `mq_query`; i.e. this is `pretty_net_url` with normalized path and query; str
+      - `pretty_net_nurl`: a variant of `pretty_net_url` that uses `mq_npath` instead of `mq_path` and `mq_nquery` instead of `mq_query`; i.e. this is `pretty_net_url` with normalized path and query; str
       - `pretty_nurl`: `pretty_net_nurl` with `fragment`/hash part appended; str
       - `scheme`: scheme part of `raw_url`; e.g. `http`, `https`, etc; str
       - `raw_hostname`: hostname part of `raw_url` as it is recorded in the reqres; str
@@ -1095,15 +1098,17 @@ The end.
       - `port`: port part of `raw_url`; str
       - `netloc`: netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str
       - `raw_path`: raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str
-      - `raw_path_parts`: component-wise unquoted "/"-split `raw_path`; list[str]
-      - `npath_parts`: `raw_path_parts` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]
-      - `mq_raw_path`: `raw_path_parts` turned back into a minimally-quoted string; str
+      - `path_parts`: component-wise unquoted "/"-split `raw_path`; list[str]
+      - `path`: `path_parts` turned back into a quoted string, i.e. `raw_path` normalized like browsers do it; str
+      - `npath_parts`: `path_parts` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]
+      - `mq_path`: `path_parts` turned back into a minimally-quoted string; str
       - `mq_npath`: `npath_parts` turned back into a minimally-quoted string; str
-      - `raw_query`: query part of `raw_url` (i.e. everything after the `?` character and before the `#` character) as it is recorded in the reqres; str
-      - `query_parts`: parsed (and component-wise unquoted) `raw_query`; list[tuple[str, str]]
-      - `query_ne_parts`: `query_parts` with empty query parameters removed; list[tuple[str, str]]
-      - `mq_query`: `query_parts` turned back into a minimally-quoted string; str
-      - `mq_nquery`: `query_ne_parts` turned back into a minimally-quoted string; str
+      - `raw_query`: query part of `raw_url`, i.e. everything after the `?` character and before the `#` character; str
+      - `query_parts`: parsed and component-wise unquoted `raw_query`; list[tuple[str, str | None]]
+      - `query`: `query_parts` turned back into a quoted string, i.e. `raw_query` normalized like browsers do it; str
+      - `query_nparts`: `query_parts` with empty query parameters removed; list[tuple[str, str]]
+      - `mq_query`: `query_parts` turned back into a minimally-quoted string appropriate for use in filenames; str
+      - `mq_nquery`: `query_ne_parts` turned back into a minimally-quoted string appropriate for use in filenames; str
       - `oqm`: optional query mark: `?` character if `query` is non-empty, an empty string otherwise; str
       - `fragment`: fragment (hash) part of the url; str
       - `ofm`: optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str
@@ -1147,7 +1152,7 @@ The end.
         - `https://example.org/index.html` -> `https://example.org/index.html`
         - `https://example.org/media` -> `https://example.org/media`
         - `https://example.org/media/` -> `https://example.org/media/`
-        - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https://example.org/view?one=1&two=2&three&three=3#fragment`
+        - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https://example.org/view?one=1&two=2&three=&three=3#fragment`
         - `https://königsgäßchen.example.org/index.html` -> `https://königsgäßchen.example.org/index.html`
         - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https://ジャジェメント.ですの.example.org/испытание/is/`
       - `pretty_nurl`:
@@ -1520,56 +1525,56 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org`, `https://example.org/` -> `https/example.org/`
             - `https://example.org/index.html` -> `https/example.org/index.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view?one=1&two=2&three&three=3`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view?one=1&two=2&three=&three=3`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is`
       - `surl_msn`    : `%(scheme)s/%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d`
             - `https://example.org`, `https://example.org/` -> `https/example.org/__GET_C200C_0`
             - `https://example.org/index.html` -> `https/example.org/index.html__GET_C200C_0`
             - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media__GET_C200C_0`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view?one=1&two=2&three&three=3__GET_C200C_0`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view?one=1&two=2&three=&three=3__GET_C200C_0`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.html__GET_C200C_0`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is__GET_C200C_0`
       - `surl_mstn`   : `%(scheme)s/%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d`
             - `https://example.org`, `https://example.org/` -> `https/example.org/__GET_C200C_1970-01-01_001640000_0`
             - `https://example.org/index.html` -> `https/example.org/index.html__GET_C200C_1970-01-01_001640000_0`
             - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media__GET_C200C_1970-01-01_001640000_0`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view?one=1&two=2&three&three=3__GET_C200C_1970-01-01_001640000_0`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view?one=1&two=2&three=&three=3__GET_C200C_1970-01-01_001640000_0`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.html__GET_C200C_1970-01-01_001640000_0`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is__GET_C200C_1970-01-01_001640000_0`
       - `shupq`       : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/example.org/index.htm`
             - `https://example.org/index.html` -> `https/example.org/index.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media/index.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three&three=3.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=&three=3.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.htm`
       - `shupq_n`     : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/example.org/index.0.htm`
             - `https://example.org/index.html` -> `https/example.org/index.0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media/index.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three&three=3.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=&three=3.0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.0.htm`
       - `shupq_tn`    : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/example.org/index.1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `https/example.org/index.1970-01-01_001640000_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media/index.1970-01-01_001640000_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three&three=3.1970-01-01_001640000_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=&three=3.1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.1970-01-01_001640000_0.htm`
       - `shupq_msn`   : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s.%(method)s_%(status)s_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/example.org/index.GET_C200C_0.htm`
             - `https://example.org/index.html` -> `https/example.org/index.GET_C200C_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media/index.GET_C200C_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three&three=3.GET_C200C_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=&three=3.GET_C200C_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.GET_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm`
       - `shupq_mstn`  : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s.%(method)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/example.org/index.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `https/example.org/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/example.org/media/index.GET_C200C_1970-01-01_001640000_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three&three=3.GET_C200C_1970-01-01_001640000_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/example.org/view/index?one=1&two=2&three=&three=3.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/königsgäßchen.example.org/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm`
       - `shupnq`      : `%(scheme)s/%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`
@@ -1635,35 +1640,35 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org`, `https://example.org/` -> `https/org.example/index.htm`
             - `https://example.org/index.html` -> `https/org.example/index.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/org.example/media/index.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three&three=3.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=&three=3.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.htm`
       - `srhupq_n`    : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/org.example/index.0.htm`
             - `https://example.org/index.html` -> `https/org.example/index.0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/org.example/media/index.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three&three=3.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=&three=3.0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.0.htm`
       - `srhupq_tn`   : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/org.example/index.1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `https/org.example/index.1970-01-01_001640000_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/org.example/media/index.1970-01-01_001640000_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three&three=3.1970-01-01_001640000_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=&three=3.1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.1970-01-01_001640000_0.htm`
       - `srhupq_msn`  : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s.%(method)s_%(status)s_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/org.example/index.GET_C200C_0.htm`
             - `https://example.org/index.html` -> `https/org.example/index.GET_C200C_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/org.example/media/index.GET_C200C_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three&three=3.GET_C200C_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=&three=3.GET_C200C_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.GET_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm`
       - `srhupq_mstn` : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s.%(method)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `https/org.example/index.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `https/org.example/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `https/org.example/media/index.GET_C200C_1970-01-01_001640000_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three&three=3.GET_C200C_1970-01-01_001640000_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `https/org.example/view/index?one=1&two=2&three=&three=3.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `https/org.example.königsgäßchen/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `https/org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm`
       - `srhupnq`     : `%(scheme)s/%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`
@@ -1729,56 +1734,56 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org`, `https://example.org/` -> `example.org/`
             - `https://example.org/index.html` -> `example.org/index.html`
             - `https://example.org/media`, `https://example.org/media/` -> `example.org/media`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view?one=1&two=2&three&three=3`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view?one=1&two=2&three=&three=3`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is`
       - `url_msn`     : `%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(num)d`
             - `https://example.org`, `https://example.org/` -> `example.org/__GET_C200C_0`
             - `https://example.org/index.html` -> `example.org/index.html__GET_C200C_0`
             - `https://example.org/media`, `https://example.org/media/` -> `example.org/media__GET_C200C_0`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view?one=1&two=2&three&three=3__GET_C200C_0`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view?one=1&two=2&three=&three=3__GET_C200C_0`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html__GET_C200C_0`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is__GET_C200C_0`
       - `url_mstn`    : `%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s__%(method)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d`
             - `https://example.org`, `https://example.org/` -> `example.org/__GET_C200C_1970-01-01_001640000_0`
             - `https://example.org/index.html` -> `example.org/index.html__GET_C200C_1970-01-01_001640000_0`
             - `https://example.org/media`, `https://example.org/media/` -> `example.org/media__GET_C200C_1970-01-01_001640000_0`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view?one=1&two=2&three&three=3__GET_C200C_1970-01-01_001640000_0`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view?one=1&two=2&three=&three=3__GET_C200C_1970-01-01_001640000_0`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html__GET_C200C_1970-01-01_001640000_0`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is__GET_C200C_1970-01-01_001640000_0`
       - `hupq`        : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.htm`
             - `https://example.org/index.html` -> `example.org/index.html`
             - `https://example.org/media`, `https://example.org/media/` -> `example.org/media/index.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three&three=3.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=&three=3.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.htm`
       - `hupq_n`      : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.0.htm`
             - `https://example.org/index.html` -> `example.org/index.0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `example.org/media/index.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three&three=3.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=&three=3.0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.0.htm`
       - `hupq_tn`     : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `example.org/index.1970-01-01_001640000_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `example.org/media/index.1970-01-01_001640000_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three&three=3.1970-01-01_001640000_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=&three=3.1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.1970-01-01_001640000_0.htm`
       - `hupq_msn`    : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s.%(method)s_%(status)s_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.GET_C200C_0.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_C200C_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `example.org/media/index.GET_C200C_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three&three=3.GET_C200C_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=&three=3.GET_C200C_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm`
       - `hupq_mstn`   : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s.%(method)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `example.org/index.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `example.org/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `example.org/media/index.GET_C200C_1970-01-01_001640000_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three&three=3.GET_C200C_1970-01-01_001640000_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `example.org/view/index?one=1&two=2&three=&three=3.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `königsgäßchen.example.org/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm`
       - `hupnq`       : `%(hostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`
@@ -1844,35 +1849,35 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org`, `https://example.org/` -> `org.example/index.htm`
             - `https://example.org/index.html` -> `org.example/index.html`
             - `https://example.org/media`, `https://example.org/media/` -> `org.example/media/index.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three&three=3.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=&three=3.htm`
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.htm`
       - `rhupq_n`     : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `org.example/index.0.htm`
             - `https://example.org/index.html` -> `org.example/index.0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `org.example/media/index.0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three&three=3.0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=&three=3.0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.0.htm`
       - `rhupq_tn`    : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 120)s.%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `org.example/index.1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `org.example/index.1970-01-01_001640000_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `org.example/media/index.1970-01-01_001640000_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three&three=3.1970-01-01_001640000_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=&three=3.1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.1970-01-01_001640000_0.htm`
       - `rhupq_msn`   : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s.%(method)s_%(status)s_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `org.example/index.GET_C200C_0.htm`
             - `https://example.org/index.html` -> `org.example/index.GET_C200C_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `org.example/media/index.GET_C200C_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three&three=3.GET_C200C_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=&three=3.GET_C200C_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.GET_C200C_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm`
       - `rhupq_mstn`  : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_query|abbrev 100)s.%(method)s_%(status)s_%(syear)d-%(smonth)02d-%(sday)02d_%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(num)d%(filepath_ext)s`
             - `https://example.org`, `https://example.org/` -> `org.example/index.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://example.org/index.html` -> `org.example/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://example.org/media`, `https://example.org/media/` -> `org.example/media/index.GET_C200C_1970-01-01_001640000_0.htm`
-            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three&three=3.GET_C200C_1970-01-01_001640000_0.htm`
+            - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `org.example/view/index?one=1&two=2&three=&three=3.GET_C200C_1970-01-01_001640000_0.htm`
             - `https://königsgäßchen.example.org/index.html` -> `org.example.königsgäßchen/index.GET_C200C_1970-01-01_001640000_0.html`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm`
       - `rhupnq`      : `%(rhostname)s/%(filepath_parts|abbrev_each 120|pp_to_path)s%(oqm)s%(mq_nquery|abbrev 120)s%(filepath_ext)s`

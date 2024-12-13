@@ -119,19 +119,58 @@ def url_re_str(d : str) -> str:
 
 url_re = _re.compile(url_re_str(""))
 
+def parse_path(path : str, encoding : str = "utf-8", errors : str = "replace") -> list[str]:
+    return [_up.unquote(e, encoding=encoding, errors=errors) for e in path.split("/")]
+
+def unparse_path(path_parts : _t.Sequence[str], encoding : str = "utf-8", errors : str = "strict") -> str:
+    return "/".join(map(lambda p: _up.quote(p, ":", encoding=encoding, errors=errors), path_parts))
+
+def parse_query(query : str, encoding : str = "utf-8", errors : str = "replace") -> list[tuple[str, str | None]]:
+    """Like `urllib.parse.parse_qsl`, but "a=" still parses into ("a", "") while
+       just "a" parses into ("a", None). I.e. this keeps information about
+       whether "=" was present.
+    """
+    parts = [s2 for s1 in query.split('&') for s2 in s1.split(';')]
+    res : list[tuple[str, str | None]] = []
+    for e in parts:
+        eqp = e.find("=")
+        if eqp == -1:
+            name = _up.unquote_plus(e, encoding=encoding, errors=errors)
+            res.append((name, None))
+            continue
+        n, v = e[:eqp], e[eqp+1:]
+        name = _up.unquote_plus(n, encoding=encoding, errors=errors)
+        value = _up.unquote_plus(v, encoding=encoding, errors=errors)
+        res.append((name, value))
+    return res
+
+def unparse_query(qsl : _t.Sequence[tuple[str, str | None]], encoding : str = "utf-8", errors : str = "strict") -> str:
+    """Like `urllib.parse.urlencode`, turns URL query components list back into a
+       query, except works with our `parse_query`.
+    """
+    l = []
+    for k, v in qsl:
+        k = _up.quote_plus(k, encoding=encoding, errors=errors)
+        if v is None:
+            l.append(k)
+        else:
+            v = _up.quote_plus(v, encoding=encoding, errors=errors)
+            l.append(k + "=" + v)
+    return "&".join(l)
+
 def pp_to_path(parts : list[str]) -> str:
     """Turn URL path components list into a minimally-quoted path."""
     return "/".join([miniquote(e, "/?") for e in parts])
 
-def qsl_to_path(query : list[tuple[str, str]]) -> str:
+def qsl_to_path(qsl : _t.Sequence[tuple[str, str | None]]) -> str:
     """Turn URL query components list into a minimally-quoted path."""
     l = []
-    for k, v in query:
+    for k, v in qsl:
         k = miniquote(k, "/&=")
-        v = miniquote(v, "/&")
-        if v == "":
+        if v is None:
             l.append(k)
         else:
+            v = miniquote(v, "/&")
             l.append(k + "=" + v)
     return "&".join(l)
 
@@ -182,27 +221,39 @@ class ParsedURL:
         return "".join([self.net_auth, hn, self.opm, self.port])
 
     @property
+    def path_parts(self) -> list[str]:
+        return parse_path(self.raw_path)
+
+    @property
+    def path(self) -> str:
+        return unparse_path(self.path_parts)
+
+    @property
+    def query_parts(self) -> list[tuple[str, str | None]]:
+        return parse_query(self.raw_query)
+
+    @property
+    def query(self) -> str:
+        return unparse_query(self.query_parts)
+
+    @property
     def net_url(self) -> str:
-        raw_path = self.raw_path
+        path = self.path
         if self.raw_hostname:
             nl = self.net_netloc
             if nl != "": nl = "//" + nl
-            slash = "/" if raw_path == "" else ""
-            return _up.quote(f"{self.scheme}:{nl}{raw_path}{slash}{self.oqm}{self.raw_query}", safe="%/:=&?~#+!$,;'@()*[]|")
+            slash = "/" if path == "" else ""
+            return _up.quote(f"{self.scheme}:{nl}{path}{slash}{self.oqm}{self.query}", safe="%/:=&?~#+!$,;'@()*[]|")
         else:
-            return _up.quote(f"{self.scheme}:{raw_path}{self.oqm}{self.raw_query}", safe="%/:=&?~#+!$,;'@()*[]|")
+            return _up.quote(f"{self.scheme}:{path}{self.oqm}{self.query}", safe="%/:=&?~#+!$,;'@()*[]|")
 
     @property
     def url(self) -> str:
         return f"{self.net_url}{self.ofm}{self.fragment}"
 
     @property
-    def raw_path_parts(self) -> list[str]:
-        return [_up.unquote(e) for e in self.raw_path.split("/")]
-
-    @property
     def npath_parts(self) -> list[str]:
-        parts_insecure = [e for e in self.raw_path_parts if e != ""]
+        parts_insecure = [e for e in self.path_parts if e != ""]
 
         # remove dots and securely interpret double dots
         parts : list[str] = []
@@ -235,16 +286,17 @@ class ParsedURL:
             return parts[:-1] + [last], ".data"
 
     @property
-    def query_parts(self) -> list[tuple[str, str]]:
-        return _up.parse_qsl(self.raw_query, keep_blank_values=True)
+    def query_nparts(self) -> list[tuple[str, str]]:
+        res : list[tuple[str, str]] = []
+        for e in self.query_parts:
+            x = e[1]
+            if x is not None and x != "":
+                res.append(e) # type: ignore
+        return res
 
     @property
-    def query_ne_parts(self) -> list[tuple[str, str]]:
-        return [e for e in self.query_parts if e[1] != ""]
-
-    @property
-    def mq_raw_path(self) -> str:
-        return pp_to_path(self.raw_path_parts)
+    def mq_path(self) -> str:
+        return pp_to_path(self.path_parts)
 
     @property
     def mq_npath(self) -> str:
@@ -256,7 +308,7 @@ class ParsedURL:
 
     @property
     def mq_nquery(self) -> str:
-        return qsl_to_path(self.query_ne_parts)
+        return qsl_to_path(self.query_nparts)
 
     @property
     def pretty_net_url(self) -> str:
@@ -264,9 +316,9 @@ class ParsedURL:
             nl = self.netloc
             if nl != "": nl = "//" + nl
             slash = "/" if self.raw_path == "" else ""
-            return f"{self.scheme}:{nl}{self.mq_raw_path}{slash}{self.oqm}{self.mq_query}"
+            return f"{self.scheme}:{nl}{self.mq_path}{slash}{self.oqm}{self.mq_query}"
         else:
-            return f"{self.scheme}:{self.mq_raw_path}{self.oqm}{self.mq_query}"
+            return f"{self.scheme}:{self.mq_path}{self.oqm}{self.mq_query}"
 
     @property
     def pretty_url(self) -> str:
@@ -353,69 +405,128 @@ def test_parse_url() -> None:
         if getattr(x, name) != value:
             raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", name, x.raw_url, value, getattr(x, name))
 
-    tests1 : list[list[str| None]]
-    tests1 = [
-        ["http://example.org", "http://example.org/", "http://example.org/"],
-        ["http://example.org/", None, None],
-        ["http://example.org/test", None, None],
-        ["http://example.org/test/", None, None],
-        ["http://example.org/unfinished/query?", None, None],
-        ["http://example.org/unfinished/query?param", None, "http://example.org/unfinished/query?"],
-        ["http://example.org/unfinished/query?param=0", None, None],
-        ["http://example.org/unfinished/query?param=0&param=1", None, None],
-        ["http://example.org/web/2/https://archived.example.org", None, "http://example.org/web/2/https:/archived.example.org"],
-        ["http://example.org/web/2/https://archived.example.org/", None, "http://example.org/web/2/https:/archived.example.org/"],
-        ["http://example.org/web/2/https://archived.example.org/test", None, "http://example.org/web/2/https:/archived.example.org/test"],
-        ["http://example.org/web/2/https://archived.example.org/test/", None, "http://example.org/web/2/https:/archived.example.org/test/"],
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1", None, "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1"],
-
-        # work-around for common typos
-        ["http://%20example.org/", "http://example.org/", None],
-
-        # work-arounds for hostnames that `idna` module fails to parse
-        ["http://ab-cd-xxxxxxxxx-yyyy.example.org/", None, None],
-        ["http://ab--cd-xxxxxxxxx-yyyy.example.org/", None, None],
-        ["http://ab---cd-xxxxxxxxx-yyyy.example.org/", None, None],
+    example_org = [
+        "http://example.org/",
+        "http://example.org/",
+        "http://example.org/",
+        "http://example.org/",
+        "http://example.org/",
+        "http://example.org/",
     ]
 
-    url : str | None
-    rest : list[str | None]
-    for url, *rest in tests1:
-        assert url is not None
-        x = parse_url(url)
-        check(x, "raw_url", url)
+    example_org_hash = [
+        "http://example.org/",
+        "http://example.org/#hash",
+        "http://example.org/#hash",
+        "http://example.org/",
+        "http://example.org/#hash",
+        "http://example.org/",
+    ]
 
-        curl = rest[0] if rest[0] is not None else url
-        check(x, "net_url", curl)
-        check(x, "pretty_net_url", curl)
-        check(x, "pretty_url", curl)
+    tests1 : list[list[str]]
+    tests1 = [
+        ["http://example.org"] + example_org,
+        ["http://example.org/"] + example_org,
 
-        nurl = rest[1] if rest[1] is not None else curl
-        check(x, "pretty_net_nurl", nurl)
-        check(x, "pretty_nurl", nurl)
+        ["http://example.org#hash"] + example_org_hash,
+        ["http://example.org/#hash"] + example_org_hash,
+
+        # work-around for common typos
+        ["http://%20example.org"] + example_org,
+        ["http://%20example.org/"] + example_org,
+
+        ["http://example.org/one+two#hash",
+         "http://example.org/one%2Btwo",
+         "http://example.org/one%2Btwo#hash",
+         "http://example.org/one+two#hash",
+         "http://example.org/one+two",
+         "http://example.org/one+two#hash",
+         "http://example.org/one+two"],
+
+        ["http://example.org/web/2/http://archived.example.org/one+two#hash",
+         "http://example.org/web/2/http://archived.example.org/one%2Btwo",
+         "http://example.org/web/2/http://archived.example.org/one%2Btwo#hash",
+         "http://example.org/web/2/http://archived.example.org/one+two#hash",
+         "http://example.org/web/2/http://archived.example.org/one+two",
+         "http://example.org/web/2/http:/archived.example.org/one+two#hash",
+         "http://example.org/web/2/http:/archived.example.org/one+two"],
+    ]
+
+    for raw_url, net_url, url, purl, pnet_url, pnurl, pnet_nurl in tests1:
+        x = parse_url(raw_url)
+        check(x, "raw_url", raw_url)
+        check(x, "net_url", net_url)
+        check(x, "url", url)
+        check(x, "pretty_net_url", pnet_url)
+        check(x, "pretty_url", purl)
+        check(x, "pretty_net_nurl", pnet_nurl)
+        check(x, "pretty_nurl", pnurl)
 
     tests2 : list[list[str| None]]
     tests2 = [
-        ["http://example.org#hash", "http://example.org/#hash", "http://example.org/"],
-        ["http://example.org/#hash", "http://example.org/#hash", "http://example.org/"],
+        ["http://example.org/", None],
+        ["http://example.org/test", None],
+        ["http://example.org/test/", None],
+        ["http://example.org/unfinished/query?", None],
+
+        ["http://example.org/unfinished/query?param",
+         "http://example.org/unfinished/query?"],
+
+        ["http://example.org/unfinished/query?param=",
+         "http://example.org/unfinished/query?"],
+
+        ["http://example.org/unfinished/query?param=0", None],
+        ["http://example.org/unfinished/query?param=0&param=1", None],
+
+        ["http://example.org/web/2/https://archived.example.org",
+         "http://example.org/web/2/https:/archived.example.org"],
+
+        ["http://example.org/web/2/https://archived.example.org/",
+         "http://example.org/web/2/https:/archived.example.org/"],
+
+        ["http://example.org/web/2/https://archived.example.org/test",
+         "http://example.org/web/2/https:/archived.example.org/test"],
+
+        ["http://example.org/web/2/https://archived.example.org/test/",
+         "http://example.org/web/2/https:/archived.example.org/test/"],
+
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?",
+         "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
+
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param",
+         "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
+
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=",
+         "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
+
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0",
+         "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
+
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=",
+         "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
+
+        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1",
+         "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1"],
+
+        # work-arounds for hostnames that `idna` module fails to parse
+        ["http://ab-cd-xxxxxxxxx-yyyy.example.org/", None],
+        ["http://ab--cd-xxxxxxxxx-yyyy.example.org/", None],
+        ["http://ab---cd-xxxxxxxxx-yyyy.example.org/", None],
     ]
 
-    for url, *rest in tests2:
-        assert url is not None
+    for murl, xurl in tests2:
+        assert murl is not None
+        url = murl
         x = parse_url(url)
         check(x, "raw_url", url)
+        check(x, "net_url", url)
+        check(x, "url", url)
+        check(x, "pretty_net_url", url)
+        check(x, "pretty_url", url)
 
-        curl = rest[0] if rest[0] is not None else url
-        check(x, "pretty_url", curl)
-        check(x, "pretty_nurl", curl)
-
-        nurl = rest[1] if rest[1] is not None else url
-        check(x, "net_url", nurl)
-        check(x, "pretty_net_url", nurl)
+        nurl = xurl if xurl is not None else url
         check(x, "pretty_net_nurl", nurl)
+        check(x, "pretty_nurl", nurl)
 
 ### MIME valuess
 

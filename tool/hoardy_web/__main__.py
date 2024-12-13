@@ -712,7 +712,7 @@ surl:         ==
 surl:         https/example.org/index.html
 surl:         https/example.org/media
 surl:         ==
-surl:         https/example.org/view?one=1&two=2&three&three=3
+surl:         https/example.org/view?one=1&two=2&three=&three=3
 surl:         https/königsgäßchen.example.org/index.html
 surl:         https/ジャジェメント.ですの.example.org/испытание/is
 surl:         ==
@@ -722,7 +722,7 @@ surl_msn:     ==
 surl_msn:     https/example.org/index.html__GET_C200C_0
 surl_msn:     https/example.org/media__GET_C200C_0
 surl_msn:     ==
-surl_msn:     https/example.org/view?one=1&two=2&three&three=3__GET_C200C_0
+surl_msn:     https/example.org/view?one=1&two=2&three=&three=3__GET_C200C_0
 surl_msn:     https/königsgäßchen.example.org/index.html__GET_C200C_0
 surl_msn:     https/ジャジェメント.ですの.example.org/испытание/is__GET_C200C_0
 surl_msn:     ==
@@ -732,7 +732,7 @@ surl_mstn:    ==
 surl_mstn:    https/example.org/index.html__GET_C200C_1970-01-01_001640000_0
 surl_mstn:    https/example.org/media__GET_C200C_1970-01-01_001640000_0
 surl_mstn:    ==
-surl_mstn:    https/example.org/view?one=1&two=2&three&three=3__GET_C200C_1970-01-01_001640000_0
+surl_mstn:    https/example.org/view?one=1&two=2&three=&three=3__GET_C200C_1970-01-01_001640000_0
 surl_mstn:    https/königsgäßchen.example.org/index.html__GET_C200C_1970-01-01_001640000_0
 surl_mstn:    https/ジャジェメント.ですの.example.org/испытание/is__GET_C200C_1970-01-01_001640000_0
 surl_mstn:    ==
@@ -742,7 +742,7 @@ shupq:        ==
 shupq:        https/example.org/index.html
 shupq:        https/example.org/media/index.htm
 shupq:        ==
-shupq:        https/example.org/view/index?one=1&two=2&three&three=3.htm
+shupq:        https/example.org/view/index?one=1&two=2&three=&three=3.htm
 shupq:        https/königsgäßchen.example.org/index.html
 shupq:        https/ジャジェメント.ですの.example.org/испытание/is/index.htm
 shupq:        ==
@@ -752,7 +752,7 @@ shupq_n:      ==
 shupq_n:      https/example.org/index.0.html
 shupq_n:      https/example.org/media/index.0.htm
 shupq_n:      ==
-shupq_n:      https/example.org/view/index?one=1&two=2&three&three=3.0.htm
+shupq_n:      https/example.org/view/index?one=1&two=2&three=&three=3.0.htm
 shupq_n:      https/königsgäßchen.example.org/index.0.html
 shupq_n:      https/ジャジェメント.ですの.example.org/испытание/is/index.0.htm
 shupq_n:      ==
@@ -762,7 +762,7 @@ shupq_tn:     ==
 shupq_tn:     https/example.org/index.1970-01-01_001640000_0.html
 shupq_tn:     https/example.org/media/index.1970-01-01_001640000_0.htm
 shupq_tn:     ==
-shupq_tn:     https/example.org/view/index?one=1&two=2&three&three=3.1970-01-01_001640000_0.htm
+shupq_tn:     https/example.org/view/index?one=1&two=2&three=&three=3.1970-01-01_001640000_0.htm
 shupq_tn:     https/königsgäßchen.example.org/index.1970-01-01_001640000_0.html
 shupq_tn:     https/ジャジェメント.ですの.example.org/испытание/is/index.1970-01-01_001640000_0.htm
 shupq_tn:     ==
@@ -772,7 +772,7 @@ shupq_msn:    ==
 shupq_msn:    https/example.org/index.GET_C200C_0.html
 shupq_msn:    https/example.org/media/index.GET_C200C_0.htm
 shupq_msn:    ==
-shupq_msn:    https/example.org/view/index?one=1&two=2&three&three=3.GET_C200C_0.htm
+shupq_msn:    https/example.org/view/index?one=1&two=2&three=&three=3.GET_C200C_0.htm
 shupq_msn:    https/königsgäßchen.example.org/index.GET_C200C_0.html
 shupq_msn:    https/ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm
 shupq_msn:    ==
@@ -782,7 +782,7 @@ shupq_mstn:   ==
 shupq_mstn:   https/example.org/index.GET_C200C_1970-01-01_001640000_0.html
 shupq_mstn:   https/example.org/media/index.GET_C200C_1970-01-01_001640000_0.htm
 shupq_mstn:   ==
-shupq_mstn:   https/example.org/view/index?one=1&two=2&three&three=3.GET_C200C_1970-01-01_001640000_0.htm
+shupq_mstn:   https/example.org/view/index?one=1&two=2&three=&three=3.GET_C200C_1970-01-01_001640000_0.htm
 shupq_mstn:   https/königsgäßchen.example.org/index.GET_C200C_1970-01-01_001640000_0.html
 shupq_mstn:   https/ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm
 shupq_mstn:   ==
@@ -872,7 +872,7 @@ srhupq:       ==
 srhupq:       https/org.example/index.html
 srhupq:       https/org.example/media/index.htm
 srhupq:       ==
-srhupq:       https/org.example/view/index?one=1&two=2&three&three=3.htm
+srhupq:       https/org.example/view/index?one=1&two=2&three=&three=3.htm
 srhupq:       https/org.example.königsgäßchen/index.html
 srhupq:       https/org.example.ですの.ジャジェメント/испытание/is/index.htm
 srhupq:       ==
@@ -882,7 +882,7 @@ srhupq_n:     ==
 srhupq_n:     https/org.example/index.0.html
 srhupq_n:     https/org.example/media/index.0.htm
 srhupq_n:     ==
-srhupq_n:     https/org.example/view/index?one=1&two=2&three&three=3.0.htm
+srhupq_n:     https/org.example/view/index?one=1&two=2&three=&three=3.0.htm
 srhupq_n:     https/org.example.königsgäßchen/index.0.html
 srhupq_n:     https/org.example.ですの.ジャジェメント/испытание/is/index.0.htm
 srhupq_n:     ==
@@ -892,7 +892,7 @@ srhupq_tn:    ==
 srhupq_tn:    https/org.example/index.1970-01-01_001640000_0.html
 srhupq_tn:    https/org.example/media/index.1970-01-01_001640000_0.htm
 srhupq_tn:    ==
-srhupq_tn:    https/org.example/view/index?one=1&two=2&three&three=3.1970-01-01_001640000_0.htm
+srhupq_tn:    https/org.example/view/index?one=1&two=2&three=&three=3.1970-01-01_001640000_0.htm
 srhupq_tn:    https/org.example.königsgäßchen/index.1970-01-01_001640000_0.html
 srhupq_tn:    https/org.example.ですの.ジャジェメント/испытание/is/index.1970-01-01_001640000_0.htm
 srhupq_tn:    ==
@@ -902,7 +902,7 @@ srhupq_msn:   ==
 srhupq_msn:   https/org.example/index.GET_C200C_0.html
 srhupq_msn:   https/org.example/media/index.GET_C200C_0.htm
 srhupq_msn:   ==
-srhupq_msn:   https/org.example/view/index?one=1&two=2&three&three=3.GET_C200C_0.htm
+srhupq_msn:   https/org.example/view/index?one=1&two=2&three=&three=3.GET_C200C_0.htm
 srhupq_msn:   https/org.example.königsgäßchen/index.GET_C200C_0.html
 srhupq_msn:   https/org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm
 srhupq_msn:   ==
@@ -912,7 +912,7 @@ srhupq_mstn:  ==
 srhupq_mstn:  https/org.example/index.GET_C200C_1970-01-01_001640000_0.html
 srhupq_mstn:  https/org.example/media/index.GET_C200C_1970-01-01_001640000_0.htm
 srhupq_mstn:  ==
-srhupq_mstn:  https/org.example/view/index?one=1&two=2&three&three=3.GET_C200C_1970-01-01_001640000_0.htm
+srhupq_mstn:  https/org.example/view/index?one=1&two=2&three=&three=3.GET_C200C_1970-01-01_001640000_0.htm
 srhupq_mstn:  https/org.example.königsgäßchen/index.GET_C200C_1970-01-01_001640000_0.html
 srhupq_mstn:  https/org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm
 srhupq_mstn:  ==
@@ -1002,7 +1002,7 @@ url:          ==
 url:          example.org/index.html
 url:          example.org/media
 url:          ==
-url:          example.org/view?one=1&two=2&three&three=3
+url:          example.org/view?one=1&two=2&three=&three=3
 url:          königsgäßchen.example.org/index.html
 url:          ジャジェメント.ですの.example.org/испытание/is
 url:          ==
@@ -1012,7 +1012,7 @@ url_msn:      ==
 url_msn:      example.org/index.html__GET_C200C_0
 url_msn:      example.org/media__GET_C200C_0
 url_msn:      ==
-url_msn:      example.org/view?one=1&two=2&three&three=3__GET_C200C_0
+url_msn:      example.org/view?one=1&two=2&three=&three=3__GET_C200C_0
 url_msn:      königsgäßchen.example.org/index.html__GET_C200C_0
 url_msn:      ジャジェメント.ですの.example.org/испытание/is__GET_C200C_0
 url_msn:      ==
@@ -1022,7 +1022,7 @@ url_mstn:     ==
 url_mstn:     example.org/index.html__GET_C200C_1970-01-01_001640000_0
 url_mstn:     example.org/media__GET_C200C_1970-01-01_001640000_0
 url_mstn:     ==
-url_mstn:     example.org/view?one=1&two=2&three&three=3__GET_C200C_1970-01-01_001640000_0
+url_mstn:     example.org/view?one=1&two=2&three=&three=3__GET_C200C_1970-01-01_001640000_0
 url_mstn:     königsgäßchen.example.org/index.html__GET_C200C_1970-01-01_001640000_0
 url_mstn:     ジャジェメント.ですの.example.org/испытание/is__GET_C200C_1970-01-01_001640000_0
 url_mstn:     ==
@@ -1032,7 +1032,7 @@ hupq:         ==
 hupq:         example.org/index.html
 hupq:         example.org/media/index.htm
 hupq:         ==
-hupq:         example.org/view/index?one=1&two=2&three&three=3.htm
+hupq:         example.org/view/index?one=1&two=2&three=&three=3.htm
 hupq:         königsgäßchen.example.org/index.html
 hupq:         ジャジェメント.ですの.example.org/испытание/is/index.htm
 hupq:         ==
@@ -1042,7 +1042,7 @@ hupq_n:       ==
 hupq_n:       example.org/index.0.html
 hupq_n:       example.org/media/index.0.htm
 hupq_n:       ==
-hupq_n:       example.org/view/index?one=1&two=2&three&three=3.0.htm
+hupq_n:       example.org/view/index?one=1&two=2&three=&three=3.0.htm
 hupq_n:       königsgäßchen.example.org/index.0.html
 hupq_n:       ジャジェメント.ですの.example.org/испытание/is/index.0.htm
 hupq_n:       ==
@@ -1052,7 +1052,7 @@ hupq_tn:      ==
 hupq_tn:      example.org/index.1970-01-01_001640000_0.html
 hupq_tn:      example.org/media/index.1970-01-01_001640000_0.htm
 hupq_tn:      ==
-hupq_tn:      example.org/view/index?one=1&two=2&three&three=3.1970-01-01_001640000_0.htm
+hupq_tn:      example.org/view/index?one=1&two=2&three=&three=3.1970-01-01_001640000_0.htm
 hupq_tn:      königsgäßchen.example.org/index.1970-01-01_001640000_0.html
 hupq_tn:      ジャジェメント.ですの.example.org/испытание/is/index.1970-01-01_001640000_0.htm
 hupq_tn:      ==
@@ -1062,7 +1062,7 @@ hupq_msn:     ==
 hupq_msn:     example.org/index.GET_C200C_0.html
 hupq_msn:     example.org/media/index.GET_C200C_0.htm
 hupq_msn:     ==
-hupq_msn:     example.org/view/index?one=1&two=2&three&three=3.GET_C200C_0.htm
+hupq_msn:     example.org/view/index?one=1&two=2&three=&three=3.GET_C200C_0.htm
 hupq_msn:     königsgäßchen.example.org/index.GET_C200C_0.html
 hupq_msn:     ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_0.htm
 hupq_msn:     ==
@@ -1072,7 +1072,7 @@ hupq_mstn:    ==
 hupq_mstn:    example.org/index.GET_C200C_1970-01-01_001640000_0.html
 hupq_mstn:    example.org/media/index.GET_C200C_1970-01-01_001640000_0.htm
 hupq_mstn:    ==
-hupq_mstn:    example.org/view/index?one=1&two=2&three&three=3.GET_C200C_1970-01-01_001640000_0.htm
+hupq_mstn:    example.org/view/index?one=1&two=2&three=&three=3.GET_C200C_1970-01-01_001640000_0.htm
 hupq_mstn:    königsgäßchen.example.org/index.GET_C200C_1970-01-01_001640000_0.html
 hupq_mstn:    ジャジェメント.ですの.example.org/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm
 hupq_mstn:    ==
@@ -1162,7 +1162,7 @@ rhupq:        ==
 rhupq:        org.example/index.html
 rhupq:        org.example/media/index.htm
 rhupq:        ==
-rhupq:        org.example/view/index?one=1&two=2&three&three=3.htm
+rhupq:        org.example/view/index?one=1&two=2&three=&three=3.htm
 rhupq:        org.example.königsgäßchen/index.html
 rhupq:        org.example.ですの.ジャジェメント/испытание/is/index.htm
 rhupq:        ==
@@ -1172,7 +1172,7 @@ rhupq_n:      ==
 rhupq_n:      org.example/index.0.html
 rhupq_n:      org.example/media/index.0.htm
 rhupq_n:      ==
-rhupq_n:      org.example/view/index?one=1&two=2&three&three=3.0.htm
+rhupq_n:      org.example/view/index?one=1&two=2&three=&three=3.0.htm
 rhupq_n:      org.example.königsgäßchen/index.0.html
 rhupq_n:      org.example.ですの.ジャジェメント/испытание/is/index.0.htm
 rhupq_n:      ==
@@ -1182,7 +1182,7 @@ rhupq_tn:     ==
 rhupq_tn:     org.example/index.1970-01-01_001640000_0.html
 rhupq_tn:     org.example/media/index.1970-01-01_001640000_0.htm
 rhupq_tn:     ==
-rhupq_tn:     org.example/view/index?one=1&two=2&three&three=3.1970-01-01_001640000_0.htm
+rhupq_tn:     org.example/view/index?one=1&two=2&three=&three=3.1970-01-01_001640000_0.htm
 rhupq_tn:     org.example.königsgäßchen/index.1970-01-01_001640000_0.html
 rhupq_tn:     org.example.ですの.ジャジェメント/испытание/is/index.1970-01-01_001640000_0.htm
 rhupq_tn:     ==
@@ -1192,7 +1192,7 @@ rhupq_msn:    ==
 rhupq_msn:    org.example/index.GET_C200C_0.html
 rhupq_msn:    org.example/media/index.GET_C200C_0.htm
 rhupq_msn:    ==
-rhupq_msn:    org.example/view/index?one=1&two=2&three&three=3.GET_C200C_0.htm
+rhupq_msn:    org.example/view/index?one=1&two=2&three=&three=3.GET_C200C_0.htm
 rhupq_msn:    org.example.königsgäßchen/index.GET_C200C_0.html
 rhupq_msn:    org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_0.htm
 rhupq_msn:    ==
@@ -1202,7 +1202,7 @@ rhupq_mstn:   ==
 rhupq_mstn:   org.example/index.GET_C200C_1970-01-01_001640000_0.html
 rhupq_mstn:   org.example/media/index.GET_C200C_1970-01-01_001640000_0.htm
 rhupq_mstn:   ==
-rhupq_mstn:   org.example/view/index?one=1&two=2&three&three=3.GET_C200C_1970-01-01_001640000_0.htm
+rhupq_mstn:   org.example/view/index?one=1&two=2&three=&three=3.GET_C200C_1970-01-01_001640000_0.htm
 rhupq_mstn:   org.example.königsgäßchen/index.GET_C200C_1970-01-01_001640000_0.html
 rhupq_mstn:   org.example.ですの.ジャジェメント/испытание/is/index.GET_C200C_1970-01-01_001640000_0.htm
 rhupq_mstn:   ==
@@ -2399,7 +2399,7 @@ def cmd_serve(cargs : _t.Any) -> None:
                     url_re = _re.compile(translate(turl))
                     pattern = turl
                 else:
-                    mq_path = pturl.mq_raw_path
+                    mq_path = pturl.mq_path
                     if mq_path.endswith("/"): mq_path = mq_path[:-1]
                     loc = pturl.netloc + mq_path
                     url_re = _re.compile(".*" + _re.escape(loc) + ".*")
