@@ -661,7 +661,7 @@ Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure
   : show help messages formatted in Markdown
 
 - subcommands:
-  - `{pprint,print,inspect,get,run,spawn,stream,find,organize,import,mirror}`
+  - `{pprint,print,inspect,get,run,spawn,stream,find,organize,import,mirror,serve}`
     - `pprint (print, inspect)`
     : pretty-print given inputs
     - `get`
@@ -678,6 +678,8 @@ Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure
     : convert other `HTTP` archive formats into `WRR`
     - `mirror`
     : convert given inputs into a local offline static website mirror stored in interlinked files, a-la `wget -mpk`
+    - `serve`
+    : serve given input files for replay over HTTP
 
 - filtering options:
   - `--ignore-case`
@@ -859,7 +861,7 @@ Pretty-print given inputs to stdout.
 
 - options:
   - `-q, --quiet`
-  : don't print end-of-program warnings to stderr
+  : don't print end-of-filtering warnings to stderr
   - `-u, --unabridged`
   : print all data in full
   - `--abridged`
@@ -1245,7 +1247,7 @@ Esentially, this is a generalized `{__prog__} get`.
 
 - options:
   - `-q, --quiet`
-  : don't print end-of-program warnings to stderr
+  : don't print end-of-filtering warnings to stderr
   - `-u, --unabridged`
   : print all data in full
   - `--abridged`
@@ -1339,7 +1341,7 @@ The end.
 
 - options:
   - `-q, --quiet`
-  : don't print end-of-program warnings to stderr
+  : don't print end-of-filtering warnings to stderr
 
 - error handling:
   - `--errors {fail,skip,ignore}`
@@ -1410,7 +1412,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates and don't print end-of-program warnings to stderr
+  : don't log computed updates and don't print end-of-filtering warnings to stderr
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -2032,7 +2034,7 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates and don't print end-of-program warnings to stderr
+  : don't log computed updates and don't print end-of-filtering warnings to stderr
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -2130,7 +2132,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates and don't print end-of-program warnings to stderr
+  : don't log computed updates and don't print end-of-filtering warnings to stderr
 
 - caching, deferring, and batching:
   - `--seen-number INT`
@@ -2245,7 +2247,7 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
-  : don't log computed updates and don't print end-of-program warnings to stderr
+  : don't log computed updates and don't print end-of-filtering warnings to stderr
 
 - caching:
   - `--max-memory INT`
@@ -2581,6 +2583,125 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
 - recursion depth:
   - `-d DEPTH, --depth DEPTH`
   : maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also mirror one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion
+
+### hoardy-web serve
+
+Serve given input files for replay over HTTP.
+
+Algorithm:
+
+- index all given inputs, for each input `PATH`:
+  - load it;
+  - check this reqres satisfies given filters and skip it if it does not,
+  - remember its location (or, for some types of files, its contents) for future use;
+- start listering on given host and port for:
+  - replay requests on `GET /web/<selector>/<url>`;
+- for each replay request:
+  - if `selector` ends with `*`:
+    - interpret `selector` as a time interval;
+    - interpret `url` as glob pattern;
+    - show a page with all indexed visits to URLs matching the pattern in the interval;
+  - otherwise:
+    - if `url` has indexed visits, respond with data most closely matching the given `selector`;
+    - otherwise:
+      - if `url` contains `*`, interpret it as a glob pattern;
+      - otherwise, generate a glob pattern by chopping away less important parts of the current `url`;
+      - show a `Not Found` page with a list of similar URLs and visits matching the pattern.
+
+The end.
+
+- options:
+  - `-q, --quiet`
+  : don't don't print end-of-filtering warnings, don't print optional informational messages, and don't log HTTP requests to stderr
+
+- caching:
+  - `--max-memory INT`
+  : the caches, all taken together, must not take more than this much memory in MiB; default: `1024`;
+    making this larger improves performance;
+    the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`
+
+- error handling:
+  - `--errors {fail,skip,ignore}`
+  : when an error occurs:
+    - `fail`: report failure and stop the execution; default
+    - `skip`: report failure but skip the reqres that produced it from the output and continue
+    - `ignore`: `skip`, but don't report the failure
+
+- path ordering:
+  - `--paths-given-order`
+  : `argv` and `--stdin0` `PATH`s are processed in the order they are given; default
+  - `--paths-sorted`
+  : `argv` and `--stdin0` `PATH`s are processed in lexicographic order
+  - `--paths-reversed`
+  : `argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order
+  - `--walk-fs-order`
+  : recursive file system walk is done in the order `readdir(2)` gives results
+  - `--walk-sorted`
+  : recursive file system walk is done in lexicographic order; default
+  - `--walk-reversed`
+  : recursive file system walk is done in reverse lexicographic order
+
+- input loading:
+  - `--load-any`
+  : for each given input `PATH`, decide which loader to use based on its file extension; default
+  - `--load-wrr`
+  : load all inputs using the single-`WRR` per-file loader
+  - `--load-wrrb`
+  : load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too
+  - `--load-mitmproxy`
+  : load inputs using the `mitmproxy` dump loader
+  - `--stdin0`
+  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  - `PATH`
+  : inputs, can be a mix of files and directories (which will be traversed recursively)
+
+- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+  - `--sniff-default`
+  : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
+  - `--sniff-force`
+  : run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`
+  - `--sniff-paranoid`
+  : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
+
+- default input filters:
+  - `--ignore-bad-inputs`
+  : initialize input filters to `--status-re ".200C"`; default
+  - `--index-all-inputs`
+  : do not set any input filters by default; note, however, that this sub-command expects input filters to be at least as restrictive as the above default and is likely to produce broken outputs if those filters are unset; use this option at your own risk
+
+- `HTTP` server options:
+  - `--host HOST`
+  : listen on what host/IP; default: `127.0.0.1`
+  - `--port PORT`
+  : listen on what port; default: `3210`
+  - `--debug-bottle`
+  : run with `bottle`'s debugging enabled
+
+- expression evaluation:
+  - `-e EXPR, --expr EXPR`
+  : an expression to compute, same expression format and semantics as `hoardy-web get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options below
+
+- rendering of `--expr` values:
+  - `--not-separated`
+  : render `--expr` values into outputs without separating them with anything, just concatenate them
+  - `--lf-separated`
+  : render `--expr` values into outputs separated with `\n` (LF) newline characters; default
+  - `--zero-separated`
+  : render `--expr` values into outputs separated with `\0` (NUL) bytes
+
+- default value of `--expr`:
+  - `--raw-qbody`
+  : set the default value of `--expr` to `request.body|eb`; i.e. produce the raw request body
+  - `--raw-sbody, --no-remap`
+  : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body
+  - `--remap-id`
+  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. `scrub` response body as follows: remap all URLs with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones), censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
+  - `--remap-void`
+  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. `scrub` response body as follows: remap all URLs into `javascript:void(0)` and empty `data:` URLs, censor out all dynamic content; results will be self-contained
+  - `--remap-semi`
+  : set the default value of `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs`; i.e. `scrub` response body as follows: keeps all jump links pointing to unarchived URLs as-is, remap all other links and references to their replay URLs, censor out all dynamic content; results will be self-contained
+  - `--remap-all`
+  : set the default value of `--expr` to `response.body|eb|scrub response &all_refs`; i.e. `scrub` response body as follows: remap all links and references to their replay URLs, even when they are not available in the index, censor out all dynamic content; results will be self-contained; default
 
 ## Examples
 

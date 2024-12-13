@@ -27,6 +27,7 @@ buildPythonApplication (rec {
     idna
     html5lib
     tinycss2
+    bottle
   ]
   ++ lib.optional mitmproxySupport mitmproxy;
 

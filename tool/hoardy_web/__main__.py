@@ -17,6 +17,7 @@
 
 import collections as _c
 import dataclasses as _dc
+import decimal as _dec
 import errno as _errno
 import hashlib as _hashlib
 import io as _io
@@ -38,6 +39,8 @@ from kisstdlib.exceptions import *
 from kisstdlib.io import *
 from kisstdlib.io.stdio import *
 from kisstdlib.logging import *
+
+from sortedcontainers import SortedList
 
 from .filter import *
 from .sorted_index import *
@@ -2261,6 +2264,216 @@ def cmd_mirror(cargs : _t.Any) -> None:
     filters_warn()
     root_filters_warn()
 
+def cmd_serve(cargs : _t.Any) -> None:
+    import bottle
+    from fnmatch import translate
+    import urllib.parse as _up
+    import hoardy_web.serve_static as _static
+
+    locate_page = bottle.SimpleTemplate(source=_static.locate_page_stpl)
+    app = bottle.Bottle()
+
+    time_format = "%Y-%m-%d_%H:%M:%S"
+    precision = 0
+    precision_delta = _dec.Decimal(10) ** -precision
+
+    inherit_mime : str | None = None
+    if len(cargs.exprs) == 0:
+        cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
+        if cargs.default_expr == "raw_qbody":
+            inherit_mime = "request"
+        else:
+            inherit_mime = "response"
+
+    if cargs.default_filters:
+        cargs.status_re += [".200C"]
+
+    _num, filters_allow, filters_warn = compile_filters(cargs)
+
+    PathType : _t.TypeAlias = str
+    index : SortedIndex[URLType, TimeStamp, ReqresExpr[_t.Any]] = SortedIndex(None)
+
+    def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
+        stime = rrexpr.stime
+        net_url = rrexpr.net_url
+        index.insert(net_url, stime, rrexpr)
+        rrexpr.unload()
+
+    if True:
+        if stderr.isatty:
+            stderr.write_bytes(b"\033[32m")
+        stderr.write_str_ln(gettext("loading input `PATH`s..."))
+        if stderr.isatty:
+            stderr.write_bytes(b"\033[0m")
+        stderr.flush()
+
+        handle_paths(cargs)
+
+        rrexprs_load = mk_rrexprs_load(cargs)
+        seen_paths : set[PathType] = set()
+        map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, cargs.paths, seen_paths=seen_paths)
+
+    if not cargs.quiet:
+        filters_warn()
+
+    global should_raise
+    should_raise = True
+
+    def url_info(net_url : str) -> tuple[str, str, str]:
+        pu = parse_url(net_url)
+        return pu.rhostname, pu.pretty_net_url, net_url
+
+    all_urls = SortedList(map(url_info, index._index.keys()))
+
+    def get_visits(url_re : _re.Pattern[str], start : TimeStamp, end : TimeStamp) -> tuple[int, list[tuple[str, str, list[str]]]]:
+        visits_total = 0
+        url_visits = []
+        for rhost, pretty_net_url, net_url in all_urls:
+            if not url_re.fullmatch(pretty_net_url):
+                continue
+
+            visits = []
+            for t, v in index.iter_from_to(net_url, start, end):
+                #if normal_document(t, v):
+                visits.append(t.format(time_format, precision=precision))
+                visits_total += 1
+
+            if len(visits) > 0:
+                url_visits.append((net_url, pretty_net_url, visits))
+        return visits_total, url_visits
+
+    @app.route("/web/<selector>/<url_path:path>") # type: ignore
+    def from_archive(selector : str, url_path : str) -> str | bytes | None:
+        env = bottle.request.environ
+        query = env.get("QUERY_STRING", "")
+        turl = url_path
+        if len(query) > 0:
+            turl += "?" + _up.unquote(query)
+
+        interval : TimeRange
+        if selector.endswith("*"):
+            try:
+                interval = timerange(selector)
+            except CatastrophicFailure as exc:
+                bottle.abort(400, str(exc))
+                return None
+            url_re = _re.compile(translate(turl))
+            visits_total, url_visits = get_visits(url_re, interval.start, interval.end)
+            return locate_page.render({"matching": True, # type: ignore
+                                       "selector": selector,
+                                       "start": interval.start.format(), "end": interval.end.format(),
+                                       "pattern": turl,
+                                       "visits_total": visits_total, "url_visits": url_visits})
+
+        ideal : TimeStamp
+        if selector in ["0", "1", "first", "old", "oldest"]:
+            interval = anytime
+            ideal = anytime.start
+        elif selector in ["2", "last", "new", "newest"]:
+            interval = anytime
+            ideal = anytime.end
+        else:
+            try:
+                interval = timerange(selector)
+                ideal = interval.middle
+            except CatastrophicFailure as exc:
+                bottle.abort(400, str(exc))
+                return None
+
+        try:
+            pturl = parse_url(turl)
+        except URLParsingError:
+            bottle.abort(400, str(Failure("malformed URL `%s`", turl)))
+            return None
+
+        net_url = pturl.net_url
+
+        uobj = index.get_nearest(net_url, ideal, normal_document)
+        if uobj is None:
+            if len(query) == 0:
+                # When the query is empty, WSGI loses the trailing "?" even
+                # when it was given by the client, so we have to check
+                uobj = index.get_nearest(net_url + "?", ideal, normal_document)
+            if uobj is None:
+                if "*" in turl:
+                    url_re = _re.compile(translate(turl))
+                    pattern = turl
+                else:
+                    mq_path = pturl.mq_raw_path
+                    if mq_path.endswith("/"): mq_path = mq_path[:-1]
+                    loc = pturl.netloc + mq_path
+                    url_re = _re.compile(".*" + _re.escape(loc) + ".*")
+                    pattern = "*" + loc + "*"
+
+                visits_total, url_visits = get_visits(url_re, anytime.start, anytime.end)
+
+                bottle.response.status = 404
+                return locate_page.render({"matching": False, # type: ignore
+                                           "net_url": net_url,
+                                           "pretty_net_url": turl,
+                                           "selector": "*",
+                                           #"start": anytime.start.format(), "end": anytime.end.format(),
+                                           "pattern": pattern,
+                                           "visits_total": visits_total, "url_visits": url_visits})
+
+        stime, rrexpr = uobj
+        stime_selector = stime.format(time_format, precision=precision)
+        if stime not in interval or interval.delta > precision_delta:
+            bottle.redirect(f"/web/{stime_selector}/{turl}", 302)
+            return None
+
+        try:
+            def remap_url(unet_url : URLType, upurl : ParsedURL,
+                          link_type : LinkType, fallbacks : list[str] | None) -> URLType | None:
+                uobj = index.get_nearest(unet_url, stime,
+                                         normal_document if link_type != LinkType.ACTION else complete_response)
+                if uobj is not None:
+                    ustime, urrexpr = uobj
+                    ustime_selector = ustime.format(time_format, precision=precision)
+                    return f"/web/{ustime_selector}/{unet_url}"
+
+                # unavailable
+                if fallbacks is not None:
+                    return f"/web/{stime_selector}/{unet_url}"
+
+                return None
+
+            rrexpr.remap_url = cached_remap_url(net_url, remap_url, handle_warning=_logging.warn)
+
+            # TODO: inherit MIME from generated expression type instead
+            rere_obj : Request | Response | None = None
+            if inherit_mime is not None:
+                rere_obj = getattr(rrexpr.reqres, inherit_mime)
+            if rere_obj is not None:
+                ct, sniff = rere_obj.get_content_type()
+                bottle.response.set_header("content-type", ct)
+                if not sniff:
+                    bottle.response.set_header("x-content-type-options", "nosniff")
+            else:
+                bottle.response.set_header("content-type", "application/octet-stream")
+
+            data : bytes
+            with TIOWrappedWriter(_io.BytesIO()) as f:
+                print_exprs(rrexpr, cargs.exprs, cargs.separator, f)
+                data = f.fobj.getvalue()
+
+            return data
+        except Failure as exc:
+            exc.elaborate(gettext(f"while processing [%s] `%s`"), stime.format(), turl)
+            bottle.abort(500, str(exc))
+        finally:
+            rrexpr.unload()
+
+    if stderr.isatty:
+        stderr.write_bytes(b"\033[33m")
+    location = f"http://{cargs.host}:{cargs.port}/"
+    stderr.write_str_ln(gettext("Serving replays for %d reqres at %s") % (len(index), f"{location}web/*/*"))
+    if stderr.isatty:
+        stderr.write_bytes(b"\033[0m")
+    stderr.flush()
+
+    app.run(host=cargs.host, port=cargs.port, quiet=cargs.quiet, debug=cargs.debug_bottle)
+
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     _ : _t.Callable[[str], str] = gettext
 
@@ -2550,12 +2763,12 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         cmd.set_defaults(**{ddest: True})
 
     def add_pure(cmd : _t.Any) -> None:
-        cmd.add_argument("-q", "--quiet", action="store_true", help=_("don't print end-of-program warnings to stderr"))
+        cmd.add_argument("-q", "--quiet", action="store_true", help=_("don't print end-of-filtering warnings to stderr"))
 
     def add_impure(cmd : _t.Any) -> None:
         grp = cmd.add_mutually_exclusive_group()
         grp.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
-        grp.add_argument("-q", "--quiet", action="store_true", help=_("don't log computed updates and don't print end-of-program warnings to stderr"))
+        grp.add_argument("-q", "--quiet", action="store_true", help=_("don't log computed updates and don't print end-of-filtering warnings to stderr"))
 
     def add_common(cmd : _t.Any, kind : str, filter_what : str) -> None:
         add_errors(cmd)
@@ -2564,7 +2777,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         if real:
             add_filter_options(cmd)
             add_filters(cmd, filter_what)
-        if kind == "mirror":
+        if kind in ["mirror", "serve"]:
             add_default_filters(cmd)
 
     def add_abridged(cmd : _t.Any) -> None:
@@ -2746,7 +2959,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         if kind == "stream":
             add_terminator(cmd, "`--format=raw` `--expr` printing", "print `--format=raw` `--expr` output values")
             cmd.set_defaults(default_expr = "dot")
-        elif kind == "mirror":
+        elif kind in ["mirror", "serve"]:
             add_separator(cmd, "rendering of `--expr` values", "render `--expr` values into outputs", short = False)
             cmd.set_defaults(default_expr = "all")
         else:
@@ -2768,7 +2981,11 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         grp.add_argument("--remap-id", dest="default_expr", action="store_const", const="id", help=alias("id") + _("; i.e. `scrub` response body as follows: remap all URLs with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones), censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained"))
         grp.add_argument("--remap-void", dest="default_expr", action="store_const", const="void", help=alias("void") + _("; i.e. `scrub` response body as follows: remap all URLs into `javascript:void(0)` and empty `data:` URLs, censor out all dynamic content; results will be self-contained"))
 
-        if kind != "mirror":
+        if kind == "serve":
+            grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi", help=alias("semi") + _("; i.e. `scrub` response body as follows: keeps all jump links pointing to unarchived URLs as-is, remap all other links and references to their replay URLs, censor out all dynamic content; results will be self-contained"))
+            grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _(f"; i.e. `scrub` response body as follows: remap all links and references to their replay URLs, even when they are not available in the index, censor out all dynamic content; results will be self-contained; default"))
+            return
+        elif kind != "mirror":
             return
 
         grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open", help=alias("open") + _("; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does, censor out all dynamic content; results almost certainly will NOT be self-contained"))
@@ -3102,6 +3319,44 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
     agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also mirror one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
 
     cmd.set_defaults(func=cmd_mirror)
+
+    # serve
+    cmd = subparsers.add_parser("serve", help=_(f"serve given input files for replay over HTTP"),
+                                description = _(f"""Serve given input files for replay over HTTP.
+
+Algorithm:
+
+- index all given inputs, for each input `PATH`:
+  - load it;
+  - check this reqres satisfies given filters and skip it if it does not,
+  - remember its location (or, for some types of files, its contents) for future use;
+- start listering on given host and port for:
+  - replay requests on `GET /web/<selector>/<url>`;
+- for each replay request:
+  - if `selector` ends with `*`:
+    - interpret `selector` as a time interval;
+    - interpret `url` as glob pattern;
+    - show a page with all indexed visits to URLs matching the pattern in the interval;
+  - otherwise:
+    - if `url` has indexed visits, respond with data most closely matching the given `selector`;
+    - otherwise:
+      - if `url` contains `*`, interpret it as a glob pattern;
+      - otherwise, generate a glob pattern by chopping away less important parts of the current `url`;
+      - show a `Not Found` page with a list of similar URLs and visits matching the pattern.
+
+The end.
+"""))
+    cmd.add_argument("-q", "--quiet", action="store_true", help=_("don't don't print end-of-filtering warnings, don't print optional informational messages, and don't log HTTP requests to stderr"))
+    add_index_memory(cmd)
+    add_common(cmd, "serve", "make reqres available when")
+
+    agrp = cmd.add_argument_group("`HTTP` server options")
+    agrp.add_argument("--host", type=str, default="127.0.0.1", help=_("listen on what host/IP; default: `%(default)s`"))
+    agrp.add_argument("--port", type=int, default=3210, help=_("listen on what port; default: `%(default)s`"))
+    agrp.add_argument("--debug-bottle", action="store_true", help=_("run with `bottle`'s debugging enabled"))
+
+    add_expr(cmd, "serve")
+    cmd.set_defaults(func=cmd_serve)
 
     return parser
 
