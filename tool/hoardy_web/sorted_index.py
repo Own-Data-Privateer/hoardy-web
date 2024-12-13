@@ -16,9 +16,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import bisect as _bisect
+import collections.abc as _abc
 import dataclasses as _dc
 import math as _math
 import typing as _t
+
+from sortedcontainers import SortedKeyList
 
 from decimal import Decimal
 
@@ -54,6 +57,9 @@ def test_nearer_to_than() -> None:
 SIKeyType = _t.TypeVar("SIKeyType")
 SIValueType = _t.TypeVar("SIValueType")
 
+def _fst(x : tuple[SortedType, SIValueType]) -> SortedType:
+    return x[0]
+
 @_dc.dataclass
 class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
     """Essentially, `dict[SIKeyType, list[tuple[SortedType, SIValueType]]]` with
@@ -61,7 +67,7 @@ class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
     """
 
     ideal : SortedType | None = _dc.field(default = None)
-    _index : dict[SIKeyType, list[tuple[SortedType, SIValueType]]] = _dc.field(default_factory = dict)
+    _index : dict[SIKeyType, _abc.MutableSequence[tuple[SortedType, SIValueType]]] = _dc.field(default_factory = dict)
     _size : int = _dc.field(default = 0)
 
     def __len__(self) -> int:
@@ -78,18 +84,16 @@ class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
         iobjs = self._index.get(key, None)
         if iobjs is None:
             # first time seeing this `key`
-            self._index[key] = [(order, value)]
+            self._index[key] = SortedKeyList([(order, value)], key=_fst)
             self._size += 1
         elif self.ideal is not None:
             if nearer_to_than(self.ideal, order, iobjs[0][0]):
-                iobjs[0] = (order, value)
+                iobjs.clear()
+                iobjs.add((order, value)) # type: ignore
             else:
                 return False
         else:
-            pos = _bisect.bisect_right(iobjs, order, key=lambda x: x[0])
-            # NB: technically, this is O(N), but in reality this is usually O(1)
-            # for us, since most inserts are to the end of the list
-            iobjs.insert(pos, (order, value))
+            iobjs.add((order, value)) # type: ignore
             self._size += 1
         return True
 

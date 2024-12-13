@@ -35,6 +35,7 @@ keywords = [
 requires-python = ">=3.10"
 dependencies = [
     "kisstdlib==0.0.4",
+    "sortedcontainers==2.4.*",
     "cbor2",
     "idna",
     "html5lib",

@@ -22,6 +22,7 @@ buildPythonApplication (rec {
   propagatedBuildInputs = [
     setuptools
     kisstdlib
+    sortedcontainers
     mycbor2
     idna
     html5lib
