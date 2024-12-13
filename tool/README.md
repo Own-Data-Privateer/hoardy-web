@@ -687,7 +687,7 @@ Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure
     - `mirror`
     : convert given inputs into a local offline static website mirror stored in interlinked files, a-la `wget -mpk`
     - `serve`
-    : serve given input files for replay over HTTP
+    : run an archiving server and/or serve given input files for replay over HTTP
 
 - filtering options:
   - `--ignore-case`
@@ -1506,7 +1506,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   : create symlinks from source files to paths under `OUTPUT_DESTINATION`
 
 - file outputs:
-  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
+  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION, --organize-to OUTPUT_DESTINATION`
   : destination directory; when unset each source `PATH` must be a directory which will be treated as its own `OUTPUT_DESTINATION`
   - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string:
@@ -2118,7 +2118,7 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
 - file outputs:
-  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
+  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION, --import-to OUTPUT_DESTINATION`
   : destination directory; required
   - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
@@ -2216,7 +2216,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
 - file outputs:
-  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
+  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION, --import-to OUTPUT_DESTINATION`
   : destination directory; required
   - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
@@ -2381,7 +2381,7 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
   : mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!
 
 - file outputs:
-  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION`
+  - `-t OUTPUT_DESTINATION, --to OUTPUT_DESTINATION, --mirror-to OUTPUT_DESTINATION`
   : destination directory; required
   - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
   : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `hupq_n`
@@ -2600,7 +2600,7 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
 
 ### hoardy-web serve
 
-Serve given input files for replay over HTTP.
+Run an archiving server and/or serve given input files for replay over HTTP.
 
 Algorithm:
 
@@ -2716,6 +2716,34 @@ The end.
   : set the default value of `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs`; i.e. `scrub` response body as follows: keeps all jump links pointing to unarchived URLs as-is, remap all other links and references to their replay URLs, censor out all dynamic content; results will be self-contained
   - `--remap-all`
   : set the default value of `--expr` to `response.body|eb|scrub response &all_refs`; i.e. `scrub` response body as follows: remap all links and references to their replay URLs, even when they are not available in the index, censor out all dynamic content; results will be self-contained; default
+
+- buckets:
+  - `--default-bucket NAME, --default-profile NAME`
+  : default bucket name to use when a client does not specify any; default: `default`
+  - `--ignore-buckets, --ignore-profiles`
+  : ignore bucket names specified by clients and always use `--default-bucket` instead
+
+- file output options:
+  - `--compress`
+  : compress new archivals before dumping them to disk; default
+  - `--no-compress, --uncompressed`
+  : dump new archivals to disk without compression
+
+- file outputs:
+  - `-t ARCHIVE_DESTINATION, --to ARCHIVE_DESTINATION, --archive-to ARCHIVE_DESTINATION`
+  : archiving destination directory; if left unset, which is the default, then archiving server support will be disabled
+  - `-i, --implicit`
+  : prepend `ARCHIVE_DESTINATION` to the list of input `PATH`s
+  - `-o OUTPUT_FORMAT, --output OUTPUT_FORMAT`
+  : format describing generated output paths, an alias name or "format:" followed by a custom pythonic %-substitution string; same expression format as `hoardy-web organize --output` (which see); default: `default`
+
+- new `--output`s printing:
+  - `--no-print`
+  : don't print anything; default
+  - `-l, --lf-terminated`
+  : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
+  - `-z, --zero-terminated`
+  : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
 ## Examples
 

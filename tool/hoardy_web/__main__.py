@@ -21,6 +21,7 @@ import decimal as _dec
 import errno as _errno
 import hashlib as _hashlib
 import io as _io
+import json as _json
 import logging as _logging
 import os as _os
 import re as _re
@@ -1391,7 +1392,7 @@ flat_mhstn:   ==
             raise CatastrophicFailure("expected %s, got %s", a, b)
 
 not_allowed = gettext("; this is not allowed to prevent accidental data loss")
-variance_help = gettext("; your `--output` format fails to provide enough variance to solve this problem automatically (did your forget to place a `%%(num)d` substitution in there?)") + not_allowed
+variance_help = gettext("; your `--output` format fails to provide enough variance to solve this problem automatically (did your forget to place a `%(num)d` substitution in there?)") + not_allowed
 
 DeferredDestinationType = _t.TypeVar("DeferredDestinationType")
 class DeferredOperation(_t.Generic[DeferredSourceType, DeferredDestinationType]):
@@ -2272,10 +2273,35 @@ def cmd_serve(cargs : _t.Any) -> None:
 
     locate_page = bottle.SimpleTemplate(source=_static.locate_page_stpl)
     app = bottle.Bottle()
+    BottleReturnType = str | bytes | None
+
+    PSpec = _t.ParamSpec("PSpec")
+    def with_plain_error(func : _t.Callable[PSpec, BottleReturnType]) -> _t.Callable[PSpec, BottleReturnType]:
+        def decorated(*args : PSpec.args, **kwargs : PSpec.kwargs) -> BottleReturnType:
+            bottle.response.set_header("content-type", "text/plain; charset=utf-8")
+            try:
+                return func(*args, **kwargs)
+            except CatastrophicFailure as exc:
+                bottle.response.status = 400
+                return str(exc)
+            except Exception as exc:
+                bottle.response.status = 500
+                return gettext("uncaught error: %s") % (str(exc),)
+        return decorated
 
     time_format = "%Y-%m-%d_%H:%M:%S"
     precision = 0
     precision_delta = _dec.Decimal(10) ** -precision
+
+    output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
+    destination = map_optional(lambda x: _os.path.expanduser(x), cargs.destination)
+
+    bucket_re = _re.compile(r"[\w -]+")
+    ignore_buckets = cargs.ignore_buckets
+    default_bucket = cargs.default_bucket
+
+    compress = cargs.compress
+    terminator = cargs.terminator
 
     inherit_mime : str | None = None
     if len(cargs.exprs) == 0:
@@ -2311,6 +2337,8 @@ def cmd_serve(cargs : _t.Any) -> None:
 
         rrexprs_load = mk_rrexprs_load(cargs)
         seen_paths : set[PathType] = set()
+        if destination is not None and cargs.implicit and _os.path.exists(destination):
+            map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, [destination], seen_paths=seen_paths)
         map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, cargs.paths, seen_paths=seen_paths)
 
     if not cargs.quiet:
@@ -2319,11 +2347,10 @@ def cmd_serve(cargs : _t.Any) -> None:
     global should_raise
     should_raise = True
 
-    def url_info(net_url : str) -> tuple[str, str, str]:
-        pu = parse_url(net_url)
+    def url_info(net_url : str, pu : ParsedURL) -> tuple[str, str, str]:
         return pu.rhostname, pu.pretty_net_url, net_url
 
-    all_urls = SortedList(map(url_info, index._index.keys()))
+    all_urls = SortedList(map(lambda net_url: url_info(net_url, parse_url(net_url)), index._index.keys()))
 
     def get_visits(url_re : _re.Pattern[str], start : TimeStamp, end : TimeStamp) -> tuple[int, list[tuple[str, str, list[str]]]]:
         visits_total = 0
@@ -2342,8 +2369,105 @@ def cmd_serve(cargs : _t.Any) -> None:
                 url_visits.append((net_url, pretty_net_url, visits))
         return visits_total, url_visits
 
+    server_info : dict[str, _t.Any] = {
+        "version": 1,
+    }
+    if destination is not None:
+        server_info["dump_wrr"] = "/pwebarc/dump"
+    server_info_json = _json.dumps(server_info).encode("utf-8")
+    del server_info
+
+    @app.route("/hoardy-web/server-info") # type: ignore
+    def server_info() -> bytes:
+        return server_info_json
+
+    @app.route("/pwebarc/dump", method="POST") # type: ignore
+    @with_plain_error
+    def dump_wrr() -> BottleReturnType:
+        if destination is None:
+            bottle.response.status = 403
+            return gettext("archiving is forbidden, restart the server with `%s` to enable") \
+                % ("hoardy-web serve --to <path>",)
+
+        ctype = bottle.request.content_type
+        if ctype not in ["application/x-wrr+cbor", "application/cbor"]:
+            raise Failure(gettext("expected CBOR data, got `%s`"), ctype)
+
+        env = bottle.request.environ
+
+        bucket = ""
+        if not ignore_buckets:
+            bucket_param = bottle.request.query.get("profile", "")
+            bucket = "".join(bucket_re.findall(bucket_param))
+        if len(bucket) == 0:
+            bucket = default_bucket
+
+        # read request body data
+        cborf = BytesIOReader(b"")
+        inf = env["wsgi.input"]
+        try:
+            todo = int(env["CONTENT_LENGTH"])
+        except Exception:
+            raise Failure(gettext("need `content-length`"))
+        while todo > 0:
+            res = inf.read(todo)
+            if len(res) == 0:
+                raise Failure(gettext("incomplete data"))
+            cborf.write(res)
+            todo -= len(res)
+
+        cborf.seek(0)
+        try:
+            reqres = wrr_load_cbor_fileobj(cborf)
+        except Exception as exc:
+            raise Failure(gettext("failed to parse content body: %s"), str(exc))
+
+        cborf.seek(0)
+        data = cborf.getvalue() # type: ignore
+        del cborf
+        if compress:
+            data = gzip_maybe(data)
+
+        trrexpr = ReqresExpr(UnknownSource(), reqres)
+        trrexpr.values["num"] = 0
+        prev_path : str | None = None
+        while True:
+            rel_out_path = _os.path.join(destination, bucket, output_format % trrexpr)
+            abs_out_path = _os.path.abspath(rel_out_path)
+
+            if prev_path == abs_out_path:
+                raise Failure(gettext("destination already exists") + variance_help)
+            prev_path = abs_out_path
+
+            try:
+                atomic_write(data, abs_out_path)
+            except FileExistsError:
+                pass
+            except OSError as exc:
+                raise Failure(gettext("failed to write data to `%s`: %s"), exc.filename, str(exc))
+            else:
+                break
+
+            trrexpr.values["num"] += 1
+
+        if True:
+            rrexpr = ReqresExpr(make_FileSource(abs_out_path, _os.stat(abs_out_path)), reqres)
+            rrexpr.values = trrexpr.values
+            emit(rrexpr)
+            all_urls.add(url_info(rrexpr.net_url, rrexpr.reqres.request.url))
+
+        if terminator is not None:
+            stdout.write(abs_out_path)
+            stdout.write_bytes(terminator)
+            stdout.flush()
+
+        stderr.write_str_ln(gettext("archived %s -> %s") % (rrexpr.net_url, abs_out_path))
+        stderr.flush()
+
+        return b""
+
     @app.route("/web/<selector>/<url_path:path>") # type: ignore
-    def from_archive(selector : str, url_path : str) -> str | bytes | None:
+    def from_archive(selector : str, url_path : str) -> BottleReturnType:
         env = bottle.request.environ
         query = env.get("QUERY_STRING", "")
         turl = url_path
@@ -2467,6 +2591,10 @@ def cmd_serve(cargs : _t.Any) -> None:
     if stderr.isatty:
         stderr.write_bytes(b"\033[33m")
     location = f"http://{cargs.host}:{cargs.port}/"
+    if destination is not None:
+        stderr.write_str_ln(gettext("Working as an archiving server at %s") % (location,))
+    else:
+        stderr.write_str_ln(gettext("Archiving server support is disabled"))
     stderr.write_str_ln(gettext("Serving replays for %d reqres at %s") % (len(index), f"{location}web/*/*"))
     if stderr.isatty:
         stderr.write_bytes(b"\033[0m")
@@ -3125,24 +3253,39 @@ the actual maximum whole-program memory consumption is `O(<size of the largest r
 most useful when doing `{__prog__} organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `{__prog__}` needs to keep in memory is small, in which case it will force `{__prog__}` to compute the desired file system state first and then perform all disk writes in a single batch"""))
 
     def add_fileout(cmd : _t.Any, kind : str) -> None:
+        if kind == "serve":
+            agrp = cmd.add_argument_group("file output options")
+            grp = agrp.add_mutually_exclusive_group()
+            grp.add_argument("--compress", dest="compress", action="store_const", const=True, help="compress new archivals before dumping them to disk; default")
+            grp.add_argument("--no-compress", "--uncompressed", dest="compress", action="store_const", const=False, help="dump new archivals to disk without compression")
+            cmd.set_defaults(compress = True)
+
         agrp = cmd.add_argument_group("file outputs")
 
         if kind == "organize":
-            agrp.add_argument("-t", "--to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, help=_("destination directory; when unset each source `PATH` must be a directory which will be treated as its own `OUTPUT_DESTINATION`"))
+            agrp.add_argument("-t", "--to", f"--{kind}-to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, help=_("destination directory; when unset each source `PATH` must be a directory which will be treated as its own `OUTPUT_DESTINATION`"))
             agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default="default", type=str, help=_("""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""") + "\n" + \
                          "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
                          "".join([f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`" + ("; the default" if name == "default" else "") + "\n" + output_example(name, 8) + "\n" for name, value in output_alias.items()]) + \
                          "- " + _("available substitutions:") + "\n" + \
                          "  - " + _(f"all expressions of `{__prog__} get --expr` (which see)") + ";\n" + \
                          "  - `num`: " + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique"))
-        elif kind == "import" or kind == "mirror":
-            agrp.add_argument("-t", "--to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, required=True, help=_("destination directory; required"))
+        elif kind in ["import", "mirror", "serve"]:
+            if kind != "serve":
+                agrp.add_argument("-t", "--to", f"--{kind}-to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, required=True, help=_("destination directory; required"))
+            else:
+                agrp.add_argument("-t", "--to", "--archive-to", dest="destination", metavar="ARCHIVE_DESTINATION", type=str, help=_("archiving destination directory; if left unset, which is the default, then archiving server support will be disabled"))
+                agrp.add_argument("-i", "--implicit", action="store_true", help=_("prepend `ARCHIVE_DESTINATION` to the list of input `PATH`s"))
+
             def_def = "hupq_n" if kind == "mirror" else "default"
             agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default=def_def, type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same expression format as `{__prog__} organize --output` (which see); default: `%(default)s`"""))
         else:
             assert False
 
         add_terminator(cmd, "new `--output`s printing", "print absolute paths of newly produced or replaced files", allow_not=False, allow_none=True)
+
+        if kind == "serve":
+            return
 
         agrp = cmd.add_argument_group("updates to `--output`s")
         grp = agrp.add_mutually_exclusive_group()
@@ -3321,8 +3464,8 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
     cmd.set_defaults(func=cmd_mirror)
 
     # serve
-    cmd = subparsers.add_parser("serve", help=_(f"serve given input files for replay over HTTP"),
-                                description = _(f"""Serve given input files for replay over HTTP.
+    cmd = subparsers.add_parser("serve", help=_(f"run an archiving server and/or serve given input files for replay over HTTP"),
+                                description = _(f"""Run an archiving server and/or serve given input files for replay over HTTP.
 
 Algorithm:
 
@@ -3356,6 +3499,12 @@ The end.
     agrp.add_argument("--debug-bottle", action="store_true", help=_("run with `bottle`'s debugging enabled"))
 
     add_expr(cmd, "serve")
+
+    agrp = cmd.add_argument_group("buckets")
+    agrp.add_argument("--default-bucket", "--default-profile", metavar="NAME", default="default", type=str, help=_("default bucket name to use when a client does not specify any; default: `%(default)s`"))
+    agrp.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true", help=_("ignore bucket names specified by clients and always use `--default-bucket` instead"))
+
+    add_fileout(cmd, "serve")
     cmd.set_defaults(func=cmd_serve)
 
     return parser
