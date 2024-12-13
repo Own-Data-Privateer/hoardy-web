@@ -3566,10 +3566,13 @@ let workaroundFirstRequest = true;
 function handleBeforeRequest(e) {
     let url = e.url;
 
-    // Ignore data, file, end extension URLs.
-    // NB: `file:` URLs only happen on Chromium, Firefox does not emit
-    // any `webRequest` events for those.
-    if (isBoringURL(e.url))
+    // Ignore data, file, and extension URLs as wel as all request to the
+    // archiving/replay server.
+    //
+    // NB: `file:` URLs only happen on Chromium, Firefox does not emit any
+    // `webRequest` events for those.
+    let serverURL = serverConfig.baseURL;
+    if (isBoringURL(url) || url.startsWith(serverURL))
         return;
 
     let initiator;
