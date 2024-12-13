@@ -329,8 +329,8 @@ class ScrubbingOptions:
     interpret_noscript : bool = _dc.field(default=True)
     unknown : bool = _dc.field(default=True)
 
-    verbose : bool = _dc.field(default=False)
-    whitespace : bool = _dc.field(default=False)
+    verbose : bool = _dc.field(default=True)
+    whitespace : bool = _dc.field(default=True)
     optional_tags : bool = _dc.field(default=True)
     indent : bool = _dc.field(default=False)
     indent_step : int = _dc.field(default=2)

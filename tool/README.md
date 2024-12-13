@@ -370,7 +370,7 @@ hoardy-web mirror --to ~/hoardy-web/mirror1 \
 On completion, `~/hoardy-web/mirror1` will contain said newly generated interlinked `HTML` files, their resource requisites, and everything else available from given archive files.
 The set of mirrored files can be limited with using several methods described below.
 
-By default, the resulting `HTML` files will be stripped of all `JavaScript` and other stuff of various levels of evil and then minimized a bit to save space.
+By default, the resulting `HTML` files will be stripped of all `JavaScript` and other stuff of various levels of evil.
 The results should be completely self-contained (i.e., work inside a browser running in "Work offline" mode) and safe to view in a dumb unconfigured browser (i.e., the resulting web pages should not request any page requisites --- like images, media, `CSS`, fonts, etc --- from the Internet).
 
 (In practice, though, `hoardy-web mirror` is not completely free of bugs and `HTML5` spec is constantly evolving, with new things getting added there all the time.
@@ -379,11 +379,19 @@ Which is why the `Hoardy-Web` extension has its own per-tab `Work offline` mode 
 That feature prevents the outputs of `hoardy-web mirror` from accessing the Internet regardless of any bugs or missing features in `hoardy-web`.
 It also helps with debugging.)
 
-If you are unhappy with the above and, for instance, want to keep `JavaScript` and produce unminimized human-readable `HTML`s, you can run the following instead:
+If you are unhappy with the above and, for instance, want to keep `JavaScript` and produce human-readable `HTML`s, you can run the following instead:
 
 ```bash
 hoardy-web mirror \
   -e 'response.body|eb|scrub response &all_refs,+scripts,+pretty' \
+  --to ~/hoardy-web/mirror2 ~/hoardy-web/raw
+```
+
+Or, say, you want to produce minimized outputs:
+
+```bash
+hoardy-web mirror \
+  -e 'response.body|eb|scrub response &all_refs,-verbose,-whitespace,-optional_tags' \
   --to ~/hoardy-web/mirror2 ~/hoardy-web/raw
 ```
 
@@ -1007,8 +1015,8 @@ The end.
               - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away;
               - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them;
               - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not;
-              - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics;
-              - `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied;
+              - `+pretty` is an alias for `-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics;
+              - `-pretty` is an alias for `+whitespace,-indent` which produces the approximation of the original markup with censoring applied;
               - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it indents `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging;
               - `-debug` is a noop;
             - the `defaults` are:
@@ -1018,7 +1026,8 @@ The end.
               - `-scripts`, because `scrub`bing of `JavaScript` (code whitelisting) is not supported yet;
               - `-iepragmas`, because censoring of contents of such pragmas is not supported yet;
               - `+interpret_noscript`, because this usually helps;
-              - `-verbose,-whitespace,-indent`, because it saves a lot of space;
+              - `+verbose`, because this allows you to inspect the generated output and see what `hoardy-web` did to it, i.e., this minimizes surprises;
+              - `+whitespace,-indent`, to keep the output as close to the original as possible;
               - `+optional_tags`, because many tools fail to parse minimized `HTML` properly;
               - `+unknown` which keeps data of unknown content `MIME` types as-is;
             - note however, that most `--remap-*` options set different defaults;

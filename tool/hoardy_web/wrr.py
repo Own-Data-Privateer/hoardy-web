@@ -416,7 +416,6 @@ def linst_scrub() -> LinstAtom:
                     raise CatastrophicFailure("unknown `scrub` option `%s`", opt)
 
                 if oname == "pretty":
-                    scrub_opts.verbose = True
                     scrub_opts.whitespace = not value
                     scrub_opts.indent = value
                 elif oname == "debug" and value == True:
@@ -518,8 +517,8 @@ ReqresExpr_atoms.update({
     - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away;
     - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them;
     - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not;
-    - `+pretty` is an alias for `+verbose,-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics;
-    - `-pretty` is an alias for `+verbose,+whitespace,-indent` which produces the approximation of the original markup with censoring applied;
+    - `+pretty` is an alias for `-whitespace,+indent` which produces the prettiest possible human-readable output that keeps the original whitespace semantics;
+    - `-pretty` is an alias for `+whitespace,-indent` which produces the approximation of the original markup with censoring applied;
     - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it indents `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging;
     - `-debug` is a noop;
   - the `defaults` are:
@@ -529,7 +528,8 @@ ReqresExpr_atoms.update({
     - `-scripts`, because `scrub`bing of `JavaScript` (code whitelisting) is not supported yet;
     - `-iepragmas`, because censoring of contents of such pragmas is not supported yet;
     - `+interpret_noscript`, because this usually helps;
-    - `-verbose,-whitespace,-indent`, because it saves a lot of space;
+    - `+verbose`, because this allows you to inspect the generated output and see what `hoardy-web` did to it, i.e., this minimizes surprises;
+    - `+whitespace,-indent`, to keep the output as close to the original as possible;
     - `+optional_tags`, because many tools fail to parse minimized `HTML` properly;
     - `+unknown` which keeps data of unknown content `MIME` types as-is;
   - note however, that most `--remap-*` options set different defaults;
@@ -1026,7 +1026,7 @@ body {
 
 </body></html>""")
 
-    check_scrub("+all_refs,+scripts,+prefetches,+navigations,+verbose,+indent", "https://example.com/", "text/html", [
+    check_scrub("+all_refs,+scripts,+prefetches,+navigations,+verbose,-whitespace,+indent", "https://example.com/", "text/html", [
         ("Link", b"</first.js>; as=script; rel=preload"),
         ("Link", b"<https://example.com/second.js>; as=script; rel=preload"),
         ("Link", b"<https://example.org/third.js>; as=script; rel=preload"),
