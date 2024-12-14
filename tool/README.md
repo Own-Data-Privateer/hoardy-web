@@ -2745,6 +2745,14 @@ The end.
   - `-z, --zero-terminated`
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
+- replay options:
+  - `--no-replay`
+  : disable replay functionality, makes this into an archive-only server, like `hoardy-web-sas` is
+  - `--latest`
+  : index and replay only the latest visit for each URL; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version
+  - `--all`
+  : index and replay all visits to all available URLs; if `--to` is given, archiving a new visit for a URL will update the index and make the new visit available for replay; default
+
 ## Examples
 
 - Pretty-print all reqres in `../simple_server/pwebarc-dump` using an abridged (for ease of reading and rendering) verbose textual representation:

@@ -2303,6 +2303,9 @@ def cmd_serve(cargs : _t.Any) -> None:
     compress = cargs.compress
     terminator = cargs.terminator
 
+    do_replay = cargs.replay is not None
+    index_ideal = None if cargs.replay == True else anytime.end
+
     inherit_mime : str | None = None
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
@@ -2317,7 +2320,7 @@ def cmd_serve(cargs : _t.Any) -> None:
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
     PathType : _t.TypeAlias = str
-    index : SortedIndex[URLType, TimeStamp, ReqresExpr[_t.Any]] = SortedIndex(None)
+    index : SortedIndex[URLType, TimeStamp, ReqresExpr[_t.Any]] = SortedIndex(index_ideal)
 
     def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
         stime = rrexpr.stime
@@ -2325,7 +2328,7 @@ def cmd_serve(cargs : _t.Any) -> None:
         index.insert(net_url, stime, rrexpr)
         rrexpr.unload()
 
-    if True:
+    if do_replay:
         if stderr.isatty:
             stderr.write_bytes(b"\033[32m")
         stderr.write_str_ln(gettext("loading input `PATH`s..."))
@@ -2340,6 +2343,10 @@ def cmd_serve(cargs : _t.Any) -> None:
         if destination is not None and cargs.implicit and _os.path.exists(destination):
             map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, [destination], seen_paths=seen_paths)
         map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, cargs.paths, seen_paths=seen_paths)
+    elif cargs.implicit:
+        raise CatastrophicFailure(gettext("`--no-replay`: not allowed with `--implicit`"))
+    elif len(cargs.paths) > 0:
+        raise CatastrophicFailure(gettext("`--no-replay`: not allowed with a non-empty list of `PATH`s"))
 
     if not cargs.quiet:
         filters_warn()
@@ -2374,6 +2381,10 @@ def cmd_serve(cargs : _t.Any) -> None:
     }
     if destination is not None:
         server_info["dump_wrr"] = "/pwebarc/dump"
+    if cargs.replay == True:
+        server_info["replay_any"] = "/web/{timestamp}/{url}"
+    if do_replay:
+        server_info["replay_latest"] = "/web/2/{url}"
     server_info_json = _json.dumps(server_info).encode("utf-8")
     del server_info
 
@@ -2450,7 +2461,7 @@ def cmd_serve(cargs : _t.Any) -> None:
 
             trrexpr.values["num"] += 1
 
-        if True:
+        if do_replay:
             rrexpr = ReqresExpr(make_FileSource(abs_out_path, _os.stat(abs_out_path)), reqres)
             rrexpr.values = trrexpr.values
             emit(rrexpr)
@@ -2468,6 +2479,10 @@ def cmd_serve(cargs : _t.Any) -> None:
 
     @app.route("/web/<selector>/<url_path:path>") # type: ignore
     def from_archive(selector : str, url_path : str) -> BottleReturnType:
+        if not do_replay:
+            bottle.abort(403, "Replay is forbidden on this server")
+            return None
+
         env = bottle.request.environ
         query = env.get("QUERY_STRING", "")
         turl = url_path
@@ -2595,7 +2610,10 @@ def cmd_serve(cargs : _t.Any) -> None:
         stderr.write_str_ln(gettext("Working as an archiving server at %s") % (location,))
     else:
         stderr.write_str_ln(gettext("Archiving server support is disabled"))
-    stderr.write_str_ln(gettext("Serving replays for %d reqres at %s") % (len(index), f"{location}web/*/*"))
+    if do_replay:
+        stderr.write_str_ln(gettext("Serving replays for %d reqres at %s") % (len(index), f"{location}web/*/*"))
+    else:
+        stderr.write_str_ln(gettext("Replay server support is disabled"))
     if stderr.isatty:
         stderr.write_bytes(b"\033[0m")
     stderr.flush()
@@ -3505,6 +3523,14 @@ The end.
     agrp.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true", help=_("ignore bucket names specified by clients and always use `--default-bucket` instead"))
 
     add_fileout(cmd, "serve")
+
+    agrp = cmd.add_argument_group("replay options")
+    grp = agrp.add_mutually_exclusive_group()
+    grp.add_argument("--no-replay", dest="replay", action="store_const", const=None, help="disable replay functionality, makes this into an archive-only server, like `hoardy-web-sas` is")
+    grp.add_argument("--latest", dest="replay", action="store_const", const=False, help="index and replay only the latest visit for each URL; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version")
+    grp.add_argument("--all", dest="replay", action="store_const", const=True, help="index and replay all visits to all available URLs; if `--to` is given, archiving a new visit for a URL will update the index and make the new visit available for replay; default")
+    cmd.set_defaults(replay = True)
+
     cmd.set_defaults(func=cmd_serve)
 
     return parser
