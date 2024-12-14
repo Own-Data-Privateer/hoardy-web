@@ -25,7 +25,7 @@ Also, the [[https://oxij.org/software/hoardy-web/tree/master/extension/page/help
 - by generating fake-Downloads containing either
   - separate dumps ([[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/doc/data-on-disk.md][one dump of an =HTTP= request+response per file]], also [[https://oxij.org/software/hoardy-web/tree/master/doc/data-on-disk.md][there]]) or
   - bundles of them (many dumps in a single file),
-- by archiving separate dumps to your own private archiving server (like the [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/simple_server/][=hoardy-web-sas= simple archiving server]], also [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][there]]), or
+- by archiving separate dumps to your own private archiving server (like the [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/simple_server/][=hoardy-web-sas= simple archiving server]], also [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][there]], or the more advanced [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool/][=hoardy-web serve=]], also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]), or
 - by archiving separate dumps to your browser's local storage.
 
 To view your archived data, see the [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool][accompanying =hoardy-web= CLI tool]] (also [[https://oxij.org/software/hoardy-web/tree/master/tool/][there]]).
@@ -531,7 +531,7 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 
 - =`Hoardy-Web` can't establish a connection to the archiving server at <URL>=, =The archiving server at <URL> appears to be defunct=, =Failed to archive <N> items because `Hoardy-Web` can't establish a connection to the archiving server=, and =Failed to archive <N> items because this archiving server is defunct=
 
-  Are you running the [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][archiving server script]]?
+  Are you running the [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][archiving server script]] or a [[https://oxij.org/software/hoardy-web/tree/master/tool/][=hoardy-web serve=]] instance?
 
   If you fixed it and the error persists, press [[./popup.html#retryFailed][this button]].
 

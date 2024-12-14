@@ -4,7 +4,9 @@
 
 I.e. this is the thing you run and then paste the URL of into the `Server URL` setting of the `Hoardy-Web` add-on.
 
-This thing is less than 250 lines of pure Python that only uses the Python\'s standard library and nothing else.
+This is not the most feature-rich thing for doing that, [`hoardy-web serve`](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool/) (also [there](https://oxij.org/software/hoardy-web/tree/master/tool/)) is much more powerful.
+But, `hoardy-web serve` is not at all simple and it depends on quite a lot of things.
+Meanwhile, this `hoardy-web-sas` thing is less than 250 lines of pure Python that only uses the Python\'s standard library and nothing else.
 You could be running it already.
 
 # Why does `hoardy-web-sas` exists?

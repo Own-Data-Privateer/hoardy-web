@@ -1,6 +1,6 @@
 # What is `hoardy-web`?
 
-`hoardy-web` is a tool to inspect, search, organize, programmatically extract values from, generate static website mirrors from `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/), also [there](https://oxij.org/software/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.
+`hoardy-web` is a tool to inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/), also [there](https://oxij.org/software/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.
 
 # How to read this document
 
@@ -63,23 +63,58 @@ Install the [`Hoardy-Web` extension](../extension/) and get some archive data by
 
 You can then use your archived data to generate a local offline static website mirror that can be opened in a web browser without accessing the Internet, similar to what `wget -mpk` does.
 
-The invocation is slightly different depending on if the data was exported via `saveAs` by the [`Hoardy-Web` extension](../extension/) itself or saved by using the [`hoardy-web-sas` archiving server](../simple_server/):
+The invocation is slightly different depending on if the data was exported via `saveAs` by the [`Hoardy-Web` extension](../extension/) itself, saved via the [`hoardy-web-sas` simple archiving server](../simple_server/), or via `hoardy-web serve --archive-to` (see below):
 
 ```bash
 # for "Export via `saveAs`"
 hoardy-web mirror --to ~/hoardy-web/mirror1 ~/Downloads/Hoardy-Web-export-*
 
-# for `hoardy-web-sas`
-hoardy-web mirror --to ~/hoardy-web/mirror1 ../simple_server/pwebarc-dump
+# for `hoardy-web-sas` and/or `hoardy-web serve --archive-to`
+hoardy-web mirror --to ~/hoardy-web/mirror1 ../simple_server/pwebarc-dump ~/hoardy-web/raw
 ```
 
 You can then, e.g. `rsync`/copy `~/hoardy-web/mirror1` to your e-book reader/phone before hopping on a plane or going on a deep-sea dive, and still be able to read all those pages.
 
 The default settings should work for most simple websites, but a [section below](#mirror) contains more info and more usage examples.
 
+## <span id="replay"/>View/replay your archived data interactively over `HTTP`
+
+You can also view your archived pages by running `hoardy-web` in web server mode:
+
+```bash
+# serve a union af all available archives,
+# which are not at all required to use the same file format
+hoardy-web serve \
+  ~/hoardy-web/raw \
+  ../simple_server/pwebarc-dump \
+  ~/Downloads/Hoardy-Web-export-* \
+  mitmproxy.*.dump
+```
+
+You can then navigate to
+
+- <http://127.0.0.1:3210/web/*/*> to see the list of all available URLs and their versions (visits), or to
+- something like <http://127.0.0.1:3210/web/2/https://archiveofourown.org/works/3733123> to view the latest archived version of that URL, or to
+- something like <http://127.0.0.1:3210/web/*/https://archiveofourown.org/works/3733123> to view the list of all visits to this URL,
+- which also works with glob patterns <http://127.0.0.1:3210/web/*/https://archiveofourown.org/works/[0-9]*>.
+
+This is very reminiscent of the [Wayback Machine](https://web.archive.org/) by design, yes.
+
+You can also use `hoardy-web serve` to replace `hoardy-web-sas` simple archiving server by combining both archival and replay:
+
+```bash
+hoardy-web serve --implicit \
+  --archive-to ~/hoardy-web/raw \
+  ../simple_server/pwebarc-dump \
+  ~/Downloads/Hoardy-Web-export-* \
+  mitmproxy.*.dump
+```
+
+See [below](#serve) for more info.
+
 ## ... and you are done
 
-If you are not interested in searching, organizing, and/or manipulating your archives in various ways, then, at the moment, that's everything the `hoardy-web` tool can do for you.
+If you are not interested searching, organizing, and/or manipulating your archives in various ways, then, at the moment, that's essentially everything the `hoardy-web` tool can do for you.
 See the [TODO list](../CHANGELOG.md#todo) for a list of planned features.
 
 If you are interested, continue reading.
@@ -102,7 +137,7 @@ If you are interested, continue reading.
 - *`WRR` file* is a file with a single `WRR` dump in it.
   Typically, these use `.wrr` file extension.
 
-  When you use the [`Hoardy-Web` extension](../extension/) together with the [`hoardy-web-sas` archiving server](../simple_server/), the latter writes `WRR` dumps the extension generates, one dump per file, into separate `.wrr` files in its dumping directory.
+  When you use the [`Hoardy-Web` extension](../extension/) together with the [`hoardy-web-sas` archiving server](../simple_server/) or [`hoardy-web serve`](#serve), the latter two write `WRR` dumps the extension generates, one dump per file, into separate `.wrr` files in its dumping directory.
 
   The situation is similar if you instead use the `Hoardy-Web` extension with `Export via 'saveAs'` option enabled but `Export via 'saveAs' > Bundle dumps` option disabled.
   The only difference is that `WRR` files get written to your `~/Downloads` or similar.
@@ -171,7 +206,7 @@ hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.w
 
 In fact, internally, `hoardy-web import bundle` is actually an alias for `hoardy-web organize --copy --load-wrrb --defer-number 0`.
 
-## Find and filter things
+## <span id="find"/>Find and filter things
 
 You can search your archive directory by using `hoardy-web find` sub-command, that prints paths to those of its inputs which match given conditions.
 For example, to list reqres from `~/hoardy-web/raw` that contain complete `GET` requests with `200 OK` responses, you can run:
@@ -320,7 +355,7 @@ Using it also simplifies filtering in my `ranger` file browser, so I do this:
 hoardy-web organize --symlink --latest --output flat_mhs --to ~/hoardy-web/latest --status-re .200C ~/hoardy-web/raw
 ```
 
-### Update the tree incrementally, in real time
+### <span id="symlink-latest"/>Update the tree incrementally, in real time
 
 The above commands rescan the whole contents of `~/hoardy-web/raw` and so can take a while to complete.
 
@@ -648,6 +683,88 @@ hoardy-web mirror \
 Also, you can make it use `--symlink`s instead of hardlinks.
 Though, enabling `--symlink` also enables the `--absolute` option by default because browsers treat `file://` URLs pointing to symlinks as redirects.
 
+## <span id="serve"/>Use `hoardy-web serve` for archival and replay over `HTTP`
+
+`hoardy-web` comes with a builtin web server that can do
+
+- archival of `WRR` captures produced by the [`Hoardy-Web` extension](../extension/) to disk;
+  i.e., it can play a role of an archiving server for `Hoardy-Web`, replacing the [`hoardy-web-sas` simple archiving server](../simple_server/);
+
+- replay of `WRR` and other supported file formats via Wayback Machine-esque URLs like <http://127.0.0.1:3210/web/2/https://archiveofourown.org/works/3733123>;
+
+- do both at the same time, allowing newly archived URLs to be replayed immediately (after the `200 OK` response to the archiving `POST`).
+
+In other words, `hoardy-web serve` is, essentially, a combination of [`hoardy-web-sas` archiving server](../simple_server/) and an on-demand `hoardy-web mirror` which talks over `HTTP` instead of just dumping rendered documents to disk.
+For interactive use, this is not only more convenient than `hoardy-web mirror`, it's also usually much faster since required URL rewrites are much cheaper and no recursive requisite resource rendering is required here.
+That is, unlike `mirror`, `serve` is pretty snappy even on ancient hardware.
+
+When invoking `hoardy-web serve`, the argument to the `--archive-to` option will be used by the archiving server parts, while the positional `PATH` arguments will used by the replay server parts.
+That is,
+
+```bash
+hoardy-web serve \
+  --archive-to ~/hoardy-web/raw \
+  ~/hoardy-web/raw/*/2024 \
+  ../simple_server/pwebarc-dump \
+  ~/Downloads/Hoardy-Web-export-* \
+  mitmproxy.*.dump
+```
+
+- will index and allow replay of all visits stored in files under `~/hoardy-web/raw/*/2024` and `../simple_server/pwebarc-dump`,
+  as well as all files named `~/Downloads/Hoardy-Web-export-*` (which are, usually, `Hoardy-Web` exports) and
+  files named `mitmproxy.*.dump` (which are probably `mitmproxy` dumps);
+- while dumping new captures given by the extension to `~/hoardy-web/raw`.
+
+When the argument to `--archive-to` and the first `PATH` are the same, you can specify `--implicit` --- or `-i` --- to simplify it:
+
+```bash
+hoardy-web serve --implicit --archive-to ~/hoardy-web/raw
+# which is equivalent to
+hoardy-web serve --archive-to ~/hoardy-web/raw ~/hoardy-web/raw
+# which can be shortened to
+hoardy-web serve -i --to ~/hoardy-web/raw
+# or even
+hoardy-web serve -i -t ~/hoardy-web/raw
+```
+
+By default, `hoardy-web serve` runs with an implied `--all` option, which makes it keep the index of all given archives in memory, allowing arbitrary visits to be replayed.
+
+If you dislike this behaviour, you can run it with the `--latest` option instead
+
+```bash
+hoardy-web serve --latest -i -t ~/hoardy-web/raw
+```
+
+which will make it keep and allow replay only of the latest visit to each URL.
+This greatly improves resource consumption, but it also has the same caveats as `hoardy-web mirror --latest` (see above).
+With `--latest`, newly archived `WRR`s will elide older ones from the index, as expected.
+
+You can also disable indexing and replay completely by running it with `--no-replay`
+
+```bath
+hoardy-web serve --no-replay --to ~/hoardy-web/raw
+```
+
+which will make it essentially equivalent to `hoardy-web-sas`, except for `serve` having a customizable `--output` format.
+
+The listening address and port can be controlled with `--host` and `--port` options, exactly the same as `hoardy-web-sas`:
+
+```bash
+hoardy-web serve --host 127.0.10.1 --port 4321 --archive-to ~/hoardy-web/raw
+```
+
+Currently enabled features can be queried programmatically from `/hoardy-web/server-info` endpoint
+
+```bash
+curl 'http://127.0.0.1:3210/hoardy-web/server-info'
+```
+
+which returns a `JSON` like
+
+```json
+{"version": 1, "dump_wrr": "/pwebarc/dump", "replay_any": "/web/{timestamp}/{url}", "replay_latest": "/web/2/{url}"}
+```
+
 ## Generate previews for `WRR` files, listen to them via TTS, open them with `xdg-open`, etc
 
 See the [`script` sub-directory](./script/) for examples that show how to use `pandoc` and/or `w3m` to turn `WRR` files into previews and readable plain-text that can viewed or listened to via other tools, or dump them into temporary raw data files that can then be immediately fed to `xdg-open` for one-click viewing.
@@ -656,7 +773,7 @@ See the [`script` sub-directory](./script/) for examples that show how to use `p
 
 ## hoardy-web
 
-Inspect, search, organize, programmatically extract values from, generate static website mirrors from `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.
+Inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.
 
 Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata.
 

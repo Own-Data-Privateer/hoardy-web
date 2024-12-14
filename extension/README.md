@@ -1,6 +1,6 @@
 # What is `Hoardy-Web` Web Extension?
 
-`Hoardy-Web` is a Web Extension browser add-on that passively captures and collects dumps of `HTTP` requests and responses (see [`WRR` file format](../doc/data-on-disk.md)) as you browse the web, and then archives them to your `Downloads` directory, your own private archiving server (like [`hoardy-web-sas`](../simple_server/)), or your browser's local storage.
+`Hoardy-Web` is a Web Extension browser add-on that passively captures and collects dumps of `HTTP` requests and responses (see [`WRR` file format](../doc/data-on-disk.md)) as you browse the web, and then archives them to your `Downloads` directory, your own private archiving server (like [`hoardy-web-sas`](../simple_server/) or the more advanced [`hoardy-web serve`](../tool/)), or your browser's local storage.
 
 Practically speaking, you install this and just browse the web normally while `Hoardy-Web` passively, in background, captures and archives web pages you visit for later offline viewing, mirroring, and/or indexing.
 `Hoardy-Web` has a lot of configuration options to help you tweak what should or should not be archived and a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless explicitly configured otherwise to, e.g., minimize writes to disk instead).
