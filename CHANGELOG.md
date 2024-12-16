@@ -6,6 +6,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [simple_server-v1.8.0] - 2024-12-16
+
+### Added
+
+- Added `-t`, `--to`, and `--archive-to` aliases for `--root`.
+
+- Added `/hoardy-web/server-info` endpoint for future integration with the `extension`.
+
+### Changed
+
+- From now on, "/" and most other non-word symbols (except "_", "-", and space) in bucket names are forbidden and will be removed.
+
+  This will simplify some future things.
+
+- From now on, when several buckets are specified via several `profile` query parameters, the last one will be used.
+
+- Renamed `--uncompressed` -\> `--no-compress`, the old name is kept as an alias.
+
+- Slightly improved performance.
+
+- Started typechecking with `mypy`.
+
 ## [tool-v0.19.0] - 2024-12-07: Powerful filtering, new mirroring modes
 
 ### Changed: Semantics
@@ -1809,6 +1831,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[simple_server-v1.8.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.7.0...simple_server-v1.8.0
 [tool-v0.19.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.18.1...tool-v0.19.0
 [tool-v0.18.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.18.0...tool-v0.18.1
 [tool-v0.18.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.17.0...tool-v0.18.0
