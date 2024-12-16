@@ -6,6 +6,30 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.18.0] - 2024-12-16: Replay integration, incremental improvements
+
+This release integrates the `extension` with `tool-v0.20.0`, which can now do both archival and replay over `HTTP`, see below.
+
+### Changed
+
+- Core:
+
+  - From now on, all requests to all URLs under `Server URL` will be ignored, allowing you work with `tool-v0.20.0`-replayed pages without fiddling with any settings.
+
+  - From now on, the `extension` will respect archiving server's settings and features given by its `/hoardy-web/server-info` endpoint, if such a thing exists.
+
+  - The default value of `Server URL` does not specify `/pwebarc/dump` endpoint anymore, as this is now configurable server-side.
+
+    For old configs, you can keep the old value, the archiving server handling code will silently elide that path away.
+
+  - From now on, before the first archival, the `extension` will check that a working archiving server is available at the given `Server URL` and generate errors describing what exactly appears to be broken when not.
+
+- Popup UI:
+
+  - From now on, if you set `Server URL` setting to an empty string, it will be reset to the default value.
+
+  - Improved CPU usage when switching tabs really quickly.
+
 ## [tool-v0.20.0] - 2024-12-16: Replay over `HTTP`, mirroring of non-`GET` reqres
 
 ### Changed: Incompatible changes
@@ -1943,6 +1967,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.18.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.17.2...extension-v1.18.0
 [tool-v0.20.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.19.0...tool-v0.20.0
 [simple_server-v1.8.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.7.0...simple_server-v1.8.0
 [tool-v0.19.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.18.1...tool-v0.19.0
