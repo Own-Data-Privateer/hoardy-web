@@ -162,10 +162,11 @@ If you are interested, continue reading.
 At the moment `hoardy-web` tool supports
 
 - `WRR` files (both compressed and not),
-- `WRR` bundles (similarly), and
-- `mitmproxy` dumps.
+- `WRR` bundles (similarly),
+- `mitmproxy` dumps, and
+- `HAR` (using `mitmproxy`'s parser).
 
-`WARC` and `HAR` support will be added [soon-ish](../CHANGELOG.md#todo), `PCAP` support will be added eventually.
+`WARC` and built-in `HAR` support will be added [soon-ish](../CHANGELOG.md#todo), `PCAP` support will be added eventually.
 
 All sub-commands of `hoardy-web` except for
 
