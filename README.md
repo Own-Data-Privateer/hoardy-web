@@ -157,17 +157,18 @@ In short, compared to [most of its alternatives](#alternatives), `Hoardy-Web` **
 - require you to run a database server;
 - require you to run a web browser to view the data you've already archived.
 
-Technically, `Hoardy-Web` (as the project) is most similar to
+Technically, the `Hoardy-Web` project is most similar to
 
-- [archiveweb.page](https://github.com/webrecorder/archiveweb.page) project, but following "capture and archive everything with as little user input as needed now, figure out what to do with it later" philosophy, and not limited to Chromium;
-- [DownloadNet](https://github.com/dosyago/dn) project, but with much more tooling, an advanced command-line interface, and also not limited to Chromium;
-- [pywb](https://github.com/webrecorder/pywb) project, but with a simpler web interface but more advanced command-line interface;
-
-Or, to summarize it another way, you can view `Hoardy-Web` as an alternative for [mitmproxy](https://github.com/mitmproxy/mitmproxy) which leaves SSL/TLS layer alone and hooks into target application's runtime instead.
+- [DownloadNet](https://github.com/dosyago/dn) project, but with collection, archival, and replay all (optionally) independent from each other, with an advanced command-line interface, and not limited to Chromium;
+- [mitmproxy](https://github.com/mitmproxy/mitmproxy) project, but `Hoardy-Web` leaves SSL/TLS layer alone and hooks into browser's runtime instead, and its tooling is designed primarily for web archival purposes, not traffic inspection and protocol reverse-engineering;
+- [archiveweb.page](https://github.com/webrecorder/archiveweb.page) project, but following "capture and archive everything with as little user input as needed now, figure out what to do with it later" philosophy, and also not limited to Chromium;
+- [pywb](https://github.com/webrecorder/pywb) project, but with collection, archival, and replay all (optionally) independent from each other, with a simpler web interface, and more advanced command-line interface.
 
 In fact, an unpublished and now irrelevant ancestor project of `Hoardy-Web` was a tool to generate website mirrors from `mitmproxy` stream captures.
-[(By the way, if you want that, `hoardy-web` tool can do that for you. It can take `mitmproxy` dumps as inputs.)](./tool/README.md#mirror)
-But then I got annoyed by all the sites that don't work under `mitmproxy`, did some research into the alternatives, decided there were none I wanted to use, and so I made my own.
+[(If you want that, `hoardy-web` tool can do that for you. It can take `mitmproxy` dumps as inputs.)](./tool/README.md#mirror)
+But then I got annoyed by all the sites that don't work under `mitmproxy`, did some research into the alternatives, decided there were none I wanted to use, and so I started adding stuff to my tool until it became `Hoardy-Web`.
+
+For more info see the [list of comparisons to alternatives](#alternatives).
 
 ## Parts and pieces
 
@@ -518,22 +519,104 @@ Then, you can improve on this setup even more by running both the Tor Browser an
 
 # <span id="alternatives"/>Alternatives
 
+Sorted by similarity to `Hoardy-Web`, most similar projects first.
 "Cons" and "Pros" are in comparison to the main workflow of `Hoardy-Web`.
-Most similar and easier to use projects first, harder to use and less similar projects later.
 
-## [archiveweb.page](https://github.com/webrecorder/archiveweb.page) and [replayweb.page](https://github.com/webrecorder/replayweb.page)
+## [DownloadNet](https://github.com/dosyago/dn)
 
-Tools most similar to `Hoardy-Web` in their implementation, though not in their philosophy and intended use.
+A self-hosted web crawler and web replay system written in `Node.js`.
+
+Of all the tools known to me, `DownloadNet` is most similar to the intended workflow of the `Hoardy-Web`.
+Similarly to the combination of [`Hoardy-Web` extension](./extension/) and [`hoardy-web serve`](./tool/) and unlike `pywb`, `heritrix`, and other similar tools discussed below, `DownloadNet` captures web data directly from browser's runtime.
+The difference is that `Hoardy-Web` does this using [`webRequest` `WebExtensions` API](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest) and Chromium's `debugger` API while `DownloadNet` is actually a web crawler that crawls the web by spawning a Chromium browser instance and attaching to it via its debug protocol (which are not the same thing).
+This is a bit weird, but it does work, and it allows you to use `DownloadNet` to archive everything passively as you browse, similarly to `Hoardy-Web`, since you can just browse in that debugged Chromium window and it will archive the data it fetches.
 
 Pros:
 
-- they produce archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard;
+- it's very similar to what `Hoardy-Web` aims to do, except
+
+Cons:
+
+- it's Chromium-only;
+- it uses a custom archive format but gives no tools to inspect or manage those archives;
+- you are expected to do everything from the web UI.
+
+Same issues:
+
+- A [bunch of Chromium's bugs](./extension/page/help.org#chromium-bugs) make many things [pretty annoying](./extension/page/help.org#faq-debugger) and somewhat flaky.
+
+  Those issues have no workarounds known to me except for "switch to Firefox-based browser", which you can do with `Hoardy-Web`.
+
+## [mitmproxy](https://github.com/mitmproxy/mitmproxy)
+
+A Man-in-the-middle SSL proxy.
+
+`Hoardy-Web` was heavily inspired by `mitmproxy` and, essentially, aims to be to an in-browser alternative to it.
+I.e., unlike other alternatives discussed here, both `Hoardy-Web` and `mitmproxy` capture mostly-raw `HTTP` traffic, not just web pages.
+Unlike `mitmproxy`, however, `Hoardy-Web` is designed primarily for web archival purposes, not traffic inspection and protocol reverse-engineering, even though you can do some of that with `Hoardy-Web` too.
+
+Pros:
+
+- after you set it up, it will capture **absolutely everything completely automatically**;
+- including WebSockets data, which `Hoardy-Web` add-on currently does not capture.
+
+Cons:
+
+- it is rather painful to setup, requiring you to install a custom SSL root certificate; and
+- websites using certificate pinning will stop working; and
+- some websites detect when you use it and fingerprint you for it or force you to solve CAPTCHAs; and
+- `mitmproxy` dump files are flat streams of `HTTP` requests and responses that use custom frequently changing between versions data format, so you'll have to re-parse them repeatedly using `mitmproxy`'s own parsers to get to the requests you want;
+- it provides no tools to use those dumped `HTTP` request+response streams for Wayback Machine-like replay and generation of website mirrors.
+
+Though, the latter issue can be solved via [this project's `hoardy-web` tool](./tool/) as it can take `mitmproxy` dumps as inputs.
+
+## But you could just enable request logging in your browser's Network Monitor and manually save your data as `HAR` archives from time to time.
+
+Cons:
+
+- to do what `Hoardy-Web` does, you will have to manually enable it for each browser tab;
+- opening a link in a new tab will fail to archive the first page as you will not have Network Monitor open there yet; and then
+- you will have to check all your tabs for new data all the time and do \~5 clicks per tab to save it; and then
+- [`HAR`](./tool/README.md#glossary)s are `JSON`, meaning all that binary data gets encoded indirectly, thus making resulting `HAR` archives very inefficient for long-term storage, as they take a lot of disk space, even when compressed.
+
+And then you still need something like this suite to look into the generated archives.
+
+## But you could setup SSL keys dumping then use Wireshark to capture your web traffic.
+
+Pros:
+
+- after you set it up, it will capture **absolutely everything completely automatically**;
+- it captures WebSockets data, which `Hoardy-Web` add-on currently does not.
+
+Cons:
+
+- it is really painful to setup; and then
+- you are very likely to screw it up, loose/mismatch encryption keys, and make your captured data unusable; and even if you don't,
+- it takes a lot of effort to recover `HTTP` data from the [`PCAP`](./tool/README.md#glossary) dumps; and
+- `PCAP` dumps are IP packet-level, thus also inefficient for this use case; and
+- `PCAP` dumps of SSL traffic can not be compressed much, thus storing the raw captures will take a lot of disk space.
+
+And then you still need something like this suite to look into the generated archives.
+
+## [archiveweb.page](https://github.com/webrecorder/archiveweb.page) and [replayweb.page](https://github.com/webrecorder/replayweb.page)
+
+Browser extensions similar to the [`Hoardy-Web` extension](./extension/) in their implementation, though not in their philosophy and intended use.
+
+Overall, `Hoardy-Web` and `archiveweb.page` extensions have a similar vibe, but the main difference is that `archiveweb.page` and related tools are designed for capturing web pages with the explicit aim to share the resulting archives with the public, while `Hoardy-Web` is designed for private capture of personally visited pages first.
+
+In practical terms, `archiveweb.page` has a "Record" button, which you need to press to start recording a browsing session in a separate tab into a separate [`WARC`](./tool/README.md#glossary) file.
+In contrast, `Hoardy-Web`, by default, in background, captures and archives all successful `HTTP` requests and their responses from all your open browser tabs.
+
+Pros:
+
+- they produce and consume archives in `WARC` format, which is a de-facto standard;
 - their replay is more mature than what `Hoardy-Web` currently has.
 
 Cons:
 
+- they produce and consume archives in `WARC` format, which is rather limited in what it can capture (compared to `WRR`, `HAR`, `PCAP`, and `mitmproxy`);
 - they are Chromium-only;
-- to make it archive all of your web browsing like `Hoardy-Web` does:
+- to make `archiveweb.page` archive all of your web browsing like `Hoardy-Web` does:
   - you will have to manually enable `archiveweb.page` for each browser tab; and then
   - opening a link in a new tab will fail to archive the first page, as the archival is per-tab;
 - `archiveweb.page` also requires constant manual effort to export the data out.
@@ -551,38 +634,19 @@ Same issues:
 
   On the other hand, this is both inefficient and dangerous for long-term preservation of said data, since [it is very easy to accidentally loose data archived to browser's local storage (e.g., by uninstalling the extension)](./extension/page/help.org#faq-unsafe).
 
-  Which is why [`Hoardy-Web`](./extension/) has `Submit dumps via 'HTTP'` mode which will automatically submit your dumps to the [`hoardy-web-sas` simple archiving server](./simple_server/) instead.
+  Which is why [`Hoardy-Web`](./extension/) has `Submit dumps via 'HTTP'` mode which will automatically submit your dumps to an [archiving server](#pieces) instead.
 
-- When running under Chromium, a [bunch of Chromium's bugs](./extension/page/help.org#chromium-bugs) make many things [pretty annoying](./extension/page/help.org#faq-debugger).
+- When running under Chromium, a [bunch of Chromium's bugs](./extension/page/help.org#chromium-bugs) make many things [pretty annoying](./extension/page/help.org#faq-debugger) and flaky,
+  which --- if you know what to look for --- you can notice straight in the advertisement animation on their ["Usage" page](https://archiveweb.page/en/usage/).
 
-  Both `Hoardy-Web` and `archiveweb.page` suffer from exactly the same issues, which --- if you know what to look for --- you can notice straight in the advertisement animation [on their "Usage" page](https://archiveweb.page/en/usage/).
-
-  Those issues have no workarounds known to me (except for "switch to Firefox-based browser").
-  But because they exists, I made `Hoardy-Web` instead of forking `archiveweb.page`, trying to port it to Firefox, and making the fork follow my preferred workflow.
-
-## [DownloadNet](https://github.com/dosyago/dn)
-
-A self-hosted web app and web crawler written in `Node.js` most similar to `Hoardy-Web` in its intended use.
-
-`DownloadNet` does its web crawling by spawning a Chromium browser instance and attaching to it via its debug protocol, which is a bit weird, but it does work, and with exception of `Hoardy-Web` it is the only other tool I know of that can archive everything passively as you browse, since you can just browse in that debugged Chromium window and it will archive the data it fetches.
-
-Pros:
-
-- it's very similar to what `Hoardy-Web` aims to do, except
-
-Cons:
-
-- it's Chromium-only;
-- it uses a custom archive format but gives no tools to inspect or manage those archives;
-- you are expected to do everything from the web UI.
-
-Same issues:
-
-- when running under Chromium, same [bugs](./extension/page/help.org#chromium-bugs) and [annoyances](./extension/page/help.org#faq-debugger) apply.
+  Those issues have no workarounds known to me except for "switch to Firefox-based browser", which you can do with `Hoardy-Web`.
 
 ## [SingleFile](https://github.com/gildas-lormeau/SingleFile) and [WebScrapBook](https://github.com/danny0838/webscrapbook)
 
 Browser add-ons that capture whole web pages by taking their `DOM` snapshots and saving all requisite resources the captured page references.
+
+Capturing a page with `SingleFile` generates a single (usually, quite large) `HTML` file with all the resources embedded into it.
+`WebScrapBook` saves its captures to browser's local storage or to a remote server instead.
 
 Pros:
 
@@ -604,18 +668,21 @@ Differences in design:
 
 A browser extension that implements an alternative mechanism to browser bookmarks.
 Saving a web page into Memex saves a `DOM` snapshot of the tab in question into an in-browser database.
-Memex then implements full-text search engine for saved snapshots and PDFs.
+Memex then implements full-text search engine for saved snapshots and `PDF`s.
 
 Pros:
 
 - pretty, both in UI and in documentation;
 - it implements annotations, which `Hoardy-Web` currently does not;
+- it has a builtin full-text search engine with indexing;
+  meanwhile, at the moment, `Hoardy-Web` only has the non-indexed [`hoardy-web * --*grep*` options](./tool/);
+  though, you can use [recoll](https://www.lesbonscomptes.com/recoll/index.html) with `hoardy-web` as an input filter;
 - lots of other features.
 
 Cons:
 
 - to make it archive all of your web browsing like `Hoardy-Web` does, you will have to manually save each page you visit;
-- it only captures web pages and PDFs, you won't be able to save `POST` request data or JSONs fetched by web apps;
+- it only captures web pages and `PDFs`, you won't be able to save `POST` request data or JSONs fetched by web apps;
 - compared to `Hoardy-Web`, it is very fat --- it's `.xpi` is more than 40 times larger;
 - it takes about 7 times more RAM to do comparable things (measured via `about:performance`);
 - it is slow enough to be hard to use on an older or a very busy system;
@@ -626,96 +693,58 @@ Cons:
 
 Differences in design:
 
-- it captures `DOM` snapshots and PDFs, while `Hoardy-Web` captures `HTTP` requests and responses (though, it can capture `DOM` snapshots too);
-- it has a builtin full-text search engine, while `Hoardy-Web` expects you to do that with third-party tools;
+- it captures `DOM` snapshots and `PDF`s, while `Hoardy-Web` captures `HTTP` requests and responses (though, it can capture `DOM` snapshots too);
 - it has a builtin synchronization between instances, while `Hoardy-Web` expects you to use normal file backup tools for that.
 
 ## [pywb](https://github.com/webrecorder/pywb)
 
 A web archive replay system with a builtin web crawler and `HTTP` proxy.
-Brought to you by the authors of `archiveweb.page`.
-In essence, a tool very similar to [`hoardy-web serve`](./tool/).
+Brought to you by the people behind the [Wayback Machine](https://web.archive.org/) and then adopted by the people behind `archiveweb.page`.
+
+A tool similar to [`hoardy-web serve`](./tool/).
 
 Pros:
 
-- it consumes and produces archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard;
+- it produces and consumes archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard;
 - its replay capabilities are more mature than what `hoardy-web serve` currently has;
 - it can update its configuration without a restart and re-index of given inputs.
 
 Cons:
 
+- it produces and consumes archives in `WARC` format, which is rather limited in what it can capture (compared to `WRR`, `HAR`, `PCAP`, and `mitmproxy`);
 - it has no equivalents to most other sub-commands of `hoardy-web` tool;
+
 - compared to `hoardy-web serve`, it's much more complex, it has a builtin web crawler (aka "`pywb` Recorder", which does not work for uncooperative websites anyway), and can also do capture by trying to be an `HTTP` proxy (which also does not work for many websites);
-- I assume it has all these features because `archiveweb.page` is Chromium-only, which forces it to be rather unreliable (see a [list of relevant Chromium's bugs](./extension/page/help.org#chromium-bugs)) and annoying to use;
-  also, it has no equivalent of `problematic` reqres status of `Hoardy-Web`, making its dumps slightly flaky;
+
+  I assume it has all these features because `archiveweb.page` is Chromium-only, which forces it to be rather unreliable (see a [list of relevant Chromium's bugs](./extension/page/help.org#chromium-bugs)) and annoying to use;
+  also, it has no equivalent of [`problematic`](./extension/page/help.org#problematic) reqres status of `Hoardy-Web`, making its dumps slightly flaky;
+
   meanwhile, in `Hoardy-Web`, the extension work perfectly well under Firefox-based browsers, and captures are pretty reliable there;
+
   also, under Chromium-based browsers, `problematic` reqres tracking of `Hoardy-Web` helps immensely;
+
 - since `hoardy-web serve` uses a much simpler and faster to parse `WRR` file format, it is able to add new dumps to its index synchronously with their archival, allowing for their immediate replay.
 
 ## [heritrix](https://github.com/internetarchive/heritrix3)
 
-The crawler behind the [Internet Archive](https://web.archive.org/).
-
+The crawler behind the [Wayback Machine](https://web.archive.org/).
 It's a self-hosted web app into which you can feed the URLs for them to be archived, so to make it archive all of your web browsing:
+
+A tool similar to [`hoardy-web serve`](./tool/).
 
 Pros:
 
-- it produces archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard and has a lot of tooling around it;
+- it produces and consumes archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard;
 - stable, well-tested, and well-supported.
 
 Cons:
 
+- it produces and consumes archives in `WARC` format, which is rather limited in what it can capture (compared to `WRR`, `HAR`, `PCAP`, and `mitmproxy`);
+- it has no equivalents to most other sub-commands of `hoardy-web` tool;
 - you have to run it, and it's a rather heavy Java app;
-- you'll need to write a separate browser plugin to redirect all links you click to your local instance's `/save/` REST API URLs (which is not hard, but I'm unaware if any such add-on exists);
-- and you won't be able to archive your `HTTP POST` requests with it;
+- to make it archive all of your web browsing like `Hoardy-Web` does, you'll need to write a separate browser plugin to redirect all links you click to your local instance's `/save/` `REST` API URLs (which is not hard, but I'm unaware if any such add-on exists);
+- and you won't be able to archive your `HTTP` `POST` requests with it;
 - as with other similar tools, an `HTTP` server of a web page that is being archived can tell it is being crawled.
-
-## But you could just enable request logging in your browser's Network Monitor and manually save your data as `HAR` archives from time to time.
-
-Cons:
-
-- to do what `Hoardy-Web` does, you will have to manually enable it for each browser tab;
-- opening a link in a new tab will fail to archive the first page as you will not have Network Monitor open there yet; and then
-- you will have to check all your tabs for new data all the time and do \~5 clicks per tab to save it; and then
-- [`HAR`](./tool/README.md#glossary)s are `JSON`, meaning all that binary data gets encoded indirectly, thus making resulting `HAR` archives very inefficient for long-term storage, as they take a lot of disk space, even when compressed.
-
-And then you still need something like this suite to look into the generated archives.
-
-## [mitmproxy](https://github.com/mitmproxy/mitmproxy)
-
-A Man-in-the-middle SSL proxy.
-
-Pros:
-
-- after you set it up, it will capture **absolutely everything completely automatically**;
-- including WebSockets data, which `Hoardy-Web` add-on currently does not capture.
-
-Cons:
-
-- it is rather painful to setup, requiring you to install a custom SSL root certificate; and
-- websites using certificate pinning will stop working; and
-- some websites detect when you use it and fingerprint you for it or force you to solve CAPTCHAs; and
-- `mitmproxy` dump files are flat streams of `HTTP` requests and responses that use custom frequently changing between versions data format, so you'll have to re-parse them repeatedly using `mitmproxy`'s own parsers to get to the requests you want;
-- it provides no tools to use those dumped `HTTP` request+response streams for Wayback Machine-like replay and generation of website mirrors.
-
-Though, the latter issue can be solved via [this project's `hoardy-web` tool](./tool/) as it can take `mitmproxy` dumps as inputs.
-
-## But you could setup SSL keys dumping then use Wireshark to capture your web traffic.
-
-Pros:
-
-- after you set it up, it will capture **absolutely everything completely automatically**;
-- it captures WebSockets data, which `Hoardy-Web` add-on currently does not.
-
-Cons:
-
-- it is really painful to setup; and then
-- you are very likely to screw it up, loose/mismatch encryption keys, and make your captured data unusable; and even if you don't,
-- it takes a lot of effort to recover `HTTP` data from the [`PCAP`](./tool/README.md#glossary) dumps; and
-- `PCAP` dumps are IP packet-level, thus also inefficient for this use case; and
-- `PCAP` dumps of SSL traffic can not be compressed much, thus storing the raw captures will take a lot of disk space.
-
-And then you still need something like this suite to look into the generated archives.
 
 ## [ArchiveBox](https://github.com/ArchiveBox/ArchiveBox)
 
@@ -723,14 +752,14 @@ A web crawler and self-hosted web app into which you can feed the URLs for them 
 
 Pros:
 
-- it's pretty lightweight and is written in Python;
-- it produces archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard;
+- it produces and consumes archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard;
 - it has a very nice web UI;
 - it it's an all-in-one archiving solution, also archiving YouTube videos with [yt-dlp](https://github.com/yt-dlp/yt-dlp), `git` repos, etc;
 - stable, well-tested, and well-supported.
 
 Cons:
 
+- it produces and consumes archives in `WARC` format, which is rather limited in what it can capture (compared to `WRR`, `HAR`, `PCAP`, and `mitmproxy`);
 - to make it archive all of your web browsing like `Hoardy-Web` does,
   - [it requires you](https://github.com/ArchiveBox/ArchiveBox/issues/577) to setup `mitmproxy` with [archivebox-proxy](https://codeberg.org/brunoschroeder/archivebox-proxy) plugin;
   - alternatively, you can run [archivefox](https://github.com/layderv/archivefox) add-on and explicitly archive pages one-by-one via a button there;
@@ -780,7 +809,7 @@ Cons:
 
 ## [grab-site](https://github.com/ArchiveTeam/grab-site)
 
-A simple web crawler built on top of `wpull`, presented to you by the ArchiveTeam, a group associated with the [Internet Archive](https://web.archive.org/) which appears to be the source of archives for the most of the interesting pages I find there.
+A simple web crawler built on top of `wpull`, presented to you by the ArchiveTeam, a group associated with the [Wayback Machine](https://web.archive.org/) which appears to be the source of archives for the most of the interesting pages I find there.
 
 Pros:
 
@@ -813,7 +842,7 @@ Cons:
 
 Stand-alone tool based on `SingleFile`, using a headless browser to capture pages.
 
-A more robust solution to do what `monolith` and `obelisk` do, if you don't mind `nodejs` and the need to run a headless browser.
+A more robust solution to do what `monolith` and `obelisk` do, if you don't mind `Node.js` and the need to run a headless browser.
 
 ## [Archivy](https://github.com/archivy/archivy)
 
