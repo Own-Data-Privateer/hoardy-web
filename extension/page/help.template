@@ -96,7 +96,7 @@ a.popup {
 }
 
 @layer overrides {
-.hidden {
+.hidden, .less {
     display: none;
 }
 }
