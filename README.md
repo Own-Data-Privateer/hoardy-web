@@ -9,17 +9,18 @@ Practically speaking, you [install the `Hoardy-Web` browser extension/add-on int
 
 If you just want to start saving your browsing history, you can [start using the `Hoardy-Web` extension](#quickstart) independently of other tools that are being developed in this repository.
 
-However, to view/replay your archived data over `HTTP` (a-la a local [Wayback Machine](https://web.archive.org/)), generate static website mirrors from it (a-la `wget -mpk`), search, inspect, organize, manipulate, programmatically extract values from, and run your own custom scripts over your collected data you will eventually have to install and use at least the [accompanying `hoardy-web` tool](./tool/).
+However, to view/replay your archived data over `HTTP` (a-la a local [Wayback Machine](https://web.archive.org/)), generate static website mirrors from it (a-la `wget -mpk`), search, inspect, organize, manipulate, programmatically extract values from, and run your own custom scripts over your collected data you will eventually have to install and start using at least the [accompanying `hoardy-web` tool](./tool/).
 
 To learn more:
 
-- See ["Why" section](#why) for why you might want to do this.
-- See ["Highlights" section](#highlights) for a longer description of what `Hoardy-Web` does and does not do.
-- See ["Alternatives"](#alternatives) for comparisons to alternatives.
-- See ["Frequently Asked Questions"](./extension/page/help.org#faq) for the answers to those.
-  Additionally, see ["Quirks and Bugs"](./extension/page/help.org#bugs) for a full list of currently known quirks and issues/bugs.
+- See the ["Supported use cases" section](#use-cases) below for the setups `Hoardy-Web` is designed for.
+- See the ["Why does `Hoardy-Web` exists?" section](#why) below for why you might want to do this.
+- See the ["Highlights" section](#highlights) below for a longer description of what `Hoardy-Web` does and does not do.
+- See the ["Alternatives"](#alternatives) below for in-depth comparisons to alternatives.
+- See the ["Frequently Asked Questions"  section](./extension/page/help.org#faq) of the extension's [`Help` page](./extension/page/help.org) for the answers to those.
+  Additionally, see the ["Quirks and Bugs" section there](./extension/page/help.org#bugs) for a full list of currently known quirks and issues/bugs.
   These two sections of the [`Help` page](./extension/page/help.org) answer questions about most common issues you can encounter while using `Hoardy-Web` extension/add-on.
-- See ["Quickstart" section](#quickstart) for setup instructions.
+- See the ["Quickstart" section](#quickstart) for setup instructions.
 
 `Hoardy-Web` was previously known as "Personal Private Passive Web Archive" aka "pwebarc".
 
@@ -34,9 +35,55 @@ In author's humble opinion, the rendering of the documentation pages there is su
 
 See [there](./doc/gallery.md) for more screenshots.
 
+# <span id="use-cases"/>Supported use cases
+
+## For a layman user
+
+Regular users are expected to capture data using the [`Hoardy-Web` browser extension/add-on](./extension/), producing `HTTP` request+response dumps in [`WRR` file format](./doc/data-on-disk.md), archive those to disk [using one of the supported methods](#quickstart), and then use various sub-command of the [`hoardy-web` tool](./tool/) to
+
+- [replay (a subset of) your archives over `HTTP`](./tool/README.md#replay) by feeding them to `hoardy-web serve` and then using a normal web browser and navigating to links like <http://127.0.0.1:3210/web/2/https://archiveofourown.org/works/3733123>;
+
+  this is similar to what [Wayback Machine](https://web.archive.org/), [heritrix](https://github.com/internetarchive/heritrix3), and [pywb](https://github.com/webrecorder/pywb) do;
+
+- [generate a static offline website mirror from (a subset of) your archives](./tool/README.md#mirror) by feeding them to `hoardy-web mirror` to produce a bunch of interlinked `HTML`, `CSS`, images, and other files, which you can then view using a normal web browser, or with a e-book reader, or you can instead feed them to [recoll](https://www.lesbonscomptes.com/recoll/index.html) or some other desktop search engine, etc;
+
+  this is similar to what `wget -mpk` (`wget --mirror --page-requisites --convert-links`) does, except `hoardy-web mirror` has a ton of cool options `wget` does not (e.g. it can `scrub` generated pages in various ways, de-duplicate the files it generates, including between different websites and different generated mirrors, etc), and should you discover you dislike the generated result for some reason, you can change some or all of those options and re-generate the mirror **without re-downloading anything**.
+
+## For a slightly technical user
+
+Users that want to get more out of their archives and are not afraid of the command-line interface, can use
+
+- `hoardy-web find` to find a subset of archives matching a specified criteria or
+- `hoardy-web organize` to instead [maintain a tree of symlinks pointing to each or latest archive matching a specified criteria](./tool/README.md#symlink-latest) (e.g., maintain a tree of per-domain pointers to the latest visit to each URL, or links to all ever archived images, or `PDF` files, etc)
+
+and then use one of the [ready-made scripts](./tool/script/) on the results to, e.g.,
+
+- view `HTML` documents via `pandoc` piped into `less` in [your favorite tty emulator](https://st.suckless.org/),
+- listen their contents with a TTS engine via `spd-say`,
+- open files stored inside `WRR` dumps via `xdg-open` (so, e.g., you can view images stored inside without first running `hoardy-web mirror`),
+- etc.
+
+## For a technical user
+
+Alternatively, you can use the `hoardy-web get` sub-command of the [`hoardy-web`](./tool/) tool to make your own scripts for processing archived web pages and files in arbitrary ways, similarly to the [ready-made scripts](./tool/script/).
+
+Or, you can programmatically extract values from large subsets of your data by using the [`hoardy-web stream`](./tool/README.md#filter) sub-command to `filter` and `map` your captures with pre-defined filters and functions, or with your own custom code, and thus produce streams of interesting values in a raw textual format, and/or as structured `JSON` and/or [`CBOR` (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) values, which you can then pipe somewhere else.
+
+This, for instance, allows you to easily query things like "get me a list of domains that ever used CloudFlare when I visited them", or anything else you can imagine.
+
+Or, you can use `hoardy-web find` to find paths of files matching a specified criteria and then just dump those into `JSON`s, or parse [the original `CBOR`-formatted `WRR` files yourself](./doc/data-on-disk.md) with readily-available libraries.
+
+Since the whole of the `Hoardy-Web` project adheres to the [philosophy described below](#philosophy), the simultaneous use of the `Hoardy-Web` extension and the `hoardy-web` tool helps immensely when developing scrapers for uncooperative websites: you just visit them via your web browser as normal, then, possibly years later, use the `hoardy-web` tool to organize your archives and conveniently programmatically feed the archived data into your scraper without the need to re-fetch anything.
+
+Given how simple the `WRR` file format is, you can modify any `HTTP` library to generate `WRR` files, thus allowing you to use the `hoardy-web` tool with data captured by other software, and use data produced by the `Hoardy-Web` extension as inputs to your own tools.
+
+Which is why, personally, I patch some of the commonly available FLOSS website scrapers to dump the data they fetch as `WRR` files so that in the future I could write my own better scrapers and indexers and test them on a huge collected database of already collected inputs immediately.
+
+Also, as far as I'm aware, `hoardy-web` is a tool that can do more useful stuff to your `WRR` archives than any other tool can do to any other file format for `HTTP` dumps with the sole exception of `WARC`.
+
 # <span id="why"/>Why does `Hoardy-Web` exists?
 
-## For a relatively layman user
+## For a layman user
 
 So, you wake up remembering something interesting you saw a long time ago.
 Knowing you won't find it in your normal browsing history, which only contains the URLs and the titles of the pages you visited in the last 3 months, you try looking it up on Google.
@@ -51,15 +98,18 @@ Or, say, you read a cool fanfiction on [AO3](https://archiveofourown.org/) years
 "If it is on the Internet, it is on Internet forever\!" they said.
 **They lied\!**
 
-Things vanish from the Internet all the time, [Wayback Machine](https://web.archive.org/) is awesome, but
+Things vanish from the Internet all the time, [Wayback Machine](https://web.archive.org/) of the [Internet Archive](https://archive.org/) is awesome, but
 
 - you need to be online to use it,
-- it has no full-text search, even though it was promised for decades now (this is probably a privacy feature by this point),
-- they remove/hide archived data under political pressure sometimes,
-- they only archive the public web and only what can be reached with GET requests,
-- and even then, they do not archive everything.
+- it has no full-text search (some of their database can be searched, but not all, this is probably a privacy feature by this point),
+- they only archive a subset of the public web, and only what can be reached with `HTTP` `GET` requests,
+- a website you might want archived might be banned by the Wayback Machine,
+- or the website might ban Wayback Machine's crawler instead,
+- and they appear to remove/hide already archived data when threatened by policy makers and/or lawsuits.
 
-Meanwhile, `Hoardy-Web` solves all of the above out-of-the-box, see the ["Highlights" section](#highlights).
+(On that latter point, you should probably go and [donate to the Internet Archive](https://archive.org/donate) to help them fight it.)
+
+Meanwhile, `Hoardy-Web` solves all of the above issues for the pages you visited before.
 
 ## For a user with accessibility or comfort requirements
 
@@ -97,7 +147,7 @@ The [`Hoardy-Web` browser extension](./extension/) runs under desktop versions o
 
 `Hoardy-Web`'s main workflow is to passively collect and archive `HTTP` requests and responses (and, if you ask, also [`DOM` snapshots](./extension/page/help.org#faq-snapshot), i.e. the contents of the page after all `JavaScript` was run) directly from your browser as you browse the web.
 
-Therefore, `Hoardy-Web` browser extension allows you to
+Therefore, the extension allows you to
 
 - trivially archive web pages hidden behind CAPTCHAs, requiring special cookies, multi-factor logins, paywalls, anti-scraping/`curl`/`wget` measures, and etc (after all, the website in question only interacts with your normal web browser, not with a custom web crawler);
 
@@ -109,32 +159,29 @@ all the while
 - downloading everything only once, **not** once with your browser and then the second time with a separate tool like [ArchiveBox](https://github.com/ArchiveBox/ArchiveBox) (or with an extension like [SingleFile](https://github.com/gildas-lormeau/SingleFile), which can re-download some invalidated cached data when you ask it to save a page);
 - freeing you from worries of forgetting to archive something because you forgot to press a button somewhere.
 
-`Hoardy-Web` extension can archive collected data
+The extension can archive collected data
 
 - into browser's local storage (the default),
 - into files saved to your local file system (by generating fake-Downloads containing bundles of [`WRR`-formatted](./doc/data-on-disk.md) dumps),
 - to a self-hosted archiving server (like the trivial archival-only [`hoardy-web-sas`](./simple_server/) or the more advanced archival+replay [`hoardy-web serve`](./tool/)),
 - any combination of the above.
 
-Also, unless configured otherwise, `Hoardy-Web` extension will dump and archive collected data immediately, to both prevent data loss and to free the used RAM as soon as possible, keeping your browsing experience snappy even on ancient hardware.
+Also, unless configured otherwise, the extension will dump and archive collected data immediately, to both prevent data loss and to free the used RAM as soon as possible, keeping your browsing experience snappy even on ancient hardware.
 
-You can then view your archived data
+You can then view your archived data with some help from the [`hoardy-web` tool](./tool/) by
 
-- with [`hoardy-web serve`](./tool/), which implements conventional offline replay over `HTTP` by using links like <http://127.0.0.1:3210/web/2/https://archiveofourown.org/works/3733123> (that can be viewed using a normal web browser), similar to [Wayback Machine](https://web.archive.org/), [heritrix](https://github.com/internetarchive/heritrix3), and [pywb](https://github.com/webrecorder/pywb);
+- replaying your archives over `HTTP`, similar to [Wayback Machine](https://web.archive.org/), [heritrix](https://github.com/internetarchive/heritrix3), and [pywb](https://github.com/webrecorder/pywb);
+- generating local offline static website mirrors, similar to what `wget` does;
+- using one of the [ready-made scripts](./tool/script/); or
+- making you own scripts built on top of `hoardy-web`.
 
-- with [`hoardy-web mirror`](./tool/), which implements generation of local offline static website mirrors (that can be opened in a normal web browser, or in e-book reader, or indexed by conventional desktop search tools, etc), similar to what `wget -mpk` does; except, compared to `wget`, it has many more cool options, and, should you decide you want to change some those options later, it will re-generate your mirror without re-downloading anything;
+`Hoardy-Web` allows you to search your archives
 
-- by using one of the [ready-made scripts](./tool/script/) which allow you to use other tools for inspecting your archives; e.g., there are scripts there for viewing `HTML` documents via `pandoc` piped into `less` in [your favorite tty emulator](https://st.suckless.org/), listening their contents with a TTS engine via `spd-say`, opening archived files via `xdg-open`, etc;
-
-- with you own scripts built on top of [`hoardy-web` tool's CLI](./tool/) to, e.g., query a list of domains that ever used CloudFlare when you visited them, or anything else you can imagine.
-
-`Hoardy-Web` allows you to search your archive files to produce
-
-- links to replays of archived web page visits matching a given glob URL, a-la Wayback Machine, directly from `hoardy-web serve`, e.g. <http://127.0.0.1:3210/web/*/https://archiveofourown.org/works/[0-9]*>;
-- paths to archive files matching a given query via [`hoardy-web find`](./tool/README.md#find).
+- directly from [`hoardy-web serve`](./tool/) by using glob-URL links like <http://127.0.0.1:3210/web/*/https://archiveofourown.org/works/[0-9]*>, a-la Wayback Machine;
+- via [`hoardy-web find`](./tool/README.md#filter).
 
 (The latter option can also do full-text search via the `--*grep*` options, but, at the moment, it's rather slow since there is no built-in full-text indexing.
-You can, however, add that by using `hoardy-web` as a filter for [recoll](https://www.lesbonscomptes.com/recoll/index.html).)
+You can, however, full-text index you data by `hoardy-web mirror`ing it first and then feeding the result to an arbitrary desktop search engine, or by using `hoardy-web get` as a filter for [recoll](https://www.lesbonscomptes.com/recoll/index.html).)
 
 In other words, `Hoardy-Web` is your own personal private [Wayback Machine](https://web.archive.org/) which passively archives everything you see.
 However, unlike the original Wayback Machine, it also
@@ -170,7 +217,7 @@ But then I got annoyed by all the sites that don't work under `mitmproxy`, did s
 
 For more info see the [list of comparisons to alternatives](#alternatives).
 
-## Parts and pieces
+## <span id="pieces"/>Parts and pieces
 
 ### Required
 
@@ -251,32 +298,6 @@ To conform to the above design principles
 - by default, none these tools ever overwrite any files on disk (to prevent accidental data loss);
 
   this way, if something breaks, you can always trivially return to a known-good state by simply copying some old files from a backup as there's no need to track versions or anything like that.
-
-## Supported use cases
-
-### For a relatively layman user
-
-Currently, `Hoardy-Web` has three main use cases for regular users, in all of which you first capture some data using the [add-on](./extension/) and then you use the [`hoardy-web` tool](./tool/) to either
-
-- feed a subset of your archives to `hoardy-web serve` to [replay them over `HTTP`](./tool/README.md#replay), similar to [Wayback Machine](https://web.archive.org/), [heritrix](https://github.com/internetarchive/heritrix3), and [pywb](https://github.com/webrecorder/pywb);
-
-- feed a subset of your archives to `hoardy-web mirror` to [generate a static offline website mirror a-la `wget -mpk`](./tool/README.md#mirror), which you can then view with your favorite web-browser as normal;
-  except, unlike with `wget`, you can discover you dislike the result, change some options, and re-generate the mirror **without re-downloading anything**;
-
-- use `hoardy-web organize` to [maintain a tree of symlinks pointing to latest `WRR` file for each URL](./tool/README.md#symlink-latest) and then read them --- by using `w3m`, `pandoc`, any other `HTML` reader you want, or feed them to TTS engine, or a Braille display --- via some [scripts](./tool/script/);
-  personally, I prefer this one, because I hate web browsers and prefer to read most things from a TTY.
-
-### For a more technical user
-
-Alternatively, you can programmatically access that data by asking the [`hoardy-web` tool](./tool/) to dump `WRR` files into JSONs or verbose CBORs for you, or you can [just parse `WRR` files yourself](./doc/data-on-disk.md) with readily-available libraries.
-
-Since the whole of `hoardy-web` (the project) adheres to the [philosophy described above](#philosophy), the simultaneous use of `Hoardy-Web` (the extension) and `hoardy-web` (the tool) helps immensely when developing scrapers for uncooperative websites: you just visit them via your web browser as normal, then, possibly years later, use the `hoardy-web` tool to organize your archives and conveniently programmatically feed the archived data into your scraper without the need to re-fetch anything.
-
-Given how simple the `WRR` file format is, you can modify any `HTTP` library to generate `WRR` files, thus allowing you to use the `hoardy-web` tool with data captured by other software, and use data produced by the `Hoardy-Web` extension as inputs to your own tools.
-
-Which is why, personally, I patch some of the commonly available FLOSS website scrapers to dump the data they fetch as `WRR` files so that in the future I could write my own better scrapers and indexers and test them on a huge collected database of already collected inputs immediately.
-
-Also, as far as I'm aware, `hoardy-web` is a tool that can do more useful stuff to your `WRR` archives than any other tool can do to any other file format for `HTTP` dumps with the sole exception of `WARC`.
 
 ## <span id="more-docs"/>What does it do, exactly? I have questions.
 
@@ -370,7 +391,10 @@ Repeat extension installation for all browsers/browser profiles as needed.
 
 It took me about 6 months before I had to refer back to previously archived data for the first time when I started using [mitmproxy](https://github.com/mitmproxy/mitmproxy) to sporadically collect my `HTTP` traffic in 2017.
 So, I recommend you start collecting immediately and be lazy about the rest.
-Also, I learned a lot about nefarious things some of the websites I visit do in the background while doing that, now you are going to learn the same.
+
+(Also, I learned a lot about nefarious things some of the websites I visit do in background by inspecting the logs `Hoardy-Web` produces.
+You'd be surprised how many big websites generate `HTTP` requests with evil tracking data at the moment you close the containing tab.
+They do this because such requests can't be captured and inspected with browser's own Network Monitor, so most people are completely unaware.)
 
 In practice, though, your will probably want to install at least the [`hoardy-web-sas` simple archiving server](./simple_server/) (see below for instructions) and switch `Hoardy-Web` to `Submit dumps via 'HTTP'` mode pretty soon [**because it is very easy to accidentally loose data using other archival methods**](./extension/page/help.org#faq-unsafe) and, assuming you have Python installed on your computer, it is also the most convenient archival method there is.
 
@@ -378,7 +402,7 @@ Or, alternatively, you can use the combination of archiving by saving of data to
 
 Or, alternatively, you can switch to `Export dumps via 'saveAs'` mode by default and simply accept the resulting slightly more annoying UI ([on Firefox, it can be fixed with a small `about:config` change](./extension/page/help.org#faq-firefox-saveas)) and the facts that [you can now lose some data if your disk ever gets out of space or if you accidentally mis-click a button in your browser's `Downloads` UI](./extension/page/help.org#faq-unsafe).
 
-Or you can just install the [`hoardy-web` tool](./tool/) and run `hoardy-web serve`, which can also do viewing/replay of old page visits and simple searches.
+Or you can just install the [`hoardy-web` tool](./tool/) and run `hoardy-web serve`, which can also do replay and search your archives.
 
 ## Recommended next steps
 

@@ -207,7 +207,7 @@ hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*.w
 
 In fact, internally, `hoardy-web import bundle` is actually an alias for `hoardy-web organize --copy --load-wrrb --defer-number 0`.
 
-## <span id="find"/>Find and filter things
+## <span id="filter"/>Find and filter things
 
 You can search your archive directory by using `hoardy-web find` sub-command, that prints paths to those of its inputs which match given conditions.
 For example, to list reqres from `~/hoardy-web/raw` that contain complete `GET` requests with `200 OK` responses, you can run:

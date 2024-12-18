@@ -1,8 +1,8 @@
 # Data formats used by `Hoardy-Web`
 
-The file format used by `Hoardy-Web` shall hence be called "Web Request+Response" aka "WRR", with file extension of `.wrr`.
+The file format used by `Hoardy-Web` shall hence be called "Web Request+Response" aka `WRR`, with file extension of `.wrr`.
 
-Internally, a WRR files is a [CBOR (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) encoding of the following structure:
+Internally, a `WRR` file is a [`CBOR` (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) encoding of the following structure:
 
 ```
 reqres = reqresV1
