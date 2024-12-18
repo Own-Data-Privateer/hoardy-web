@@ -129,14 +129,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (def) {
             if (shortcut) {
                 return (shortcut === def)
-                    ? `bound to \`${shortcut}\` (= default)`
-                    : `bound to \`${shortcut}\` (default: \`${def}\`)`
+                    ? `currently bound to \`${shortcut}\` (= default)`
+                    : `currently bound to \`${shortcut}\` (default: \`${def}\`)`
             } else
                 return `unbound at the moment (default: \`${def}\`)`;
         } else if (shortcut)
-            return `bound to \`${shortcut}\` (default: unbound)`
+            return `currently bound to \`${shortcut}\` (default: unbound)`
         else
-            return `unbound (= default)`;
+            return `unbound at the moment (= default)`;
     });
 
     async function processUpdate(update) {
