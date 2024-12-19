@@ -441,7 +441,7 @@ section {
     <section id="this-tab-options">
     <h2>This tab
       <span class="right">
-        <input type="button" id="snapshotTab" data-shortcut="snapshotTab" data-help="Take DOM snapshots of all frames of this tab, regardless of `Track newly generated requests` setting." value="Snapshot" />
+        <input type="button" id="snapshotTab" data-shortcut="snapshotTab" data-help="Take DOM snapshots of all frames of this tab, regardless of `Include in global snapshots` setting." value="Snapshot" />
         <input type="button" id="forgetTabHistory" data-help="For reqres of this tab, forget recent history." value="Forget" />
         <input type="button" id="showTabState" data-shortcut="showTabState" data-help="For reqres of this tab, show the internal state and reqres history logs." value="State" />
       </span>
@@ -729,7 +729,7 @@ section {
     <section id="work-offline-url-options">
     <h3>&quot;Work offline&quot; mode</h3>
     <div class="isubdots">
-    <ui id="config.workOfflineFile" type="boolean" data-help="Automatically enable `This tab > Work offline` option in a tab when it navigates to a `file:` URL. This mainly exists to prevent pages produced by `hoardy-web export mirror` from accessing the Internet. See the `Help` page for more info.">Force <code>Work offline</code> in <code>file:</code> tabs</ui>
+    <ui id="config.workOfflineFile" type="boolean" data-help="Automatically enable `This tab > Work offline` option in a tab when it navigates to a `file:` URL. This mainly exists to prevent pages produced by `hoardy-web mirror` from accessing the Internet. See the `Help` page for more info.">Force <code>Work offline</code> in <code>file:</code> tabs</ui>
     <ui id="config.workOfflineData" type="boolean" data-help="Automatically enable `This tab > Work offline` option in a tab when it navigates to a `data:` URL. See the `Help` page for more info.">Force <code>Work offline</code> in <code>data:</code> tabs</ui>
     </div>
     </section>
@@ -799,7 +799,7 @@ section {
     </section>
     <ui id="config.autoNotify" type="boolean" class="prefer-on c" data-help="Generate a notification when an automatic action was performed in background.">... {} automatic actions</ui>
     <ui id="config.archiveStuckNotify" type="boolean" class="prefer-on c" data-help="Complain when the archival queue is not empty but both `Archive 'collected' reqres` and `Stash 'collected' reqres into local storage` options are disabled.">... {} unstashed stuck archival queue</ui>
-    <ui id="config.archiveFailedNotify" type="boolean" class="prefer-on c" data-help="Complain when some reqres fail to be stashed or archived to persistent storage (browser&#039;s local storage, the archival server, etc).">... {} archival errors</ui>
+    <ui id="config.archiveFailedNotify" type="boolean" class="prefer-on c" data-help="Complain when some reqres fail to be stashed or archived to persistent storage (browser&#039;s local storage, the archiving server, etc).">... {} archival errors</ui>
     <ui id="config.archiveDoneNotify" type="boolean" class="c" data-help="Generate an &quot;All OK&quot; notification when the archival queue becomes empty the very first time or after a previous archival failure. This exists mostly for on-boarding new users.">... {} newly empty archival queue</ui>
     </div>
     </section>
