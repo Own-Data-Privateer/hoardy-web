@@ -817,7 +817,7 @@ section {
       <div id="div-stats.errored" data-help="At the moment, the number of reqres for which `Hoardy-Web` produced internal errors. Basically, the number of reqres that hit bugs in `Hoardy-Web`.">
         <span>Errored</span>
         <span>
-          <input type="button" id="forgetErrored" data-help="Forget about all these reqres." value="Forget" />
+          <input type="button" id="deleteErrored" data-help="Delete all these reqres." value="Delete" />
         </span>
         <span>
           <span id="stats.errored">0</span>

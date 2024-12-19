@@ -743,8 +743,8 @@ function markAsErrored(error, archivable) {
     gotNewErrored = true;
 }
 
-function syncForgetErrored() {
-    runSynchronously("forgetErrored", async () => {
+function syncDeleteErrored() {
+    runSynchronously("deleteErrored", async () => {
         for (let f of reqresErrored.values())
             await syncMany(f.queue, 0, false);
         reqresErrored = new Map();
@@ -4245,8 +4245,8 @@ function handleMessage(request, sender, sendResponse) {
     case "deleteSaved":
         deleteSaved();
         break;
-    case "forgetErrored":
-        syncForgetErrored();
+    case "deleteErrored":
+        syncDeleteErrored();
         scheduleEndgame(null);
         break;
     case "stashAll":

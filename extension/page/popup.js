@@ -210,7 +210,7 @@ async function popupMain() {
 
     buttonToMessage("runActions");
     buttonToMessage("cancelActions");
-    buttonToMessage("forgetErrored");
+    buttonToMessage("deleteErrored");
     buttonToMessage("retryFailed");
     buttonToMessage("retryUnarchived");
     buttonToMessage("stashAll");
