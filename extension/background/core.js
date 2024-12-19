@@ -4069,8 +4069,6 @@ async function performReloadSelf() {
 
 function reloadSelf() {
     wantReloadSelf = true;
-    //retryUnarchived(true);
-    syncRetryUnstashed();
     syncStashAll(true);
     syncRunActions();
     scheduleEndgame(null);
