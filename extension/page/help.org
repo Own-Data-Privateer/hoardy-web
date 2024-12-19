@@ -405,15 +405,7 @@ So, for example, if you want to share a subset of your captures, you can
 - clear your browser's cache,
 - then and only then navigate to a web page archives of which you plan to share,
 - thus separating out those reqres into separate =saveAs= =bundle='s with "share" in their name and/or putting them into a separate archiving server directory named "share", depending on [[./popup.html#on-archive][archival methods]].
-*** Glossary
-- An [[./popup.html#div-stats.exportedAs][/exported reqres/]] is a reqres that was successfully =exported= by generating a fake-Download containing its =dump=.
-
-- A [[./popup.html#div-stats.submittedHTTP][/submitted reqres/]] is a reqres that was successfully =submitted= to the archiving server and thus was discarded from memory.
-
-- A [[./popup.html#div-stats.saved][/saved reqres/]] is a reqres that was successfully =saved= by being archived into browser's local storage.
-
-- /An archived reqres/ is either /exported/, /submitted/, or /saved/ reqres.
-** Handling of failures
+*** Handling of failures
 As noted above, if any of the [[./popup.html#on-archive][archival methods]] fail, the reqres in question will be moved into the =unarchived= state.
 
 Submissions of reqres that =unarchived= because of networking issues will be retried automatically every 60 seconds.
@@ -430,6 +422,14 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
   It is also a part of the sum of the "Failed" part of the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line.
 
   You can retry archiving these by pressing [[./popup.html#retryUnarchived][this button]].
+
+- An [[./popup.html#div-stats.exportedAs][/exported reqres/]] is a reqres that was successfully =exported= by generating a fake-Download containing its =dump=.
+
+- A [[./popup.html#div-stats.submittedHTTP][/submitted reqres/]] is a reqres that was successfully =submitted= to the archiving server and thus was discarded from memory.
+
+- A [[./popup.html#div-stats.saved][/saved reqres/]] is a reqres that was successfully =saved= by being archived into browser's local storage.
+
+- /An archived reqres/ is either /exported/, /submitted/, or /saved/ reqres.
 ** Re-archival
 :PROPERTIES:
 :CUSTOM_ID: re-archival
