@@ -4476,6 +4476,41 @@ async function handleCommand(command) {
 }
 
 function fixConfig(config, oldConfig) {
+    // reset to defaults
+    if (!config.background.bucket)
+        config.background.bucket = configDefaults.background.bucket;
+    if (!config.extension.bucket)
+        config.extension.bucket = configDefaults.extension.bucket;
+    if (!config.root.bucket)
+        config.root.bucket = configDefaults.root.bucket;
+
+    if (!config.submitHTTPURLBase)
+        config.submitHTTPURLBase = configDefaults.submitHTTPURLBase;
+
+    // clamp
+    config.animateIcon = clamp(100, 5000, toNumber(config.animateIcon));
+
+    config.exportAsMaxSize = clamp(1, useDebugger ? 512 : 32, toNumber(config.exportAsMaxSize));
+    config.exportAsTimeout = clamp(0, 900, toNumber(config.exportAsTimeout));
+    config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 900, toNumber(config.exportAsInFlightTimeout));
+
+    // these are mutually exclusive
+    if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard)
+        config.autoPopInLimboDiscard = false;
+
+    if (!isMobile && !config.spawnNewTabs) {
+        // unavailable
+        config.spawnNewTabs = true;
+
+        if (config.hintNotify)
+            browser.notifications.create("hint-configNotSupported-spawnNewTabs", {
+                title: "Hoardy-Web: HINT",
+                message: escapeHTMLTags(`"Spawn internal pages in new tabs" can not be disabled on a desktop browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
+                iconUrl: iconURL("main", 128),
+                type: "basic",
+            }).catch(logError);
+    }
+
     if (reqresIDB === undefined)
         config.preferIndexedDB = false;
     else if (useDebugger && !config.preferIndexedDB) {
@@ -4493,6 +4528,7 @@ function fixConfig(config, oldConfig) {
     }
 
     if (isMobile && isFirefox && config.archiveExportAs) {
+        // unavailable
         config.archiveExportAs = false;
 
         // Firefox on Android does not switch to new tabs opened from the settings
@@ -4500,18 +4536,6 @@ function fixConfig(config, oldConfig) {
             browser.notifications.create("hint-configNotSupported-archiveExportAs", {
                 title: "Hoardy-Web: HINT",
                 message: escapeHTMLTags(`"Export via \`saveAs\` is not supported on Firefox-based mobile browsers. See the "Help" page for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
-                iconUrl: iconURL("main", 128),
-                type: "basic",
-            }).catch(logError);
-    }
-
-    if (!isMobile && !config.spawnNewTabs) {
-        config.spawnNewTabs = true;
-
-        if (config.hintNotify)
-            browser.notifications.create("hint-configNotSupported-spawnNewTabs", {
-                title: "Hoardy-Web: HINT",
-                message: escapeHTMLTags(`"Spawn internal pages in new tabs" can not be disabled on a desktop browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
                 iconUrl: iconURL("main", 128),
                 type: "basic",
             }).catch(logError);
@@ -4542,25 +4566,6 @@ function fixConfig(config, oldConfig) {
                 type: "basic",
             }).catch(logError);
     }
-
-    if (!config.submitHTTPURLBase)
-        config.submitHTTPURLBase = configDefaults.submitHTTPURLBase;
-    if (!config.background.bucket)
-        config.background.bucket = configDefaults.background.bucket;
-    if (!config.extension.bucket)
-        config.extension.bucket = configDefaults.extension.bucket;
-    if (!config.root.bucket)
-        config.root.bucket = configDefaults.root.bucket;
-
-    // clamp
-    config.animateIcon = clamp(100, 5000, toNumber(config.animateIcon));
-    config.exportAsMaxSize = clamp(1, useDebugger ? 512 : 32, toNumber(config.exportAsMaxSize));
-    config.exportAsTimeout = clamp(0, 900, toNumber(config.exportAsTimeout));
-    config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 900, toNumber(config.exportAsInFlightTimeout));
-
-    // these are mutually exclusive
-    if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard)
-        config.autoPopInLimboDiscard = false;
 
     if (config.stash && config.stash != oldConfig.stash)
         syncStashAll(false);
