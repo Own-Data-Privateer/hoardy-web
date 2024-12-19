@@ -12,20 +12,20 @@
     <div id="body_error" style="display: none"></div>
     <div id="body" style="display: none">
     <span id="top"></span>
-    <h1 id="in_flight">In flight
+    <h1 id="in_flight" class="ui">In flight
       <span class="right">
         <input type="button" id="stopAllInFlight" data-help="Stop tracking progress of all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup." value="Stop tracking all" />
       </span>
     </h1>
     <table><tbody id="data_in_flight"></tbody></table>
 
-    <h1 id="problematic">Problematic
+    <h1 id="problematic" class="ui">Problematic
       <span class="right">
         <input type="button" id="unmarkOneProblematic" data-help="Unset `problematic` flag from the first reqres below." value="Unmark the first one" />
         <input type="button" id="unmarkAllProblematic" data-help="Unset `problematic` flag from all reqres below." value="Unmark all" />
       </span>
     </h1>
-    <div class="controls">
+    <div class="controls ui">
       <ui id="rrfilters.problematic.in_limbo" type="tristate" data-help="Tristate filter for the &quot;in_limbo&quot; flag.">In limbo</ui>
       <ui id="rrfilters.problematic.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
       <ui id="rrfilters.problematic.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
@@ -34,13 +34,13 @@
     </div>
     <table><tbody id="data_problematic"></tbody></table>
 
-    <h1 id="in_limbo">In limbo
+    <h1 id="in_limbo" class="ui">In limbo
       <span class="right">
         <input type="button" id="discardOneInLimbo" data-help="Discard the first reqres below." value="Discard the first one" />
         <input type="button" id="discardAllInLimbo" data-help="Discard all reqres below." value="Discard all" />
       </span>
     </h1>
-    <div class="controls">
+    <div class="controls ui">
       <ui id="rrfilters.in_limbo.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
       <ui id="rrfilters.in_limbo.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
       <ui id="rrfilters.in_limbo.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
@@ -51,12 +51,12 @@
     </div>
     <table><tbody id="data_in_limbo"></tbody></table>
 
-    <h1 id="log">Recent history log
+    <h1 id="log" class="ui">Recent history log
       <span class="right">
         <input type="button" id="forgetHistory" data-help="Forget about all the requests below except for those marked as &quot;problematic&quot;. Except, if the &quot;Problematic&quot; tristate filter below is set, then those will be forgotten about too." value="Forget all" />
       </span>
     </h1>
-    <div class="controls">
+    <div class="controls ui">
       <ui id="rrfilters.log.collected" type="tristate" data-help="Tristate filter for the &quot;collected/discarded&quot; state.">Collected</ui>
       <ui id="rrfilters.log.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
       <ui id="rrfilters.log.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
@@ -78,12 +78,12 @@
     </div>
     <table><tbody id="data_queued"></tbody></table>
 
-    <h1 id="unarchived">Failed to archive
+    <h1 id="unarchived" class="ui">Failed to archive
       <span class="right">
         <input type="button" id="retryUnarchived" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake." value="Retry all" />
       </span>
     </h1>
-    <div class="controls">
+    <div class="controls ui">
       <ui id="rrfilters.unarchived.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
       <ui id="rrfilters.unarchived.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
       <ui id="rrfilters.unarchived.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>

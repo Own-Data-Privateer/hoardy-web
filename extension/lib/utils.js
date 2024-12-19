@@ -1044,7 +1044,7 @@ function makeUI(node) {
         if (name === "id" || name === "tabindex" || name === "data-default") continue;
         res.setAttribute(name, node.getAttribute(name))
     }
-    res.classList.add("ui");
+    res.classList.add("genui");
     res.classList.add(typ);
 
     let lbl = document.createElement("label");

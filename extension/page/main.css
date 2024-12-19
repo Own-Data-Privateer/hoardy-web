@@ -112,6 +112,10 @@
     font: 16px sans-serif;
 }
 
+.flex {
+    display: flex;
+}
+
 .float-right {
     float: right;
 }
@@ -155,6 +159,10 @@ pre code {
     padding: 10px;
 }
 
+.flex code {
+    margin: auto 0.5ch;
+}
+
 a {
     --text-color: var(--a-external);
     text-decoration: solid underline;
@@ -174,72 +182,28 @@ a {
     text-shadow: 0px 0px 2px var(--text-shadow-color);
 }
 
-.flex,
-div.ui,
-div.ui label {
-    display: flex;
-}
-
-div.ui label,
-div.ui label input[type="number"],
-div.ui label input[type="text"] {
-    flex: 1 1 auto;
-    margin: auto 0;
-}
-
-div.ui label input[type="number"] {
-    width: 8ch;
-    max-width: 16ch;
-}
-
-div.ui label input[type="number"],
-div.ui label input[type="text"],
-div.ui label input[type="checkbox"] {
-    margin: auto 0;
-}
-
-div.ui label input[type="checkbox"]:nth-child(1) {
-    margin-right: 1ch;
-}
-
-div.ui label input[type="number"]:nth-last-child(1),
-div.ui label input[type="text"]:nth-last-child(1) {
-    margin-left: 1ch;
-}
-
-div.ui.c label input[type="number"],
-div.ui.c label input[type="text"],
-div.ui.c label input[type="checkbox"] {
-    margin: auto 1ch;
-}
-
-.flex code,
-div.ui label code {
-    margin: auto 0.5ch;
-}
-
-input {
+.ui input {
     background: var(--input-background);
     border: 1px solid var(--input-border-color);
     border-radius: 3px;
     color: var(--input-color);
 }
 
-input[type="button"] {
+.ui input[type="button"] {
     background: var(--button-background);
     border: 1px solid var(--button-border-color);
     color: var(--button-color);
 }
 
-input[type="number"]:hover,
-input[type="text"]:hover,
-input[type="button"]:hover {
+.ui input[type="number"]:hover,
+.ui input[type="text"]:hover,
+.ui input[type="button"]:hover {
     background: var(--hover-background);
     border: 1px solid var(--hover-border-color);
     color: var(--hover-color);
 }
 
-input[type="checkbox"].toggle {
+.ui input[type="checkbox"].toggle {
     appearance: none;
     background: var(--untoggle-background);
     border-radius: 8px;
@@ -251,26 +215,26 @@ input[type="checkbox"].toggle {
     width: 26px;
 }
 
-input[type="checkbox"].toggle:checked {
+.ui input[type="checkbox"].toggle:checked {
     background: var(--toggle-background);
     border-color: var(--toggle-border-color);
 }
 
-.prefer-off input[type="checkbox"].toggle {
+.ui .prefer-off input[type="checkbox"].toggle {
     --toggle-background: var(--toggle-background-bad);
     --toggle-border-color: var(--toggle-border-color-bad);
     --untoggle-background: var(--untoggle-background-good);
     --untoggle-border-color: var(--untoggle-border-color-good);
 }
 
-.prefer-on input[type="checkbox"].toggle {
+.ui .prefer-on input[type="checkbox"].toggle {
     --toggle-background: var(--toggle-background-good);
     --toggle-border-color: var(--toggle-border-color-good);
     --untoggle-background: var(--untoggle-background-bad);
     --untoggle-border-color: var(--untoggle-border-color-bad);
 }
 
-input[type="checkbox"].toggle::before {
+.ui input[type="checkbox"].toggle::before {
     background: var(--untoggle-dot-background);
     border-radius: 50%;
     content: "";
@@ -283,40 +247,40 @@ input[type="checkbox"].toggle::before {
     width: 12px;
 }
 
-input[type="checkbox"].toggle:checked::before {
+.ui input[type="checkbox"].toggle:checked::before {
     background: var(--toggle-dot-background);
     outline: 1px solid var(--toggle-dot-border-color);
     transform: translate(11px, calc(50% - 5px));
 }
 
-label:hover input[type="checkbox"].toggle::before {
+.ui label:hover input[type="checkbox"].toggle::before {
     --toggle-dot-background: var(--hover-background);
     --untoggle-dot-background: var(--hover-background);
 }
 
-div.ui.tristate input[type="checkbox"].toggle {
+.ui .tristate input[type="checkbox"].toggle {
     width: 32px;
 }
 
-div.ui.tristate input[type="checkbox"].toggle.false {
+.ui .tristate input[type="checkbox"].toggle.false {
     background: var(--toggle-background-bad);
     border-color: var(--toggle-border-color-bad);
 }
 
-div.ui.tristate input[type="checkbox"].toggle:checked {
+.ui .tristate input[type="checkbox"].toggle:checked {
     background: var(--toggle-background-good);
     border-color: var(--toggle-border-color-good);
 }
 
-div.ui.tristate input[type="checkbox"].toggle::before {
+.ui .tristate input[type="checkbox"].toggle::before {
     transform: translate(9px, calc(50% - 5px));
 }
 
-div.ui.tristate input[type="checkbox"].toggle.false::before {
+.ui .tristate input[type="checkbox"].toggle.false::before {
     transform: translate(1px, calc(50% - 5px));
 }
 
-div.ui.tristate input[type="checkbox"].toggle:checked::before {
+.ui .tristate input[type="checkbox"].toggle:checked::before {
     transform: translate(16px, calc(50% - 5px));
 }
 
@@ -364,6 +328,48 @@ div.help-tip {
     padding: 4px;
     text-align: left;
     white-space: pre-line;
+}
+
+.ui .genui,
+.ui .genui label {
+    display: flex;
+}
+
+.ui .genui label,
+.ui .genui label input[type="number"],
+.ui .genui label input[type="text"] {
+    flex: 1 1 auto;
+    margin: auto 0;
+}
+
+.ui .genui label input[type="number"] {
+    width: 8ch;
+    max-width: 16ch;
+}
+
+.ui .genui label input[type="number"],
+.ui .genui label input[type="text"],
+.ui .genui label input[type="checkbox"] {
+    margin: auto 0;
+}
+
+.ui .genui label input[type="checkbox"]:nth-child(1) {
+    margin-right: 1ch;
+}
+
+.ui .genui label input[type="number"]:nth-last-child(1),
+.ui .genui label input[type="text"]:nth-last-child(1) {
+    margin-left: 1ch;
+}
+
+.ui .genui.c label input[type="number"],
+.ui .genui.c label input[type="text"],
+.ui .genui.c label input[type="checkbox"] {
+    margin: auto 1ch;
+}
+
+.ui .genui label code {
+    margin: auto 0.5ch;
 }
 }
 
@@ -504,7 +510,7 @@ input.attention {
     box-shadow: 0px 0px 1em var(--box-shadow-color);
 }
 
-.halloween div.ui.boolean label {
+.halloween .ui .boolean label {
     --text-color: var(--juice);
     --text-shadow-color: var(--juice);
     text-shadow: 0px 0px 1em var(--text-shadow-color);
@@ -528,20 +534,20 @@ input.attention {
     transform: translate(14px, calc(50% - 15px));
 }
 
-.halloween div.ui.tristate input[type="checkbox"].toggle {
+.halloween .ui .tristate input[type="checkbox"].toggle {
     --untoggle-background: var(--text-inactive-background);
     --untoggle-border-color: var(--text-inactive-color);
 }
 
-.halloween div.ui.tristate input[type="checkbox"].toggle::before {
+.halloween .ui .tristate input[type="checkbox"].toggle::before {
     transform: translate(6px, calc(50% - 11px));
 }
 
-.halloween div.ui.tristate input[type="checkbox"].toggle.false::before {
+.halloween .ui .tristate input[type="checkbox"].toggle.false::before {
     transform: translate(-8px, calc(50% - 7px));
 }
 
-.halloween div.ui.tristate input[type="checkbox"].toggle:checked::before {
+.halloween .ui .tristate input[type="checkbox"].toggle:checked::before {
     transform: translate(19px, calc(50% - 15px));
 }
 }
