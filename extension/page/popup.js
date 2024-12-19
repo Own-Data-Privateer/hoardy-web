@@ -183,7 +183,7 @@ async function popupMain() {
     versionButton.value = "v" + manifest.version;
     versionButton.onclick = catchAll(() => resetAndReplace({ seenChangelog: true }, showChangelog, "", ""));
 
-    let helpButton = document.getElementById("help");
+    let helpButton = document.getElementById("showHelp");
     helpButton.onclick = catchAll(() => resetAndReplace({ seenHelp: true }, showHelp, "", "", true));
     // NB: `spawn = true` here because otherwise on Fenix a large chunk of the
     // page will be taken by the navigation toolbar and there will be no

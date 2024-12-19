@@ -187,7 +187,7 @@ section {
         <input type="button" id="cancelReloadSelf" data-help="Cancel pending `Hoardy-Web` reload." value="Reload pending..." />
       </span>
       <span class="right">
-        <input type="button" id="help" data-help="Open the `Help` page." value="Help" />
+        <input type="button" id="showHelp" data-help="Open the `Help` page." value="Help" />
       </span>
     </h1>
 
