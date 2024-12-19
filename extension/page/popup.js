@@ -24,8 +24,8 @@
 let dbody = document.body;
 
 function show(condition) {
-    implySetConditionalClass(dbody, "hidden", "more", !condition);
-    implySetConditionalClass(dbody, "hidden", "less", condition);
+    implySetConditionalClass(dbody, "more", "hidden", !condition);
+    implySetConditionalClass(dbody, "less", "hidden", condition);
 
     if (condition)
         for (let node of dbody.getElementsByTagName("input")) {
@@ -295,8 +295,8 @@ async function popupMain() {
         setUI(document, "stats", present(stats));
 
         setConditionalClass(reloadSelfButton, "attention", stats.update_available);
-        implySetConditionalClass(dbody, "hidden", "on-reload", !hash && !(stats.update_available || config.debugging));
-        implySetConditionalClass(dbody, "hidden", "on-pending", !stats.reload_pending);
+        implySetConditionalClass(dbody, "on-reload",  "hidden", !hash && !(stats.update_available || config.debugging));
+        implySetConditionalClass(dbody, "on-pending", "hidden", !stats.reload_pending);
     }
 
     async function updateTabConfig(tabconfig) {
