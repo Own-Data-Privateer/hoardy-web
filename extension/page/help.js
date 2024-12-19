@@ -96,7 +96,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     function resize() {
         let w = window.innerWidth;
         let h = window.innerHeight;
-        let ih = iframe.contentDocument.body.scrollHeight;
 
         console.log("current width:", w);
         columns = w >= minWidth;
@@ -114,8 +113,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         let h2 = columns ? h1 : null;
         body.style["min-height"] = h2;
 
+        let ib = iframe.contentDocument.body;
+        if (ib === null)
+            // not yet loaded
+            return;
+
         // Prevent in-iframe scroll in `linear` layout.
-        let h3 = columns ? h1 : `${ih + 20}px`;
+        let h3 = columns ? h1 : `${ib.scrollHeight + 20}px`;
         iframe.style["min-height"] = h3;
     }
 
