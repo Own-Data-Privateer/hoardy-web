@@ -7,9 +7,9 @@ Not just the last 3 months, but from the beginning of time you start using it.
 Practically speaking, you [install the `Hoardy-Web` browser extension/add-on into your web browser](#quickstart) and just browse the web normally while `Hoardy-Web` passively, in background, captures and archives web pages you visit for later offline viewing, mirroring, and/or indexing.
 `Hoardy-Web` has a lot of configuration options to help you tweak what should or should not be archived and a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless explicitly configured otherwise to, e.g., minimize writes to disk instead).
 
-If you just want to start saving your browsing history, you can [start using the `Hoardy-Web` extension](#quickstart) independently of other tools that are being developed in this repository.
+To start saving your browsing history, you can [start using the `Hoardy-Web` extension](#quickstart) independently of other tools that are being developed in this repository.
 
-However, to view/replay your archived data over `HTTP` (a-la a local [Wayback Machine](https://web.archive.org/)), generate static website mirrors from it (a-la `wget -mpk`), search, inspect, organize, manipulate, programmatically extract values from, and run your own custom scripts over your collected data you will eventually have to install and start using at least the [accompanying `hoardy-web` tool](./tool/).
+To view/replay your archived data over `HTTP` (a-la a local [Wayback Machine](https://web.archive.org/)), generate static website mirrors from it (a-la `wget -mpk`), search, inspect, organize, manipulate, programmatically extract values from, and run scripts over your collected data you will need to install at least the [accompanying `hoardy-web` tool](./tool/).
 
 To learn more:
 
@@ -41,13 +41,15 @@ See [there](./doc/gallery.md) for more screenshots.
 
 Regular users are expected to capture data using the [`Hoardy-Web` browser extension/add-on](./extension/), producing `HTTP` request+response dumps in [`WRR` file format](./doc/data-on-disk.md), archive those to disk [using one of the supported methods](#quickstart), and then use various sub-command of the [`hoardy-web` tool](./tool/) to
 
-- [replay (a subset of) your archives over `HTTP`](./tool/README.md#replay) by feeding them to `hoardy-web serve` and then using a normal web browser and navigating to links like <http://127.0.0.1:3210/web/2/https://archiveofourown.org/works/3733123>;
+- replay (a subset of) your archives over `HTTP` by feeding them to `hoardy-web serve` and then using a normal web browser and navigating to links like <http://127.0.0.1:3210/web/2/https://archiveofourown.org/works/3733123>;
 
   this is similar to what [Wayback Machine](https://web.archive.org/), [heritrix](https://github.com/internetarchive/heritrix3), and [pywb](https://github.com/webrecorder/pywb) do;
 
-- [generate a static offline website mirror from (a subset of) your archives](./tool/README.md#mirror) by feeding them to `hoardy-web mirror` to produce a bunch of interlinked `HTML`, `CSS`, images, and other files, which you can then view using a normal web browser, or with a e-book reader, or you can instead feed them to [recoll](https://www.lesbonscomptes.com/recoll/index.html) or some other desktop search engine, etc;
+- generate a static offline website mirror from (a subset of) your archives by feeding them to `hoardy-web mirror` to produce a bunch of interlinked `HTML`, `CSS`, images, and other files, which you can then view using a normal web browser, or with a e-book reader, or you can instead feed them to [recoll](https://www.lesbonscomptes.com/recoll/index.html) or some other desktop search engine, etc;
 
   this is similar to what `wget -mpk` (`wget --mirror --page-requisites --convert-links`) does, except `hoardy-web mirror` has a ton of cool options `wget` does not (e.g. it can `scrub` generated pages in various ways, de-duplicate the files it generates, including between different websites and different generated mirrors, etc), and should you discover you dislike the generated result for some reason, you can change some or all of those options and re-generate the mirror **without re-downloading anything**.
+
+See [`hoardy-web`'s "Quickstart" section](./tool/README.md#quickstart) for more info.
 
 ## For a slightly technical user
 

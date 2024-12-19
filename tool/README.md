@@ -77,7 +77,7 @@ You can then, e.g. `rsync`/copy `~/hoardy-web/mirror1` to your e-book reader/pho
 
 The default settings should work for most simple websites, but a [section below](#mirror) contains more info and more usage examples.
 
-## <span id="replay"/>View/replay your archived data interactively over `HTTP`
+## View/replay your archived data interactively over `HTTP`
 
 You can also view your archived pages by running `hoardy-web` in web server mode:
 
@@ -110,14 +110,7 @@ hoardy-web serve --implicit \
   mitmproxy.*.dump
 ```
 
-See [below](#serve) for more info.
-
-## ... and you are done
-
-If you are not interested searching, organizing, and/or manipulating your archives in various ways, then, at the moment, that's essentially everything the `hoardy-web` tool can do for you.
-See the [TODO list](../CHANGELOG.md#todo) for a list of planned features.
-
-If you are interested, continue reading.
+See a [section below](#serve) for more info and usage examples.
 
 # Glossary
 
