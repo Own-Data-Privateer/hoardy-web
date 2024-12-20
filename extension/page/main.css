@@ -448,113 +448,146 @@ input.attention {
 }
 
 @layer seasonal {
-.halloween {
-    --juice-dark: #94023e;
-    --juice: #d4023e;
-    --pumpkin-dark: #804000;
-    --pumpkin-light: #ffbb10;
-    --pumpkin: #f49405;
-    --water-dark: #023e94;
-    --water: #023ed4;
-    --light: #ffffff;
-    --moonlight: #dfdfdf;
+.season {
+    /* misc */
+    --day: #ffffff;
     --night: #000000;
+    --moonlight: #dfdfdf;
 
-    --button-border-color: var(--juice);
-    --button-color: var(--light);
+    --button-border-color: var(--good);
+    --button-color: var(--day);
     --code-background: #aabb0030;
     --code-border-color: #f8f80030;
-    --code-text-color:  var(--pumpkin);
-    --input-border-color: var(--pumpkin);
-    --input-color: var(--light);
-    --outline-color: var(--pumpkin-dark);
-    --separator-color: var(--pumpkin-light);
-    --text-color: var(--light);
-    --toggle-background-bad: var(--water-dark);
-    --toggle-background-good:  var(--juice-dark);
-    --toggle-background: var(--light);
-    --toggle-border-color-bad: var(--water);
-    --toggle-border-color-good: var(--juice);
+    --code-text-color:  var(--main);
+    --input-border-color: var(--main);
+    --input-color: var(--day);
+    --text-color: var(--day);
+    --toggle-background-bad: var(--bad-dark);
+    --toggle-background-good:  var(--good-dark);
+    --toggle-background: var(--day);
+    --toggle-border-color-bad: var(--bad);
+    --toggle-border-color-good: var(--good);
     --toggle-border-color:  var(--moonlight);
     --toggle-dot-background: var(--moonlight);
     --toggle-dot-border-color: var(--night);
-    --untoggle-background-bad: var(--water);
-    --untoggle-background-good: var(--juice);
+    --untoggle-background-bad: var(--bad);
+    --untoggle-background-good: var(--good);
     --untoggle-background: var(--night);
-    --untoggle-border-color-bad: var(--water-dark);
-    --untoggle-border-color-good: var(--juice-dark);
+    --untoggle-border-color-bad: var(--bad-dark);
+    --untoggle-border-color-good: var(--good-dark);
     --untoggle-border-color: var(--moonlight);
     --untoggle-dot-background: var(--moonlight);
     --untoggle-dot-border-color: var(--night);
 }
 
-.halloween h1,
-.halloween h2,
-.halloween h3,
-.halloween h4 {
-    --text-color: var(--pumpkin);
-    --text-shadow-color: var(--light);
+.halloween {
+    /* pumpkin */
+    --main: #f49405;
+    /* juice */
+    --good-dark: #94023e;
+    --good: #d4023e;
+    /* water */
+    --bad-dark: #023e94;
+    --bad: #023ed4;
+
+    --outline-color: #804000;
+    --separator-color: #ffbb10;
+    --text-shadow-color: var(--day);
+}
+
+.winter {
+    /* juice */
+    --main: #ff021e;
+    /* pine */
+    --good-dark: #204000;
+    --good: #64b405;
+    /* mud */
+    --bad-dark: #402000;
+    --bad: #804000;
+
+    --outline-color: #44021e;
+    --separator-color: #dd1000;
+    --text-shadow-color: var(--main);
+
+    --a-external: #0000f8;
+}
+
+.season h1,
+.season h2,
+.season h3,
+.season h4 {
+    --text-color: var(--main);
     text-shadow: 0px 0px 1em var(--text-shadow-color);
 }
 
-.halloween input {
-    --box-shadow-color: var(--pumpkin);
+.season .ui input {
+    --box-shadow-color: var(--main);
     box-shadow: 0px 0px 1em var(--box-shadow-color);
 }
 
-.halloween input[type="button"] {
-    --box-shadow-color: var(--juice);
+.season .ui input[type="button"] {
+    --box-shadow-color: var(--good);
     box-shadow: 0px 0px 1em var(--box-shadow-color);
 }
 
-.halloween input[type="checkbox"].help-btn {
+.season input[type="checkbox"].help-btn {
     --box-shadow-color: var(--moonlight);
     box-shadow: 0px 0px 0.75em var(--box-shadow-color);
 }
 
-.halloween input[type="checkbox"].toggle {
-    --box-shadow-color: var(--light);
+.season input[type="checkbox"].toggle {
+    --box-shadow-color: var(--day);
     box-shadow: 0px 0px 1em var(--box-shadow-color);
 }
 
-.halloween .ui .boolean label {
-    --text-color: var(--juice);
-    --text-shadow-color: var(--juice);
+.season .ui .boolean label {
+    --text-color: var(--good);
     text-shadow: 0px 0px 1em var(--text-shadow-color);
 }
 
-.halloween label:hover input[type="checkbox"].toggle::before {
-    --toggle-dot-background: #808080;
-    --untoggle-dot-background: #808080;
-    --toggle-dot-border-color: var(--light);
-    --untoggle-dot-border-color: var(--light);
+.halloween .ui .boolean label {
+    --text-shadow-color: var(--good);
 }
 
-.halloween input[type="checkbox"].toggle::before {
+.season label:hover input[type="checkbox"].toggle::before {
+    --toggle-dot-background: #808080;
+    --untoggle-dot-background: #808080;
+    --toggle-dot-border-color: var(--day);
+    --untoggle-dot-border-color: var(--day);
+}
+
+.season input[type="checkbox"].toggle::before {
     color: var(--night);
-    content: "🦇";
     padding: 3px;
     transform: translate(-8px, calc(50% - 7px));
 }
 
-.halloween input[type="checkbox"].toggle:checked::before {
+.halloween input[type="checkbox"].toggle::before {
+    content: "🦇";
+}
+
+.winter input[type="checkbox"].toggle::before {
+    content: "🎄";
+}
+
+.season input[type="checkbox"].toggle:checked::before {
     transform: translate(14px, calc(50% - 15px));
 }
 
-.halloween .ui .tristate input[type="checkbox"].toggle {
+.season .ui .tristate input[type="checkbox"].toggle {
     --untoggle-background: var(--text-inactive-background);
     --untoggle-border-color: var(--text-inactive-color);
 }
 
-.halloween .ui .tristate input[type="checkbox"].toggle::before {
+.season .ui .tristate input[type="checkbox"].toggle::before {
     transform: translate(6px, calc(50% - 11px));
 }
 
-.halloween .ui .tristate input[type="checkbox"].toggle.false::before {
+.season .ui .tristate input[type="checkbox"].toggle.false::before {
     transform: translate(-8px, calc(50% - 7px));
 }
 
-.halloween .ui .tristate input[type="checkbox"].toggle:checked::before {
+.season .ui .tristate input[type="checkbox"].toggle:checked::before {
     transform: translate(19px, calc(50% - 15px));
 }
 }

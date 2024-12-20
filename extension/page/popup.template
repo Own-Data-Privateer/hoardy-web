@@ -881,6 +881,7 @@ section {
     <section class="on-seasonal">
     <div class="isubdots">
     <ui id="config.season.halloween" type="tristate" data-help="Tristate controlling the use of the &quot;Halloween&quot; theme: disabled, enabled when close to Halloween, enabled. When enabled, this theme will force the dark mode theme regardless of what the `Color scheme` setting above says.">🦇 Halloween mode</ui>
+    <ui id="config.season.winter" type="tristate" data-help="Tristate controlling the use of the &quot;Winter Days&quot; theme: disabled, enabled between Winter Solstice and Orthodox Christmas (which also includes Yuletide, Catholic Christmas, Newtonmas, New Year, and, sometimes, Hanukkah), enabled. When enabled, this theme will force the dark mode theme regardless of what the `Color scheme` setting above says.">🎄 Winter Days mode</ui>
     </div>
     </section>
     <ui id="config.pureText" type="boolean" data-help="Do not use emojis in UI labels. Makes screen readers happier.">Use pure text labels</ui>

@@ -118,10 +118,20 @@ function setRootClasses(config) {
     let dnow = new Date();
     let dm = dnow.getMonth() + 1; // JavaScript is ridiculous
     let dd = dnow.getDate();
-    let halloween = dm === 10 && dd >= 30 || dm === 11 && dd <= 1 || config.season.halloween === true;
-    halloween = halloween && config.seasonal && config.season.halloween !== false;
 
-    if (halloween)
+    let season = config.season;
+    function can(name) {
+        return config.seasonal
+            && season[name] !== false
+            && Array.from(Object.keys(season)).every((k) => k === name || season[k] !== true);
+    }
+
+    let halloween = can("halloween") &&
+        (dm === 10 && dd >= 30 || dm === 11 && dd <= 1 || season.halloween === true);
+    let winter = can("winter") &&
+        (dm === 12 && dd >= 20 || dm === 1 && dd <= 8 || season.winter === true);
+
+    if (halloween || winter)
         dark = true;
     else if (dark === null) {
         let dquery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -133,7 +143,10 @@ function setRootClasses(config) {
     setConditionalClass(droot, "dark", dark);
     setConditionalClass(droot, "light", !dark);
     setConditionalClass(droot, "colorblind", config.colorblind);
+
+    setConditionalClass(droot, "season", halloween || winter);
     setConditionalClass(droot, "halloween", halloween);
+    setConditionalClass(droot, "winter", winter);
 
     return droot;
 }

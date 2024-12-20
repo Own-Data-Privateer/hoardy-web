@@ -45,6 +45,7 @@ let configDefaults = {
     seasonal: true,
     season: {
         halloween: null,
+        winter: null,
     },
     pureText: false,
     animateIcon: 500,
@@ -4494,6 +4495,15 @@ function fixConfig(config, oldConfig) {
     config.exportAsMaxSize = clamp(1, useDebugger ? 512 : 32, toNumber(config.exportAsMaxSize));
     config.exportAsTimeout = clamp(0, 900, toNumber(config.exportAsTimeout));
     config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 900, toNumber(config.exportAsInFlightTimeout));
+
+    // when more than one season is forced, reset the old ones to `null`s
+    let season = config.season;
+    let numSeasons = Array.from(Object.keys(season)).filter((k) => season[k]).length;
+    if (numSeasons > 1) {
+        for (let key of Object.keys(season))
+            if (season[key] === oldConfig.season[key])
+                season[key] = null;
+    }
 
     // these are mutually exclusive
     if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard)
