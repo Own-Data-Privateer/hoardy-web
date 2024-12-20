@@ -52,6 +52,7 @@ let configDefaults = {
 
     // notifications
     verbose: true,
+    escapeNotifications: false,
     hintNotify: true,
     invisibleUINotify: true,
 
@@ -229,7 +230,7 @@ function setServerBaseURL() {
         logError(err);
         browser.notifications.create("error-server-url", {
             title: "Hoardy-Web: ERROR",
-            message: escapeHTMLTags(`Malformed \`Server URL\` \`${config.submitHTTPURLBase}\`:\n${errorMessageOf(err)}`),
+            message: escapeNotification(config, `Malformed \`Server URL\` \`${config.submitHTTPURLBase}\`:\n${errorMessageOf(err)}`),
             iconUrl: iconURL("error", 128),
             type: "basic",
         }).catch(logError);
@@ -263,7 +264,7 @@ async function checkServer() {
         logError(err);
         await browser.notifications.create("error-server-connection", {
             title: "Hoardy-Web: ERROR",
-            message: escapeHTMLTags(`\`Hoardy-Web\` can't establish a connection to the archiving server at \`${serverConfig.baseURL}\`:\n${errorMessageOf(err)}`),
+            message: escapeNotification(config, `\`Hoardy-Web\` can't establish a connection to the archiving server at \`${serverConfig.baseURL}\`:\n${errorMessageOf(err)}`),
             iconUrl: iconURL("failed", 128),
             type: "basic",
         });
@@ -293,7 +294,7 @@ async function checkServer() {
     if (!serverConfig.ok) {
         await browser.notifications.create("error-server", {
             title: "Hoardy-Web: ERROR",
-            message: escapeHTMLTags(`The archiving server at \`${serverConfig.baseURL}\` appears to be defunct.`),
+            message: escapeNotification(config, `The archiving server at \`${serverConfig.baseURL}\` appears to be defunct.`),
             iconUrl: iconURL("failed", 128),
             type: "basic",
         });
@@ -305,7 +306,7 @@ async function checkServer() {
     if (serverConfig.info.version < 0) {
         await browser.notifications.create("warning-server", {
             title: "Hoardy-Web: WARNING",
-            message: escapeHTMLTags(`You are running a deprecated version of an archival server at \`${serverConfig.baseURL}\`, please update it.`),
+            message: escapeNotification(config, `You are running a deprecated version of an archival server at \`${serverConfig.baseURL}\`, please update it.`),
             iconUrl: iconURL("archiving", 128),
             type: "basic",
         });
@@ -1817,7 +1818,7 @@ async function doNotify() {
 
         await browser.notifications.create("error-errored", {
             title: "Hoardy-Web: ERROR",
-            message: escapeHTMLTags(`Some internal errors:\n${formatFailures("Failed to process", rrErrored)}`),
+            message: escapeNotification(config, `Some internal errors:\n${formatFailures("Failed to process", rrErrored)}`),
             iconUrl: iconURL("error", 128),
             type: "basic",
         });
@@ -1831,7 +1832,7 @@ async function doNotify() {
         if (config.archiveStuckNotify && !config.archive && !config.stash) {
             await browser.notifications.create("warning-notSaving", {
                 title: "Hoardy-Web: WARNING",
-                message: escapeHTMLTags("Some reqres are waiting in the archival queue, but both reqres stashing and archiving are disabled."),
+                message: escapeNotification(config, "Some reqres are waiting in the archival queue, but both reqres stashing and archiving are disabled."),
                 iconUrl: iconURL("archiving", 128),
                 type: "basic",
             });
@@ -1847,7 +1848,7 @@ async function doNotify() {
             // generate a new one
             await browser.notifications.create("error-unstashed", {
                 title: "Hoardy-Web: FAILED",
-                message: escapeHTMLTags(`For browser's local storage:\n${formatFailures("Failed to stash", rrUnstashed)}`),
+                message: escapeNotification(config, `For browser's local storage:\n${formatFailures("Failed to stash", rrUnstashed)}`),
                 iconUrl: iconURL("failed", 128),
                 type: "basic",
             });
@@ -1884,7 +1885,7 @@ async function doNotify() {
                     where = `Archiving server at ${archiveURL}`;
                 await browser.notifications.create(`error-unarchived-${archiveURL}`, {
                     title: "Hoardy-Web: FAILED",
-                    message: escapeHTMLTags(`${where}:\n${formatFailures("Failed to archive", byErrorMap.entries())}`),
+                    message: escapeNotification(config, `${where}:\n${formatFailures("Failed to archive", byErrorMap.entries())}`),
                     iconUrl: iconURL("failed", 128),
                     type: "basic",
                 });
@@ -1900,7 +1901,7 @@ async function doNotify() {
                 // generate a new one
                 await browser.notifications.create("ok-done", {
                     title: "Hoardy-Web: OK",
-                    message: escapeHTMLTags("Archiving appears to work OK!\n\nThis message won't be repeated unless something breaks." + annoyingNotification(config, "Generate notifications about > ... newly empty archival queue")),
+                    message: escapeNotification(config, "Archiving appears to work OK!\n\nThis message won't be repeated unless something breaks." + annoyingNotification(config, "Generate notifications about > ... newly empty archival queue")),
                     iconUrl: iconURL("idle", 128),
                     type: "basic",
                 });
@@ -1918,7 +1919,7 @@ async function doNotify() {
             // generate a new one
             await browser.notifications.create("warning-fatLimbo", {
                 title: "Hoardy-Web: WARNING",
-                message: escapeHTMLTags(`Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.` + annoyingNotification(config, "Generate notifications about > ... too much stuff in limbo")),
+                message: escapeNotification(config, `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.` + annoyingNotification(config, "Generate notifications about > ... too much stuff in limbo")),
                 iconUrl: iconURL("limbo", 128),
                 type: "basic",
             });
@@ -1963,7 +1964,7 @@ async function doNotify() {
                 latestDesc.reverse();
                 await browser.notifications.create("warning-problematic", {
                     title: "Hoardy-Web: WARNING",
-                    message: escapeHTMLTags(`Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate notifications about > ... new 'problematic' reqres")),
+                    message: escapeNotification(config, `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate notifications about > ... new 'problematic' reqres")),
                     iconUrl: iconURL("problematic", 128),
                     type: "basic",
                 });
@@ -3265,7 +3266,7 @@ async function snapshotOneTab(tabId, tabUrl) {
         if (allErrors.length > 0)
             await browser.notifications.create(`error-snapshot-${tabId}`, {
                 title: "Hoardy-Web: ERROR",
-                message: escapeHTMLTags(`While taking DOM snapshot of tab #${tabId} (${tabUrl.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`),
+                message: escapeNotification(config, `While taking DOM snapshot of tab #${tabId} (${tabUrl.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`),
                 iconUrl: iconURL("error", 128),
                 type: "basic",
             }).catch(logError);
@@ -3990,7 +3991,7 @@ async function performReloadSelf() {
     if (notGood !== 0) {
         browser.notifications.create("error-noReload", {
             title: "Hoardy-Web: ERROR",
-            message: escapeHTMLTags(`\`Hoardy-Web\` can NOT be reloaded while some \`unstashed\` and/or \`errored\` reqres are present.`),
+            message: escapeNotification(config, `\`Hoardy-Web\` can NOT be reloaded while some \`unstashed\` and/or \`errored\` reqres are present.`),
             iconUrl: iconURL("error", 128),
             type: "basic",
         }).catch(logError);
@@ -4505,7 +4506,7 @@ function fixConfig(config, oldConfig) {
         if (config.hintNotify)
             browser.notifications.create("hint-configNotSupported-spawnNewTabs", {
                 title: "Hoardy-Web: HINT",
-                message: escapeHTMLTags(`"Spawn internal pages in new tabs" can not be disabled on a desktop browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
+                message: escapeNotification(config, `"Spawn internal pages in new tabs" can not be disabled on a desktop browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
                 iconUrl: iconURL("main", 128),
                 type: "basic",
             }).catch(logError);
@@ -4521,7 +4522,7 @@ function fixConfig(config, oldConfig) {
         if (config.hintNotify)
             browser.notifications.create("hint-configNotSupported-preferIndexedDB", {
                 title: "Hoardy-Web: HINT",
-                message: escapeHTMLTags(`"Prefer \`IndexedDB\` API" can not be disabled on a Chromium-based browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
+                message: escapeNotification(config, `"Prefer \`IndexedDB\` API" can not be disabled on a Chromium-based browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
                 iconUrl: iconURL("main", 128),
                 type: "basic",
             }).catch(logError);
@@ -4535,7 +4536,7 @@ function fixConfig(config, oldConfig) {
         if (config.hintNotify)
             browser.notifications.create("hint-configNotSupported-archiveExportAs", {
                 title: "Hoardy-Web: HINT",
-                message: escapeHTMLTags(`"Export via \`saveAs\` is not supported on Firefox-based mobile browsers. See the "Help" page for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
+                message: escapeNotification(config, `"Export via \`saveAs\` is not supported on Firefox-based mobile browsers. See the "Help" page for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
                 iconUrl: iconURL("main", 128),
                 type: "basic",
             }).catch(logError);
@@ -4561,7 +4562,7 @@ function fixConfig(config, oldConfig) {
         if (config.hintNotify)
             browser.notifications.create("hint-notArchivingNow", {
                 title: "Hoardy-Web: HINT",
-                message: escapeHTMLTags(`"Archive \`collected\` reqres" option was disabled because the archival queue and/or the list of failed reqres are non-empty.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
+                message: escapeNotification(config, `"Archive \`collected\` reqres" option was disabled because the archival queue and/or the list of failed reqres are non-empty.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
                 iconUrl: iconURL("off", 128),
                 type: "basic",
             }).catch(logError);
@@ -4697,7 +4698,7 @@ async function init() {
     if (reqresIDB === undefined && (globals.stashedIDB.number > 0 || globals.savedIDB.number > 0)) {
         browser.notifications.create("error-noIndexedDB", {
             title: "Hoardy-Web: ERROR",
-            message: escapeHTMLTags(`Failed to open/create a database via \`IndexedDB\` API, all data persistence will be done via \`storage.local\` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears \`Hoardy-Web\` previously used \`IndexedDB\` for archiving and/or stashing reqres.\n\nSee the "Help" page for more info and instructions on how to fix this.`),
+            message: escapeNotification(config, `Failed to open/create a database via \`IndexedDB\` API, all data persistence will be done via \`storage.local\` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears \`Hoardy-Web\` previously used \`IndexedDB\` for archiving and/or stashing reqres.\n\nSee the "Help" page for more info and instructions on how to fix this.`),
             iconUrl: iconURL("error", 128),
             type: "basic",
         }).catch(logError);
@@ -4803,7 +4804,7 @@ async function init() {
     if (lastSeenVersion != manifest.version) {
         browser.notifications.create("info-updated", {
             title: "Hoardy-Web: INFO",
-            message: escapeHTMLTags(`\`Hoardy-Web\` updated \`${lastSeenVersion}\` -> \`${manifest.version}\``),
+            message: escapeNotification(config, `\`Hoardy-Web\` updated \`${lastSeenVersion}\` -> \`${manifest.version}\``),
             iconUrl: iconURL("main", 128),
             type: "basic",
         }).catch(logError);
@@ -4817,7 +4818,7 @@ async function init() {
             what.push(`"Discard all reqres just before archival"`);
         browser.notifications.create("reminder-autoDiscard", {
             title: "Hoardy-Web: REMINDER",
-            message: escapeHTMLTags(`Some auto-discarding options are enabled: ${what.join(", ")}.`),
+            message: escapeNotification(config, `Some auto-discarding options are enabled: ${what.join(", ")}.`),
             iconUrl: iconURL("limbo", 128),
             type: "basic",
         }).catch(logError);

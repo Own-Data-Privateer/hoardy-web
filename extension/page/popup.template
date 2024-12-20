@@ -890,6 +890,7 @@ section {
     </section>
 
     <ui id="config.verbose" type="boolean" data-help="Produce more verbose notifications. Enabled by default for on-boarding new users. You can safely disable this if you are aware that almost anything `Hoardy-Web` does can be changed by one of its settings, and/or if long notifications annoy you by taking a lot of screen area and/or speech time of you TTS engine.">Verbose notifications</ui>
+    <ui id="config.escapeNotifications" type="boolean" data-help="When generating notifications, escape some characters in their messages so prevent them from being interpreted as `HTML` by the notification daemon. Useful when not using the default notifications mechanism on some systems.">Escape notification messages</ui>
 
     <!-- half uiOptions -->
     </div>

@@ -261,6 +261,12 @@ function isAcceptedBy(rrfilter, loggable) {
     return true;
 }
 
+function escapeNotification(config, what) {
+    if (config.escapeNotifications)
+        return escapeHTMLTags(what);
+    return what;
+}
+
 function annoyingNotification(config, what) {
     if (config.verbose)
         return `\n\nYou can disable this notification by toggling the "${what}" option in the settings.\nYou can also toggle "User Interface and Accessibily > Verbose notifications" there to make this and similar notifications less verbose.`;
