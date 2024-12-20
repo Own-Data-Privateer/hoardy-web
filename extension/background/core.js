@@ -3204,16 +3204,9 @@ async function processAlmostDone(updatedTabId) {
     return updatedTabId;
 }
 
-async function snapshotOneTab(tabId, tabUrl) {
-    if (!config.snapshotAny && isBoringURL(tabUrl)) {
-        // skip stuff like handleBeforeRequest does
-        if (config.debugging)
-            console.log("NOT taking DOM snapshot of tab", tabId, tabUrl);
-        return;
-    }
-
+async function snapshotOneTab(tabId, url) {
     if (config.debugging)
-        console.log("taking DOM snapshot of tab", tabId, tabUrl);
+        console.log("taking DOM snapshot of tab", tabId, url);
 
     let start = Date.now();
     let allErrors = [];
@@ -3237,11 +3230,13 @@ async function snapshotOneTab(tabId, tabUrl) {
 
             let [date, documentUrl, originUrl, url, ct, result, errors] = data;
 
-            if (!config.snapshotAny && isBoringURL(url))
+            if (!config.snapshotAny && isBoringOrServerURL(url)) {
                 // skip stuff like handleBeforeRequest does, again, now for
                 // sub-frames
+                if (config.debugging)
+                    console.log("NOT taking DOM snapshot of sub-frame of tab", tabId, url);
                 continue;
-            else if (errors.length > 0) {
+            } else if (errors.length > 0) {
                 allErrors.push(errors.join("; "));
                 continue;
             } else if (typeof result !== "string") {
@@ -3294,7 +3289,7 @@ async function snapshotOneTab(tabId, tabUrl) {
         if (allErrors.length > 0)
             await browser.notifications.create(`error-snapshot-${tabId}`, {
                 title: "Hoardy-Web: ERROR",
-                message: escapeNotification(config, `While taking DOM snapshot of tab #${tabId} (${tabUrl.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`),
+                message: escapeNotification(config, `While taking DOM snapshot of tab #${tabId} (${url.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`),
                 iconUrl: iconURL("error", 128),
                 type: "basic",
             }).catch(logError);
@@ -3302,19 +3297,25 @@ async function snapshotOneTab(tabId, tabUrl) {
 }
 
 async function snapshot(tabIdNull) {
-    if (tabIdNull === null) {
-        // snapshot all tabs
-        let tabs = await browser.tabs.query({});
-        for (let tab of tabs) {
-            let tabId = tab.id;
-            let tabcfg = getOriginConfig(tabId);
-            if (!tabcfg.snapshottable)
-                continue;
-            await snapshotOneTab(tabId, getTabURL(tab));
-        }
-    } else {
+    let tabs;
+    if (tabIdNull === null)
+        tabs = await browser.tabs.query({});
+    else {
         let tab = await browser.tabs.get(tabIdNull);
-        await snapshotOneTab(tabIdNull, getTabURL(tab));
+        tabs = [ tab ];
+    }
+
+    for (let tab of tabs) {
+        let tabId = tab.id;
+        let tabcfg = getOriginConfig(tabId);
+        let url = getTabURL(tab);
+        if (tabIdNull === null && !tabcfg.snapshottable
+            || !config.snapshotAny && isBoringOrServerURL(url)) {
+            if (config.debugging)
+                console.log("NOT taking DOM snapshot of tab", tabId, url);
+            continue;
+        }
+        await snapshotOneTab(tabId, url);
     }
 
     scheduleEndgame(tabIdNull);
