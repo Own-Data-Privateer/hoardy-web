@@ -507,6 +507,14 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 
 - On Firefox-based browsers, you can see and edit all keyboard shortcuts via =Add-ons and themes= (=about:addons=) -> the gear icon -> =Manage Extension Shortcuts=.
 - On Chromium-based browsers, you can see and edit all keyboard shortcuts via the menu -> =Extensions= -> =Manage Extensions= (=chrome://extensions/=) -> =Keyboard shortcuts= (on the left).
+** Replay buttons
+:PROPERTIES:
+:CUSTOM_ID: replay
+:END:
+
+When your [[./popup.html#div-config.submitHTTPURLBase][archiving server]] supports it and [[./popup.html#div-config.replaySubmitHTTP][this option]] is enabled, =Hoardy-Web= enables its integration with replay over =HTTP=.
+
+At the moment, this includes [[./popup.html#replayAll][two]] [[./popup.html#replayTabBack][buttons]] which re-navigate all tabs or the currently active tab (respectively) to their replay pages as well as keyboard shortcuts and context menu actions described below.
 ** Keyboard shortcuts
 :PROPERTIES:
 :CUSTOM_ID: keyboard-shortcuts
@@ -534,6 +542,8 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 - [[./popup.html#discardAllTabInLimbo][discard all reqres from limbo for the currently active tab]], {{{shortcut(discardAllTabInLimbo)}}};
 - [[./popup.html#snapshotAll][take =DOM= snapshot of all tabs]] for which [[./popup.html#div-tabconfig.snapshottable][=Include in global snapshots= setting]] is enabled, {{{shortcut(snapshotAll)}}};
 - [[./popup.html#snapshotTab][take =DOM= snapshot of the currently active tab]], {{{shortcut(snapshotTab)}}}.
+- [[./popup.html#replayAll][replay all tabs]] for which [[./popup.html#div-tabconfig.replayable][=Include in global replays= setting]] is enabled, {{{shortcut(replayAll)}}};
+- [[./popup.html#replayTabBack][replay the currently active tab]], {{{shortcut(replayTabBack)}}}.
 ** Context menu actions
 :PROPERTIES:
 :CUSTOM_ID: context-menu-shortcuts
@@ -541,7 +551,7 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 
 =Hoardy-Web= provides context menu actions to:
 
-- open a given link in a new tab with currently active tab's [[./popup.html#div-tabconfig.children.collecting][tracking in children tabs setting]] negated.
+- open a link in a new tab with currently active tab's [[./popup.html#div-tabconfig.children.collecting][tracking in children tabs setting]] negated.
   I.e.,
 
   - right-mouse clicking while pointing at a link and
@@ -553,7 +563,9 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
   - middle-mouse clicking a link,
   - toggling [[./popup.html#div-tabconfig.children.collecting][this]] again.
 
-- do the same thing, but opening it in a new window.
+- do the same thing, but opening it in a new window;
+
+- open a replay of a link in a new tab.
 * Error messages and codes
 :PROPERTIES:
 :CUSTOM_ID: errors
@@ -568,6 +580,18 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
   Are you running the [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][archiving server script]] or a [[https://oxij.org/software/hoardy-web/tree/master/tool/][=hoardy-web serve=]] instance?
 
   In the case of =hoardy-web serve=, does that server instance allow archiving? is it replay-only, maybe?
+
+  If you fixed it and the error persists, press [[./popup.html#retryFailed][this button]].
+
+- =Replay is forbidden by the "Replay from the archiving server" option.=
+
+  Un-disable [[./popup.html#div-config.replaySubmitHTTP][this option]].
+
+- =Replay is impossible because the archiving server at `<URL>` is unavailable or defunct.= and =The archiving server at `<URL>` does not support replay.=
+
+  Are you running [[https://oxij.org/software/hoardy-web/tree/master/tool/][=hoardy-web serve=]]?
+
+  At the moment, that's the only archiving server that supports this.
 
   If you fixed it and the error persists, press [[./popup.html#retryFailed][this button]].
 

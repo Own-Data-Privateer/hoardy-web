@@ -124,6 +124,7 @@ async function popupMain() {
     let emojiButtons = {
         reloadSelf: "（🌟ω🌟）",
         snapshotAll: "📸",
+        replayAll: "⏏",
         forgetHistory: "🧹",
         showState: "📜",
         runActions: "🟢",
@@ -138,6 +139,8 @@ async function popupMain() {
         unmarkAllProblematic: "🧹",
         stopAllInFlight: "⏹",
         snapshotTab: "📸",
+        replayTabBack: "⏮",
+        //replayTabForward: "⏭",
         forgetTabHistory: "🧹",
         showTabState: "📜",
         collectAllTabInLimbo: "✔",
@@ -216,6 +219,7 @@ async function popupMain() {
     buttonToAction("showState", catchAll(() => replaceWith(showState, "", "top")));
     buttonToMessage("forgetHistory",           () => ["forgetHistory", null]);
     buttonToMessage("snapshotAll",             () => ["snapshot", null]);
+    buttonToMessage("replayAll",               () => ["replay", null, null]);
     buttonToMessage("exportAsAll",             () => ["exportAs", null]);
     buttonToMessage("collectAllInLimbo",       () => ["popInLimbo", true, null, null]);
     buttonToMessage("discardAllInLimbo",       () => ["popInLimbo", false, null, null]);
@@ -225,6 +229,8 @@ async function popupMain() {
     buttonToAction("showTabState", catchAll(() => replaceWith(showState, `?tab=${tabId}`, "top")));
     buttonToMessage("forgetTabHistory",        () => ["forgetHistory", tabId]);
     buttonToMessage("snapshotTab",             () => ["snapshot", tabId]);
+    buttonToMessage("replayTabBack",           () => ["replay", tabId, false]);
+    //buttonToMessage("replayTabForward",        () => ["replay", tabId, true]);
     buttonToMessage("collectAllTabInLimbo",    () => ["popInLimbo", true, null, tabId]);
     buttonToMessage("discardAllTabInLimbo",    () => ["popInLimbo", false, null, tabId]);
     buttonToMessage("unmarkAllTabProblematic", () => ["unmarkProblematic", null, tabId]);
@@ -305,7 +311,8 @@ async function popupMain() {
         implySetConditionalOff(dbody, "on-archive", !config.archive);
         implySetConditionalOff(dbody, "on-exportAs", !(config.archive && config.archiveExportAs));
         implySetConditionalOff(dbody, "on-exportAsBundle", !config.exportAsBundle);
-        implySetConditionalOff(dbody, "on-submitHTTP", !(config.archive && config.archiveSubmitHTTP));
+        implySetConditionalOff(dbody, "on-useHTTP", !(config.archive && config.archiveSubmitHTTP
+                                                      || config.replaySubmitHTTP));
         implySetConditionalOff(dbody, "on-LS", !config.stash && !(config.archive && config.archiveSaveLS));
         implySetConditionalOff(dbody, "on-auto", !config.autoUnmarkProblematic && !config.autoPopInLimboCollect && !config.autoPopInLimboDiscard);
         implySetConditionalOff(dbody, "on-problematicNotify", !config.problematicNotify);
@@ -320,6 +327,7 @@ async function popupMain() {
         setConditionalClass(reloadSelfButton, "attention", stats.update_available);
         implySetConditionalClass(dbody, "on-reload",  "hidden", !hash && !(stats.update_available || config.debugging));
         implySetConditionalClass(dbody, "on-pending", "hidden", !stats.reload_pending);
+        implySetConditionalOff(dbody, "on-replay", !(config.replaySubmitHTTP !== false && stats.can_replay));
     }
 
     async function updateTabConfig(tabconfig) {
@@ -329,6 +337,9 @@ async function popupMain() {
             switch (path) {
             case "tabconfig.snapshottable":
                 newtabconfig.children.snapshottable = newtabconfig.snapshottable;
+                break;
+            case "tabconfig.replayable":
+                newtabconfig.children.replayable = newtabconfig.replayable;
                 break;
             case "tabconfig.workOffline":
                 if (config.workOfflineImpure)

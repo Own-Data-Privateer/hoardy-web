@@ -92,8 +92,9 @@ let configDefaults = {
     exportAsInFlightTimeout: 60,
     gzipExportAs: true,
 
-    // submission via HTTP
+    // submission and replay via HTTP
     archiveSubmitHTTP: false,
+    replaySubmitHTTP: null,
     submitHTTPURLBase: "http://127.0.0.1:3210/",
 
     // saving to local storage
@@ -150,6 +151,7 @@ let configDefaults = {
 
     root: {
         snapshottable: true,
+        replayable: true,
         workOffline: false,
         collecting: true,
         problematicNotify: true,
@@ -221,6 +223,7 @@ let serverConfigDefaults = {
         dump_wrr: "/pwebarc/dump",
     },
     canDump: false,
+    canReplay: false,
 };
 let serverConfig = assignRec({}, serverConfigDefaults);
 
@@ -303,6 +306,7 @@ async function checkServer() {
 
     serverConfig.info = info;
     serverConfig.canDump = info.dump_wrr !== undefined;
+    serverConfig.canReplay = info.replay_latest !== undefined;
 
     if (!serverConfig.alive) {
         await browser.notifications.create("error-server", {
@@ -336,6 +340,51 @@ async function checkServer() {
         await browser.notifications.clear("warning-server");
 
     retryOneUnarchived(config.submitHTTPURLBase, true);
+}
+
+function checkReplay() {
+    const ifFixed = `\n\nIf you fixed it and the error persists, press the "Retry … failed" button in the popup.`;
+
+    if (config.replaySubmitHTTP === false) {
+        browser.notifications.create(`error-replay`, {
+            title: "Hoardy-Web: ERROR",
+            message: escapeNotification(config, `Replay is forbidden by the "Replay from the archiving server" option.\n\nEnable it to allow this feature.`),
+            iconUrl: iconURL("error", 128),
+            type: "basic",
+        }).catch(logError);
+
+        return false;
+    } else if (!serverConfig.alive) {
+        browser.notifications.create(`error-replay`, {
+            title: "Hoardy-Web: ERROR",
+            message: escapeNotification(config, `Replay is impossible because the archiving server at \`${serverConfig.baseURL}\` is unavailable or defunct.` + ifFixed),
+            iconUrl: iconURL("error", 128),
+            type: "basic",
+        }).catch(logError);
+
+        return false;
+    } else if (!serverConfig.canReplay) {
+        browser.notifications.create(`error-replay`, {
+            title: "Hoardy-Web: ERROR",
+            message: escapeNotification(config, `The archiving server at \`${serverConfig.baseURL}\` does not support replay.\n\nSwitch your archiving server to \`hoardy-web serve\` for this feature to work.` + ifFixed),
+            iconUrl: iconURL("error", 128),
+            type: "basic",
+        }).catch(logError);
+
+        return false;
+    } else
+        // clear stale
+        browser.notifications.clear("error-replay").catch(logError);
+
+    return true;
+}
+
+function latestReplayOf(url) {
+    if (!serverConfig.canReplay)
+        throw Error("replay is not available");
+
+    let replayURL = serverConfig.info.replay_latest.replace("{url}", url);
+    return (new URL(replayURL, serverConfig.baseURL)).href;
 }
 
 function isServerURL(url) {
@@ -944,6 +993,7 @@ function getStats() {
         bundledAs_size: bundledAsSize,
         submittedHTTP: globals.submittedHTTPTotal,
         submittedHTTP_size: globals.submittedHTTPSize,
+        can_replay: serverConfig.canReplay,
         saved: globals.savedLS.number + globals.savedIDB.number,
         saved_size: globals.savedLS.size + globals.savedIDB.size,
         unarchived: archiveFailed,
@@ -3321,6 +3371,32 @@ async function snapshot(tabIdNull) {
     scheduleEndgame(tabIdNull);
 }
 
+async function replay(tabIdNull, direction) {
+    if (!checkReplay())
+        return;
+
+    let tabs;
+    if (tabIdNull === null)
+        tabs = await browser.tabs.query({});
+    else {
+        let tab = await browser.tabs.get(tabIdNull);
+        tabs = [ tab ];
+    }
+
+    for (let tab of tabs) {
+        let tabId = tab.id;
+        let tabcfg = getOriginConfig(tabId);
+        let url = getTabURL(tab);
+        if (tabIdNull === null && !tabcfg.replayable
+            || isBoringOrServerURL(url)) {
+            if (config.debugging)
+                console.log("NOT replaying tab", tabId, url);
+            continue;
+        }
+        await navigateTabTo(tabId, latestReplayOf(url));
+    }
+}
+
 function emitTabInFlightWebRequest(tabId, reason) {
     for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
         if (tabId === null || reqres.tabId === tabId)
@@ -4290,6 +4366,9 @@ function handleMessage(request, sender, sendResponse) {
     case "snapshot":
         snapshot(arg1);
         break;
+    case "replay":
+        replay(arg1, arg2);
+        break;
     case "runActions":
         syncRunActions();
         scheduleEndgame(null);
@@ -4360,6 +4439,18 @@ function initMenus() {
         title: menuTitleWindow[true],
     });
 
+    browser.menus.create({
+        id: "replay-tab",
+        contexts: ["link"],
+        title: "Replay Link in New Tab",
+    });
+
+    browser.menus.create({
+        id: "replay-window",
+        contexts: ["link"],
+        title: "Replay Link in New Window",
+    });
+
     if (!useDebugger) {
         browser.menus.update("open-not-tab", { icons: menuIcons[true] });
         browser.menus.update("open-not-window", { icons: menuIcons[true] });
@@ -4376,14 +4467,21 @@ function initMenus() {
         if (config.debugging)
             console.log("menu action", info, tab);
 
+        let cmd = info.menuItemId;
         let url = info.linkUrl;
-        let newWindow = info.menuItemId === "open-not-window"
+        let newWindow = cmd.endsWith("-window")
             && (url.startsWith("http:") || url.startsWith("https:"));
 
-        negateConfigFor.add(tab.id);
-        if (useDebugger)
-            // work around Chromium bug
-            negateOpenerTabIds.push(tab.id);
+        if (cmd.startsWith("replay-")) {
+            if (!checkReplay())
+                return;
+            url = latestReplayOf(url);
+        } else if (cmd.startsWith("open-not-")) {
+            negateConfigFor.add(tab.id);
+            if (useDebugger)
+                // work around Chromium bug
+                negateOpenerTabIds.push(tab.id);
+        }
 
         browser.tabs.create({
             url,
@@ -4450,6 +4548,15 @@ async function handleCommand(command) {
         return;
     case "snapshotTab":
         snapshot(tabId);
+        return;
+    case "replayAll":
+        replay(null, null);
+        return;
+    case "replayTabBack":
+        replay(tabId, false);
+        return;
+    case "replayTabForward":
+        replay(tabId, true);
         return;
     case "toggleTabConfigSnapshottable":
         tabcfg = getOriginConfig(tabId);
@@ -4619,6 +4726,11 @@ function fixConfig(config, oldConfig) {
         syncRetryUnarchived(true);
         wantArchiveDoneNotify = true;
     }
+
+    if (config.replaySubmitHTTP !== false
+        && (config.replaySubmitHTTP !== oldConfig.replaySubmitHTTP
+            || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase))
+        wantCheckServer = true;
 }
 
 function upgradeConfig(config) {
