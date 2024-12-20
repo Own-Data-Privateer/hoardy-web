@@ -303,10 +303,10 @@ async function popupMain() {
         implySetConditionalOff(dbody, "on-collecting", !config.collecting);
         implySetConditionalOff(dbody, "on-stash", !config.stash);
         implySetConditionalOff(dbody, "on-archive", !config.archive);
-        implySetConditionalOff(dbody, "on-exportAs", !config.archive || !config.archiveExportAs);
+        implySetConditionalOff(dbody, "on-exportAs", !(config.archive && config.archiveExportAs));
         implySetConditionalOff(dbody, "on-exportAsBundle", !config.exportAsBundle);
-        implySetConditionalOff(dbody, "on-submitHTTP", !config.archive || !config.archiveSubmitHTTP);
-        implySetConditionalOff(dbody, "on-LS", !config.stash && (!config.archive || !config.archiveSaveLS));
+        implySetConditionalOff(dbody, "on-submitHTTP", !(config.archive && config.archiveSubmitHTTP));
+        implySetConditionalOff(dbody, "on-LS", !config.stash && !(config.archive && config.archiveSaveLS));
         implySetConditionalOff(dbody, "on-auto", !config.autoUnmarkProblematic && !config.autoPopInLimboCollect && !config.autoPopInLimboDiscard);
         implySetConditionalOff(dbody, "on-problematicNotify", !config.problematicNotify);
         implySetConditionalOff(dbody, "on-limboNotify", !config.limboNotify);
