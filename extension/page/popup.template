@@ -412,6 +412,7 @@ section {
     <h2>Tabs with special URLs</h2>
     <div class="idots ui">
     <ui id="config.workOfflineFile" type="boolean" data-help="Automatically enable `This tab > Work offline` option in a tab when it navigates to a `file:` URL. This mainly exists to prevent pages produced by `hoardy-web mirror` from accessing the Internet. See the `Help` page for more info.">Force <code>Work offline</code> in <code>file:</code> tabs</ui>
+    <ui id="config.workOfflineReplay" type="boolean" data-help="Automatically enable `This tab > Work offline` option in a tab when it navigates to a replay URL. This mainly exists to prevent pages produced by `hoardy-web serve` from accessing the Internet. See the `Help` page for more info.">Force <code>Work offline</code> in replayed tabs</ui>
     <ui id="config.workOfflineData" type="boolean" data-help="Automatically enable `This tab > Work offline` option in a tab when it navigates to a `data:` URL. See the `Help` page for more info.">Force <code>Work offline</code> in <code>data:</code> tabs</ui>
     </div>
     </section>

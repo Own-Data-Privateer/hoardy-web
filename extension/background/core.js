@@ -60,6 +60,7 @@ let configDefaults = {
     // work offline settings
     workOfflineImpure: false,
     workOfflineFile: true,
+    workOfflineReplay: true,
     workOfflineData: false,
 
     // Firefox workarounds
@@ -3539,6 +3540,7 @@ function toggleTabConfigWorkOffline(tabcfg) {
 
 function resetTabConfigWorkOffline(tabcfg, url) {
     if (config.workOfflineFile && url.startsWith("file:")
+        || config.workOfflineReplay && url.startsWith(serverConfig.baseURL)
         || config.workOfflineData && url.startsWith("data:")) {
         if (!tabcfg.workOffline) {
             toggleTabConfigWorkOffline(tabcfg);
