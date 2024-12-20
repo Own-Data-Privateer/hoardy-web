@@ -298,7 +298,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         if (isDefinedURL(e.documentURL))
             dreqres.documentUrl = e.documentURL;
         dreqres.requestHeadersDebug = e.request.headers;
-        if (!isBoringURL(dreqres.url))
+        if (!isBoringOrServerURL(dreqres.url))
             broadcast(["newInFlight", [makeLoggableReqres(dreqres)]]);
     } else {
         if (dreqres.requestTimeStamp === undefined)
@@ -404,7 +404,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     // Also see (veryEarly) in `getInFlightLog`.
     //
     // Second case: ignore data, file, end extension URLs.
-    if (dreqres.url === undefined || isBoringURL(dreqres.url)) {
+    if (dreqres.url === undefined || isBoringOrServerURL(dreqres.url)) {
         if (!dontFinishUp)
             processMatchFinishingUpWebRequestDebug(false, dreqres.tabId);
         return;

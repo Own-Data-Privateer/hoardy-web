@@ -184,7 +184,7 @@ let configDefaults = {
     discardAll: false, // drop all reqres on archival
     dumping: false, // dump dumps to console
     ephemeral: false, // stop the config from being saved to disk
-    snapshotAny: false, // snapshot isBoringURL
+    snapshotAny: false, // snapshot isBoringOrServerURL
 
     // meta
     lastSeenVersion: manifest.version,
@@ -214,17 +214,19 @@ function asyncSaveConfig() {
 
 // archiving/replay server config
 let serverConfigDefaults = {
-    ok: false,
     baseURL: configDefaults.submitHTTPURLBase,
+    alive: false,
     info: {
         version: 0,
         dump_wrr: "/pwebarc/dump",
     },
+    canDump: false,
 };
 let serverConfig = assignRec({}, serverConfigDefaults);
-let wantCheckServer = true;
 
-function setServerBaseURL() {
+function setServer() {
+    serverConfig = assignRec({}, serverConfigDefaults);
+
     let serverURL;
     try {
         serverURL = new URL(config.submitHTTPURLBase);
@@ -252,21 +254,28 @@ function setServerBaseURL() {
     serverConfig.baseURL = serverURL.href;
 }
 
+let wantCheckServer = true;
+
 async function checkServer() {
-    serverConfig = assignRec({}, serverConfigDefaults);
+    wantCheckServer = false;
 
-    setServerBaseURL();
+    if (!(config.archive && config.archiveSubmitHTTP || config.replaySubmitHTTP))
+        return;
 
-    let serverURL = new URL("hoardy-web/server-info", serverConfig.baseURL);
+    let baseURL = serverConfig.baseURL;
+
+    console.log("checking the archiving server at", baseURL);
+
+    let infoURL = new URL("hoardy-web/server-info", baseURL);
 
     let response;
     try {
-        response = await fetch(serverURL.href);
+        response = await fetch(infoURL.href);
     } catch (err) {
         logError(err);
         await browser.notifications.create("error-server-connection", {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `\`Hoardy-Web\` can't establish a connection to the archiving server at \`${serverConfig.baseURL}\`:\n${errorMessageOf(err)}`),
+            message: escapeNotification(config, `\`Hoardy-Web\` can't establish a connection to the archiving server at \`${baseURL}\`:\n${errorMessageOf(err)}`),
             iconUrl: iconURL("failed", 128),
             type: "basic",
         });
@@ -276,27 +285,37 @@ async function checkServer() {
     // clear stale
     await browser.notifications.clear("error-server-connection");
 
+    let info;
     if (response.status === 200) {
-        let info;
         try {
             info = await response.json();
         } catch (err) {
             logError(err);
         }
-        if (info !== undefined && info.dump_wrr !== undefined) {
-            serverConfig.ok = true;
-            serverConfig.info = info;
-        }
-    } else if (response.status === 404) {
+    } else if (response.status === 404)
         // an old version of `hoardy-web-sas`
-        serverConfig.ok = true;
-        serverConfig.info = assignRec({}, serverConfigDefaults.info);
-    }
+        info = assignRec({}, serverConfigDefaults.info);
 
-    if (!serverConfig.ok) {
+    if (info !== undefined)
+        serverConfig.alive = true;
+    else
+        info = { version: 0 };
+
+    serverConfig.info = info;
+    serverConfig.canDump = info.dump_wrr !== undefined;
+
+    if (!serverConfig.alive) {
         await browser.notifications.create("error-server", {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `The archiving server at \`${serverConfig.baseURL}\` appears to be defunct.`),
+            message: escapeNotification(config, `The archiving server at \`${baseURL}\` appears to be defunct.`),
+            iconUrl: iconURL("failed", 128),
+            type: "basic",
+        });
+        return;
+    } else if (!serverConfig.canDump && config.archive && config.archiveSubmitHTTP) {
+        await browser.notifications.create("error-server", {
+            title: "Hoardy-Web: ERROR",
+            message: escapeNotification(config, `The archiving server at \`${baseURL}\` does not allow archiving, it appears to be a replay-only instance.`),
             iconUrl: iconURL("failed", 128),
             type: "basic",
         });
@@ -308,7 +327,7 @@ async function checkServer() {
     if (serverConfig.info.version < 0) {
         await browser.notifications.create("warning-server", {
             title: "Hoardy-Web: WARNING",
-            message: escapeNotification(config, `You are running a deprecated version of an archival server at \`${serverConfig.baseURL}\`, please update it.`),
+            message: escapeNotification(config, `You are running a deprecated version of an archiving server at \`${baseURL}\`, please update it.`),
             iconUrl: iconURL("archiving", 128),
             type: "basic",
         });
@@ -317,6 +336,14 @@ async function checkServer() {
         await browser.notifications.clear("warning-server");
 
     retryOneUnarchived(config.submitHTTPURLBase, true);
+}
+
+function isServerURL(url) {
+    return url.startsWith(serverConfig.baseURL);
+}
+
+function isBoringOrServerURL(url) {
+    return isBoringURL(url) || isServerURL(url);
 }
 
 let runningActions = new Set();
@@ -672,7 +699,7 @@ function getInFlightLog() {
     let res = [];
     for (let [k, v] of debugReqresInFlight.entries()) {
         // `.url` can be unset, see (veryEarly) in `emitDebugRequest`.
-        if (v.url !== undefined && !isBoringURL(v.url))
+        if (v.url !== undefined && !isBoringOrServerURL(v.url))
             res.push(makeLoggableReqres(v));
     }
     for (let [k, v] of reqresInFlight.entries())
@@ -1637,9 +1664,8 @@ function scheduleEndgame(updatedTabId) {
             // explicitly instead or use `mergeUpdatedTabIds` above instead
             scheduleEndgame(null);
         });
-    } else if (wantCheckServer && config.archive && config.archiveSubmitHTTP) {
+    } else if (wantCheckServer) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
-            wantCheckServer = false;
             await checkServer();
             scheduleEndgame(updatedTabId);
         });
@@ -1715,7 +1741,7 @@ function scheduleEndgame(updatedTabId) {
                                   , null);
             }
 
-            if (wantRetryUnarchived || !serverConfig.ok) {
+            if (wantRetryUnarchived || !serverConfig.canDump) {
                 wantRetryUnarchived = false;
                 if (config.archive && reqresUnarchivedByArchivable.size > 0)
                     // retry unarchived in 60s
@@ -2666,7 +2692,7 @@ async function submitHTTPOne(archivable) {
         recordOneUnarchived(archiveURL, reason, recoverable, archivable, dumpSize);
     }
 
-    if (!serverConfig.ok) {
+    if (!serverConfig.canDump) {
         broken(config.submitHTTPURLBase, "this archiving server is defunct", false);
         return false;
     }
@@ -2704,7 +2730,7 @@ async function submitHTTPOne(archivable) {
 
     if (response.status !== 200) {
         broken(archiveURL, `request to the archiving server failed with ${response.status} ${response.statusText}: ${responseText}`, false);
-        serverConfig.ok = false;
+        serverConfig.canDump = false;
         return false;
     }
 
@@ -3540,7 +3566,7 @@ function toggleTabConfigWorkOffline(tabcfg) {
 
 function resetTabConfigWorkOffline(tabcfg, url) {
     if (config.workOfflineFile && url.startsWith("file:")
-        || config.workOfflineReplay && url.startsWith(serverConfig.baseURL)
+        || config.workOfflineReplay && isServerURL(url)
         || config.workOfflineData && url.startsWith("data:")) {
         if (!tabcfg.workOffline) {
             toggleTabConfigWorkOffline(tabcfg);
@@ -3575,8 +3601,7 @@ function handleBeforeRequest(e) {
     //
     // NB: `file:` URLs only happen on Chromium, Firefox does not emit any
     // `webRequest` events for those.
-    let serverURL = serverConfig.baseURL;
-    if (isBoringURL(url) || url.startsWith(serverURL))
+    if (isBoringOrServerURL(url))
         return;
 
     let initiator;
@@ -4584,7 +4609,7 @@ function fixConfig(config, oldConfig) {
         syncStashAll(false);
 
     if (config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)
-        setServerBaseURL();
+        setServer();
 
     if (config.archive && config.archiveSubmitHTTP
         && (config.archive !== oldConfig.archive
@@ -4717,7 +4742,7 @@ async function init() {
     }
 
     // NB: this depends on reqresIDB
-    fixConfig(config, config);
+    fixConfig(config, configDefaults);
 
     let oldSession = localData.session;
     let sessionTabs = {};
@@ -4837,6 +4862,11 @@ async function init() {
     }
 
     asyncNotifications(1000);
+
+    resetSingletonTimeout(scheduledHidden, "endgame", 100, async () => {
+        // a bit of a hack to only run this instead of the whole `scheduleEndgame(null)`
+        await checkServer();
+    });
 
     scheduleUpdateDisplay(true, null, 1, 0, true, true);
 }

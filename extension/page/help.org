@@ -563,7 +563,7 @@ By default, "Work offline" mode is enabled for =file:= URLs to stop any pages ge
 :CUSTOM_ID: error-notifications
 :END:
 
-- =`Hoardy-Web` can't establish a connection to the archiving server at <URL>=, =The archiving server at <URL> appears to be defunct=, =Failed to archive <N> items because `Hoardy-Web` can't establish a connection to the archiving server=, and =Failed to archive <N> items because this archiving server is defunct=
+- =`Hoardy-Web` can't establish a connection to the archiving server at `<URL>`=, =The archiving server at `<URL>` appears to be defunct=, =The archiving server at `<URL>` does not allow archiving, it appears to be a replay-only instance=, =Failed to archive <N> items because `Hoardy-Web` can't establish a connection to the archiving server=, and =Failed to archive <N> items because this archiving server is defunct=
 
   Are you running the [[https://oxij.org/software/hoardy-web/tree/master/simple_server/][archiving server script]] or a [[https://oxij.org/software/hoardy-web/tree/master/tool/][=hoardy-web serve=]] instance?
 
