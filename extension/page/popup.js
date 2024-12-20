@@ -23,11 +23,30 @@
 
 let dbody = document.body;
 
-function show(condition) {
-    implySetConditionalClass(dbody, "more", "hidden", !condition);
-    implySetConditionalClass(dbody, "less", "hidden", condition);
+const tagNames = ["common", "main", "bg", "this", "class", "pr", "run", "ui", "all"];
 
-    if (condition)
+function showTab(name) {
+    //implySetConditionalClass(dbody, "more", "hidden", !condition);
+    //implySetConditionalClass(dbody, "less", "hidden", condition);
+
+    for (let node of document.getElementById("tags").getElementsByClassName("active"))
+        node.classList.remove("active");
+    document.getElementById(`showTag-${name}`).classList.add("active");
+
+    if (name == "all") {
+        for (let tn of tagNames)
+            for (let node of document.getElementsByClassName(`tag-${tn}`))
+                node.classList.remove("hidden");
+    } else {
+        for (let tn of tagNames)
+            for (let node of document.getElementsByClassName(`tag-${tn}`))
+                node.classList.add("hidden");
+
+        for (let node of document.getElementsByClassName(`tag-${name}`))
+            node.classList.remove("hidden");
+    }
+
+    if (name !== "common")
         for (let node of dbody.getElementsByTagName("input")) {
             let ti = node.getAttribute("tabindex");
             if (ti !== null && ti != -1) {
@@ -67,7 +86,13 @@ async function popupMain() {
     let windowId;
 
     let tabbing = false;
-    if (hash !== "options") {
+    if (hash === "options") {
+        document.getElementById("tags").style.display = "none";
+        document.getElementById("this-tab-options").style.display = "none";
+        document.getElementById("this-tab-children-options").style.display = "none";
+    } else if (hash == "all") {
+        document.getElementById("tags").style.display = "none";
+    } else {
         let tab = await getActiveTab();
         if (tab !== null) {
             windowId = tab.windowId;
@@ -80,9 +105,6 @@ async function popupMain() {
             tabId = 0;
         }
         tabbing = true;
-    } else {
-        document.getElementById("this-tab-options").style.display = "none";
-        document.getElementById("this-tab-children-options").style.display = "none";
     }
 
     // generate UI
@@ -230,10 +252,11 @@ async function popupMain() {
         browser.runtime.sendMessage(["resetConfig"]).catch(logError);
     }));
 
-    buttonToAction("showAll", catchAll(() => {
-        show(true);
-        broadcast(["popupResized"]);
-    }));
+    for (let tn of tagNames)
+      buttonToAction(`showTag-${tn}`, catchAll(() => {
+          showTab(tn);
+          broadcast(["popupResized"]);
+      }));
 
     let config;
 
@@ -349,7 +372,7 @@ async function popupMain() {
     }
 
     // set default UI state
-    show(!!hash);
+    showTab(!!hash ? "all" : "common");
 
     async function processUpdate(update) {
         let [what, arg1, arg2] = update;
@@ -374,7 +397,7 @@ async function popupMain() {
                 tabId = arg2;
             break;
         default:
-            await handleDefaultUpdate(update, "popup");
+            await handleDefaultUpdate(update, "popup", () => showTab("all"));
         }
     }
 

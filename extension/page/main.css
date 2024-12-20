@@ -29,6 +29,11 @@
     --help-tip-background: #fffffa;
     --help-tip-border-color: #aaaaaa;
     --help-tip-text: var(--text-color);
+    --tag-background: inherit;
+    --tag-color: var(--text-color);
+    --active-tag-background: #d0d0d0;
+    --active-tag-color: var(--text-color);
+    --active-tag-underline: #a0f0a0;
     --hover-background: #d0d0d0;
     --hover-border-color: #808080;
     --hover-color: var(--text-color);
@@ -94,6 +99,8 @@
     --help-btn-checked-color: #060606;
     --help-btn-color: #aaaaaa;
     --help-tip-background: #000005;
+    --active-tag-background: #333333;
+    --active-tag-underline: #d0f0d0;
     --hover-background: #505050;
     --hover-border-color: #e0e0e0;
     --outline-color: #666666;
