@@ -29,7 +29,7 @@ In author's humble opinion, the rendering of the documentation pages there is su
 
 # Screenshots
 
-![Screenshot of Firefox's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.13.0-popup.png)
+![Screenshot of Firefox's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.19.0-popup.png)
 
 ![Screenshot of Chromium's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.10.0-chromium.png)
 

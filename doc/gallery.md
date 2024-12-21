@@ -1,3 +1,11 @@
+# extension-v1.19.0
+
+![Screenshot of Firefox's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.19.0-popup.png)
+
+# extension-v1.18.0
+
+![Screenshot of Firefox's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.18.0-popup.png)
+
 # extension-v1.13.0
 
 ![Screenshot of Firefox's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.13.0-popup.png)
