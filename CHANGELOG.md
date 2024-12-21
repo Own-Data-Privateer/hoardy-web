@@ -6,6 +6,64 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.19.0] - 2024-12-21: Reworked popup UI, better replay integration
+
+### Changed (1)
+
+- Popup UI:
+
+  - Reorganized the whole layout by assigning tags to all elements and allowing switching between those tags as if they were tabs.
+
+    The original idea was to unroll in steps a-la `uBlock Origin`, but this is superior.
+
+  - Improved some help strings.
+
+### Added
+
+- Core + Popup UI + Shortcuts:
+
+  - Added `Replay from the archiving server` configuration option.
+
+    It's a tristate of: disallow, enable if `Submit dumps via 'HTTP'` option is enabled and the server supports it, enable even if `Submit dumps via 'HTTP'` option is disabled.
+
+  - Added `Include in global replays` per-tab options.
+
+  - Added popup UI button and keyboard shortcut both of which re-navigate all tabs for which `Include in global replays` is set to their replays.
+
+  - Added popup UI button, keyboard shortcut, and context menu item all of which re-navigate a currently active tab to its replay.
+
+  - Added `Force 'Work offline' in replayed tabs` configuration option which does the same thing the similar options for `file:` and `data:` URL does, but for tabs that point to replay URLs.
+    Enabled by default.
+
+  - Added `🎄 Winter Days mode` seasonal theme.
+
+  - Added `Escape notification messages` configuration option to help support more notification daemons.
+    Disabled by default.
+
+### Changed (2)
+
+- The [`Help` page](./extension/page/help.org):
+
+  - Merged "Handling of failures" section into "Archival".
+
+  - Reworded some awkward places.
+
+- Core + `manifest.json`:
+
+  - Improved server checking logic and error messages.
+
+  - Improved keyboard shortcut descriptions.
+
+- Improved documentation.
+
+### Fixed
+
+- Core:
+
+  - `Snapshot` buttons and keyboard shortcuts will no longer take `DOM` snapshots of replay pages, unless `Capture snapshots of all URLs` option is set.
+
+  - On Chromium, fixed `Hoardy-Web` trying to collect and archive replay pages.
+
 ## [extension-v1.18.0] - 2024-12-16: Replay integration, incremental improvements
 
 This release integrates the `extension` with `tool-v0.20.0`, which can now do both archival and replay over `HTTP`, see below.
@@ -1967,6 +2025,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.19.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.18.0...extension-v1.19.0
 [extension-v1.18.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.17.2...extension-v1.18.0
 [tool-v0.20.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.19.0...tool-v0.20.0
 [simple_server-v1.8.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.7.0...simple_server-v1.8.0
@@ -2043,9 +2102,6 @@ All planned features are complete now.
   - (~25% done) Reorganize tracking- and problematic-related options into config profiles, allow them to override each over.
   - Implement per-host profiles.
   - Implement automatic capture of `DOM` snapshots when a page changes.
-- UI:
-  - (~25% done) Roll/unroll popup UI in steps, a-la `uBlock Origin`.
-    The number of settings `Hoardy-Web` now has is kind of ridiculous (and I still want more), I find it hard to find stuff in there myself now, so.
 - Core:
   - Implement automatic management of `network.proxy.no_proxies_on` setting to allow `Hoardy-Web` archival to an archiving server to work out of the box when using proxies.
   - Maybe: Dumping straight into `WARC`, so that third-party tools (i.e. not just `hoardy-web`) could be used for everything except capture.
