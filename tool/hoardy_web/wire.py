@@ -729,11 +729,15 @@ def test_unparse_data_url() -> None:
 
 Headers = list[tuple[str, bytes]]
 
-def get_raw_headers(headers : Headers) -> list[bytes]:
-    return [k.encode("ascii") + b": " + v for k, v in headers]
+def get_raw_headers(headers : Headers) -> list[tuple[str, bytes]]:
+    # split because browsers frequently squish headers together
+    return [(k, e) for k, v in headers for e in v.split(b"\n")]
+
+def get_raw_headers_bytes(headers : Headers) -> list[bytes]:
+    return [k.encode("ascii") + b": " + v for k, v in get_raw_headers(headers)]
 
 def get_raw_header_values(headers : Headers, name : str) -> list[bytes]:
-    # split because browsers frequently squish headers together
+    # similarly
     return [e for k, v in headers if k.lower() == name for e in v.split(b"\n")]
 
 def get_header_values(headers : Headers, name : str) -> list[str]:

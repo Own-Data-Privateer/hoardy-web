@@ -168,7 +168,7 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
         def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> IterSB:
             value = rrexpr.get_value(field)
             if value is not None:
-                return get_raw_headers(value)
+                return get_raw_headers_bytes(value)
             return []
 
         add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)
@@ -196,10 +196,10 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
         def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> list[str | bytes]:
             res : list[str | bytes] = [ rrexpr.raw_url, rrexpr.url, rrexpr.pretty_url ]
             reqres = rrexpr.reqres
-            res += get_raw_headers(reqres.request.headers)
+            res += get_raw_headers_bytes(reqres.request.headers)
             res.append(reqres.request.body)
             if reqres.response is not None:
-                res += get_raw_headers(reqres.response.headers)
+                res += get_raw_headers_bytes(reqres.response.headers)
                 res.append(reqres.response.body)
             return res
 
