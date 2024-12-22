@@ -503,7 +503,7 @@ ReqresExpr_atoms.update({
   - the first must be either of `request|response`, it controls which `HTTP` headers `scrub` should inspect to help it detect the `MIME` type;
   - the second is either `defaults` or ","-separated string of tokens which control the scrubbing behaviour:
     - `(+|-|*|/|&)jumps` controls how jump-links (`a href`, `area href`, and similar `HTML` tag attributes) should be remapped or censored out:
-      - `+` rewrites their values into full URLs, e.g. `<a href="/path?query">` -> `a href="https://example.org/path?query">`;
+      - `+` rewrites their values into full URLs, e.g. `<a href="/path?query">` -> `<a href="https://example.org/path?query">`;
       - `-` "voids" all of them, i.e. rewrites them to `javascript:void(0)` and empty `data:` URLs;
       - `*` rewrites links in an "open"-ended way, i.e. points them to locally mirrored versions of their URLs when available and leaves them pointing to their original URL otherwise; {_scrub_to("+")};
       - `/` rewrites links in a "close"-ended way, i.e. points them to locally mirrored versions of their URLs when available and voids them otherwise; {_scrub_to("-")};

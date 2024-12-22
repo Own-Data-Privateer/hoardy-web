@@ -1107,7 +1107,7 @@ The end.
             - the first must be either of `request|response`, it controls which `HTTP` headers `scrub` should inspect to help it detect the `MIME` type;
             - the second is either `defaults` or ","-separated string of tokens which control the scrubbing behaviour:
               - `(+|-|*|/|&)jumps` controls how jump-links (`a href`, `area href`, and similar `HTML` tag attributes) should be remapped or censored out:
-                - `+` rewrites their values into full URLs, e.g. `<a href="/path?query">` -> `a href="https://example.org/path?query">`;
+                - `+` rewrites their values into full URLs, e.g. `<a href="/path?query">` -> `<a href="https://example.org/path?query">`;
                 - `-` "voids" all of them, i.e. rewrites them to `javascript:void(0)` and empty `data:` URLs;
                 - `*` rewrites links in an "open"-ended way, i.e. points them to locally mirrored versions of their URLs when available and leaves them pointing to their original URL otherwise; this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `+`;
                 - `/` rewrites links in a "close"-ended way, i.e. points them to locally mirrored versions of their URLs when available and voids them otherwise; this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `-`;
@@ -2475,7 +2475,7 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
   - `--absolute`
   : when remapping URLs to local files, produce links and references with absolute URLs; default when `--symlink`
 
-- what gets mirrored:
+- mirror what:
   - `--oldest`
   : for each URL, mirror its oldest available version
   - `--oldest-hybrid`
@@ -2856,7 +2856,7 @@ The end.
   - `-z, --zero-terminated`
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
-- replay options:
+- replay what:
   - `--no-replay`
   : disable replay functionality, makes this into an archive-only server, like `hoardy-web-sas` is
   - `--latest`

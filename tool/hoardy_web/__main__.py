@@ -3426,7 +3426,7 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
     add_common(cmd, "mirror", "consider reqres for mirroring when")
     add_expr(cmd, "mirror")
 
-    agrp = cmd.add_argument_group("what gets mirrored")
+    agrp = cmd.add_argument_group("mirror what")
     grp = agrp.add_mutually_exclusive_group()
 
     def which(x : str) -> str:
@@ -3524,7 +3524,7 @@ The end.
 
     add_fileout(cmd, "serve")
 
-    agrp = cmd.add_argument_group("replay options")
+    agrp = cmd.add_argument_group("replay what")
     grp = agrp.add_mutually_exclusive_group()
     grp.add_argument("--no-replay", dest="replay", action="store_const", const=None, help="disable replay functionality, makes this into an archive-only server, like `hoardy-web-sas` is")
     grp.add_argument("--latest", dest="replay", action="store_const", const=False, help="index and replay only the latest visit for each URL; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version")
