@@ -2464,8 +2464,9 @@ def cmd_serve(cargs : _t.Any) -> None:
         if do_replay:
             rrexpr = ReqresExpr(make_FileSource(abs_out_path, _os.stat(abs_out_path)), reqres)
             rrexpr.values = trrexpr.values
-            emit(rrexpr)
-            all_urls.add(url_info(rrexpr.net_url, rrexpr.reqres.request.url))
+            if filters_allow(rrexpr):
+                emit(rrexpr)
+                all_urls.add(url_info(rrexpr.net_url, rrexpr.reqres.request.url))
 
         if terminator is not None:
             stdout.write(abs_out_path)
