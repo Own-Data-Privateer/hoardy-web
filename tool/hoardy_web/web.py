@@ -827,7 +827,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                     href_mime = canonicalize_mime(href_mime)
                                     if href_mime not in stylesheet_mime:
                                         raise ValueError("not a stylesheet")
-                                    href_protocol_encoding = get_parameter(href_params, "charset", "utf-8")
+                                    href_protocol_encoding = get_parameter_value(href_params, "charset", "utf-8")
                                     href_nodes, href_encoding = _tcss.parse_stylesheet_bytes(href_data, protocol_encoding=href_protocol_encoding)
                                     href_charset = href_encoding.name
                                     href_params = set_parameter(href_params, "charset", href_charset)

@@ -532,8 +532,8 @@ def test_parse_url() -> None:
 
 Parameters = list[tuple[str, str]]
 
-ParamDefault = _t.TypeVar("ParamDefault", str, None)
-def get_parameter(ps : Parameters, name : str, default : ParamDefault) -> str | ParamDefault:
+ParamValueDefaultType = _t.TypeVar("ParamValueDefaultType", str, None)
+def get_parameter_value(ps : Parameters, name : str, default : ParamValueDefaultType) -> str | ParamValueDefaultType:
     for n, v in ps:
         if n == name:
             return v
@@ -739,7 +739,8 @@ def get_raw_header_values(headers : Headers, name : str) -> list[bytes]:
 def get_header_values(headers : Headers, name : str) -> list[str]:
     return [v.decode("ascii") for v in get_raw_header_values(headers,name)]
 
-def get_header_value(headers : Headers, name : str, default : str | None = None) -> str | None:
+HeaderValueDefaultType = _t.TypeVar("HeaderValueDefaultType", str, None)
+def get_header_value(headers : Headers, name : str, default : HeaderValueDefaultType) -> str | HeaderValueDefaultType:
     res = get_header_values(headers, name)
     if len(res) == 0:
         return default
