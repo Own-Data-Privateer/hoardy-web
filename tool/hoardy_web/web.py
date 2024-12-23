@@ -666,7 +666,8 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
             yield {"type": "Comment", "data": f" hoardy-web censored out {what.replace('-->', '-- >')} from here "}
 
         def emit_censored_token(typ : str, token : HTML5Node) -> _t.Iterator[HTML5Node]:
-            if not_verbose: return
+            if not_verbose:
+                return
             res = [typ]
             tn = token.get("name", None)
             if tn is not None:
@@ -678,7 +679,8 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
             yield from emit_censored_comment(" ".join(res))
 
         def emit_censored_other(what : str) -> _t.Iterator[HTML5Node]:
-            if not_verbose: return
+            if not_verbose:
+                return
             yield from emit_censored_comment(what)
 
         backlog : list[HTML5Node] = []
