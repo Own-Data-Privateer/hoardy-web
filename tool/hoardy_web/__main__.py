@@ -2585,6 +2585,10 @@ def cmd_serve(cargs : _t.Any) -> None:
             if inherit_mime is not None:
                 rere_obj = getattr(rrexpr.reqres, inherit_mime)
             if rere_obj is not None:
+                if isinstance(rere_obj, Response):
+                    # inherit response's status code
+                    bottle.response.status = rere_obj.code
+
                 ct, sniff = rere_obj.get_content_type()
                 bottle.response.set_header("content-type", ct)
                 if not sniff:
