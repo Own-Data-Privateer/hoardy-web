@@ -116,7 +116,7 @@ class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
             else:
                 return
 
-    def iter_nearest(self, key : SIKeyType, ideal : SortedType) \
+    def iter_from_nearest(self, key : SIKeyType, ideal : SortedType) \
         -> _t.Iterator[tuple[SortedType, SIValueType]]:
         """Iterate `self[key]` `list` values in order of closeness to `ideal`.
         """
@@ -174,16 +174,21 @@ class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
             for i in range(left - 1, -1, -1):
                 yield iobjs[i]
 
+    def iter_nearest(self, key : SIKeyType, ideal : SortedType,
+                     predicate : _t.Callable[[SortedType, SIValueType], bool] | None = None) \
+                     -> _t.Iterator[tuple[SortedType, SIValueType]]:
+        if predicate is None:
+            yield from self.iter_from_nearest(key, ideal)
+        else:
+            for e in self.iter_from_nearest(key, ideal):
+                if predicate(*e):
+                    yield e
+
     def get_nearest(self, key : SIKeyType, ideal : SortedType,
                     predicate : _t.Callable[[SortedType, SIValueType], bool] | None = None) \
                     -> tuple[SortedType, SIValueType] | None:
         """Get the closest to `ideal` `self[key]` `list` value that also satisfies `predicate`.
         """
-        if predicate is None:
-            for e in self.iter_nearest(key, ideal):
-                return e
-        else:
-            for e in self.iter_nearest(key, ideal):
-                if predicate(*e):
-                    return e
+        for e in self.iter_nearest(key, ideal, predicate):
+            return e
         return None
