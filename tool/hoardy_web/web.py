@@ -899,28 +899,6 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         assemble = token
                         continue
             elif typ == "EndTag":
-                # stop handling <base ...> tag
-                if in_head:
-                    # as a fallback, dump inlines here
-                    if inline_headers_undone:
-                        backlog = list(headers_to_meta_http_equiv(headers)) + [token] + backlog
-                        inline_headers_undone = False
-                        continue
-                    base_url_unset = False
-
-                nn = (token["namespace"], token["name"])
-
-                if not_scripts and yes_interpret_noscript and nn == htmlns_noscript:
-                    # ignore this
-                    yield from emit_censored_token(typ, token)
-                    continue
-
-                stack_len = len(stack)
-                if censor:
-                    censor_lvl -= 1
-                stack.pop()
-                #print(stack)
-
                 # scrub tag contents
                 if assemble is not None:
                     if not censor:
@@ -947,6 +925,27 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
                     assemble = None
                     assemble_contents = []
+                else:
+                    nn = (token["namespace"], token["name"])
+                    if not_scripts and yes_interpret_noscript and nn == htmlns_noscript:
+                        # ignore this
+                        yield from emit_censored_token(typ, token)
+                        continue
+                    elif in_head:
+                        # as a fallback, dump inlines here
+                        if inline_headers_undone:
+                            inline_headers_undone = False
+                            backlog = list(headers_to_meta_http_equiv(headers)) + [token] + backlog
+                            continue
+
+                        # stop handling <base ...> tag
+                        base_url_unset = False
+
+                stack_len = len(stack)
+                if censor:
+                    censor_lvl -= 1
+                stack.pop()
+                #print(stack)
 
             if censor:
                 if typ != "SpaceCharacters":
