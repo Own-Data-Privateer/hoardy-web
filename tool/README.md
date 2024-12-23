@@ -434,9 +434,10 @@ If you instead want a mirror made of raw files without any content censorship or
 hoardy-web mirror --raw-sbody --to ~/hoardy-web/mirror-raw ~/hoardy-web/raw
 ```
 
-The later command will render your mirror pretty quickly, but the other `mirror` commands use the `scrub` function, and that will be pretty slow, mostly because `html5lib` and `tinycss2` that `hoardy-web` uses for paranoid `HTML` and `CSS` parsing and filtering are fairly slow.
-Under `CPython` on my 2013-era laptop `hoardy-web mirror` manages to render, on average, 3 `HTML` and `CSS` files per second.
-Though, this is not very characteristic of the overall mirroring speed, since images and other media just get copied around at expected speeds of 300+ files per second.
+The later command will render your mirror rather quickly, but the other `mirror` commands use the `scrub` function, and that can be a bit slow, mostly because `html5lib` and `tinycss2` that `hoardy-web` uses for paranoid `HTML` and `CSS` parsing and filtering are fairly slow.
+Under `CPython` on my 2013-era laptop `hoardy-web mirror` manages to render, on average, 1-20 web pages per second, depending on the website.
+Bunches of small pages reusing the same `CSS` files across them take less time, large pages, pages with a lot of complex `HTML`, or lots of inlined `CSS` take more.
+Though, this is not very characteristic of the overall `mirror`ing speed, since images and other media just get copied around at expected speeds of 300+ files per second.
 
 Also, enabling `+indent` (or `+pretty`) in `scrub` will make `HTML` scrubbing slightly slower (since it will have to track more stuff) and `CSS` scrubbing a lot slower (since it will force complete structural parsing, not just tokenization).
 
