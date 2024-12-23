@@ -588,7 +588,7 @@ Cons:
 
 Same issues:
 
-- A [bunch of Chromium's bugs](./extension/page/help.org#chromium-bugs) make many things [pretty annoying](./extension/page/help.org#faq-debugger) and somewhat flaky.
+- When running under Chromium, a [bunch of Chromium's bugs](./extension/page/help.org#chromium-bugs) make many things [pretty annoying](./extension/page/help.org#faq-debugger) and somewhat flaky.
 
   Those issues have no workarounds known to me except for "switch to Firefox-based browser", which you can do with `Hoardy-Web`.
 
@@ -611,22 +611,24 @@ Cons:
 - websites using certificate pinning will stop working; and
 - some websites detect when you use it and fingerprint you for it or force you to solve CAPTCHAs; and
 - `mitmproxy` dump files are flat streams of `HTTP` requests and responses that use custom frequently changing between versions data format, so you'll have to re-parse them repeatedly using `mitmproxy`'s own parsers to get to the requests you want;
-- it provides no tools to use those dumped `HTTP` request+response streams for Wayback Machine-like replay and generation of website mirrors.
+- and then you'll still need some more tools to use those archives for Wayback Machine-like replay and generation of website mirrors.
 
 Though, the latter issue can be solved via [this project's `hoardy-web` tool](./tool/) as it can take `mitmproxy` dumps as inputs.
 
-## But you could just enable request logging in your browser's Network Monitor and manually save your data as `HAR` archives from time to time.
+## But you could just enable request logging in your browser's Network Monitor and manually save your data as `HAR` archives from time to time
 
 Cons:
 
 - to do what `Hoardy-Web` does, you will have to manually enable it for each browser tab;
 - opening a link in a new tab will fail to archive the first page as you will not have Network Monitor open there yet; and then
 - you will have to check all your tabs for new data all the time and do \~5 clicks per tab to save it; and then
-- [`HAR`](./tool/README.md#glossary)s are `JSON`, meaning all that binary data gets encoded indirectly, thus making resulting `HAR` archives very inefficient for long-term storage, as they take a lot of disk space, even when compressed.
+- [`HAR`](./tool/README.md#glossary)s are `JSON`, meaning all that binary data gets encoded indirectly, thus making resulting `HAR` archives very inefficient for long-term storage, as they take a lot of disk space, even when compressed;
+- and then you'll still need something like this suite to inspect the generated archives;
+- and then you'll still need some more tools to use those archives for Wayback Machine-like replay and generation of website mirrors.
 
-And then you still need something like this suite to look into the generated archives.
+Though, the latter issue can be solved via [this project's `hoardy-web` tool](./tool/) as it can take `HAR` dumps as inputs.
 
-## But you could setup SSL keys dumping then use Wireshark to capture your web traffic.
+## But you could setup SSL keys dumping then use `Wireshark`, or `tcpdump`, or some such, to capture your web traffic
 
 Pros:
 
@@ -640,8 +642,10 @@ Cons:
 - it takes a lot of effort to recover `HTTP` data from the [`PCAP`](./tool/README.md#glossary) dumps; and
 - `PCAP` dumps are IP packet-level, thus also inefficient for this use case; and
 - `PCAP` dumps of SSL traffic can not be compressed much, thus storing the raw captures will take a lot of disk space.
+- and then you'll still need something like this suite to inspect the generated archives;
+- and then you'll still need some more tools to use those archives for Wayback Machine-like replay and generation of website mirrors.
 
-And then you still need something like this suite to look into the generated archives.
+And `hoardy-web` tool can't help you with the latter, at the moment.
 
 ## [archiveweb.page](https://github.com/webrecorder/archiveweb.page) and [replayweb.page](https://github.com/webrecorder/replayweb.page)
 
