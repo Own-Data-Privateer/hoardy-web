@@ -424,6 +424,8 @@ default_expr = {
     "all": "response.body|eb|scrub response &all_refs",
     "semi": "response.body|eb|scrub response *jumps,/actions,/reqs",
 }
+default_input_status_re = ".(200|30[012378])C"
+default_root_status_re = ".[23]00C"
 
 def cmd_get(cargs : _t.Any) -> None:
     if len(cargs.mexprs) == 0:
@@ -1971,10 +1973,13 @@ def cmd_mirror(cargs : _t.Any) -> None:
             mem.consumption += 8 + len(abs_out_path)
             return abs_out_path
 
-    if cargs.default_filters:
-        cargs.status_re += [".200C"]
+    if cargs.default_input_filters:
+        cargs.status_re += [default_input_status_re]
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
+
+    if cargs.default_root_filters:
+        cargs.root_status_re += [default_root_status_re]
 
     root_filters_num, root_filters_allow, root_filters_warn = compile_filters(cargs, "root_")
     have_root_filters = root_filters_num > 0
@@ -2345,8 +2350,8 @@ def cmd_serve(cargs : _t.Any) -> None:
         else:
             inherit_mime = "response"
 
-    if cargs.default_filters:
-        cargs.status_re += [".200C"]
+    if cargs.default_input_filters:
+        cargs.status_re += [default_input_status_re]
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
@@ -2953,12 +2958,24 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         agrp.add_argument(f"--{opt_prefix}or", metavar="EXPR", action="append", type=str, default = [],
                          help=_(f"{do_what} some of the given expressions of the same format as `{__prog__} get --expr` (which see) evaluate to `true`"))
 
-    def add_default_filters(cmd : _t.Any) -> None:
-        agrp = cmd.add_argument_group("default input filters")
-        default_filters = '--status-re ".200C"'
-        ddest = f"default_filters"
-        agrp.add_argument(f"--ignore-bad-inputs", dest=ddest, action="store_const", const=True, help=_("initialize input filters to `%s`; default") % (default_filters,))
-        agrp.add_argument(f"--index-all-inputs", dest=ddest, action="store_const", const=False, help=_("do not set any input filters by default; note, however, that this sub-command expects input filters to be at least as restrictive as the above default and is likely to produce broken outputs if those filters are unset; use this option at your own risk"))
+    def add_default_filters(cmd : _t.Any, kind : str = "input") -> None:
+        agrp = cmd.add_argument_group(f"default {kind} filters")
+        if kind == "input":
+            def_def = '--status-re ".(200|30[012378])C"'
+            what, unwhat, inputs = "index", "ignore", "inputs"
+            def_note = _("; this matches complete `200 OK` and `300 Multiple Choices` responses and various redirects")
+            undef_note = _(f"""; if you set this option, you should also probably set at least `--status-re ".*C" --not-status-re ".206."`, unless you want `{__prog__} mirror` processing partially downloaded data""")
+        elif kind == "root":
+            def_def = '--root-status-re ".[23]00C"'
+            what, unwhat, inputs = "queue", "skip", "indexed"
+            def_note = _("; this matches complete `200 OK` and `300 Multiple Choices` responses")
+            undef_note = _(f"""; `{__prog__} mirror` will follow redirects when remapping links, but, at the moment, attempting to render redirects produces empty files; thus, if you set this option, you should also set `--not-status-re ".30[12378]."` or similar""")
+        else:
+            assert False
+
+        ddest = f"default_{kind}_filters"
+        agrp.add_argument(f"--{unwhat}-some-{inputs}", dest=ddest, action="store_const", const=True, help=_(f"initialize {kind} filters to `%s`") % (def_def,) + def_note + _("; default"))
+        agrp.add_argument(f"--{what}-all-{inputs}", dest=ddest, action="store_const", const=False, help=_(f"do not set any {kind} filters by default") + undef_note)
         cmd.set_defaults(**{ddest: True})
 
     def add_pure(cmd : _t.Any) -> None:
@@ -2978,6 +2995,8 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
             add_filters(cmd, filter_what)
         if kind in ["mirror", "serve"]:
             add_default_filters(cmd)
+        if kind == "mirror":
+            add_default_filters(cmd, "root")
 
     def add_abridged(cmd : _t.Any) -> None:
         grp = cmd.add_mutually_exclusive_group()

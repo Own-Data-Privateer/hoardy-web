@@ -2426,10 +2426,16 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
 - default input filters:
-  - `--ignore-bad-inputs`
-  : initialize input filters to `--status-re ".200C"`; default
+  - `--ignore-some-inputs`
+  : initialize input filters to `--status-re ".(200|30[012378])C"`; this matches complete `200 OK` and `300 Multiple Choices` responses and various redirects; default
   - `--index-all-inputs`
-  : do not set any input filters by default; note, however, that this sub-command expects input filters to be at least as restrictive as the above default and is likely to produce broken outputs if those filters are unset; use this option at your own risk
+  : do not set any input filters by default; if you set this option, you should also probably set at least `--status-re ".*C" --not-status-re ".206."`, unless you want `hoardy-web mirror` processing partially downloaded data
+
+- default root filters:
+  - `--skip-some-indexed`
+  : initialize root filters to `--root-status-re ".[23]00C"`; this matches complete `200 OK` and `300 Multiple Choices` responses; default
+  - `--queue-all-indexed`
+  : do not set any root filters by default; `hoardy-web mirror` will follow redirects when remapping links, but, at the moment, attempting to render redirects produces empty files; thus, if you set this option, you should also set `--not-status-re ".30[12378]."` or similar
 
 - expression evaluation:
   - `-e EXPR, --expr EXPR`
@@ -2789,10 +2795,10 @@ The end.
   : do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script
 
 - default input filters:
-  - `--ignore-bad-inputs`
-  : initialize input filters to `--status-re ".200C"`; default
+  - `--ignore-some-inputs`
+  : initialize input filters to `--status-re ".(200|30[012378])C"`; this matches complete `200 OK` and `300 Multiple Choices` responses and various redirects; default
   - `--index-all-inputs`
-  : do not set any input filters by default; note, however, that this sub-command expects input filters to be at least as restrictive as the above default and is likely to produce broken outputs if those filters are unset; use this option at your own risk
+  : do not set any input filters by default; if you set this option, you should also probably set at least `--status-re ".*C" --not-status-re ".206."`, unless you want `hoardy-web mirror` processing partially downloaded data
 
 - `HTTP` server options:
   - `--host HOST`
