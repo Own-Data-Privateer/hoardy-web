@@ -2007,7 +2007,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
 
-    def collect(enqueue_all : bool) -> EmitFunc[ReqresExpr[DeferredSourceType]]:
+    def collect(should_enqueue : bool) -> EmitFunc[ReqresExpr[DeferredSourceType]]:
         def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
             stime = rrexpr.stime
             net_url = rrexpr.net_url
@@ -2028,13 +2028,12 @@ def cmd_mirror(cargs : _t.Any) -> None:
                             report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1, qstime)
                         unqueued = False
 
-            if unqueued:
-                if enqueue_all or have_root_filters and root_filters_allow(rrexpr):
-                    pid = request_id if nearest is not None else page_id
-                    #     ^ not `--all`                          ^ otherwise
-                    queue[pid] = (stime, rrexpr)
-                    report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1)
-                    unqueued = False
+            if unqueued and should_enqueue and root_filters_allow(rrexpr):
+                unqueued = False
+                pid = request_id if nearest is not None else page_id
+                #     ^ not `--all`                          ^ otherwise
+                queue[pid] = (stime, rrexpr)
+                report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1)
 
             if unqueued or mem.consumption > max_memory_mib:
                 rrexpr.unload()
@@ -2045,7 +2044,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
     rrexprs_load = mk_rrexprs_load(cargs)
     seen_paths : set[PathType] = set()
-    map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(not have_root_filters), cargs.paths, seen_paths=seen_paths)
+    map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(True), cargs.paths, seen_paths=seen_paths)
     map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(False), cargs.boring, seen_paths=seen_paths)
 
     indexed_num = len(index)
