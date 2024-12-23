@@ -471,9 +471,10 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
         if is_data_url(url):
             return url
-
-        if is_script_url(url) and not_scripts:
-            return None
+        elif is_script_url(url):
+            if not_scripts:
+                return None
+            return url
 
         rt : RemapType
         if link_type == LinkType.JUMP:
