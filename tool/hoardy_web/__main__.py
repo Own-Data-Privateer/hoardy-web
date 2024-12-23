@@ -32,6 +32,7 @@ import subprocess as _subprocess
 import sys as _sys
 import tempfile as _tempfile
 import typing as _t
+import urllib.parse as _up
 
 from gettext import gettext, ngettext
 
@@ -1896,6 +1897,8 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
 def path_to_url(x : str) -> str:
     return x.replace("?", "%3F")
 
+redirect_response_codes = frozenset([301, 302, 303, 307, 308])
+
 def complete_response(stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
     response = rrexpr.reqres.response
     return response is not None and response.complete
@@ -2109,10 +2112,39 @@ def cmd_mirror(cargs : _t.Any) -> None:
                 if want_stop: raise KeyboardInterrupt()
 
                 is_requisite = link_type == LinkType.REQ
+                ustime = stime if nearest is None or is_requisite else nearest
+                upredicate = normal_document if link_type != LinkType.ACTION else complete_response
 
-                uobj = index.get_nearest(unet_url,
-                                         stime if nearest is None or is_requisite else nearest,
-                                         normal_document if link_type != LinkType.ACTION else complete_response)
+                uobj : tuple[TimeStamp, ReqresExpr[_t.Any]] | None = None
+                again = True
+                while again:
+                    again = False
+                    for nobj in index.iter_nearest(unet_url, ustime, upredicate):
+                        response = nobj[1].reqres.response
+                        assert response is not None
+                        code = response.code
+                        if code in redirect_response_codes:
+                            location = get_header_value(response.headers, "location", None)
+                            if location is not None:
+                                try:
+                                    unet_url_ = _up.urljoin(unet_url, location)
+                                    upurl_ = parse_url(unet_url_)
+                                except ValueError:
+                                    pass
+                                else:
+                                    # preserve the fragment
+                                    upurl_.ofm = upurl.ofm
+                                    upurl_.fragment = upurl.fragment
+                                    # reset and redirect
+                                    unet_url = unet_url_
+                                    upurl = upurl_
+                                    # try again
+                                    again = True
+                                    break
+                        else:
+                            uobj = nobj
+                            break
+
                 if uobj is None:
                     # unavailable
                     uabs_out_path = None
