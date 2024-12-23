@@ -2570,13 +2570,13 @@ def cmd_serve(cargs : _t.Any) -> None:
                 if uobj is not None:
                     ustime, urrexpr = uobj
                     ustime_selector = ustime.format(time_format, precision=precision)
-                    return f"/web/{ustime_selector}/{unet_url}"
+                elif fallbacks is not None:
+                    # unavailable
+                    ustime_selector = stime_selector
+                else:
+                    return None
 
-                # unavailable
-                if fallbacks is not None:
-                    return f"/web/{stime_selector}/{unet_url}"
-
-                return None
+                return f"/web/{ustime_selector}/{unet_url}" + upurl.ofm + upurl.fragment
 
             rrexpr.remap_url = cached_remap_url(net_url, remap_url, handle_warning=_logging.warn)
 
