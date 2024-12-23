@@ -733,6 +733,9 @@ def get_raw_headers(headers : Headers) -> list[tuple[str, bytes]]:
     # split because browsers frequently squish headers together
     return [(k, e) for k, v in headers for e in v.split(b"\n")]
 
+def get_headers(headers : Headers) -> list[tuple[str, str]]:
+    return [(k, v.decode("ascii")) for k, v in get_raw_headers(headers)]
+
 def get_raw_headers_bytes(headers : Headers) -> list[bytes]:
     return [k.encode("ascii") + b": " + v for k, v in get_raw_headers(headers)]
 

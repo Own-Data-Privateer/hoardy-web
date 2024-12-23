@@ -2610,7 +2610,15 @@ def cmd_serve(cargs : _t.Any) -> None:
 
                 return f"/web/{ustime_selector}/{unet_url}" + upurl.ofm + upurl.fragment
 
-            rrexpr.remap_url = cached_remap_url(net_url, remap_url, handle_warning=_logging.warn)
+            remap_url_cached = cached_remap_url(net_url, remap_url, handle_warning=_logging.warn)
+            rrexpr.remap_url = remap_url_cached
+
+            def rebase_remap_url(url : URLType) -> URLType | None:
+                try:
+                    href = _up.urljoin(net_url, url)
+                except ValueError:
+                    return None
+                return remap_url_cached(href, LinkType.JUMP, [])
 
             # TODO: inherit MIME from generated expression type instead
             rere_obj : Request | Response | None = None
@@ -2620,6 +2628,15 @@ def cmd_serve(cargs : _t.Any) -> None:
                 if isinstance(rere_obj, Response):
                     # inherit response's status code
                     bottle.response.status = rere_obj.code
+
+                    for hn, hv in get_headers(rere_obj.headers):
+                        hl = hn.lower()
+                        hr : str | None = None
+                        if hl == "location":
+                            hr = rebase_remap_url(hv.strip())
+
+                        if hr is not None:
+                            bottle.response.add_header(hn, hr)
 
                 ct, sniff = rere_obj.get_content_type()
                 bottle.response.set_header("content-type", ct)
