@@ -224,8 +224,9 @@ hoardy-web pprint --method GET --method DOM --status-re .200C --response-mime te
   --response-body-grep-re "\bPotter\b" \
   ~/hoardy-web/raw
 
-# the `--status-re` filter above is actually the default here
-hoardy-web mirror --method GET --method DOM --response-mime text/html \
+# we set `--index-all-inputs` to disable its default input filters
+hoardy-web mirror --index-all-inputs \
+  --method GET --method DOM --status-re .200C --response-mime text/html \
   --response-body-grep-re "\bPotter\b" \
   --to ~/hoardy-web/mirror-potter ~/hoardy-web/raw
 ```
@@ -491,9 +492,31 @@ hoardy-web mirror --to ~/hoardy-web/mirror5 ~/hoardy-web/latest/archiveofourown.
 
 thus mirroring everything ever archived from <https://archiveofourown.org>.
 
-#### ... by using `--root-*` and `--depth`
+#### ... by input filters, `--root-*`, and `--depth`
 
-As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can load (an index of) an assortment of `WRR` files into `hoardy-web`'s memory but then `mirror` only select URLs (and all requisites needed to properly render those pages) by running something like:
+As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can limit the set of files `hoardy-web mirror` will consider for `mirror`ing by setting some input filters, e.g.:
+
+```
+hoardy-web mirror \
+  --to ~/hoardy-web/mirror6 ~/hoardy-web/raw/*/2023 \
+  --url-prefix 'https://archiveofourown.org/works/3733123' \
+  --url-prefix 'https://archiveofourown.org/works/30186441'
+```
+
+Note, however, that doing this will prevent `mirror` from processing reqres not accepted by specified filters.
+Which, in the above example, will prevent `mirror` from processing most of requisite resources of those pages.
+When running with `--remap-all`, as the above does, this can be solved by running `hoardy-web mirror` repeatedly with different input filters, e.g., to mostly fix the above outputs you could then run:
+
+```
+hoardy-web mirror \
+  --to ~/hoardy-web/mirror6 ~/hoardy-web/raw/*/2023 \
+  --url-re 'https://archiveofourown\.org/.*\.css'
+```
+
+but this is quite inconvenient, and when running with something other than `--remap-all`, it will leave many output pages completely broken anyway.
+
+Which is why `hoardy-web` can instead load (an index of) an assortment of `WRR` files into its memory but then only `mirror` a subset of those reqres with all requisite resources needed to properly render those pages.
+This can be archived by specifying some `--root-*` filtering options, e.g.:
 
 ```
 hoardy-web mirror \
@@ -502,18 +525,21 @@ hoardy-web mirror \
   --root-url-prefix 'https://archiveofourown.org/works/30186441'
 ```
 
-See the documentation for the `--root-*` options below for more info and more `--root-*` variants.
-
-`hoardy-web` loads (indexes) `WRR` files pretty fast, so if you are running from an SSD, you can totally feed it years of `WRR` files and then only mirror a couple of URLs, and it will take a couple of seconds to finish anyway, since only a couple of files will get `scrub`bed.
-
-There is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root-*`s and then `mirror` all those URLs (and their requisites) too.
+The `--root-*` options have exactly the same syntax and semantics as the normal input filtering options, except they start with `--root-` prefix, and instead of making `hoardy-web` accept reqres satisfying them as inputs, they make `hoardy-web mirror` queue such reqres for `mirror`ing at the initial `depth` of `0`.
+An yes, there is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root-*`s and then `mirror` all those URLs and their requisites too.
 
 When using `--root-*` options, `--remap-open` works exactly like `wget`'s `--convert-links` in that it will only remap the URLs that are going to be mirrored and will keep the rest as-is.
-Similarly, `--remap-closed` will consider only the URLs reachable from the `--root-*`s in no more that `--depth` jumps as available.
+Similarly, `--remap-semi` and `--remap-closed` will consider only the URLs reachable from the `--root-*`s in no more that `--depth` jumps as available.
+
+Unlike most other sub-commands of `hoardy-web` which set no default filters, `mirror` runs with implied `--ignore-some-inputs` and `--skip-some-indexed` options which set some useful default input and root filters.
+This can be disabled with `--index-all-inputs` and/or `--queue-all-indexed`, which can useful when using `mirror` to do weird things with custom `--expr`s, with the default `--expr`s, using these options is likely to produce a broken mirror, unless you add some specific filters manually.
+See the documentation all of those options below for more info.
+
+Also, note, that `hoardy-web` loads (indexes) `WRR` files pretty fast, so if you are running from an SSD, you can totally feed it years of `WRR` files and then only mirror a couple of URLs, and it will finish pretty quickly anyway.
 
 ### Prioritize some files over others
 
-By default, files are read, queued, and then mirrored in the order they are specified on the command line, in lexicographic file system walk order when an argument is a directory.
+By default, files are read, queued, and then `mirror`ed in the order they are specified on the command line, in lexicographic file system walk order when an argument is a directory.
 (See `--paths-*` and `--walk-*` options below if you want to change this.)
 
 However, the above rule does not apply to page requisites, those are always (with or without `--root-*`, regardless of `--paths-*` and `--walk-*` options) get mirrored just after their parent `HTML` document gets parsed and before that document gets written to disk.
@@ -550,7 +576,7 @@ hoardy-web mirror \
 
 will mirror all pages those URLs start with `https://archiveofourown.org/works/` and all their requisites, but the pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be mirrored first.
 
-Finally, there is also the `--boring` option, which allows you to load some input `PATH`s without adding them as roots, even when no `--root-*` options are specified.
+Finally, there is also the `--boring` option, which allows you to load some input `PATH`s without queuing them as roots, even when no `--root-*` options are specified or specified `--root-*` options say those reqres should be taken as roots.
 E.g., the following
 
 ```
@@ -563,14 +589,12 @@ hoardy-web mirror \
 
 will load (an index of) everything under `~/hoardy-web/latest/i.imgur.com` and `~/hoardy-web/latest/archiveofourown.org` into memory but will only mirror the contents of `~/hoardy-web/latest/archiveofourown.org/works__[0-9]*.wrr` files and their requisites.
 
-When at least one `--root-*` option is specified, using `--boring` is equivalent to simply appending its argument to the end of the positional `PATH`s.
-
 ### Control which versions (visits) get mirrored
 
-By default, `hoardy-web mirror` runs with the implied `--latest` option, which mirrors the latest available version (visit) to each URL.
+By default, `hoardy-web mirror` runs with the implied `--latest` option, which renders the latest available version (visit) to each URL.
 Usually, this is fine, as most modern web-sites use versioned page requisites to improve caching.
 But it can produce broken results sometimes.
-For instance, when two different web pages share an unversioned `CSS` file and one those pages was recently revisited while the other was not, then, with the default `--latest`, only the latter version of the `CSS` file in question will be mirrored, making the older page broken.
+For instance, when two different web pages share an unversioned `CSS` file and one those pages was recently revisited while the other was not, then, with the default `--latest`, only the latter version of the `CSS` file in question will be `mirror`ed, making the older page broken.
 
 To fix this, you can run `mirror` with `--latest-hybrid` option
 
@@ -607,7 +631,7 @@ hoardy-web mirror \
 
 both of which also have `--*-hybrid` variants.
 
-There is also `--all`, which mirrors all available versions of all roots and `--depth`-reachable URLs.
+There is also `--all`, which mirrors all available versions of all `--root-*`s and `--depth`-reachable URLs.
 When using `--all`, you'll probably want to switch to a time-versioned output format, otherwise those default simply-numbered `hupq_n` outputs will be impossible to interpret:
 
 ```
