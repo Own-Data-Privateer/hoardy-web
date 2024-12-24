@@ -2421,8 +2421,8 @@ def cmd_serve(cargs : _t.Any) -> None:
         server_info["dump_wrr"] = "/pwebarc/dump"
     if do_replay:
         server_info["index_ideal"] = None if index_ideal is None else index_ideal.format("@", precision=9)
-        server_info["replay_oldest"] = "/web/0/{url}"
-        server_info["replay_latest"] = "/web/2/{url}"
+        server_info["replay_oldest"] = "/web/-inf/{url}"
+        server_info["replay_latest"] = "/web/+inf/{url}"
         if index_ideal is None:
             server_info["replay_any"] = "/web/{timestamp}/{url}"
     server_info_json = _json.dumps(server_info).encode("utf-8")
@@ -2546,10 +2546,10 @@ def cmd_serve(cargs : _t.Any) -> None:
                                        "visits_total": visits_total, "url_visits": url_visits})
 
         ideal : TimeStamp
-        if selector in ["0", "1", "first", "old", "oldest"]:
+        if selector in ["-inf", "0", "1", "oldest", "old", "first"]:
             interval = anytime
             ideal = anytime.start
-        elif selector in ["2", "last", "new", "newest"]:
+        elif selector in ["+inf", "2", "latest", "last", "newest", "new"]:
             interval = anytime
             ideal = anytime.end
         else:

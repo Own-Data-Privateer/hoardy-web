@@ -786,7 +786,7 @@ curl 'http://127.0.0.1:3210/hoardy-web/server-info'
 which returns a `JSON` like
 
 ```json
-{"version": 1, "dump_wrr": "/pwebarc/dump", "index_ideal": null, "replay_oldest": "/web/0/{url}", "replay_latest": "/web/2/{url}", "replay_any": "/web/{timestamp}/{url}"}
+{"version": 1, "dump_wrr": "/pwebarc/dump", "index_ideal": null, "replay_oldest": "/web/-inf/{url}", "replay_latest": "/web/+inf/{url}", "replay_any": "/web/{timestamp}/{url}"}
 ```
 
 ## Generate previews for `WRR` files, listen to them via TTS, open them with `xdg-open`, etc
