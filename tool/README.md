@@ -748,15 +748,20 @@ hoardy-web serve -i -t ~/hoardy-web/raw
 
 By default, `hoardy-web serve` runs with an implied `--all` option, which makes it keep the index of all given archives in memory, allowing arbitrary visits to be replayed.
 
-If you dislike this behaviour, you can run it with the `--latest` option instead
+If you dislike this behaviour, you can run it with the `--latest`, `--oldest`, or `--nearest` options instead
 
 ```bash
 hoardy-web serve --latest -i -t ~/hoardy-web/raw
+# or
+hoardy-web serve --oldest -i -t ~/hoardy-web/raw
+# or
+hoardy-web serve --nearest 2024-06-01 -i -t ~/hoardy-web/raw
 ```
 
-which will make it keep and allow replay only of the latest visit to each URL.
-This greatly improves resource consumption, but it also has the same caveats as `hoardy-web mirror --latest` (see above).
-With `--latest`, newly archived `WRR`s will elide older ones from the index, as expected.
+which, for each URL, will make `hoardy-web serve` keep and allow replay of the last, the first, or the one closest to the given timestamp, respectively.
+This greatly improves resource consumption, but it also has the same caveats as `hoardy-web mirror --latest`, `--oldest`, and `--nearest` (see above).
+
+When running with both `--latest` and archiving enabled, newly archived `WRR`s will elide older ones from the index, thus making that `hoardy-web serve` instance serve only the freshest archived version of each URL.
 
 You can also disable indexing and replay completely by running it with `--no-replay`
 
