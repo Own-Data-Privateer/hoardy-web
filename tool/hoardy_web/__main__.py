@@ -2307,6 +2307,8 @@ def cmd_serve(cargs : _t.Any) -> None:
     import urllib.parse as _up
     import hoardy_web.serve_static as _static
 
+    server_url_base = f"http://{cargs.host}:{cargs.port}"
+
     locate_page = bottle.SimpleTemplate(source=_static.locate_page_stpl)
     app = bottle.Bottle()
     BottleReturnType = str | bytes | None
@@ -2663,13 +2665,12 @@ def cmd_serve(cargs : _t.Any) -> None:
 
     if stderr.isatty:
         stderr.write_bytes(b"\033[33m")
-    location = f"http://{cargs.host}:{cargs.port}/"
     if destination is not None:
-        stderr.write_str_ln(gettext("Working as an archiving server at %s") % (location,))
+        stderr.write_str_ln(gettext("Working as an archiving server at %s") % (server_url_base + "/",))
     else:
         stderr.write_str_ln(gettext("Archiving server support is disabled"))
     if do_replay:
-        stderr.write_str_ln(gettext("Serving replays for %d reqres at %s") % (len(index), f"{location}web/*/*"))
+        stderr.write_str_ln(gettext("Serving replays for %d reqres at %s") % (len(index), f"{server_url_base}/web/*/*"))
     else:
         stderr.write_str_ln(gettext("Replay server support is disabled"))
     if stderr.isatty:
