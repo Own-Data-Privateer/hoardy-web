@@ -2341,8 +2341,8 @@ def cmd_serve(cargs : _t.Any) -> None:
     compress = cargs.compress
     terminator = cargs.terminator
 
-    do_replay = cargs.replay is not None
-    index_ideal = None if cargs.replay == True else anytime.end
+    do_replay = cargs.replay != False
+    index_ideal = cargs.replay if cargs.replay != False else anytime.end
 
     inherit_mime : str | None = None
     if len(cargs.exprs) == 0:
@@ -2419,10 +2419,12 @@ def cmd_serve(cargs : _t.Any) -> None:
     }
     if destination is not None:
         server_info["dump_wrr"] = "/pwebarc/dump"
-    if cargs.replay == True:
-        server_info["replay_any"] = "/web/{timestamp}/{url}"
     if do_replay:
+        server_info["index_ideal"] = None if index_ideal is None else index_ideal.format("@", precision=9)
+        server_info["replay_oldest"] = "/web/0/{url}"
         server_info["replay_latest"] = "/web/2/{url}"
+        if index_ideal is None:
+            server_info["replay_any"] = "/web/{timestamp}/{url}"
     server_info_json = _json.dumps(server_info).encode("utf-8")
     del server_info
 
@@ -3599,10 +3601,13 @@ The end.
 
     agrp = cmd.add_argument_group("replay what")
     grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--no-replay", dest="replay", action="store_const", const=None, help="disable replay functionality, makes this into an archive-only server, like `hoardy-web-sas` is")
-    grp.add_argument("--latest", dest="replay", action="store_const", const=False, help="index and replay only the latest visit for each URL; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version")
-    grp.add_argument("--all", dest="replay", action="store_const", const=True, help="index and replay all visits to all available URLs; if `--to` is given, archiving a new visit for a URL will update the index and make the new visit available for replay; default")
-    cmd.set_defaults(replay = True)
+    fiar = "for each URL, index and replay only"
+    grp.add_argument("--no-replay", dest="replay", action="store_const", const=False, help=_("disable replay functionality, makes this into an archive-only server, like `hoardy-web-sas` is"))
+    grp.add_argument("--oldest", dest="replay", action="store_const", const=anytime.start, help=_(f"{fiar} the oldest visit; if `--to` is set, archiving a new visit for a URL will keep the indexed and replayable version as-is"))
+    grp.add_argument("--nearest", dest="replay", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: x, help=_(f"{fiar} the visit closest to the given `INTERVAL_DATE` value; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version if `INTERVAL_DATE` is in the future and keep it as-is otherwise") + interval_date_spec)
+    grp.add_argument("--latest", dest="replay", action="store_const", const=anytime.end, help=_("{fiar} the latest visit; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version with a new one"))
+    grp.add_argument("--all", dest="replay", action="store_const", const=None, help=_("index and replay all visits to all available URLs; if `--to` is given, archiving a new visit for a URL will update the index and make the new visit available for replay; default"))
+    cmd.set_defaults(replay = None) # --all
 
     cmd.set_defaults(func=cmd_serve)
 

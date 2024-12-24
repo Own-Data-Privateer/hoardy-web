@@ -38,7 +38,10 @@ class TimeStamp(_dec.Decimal):
 
         i = int(self)
         r = self - i
-        res = _time.strftime(fmt, _time.gmtime(i) if utc else _time.localtime(i))
+        if fmt == "@":
+            res = "@" + str(i)
+        else:
+            res = _time.strftime(fmt, _time.gmtime(i) if utc else _time.localtime(i))
         if precision > 0:
             x = str(r)[2:precision + 2]
             res += "." + x + "0" * (precision - len(x))

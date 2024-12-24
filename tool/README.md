@@ -781,7 +781,7 @@ curl 'http://127.0.0.1:3210/hoardy-web/server-info'
 which returns a `JSON` like
 
 ```json
-{"version": 1, "dump_wrr": "/pwebarc/dump", "replay_any": "/web/{timestamp}/{url}", "replay_latest": "/web/2/{url}"}
+{"version": 1, "dump_wrr": "/pwebarc/dump", "index_ideal": null, "replay_oldest": "/web/0/{url}", "replay_latest": "/web/2/{url}", "replay_any": "/web/{timestamp}/{url}"}
 ```
 
 ## Generate previews for `WRR` files, listen to them via TTS, open them with `xdg-open`, etc
@@ -2890,8 +2890,12 @@ The end.
 - replay what:
   - `--no-replay`
   : disable replay functionality, makes this into an archive-only server, like `hoardy-web-sas` is
+  - `--oldest`
+  : for each URL, index and replay only the oldest visit; if `--to` is set, archiving a new visit for a URL will keep the indexed and replayable version as-is
+  - `--nearest INTERVAL_DATE`
+  : for each URL, index and replay only the visit closest to the given `INTERVAL_DATE` value; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version if `INTERVAL_DATE` is in the future and keep it as-is otherwise; the `INTERVAL_DATE` is parsed as a time interval the middle point of which is taken as target value; e.g., `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year), `2024-12-31` becomes `2024-12-31 12:00:00`, `2024-12-31 12` -> `2024-12-31 12:30:00`, `2024-12-31 12:00` -> `2024-12-31 12:00:30`, `2024-12-31 12:00:01` -> `2024-12-31 12:00:01.5`, etc
   - `--latest`
-  : index and replay only the latest visit for each URL; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version
+  : {fiar} the latest visit; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version with a new one
   - `--all`
   : index and replay all visits to all available URLs; if `--to` is given, archiving a new visit for a URL will update the index and make the new visit available for replay; default
 
