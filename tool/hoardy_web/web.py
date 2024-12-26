@@ -326,6 +326,7 @@ class ScrubbingOptions:
     prefetches : bool = _dc.field(default=False)
     tracking : bool = _dc.field(default=False)
     navigations : bool = _dc.field(default=False)
+    inline_headers : bool = _dc.field(default=True)
     inline_fallback_icon : bool | None = _dc.field(default=None)
     interpret_noscript : bool = _dc.field(default=True)
     unknown : bool = _dc.field(default=True)
@@ -452,6 +453,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     not_iepragmas = not opts.iepragmas
     not_iframes = not opts.iframes
     yes_navigations = opts.navigations
+    yes_inline_headers = opts.inline_headers
     yes_inline_fallback_icon = opts.inline_fallback_icon \
         if opts.inline_fallback_icon is not None else reqs >= RemapType.CLOSED
     yes_interpret_noscript = opts.interpret_noscript
@@ -659,7 +661,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         assemble_contents : list[str] = []
 
         # `inline_headers` handling
-        inline_headers_undone = True
+        inline_headers_undone = yes_inline_headers
 
         # fallback_icon
         fallback_icon_unset = yes_inline_fallback_icon

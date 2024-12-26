@@ -1153,6 +1153,8 @@ The end.
               - `(+|-)tracking` controls whether other tracking `HTML` tags and attributes (like `a ping`) should be kept in or censored out;
               - `(+|-)navigations` controls whether automatic navigations (`Refresh` `HTTP` headers and `<meta http-equiv>` `HTML` tags) should be kept in or censored out;
               - `(+|-)all_dyns` is equivalent to setting all of `styles`, `scripts`, `iepragmas`, `iframes`, `prefetches`, `tracking`, and `navigations` simultaneously;
+              - `(+|-)inline_headers` controls whether certain `HTTP` headers (`Content-Security-Policy`, `Default-Style`, `Link`, `Refresh`, and `X-UA-Compatible`) should be inlined as `<meta http-equiv=*>` `HTML` tags;
+                 `scrub` will then interpret the contents of and process those tags as usual, as if they were present in the document to begin with;
               - `(+|-)inline_fallback_icon` controls whether `<link rel="icon" href="/favicon.ico">` `HTML` tag browsers use as a fallback when a page does not declare any icons should be made explicit and inlined into the result; that URL will then get remapped like a normal page requisite using `reqs` and the tag will not be added if that `/favicon.ico` URL gets remapped into void;
               - `(+|-)interpret_noscript` controls whether the contents of `noscript` tags should be inlined when `-scripts` is set;
               - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively);
@@ -1170,6 +1172,7 @@ The end.
               - `+styles,+iframes`, because these are are `scrub`bed properly;
               - `-scripts`, because `scrub`bing of `JavaScript` (code whitelisting) is not supported yet;
               - `-iepragmas`, because censoring of contents of such pragmas is not supported yet;
+              - `+inline_headers`, because otherwise the result won't be self-contained;
               - `+inline_fallback_icon` when `reqs` is `/` or `&`, `-interpret_favicon` otherwise;
                  i.e., by default, `scrub` inlines fallback favicons if they remap to something non-void and keep the result self-contained;
               - `+interpret_noscript`, because this usually helps;
