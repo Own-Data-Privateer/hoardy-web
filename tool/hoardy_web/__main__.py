@@ -1899,6 +1899,7 @@ def cmd_import_mitmproxy(cargs : _t.Any) -> None:
 def path_to_url(x : str) -> str:
     return x.replace("?", "%3F")
 
+definitive_response_codes = frozenset([200, 204, 300, 404, 410])
 redirect_response_codes = frozenset([301, 302, 303, 307, 308])
 
 def complete_response(stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
@@ -2344,13 +2345,11 @@ def cmd_serve(cargs : _t.Any) -> None:
     do_replay = cargs.replay != False
     index_ideal = cargs.replay if cargs.replay != False else anytime.end
 
-    inherit_mime : str | None = None
+    inherit : str | None = None
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
-        if cargs.default_expr == "raw_qbody":
-            inherit_mime = "request"
-        else:
-            inherit_mime = "response"
+        inherit = "request" if cargs.default_expr == "raw_qbody" else "response"
+    take_whatever = inherit != "response"
 
     if cargs.default_input_filters:
         cargs.status_re += [default_input_status_re]
@@ -2518,8 +2517,8 @@ def cmd_serve(cargs : _t.Any) -> None:
 
         return b""
 
-    @app.route("/web/<selector>/<url_path:path>") # type: ignore
-    def from_archive(selector : str, url_path : str) -> BottleReturnType:
+    @app.route("/<namespace:re:(web|redirect|unavailable|other)>/<selector>/<url_path:path>") # type: ignore
+    def from_archive(namespace : str, selector : str, url_path : str) -> BottleReturnType:
         if not do_replay:
             bottle.abort(403, "Replay is forbidden on this server")
             return None
@@ -2599,24 +2598,41 @@ def cmd_serve(cargs : _t.Any) -> None:
         stime, rrexpr = uobj
         stime_selector = stime.format(time_format, precision=precision)
         if stime not in interval or interval.delta > precision_delta:
-            bottle.redirect(f"/web/{stime_selector}/{turl}", 302)
+            bottle.redirect(f"/{namespace}/{stime_selector}/{turl}", 302)
             return None
 
         try:
             def remap_url(unet_url : URLType, upurl : ParsedURL,
                           link_type : LinkType, fallbacks : list[str] | None) -> URLType | None:
-                uobj = index.get_nearest(unet_url, stime,
-                                         normal_document if link_type != LinkType.ACTION else complete_response)
-                if uobj is not None:
+                unamespace = "unavailable"
+                ustime_selector = stime_selector if fallbacks is not None else None
+
+                for uobj in index.iter_nearest(unet_url, stime, normal_document):
                     ustime, urrexpr = uobj
-                    ustime_selector = ustime.format(time_format, precision=precision)
-                elif fallbacks is not None:
-                    # unavailable
-                    ustime_selector = stime_selector
-                else:
+                    response = urrexpr.reqres.response
+                    assert response is not None
+                    code = response.code
+                    if take_whatever or code in definitive_response_codes:
+                        # that's a definitive answer page, point this directly
+                        # there to optimize away redirects
+                        unamespace = "web"
+                        ustime_selector = ustime.format(time_format, precision=precision)
+                        break
+                    elif code in redirect_response_codes:
+                        # that's a redirect, point it there, but timestamp transitively
+                        unamespace = "redirect"
+                        ustime_selector = stime_selector
+                        break
+                    else:
+                        # that's something else
+                        unamespace = "other"
+                        ustime_selector = stime_selector
+                        # NB: continue trying other visits in this case
+
+                if ustime_selector is None:
                     return None
 
-                return f"/web/{ustime_selector}/{unet_url}" + upurl.ofm + upurl.fragment
+                return f"/{unamespace}/{ustime_selector}/{unet_url}" + upurl.ofm + upurl.fragment
 
             remap_url_cached = cached_remap_url(net_url, remap_url, handle_warning=_logging.warn)
             rrexpr.remap_url = remap_url_cached
@@ -2630,8 +2646,9 @@ def cmd_serve(cargs : _t.Any) -> None:
 
             # TODO: inherit MIME from generated expression type instead
             rere_obj : Request | Response | None = None
-            if inherit_mime is not None:
-                rere_obj = getattr(rrexpr.reqres, inherit_mime)
+            if inherit is not None:
+                rere_obj = getattr(rrexpr.reqres, inherit)
+
             if rere_obj is not None:
                 if isinstance(rere_obj, Response):
                     # inherit response's status code
