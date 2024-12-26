@@ -307,7 +307,7 @@ def headers_to_meta_http_equiv(headers : Headers) -> _t.Iterator[HTML5Node]:
     for lh in get_header_values(headers, "link"):
         yield from emit_http_eqiuv("link", lh)
 
-class RemapType(_enum.Enum):
+class RemapType(_enum.IntEnum):
     ID = 0
     VOID = 1
     OPEN = 2
@@ -326,6 +326,7 @@ class ScrubbingOptions:
     prefetches : bool = _dc.field(default=False)
     tracking : bool = _dc.field(default=False)
     navigations : bool = _dc.field(default=False)
+    inline_fallback_icon : bool | None = _dc.field(default=None)
     interpret_noscript : bool = _dc.field(default=True)
     unknown : bool = _dc.field(default=True)
 
@@ -451,6 +452,8 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     not_iepragmas = not opts.iepragmas
     not_iframes = not opts.iframes
     yes_navigations = opts.navigations
+    yes_inline_fallback_icon = opts.inline_fallback_icon \
+        if opts.inline_fallback_icon is not None else reqs >= RemapType.CLOSED
     yes_interpret_noscript = opts.interpret_noscript
     yes_verbose = opts.verbose
     not_verbose = not yes_verbose
@@ -658,6 +661,9 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
         # `inline_headers` handling
         inline_headers_undone = True
 
+        # fallback_icon
+        fallback_icon_unset = yes_inline_fallback_icon
+
         # `<base>` tag handling
         base_url = orig_base_url
         base_url_unset = True
@@ -818,10 +824,14 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                     # scrub `link` `rel` attributes
                     link_rels = link_rels_of(attrs.get(rel_attr, ""))
                     if len(link_rels) > 0:
+                        link_rels_set = set(link_rels)
+
+                        if fallback_icon_unset and "icon" in link_rels_set or "shortcut" in link_rels_set:
+                            fallback_icon_unset = False
+
                         # scrub `link` `href` attributes
                         href = map_optional(lambda x: x.strip(), attrs.get(href_attr, None))
                         if href is not None:
-                            link_rels_set = set(link_rels)
                             if is_data_url(href) and not link_rels_set.isdisjoint(stylesheet_link_rels):
                                 # handle stylsheets given as `data:` URLs.
                                 # yes, this is actually allowed =/
@@ -938,6 +948,14 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                             inline_headers_undone = False
                             backlog = list(headers_to_meta_http_equiv(headers)) + [token] + backlog
                             continue
+
+                        # as a fallback, add a dummy favicon, if not set
+                        if fallback_icon_unset:
+                            fallback_icon_unset = False
+                            href = remap_link_maybe(base_url, "/favicon.ico", LinkType.REQ, image_mime, remap_url)
+                            if href is not None:
+                                yield {"type": "EmptyTag", "namespace": htmlns, "name": "link",
+                                       "data": {href_attr: href, rel_attr: "icon"}}
 
                         # stop handling <base ...> tag
                         base_url_unset = False
