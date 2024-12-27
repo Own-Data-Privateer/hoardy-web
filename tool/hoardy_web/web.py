@@ -19,6 +19,7 @@
 """
 
 import collections as _c
+import collections.abc as _cabc
 import dataclasses as _dc
 import enum as _enum
 import re as _re
@@ -400,6 +401,26 @@ for e in stylesheet_link_rels:
 for e in icon_link_rels:
     link_rel_ref_type[e] = (LinkType.REQ, image_mime)
 
+def link_rels_of(rels : str,
+                 *,
+                 whitelist : _cabc.Collection[str] | None = None,
+                 blacklist : _cabc.Collection[str] | None = None) -> list[str]:
+    rparts = map(lambda x: x.lower(), word_re.findall(rels))
+    return [r for r in rparts \
+            if (whitelist is None or r in whitelist) and \
+               (blacklist is None or r not in blacklist)]
+
+def rel_ref_type_of(link_rels : list[str]) -> RefType:
+    slink_type = None
+    cts = []
+    for rel in link_rels:
+        link_type_, cts_ = link_rel_ref_type.get(rel, jump_ref)
+        if slink_type is None or link_type_ == LinkType.REQ:
+            slink_type = link_type_
+        cts += [e for e in cts_ if e not in cts]
+    link_type = slink_type if slink_type is not None else LinkType.JUMP
+    return link_type, cts
+
 tracking_node_attrs = frozenset([
     (htmlns_a,    ping_attr),
     (htmlns_area, ping_attr),
@@ -626,21 +647,6 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 return True
         return False
 
-    def link_rels_of(rels : str) -> list[str]:
-        rparts = map(lambda x: x.lower(), word_re.findall(rels))
-        return [r for r in rparts if r not in link_rel_blacklist]
-
-    def rel_ref_type_of(link_rels : list[str]) -> RefType:
-        slink_type = None
-        cts = []
-        for rel in link_rels:
-            link_type_, cts_ = link_rel_ref_type.get(rel, jump_ref)
-            if slink_type is None or link_type_ == LinkType.REQ:
-                slink_type = link_type_
-            cts += [e for e in cts_ if e not in cts]
-        link_type = slink_type if slink_type is not None else LinkType.JUMP
-        return link_type, cts
-
     def scrub_html(orig_base_url : URLType,
                    remap_url : URLRemapperType | None,
                    headers : Headers,
@@ -809,7 +815,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                 new_attrs : _c.OrderedDict[HTML5NN, str | None] = _c.OrderedDict()
                 if not censor and nn == htmlns_link:
                     # scrub `link` `rel` attributes
-                    link_rels = link_rels_of(attrs.get(rel_attr, ""))
+                    link_rels = link_rels_of(attrs.get(rel_attr, ""), blacklist=link_rel_blacklist)
                     if len(link_rels) > 0:
                         link_rels_set = set(link_rels)
 
