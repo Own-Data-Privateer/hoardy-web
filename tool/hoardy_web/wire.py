@@ -641,6 +641,9 @@ def parse_mime_parameters(p : Parser, ends : list[str] = []) -> Parameters:
         res.append(token)
     return res
 
+def unparse_mime_parameters(params : Parameters) -> str:
+    return "".join(map(lambda v: "; " + v[0] + '="' + v[1].replace('"', '\\"') + '"', params))
+
 ### `data:` URLs
 
 def parse_data_url(value : str) -> tuple[str, Parameters, bytes]:
@@ -833,6 +836,9 @@ def parse_link_header(value : str) -> ParsedLinkHeader:
         res.append(token)
     return res
 
+def unparse_link_header(links : ParsedLinkHeader) -> str:
+    return ", ".join(map(lambda v: "<" + v[0] + ">" + unparse_mime_parameters(v[1]), links))
+
 def test_parse_link_header() -> None:
     def check(lhs : list[str], expected_values : _t.Any) -> None:
         for lh in lhs:
@@ -886,6 +892,19 @@ def test_parse_link_header() -> None:
         ('https://example.org/index.js', [('as', 'script'), ('rel', ' preload'), ('crossorigin', '')]),
         ('https://example.org/main.js', [('as', 'script'), ('rel', 'preload')])
     ])
+
+def test_unparse_link_header() -> None:
+    def check(lh : _t.Any, expected_value : _t.Any) -> None:
+        value = unparse_link_header(lh)
+        scheck(lh, "unparse", value, expected_value)
+
+    check([("https://example.org", [("rel", "me")])], '<https://example.org>; rel="me"')
+    check([
+        ('https://example.org', [('rel', 'preconnect')]),
+        ('https://example.org/index.css', [('as', 'style'), ('rel', 'preload'), ('crossorigin', '')]),
+        ('https://example.org/index.js', [('as', 'script'), ('rel', ' preload'), ('crossorigin', '')]),
+        ('https://example.org/main.js', [('as', 'script'), ('rel', 'preload')])
+    ], '<https://example.org>; rel="preconnect", <https://example.org/index.css>; as="style"; rel="preload"; crossorigin="", <https://example.org/index.js>; as="script"; rel=" preload"; crossorigin="", <https://example.org/main.js>; as="script"; rel="preload"')
 
 def parse_refresh_header(value : str) -> tuple[int | None, str | None]:
     """Parse HTTP `Refresh` header."""
