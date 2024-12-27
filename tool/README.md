@@ -2862,13 +2862,13 @@ The end.
   - `--raw-sbody, --no-remap`
   : set the default value of `--expr` to `response.body|eb`; i.e. produce the raw response body
   - `--remap-id`
-  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs`; i.e. `scrub` response body as follows: remap all URLs with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones), censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response +all_refs,-inline_headers`; i.e. `scrub` response body as follows: remap all URLs with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones), censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained
   - `--remap-void`
-  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs`; i.e. `scrub` response body as follows: remap all URLs into `javascript:void(0)` and empty `data:` URLs, censor out all dynamic content; results will be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response -all_refs,-inline_headers`; i.e. `scrub` response body as follows: remap all URLs into `javascript:void(0)` and empty `data:` URLs, censor out all dynamic content; results will be self-contained
   - `--remap-semi`
-  : set the default value of `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs`; i.e. `scrub` response body as follows: keeps all jump links pointing to unarchived URLs as-is, remap all other links and references to their replay URLs, censor out all dynamic content; results will be self-contained
+  : set the default value of `--expr` to `response.body|eb|scrub response *jumps,/actions,/reqs,-inline_headers`; i.e. `scrub` response body as follows: keeps all jump links pointing to unarchived URLs as-is, remap all other links and references to their replay URLs, censor out all dynamic content; results will be self-contained
   - `--remap-all`
-  : set the default value of `--expr` to `response.body|eb|scrub response &all_refs`; i.e. `scrub` response body as follows: remap all links and references to their replay URLs, even when they are not available in the index, censor out all dynamic content; results will be self-contained; default
+  : set the default value of `--expr` to `response.body|eb|scrub response &all_refs,-inline_headers`; i.e. `scrub` response body as follows: remap all links and references to their replay URLs, even when they are not available in the index, censor out all dynamic content; results will be self-contained; default
 
 - buckets:
   - `--default-bucket NAME, --default-profile NAME`
@@ -2909,6 +2909,12 @@ The end.
   : {fiar} the latest visit; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version with a new one
   - `--all`
   : index and replay all visits to all available URLs; if `--to` is given, archiving a new visit for a URL will update the index and make the new visit available for replay; default
+
+- replay how:
+  - `--web`
+  : replay `HTTP` responses as close as possible to their original captures; default
+  - `--mirror`
+  : replay `HTTP` responses like `hoardy-web mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `hoardy-web mirror`; i.e., enabling this option will, essentially, turn this sub-command into an on-demand `hoardy-web mirror` which you can query with `curl` or some such
 
 ## Examples
 

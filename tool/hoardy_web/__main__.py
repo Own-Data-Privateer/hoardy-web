@@ -413,7 +413,7 @@ def print_exprs(rrexpr : ReqresExpr[_t.Any], exprs : list[tuple[str, LinstFunc]]
 
         fobj.write_bytes(data)
 
-default_expr = {
+default_expr_values = {
     "dot": ".",
     "raw_qbody": "request.body|eb",
     "raw_sbody": "response.body|eb",
@@ -427,9 +427,15 @@ default_expr = {
 default_input_status_re = ".(200|30[012378])C"
 default_root_status_re = ".[23]00C"
 
+def default_expr(kind : str, what : str) -> str:
+    if kind != "serve" or what == "dot" or what.startswith("raw_"):
+        return default_expr_values[what]
+    else:
+        return default_expr_values[what] + ",-inline_headers"
+
 def cmd_get(cargs : _t.Any) -> None:
     if len(cargs.mexprs) == 0:
-        cargs.mexprs = { stdout: [compile_expr(default_expr[cargs.default_expr])] }
+        cargs.mexprs = { stdout: [compile_expr(default_expr("get", cargs.default_expr))] }
 
     exp_path = _os.path.expanduser(cargs.path)
     rrexpr = rrexpr_wrr_loadf(exp_path)
@@ -441,7 +447,7 @@ def cmd_get(cargs : _t.Any) -> None:
 
 def cmd_run(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
-        cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
+        cargs.exprs = [compile_expr(default_expr("run", cargs.default_expr))]
 
     if cargs.num_args < 1:
         raise Failure(gettext("`run` sub-command requires at least one PATH"))
@@ -490,7 +496,7 @@ def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
 
 def cmd_stream(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
-        cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
+        cargs.exprs = [compile_expr(default_expr("stream", cargs.default_expr))]
 
     stream = get_StreamEncoder(cargs)
 
@@ -1911,7 +1917,7 @@ def normal_document(stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
 
 def cmd_mirror(cargs : _t.Any) -> None:
     if len(cargs.exprs) == 0:
-        cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
+        cargs.exprs = [compile_expr(default_expr("mirror", cargs.default_expr))]
 
     output_format = elaborate_output("--output", output_alias, cargs.output)
     destination = _os.path.expanduser(cargs.destination)
@@ -2347,9 +2353,10 @@ def cmd_serve(cargs : _t.Any) -> None:
 
     inherit : str | None = None
     if len(cargs.exprs) == 0:
-        cargs.exprs = [compile_expr(default_expr[cargs.default_expr])]
+        cargs.exprs = [compile_expr(default_expr("serve" if cargs.web_replay else "mirror", cargs.default_expr))]
         inherit = "request" if cargs.default_expr == "raw_qbody" else "response"
     take_whatever = inherit != "response"
+    not_web_replay = not cargs.web_replay
 
     if cargs.default_input_filters:
         cargs.status_re += [default_input_status_re]
@@ -2659,6 +2666,29 @@ def cmd_serve(cargs : _t.Any) -> None:
                         hr : str | None = None
                         if hl == "location":
                             hr = rebase_remap_url(hv.strip())
+                        elif not_web_replay:
+                            continue
+                        elif hl in verbatim_http_headers:
+                            hr = hv
+                        elif hl == "refresh":
+                            try:
+                                secs, url = parse_refresh_header(hv)
+                            except ValueError: pass
+                            else:
+                                href = rebase_remap_url(url)
+                                if href is not None:
+                                    hr = unparse_refresh_header(secs, href)
+                        elif hl == "link":
+                            try:
+                                plinks = parse_link_header(hv)
+                            except ValueError: pass
+                            else:
+                                links = []
+                                for url, params in plinks:
+                                    href = rebase_remap_url(url)
+                                    if href is not None:
+                                        links.append((href, params))
+                                hr = unparse_link_header(links) if len(links) > 0 else None
 
                         if hr is not None:
                             bottle.response.add_header(hn, hr)
@@ -3180,8 +3210,8 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
                 "- " + _("derived attributes:") + "\n" + \
                 "".join([f"  - `{name}`: {__(value)}\n" for name, value in ReqresExpr_derived_attrs.items()]) + \
                 "- " + _("a compound expression built by piping (`|`) the above, for example") + __(f""":
-- `{default_expr["raw_sbody"]}` (the default for `get` and `run`) will print raw `response.body` or an empty byte string, if there was no response;
-- `{default_expr["raw_sbody"]}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
+- `{default_expr("get", "raw_sbody")}` (the default for `get` and `run`) will print raw `response.body` or an empty byte string, if there was no response;
+- `{default_expr("get", "raw_sbody")}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
 - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
 - `response.complete|false` will print `response.complete` or `False`;
 - `net_url|to_ascii|sha256|to_hex` will print a hexadecimal representation of the `sha256` hash of the URL that was actually sent over the network;
@@ -3205,7 +3235,7 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
             cmd.set_defaults(default_expr = "raw_sbody")
 
         def alias(what : str) -> str:
-            return _("set the default value of `--expr` to `%s`") % (default_expr[what],)
+            return _("set the default value of `--expr` to `%s`") % (default_expr(kind, what),)
 
         agrp = cmd.add_argument_group("default value of `--expr`")
         grp = agrp.add_mutually_exclusive_group()
@@ -3625,6 +3655,12 @@ The end.
     grp.add_argument("--latest", dest="replay", action="store_const", const=anytime.end, help=_("{fiar} the latest visit; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version with a new one"))
     grp.add_argument("--all", dest="replay", action="store_const", const=None, help=_("index and replay all visits to all available URLs; if `--to` is given, archiving a new visit for a URL will update the index and make the new visit available for replay; default"))
     cmd.set_defaults(replay = None) # --all
+
+    agrp = cmd.add_argument_group("replay how")
+
+    agrp.add_argument("--web", dest="web_replay", action="store_const", const=True, help=_("replay `HTTP` responses as close as possible to their original captures; default"))
+    agrp.add_argument("--mirror", dest="web_replay", action="store_const", const=False, help=_(f"replay `HTTP` responses like `{__prog__} mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `{__prog__} mirror`; i.e., enabling this option will, essentially, turn this sub-command into an on-demand `{__prog__} mirror` which you can query with `curl` or some such"))
+    cmd.set_defaults(web_replay = True)
 
     cmd.set_defaults(func=cmd_serve)
 
