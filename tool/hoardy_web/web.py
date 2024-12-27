@@ -282,6 +282,9 @@ def prettify_html(indent : int, relaxed : bool, walker : _t.Iterator[HTML5Node])
                 newline = False
         prev_token = token
 
+verbatim_http_headers = frozenset(["default-style", "x-ua-compatible"])
+interpreted_http_headers = frozenset(["content-security-policy", "link", "refresh"])
+
 def headers_to_meta_http_equiv(headers : Headers) -> _t.Iterator[HTML5Node]:
     """Produce `<meta http-equiv>` tags from given `HTTP` headers."""
 
@@ -291,21 +294,10 @@ def headers_to_meta_http_equiv(headers : Headers) -> _t.Iterator[HTML5Node]:
         attrs[content_attr] = value
         yield {"type": "EmptyTag", "namespace": htmlns, "name": "meta", "data": attrs}
 
-    # `Content-Type` headers are handled by `html5lib` and
-    # `protocol_encoding` below, so we ignore them here.
-
-    # `Content-Security-Policy` can be specified multiple times.
-    for csph in get_header_values(headers, "content-security-policy"):
-        yield from emit_http_eqiuv("content-security-policy", csph)
-
-    # These headers should be inlined verbatim.
-    for name, value in headers:
-        if name.lower() in ["x-ua-compatible", "default-style", "refresh"]:
+    for name, value in get_raw_headers(headers):
+        nl = name.lower()
+        if nl in verbatim_http_headers or nl in interpreted_http_headers:
             yield from emit_http_eqiuv(name, value.decode("ascii"))
-
-    # `Link` can be specified multiple times.
-    for lh in get_header_values(headers, "link"):
-        yield from emit_http_eqiuv("link", lh)
 
 class RemapType(_enum.IntEnum):
     ID = 0
@@ -731,8 +723,8 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                    not goes_before_inlines(nn, attrs) and \
                    in_head:
                     # inline them before this token
-                    backlog = list(headers_to_meta_http_equiv(headers)) + [token] + backlog
                     inline_headers_undone = False
+                    backlog = list(headers_to_meta_http_equiv(headers)) + [token] + backlog
                     continue
 
                 # handle <base ...> tag
@@ -764,21 +756,18 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                     kind = attrs[http_equiv_attr].lower()
                     content = attrs.get(content_attr, None)
                     # NB: These are always rebased onto `orig_base_url`, not the `base_url`.
-                    if kind in ["content-type", "x-ua-compatible", "default-style"] and content is not None:
+                    if kind in verbatim_http_headers and content is not None:
                         # simply accept these
                         pass
-                    elif kind == "refresh" and content is not None:
-                        if yes_navigations:
-                            try:
-                                osecs, href = parse_refresh_header(content)
-                            except ValueError:
-                                censor = True
-                            else:
-                                href = remap_link_maybe(orig_base_url, href, LinkType.JUMP, page_mime, remap_url)
-                                if href is not None:
-                                    attrs[content_attr] = unparse_refresh_header(osecs, href)
-                        else:
+                    elif yes_navigations and kind == "refresh" and content is not None:
+                        try:
+                            osecs, href = parse_refresh_header(content)
+                        except ValueError:
                             censor = True
+                        else:
+                            href = remap_link_maybe(orig_base_url, href, LinkType.JUMP, page_mime, remap_url)
+                            if href is not None:
+                                attrs[content_attr] = unparse_refresh_header(osecs, href)
                     elif kind == "link" and content is not None:
                         # replace this header with a sequence of `<link>` headers
                         nbacklog = []
@@ -792,10 +781,10 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                                 tattrs = _c.OrderedDict()
                                 for k, v in params:
                                     nk = (None, k)
-                                    # only the first value matters, href_attr is not allowed
-                                    if nk in tattrs or nk == href_attr:
-                                        continue
-                                    tattrs[nk] = v
+                                    if nk not in tattrs and nk != href_attr:
+                                        # only the first value matters, href_attr is not allowed
+                                        tattrs[nk] = v
+                                # NB: order matters here, we are setting this at the end to generate a prettier `HTML` tag
                                 tattrs[href_attr] = url
                                 nbacklog.append({"type": "EmptyTag", "namespace": htmlns, "name": "link", "data": tattrs})
 
