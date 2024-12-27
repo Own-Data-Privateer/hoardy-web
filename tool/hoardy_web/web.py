@@ -769,18 +769,14 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         pass
                     elif kind == "refresh" and content is not None:
                         if yes_navigations:
-                            osecs, href = parse_refresh_header(content)
-                            if osecs is not None:
-                                if href is None:
-                                    attrs[content_attr] = str(osecs)
-                                else:
-                                    href = remap_link_maybe(orig_base_url, href, LinkType.JUMP, page_mime, remap_url)
-                                    if href is not None and is_page_url(href):
-                                        attrs[content_attr] = str(osecs) + ";url=" + href
-                                    else:
-                                        censor = True
-                            else:
+                            try:
+                                osecs, href = parse_refresh_header(content)
+                            except ValueError:
                                 censor = True
+                            else:
+                                href = remap_link_maybe(orig_base_url, href, LinkType.JUMP, page_mime, remap_url)
+                                if href is not None:
+                                    attrs[content_attr] = unparse_refresh_header(osecs, href)
                         else:
                             censor = True
                     elif kind == "link" and content is not None:

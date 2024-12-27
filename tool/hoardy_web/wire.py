@@ -906,28 +906,20 @@ def test_unparse_link_header() -> None:
         ('https://example.org/main.js', [('as', 'script'), ('rel', 'preload')])
     ], '<https://example.org>; rel="preconnect", <https://example.org/index.css>; as="style"; rel="preload"; crossorigin="", <https://example.org/index.js>; as="script"; rel=" preload"; crossorigin="", <https://example.org/main.js>; as="script"; rel="preload"')
 
-def parse_refresh_header(value : str) -> tuple[int | None, str | None]:
+def parse_refresh_header(value : str) -> tuple[int, str]:
     """Parse HTTP `Refresh` header."""
     p = Parser(value)
     p.opt_whitespace()
-    try:
-        grp = p.regex(natural_re)
-        p.opt_whitespace()
-    except ParseError:
-        secs = None
-        p.take_until_string(";")
-    else:
-        secs = int(grp[0])
-    try:
-        p.string(";")
-        p.opt_whitespace()
-        p.string("url=")
-        grp = p.regex(url_re)
-    except ParseError:
-        url = None
-    else:
-        url = grp[0]
-    return secs, url
+    ngrp = p.regex(natural_re)
+    p.opt_whitespace()
+    p.string(";")
+    p.opt_whitespace()
+    p.string("url=")
+    ugrp = p.regex(url_re)
+    return int(ngrp[0]), ugrp[0]
+
+def unparse_refresh_header(secs : int, url : str) -> str:
+    return f"{secs}; url={url}"
 
 def test_parse_refresh_header() -> None:
     def check(rhs : list[str], expected_num : _t.Any, expected_url : _t.Any) -> None:
@@ -937,14 +929,10 @@ def test_parse_refresh_header() -> None:
             scheck(rh, "url", url, expected_url)
 
     check([
-        "0",
-        " 0",
-        " 0 ",
-    ], 0, None)
-    check([
         "10;url=https://example.org/",
         "10; url=https://example.org/",
         "10 ;url=https://example.org/",
+        " 10;url=https://example.org/",
         "10 ; url=https://example.org/",
     ], 10, "https://example.org/")
 

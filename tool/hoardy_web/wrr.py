@@ -1059,9 +1059,9 @@ body {
     <!-- hoardy-web censored out EmptyTag meta from here -->
     <!-- hoardy-web censored out EmptyTag meta from here -->
     <meta http-equiv=X-UA-Compatible content="IE=edge">
-    <meta http-equiv=Refresh content="10;url=https://example.com/one.html">
-    <meta http-equiv=Refresh content="100;url=https://example.com/two.html">
-    <meta http-equiv=Refresh content="200;url=https://example.org/three.html">
+    <meta http-equiv=Refresh content="10; url=https://example.com/one.html">
+    <meta http-equiv=Refresh content="100; url=https://example.com/two.html">
+    <meta http-equiv=Refresh content="200; url=https://example.org/three.html">
     <link as=script rel=preload href="https://example.com/first.js">
     <link as=script rel=preload href="https://example.com/second.js">
     <link as=script rel=preload href="https://example.org/third.js">

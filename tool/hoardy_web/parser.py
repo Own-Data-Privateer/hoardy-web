@@ -34,7 +34,7 @@ integer_re = _re.compile(r"(-?[0-9]+)")
 decimal_re = _re.compile(r"(-?[0-9]+(.[0-9]+)?)")
 opt_whitespace_re = _re.compile(r"(\s*)")
 
-class ParseError(Failure):
+class ParseError(Failure, ValueError):
     pass
 
 ParsedValueType = _t.TypeVar("ParsedValueType")
