@@ -668,6 +668,25 @@ def parse_data_url(value : str) -> tuple[str, Parameters, bytes]:
         data = _up.unquote_to_bytes(p.leftovers)
     return mime_type, params, data
 
+def unparse_data_url(mime_type : str, params : Parameters, data : bytes) -> str:
+    res = [
+        "data:",
+        mime_type,
+    ]
+    for n, v in params:
+        res.append(";")
+        res.append(n)
+        if len(v) == 0:
+            continue
+        res.append('="')
+        res.append(miniescape(v, qcontent_ends_str))
+        res.append('"')
+    res += [
+        ";base64,",
+        _base64.b64encode(data).decode("ascii"),
+    ]
+    return "".join(res)
+
 def test_parse_data_url() -> None:
     def check(values : list[str], expected_mime_type : str, expected_params : Parameters, expected_data : bytes) -> None:
         for value in values:
@@ -693,25 +712,6 @@ def test_parse_data_url() -> None:
         "data: ,Hello%2C%20World%21",
         "data:bla,Hello%2C%20World%21",
     ], "text/plain", [], b"Hello, World!")
-
-def unparse_data_url(mime_type : str, params : Parameters, data : bytes) -> str:
-    res = [
-        "data:",
-        mime_type,
-    ]
-    for n, v in params:
-        res.append(";")
-        res.append(n)
-        if len(v) == 0:
-            continue
-        res.append('="')
-        res.append(miniescape(v, qcontent_ends_str))
-        res.append('"')
-    res += [
-        ";base64,",
-        _base64.b64encode(data).decode("ascii"),
-    ]
-    return "".join(res)
 
 def test_unparse_data_url() -> None:
     def check(value : str, *args : _t.Any) -> None:
