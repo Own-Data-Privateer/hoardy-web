@@ -378,7 +378,7 @@ attr_ref_type = {
     (htmlns_video,  src_attr): (LinkType.REQ, video_mime + audio_video_mime),
 }
 
-prefetch_link_rels = frozenset([
+preload_link_rels = frozenset([
     "dns-prefetch", "preconnect", "prefetch", "prerender", "preload", "modulepreload",
 ])
 
@@ -454,7 +454,7 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
     if not opts.styles:
         link_rel_blacklist.update(stylesheet_link_rels)
     if not opts.prefetches:
-        link_rel_blacklist.update(prefetch_link_rels)
+        link_rel_blacklist.update(preload_link_rels)
 
     jumps = opts.jumps
     actions = opts.actions

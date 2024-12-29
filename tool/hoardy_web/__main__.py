@@ -2685,6 +2685,12 @@ def cmd_serve(cargs : _t.Any) -> None:
                             else:
                                 links = []
                                 for url, params in plinks:
+                                    rel = get_parameter_value(params, "rel", None)
+                                    if rel is not None:
+                                        allowed_rels = link_rels_of(rel, blacklist=preload_link_rels)
+                                        if len(allowed_rels) == 0:
+                                            continue
+                                        params = set_parameter(params, "rel", " ".join(allowed_rels))
                                     href = rebase_remap_url(url)
                                     if href is not None:
                                         links.append((href, params))
