@@ -42,3 +42,18 @@ cbor = ["cbor2"]
 [project.scripts]
 hoardy-web-sas = "hoardy_web_sas:main"
 pwebarc-dumb-dump-server = "hoardy_web_sas:main"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+implicit_reexport = true
+explicit_package_bases = true
+files = [
+    "*.py",
+]
+[[tool.mypy.overrides]]
+module = [
+    "setuptools",
+    "cbor2",
+]
+ignore_missing_imports = true
