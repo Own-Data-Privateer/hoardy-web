@@ -35,6 +35,7 @@ _cbor2 = None
 
 try:
     import importlib.metadata as _meta
+
     version = _meta.version(__package__)
 except Exception:
     version = "dev"
@@ -42,22 +43,27 @@ except Exception:
 mypid = str(_os.getpid())
 bucket_re = _re.compile(r"[\w -]+")
 
+
 class HTTPDumpServer(_threading.Thread):
     """HTTP server that accepts HTTP dumps as POST data, tries to compresses them
-       with gzip, and saves them in a given directory.
+    with gzip, and saves them in a given directory.
 
-       This runs in a separate thread so that KeyboardInterrupt and such
-       would not interrupt a dump in the middle.
+    This runs in a separate thread so that KeyboardInterrupt and such
+    would not interrupt a dump in the middle.
     """
 
-    def __init__(self, cargs : _argparse.Namespace, *args : _t.Any, **kwargs : _t.Any) -> None:
+    def __init__(self, cargs: _argparse.Namespace, *args: _t.Any, **kwargs: _t.Any) -> None:
         super().__init__(*args, **kwargs)
-        self.httpd = _wsgiss.make_server(cargs.host, cargs.port, _wsgival.validator(self.handle_request))
+        self.httpd = _wsgiss.make_server(
+            cargs.host, cargs.port, _wsgival.validator(self.handle_request)
+        )
         self.cargs = cargs
-        self.server_info_json = _json.dumps({
-            "version": 1,
-            "dump_wrr": "/pwebarc/dump",
-        }).encode("utf-8")
+        self.server_info_json = _json.dumps(
+            {
+                "version": 1,
+                "dump_wrr": "/pwebarc/dump",
+            }
+        ).encode("utf-8")
         self.epoch = 0
         self.num = 0
         print(f"Working as an archiving server at http://{cargs.host}:{cargs.port}/")
@@ -68,8 +74,8 @@ class HTTPDumpServer(_threading.Thread):
     def stop(self) -> None:
         self.httpd.shutdown()
 
-    def handle_request(self, env : _t.Any, start_response : _t.Any) -> _t.Iterator[bytes]:
-        def end_with(explanation : str, more : bytes) -> _t.Iterator[bytes]:
+    def handle_request(self, env: _t.Any, start_response: _t.Any) -> _t.Iterator[bytes]:
+        def end_with(explanation: str, more: bytes) -> _t.Iterator[bytes]:
             start_response(explanation, [("Content-Type", "text/plain; charset=utf-8")])
             yield more
 
@@ -83,7 +89,9 @@ class HTTPDumpServer(_threading.Thread):
             # sanity check
             ctype = env.get("CONTENT_TYPE", "")
             if ctype not in ["application/x-wrr+cbor", "application/cbor"]:
-                yield from end_with("400 Bad Request", f"expected CBOR data, got `{ctype}`".encode("utf-8"))
+                yield from end_with(
+                    "400 Bad Request", f"expected CBOR data, got `{ctype}`".encode("utf-8")
+                )
                 return
 
             cargs = self.cargs
@@ -131,7 +139,9 @@ class HTTPDumpServer(_threading.Thread):
             if cargs.compress:
                 # gzip it, if it gzips
                 with _io.BytesIO() as gz_outf:
-                    with _gzip.GzipFile(fileobj=gz_outf, filename="", mtime=0, mode="wb", compresslevel=9) as gz_inf:
+                    with _gzip.GzipFile(
+                        fileobj=gz_outf, filename="", mtime=0, mode="wb", compresslevel=9
+                    ) as gz_inf:
                         gz_inf.write(data)
                     compressed_data = gz_outf.getvalue()
 
@@ -144,7 +154,7 @@ class HTTPDumpServer(_threading.Thread):
             # because time.time() gives a float
             epoch = _time.time_ns() // 1000000000
             # number reqres sequentially within the same second
-            if (self.epoch != epoch):
+            if self.epoch != epoch:
                 self.num = 0
             else:
                 self.num += 1
@@ -173,13 +183,15 @@ class HTTPDumpServer(_threading.Thread):
         else:
             yield from end_with("404 Not Found", b"")
 
+
 def main() -> None:
     global _cbor2
 
     parser = _argparse.ArgumentParser(
         prog=__package__,
         description="Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
-        add_help = False)
+        add_help=False,
+    )
 
     # fmt: off
     parser.add_argument("-h", "--help", action="store_true", help="show this help message and exit")
@@ -204,7 +216,7 @@ def main() -> None:
 
     if cargs.help:
         if not _sys.stdout.isatty():
-            parser.formatter_class = lambda *args, **kwargs: _argparse.HelpFormatter(*args, width=1024, **kwargs) # type: ignore
+            parser.formatter_class = lambda *args, **kwargs: _argparse.HelpFormatter(*args, width=1024, **kwargs)  # type: ignore
         print(parser.format_help())
         _sys.exit(0)
 
@@ -214,7 +226,9 @@ def main() -> None:
         try:
             import cbor2 as cbor2_
         except ImportError:
-            _sys.stderr.write("warning: `cbor2` module is not available, forcing `--no-print` option\n")
+            _sys.stderr.write(
+                "warning: `cbor2` module is not available, forcing `--no-print` option\n"
+            )
             _sys.stderr.flush()
         else:
             _cbor2 = cbor2_
@@ -228,6 +242,7 @@ def main() -> None:
         print("Interrupted.")
         t.stop()
         t.join()
+
 
 if __name__ == "__main__":
     main()
