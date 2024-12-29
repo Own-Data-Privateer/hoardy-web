@@ -64,7 +64,7 @@ This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/hoardy
 ```
 usage: hoardy-web-sas [-h] [--version] [--host HOST] [--port PORT] [-t ROOT] [--compress | --no-compress] [--default-bucket NAME] [--ignore-buckets] [--no-print]
 
-Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.
+A simple archiving server for the `Hoardy-Web` Web Extension browser add-on: listen on given `--host` and `--port` via `HTTP`, dump each `POST`ed `WRR` dump to `<--archive-to>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.
 
 options:
   -h, --help            show this help message and exit

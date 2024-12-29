@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 name = "hoardy-web-sas"
 version = "1.8.0"
 authors = [{ name = "Jan Malakhovski", email = "oxij@oxij.org" }]
-description = "Simple archiving server for the `Hoardy-Web` Web Extension browser add-on."
+description = "A simple archiving server for the `Hoardy-Web` Web Extension browser add-on."
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 classifiers = [

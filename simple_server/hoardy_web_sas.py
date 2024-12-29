@@ -192,7 +192,7 @@ def main() -> None:
 
     parser = _argparse.ArgumentParser(
         prog=__prog__,
-        description="Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
+        description="""A simple archiving server for the `Hoardy-Web` Web Extension browser add-on: listen on given `--host` and `--port` via `HTTP`, dump each `POST`ed `WRR` dump to `<--archive-to>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.""",
         add_help=False,
     )
 
