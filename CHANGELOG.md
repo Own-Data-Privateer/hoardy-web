@@ -6,6 +6,84 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [tool-v0.21.0] - 2024-12-29: Bugfixes, incremental improvements
+
+### Fixed
+
+- `serve`:
+
+  - When remapping URLs, hash/fragment parts will be preserved now.
+
+  - When replaying, `HTTP` status codes will be preserved now.
+
+  - From now on, by default, `serve` will replay archived `HTTP` headers over `HTTP`, instead of inlining them into rendered `HTML` documents (see below).
+
+  - When both archiving and replaying, newly dumped reqres that fail given input filters will no longer be indexed and made available for replay.
+
+- `mirror`, `serve`:
+
+  - Reqres containing redirects (e.g. `302 Found`) are handled properly now.
+
+  - From now on, implicit favicons will be mirrored and replayed properly (see below).
+
+- `*`:
+
+  - Fixed `--*grep*` filtering of headers with multiple values.
+
+### Added
+
+- `scrub`, `mirror`, `serve`:
+
+  - Added `inline_headers` option, making inlining of headers as `meta http-equiv` tags optional.
+
+  - Implemented `inline_fallback_icon` option.
+
+    When enabled, this option adds a fallback `<link rel=icon href="/favicon.ico">` to the result when the input declares no icons and that URL remaps to something useful.
+
+    This option is then enabled by default, thus fixing replay of implicit favicons.
+
+- `serve`:
+
+  - Implemented `--web` and `--mirror` options which control how headers should be replayed.
+
+    With `--web` enabled, `serve` will evoke `scrub` with `-inline_headers` and will replay those headers over `HTTP` instead.
+
+    With `--mirror` it will continue to use `scrub` with `+inline_headers`, like `mirror` does.
+
+    From now on, `--web` is the default.
+
+  - Implemented `--oldest` and `--nearest` options, similar to those of `mirror`.
+
+  - Added more namespaces other than `/web/` and made `serve` use them for different kinds of targets when remapping.
+
+    So that, e.g., links pointing to unavailable URLs get remapped to `/unavailable/<date>/<url>` and links pointing to redirects get remapped to `/redirect/<date>/<url>`.
+
+    This makes links much more informative when hovering other them or when looking at the log output of `serve`.
+
+    For replay, however, all those namespaces are equivalent and can be used interchangeably.
+
+### Changed
+
+- `serve`, `mirror`:
+
+  - Renamed `--ignore-bad-inputs` -\> `--ignore-some-inputs`.
+
+  - Changed default input filters to allow reqres containing redirects.
+
+- `mirror`:
+
+  - Added a default value for the root filters, which is `--root-status-re ".[23]00C"` to prevent redirects being added as roots.
+
+  - Added `--queue-all-indexed` option to make the previous item optional.
+
+  - Changed (simplified) semantics of the `--boring` option.
+
+    From now on, making a path `--boring` simply disables queuing of its reqres as roots.
+
+    This allows for more interesting uses.
+
+- Improved documentation.
+
 ## [extension-v1.19.0] - 2024-12-21: Reworked popup UI, better replay integration
 
 ### Changed (1)
@@ -2025,6 +2103,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.21.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.20.0...tool-v0.21.0
 [extension-v1.19.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.18.0...extension-v1.19.0
 [extension-v1.18.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.17.2...extension-v1.18.0
 [tool-v0.20.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.19.0...tool-v0.20.0
