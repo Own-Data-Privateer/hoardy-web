@@ -62,7 +62,7 @@ This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/hoardy
 # Usage
 
 ```
-usage: hoardy_web_sas.py [-h] [--version] [--host HOST] [--port PORT] [-t ROOT] [--compress | --no-compress] [--default-bucket NAME] [--ignore-buckets] [--no-print]
+usage: hoardy-web-sas [-h] [--version] [--host HOST] [--port PORT] [-t ROOT] [--compress | --no-compress] [--default-bucket NAME] [--ignore-buckets] [--no-print]
 
 Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.
 

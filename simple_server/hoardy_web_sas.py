@@ -34,11 +34,12 @@ import wsgiref.simple_server as _wsgiss
 import wsgiref.validate as _wsgival
 
 _cbor2 = None
+__prog__ = "hoardy-web-sas"
 
 try:
     import importlib.metadata as _meta
 
-    version = _meta.version(__package__)
+    version = _meta.version(__prog__)
 except Exception:
     version = "dev"
 
@@ -190,14 +191,14 @@ def main() -> None:
     global _cbor2
 
     parser = _argparse.ArgumentParser(
-        prog=__package__,
+        prog=__prog__,
         description="Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
         add_help=False,
     )
 
     # fmt: off
     parser.add_argument("-h", "--help", action="store_true", help="show this help message and exit")
-    parser.add_argument("--version", action="version", version=f"{__package__} {version}")
+    parser.add_argument("--version", action="version", version=f"{__prog__} {version}")
 
     parser.add_argument("--host", type=str, default="127.0.0.1", help="listen on what host/IP; default: `%(default)s`")
     parser.add_argument("--port", type=int, default=3210, help="listen on what port; default: `%(default)s`")
