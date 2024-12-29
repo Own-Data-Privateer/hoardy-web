@@ -5,11 +5,18 @@ Not just the URLs, but also the contents and the requisite resources (images, me
 Not just the last 3 months, but from the beginning of time you start using it.
 
 Practically speaking, you [install the `Hoardy-Web` browser extension/add-on into your web browser](#quickstart) and just browse the web normally while `Hoardy-Web` passively, in background, captures and archives web pages you visit for later offline viewing, mirroring, and/or indexing.
-`Hoardy-Web` has a lot of configuration options to help you tweak what should or should not be archived and a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless explicitly configured otherwise to, e.g., minimize writes to disk instead).
 
-To start saving your browsing history, you can [start using the `Hoardy-Web` extension](#quickstart) independently of other tools that are being developed in this repository.
+Note that `Hoardy-Web`'s browser extension
 
-To view/replay your archived data over `HTTP` (a-la a local [Wayback Machine](https://web.archive.org/)), generate static website mirrors from it (a-la `wget -mpk`), search, inspect, organize, manipulate, programmatically extract values from, and run scripts over your collected data you will need to install at least the [accompanying `hoardy-web` tool](./tool/).
+- can be used independently of other tools that are being developed in this repository, so you can install it and start saving your browsing history immediately, and then delay learning to use the rest of the tools developed here for later;
+
+- has a lot of configuration options to help you tweak what should or should not be archived and a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless you explicitly configure it to do otherwise to, e.g., minimize writes to disk instead).
+
+To view/replay your archived data you will need to install at least the [accompanying `hoardy-web` tool](./tool/) which can
+
+- replay your archives over `HTTP` (a-la a local [Wayback Machine](https://web.archive.org/)),
+- generate static website mirrors from it (a-la `wget -mpk`),
+- search, inspect, organize, manipulate, programmatically extract values from, and run scripts over your collected data.
 
 See the next section for a little storyboard explaining the above with pictures.
 
@@ -668,6 +675,7 @@ Cons:
 - to make `archiveweb.page` archive all of your web browsing like `Hoardy-Web` does:
   - you will have to manually enable `archiveweb.page` for each browser tab; and then
   - opening a link in a new tab will fail to archive the first page, as the archival is per-tab;
+- it has no equivalent to [`problematic`](./extension/page/help.org#problematic) reqres status of `Hoardy-Web`, which is super useful for ensuring your captures are actually good, and not broken in some non-obvious ways because of networking or intermittent server errors;
 - `archiveweb.page` also requires constant manual effort to export the data out.
 
 Differences in design:
@@ -765,12 +773,9 @@ Cons:
 
 - compared to `hoardy-web serve`, it's much more complex, it has a builtin web crawler (aka "`pywb` Recorder", which does not work for uncooperative websites anyway), and can also do capture by trying to be an `HTTP` proxy (which also does not work for many websites);
 
-  I assume it has all these features because `archiveweb.page` is Chromium-only, which forces it to be rather unreliable (see a [list of relevant Chromium's bugs](./extension/page/help.org#chromium-bugs)) and annoying to use;
-  also, it has no equivalent of [`problematic`](./extension/page/help.org#problematic) reqres status of `Hoardy-Web`, making its dumps slightly flaky;
+  I assume it has all these features because `archiveweb.page` is Chromium-only, which forces it to be rather unreliable (see a [list of relevant Chromium's bugs](./extension/page/help.org#chromium-bugs)) and annoying to use when you want to be sure the whole page was captured properly (since it has no equivalent to [`problematic`](./extension/page/help.org#problematic) reqres status of `Hoardy-Web`).
 
-  meanwhile, in `Hoardy-Web`, the extension work perfectly well under Firefox-based browsers, and captures are pretty reliable there;
-
-  also, under Chromium-based browsers, `problematic` reqres tracking of `Hoardy-Web` helps immensely;
+  Meanwhile, `Hoardy-Web` has `problematic` reqres tracking and the extension works perfectly well under Firefox-based browsers, which allow for much more reliable captures.
 
 - since `hoardy-web serve` uses a much simpler and faster to parse `WRR` file format, it is able to add new dumps to its index synchronously with their archival, allowing for their immediate replay.
 
