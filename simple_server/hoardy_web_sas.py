@@ -180,6 +180,8 @@ def main() -> None:
         prog=__package__,
         description="Simple archiving server for Hoardy-Web. Dumps each request to `<ROOT>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.",
         add_help = False)
+
+    # fmt: off
     parser.add_argument("-h", "--help", action="store_true", help="show this help message and exit")
     parser.add_argument("--version", action="version", version=f"{__package__} {version}")
 
@@ -196,6 +198,7 @@ def main() -> None:
     parser.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension and use the value of `--default-bucket` instead")
 
     parser.add_argument("--no-print", "--no-print-cbors", action="store_true", help="don't print parsed representations of newly archived CBORs to stdout even if `cbor2` module is available")
+    # fmt: on
 
     cargs = parser.parse_args(_sys.argv[1:])
 

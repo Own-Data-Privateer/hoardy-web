@@ -309,7 +309,7 @@ To conform to the above design principles
 
   server-side part of submission via `HTTP` can be done either
 
-  - via the [`hoardy-web-sas` simple archiving server](./simple_server/), which is tiny (less than 250 lines of code) pure-Python script that provides an `HTTP` interface for archival of dumps given via `HTTP POST` requests;
+  - via the [`hoardy-web-sas` simple archiving server](./simple_server/), which is tiny (less than 300 lines of code) pure-Python script that provides an `HTTP` interface for archival of dumps given via `HTTP POST` requests;
 
   - or via the [`hoardy-web serve`](./tool/), which is not tiny at all, but it can combine both archival and replay;
 
