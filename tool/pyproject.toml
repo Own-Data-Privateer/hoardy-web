@@ -84,3 +84,46 @@ addopts = "-s -ra -v"
 testpaths = [
     "hoardy_web/__main__.py"
 ]
+
+[tool.black]
+line-length = 100
+
+[tool.pylint]
+disable = [
+    # `mypy` checks these more precisely
+    "arguments-renamed",
+    "inconsistent-return-statements",
+    "no-member",
+    "possibly-used-before-assignment",
+
+    # `kisstdlib` uses this
+    "raising-format-tuple",
+
+    # annoying
+    "global-statement",
+    "import-outside-toplevel",
+    "invalid-name",
+    "line-too-long",
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-boolean-expressions",
+    "too-many-branches",
+    "too-many-instance-attributes",
+    "too-many-lines",
+    "too-many-locals",
+    "too-many-nested-blocks",
+    "too-many-positional-arguments",
+    "too-many-public-methods",
+    "too-many-return-statements",
+    "too-many-statements",
+
+    # enable eventually
+    "broad-exception-caught",
+    "fixme",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "unused-wildcard-import",
+    "wildcard-import",
+]
+[tool.pylint.format]
+max-line-length = "100"

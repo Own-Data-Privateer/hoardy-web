@@ -57,3 +57,21 @@ module = [
     "cbor2",
 ]
 ignore_missing_imports = true
+
+[tool.black]
+line-length = 100
+
+[tool.pylint]
+disable = [
+    "broad-exception-caught",
+    "global-statement",
+    "import-outside-toplevel",
+    "invalid-name",
+    "line-too-long",
+    "missing-function-docstring",
+    "too-many-branches",
+    "too-many-locals",
+    "too-many-statements",
+]
+[tool.pylint.format]
+max-line-length = "100"
