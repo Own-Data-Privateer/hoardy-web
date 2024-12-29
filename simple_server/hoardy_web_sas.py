@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""A very simple archiving server for Hoardy-Web."""
+
 import argparse as _argparse
 import gzip as _gzip
 import io as _io
