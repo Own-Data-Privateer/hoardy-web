@@ -53,3 +53,34 @@ mitmproxy = [
 [project.scripts]
 hoardy-web= "hoardy_web.__main__:main"
 wrrarms = "hoardy_web.__main__:main"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+implicit_reexport = true
+explicit_package_bases = true
+files = [
+    "*.py",
+    "*/**/*.py"
+]
+[[tool.mypy.overrides]]
+module = [
+    "setuptools",
+    "sortedcontainers",
+    "cbor2",
+    "cbor2.*",
+    "html5lib.*",
+    "tinycss2.*",
+    "bottle",
+    # optional
+    "mitmproxy",
+    "mitmproxy.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-s -ra -v"
+testpaths = [
+    "hoardy_web/__main__.py"
+]
