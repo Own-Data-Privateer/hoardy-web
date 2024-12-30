@@ -57,7 +57,7 @@ class UnknownSource(DeferredSource):
         return 8
 
     def show_source(self) -> str:
-        return f"<{id(self)}>"
+        return f"<UnknownSource {id(self)}>"
 
     def get_fileobj(self) -> _io.BufferedReader:
         raise NotImplementedError()
@@ -80,6 +80,9 @@ class BytesSource(DeferredSource):
 
     def approx_size(self) -> int:
         return 16 + len(self.data)
+
+    def show_source(self) -> str:
+        return f"<BytesSource {id(self)} {repr(self.data)}>"
 
     def get_fileobj(self) -> _io.BufferedReader:
         return BytesIOReader(self.data)
