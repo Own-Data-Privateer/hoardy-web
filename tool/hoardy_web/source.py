@@ -110,10 +110,17 @@ class FileSource(DeferredSource):
         return fsdecode_maybe(self.path)
 
     def get_fileobj(self) -> _io.BufferedReader:
-        fobj = open(self.path, "rb")
-        in_stat = _os.fstat(fobj.fileno())
-        if self.st_mtime_ns != in_stat.st_mtime_ns:
-            raise Failure("`%s` changed between accesses", self.path)
+        fobj = open(self.path, "rb")  # pylint: disable=consider-using-with
+        try:
+            in_stat = _os.fstat(fobj.fileno())
+            if self.st_mtime_ns != in_stat.st_mtime_ns:
+                raise Failure("`%s` changed between accesses", self.path)
+        except Exception:
+            try:
+                fobj.close()
+            except Exception:
+                pass
+            raise
         return fobj
 
     def same_as(self, other: DeferredSource) -> bool:
