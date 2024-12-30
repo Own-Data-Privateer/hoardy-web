@@ -20,7 +20,8 @@ import io as _io
 import traceback as _traceback
 import typing as _t
 
-def getattr_rec(obj : _t.Any, names : list[str]) -> _t.Any:
+
+def getattr_rec(obj: _t.Any, names: list[str]) -> _t.Any:
     if len(names) == 0:
         return obj
 
@@ -32,26 +33,32 @@ def getattr_rec(obj : _t.Any, names : list[str]) -> _t.Any:
 
     raise AttributeError(name=this, obj=obj)
 
+
 InType = _t.TypeVar("InType")
 OutType = _t.TypeVar("OutType")
-def map_optional(f : _t.Callable[[InType], OutType], x : InType | None) -> OutType | None:
+
+
+def map_optional(f: _t.Callable[[InType], OutType], x: InType | None) -> OutType | None:
     if x is None:
         return None
     else:
         return f(x)
 
-def map_optionals(f : _t.Callable[[InType], list[OutType]], x : InType | None) -> list[OutType]:
+
+def map_optionals(f: _t.Callable[[InType], list[OutType]], x: InType | None) -> list[OutType]:
     if x is None:
         return []
     else:
         return f(x)
 
-def str_Exception(exc : Exception) -> str:
+
+def str_Exception(exc: Exception) -> str:
     fobj = _io.StringIO()
     _traceback.print_exception(type(exc), exc, exc.__traceback__, 100, fobj)
     return fobj.getvalue()
 
-def gzip_maybe(data : bytes) -> bytes:
+
+def gzip_maybe(data: bytes) -> bytes:
     """Given some bytes, return their GZipped version if they compress, return the original otherwise."""
 
     buf = _io.BytesIO()
@@ -64,7 +71,8 @@ def gzip_maybe(data : bytes) -> bytes:
     else:
         return data
 
-def ungzip_fileobj_maybe(fobj : _io.BufferedReader) -> _io.BufferedReader:
+
+def ungzip_fileobj_maybe(fobj: _io.BufferedReader) -> _io.BufferedReader:
     """UnGZip a file object if it appears to be GZipped."""
 
     head = fobj.peek(2)[:2]
@@ -72,18 +80,30 @@ def ungzip_fileobj_maybe(fobj : _io.BufferedReader) -> _io.BufferedReader:
         fobj = _t.cast(_io.BufferedReader, _gzip.GzipFile(fileobj=fobj, mode="rb"))
     return fobj
 
+
 PipeType = _t.TypeVar("PipeType")
-def make_func_pipe(pipe : list[_t.Callable[[PipeType], PipeType]]) -> _t.Callable[[PipeType], PipeType]:
-    def sub(x : PipeType) -> PipeType:
+
+
+def make_func_pipe(
+    pipe: list[_t.Callable[[PipeType], PipeType]]
+) -> _t.Callable[[PipeType], PipeType]:
+    def sub(x: PipeType) -> PipeType:
         for func in pipe:
             x = func(x)
         return x
+
     return sub
 
+
 EnvType = _t.TypeVar("EnvType")
-def make_envfunc_pipe(pipe : list[_t.Callable[[EnvType, PipeType], PipeType]]) -> _t.Callable[[EnvType, PipeType], PipeType]:
-    def sub(env : EnvType, x : PipeType) -> PipeType:
+
+
+def make_envfunc_pipe(
+    pipe: list[_t.Callable[[EnvType, PipeType], PipeType]]
+) -> _t.Callable[[EnvType, PipeType], PipeType]:
+    def sub(env: EnvType, x: PipeType) -> PipeType:
         for func in pipe:
             x = func(env, x)
         return x
+
     return sub

@@ -51,7 +51,8 @@ from .output import *
 
 __prog__ = "hoardy-web"
 
-def issue(pattern : str, *args : _t.Any) -> None:
+
+def issue(pattern: str, *args: _t.Any) -> None:
     message = pattern % args
     if stderr.isatty:
         stderr.write_str_ln("\033[31m" + message + "\033[0m")
@@ -59,17 +60,22 @@ def issue(pattern : str, *args : _t.Any) -> None:
         stderr.write_str_ln(message)
     stderr.flush()
 
-def error(pattern : str, *args : _t.Any) -> None:
+
+def error(pattern: str, *args: _t.Any) -> None:
     issue(gettext("error") + ": " + pattern, *args)
 
-def die(code : int, pattern : str, *args : _t.Any) -> _t.NoReturn:
+
+def die(code: int, pattern: str, *args: _t.Any) -> _t.NoReturn:
     error(pattern, *args)
     _sys.exit(code)
+
 
 interrupt_msg = "\n" + gettext("Gently finishing up... Press ^C again to forcefully interrupt.")
 want_stop = False
 should_raise = True
-def sig_handler(sig : int, frame : _t.Any) -> None:
+
+
+def sig_handler(sig: int, frame: _t.Any) -> None:
     global want_stop
     global should_raise
     want_stop = True
@@ -79,29 +85,37 @@ def sig_handler(sig : int, frame : _t.Any) -> None:
         issue(interrupt_msg)
     should_raise = True
 
+
 def handle_signals() -> None:
     _signal.signal(_signal.SIGINT, sig_handler)
     _signal.signal(_signal.SIGTERM, sig_handler)
 
-def pred_linst(expr : str, func : LinstFunc, rrexpr : ReqresExpr[_t.Any]) -> bool:
+
+def pred_linst(expr: str, func: LinstFunc, rrexpr: ReqresExpr[_t.Any]) -> bool:
     res = rrexpr.eval_func(func)
     if isinstance(res, bool):
         return res
     else:
-        e = CatastrophicFailure(gettext("while evaluating `%s`: expected a value of type `bool`, got `%s`"), expr, repr(res))
+        e = CatastrophicFailure(
+            gettext("while evaluating `%s`: expected a value of type `bool`, got `%s`"),
+            expr,
+            repr(res),
+        )
         e.elaborate(gettext("while processing `%s`"), rrexpr.source.show_source())
         raise e
 
-def mk_linst_filter(get_attr : _t.Callable[[FilterNameType], list[str]],
-                    get_optname : _t.Callable[[FilterNameType], str],
-                    name : FilterNameType,
-                    yes : bool,
-                    matches : PredicateMatchesType[str, LinstFunc, ReqresExpr[_t.Any]]) \
-                    -> FilterType[ReqresExpr[_t.Any]]:
+
+def mk_linst_filter(
+    get_attr: _t.Callable[[FilterNameType], list[str]],
+    get_optname: _t.Callable[[FilterNameType], str],
+    name: FilterNameType,
+    yes: bool,
+    matches: PredicateMatchesType[str, LinstFunc, ReqresExpr[_t.Any]],
+) -> FilterType[ReqresExpr[_t.Any]]:
     compiled = mk_conditions(str_id, lambda x: linst_compile(x, linst_atom_or_env), get_attr(name))
     num = len(compiled)
 
-    def allows(v : ReqresExpr[_t.Any]) -> bool:
+    def allows(v: ReqresExpr[_t.Any]) -> bool:
         res = matches(pred_linst, compiled, v)
         return res if yes else not res
 
@@ -110,38 +124,41 @@ def mk_linst_filter(get_attr : _t.Callable[[FilterNameType], list[str]],
 
     return num, allows, warn
 
-def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[ReqresExpr[_t.Any]]:
+
+def compile_filters(cargs: _t.Any, attr_prefix: str = "") -> FilterType[ReqresExpr[_t.Any]]:
     opt_prefix = attr_prefix.replace("_", "-")
 
-    def get_attr(x : str) -> _t.Any:
+    def get_attr(x: str) -> _t.Any:
         return getattr(cargs, attr_prefix + x)
 
-    def get_optname(x : str) -> str:
+    def get_optname(x: str) -> str:
         return f"--{opt_prefix}{x.replace('_', '-')}"
 
-    filters : list[FilterType[ReqresExpr[_t.Any]]] = []
+    filters: list[FilterType[ReqresExpr[_t.Any]]] = []
 
-    def add_yn_timestamp_filter(name : str, pred : _t.Callable[[str, TimeStamp, ReqresExpr[_t.Any]], bool]) -> None:
+    def add_yn_timestamp_filter(
+        name: str, pred: _t.Callable[[str, TimeStamp, ReqresExpr[_t.Any]], bool]
+    ) -> None:
         add_yn_filter(filters, get_attr, get_optname, name, mk_simple_filter, timestamp, lambda c, v: matches_all(pred, c, v))  # fmt: skip
 
-    def is_before(k : _t.Any, stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
-        rrstime : TimeStamp = rrexpr.stime
+    def is_before(k: _t.Any, stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
+        rrstime: TimeStamp = rrexpr.stime
         return rrstime < stime
 
-    def is_after(k : _t.Any, stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
-        rrstime : TimeStamp = rrexpr.stime
+    def is_after(k: _t.Any, stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
+        rrstime: TimeStamp = rrexpr.stime
         return stime < rrstime
 
     add_yn_timestamp_filter("before", is_before)
     add_yn_timestamp_filter("after", is_after)
 
-    def add_yn_field_filter(name : str, field : str | None = None) -> None:
+    def add_yn_field_filter(name: str, field: str | None = None) -> None:
         if field is None:
             field = name
 
-        def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> StrFilterInputType:
+        def get_inputs(rrexpr: ReqresExpr[_t.Any]) -> StrFilterInputType:
             value = rrexpr.get_value(field)
-            l = [ value ] if value is not None else []
+            l = [value] if value is not None else []
             return l, l
 
         add_yn_filter(filters, get_attr, get_optname, name, mk_str_filter, str_id, str_id, get_inputs)  # fmt: skip
@@ -150,11 +167,11 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
     add_yn_field_filter("request_method", "request.method")
     add_yn_field_filter("status")
 
-    def neturlify(url : str) -> str:
+    def neturlify(url: str) -> str:
         return parse_url(url).net_url
 
-    def add_yn_url_filter(name : str) -> None:
-        def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> StrFilterInputType:
+    def add_yn_url_filter(name: str) -> None:
+        def get_inputs(rrexpr: ReqresExpr[_t.Any]) -> StrFilterInputType:
             net_url = rrexpr.net_url
             lnet_url = [net_url]
             return lnet_url, lambda: [net_url, rrexpr.pretty_net_url]
@@ -163,9 +180,10 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
 
     add_yn_url_filter("url")
 
-    def add_yn_headers_grep_filter(name : str, field : str,
-                                   matches : PredicateMatchesType[str, PatternSB, IterSB]) -> None:
-        def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> IterSB:
+    def add_yn_headers_grep_filter(
+        name: str, field: str, matches: PredicateMatchesType[str, PatternSB, IterSB]
+    ) -> None:
+        def get_inputs(rrexpr: ReqresExpr[_t.Any]) -> IterSB:
             value = rrexpr.get_value(field)
             if value is not None:
                 return get_raw_headers_bytes(value)
@@ -173,16 +191,17 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
 
         add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)  # fmt: skip
 
-    def add_yn_field_grep_filter(name : str, field : str,
-                                 matches : PredicateMatchesType[str, PatternSB, IterSB]) -> None:
-        def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> list[str | bytes]:
+    def add_yn_field_grep_filter(
+        name: str, field: str, matches: PredicateMatchesType[str, PatternSB, IterSB]
+    ) -> None:
+        def get_inputs(rrexpr: ReqresExpr[_t.Any]) -> list[str | bytes]:
             value = rrexpr.get_value(field)
-            l = [ value ] if value is not None else []
+            l = [value] if value is not None else []
             return l
 
         add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)  # fmt: skip
 
-    def add_rr(side : str) -> None:
+    def add_rr(side: str) -> None:
         add_yn_headers_grep_filter(f"{side}_headers_or_grep", f"{side}.headers", matches_any)
         add_yn_headers_grep_filter(f"{side}_headers_and_grep", f"{side}.headers", matches_all)
         add_yn_field_filter(f"{side}_mime")
@@ -192,9 +211,11 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
     add_rr("request")
     add_rr("response")
 
-    def add_yn_grep_filter(name : str, matches : PredicateMatchesType[str, PatternSB, IterSB]) -> None:
-        def get_inputs(rrexpr : ReqresExpr[_t.Any]) -> list[str | bytes]:
-            res : list[str | bytes] = [ rrexpr.raw_url, rrexpr.url, rrexpr.pretty_url ]
+    def add_yn_grep_filter(
+        name: str, matches: PredicateMatchesType[str, PatternSB, IterSB]
+    ) -> None:
+        def get_inputs(rrexpr: ReqresExpr[_t.Any]) -> list[str | bytes]:
+            res: list[str | bytes] = [rrexpr.raw_url, rrexpr.url, rrexpr.pretty_url]
             reqres = rrexpr.reqres
             res += get_raw_headers_bytes(reqres.request.headers)
             res.append(reqres.request.body)
@@ -213,23 +234,33 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
 
     return merge_non_empty_filters(filters)
 
-def compile_expr(expr : str) -> tuple[str, LinstFunc]:
+
+def compile_expr(expr: str) -> tuple[str, LinstFunc]:
     return (expr, linst_compile(expr, ReqresExpr_lookup))
 
-def elaborate_output(kind : str, aliases : dict[str, str], value : str) -> str:
+
+def elaborate_output(kind: str, aliases: dict[str, str], value: str) -> str:
     if value.startswith("format:"):
         return value[7:]
     else:
         try:
             return aliases[value]
         except KeyError:
-            raise CatastrophicFailure(gettext('unknown `%s` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'), kind, value)
+            raise CatastrophicFailure(
+                gettext(
+                    'unknown `%s` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'
+                ),
+                kind,
+                value,
+            )
 
-def elaborate_paths(paths : list[str | bytes]) -> None:
+
+def elaborate_paths(paths: list[str | bytes]) -> None:
     for i in range(0, len(paths)):
         paths[i] = _os.path.expanduser(paths[i])
 
-def handle_paths(cargs : _t.Any) -> None:
+
+def handle_paths(cargs: _t.Any) -> None:
     if cargs.stdin0:
         paths = stdin.read_all_bytes().split(b"\0")
         last = paths.pop()
@@ -242,31 +273,38 @@ def handle_paths(cargs : _t.Any) -> None:
     if cargs.walk_paths is not None:
         cargs.paths.sort(reverse=not cargs.walk_paths)
 
+
 LoadResult = _t.TypeVar("LoadResult")
 LoadFFunc = _t.Callable[[_t.AnyStr], LoadResult]
-EmitFunc =  _t.Callable[[LoadResult], None]
+EmitFunc = _t.Callable[[LoadResult], None]
 
-def load_map_orderly(load_func : LoadFFunc[_t.AnyStr, LoadResult],
-                     emit_func : EmitFunc[LoadResult],
-                     dir_or_file_path : _t.AnyStr,
-                     *,
-                     seen_paths : set[_t.AnyStr] | None = None,
-                     follow_symlinks : bool = True,
-                     ordering : bool | None = False,
-                     errors : str = "fail") -> None:
+
+def load_map_orderly(
+    load_func: LoadFFunc[_t.AnyStr, LoadResult],
+    emit_func: EmitFunc[LoadResult],
+    dir_or_file_path: _t.AnyStr,
+    *,
+    seen_paths: set[_t.AnyStr] | None = None,
+    follow_symlinks: bool = True,
+    ordering: bool | None = False,
+    errors: str = "fail",
+) -> None:
     if seen_paths is not None:
         abs_dir_or_file_path = _os.path.abspath(dir_or_file_path)
         if abs_dir_or_file_path in seen_paths:
             return
         seen_paths.add(abs_dir_or_file_path)
 
-    for path, _ in walk_orderly(dir_or_file_path,
-                                include_files = with_extension_not_in([".part", b".part"]),
-                                include_directories = False,
-                                ordering = ordering,
-                                follow_symlinks = follow_symlinks,
-                                handle_error = None if errors == "fail" else _logging.error):
-        if want_stop: raise KeyboardInterrupt()
+    for path, _ in walk_orderly(
+        dir_or_file_path,
+        include_files=with_extension_not_in([".part", b".part"]),
+        include_directories=False,
+        ordering=ordering,
+        follow_symlinks=follow_symlinks,
+        handle_error=None if errors == "fail" else _logging.error,
+    ):
+        if want_stop:
+            raise KeyboardInterrupt()
 
         abs_path = _os.path.abspath(path)
         try:
@@ -297,15 +335,19 @@ def load_map_orderly(load_func : LoadFFunc[_t.AnyStr, LoadResult],
                 continue
             raise exc
 
-def map_wrr_paths(cargs : _t.Any,
-                  loadf_func : LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]],
-                  filters_allow : _t.Callable[[ReqresExpr[_t.Any]], bool],
-                  emit_func : EmitFunc[ReqresExpr[_t.Any]],
-                  paths : list[_t.AnyStr],
-                  **kwargs : _t.Any) -> None:
-    def emit_many(rrexprs : _t.Iterator[ReqresExpr[_t.Any]]) -> None:
+
+def map_wrr_paths(
+    cargs: _t.Any,
+    loadf_func: LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]],
+    filters_allow: _t.Callable[[ReqresExpr[_t.Any]], bool],
+    emit_func: EmitFunc[ReqresExpr[_t.Any]],
+    paths: list[_t.AnyStr],
+    **kwargs: _t.Any,
+) -> None:
+    def emit_many(rrexprs: _t.Iterator[ReqresExpr[_t.Any]]) -> None:
         for rrexpr in rrexprs:
-            if want_stop: raise KeyboardInterrupt()
+            if want_stop:
+                raise KeyboardInterrupt()
 
             rrexpr.sniff = cargs.sniff
             if not filters_allow(rrexpr):
@@ -315,12 +357,16 @@ def map_wrr_paths(cargs : _t.Any,
     global should_raise
     should_raise = False
     for exp_path in paths:
-        load_map_orderly(loadf_func, emit_many, exp_path, ordering=cargs.walk_fs, errors=cargs.errors, **kwargs)
+        load_map_orderly(
+            loadf_func, emit_many, exp_path, ordering=cargs.walk_fs, errors=cargs.errors, **kwargs
+        )
+
 
 def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
     import_failed = []
+
     class Mutable:
-        not_warned : bool = True
+        not_warned: bool = True
 
     have_mitmproxy = False
     try:
@@ -330,13 +376,18 @@ def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.An
     else:
         have_mitmproxy = True
 
-    is_wrr : IncludeFilesFunc[_t.AnyStr] = with_extension_in([".wrr", b".wrr"])
-    is_wrrb : IncludeFilesFunc[_t.AnyStr] = with_extension_in([".wrrb", b".wrrb"])
+    is_wrr: IncludeFilesFunc[_t.AnyStr] = with_extension_in([".wrr", b".wrr"])
+    is_wrrb: IncludeFilesFunc[_t.AnyStr] = with_extension_in([".wrrb", b".wrrb"])
 
-    def warn(path : _t.AnyStr, parser : str, exc : Exception) -> None:
-        _logging.warn(gettext("while processing `%s`: failed to parse with `%s` parser: %s"), path, parser, str_Exception(exc))
+    def warn(path: _t.AnyStr, parser: str, exc: Exception) -> None:
+        _logging.warn(
+            gettext("while processing `%s`: failed to parse with `%s` parser: %s"),
+            path,
+            parser,
+            str_Exception(exc),
+        )
 
-    def rrexprs_load(path : _t.AnyStr) -> _t.Iterator[ReqresExpr[_t.Any]]:
+    def rrexprs_load(path: _t.AnyStr) -> _t.Iterator[ReqresExpr[_t.Any]]:
         if is_wrr(path):
             try:
                 yield rrexpr_wrr_loadf(path)
@@ -364,7 +415,8 @@ def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.An
 
     return rrexprs_load
 
-def mk_rrexprs_load(cargs : _t.Any) -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
+
+def mk_rrexprs_load(cargs: _t.Any) -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
     loader = cargs.loader
     if loader is None:
         return dispatch_rrexprs_load()
@@ -374,11 +426,13 @@ def mk_rrexprs_load(cargs : _t.Any) -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresEx
         return rrexprs_wrr_some_loadf
     elif loader == "mitmproxy":
         from .mitmproxy import rrexprs_mitmproxy_loadf
+
         return rrexprs_mitmproxy_loadf
     else:
         assert False
 
-def get_bytes(value : _t.Any) -> bytes:
+
+def get_bytes(value: _t.Any) -> bytes:
     if value is None or isinstance(value, (bool, int, float, TimeStamp)):
         value = str(value)
 
@@ -387,10 +441,13 @@ def get_bytes(value : _t.Any) -> bytes:
     elif isinstance(value, bytes):
         return value
     else:
-        raise Failure(gettext("don't know how to print an expression of type `%s`"), type(value).__name__)
+        raise Failure(
+            gettext("don't know how to print an expression of type `%s`"), type(value).__name__
+        )
 
-def cmd_pprint(cargs : _t.Any) -> None:
-    def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
+
+def cmd_pprint(cargs: _t.Any) -> None:
+    def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
         wrr_pprint(stdout, rrexpr.reqres, rrexpr.source.show_source(), cargs.abridged, cargs.sniff)
         stdout.flush()
 
@@ -399,8 +456,13 @@ def cmd_pprint(cargs : _t.Any) -> None:
     map_wrr_paths(cargs, mk_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
     filters_warn()
 
-def print_exprs(rrexpr : ReqresExpr[_t.Any], exprs : list[tuple[str, LinstFunc]],
-                separator : bytes, fobj : MinimalIOWriter) -> None:
+
+def print_exprs(
+    rrexpr: ReqresExpr[_t.Any],
+    exprs: list[tuple[str, LinstFunc]],
+    separator: bytes,
+    fobj: MinimalIOWriter,
+) -> None:
     not_first = False
     for expr, func in exprs:
         try:
@@ -414,6 +476,7 @@ def print_exprs(rrexpr : ReqresExpr[_t.Any], exprs : list[tuple[str, LinstFunc]]
         not_first = True
 
         fobj.write_bytes(data)
+
 
 default_expr_values = {
     "dot": ".",
@@ -429,15 +492,17 @@ default_expr_values = {
 default_input_status_re = ".(200|30[012378])C"
 default_root_status_re = ".[23]00C"
 
-def default_expr(kind : str, what : str) -> str:
+
+def default_expr(kind: str, what: str) -> str:
     if kind != "serve" or what == "dot" or what.startswith("raw_"):
         return default_expr_values[what]
     else:
         return default_expr_values[what] + ",-inline_headers"
 
-def cmd_get(cargs : _t.Any) -> None:
+
+def cmd_get(cargs: _t.Any) -> None:
     if len(cargs.mexprs) == 0:
-        cargs.mexprs = { stdout: [compile_expr(default_expr("get", cargs.default_expr))] }
+        cargs.mexprs = {stdout: [compile_expr(default_expr("get", cargs.default_expr))]}
 
     exp_path = _os.path.expanduser(cargs.path)
     rrexpr = rrexpr_wrr_loadf(exp_path)
@@ -447,7 +512,8 @@ def cmd_get(cargs : _t.Any) -> None:
         print_exprs(rrexpr, exprs, cargs.separator, fobj)
         fobj.flush()
 
-def cmd_run(cargs : _t.Any) -> None:
+
+def cmd_run(cargs: _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr("run", cargs.default_expr))]
 
@@ -470,7 +536,7 @@ def cmd_run(cargs : _t.Any) -> None:
             rrexpr.sniff = cargs.sniff
 
             # TODO: extension guessing
-            fileno, tmp_path = _tempfile.mkstemp(prefix = "hoardy_wrr_run_", suffix = ".tmp")
+            fileno, tmp_path = _tempfile.mkstemp(prefix="hoardy_wrr_run_", suffix=".tmp")
             tmp_paths.append(tmp_path)
 
             with TIOWrappedWriter(_os.fdopen(fileno, "wb")) as f:
@@ -482,8 +548,9 @@ def cmd_run(cargs : _t.Any) -> None:
         for path in tmp_paths:
             _os.unlink(path)
 
-def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
-    stream : StreamEncoder
+
+def get_StreamEncoder(cargs: _t.Any) -> StreamEncoder:
+    stream: StreamEncoder
     if cargs.format == "py":
         stream = PyStreamEncoder(stdout, cargs.abridged)
     elif cargs.format == "cbor":
@@ -496,14 +563,15 @@ def get_StreamEncoder(cargs : _t.Any) -> StreamEncoder:
         assert False
     return stream
 
-def cmd_stream(cargs : _t.Any) -> None:
+
+def cmd_stream(cargs: _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr("stream", cargs.default_expr))]
 
     stream = get_StreamEncoder(cargs)
 
-    def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
-        values : list[_t.Any] = []
+    def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
+        values: list[_t.Any] = []
         for expr, func in cargs.exprs:
             try:
                 values.append(func(rrexpr, None))
@@ -523,8 +591,9 @@ def cmd_stream(cargs : _t.Any) -> None:
 
     filters_warn()
 
-def cmd_find(cargs : _t.Any) -> None:
-    def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
+
+def cmd_find(cargs: _t.Any) -> None:
+    def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
         stdout.write(rrexpr.source.show_source())
         stdout.write_bytes(cargs.terminator)
         stdout.flush()
@@ -535,6 +604,7 @@ def cmd_find(cargs : _t.Any) -> None:
     map_wrr_paths(cargs, mk_rrexprs_load(cargs), filters_allow, emit, cargs.paths)
 
     filters_warn()
+
 
 example_url = [
     "https://example.org",
@@ -549,8 +619,9 @@ example_url = [
     "https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/",
 ]
 
-def make_example(gen : _t.Callable[[str], str], indent : int) -> str:
-    rev : dict[str, list[str]] = {}
+
+def make_example(gen: _t.Callable[[str], str], indent: int) -> str:
+    rev: dict[str, list[str]] = {}
     for url in example_url:
         current = gen(url)
         try:
@@ -562,9 +633,12 @@ def make_example(gen : _t.Callable[[str], str], indent : int) -> str:
 
     res = []
     for r in rev:
-        res.append(" " * indent + "- " + ", ".join(map(lambda x: f"`{x}`", rev[r])) + " -> `" + r + "`")
+        res.append(
+            " " * indent + "- " + ", ".join(map(lambda x: f"`{x}`", rev[r])) + " -> `" + r + "`"
+        )
 
-    return "\n".join(res).replace('%', '%%')
+    return "\n".join(res).replace("%", "%%")
+
 
 atom_test = [
     "raw_url",
@@ -573,8 +647,10 @@ atom_test = [
     "pretty_nurl",
 ]
 
-def atom_example(name : str, indent : int) -> str:
+
+def atom_example(name: str, indent: int) -> str:
     return make_example(lambda url: getattr(parse_url(url), name), indent)
+
 
 # fmt: off
 ofdsd  = "%(syear)d/%(smonth)02d/%(sday)02d"
@@ -675,15 +751,18 @@ content_output_alias = {
 }
 # fmt: on
 
-def output_example(name : str, indent : int) -> str:
-    def gen(url : str) -> str:
+
+def output_example(name: str, indent: int) -> str:
+    def gen(url: str) -> str:
         x = ReqresExpr(UnknownSource(), trivial_Reqres(parse_url(url)))
         x.values["num"] = 0
         return output_alias[name] % x
+
     return make_example(gen, indent)
 
+
 def test_outputs_aliases() -> None:
-    def mk(url : str) -> ReqresExpr[UnknownSource]:
+    def mk(url: str) -> ReqresExpr[UnknownSource]:
         return ReqresExpr(UnknownSource(), trivial_Reqres(parse_url(url)))
 
     res = []
@@ -1393,7 +1472,7 @@ flat_mhstn:   ==
 flat_mhstn:   ==
 """
 
-    #print("\n" + "\n".join(res))
+    # print("\n" + "\n".join(res))
 
     pl = pristine.strip().split("\n")
     assert len(pl) == len(res)
@@ -1404,21 +1483,36 @@ flat_mhstn:   ==
         if a != b:
             raise CatastrophicFailure("expected %s, got %s", a, b)
 
+
 not_allowed = gettext("; this is not allowed to prevent accidental data loss")
-variance_help = gettext("; your `--output` format fails to provide enough variance to solve this problem automatically (did your forget to place a `%(num)d` substitution in there?)") + not_allowed
+variance_help = (
+    gettext(
+        "; your `--output` format fails to provide enough variance to solve this problem automatically (did your forget to place a `%(num)d` substitution in there?)"
+    )
+    + not_allowed
+)
 
 DeferredDestinationType = _t.TypeVar("DeferredDestinationType")
+
+
 class DeferredOperation(_t.Generic[DeferredSourceType, DeferredDestinationType]):
     """A deferred `source` -> `destination` operation with updatable `source`.
 
-       This exists to help you to eliminatate away repeated `os.rename`,
-       `os.symlink`, etc calls to the same `destination` and to help
-       implementing disk writes batching.
+    This exists to help you to eliminatate away repeated `os.rename`,
+    `os.symlink`, etc calls to the same `destination` and to help
+    implementing disk writes batching.
     """
-    source : DeferredSourceType
-    destination : DeferredDestinationType
 
-    def __init__(self, source : DeferredSourceType, destination : DeferredDestinationType, overwrite : bool, allow_updates : bool) -> None:
+    source: DeferredSourceType
+    destination: DeferredDestinationType
+
+    def __init__(
+        self,
+        source: DeferredSourceType,
+        destination: DeferredDestinationType,
+        overwrite: bool,
+        allow_updates: bool,
+    ) -> None:
         self.source = source
         self.destination = destination
         self.overwrite = overwrite
@@ -1428,16 +1522,18 @@ class DeferredOperation(_t.Generic[DeferredSourceType, DeferredDestinationType])
     def approx_size(self) -> int:
         return 48
 
-    def switch_source(self, new_source : DeferredSourceType, force : bool = False) -> bool:
+    def switch_source(self, new_source: DeferredSourceType, force: bool = False) -> bool:
         """Switch source of this operation.
 
-           Returns `True` if this change was permitted.
+        Returns `True` if this change was permitted.
         """
         if not force:
             old_source = self.source
-            if not new_source.replaces(old_source) or \
-               new_source.same_as(old_source) or \
-               new_source.get_bytes() == old_source.get_bytes():
+            if (
+                not new_source.replaces(old_source)
+                or new_source.same_as(old_source)
+                or new_source.get_bytes() == old_source.get_bytes()
+            ):
                 return True
 
         if not self.allow_updates:
@@ -1449,51 +1545,65 @@ class DeferredOperation(_t.Generic[DeferredSourceType, DeferredDestinationType])
         self.updated = True
         return True
 
-    def run(self, dsync : DeferredSync | None = None) -> None:
+    def run(self, dsync: DeferredSync | None = None) -> None:
         """Write the `source` to `destination`."""
         raise NotImplementedError()
 
-def handle_ENAMETOOLONG(exc : OSError, name : str | bytes) -> None:
-    if exc.errno == _errno.ENAMETOOLONG:
-        raise Failure(gettext(f"target file system rejects `%s` as too long: either one of the path components is longer than the maximum allowed file name on the target file system or the whole thing is longer than kernel MAX_PATH"), name)
 
-class DeferredFileWrite(DeferredOperation[DeferredSourceType, _t.AnyStr], _t.Generic[DeferredSourceType, _t.AnyStr]):
+def handle_ENAMETOOLONG(exc: OSError, name: str | bytes) -> None:
+    if exc.errno == _errno.ENAMETOOLONG:
+        raise Failure(
+            gettext(
+                f"target file system rejects `%s` as too long: either one of the path components is longer than the maximum allowed file name on the target file system or the whole thing is longer than kernel MAX_PATH"
+            ),
+            name,
+        )
+
+
+class DeferredFileWrite(
+    DeferredOperation[DeferredSourceType, _t.AnyStr], _t.Generic[DeferredSourceType, _t.AnyStr]
+):
     def approx_size(self) -> int:
         return super().approx_size() + len(self.destination)
 
-    def run(self, dsync : DeferredSync | None = None) -> None:
+    def run(self, dsync: DeferredSync | None = None) -> None:
         data = self.source.get_bytes()
         if self.updated and file_content_equals(self.destination, data):
             # nothing to do
             return
-        atomic_write(data, self.destination, self.overwrite or self.allow_updates, dsync = dsync)
+        atomic_write(data, self.destination, self.overwrite or self.allow_updates, dsync=dsync)
 
-def make_deferred_emit(cargs : _t.Any,
-                       destination : _t.AnyStr,
-                       output_format : _t.AnyStr,
-                       action : str,
-                       actioning : str,
-                       defer : _t.Callable[[ReqresExpr[DeferredSourceType], _t.AnyStr, bool, bool],
-                                           DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr]],
-                       allow_updates : bool,
-                       moving : bool = False,
-                       symlinking : bool = False) \
-        -> tuple[_t.Callable[[ReqresExpr[DeferredSourceType]], None],
-                 _t.Callable[[], None]]:
+
+def make_deferred_emit(
+    cargs: _t.Any,
+    destination: _t.AnyStr,
+    output_format: _t.AnyStr,
+    action: str,
+    actioning: str,
+    defer: _t.Callable[
+        [ReqresExpr[DeferredSourceType], _t.AnyStr, bool, bool],
+        DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr],
+    ],
+    allow_updates: bool,
+    moving: bool = False,
+    symlinking: bool = False,
+) -> tuple[_t.Callable[[ReqresExpr[DeferredSourceType]], None], _t.Callable[[], None]]:
     terminator = cargs.terminator if cargs.dry_run is not None else None
 
     # for each `--output` value, how many times it was seen
-    seen_counter : SeenCounter[_t.AnyStr] = SeenCounter()
+    seen_counter: SeenCounter[_t.AnyStr] = SeenCounter()
 
     # ReqresExpr cache indexed by destination path, this exists mainly
     # to minimize the number of calls to `stat`.
-    rrexpr_cache : _c.OrderedDict[_t.AnyStr, ReqresExpr[DeferredSourceType]] = _c.OrderedDict()
+    rrexpr_cache: _c.OrderedDict[_t.AnyStr, ReqresExpr[DeferredSourceType]] = _c.OrderedDict()
 
     # Deferred IO operations (aka "intents") that are yet to be executed,
     # indexed by filesystem paths. This is used both as a queue and as an
     # LRU-cache so that, e.g. repeated updates to the same output file would be
     # computed in memory.
-    deferred : _c.OrderedDict[_t.AnyStr, DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr]] = _c.OrderedDict()
+    deferred: _c.OrderedDict[
+        _t.AnyStr, DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr]
+    ] = _c.OrderedDict()
 
     # Deferred file system updates. This collects references to everything
     # that should be fsynced to disk before proceeding to make flush_updates
@@ -1501,28 +1611,34 @@ def make_deferred_emit(cargs : _t.Any,
     dsync = DeferredSync()
 
     max_memory_mib = cargs.max_memory * 1024 * 1024
-    def flush_updates(final : bool) -> None:
+
+    def flush_updates(final: bool) -> None:
         """Flush some of the queue."""
-        max_deferred : int = cargs.max_deferred if not final else 0
-        max_memory : int = max_memory_mib if not final else 0
-        max_seen : int = cargs.max_seen
-        max_cached : int = cargs.max_cached
-        max_batched : int = cargs.max_batched
+        max_deferred: int = cargs.max_deferred if not final else 0
+        max_memory: int = max_memory_mib if not final else 0
+        max_seen: int = cargs.max_seen
+        max_cached: int = cargs.max_cached
+        max_batched: int = cargs.max_batched
 
         num_deferred = len(deferred)
         num_cached = len(rrexpr_cache)
         num_seen = len(seen_counter)
-        if num_deferred <= max_deferred and \
-           num_cached <= max_cached and \
-           num_seen <= max_seen and \
-           mem.consumption <= max_memory:
+        if (
+            num_deferred <= max_deferred
+            and num_cached <= max_cached
+            and num_seen <= max_seen
+            and mem.consumption <= max_memory
+        ):
             return
 
-        done_files : list[_t.AnyStr] | None = None
+        done_files: list[_t.AnyStr] | None = None
         if terminator is not None:
             done_files = []
 
-        def run_intent(abs_out_path : _t.AnyStr, intent : DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr]) -> None:
+        def run_intent(
+            abs_out_path: _t.AnyStr,
+            intent: DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr],
+        ) -> None:
             mem.consumption -= intent.approx_size() + len(abs_out_path)
             rrexpr = intent.source
 
@@ -1546,9 +1662,11 @@ def make_deferred_emit(cargs : _t.Any,
             except Failure as exc:
                 if cargs.errors == "ignore":
                     return
-                exc.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
-                              rrexpr.show_source(),
-                              fsdecode_maybe(abs_out_path))
+                exc.elaborate(
+                    gettext(f"while {actioning} `%s` -> `%s`"),
+                    rrexpr.show_source(),
+                    fsdecode_maybe(abs_out_path),
+                )
                 if cargs.errors != "fail":
                     _logging.error("%s", str(exc))
                     return
@@ -1565,8 +1683,7 @@ def make_deferred_emit(cargs : _t.Any,
             mem.consumption += len(abs_out_path)
 
         # flush seen cache
-        while num_seen > 0 and \
-              (num_seen > max_seen or mem.consumption > max_memory):
+        while num_seen > 0 and (num_seen > max_seen or mem.consumption > max_memory):
             abs_out_path, _ = seen_counter.pop()
             num_seen -= 1
 
@@ -1581,9 +1698,11 @@ def make_deferred_emit(cargs : _t.Any,
             num_deferred -= 1
             del intent
 
-        if not final and \
-           num_deferred <= max_deferred + max_batched and \
-           mem.consumption <= max_memory:
+        if (
+            not final
+            and num_deferred <= max_deferred + max_batched
+            and mem.consumption <= max_memory
+        ):
             # we have enough resources to delay some more deferredIO, let's do
             # so, so that when we finally hit our resource limits, we would
             # execute max_batched or more deferred actions at once. this
@@ -1591,8 +1710,7 @@ def make_deferred_emit(cargs : _t.Any,
             max_deferred += max_batched
 
         # flush deferred
-        while num_deferred > 0 and \
-              (num_deferred > max_deferred or mem.consumption > max_memory):
+        while num_deferred > 0 and (num_deferred > max_deferred or mem.consumption > max_memory):
             abs_out_path, intent = deferred.popitem(False)
             run_intent(abs_out_path, intent)
             num_deferred -= 1
@@ -1613,8 +1731,7 @@ def make_deferred_emit(cargs : _t.Any,
         dsync.finish()
 
         # flush rrexpr_cache
-        while num_cached > 0 and \
-              (num_cached > max_cached or mem.consumption > max_memory):
+        while num_cached > 0 and (num_cached > max_cached or mem.consumption > max_memory):
             abs_out_path, source = rrexpr_cache.popitem(False)
             num_cached -= 1
             mem.consumption -= len(abs_out_path)
@@ -1624,17 +1741,22 @@ def make_deferred_emit(cargs : _t.Any,
         flush_updates(True)
         assert mem.consumption == 0
 
-    def load_defer(prev_rrexpr : ReqresExpr[DeferredSourceType] | None,
-                   new_rrexpr : ReqresExpr[DeferredSourceType],
-                   abs_out_path : _t.AnyStr) \
-                   -> tuple[bool, ReqresExpr[DeferredSourceType] | None, DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr] | None]:
+    def load_defer(
+        prev_rrexpr: ReqresExpr[DeferredSourceType] | None,
+        new_rrexpr: ReqresExpr[DeferredSourceType],
+        abs_out_path: _t.AnyStr,
+    ) -> tuple[
+        bool,
+        ReqresExpr[DeferredSourceType] | None,
+        DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr] | None,
+    ]:
         new_source = new_rrexpr.source
         if isinstance(new_source, FileSource) and new_source.path == abs_out_path:
             # hot evaluation path: moving, copying, hardlinking, symlinking, etc to itself
             # this is a noop
             return True, prev_rrexpr, None
 
-        old_rrexpr : ReqresExpr[_t.Any]
+        old_rrexpr: ReqresExpr[_t.Any]
         if prev_rrexpr is None:
             try:
                 out_lstat = _os.lstat(abs_out_path)
@@ -1652,7 +1774,11 @@ def make_deferred_emit(cargs : _t.Any,
                         out_stat = _os.stat(abs_out_path)
                     except FileNotFoundError:
                         # target is a broken symlink
-                        return True, new_rrexpr, defer(new_rrexpr, abs_out_path, True, allow_updates)
+                        return (
+                            True,
+                            new_rrexpr,
+                            defer(new_rrexpr, abs_out_path, True, allow_updates),
+                        )
                     else:
                         if not allow_updates and not symlinking:
                             raise Failure("destination exists and is a symlink" + not_allowed)
@@ -1680,8 +1806,9 @@ def make_deferred_emit(cargs : _t.Any,
         permitted = intent.switch_source(new_rrexpr, moving)
         return permitted, intent.source, (intent if intent.source is not old_rrexpr else None)
 
-    def emit(new_rrexpr : ReqresExpr[DeferredSourceType]) -> None:
-        if want_stop: raise KeyboardInterrupt()
+    def emit(new_rrexpr: ReqresExpr[DeferredSourceType]) -> None:
+        if want_stop:
+            raise KeyboardInterrupt()
 
         new_rrexpr.values["num"] = 0
         def_out_path = output_format % new_rrexpr
@@ -1692,30 +1819,34 @@ def make_deferred_emit(cargs : _t.Any,
                 rel_out_path = _os.path.join(destination, output_format % new_rrexpr)
             else:
                 rel_out_path = _os.path.join(destination, _os.fsencode(output_format % new_rrexpr))
-            abs_out_path : _t.AnyStr = _os.path.abspath(rel_out_path)
+            abs_out_path: _t.AnyStr = _os.path.abspath(rel_out_path)
 
-            old_rrexpr : ReqresExpr[DeferredSourceType] | None
+            old_rrexpr: ReqresExpr[DeferredSourceType] | None
             old_rrexpr = rrexpr_cache.pop(abs_out_path, None)
             if old_rrexpr is not None:
                 mem.consumption -= len(abs_out_path)
 
-            updated_rrexpr : ReqresExpr[DeferredSourceType] | None
-            intent : DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr] | None
+            updated_rrexpr: ReqresExpr[DeferredSourceType] | None
+            intent: DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr] | None
             intent = deferred.pop(abs_out_path, None)
             if intent is None:
                 try:
-                    permitted, updated_rrexpr, intent = load_defer(old_rrexpr, new_rrexpr, abs_out_path)
+                    permitted, updated_rrexpr, intent = load_defer(
+                        old_rrexpr, new_rrexpr, abs_out_path
+                    )
                 except Failure as exc:
-                    exc.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
-                                  new_rrexpr.show_source(),
-                                  fsdecode_maybe(abs_out_path))
+                    exc.elaborate(
+                        gettext(f"while {actioning} `%s` -> `%s`"),
+                        new_rrexpr.show_source(),
+                        fsdecode_maybe(abs_out_path),
+                    )
                     raise exc
 
                 if updated_rrexpr is not None:
                     updated_rrexpr.unload()
             else:
                 mem.consumption -= intent.approx_size() + len(abs_out_path)
-                permitted = intent.switch_source(new_rrexpr, moving) # (switchSource)
+                permitted = intent.switch_source(new_rrexpr, moving)  # (switchSource)
                 updated_rrexpr = intent.source
 
             del old_rrexpr
@@ -1731,9 +1862,11 @@ def make_deferred_emit(cargs : _t.Any,
             if not permitted:
                 if prev_rel_out_path == rel_out_path:
                     exc2 = Failure(gettext("destination already exists") + variance_help)
-                    exc2.elaborate(gettext(f"while {actioning} `%s` -> `%s`"),
-                                   new_rrexpr.show_source(),
-                                   fsdecode_maybe(abs_out_path))
+                    exc2.elaborate(
+                        gettext(f"while {actioning} `%s` -> `%s`"),
+                        new_rrexpr.show_source(),
+                        fsdecode_maybe(abs_out_path),
+                    )
                     raise exc2
                 prev_rel_out_path = rel_out_path
                 continue
@@ -1751,10 +1884,11 @@ def make_deferred_emit(cargs : _t.Any,
 
     return emit, finish_updates
 
-def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, output_format : _t.AnyStr, allow_updates : bool) \
-        -> tuple[_t.Callable[[ReqresExpr[DeferredSourceType]], None],
-                 _t.Callable[[], None]]:
-    action_op : _t.Any
+
+def make_organize_emit(
+    cargs: _t.Any, destination: _t.AnyStr, output_format: _t.AnyStr, allow_updates: bool
+) -> tuple[_t.Callable[[ReqresExpr[DeferredSourceType]], None], _t.Callable[[], None]]:
+    action_op: _t.Any
     action = cargs.action
     if allow_updates:
         actioning = "updating " + action
@@ -1766,18 +1900,28 @@ def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, output_format : 
     check_data = True
     if action == "move":
         if allow_updates:
-            raise Failure(gettext("`--move` and `--latest` are not allowed together, it will lose your data"))
+            raise Failure(
+                gettext("`--move` and `--latest` are not allowed together, it will lose your data")
+            )
         actioning = "moving"
         action_op = atomic_move
         moving = True
     elif action == "copy":
         if allow_updates:
-            raise Failure(gettext("`--copy` and `--latest` are not allowed together at the moment, it could lose your data"))
+            raise Failure(
+                gettext(
+                    "`--copy` and `--latest` are not allowed together at the moment, it could lose your data"
+                )
+            )
         action_op = atomic_copy2
         copying = True
     elif action == "hardlink":
         if allow_updates:
-            raise Failure(gettext("`--hardlink` and `--latest` are not allowed together at the moment, it could lose your data"))
+            raise Failure(
+                gettext(
+                    "`--hardlink` and `--latest` are not allowed together at the moment, it could lose your data"
+                )
+            )
         action_op = atomic_link
     elif action == "symlink":
         action_op = atomic_symlink
@@ -1790,16 +1934,24 @@ def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, output_format : 
     DeferredSourceType2 = _t.TypeVar("DeferredSourceType2", bound=DeferredSource)
     AnyStr2 = _t.TypeVar("AnyStr2", str, bytes)
 
-    class DeferredOrganize(DeferredFileWrite[ReqresExpr[DeferredSourceType2], AnyStr2], _t.Generic[DeferredSourceType2, AnyStr2]):
-        def switch_source(self, new_rrexpr : ReqresExpr[DeferredSourceType2], force : bool = False) -> bool:
+    class DeferredOrganize(
+        DeferredFileWrite[ReqresExpr[DeferredSourceType2], AnyStr2],
+        _t.Generic[DeferredSourceType2, AnyStr2],
+    ):
+        def switch_source(
+            self, new_rrexpr: ReqresExpr[DeferredSourceType2], force: bool = False
+        ) -> bool:
             old_rrexpr = self.source
             old_source = old_rrexpr.source
             new_source = new_rrexpr.source
 
             if not force:
-                if not new_source.replaces(old_source) or \
-                   new_source.same_as(old_source) or \
-                   check_data and new_rrexpr.get_bytes() == old_rrexpr.get_bytes():
+                if (
+                    not new_source.replaces(old_source)
+                    or new_source.same_as(old_source)
+                    or check_data
+                    and new_rrexpr.get_bytes() == old_rrexpr.get_bytes()
+                ):
                     # noop
                     return True
 
@@ -1816,7 +1968,7 @@ def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, output_format : 
             self.updated = True
             return True
 
-        def run(self, dsync : DeferredSync | None = None) -> None:
+        def run(self, dsync: DeferredSync | None = None) -> None:
             rrexpr = self.source
             source = rrexpr.source
             if isinstance(source, FileSource) and source.path == self.destination:
@@ -1825,12 +1977,21 @@ def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, output_format : 
 
             try:
                 if isinstance(source, FileSource):
-                    action_op(source.path, self.destination, self.overwrite or self.allow_updates, dsync = dsync)
+                    action_op(
+                        source.path,
+                        self.destination,
+                        self.overwrite or self.allow_updates,
+                        dsync=dsync,
+                    )
                 elif copying:
                     # fallback to DeferredFileWrite in this case
                     super().run(dsync)
                 else:
-                    raise Failure(gettext(f"can't {action} the source to the destination because the source is not stored as a separate WRR file; did you mean to run with `--copy` intead of `--{action}`?"))
+                    raise Failure(
+                        gettext(
+                            f"can't {action} the source to the destination because the source is not stored as a separate WRR file; did you mean to run with `--copy` intead of `--{action}`?"
+                        )
+                    )
             except FileExistsError:
                 raise Failure(gettext(f"`%s` already exists"), self.destination)
             except OSError as exc:
@@ -1839,9 +2000,20 @@ def make_organize_emit(cargs : _t.Any, destination : _t.AnyStr, output_format : 
                     raise Failure(gettext(f"can't {action} across file systems"))
                 raise exc
 
-    return make_deferred_emit(cargs, destination, output_format, action, actioning, DeferredOrganize, allow_updates, moving, symlinking)
+    return make_deferred_emit(
+        cargs,
+        destination,
+        output_format,
+        action,
+        actioning,
+        DeferredOrganize,
+        allow_updates,
+        moving,
+        symlinking,
+    )
 
-def cmd_organize(cargs : _t.Any) -> None:
+
+def cmd_organize(cargs: _t.Any) -> None:
     if cargs.walk_paths == "unset":
         cargs.walk_paths = None if not cargs.allow_updates else False
     if cargs.walk_fs == "unset":
@@ -1852,10 +2024,12 @@ def cmd_organize(cargs : _t.Any) -> None:
 
     rrexprs_load = mk_rrexprs_load(cargs)
     handle_paths(cargs)
-    emit : EmitFunc[ReqresExpr[FileSource]]
+    emit: EmitFunc[ReqresExpr[FileSource]]
     if cargs.destination is not None:
         # destination is set explicitly
-        emit, finish = make_organize_emit(cargs, _os.path.expanduser(cargs.destination), output_format, cargs.allow_updates)
+        emit, finish = make_organize_emit(
+            cargs, _os.path.expanduser(cargs.destination), output_format, cargs.allow_updates
+        )
         try:
             map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, cargs.paths)
         finally:
@@ -1872,7 +2046,9 @@ def cmd_organize(cargs : _t.Any) -> None:
                 raise Failure(gettext("`%s` does not exist"), exp_path)
 
             if not _stat.S_ISDIR(path_stat.st_mode):
-                raise Failure(gettext("`%s` is not a directory but no `--to` is specified"), exp_path)
+                raise Failure(
+                    gettext("`%s` is not a directory but no `--to` is specified"), exp_path
+                )
 
         for exp_path in cargs.paths:
             emit, finish = make_organize_emit(cargs, exp_path, output_format, False)
@@ -1883,15 +2059,26 @@ def cmd_organize(cargs : _t.Any) -> None:
 
     filters_warn()
 
-def cmd_import_generic(cargs : _t.Any,
-                       rrexprs_loadf : _t.Callable[[str | bytes], _t.Iterator[ReqresExpr[DeferredSourceType]]]) -> None:
+
+def cmd_import_generic(
+    cargs: _t.Any,
+    rrexprs_loadf: _t.Callable[[str | bytes], _t.Iterator[ReqresExpr[DeferredSourceType]]],
+) -> None:
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
     handle_paths(cargs)
-    emit : EmitFunc[ReqresExpr[DeferredSourceType]]
-    emit, finish = make_deferred_emit(cargs, cargs.destination, output_format, "import", "importing", DeferredFileWrite, cargs.allow_updates)
+    emit: EmitFunc[ReqresExpr[DeferredSourceType]]
+    emit, finish = make_deferred_emit(
+        cargs,
+        cargs.destination,
+        output_format,
+        "import",
+        "importing",
+        DeferredFileWrite,
+        cargs.allow_updates,
+    )
     try:
         map_wrr_paths(cargs, rrexprs_loadf, filters_allow, emit, cargs.paths)
     finally:
@@ -1899,40 +2086,50 @@ def cmd_import_generic(cargs : _t.Any,
 
     filters_warn()
 
-def cmd_import_bundle(cargs : _t.Any) -> None:
+
+def cmd_import_bundle(cargs: _t.Any) -> None:
     cmd_import_generic(cargs, rrexprs_wrr_bundle_loadf)
 
-def cmd_import_mitmproxy(cargs : _t.Any) -> None:
+
+def cmd_import_mitmproxy(cargs: _t.Any) -> None:
     from .mitmproxy import rrexprs_mitmproxy_loadf
+
     cmd_import_generic(cargs, rrexprs_mitmproxy_loadf)
 
-def path_to_url(x : str) -> str:
+
+def path_to_url(x: str) -> str:
     return x.replace("?", "%3F")
+
 
 definitive_response_codes = frozenset([200, 204, 300, 404, 410])
 redirect_response_codes = frozenset([301, 302, 303, 307, 308])
 
-def complete_response(stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
+
+def complete_response(stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
     response = rrexpr.reqres.response
     return response is not None and response.complete
 
-def normal_document(stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
+
+def normal_document(stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
     return complete_response(stime, rrexpr) and rrexpr.reqres.request.method in ["GET", "DOM"]
 
-def cmd_mirror(cargs : _t.Any) -> None:
+
+def cmd_mirror(cargs: _t.Any) -> None:
     if len(cargs.exprs) == 0:
         cargs.exprs = [compile_expr(default_expr("mirror", cargs.default_expr))]
 
     output_format = elaborate_output("--output", output_alias, cargs.output)
     destination = _os.path.expanduser(cargs.destination)
 
-    content_output_format = elaborate_output("--content-output", content_output_alias, cargs.content_output)
+    content_output_format = elaborate_output(
+        "--content-output", content_output_alias, cargs.content_output
+    )
     if cargs.content_destination is not None:
         content_destination = _os.path.expanduser(cargs.content_destination)
     else:
         content_destination = destination
 
-    action_op : _t.Any
+    action_op: _t.Any
     action = cargs.content_action
     copying = False
     if action == "copy":
@@ -1952,27 +2149,27 @@ def cmd_mirror(cargs : _t.Any) -> None:
     allow_updates = cargs.allow_updates == True
     skip_existing = cargs.allow_updates == "partial"
 
-    singletons : bool
-    nearest : TimeStamp | None
+    singletons: bool
+    nearest: TimeStamp | None
     singletons, nearest = cargs.mode
 
-    PathType : _t.TypeAlias = str
-    seen_counter : SeenCounter[PathType] = SeenCounter()
+    PathType: _t.TypeAlias = str
+    seen_counter: SeenCounter[PathType] = SeenCounter()
 
-    RequestIDType : _t.TypeAlias = bytes
+    RequestIDType: _t.TypeAlias = bytes
     PageIDType = tuple[TimeStamp, RequestIDType]
     RequestOrPageIDType = RequestIDType | PageIDType
 
-    def get_request_id(net_url : URLType, rrexpr: ReqresExpr[_t.Any]) -> RequestIDType:
+    def get_request_id(net_url: URLType, rrexpr: ReqresExpr[_t.Any]) -> RequestIDType:
         request = rrexpr.reqres.request
         body = request.body or b""
         body_ = body if isinstance(body, bytes) else body.encode("utf-8")
         return f"{request.method} {net_url} ".encode("utf-8") + _hashlib.sha256(body_).digest()
 
-    committed : dict[int, PathType] = dict()
-    done : dict[int, PathType | None] = dict()
+    committed: dict[int, PathType] = dict()
+    done: dict[int, PathType | None] = dict()
 
-    def get_abs_out_path(rrexpr : ReqresExpr[_t.Any]) -> PathType:
+    def get_abs_out_path(rrexpr: ReqresExpr[_t.Any]) -> PathType:
         try:
             return committed[id(rrexpr)]
         except KeyError:
@@ -1995,13 +2192,15 @@ def cmd_mirror(cargs : _t.Any) -> None:
     root_filters_num, root_filters_allow, root_filters_warn = compile_filters(cargs, "root_")
     have_root_filters = root_filters_num > 0
 
-    max_depth : int = cargs.depth
+    max_depth: int = cargs.depth
     max_memory_mib = cargs.max_memory * 1024 * 1024
 
-    index : SortedIndex[URLType, TimeStamp, ReqresExpr[_t.Any]] = SortedIndex(nearest if singletons else None)
+    index: SortedIndex[URLType, TimeStamp, ReqresExpr[_t.Any]] = SortedIndex(
+        nearest if singletons else None
+    )
 
     Queue = _c.OrderedDict[RequestOrPageIDType, tuple[TimeStamp, ReqresExpr[_t.Any]]]
-    queue : Queue = _c.OrderedDict()
+    queue: Queue = _c.OrderedDict()
 
     if stdout.isatty:
         stdout.write_bytes(b"\033[32m")
@@ -2010,21 +2209,41 @@ def cmd_mirror(cargs : _t.Any) -> None:
         stdout.write_bytes(b"\033[0m")
     stdout.flush()
 
-    def report_queued(stime : TimeStamp, net_url : URLType, pretty_net_url : URLType, source : DeferredSourceType, level : int, old_stime : TimeStamp | None = None) -> None:
+    def report_queued(
+        stime: TimeStamp,
+        net_url: URLType,
+        pretty_net_url: URLType,
+        source: DeferredSourceType,
+        level: int,
+        old_stime: TimeStamp | None = None,
+    ) -> None:
         if stdout.isatty:
             stdout.write_bytes(b"\033[33m")
         durl = net_url if pretty_net_url == net_url else f"{net_url} ({pretty_net_url})"
         ispace = " " * (2 * level)
         if old_stime is None:
-            stdout.write_str_ln(ispace + gettext(f"queued [%s] %s from %s") % (stime.format(precision=3), durl, source.show_source()))
+            stdout.write_str_ln(
+                ispace
+                + gettext(f"queued [%s] %s from %s")
+                % (stime.format(precision=3), durl, source.show_source())
+            )
         else:
-            stdout.write_str_ln(ispace + gettext(f"requeued [%s] -> [%s] %s from %s") % (old_stime.format(precision=3), stime.format(precision=3), durl, source.show_source()))
+            stdout.write_str_ln(
+                ispace
+                + gettext(f"requeued [%s] -> [%s] %s from %s")
+                % (
+                    old_stime.format(precision=3),
+                    stime.format(precision=3),
+                    durl,
+                    source.show_source(),
+                )
+            )
         if stdout.isatty:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
 
-    def collect(should_enqueue : bool) -> EmitFunc[ReqresExpr[DeferredSourceType]]:
-        def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
+    def collect(should_enqueue: bool) -> EmitFunc[ReqresExpr[DeferredSourceType]]:
+        def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
             stime = rrexpr.stime
             net_url = rrexpr.net_url
             if not index.insert(net_url, stime, rrexpr):
@@ -2032,8 +2251,8 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
             unqueued = True
             request_id = get_request_id(net_url, rrexpr)
-            page_id : PageIDType = (stime, request_id)
-            pid : RequestOrPageIDType
+            page_id: PageIDType = (stime, request_id)
+            pid: RequestOrPageIDType
             if nearest is not None:
                 for pid in (request_id, page_id):
                     qobj = queue.get(pid, None)
@@ -2053,37 +2272,48 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
             if unqueued or mem.consumption > max_memory_mib:
                 rrexpr.unload()
+
         return emit
 
     handle_paths(cargs)
     elaborate_paths(cargs.boring)
 
     rrexprs_load = mk_rrexprs_load(cargs)
-    seen_paths : set[PathType] = set()
-    map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(True), cargs.paths, seen_paths=seen_paths)
-    map_wrr_paths(cargs, rrexprs_load, filters_allow, collect(False), cargs.boring, seen_paths=seen_paths)
+    seen_paths: set[PathType] = set()
+    map_wrr_paths(
+        cargs, rrexprs_load, filters_allow, collect(True), cargs.paths, seen_paths=seen_paths
+    )
+    map_wrr_paths(
+        cargs, rrexprs_load, filters_allow, collect(False), cargs.boring, seen_paths=seen_paths
+    )
 
     indexed_num = len(index)
 
-    def remap_url_fallback(stime : TimeStamp, purl : ParsedURL, expected_content_types : list[str]) -> PathType:
-        trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime, stime, stime))
+    def remap_url_fallback(
+        stime: TimeStamp, purl: ParsedURL, expected_content_types: list[str]
+    ) -> PathType:
+        trrexpr = ReqresExpr(
+            UnknownSource(), fallback_Reqres(purl, expected_content_types, stime, stime, stime)
+        )
         trrexpr.values["num"] = 0
-        rel_out_path : PathType = _os.path.join(destination, output_format % trrexpr)
+        rel_out_path: PathType = _os.path.join(destination, output_format % trrexpr)
         return _os.path.abspath(rel_out_path)
 
     class Mutable:
-        n : int = 0
-        doc_n : int = 0
-        depth : int = 0
+        n: int = 0
+        doc_n: int = 0
+        depth: int = 0
 
-    def render(stime : TimeStamp,
-               net_url : URLType,
-               page_id : PageIDType,
-               rrexpr : ReqresExpr[DeferredSourceType],
-               abs_out_path : PathType,
-               enqueue : bool,
-               new_queue : Queue,
-               level : int) -> PathType | None:
+    def render(
+        stime: TimeStamp,
+        net_url: URLType,
+        page_id: PageIDType,
+        rrexpr: ReqresExpr[DeferredSourceType],
+        abs_out_path: PathType,
+        enqueue: bool,
+        new_queue: Queue,
+        level: int,
+    ) -> PathType | None:
         source = rrexpr.source
 
         level0 = level == 0
@@ -2102,9 +2332,28 @@ def cmd_mirror(cargs : _t.Any) -> None:
                 stdout.write_bytes(b"\033[34m")
         ispace = " " * (2 * level)
         if level0:
-            stdout.write_str_ln(gettext(f"mirroring input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d") % (n, n100 / n_total, n_total, n100 / indexed_num, indexed_num, doc_n, Mutable.depth))
+            stdout.write_str_ln(
+                gettext(
+                    f"mirroring input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d"
+                )
+                % (
+                    n,
+                    n100 / n_total,
+                    n_total,
+                    n100 / indexed_num,
+                    indexed_num,
+                    doc_n,
+                    Mutable.depth,
+                )
+            )
         else:
-            stdout.write_str_ln(ispace + gettext(f"mirroring requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)") % (n, n100 / n_total, n_total, n100 / indexed_num, indexed_num))
+            stdout.write_str_ln(
+                ispace
+                + gettext(
+                    f"mirroring requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)"
+                )
+                % (n, n100 / n_total, n_total, n100 / indexed_num, indexed_num)
+            )
         stdout.write_str_ln(ispace + gettext("stime [%s]") % (stime.format(precision=3),))
         stdout.write_str_ln(ispace + gettext("net_url %s") % (net_url,))
         stdout.write_str_ln(ispace + gettext("src %s") % (source.show_source(),))
@@ -2112,25 +2361,29 @@ def cmd_mirror(cargs : _t.Any) -> None:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
 
-        def handle_warning(msg : str, *args : _t.Any) -> None:
+        def handle_warning(msg: str, *args: _t.Any) -> None:
             ispace = " " * (2 * (level + 1))
             issue(ispace + gettext(msg), *args)
 
         try:
-            done[id(rrexpr)] = None # (breakCycles)
+            done[id(rrexpr)] = None  # (breakCycles)
 
             document_dir = _os.path.dirname(abs_out_path)
 
-            def remap_url(unet_url : URLType, upurl : ParsedURL,
-                          link_type : LinkType, fallbacks : list[str] | None) \
-                          -> URLType | None:
-                if want_stop: raise KeyboardInterrupt()
+            def remap_url(
+                unet_url: URLType,
+                upurl: ParsedURL,
+                link_type: LinkType,
+                fallbacks: list[str] | None,
+            ) -> URLType | None:
+                if want_stop:
+                    raise KeyboardInterrupt()
 
                 is_requisite = link_type == LinkType.REQ
                 ustime = stime if nearest is None or is_requisite else nearest
                 upredicate = normal_document if link_type != LinkType.ACTION else complete_response
 
-                uobj : tuple[TimeStamp, ReqresExpr[_t.Any]] | None = None
+                uobj: tuple[TimeStamp, ReqresExpr[_t.Any]] | None = None
                 again = True
                 while again:
                     again = False
@@ -2177,10 +2430,12 @@ def cmd_mirror(cargs : _t.Any) -> None:
                             for q in (new_queue, queue):
                                 try:
                                     del q[upage_id]
-                                except KeyError: pass
+                                except KeyError:
+                                    pass
                                 try:
                                     del q[urequest_id]
-                                except KeyError: pass
+                                except KeyError:
+                                    pass
 
                             # render it immediately
                             # NB: (breakCycles) breaks dependency cycles that can make this loop infinitely
@@ -2190,8 +2445,12 @@ def cmd_mirror(cargs : _t.Any) -> None:
                         # nothing to do
                         uabs_out_path = get_abs_out_path(urrexpr)
                         # NB: will be unloaded already
-                    elif upage_id in new_queue or upage_id in queue or \
-                         urequest_id in new_queue or urequest_id in queue:
+                    elif (
+                        upage_id in new_queue
+                        or upage_id in queue
+                        or urequest_id in new_queue
+                        or urequest_id in queue
+                    ):
                         # nothing to do
                         uabs_out_path = get_abs_out_path(urrexpr)
                         if mem.consumption > max_memory_mib:
@@ -2225,13 +2484,18 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
             old_data = read_whole_file_maybe(abs_out_path)
 
-            data : bytes
+            data: bytes
             if skip_existing and old_data is not None:
                 data = old_data
 
                 if stdout.isatty:
                     stdout.write_bytes(b"\033[33m")
-                stdout.write_str_ln(ispace + gettext("reusing file content: destination exists and `--skip-existing` is set"))
+                stdout.write_str_ln(
+                    ispace
+                    + gettext(
+                        "reusing file content: destination exists and `--skip-existing` is set"
+                    )
+                )
                 if stdout.isatty:
                     stdout.write_bytes(b"\033[0m")
             else:
@@ -2249,14 +2513,23 @@ def cmd_mirror(cargs : _t.Any) -> None:
                     rrexpr.values["content_sha256"] = sha256_raw = _hashlib.sha256(data).digest()
                     sha256_hex = sha256_raw.hex()
 
-                    real_out_path = _os.path.join(content_destination, content_output_format % rrexpr)
+                    real_out_path = _os.path.join(
+                        content_destination, content_output_format % rrexpr
+                    )
 
                     old_content = read_whole_file_maybe(real_out_path)
 
                     if old_content is None:
                         atomic_write(data, real_out_path, False)
                     elif old_content != data:
-                        raise Failure(gettext("wrong file content in `%s`: expected sha256 `%s`, got sha256 `%s`"), real_out_path, sha256_hex, _hashlib.sha256(old_content).hexdigest())
+                        raise Failure(
+                            gettext(
+                                "wrong file content in `%s`: expected sha256 `%s`, got sha256 `%s`"
+                            ),
+                            real_out_path,
+                            sha256_hex,
+                            _hashlib.sha256(old_content).hexdigest(),
+                        )
 
                     if old_data != data:
                         action_op(real_out_path, abs_out_path, allow_updates)
@@ -2269,7 +2542,9 @@ def cmd_mirror(cargs : _t.Any) -> None:
                 done[id(rrexpr)] = real_out_path
                 return real_out_path
             except FileExistsError as exc:
-                raise Failure(gettext(f"trying to overwrite `%s` which already exists"), exc.filename)
+                raise Failure(
+                    gettext(f"trying to overwrite `%s` which already exists"), exc.filename
+                )
             except OSError as exc:
                 handle_ENAMETOOLONG(exc, exc.filename)
                 if exc.errno == _errno.EXDEV:
@@ -2288,13 +2563,15 @@ def cmd_mirror(cargs : _t.Any) -> None:
             raise
 
     while len(queue) > 0:
-        if want_stop: raise KeyboardInterrupt()
+        if want_stop:
+            raise KeyboardInterrupt()
 
-        new_queue : Queue = _c.OrderedDict()
+        new_queue: Queue = _c.OrderedDict()
         enqueue = Mutable.depth < max_depth
 
         while len(queue) > 0:
-            if want_stop: raise KeyboardInterrupt()
+            if want_stop:
+                raise KeyboardInterrupt()
 
             qpid, qobj = queue.popitem(False)
             qstime, qrrexpr = qobj
@@ -2312,7 +2589,8 @@ def cmd_mirror(cargs : _t.Any) -> None:
     filters_warn()
     root_filters_warn()
 
-def cmd_serve(cargs : _t.Any) -> None:
+
+def cmd_serve(cargs: _t.Any) -> None:
     import bottle
     from fnmatch import translate
     import urllib.parse as _up
@@ -2325,8 +2603,11 @@ def cmd_serve(cargs : _t.Any) -> None:
     BottleReturnType = str | bytes | None
 
     PSpec = _t.ParamSpec("PSpec")
-    def with_plain_error(func : _t.Callable[PSpec, BottleReturnType]) -> _t.Callable[PSpec, BottleReturnType]:
-        def decorated(*args : PSpec.args, **kwargs : PSpec.kwargs) -> BottleReturnType:
+
+    def with_plain_error(
+        func: _t.Callable[PSpec, BottleReturnType]
+    ) -> _t.Callable[PSpec, BottleReturnType]:
+        def decorated(*args: PSpec.args, **kwargs: PSpec.kwargs) -> BottleReturnType:
             bottle.response.set_header("content-type", "text/plain; charset=utf-8")
             try:
                 return func(*args, **kwargs)
@@ -2336,6 +2617,7 @@ def cmd_serve(cargs : _t.Any) -> None:
             except Exception as exc:
                 bottle.response.status = 500
                 return gettext("uncaught error: %s") % (str(exc),)
+
         return decorated
 
     time_format = "%Y-%m-%d_%H:%M:%S"
@@ -2355,9 +2637,13 @@ def cmd_serve(cargs : _t.Any) -> None:
     do_replay = cargs.replay != False
     index_ideal = cargs.replay if cargs.replay != False else anytime.end
 
-    inherit : str | None = None
+    inherit: str | None = None
     if len(cargs.exprs) == 0:
-        cargs.exprs = [compile_expr(default_expr("serve" if cargs.web_replay else "mirror", cargs.default_expr))]
+        cargs.exprs = [
+            compile_expr(
+                default_expr("serve" if cargs.web_replay else "mirror", cargs.default_expr)
+            )
+        ]
         inherit = "request" if cargs.default_expr == "raw_qbody" else "response"
     take_whatever = inherit != "response"
     not_web_replay = not cargs.web_replay
@@ -2367,10 +2653,10 @@ def cmd_serve(cargs : _t.Any) -> None:
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
-    PathType : _t.TypeAlias = str
-    index : SortedIndex[URLType, TimeStamp, ReqresExpr[_t.Any]] = SortedIndex(index_ideal)
+    PathType: _t.TypeAlias = str
+    index: SortedIndex[URLType, TimeStamp, ReqresExpr[_t.Any]] = SortedIndex(index_ideal)
 
-    def emit(rrexpr : ReqresExpr[DeferredSourceType]) -> None:
+    def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
         stime = rrexpr.stime
         net_url = rrexpr.net_url
         index.insert(net_url, stime, rrexpr)
@@ -2387,14 +2673,18 @@ def cmd_serve(cargs : _t.Any) -> None:
         handle_paths(cargs)
 
         rrexprs_load = mk_rrexprs_load(cargs)
-        seen_paths : set[PathType] = set()
+        seen_paths: set[PathType] = set()
         if destination is not None and cargs.implicit and _os.path.exists(destination):
-            map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, [destination], seen_paths=seen_paths)
+            map_wrr_paths(
+                cargs, rrexprs_load, filters_allow, emit, [destination], seen_paths=seen_paths
+            )
         map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, cargs.paths, seen_paths=seen_paths)
     elif cargs.implicit:
         raise CatastrophicFailure(gettext("`--no-replay`: not allowed with `--implicit`"))
     elif len(cargs.paths) > 0:
-        raise CatastrophicFailure(gettext("`--no-replay`: not allowed with a non-empty list of `PATH`s"))
+        raise CatastrophicFailure(
+            gettext("`--no-replay`: not allowed with a non-empty list of `PATH`s")
+        )
 
     if not cargs.quiet:
         filters_warn()
@@ -2402,12 +2692,16 @@ def cmd_serve(cargs : _t.Any) -> None:
     global should_raise
     should_raise = True
 
-    def url_info(net_url : str, pu : ParsedURL) -> tuple[str, str, str]:
+    def url_info(net_url: str, pu: ParsedURL) -> tuple[str, str, str]:
         return pu.rhostname, pu.pretty_net_url, net_url
 
-    all_urls = SortedList(map(lambda net_url: url_info(net_url, parse_url(net_url)), index._index.keys()))
+    all_urls = SortedList(
+        map(lambda net_url: url_info(net_url, parse_url(net_url)), index._index.keys())
+    )
 
-    def get_visits(url_re : _re.Pattern[str], start : TimeStamp, end : TimeStamp) -> tuple[int, list[tuple[str, str, list[str]]]]:
+    def get_visits(
+        url_re: _re.Pattern[str], start: TimeStamp, end: TimeStamp
+    ) -> tuple[int, list[tuple[str, str, list[str]]]]:
         visits_total = 0
         url_visits = []
         for rhost, pretty_net_url, net_url in all_urls:
@@ -2416,7 +2710,7 @@ def cmd_serve(cargs : _t.Any) -> None:
 
             visits = []
             for t, v in index.iter_from_to(net_url, start, end):
-                #if normal_document(t, v):
+                # if normal_document(t, v):
                 visits.append(t.format(time_format, precision=precision))
                 visits_total += 1
 
@@ -2424,13 +2718,15 @@ def cmd_serve(cargs : _t.Any) -> None:
                 url_visits.append((net_url, pretty_net_url, visits))
         return visits_total, url_visits
 
-    server_info : dict[str, _t.Any] = {
+    server_info: dict[str, _t.Any] = {
         "version": 1,
     }
     if destination is not None:
         server_info["dump_wrr"] = "/pwebarc/dump"
     if do_replay:
-        server_info["index_ideal"] = None if index_ideal is None else index_ideal.format("@", precision=9)
+        server_info["index_ideal"] = (
+            None if index_ideal is None else index_ideal.format("@", precision=9)
+        )
         server_info["replay_oldest"] = "/web/-inf/{url}"
         server_info["replay_latest"] = "/web/+inf/{url}"
         if index_ideal is None:
@@ -2438,17 +2734,18 @@ def cmd_serve(cargs : _t.Any) -> None:
     server_info_json = _json.dumps(server_info).encode("utf-8")
     del server_info
 
-    @app.route("/hoardy-web/server-info") # type: ignore
+    @app.route("/hoardy-web/server-info")  # type: ignore
     def server_info() -> bytes:
         return server_info_json
 
-    @app.route("/pwebarc/dump", method="POST") # type: ignore
+    @app.route("/pwebarc/dump", method="POST")  # type: ignore
     @with_plain_error
     def dump_wrr() -> BottleReturnType:
         if destination is None:
             bottle.response.status = 403
-            return gettext("archiving is forbidden, restart the server with `%s` to enable") \
-                % ("hoardy-web serve --to <path>",)
+            return gettext("archiving is forbidden, restart the server with `%s` to enable") % (
+                "hoardy-web serve --to <path>",
+            )
 
         ctype = bottle.request.content_type
         if ctype not in ["application/x-wrr+cbor", "application/cbor"]:
@@ -2484,14 +2781,14 @@ def cmd_serve(cargs : _t.Any) -> None:
             raise Failure(gettext("failed to parse content body: %s"), str(exc))
 
         cborf.seek(0)
-        data = cborf.getvalue() # type: ignore
+        data = cborf.getvalue()  # type: ignore
         del cborf
         if compress:
             data = gzip_maybe(data)
 
         trrexpr = ReqresExpr(UnknownSource(), reqres)
         trrexpr.values["num"] = 0
-        prev_path : str | None = None
+        prev_path: str | None = None
         while True:
             rel_out_path = _os.path.join(destination, bucket, output_format % trrexpr)
             abs_out_path = _os.path.abspath(rel_out_path)
@@ -2528,8 +2825,8 @@ def cmd_serve(cargs : _t.Any) -> None:
 
         return b""
 
-    @app.route("/<namespace:re:(web|redirect|unavailable|other)>/<selector>/<url_path:path>") # type: ignore
-    def from_archive(namespace : str, selector : str, url_path : str) -> BottleReturnType:
+    @app.route("/<namespace:re:(web|redirect|unavailable|other)>/<selector>/<url_path:path>")  # type: ignore
+    def from_archive(namespace: str, selector: str, url_path: str) -> BottleReturnType:
         if not do_replay:
             bottle.abort(403, "Replay is forbidden on this server")
             return None
@@ -2540,7 +2837,7 @@ def cmd_serve(cargs : _t.Any) -> None:
         if len(query) > 0:
             turl += "?" + _up.unquote(query)
 
-        interval : TimeRange
+        interval: TimeRange
         if selector.endswith("*"):
             try:
                 interval = timerange(selector)
@@ -2561,7 +2858,7 @@ def cmd_serve(cargs : _t.Any) -> None:
                 }
             )
 
-        ideal : TimeStamp
+        ideal: TimeStamp
         if selector in ["-inf", "0", "1", "oldest", "old", "first"]:
             interval = anytime
             ideal = anytime.start
@@ -2596,7 +2893,8 @@ def cmd_serve(cargs : _t.Any) -> None:
                     pattern = turl
                 else:
                     mq_path = pturl.mq_path
-                    if mq_path.endswith("/"): mq_path = mq_path[:-1]
+                    if mq_path.endswith("/"):
+                        mq_path = mq_path[:-1]
                     loc = pturl.netloc + mq_path
                     url_re = _re.compile(".*" + _re.escape(loc) + ".*")
                     pattern = "*" + loc + "*"
@@ -2624,8 +2922,13 @@ def cmd_serve(cargs : _t.Any) -> None:
             return None
 
         try:
-            def remap_url(unet_url : URLType, upurl : ParsedURL,
-                          link_type : LinkType, fallbacks : list[str] | None) -> URLType | None:
+
+            def remap_url(
+                unet_url: URLType,
+                upurl: ParsedURL,
+                link_type: LinkType,
+                fallbacks: list[str] | None,
+            ) -> URLType | None:
                 unamespace = "unavailable"
                 ustime_selector = stime_selector if fallbacks is not None else None
 
@@ -2659,7 +2962,7 @@ def cmd_serve(cargs : _t.Any) -> None:
             remap_url_cached = cached_remap_url(net_url, remap_url, handle_warning=_logging.warn)
             rrexpr.remap_url = remap_url_cached
 
-            def rebase_remap_url(url : URLType) -> URLType | None:
+            def rebase_remap_url(url: URLType) -> URLType | None:
                 try:
                     href = _up.urljoin(net_url, url)
                 except ValueError:
@@ -2667,7 +2970,7 @@ def cmd_serve(cargs : _t.Any) -> None:
                 return remap_url_cached(href, LinkType.JUMP, [])
 
             # TODO: inherit MIME from generated expression type instead
-            rere_obj : Request | Response | None = None
+            rere_obj: Request | Response | None = None
             if inherit is not None:
                 rere_obj = getattr(rrexpr.reqres, inherit)
 
@@ -2678,7 +2981,7 @@ def cmd_serve(cargs : _t.Any) -> None:
 
                     for hn, hv in get_headers(rere_obj.headers):
                         hl = hn.lower()
-                        hr : str | None = None
+                        hr: str | None = None
                         if hl == "location":
                             hr = rebase_remap_url(hv.strip())
                         elif not_web_replay:
@@ -2688,7 +2991,8 @@ def cmd_serve(cargs : _t.Any) -> None:
                         elif hl == "refresh":
                             try:
                                 secs, url = parse_refresh_header(hv)
-                            except ValueError: pass
+                            except ValueError:
+                                pass
                             else:
                                 href = rebase_remap_url(url)
                                 if href is not None:
@@ -2696,16 +3000,21 @@ def cmd_serve(cargs : _t.Any) -> None:
                         elif hl == "link":
                             try:
                                 plinks = parse_link_header(hv)
-                            except ValueError: pass
+                            except ValueError:
+                                pass
                             else:
                                 links = []
                                 for url, params in plinks:
                                     rel = get_parameter_value(params, "rel", None)
                                     if rel is not None:
-                                        allowed_rels = link_rels_of(rel, blacklist=preload_link_rels)
+                                        allowed_rels = link_rels_of(
+                                            rel, blacklist=preload_link_rels
+                                        )
                                         if len(allowed_rels) == 0:
                                             continue
-                                        params = set_parameter(params, "rel", " ".join(allowed_rels))
+                                        params = set_parameter(
+                                            params, "rel", " ".join(allowed_rels)
+                                        )
                                     href = rebase_remap_url(url)
                                     if href is not None:
                                         links.append((href, params))
@@ -2721,7 +3030,7 @@ def cmd_serve(cargs : _t.Any) -> None:
             else:
                 bottle.response.set_header("content-type", "application/octet-stream")
 
-            data : bytes
+            data: bytes
             with TIOWrappedWriter(_io.BytesIO()) as f:
                 print_exprs(rrexpr, cargs.exprs, cargs.separator, f)
                 data = f.fobj.getvalue()
@@ -2736,11 +3045,16 @@ def cmd_serve(cargs : _t.Any) -> None:
     if stderr.isatty:
         stderr.write_bytes(b"\033[33m")
     if destination is not None:
-        stderr.write_str_ln(gettext("Working as an archiving server at %s") % (server_url_base + "/",))
+        stderr.write_str_ln(
+            gettext("Working as an archiving server at %s") % (server_url_base + "/",)
+        )
     else:
         stderr.write_str_ln(gettext("Archiving server support is disabled"))
     if do_replay:
-        stderr.write_str_ln(gettext("Serving replays for %d reqres at %s") % (len(index), f"{server_url_base}/web/*/*"))
+        stderr.write_str_ln(
+            gettext("Serving replays for %d reqres at %s")
+            % (len(index), f"{server_url_base}/web/*/*")
+        )
     else:
         stderr.write_str_ln(gettext("Replay server support is disabled"))
     if stderr.isatty:
@@ -2749,8 +3063,9 @@ def cmd_serve(cargs : _t.Any) -> None:
 
     app.run(host=cargs.host, port=cargs.port, quiet=cargs.quiet, debug=cargs.debug_bottle)
 
-def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
-    _ : _t.Callable[[str], str] = gettext
+
+def add_doc(fmt: argparse.BetterHelpFormatter) -> None:
+    _: _t.Callable[[str], str] = gettext
 
     # fmt: off
     fmt.add_text(_("# Examples"))
@@ -2837,22 +3152,30 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f"{__prog__} get ../simple_server/pwebarc-dump/path/to/file.wrr | less")
     # fmt: on
 
+
 class ArgumentParser(argparse.BetterArgumentParser):
-    def error(self, message : str) -> _t.NoReturn:
+    def error(self, message: str) -> _t.NoReturn:
         self.print_usage(_sys.stderr)
         die(2, "%s", message)
 
-def make_argparser(real : bool = True) -> ArgumentParser:
-    _ : _t.Callable[[str], str] = gettext
+
+def make_argparser(real: bool = True) -> ArgumentParser:
+    _: _t.Callable[[str], str] = gettext
 
     parser = ArgumentParser(
         prog=__prog__,
-        description=_("Inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` (\"Web Request+Response\", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.") + "\n\n" +
-_("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata."),
-        additional_sections = [add_doc],
-        allow_abbrev = False,
-        add_version = True,
-        add_help = False)
+        description=_(
+            'Inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.'
+        )
+        + "\n\n"
+        + _(
+            "Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata."
+        ),
+        additional_sections=[add_doc],
+        allow_abbrev=False,
+        add_version=True,
+        add_help=False,
+    )
 
     # fmt: off
     parser.add_argument("-h", "--help", action="store_true", help=_("show this help message and exit"))
@@ -3692,8 +4015,9 @@ The end.
 
     return parser
 
+
 def main() -> None:
-    _ : _t.Callable[[str], str] = gettext
+    _: _t.Callable[[str], str] = gettext
 
     parser = make_argparser()
 
@@ -3712,12 +4036,11 @@ def main() -> None:
             print(parser.format_help())
         _sys.exit(0)
 
-    _logging.basicConfig(level=_logging.WARNING,
-                         stream = stderr)
+    _logging.basicConfig(level=_logging.WARNING, stream=stderr)
     errorcnt = CounterHandler()
     logger = _logging.getLogger()
     logger.addHandler(errorcnt)
-    #logger.setLevel(_logging.DEBUG)
+    # logger.setLevel(_logging.DEBUG)
 
     handle_signals()
 
@@ -3737,11 +4060,18 @@ def main() -> None:
     stderr.flush()
 
     if errorcnt.warnings > 0:
-        stderr.write_str_ln(ngettext("There was %d warning!", "There were %d warnings!", errorcnt.warnings) % (errorcnt.warnings,))
+        stderr.write_str_ln(
+            ngettext("There was %d warning!", "There were %d warnings!", errorcnt.warnings)
+            % (errorcnt.warnings,)
+        )
     if errorcnt.errors > 0:
-        stderr.write_str_ln(ngettext("There was %d error!", "There were %d errors!", errorcnt.errors) % (errorcnt.errors,))
+        stderr.write_str_ln(
+            ngettext("There was %d error!", "There were %d errors!", errorcnt.errors)
+            % (errorcnt.errors,)
+        )
         _sys.exit(1)
     _sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

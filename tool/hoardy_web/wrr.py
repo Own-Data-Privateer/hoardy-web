@@ -41,10 +41,11 @@ from .linst import *
 from .source import *
 from .web import *
 
-class RRCommon:
-    _dtc : dict[SniffContentType, DiscernContentType]
 
-    def discern_content_type(self, sniff : SniffContentType) -> DiscernContentType:
+class RRCommon:
+    _dtc: dict[SniffContentType, DiscernContentType]
+
+    def discern_content_type(self, sniff: SniffContentType) -> DiscernContentType:
         """Run `mime.discern_content_type` on this."""
         try:
             return self._dtc[sniff]
@@ -53,44 +54,49 @@ class RRCommon:
         except AttributeError:
             self._dtc = {}
 
-        ct, do_sniff = self.get_content_type() # type: ignore
+        ct, do_sniff = self.get_content_type()  # type: ignore
         if do_sniff and sniff == SniffContentType.NONE:
             sniff = SniffContentType.FORCE
-        res = discern_content_type(ct, sniff, self.body) # type: ignore
+        res = discern_content_type(ct, sniff, self.body)  # type: ignore
 
         self._dtc[sniff] = res
         return res
 
+
 @_dc.dataclass
 class Request(RRCommon):
-    started_at : TimeStamp
-    method : str
-    url : ParsedURL
-    headers : Headers
-    complete : bool
-    body : bytes | str
+    started_at: TimeStamp
+    method: str
+    url: ParsedURL
+    headers: Headers
+    complete: bool
+    body: bytes | str
 
     def approx_size(self) -> int:
-        return 56 + 2 * len(self.url.raw_url) + len(self.body) \
+        return (
+            56
+            + 2 * len(self.url.raw_url)
+            + len(self.body)
             + sum(map(lambda x: len(x[0]) + len(x[1]), self.headers))
+        )
 
     def get_content_type(self) -> tuple[str, bool]:
         ct = get_header_value(self.headers, "content-type", "application/x-www-form-urlencoded")
         assert ct is not None
         return ct, False
 
+
 @_dc.dataclass
 class Response(RRCommon):
-    started_at : TimeStamp
-    code : int
-    reason : str
-    headers : Headers
-    complete : bool
-    body : bytes | str
+    started_at: TimeStamp
+    code: int
+    reason: str
+    headers: Headers
+    complete: bool
+    body: bytes | str
 
     def approx_size(self) -> int:
-        return 56 + len(self.body) \
-            + sum(map(lambda x: len(x[0]) + len(x[1]), self.headers))
+        return 56 + len(self.body) + sum(map(lambda x: len(x[0]) + len(x[1]), self.headers))
 
     def get_content_type(self) -> tuple[str, bool]:
         ct = get_header_value(self.headers, "content-type", "application/octet-stream")
@@ -101,15 +107,17 @@ class Response(RRCommon):
             sniff = True
         return ct, sniff
 
+
 @_dc.dataclass
 class WebSocketFrame:
-    sent_at : TimeStamp
-    from_client : bool
-    opcode : int
-    content : bytes
+    sent_at: TimeStamp
+    from_client: bool
+    opcode: int
+    content: bytes
 
     def approx_size(self) -> int:
         return 40 + len(self.content)
+
 
 Reqres_fields = {
     "version": "WEBREQRES format version; int",
@@ -131,23 +139,30 @@ Reqres_fields = {
     "websocket": "a list of WebSocket frames",
 }
 
+
 @_dc.dataclass
 class Reqres:
-    version : int
-    agent : str
-    protocol : str
-    request : Request
-    response : _t.Optional[Response]
-    finished_at : TimeStamp
-    extra : dict[str, _t.Any]
-    websocket : _t.Optional[list[WebSocketFrame]]
-    _approx_size : int = 0
+    version: int
+    agent: str
+    protocol: str
+    request: Request
+    response: _t.Optional[Response]
+    finished_at: TimeStamp
+    extra: dict[str, _t.Any]
+    websocket: _t.Optional[list[WebSocketFrame]]
+    _approx_size: int = 0
 
     def _resize(self) -> int:
-        self._approx_size = res = 128 + \
-            self.request.approx_size() + \
-            (self.response.approx_size() if self.response is not None else 0) + \
-            (sum(map(lambda x: x.approx_size(), self.websocket)) if self.websocket is not None else 0)
+        self._approx_size = res = (
+            128
+            + self.request.approx_size()
+            + (self.response.approx_size() if self.response is not None else 0)
+            + (
+                sum(map(lambda x: x.approx_size(), self.websocket))
+                if self.websocket is not None
+                else 0
+            )
+        )
         return res
 
     def approx_size(self) -> int:
@@ -155,44 +170,81 @@ class Reqres:
             return self._resize()
         return self._approx_size
 
+
 Reqres_url_schemes = frozenset(["http", "https", "ftp", "ftps", "ws", "wss"])
 
-class WRRParsingError(Failure): pass
-class WRRTypeError(WRRParsingError): pass
 
-def _t_bool(n : str, x : _t.Any) -> bool:
-    if isinstance(x, bool): return x
-    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "bool", type(x).__name__)
+class WRRParsingError(Failure):
+    pass
 
-def _t_bytes(n : str, x : _t.Any) -> bytes:
-    if isinstance(x, bytes): return x
-    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "bytes", type(x).__name__)
 
-def _t_str(n : str, x : _t.Any) -> str:
-    if isinstance(x, str): return x
-    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "str", type(x).__name__)
+class WRRTypeError(WRRParsingError):
+    pass
 
-def _t_bytes_or_str(n : str, x : _t.Any) -> bytes | str:
-    if isinstance(x, bytes): return x
-    if isinstance(x, str): return x
-    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s or %s, got %s"), n, "bytes", "str", type(x).__name__)
 
-def _t_int(n : str, x : _t.Any) -> int:
-    if isinstance(x, int): return x
-    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "int", type(x).__name__)
+def _t_bool(n: str, x: _t.Any) -> bool:
+    if isinstance(x, bool):
+        return x
+    raise WRRTypeError(
+        gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "bool", type(x).__name__
+    )
 
-def _t_timestamp(n : str, x : _t.Any) -> TimeStamp:
+
+def _t_bytes(n: str, x: _t.Any) -> bytes:
+    if isinstance(x, bytes):
+        return x
+    raise WRRTypeError(
+        gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "bytes", type(x).__name__
+    )
+
+
+def _t_str(n: str, x: _t.Any) -> str:
+    if isinstance(x, str):
+        return x
+    raise WRRTypeError(
+        gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "str", type(x).__name__
+    )
+
+
+def _t_bytes_or_str(n: str, x: _t.Any) -> bytes | str:
+    if isinstance(x, bytes):
+        return x
+    if isinstance(x, str):
+        return x
+    raise WRRTypeError(
+        gettext("Reqres field `%s`: wrong type: want %s or %s, got %s"),
+        n,
+        "bytes",
+        "str",
+        type(x).__name__,
+    )
+
+
+def _t_int(n: str, x: _t.Any) -> int:
+    if isinstance(x, int):
+        return x
+    raise WRRTypeError(
+        gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "int", type(x).__name__
+    )
+
+
+def _t_timestamp(n: str, x: _t.Any) -> TimeStamp:
     return TimeStamp(Decimal(_t_int(n, x)) / 1000)
 
-def _f_timestamp(x : TimeStamp) -> int:
+
+def _f_timestamp(x: TimeStamp) -> int:
     return int(x * 1000)
 
-def _t_headers(n : str, x : _t.Any) -> Headers:
+
+def _t_headers(n: str, x: _t.Any) -> Headers:
     if Headers.__instancecheck__(x):
         return _t.cast(Headers, x)
-    raise WRRTypeError(gettext("Reqres field `%s`: wrong type: want %s, got %s"), "Headers", type(x).__name__)
+    raise WRRTypeError(
+        gettext("Reqres field `%s`: wrong type: want %s, got %s"), "Headers", type(x).__name__
+    )
 
-def wrr_load_cbor_struct(data : _t.Any) -> Reqres:
+
+def wrr_load_cbor_struct(data: _t.Any) -> Reqres:
     if not isinstance(data, list):
         raise WRRParsingError(gettext("Reqres parsing failure: wrong spine"))
     elif len(data) == 7 and data[0] == "WEBREQRES/1":
@@ -200,23 +252,29 @@ def wrr_load_cbor_struct(data : _t.Any) -> Reqres:
         rq_started_at, rq_method, rq_url, rq_headers, rq_complete, rq_body = request_
         purl = parse_url(_t_str("request.url", rq_url))
         if purl.scheme not in Reqres_url_schemes:
-            raise WRRParsingError(gettext("Reqres field `request.url`: unsupported URL scheme `%s`"), purl.scheme)
-        request = Request(_t_timestamp("request.started_at", rq_started_at),
-                          _t_str("request.method", rq_method),
-                          purl,
-                          _t_headers("request.headers", rq_headers),
-                          _t_bool("request.complete", rq_complete),
-                          _t_bytes_or_str("request.body", rq_body))
+            raise WRRParsingError(
+                gettext("Reqres field `request.url`: unsupported URL scheme `%s`"), purl.scheme
+            )
+        request = Request(
+            _t_timestamp("request.started_at", rq_started_at),
+            _t_str("request.method", rq_method),
+            purl,
+            _t_headers("request.headers", rq_headers),
+            _t_bool("request.complete", rq_complete),
+            _t_bytes_or_str("request.body", rq_body),
+        )
         if response_ is None:
             response = None
         else:
             rs_started_at, rs_code, rs_reason, rs_headers, rs_complete, rs_body = response_
-            response = Response(_t_timestamp("response.started_at", rs_started_at),
-                                _t_int("response.code", rs_code),
-                                _t_str("responese.reason", rs_reason),
-                                _t_headers("responese.headers", rs_headers),
-                                _t_bool("response.complete", rs_complete),
-                                _t_bytes_or_str("responese.body", rs_body))
+            response = Response(
+                _t_timestamp("response.started_at", rs_started_at),
+                _t_int("response.code", rs_code),
+                _t_str("responese.reason", rs_reason),
+                _t_headers("responese.headers", rs_headers),
+                _t_bool("response.complete", rs_complete),
+                _t_bytes_or_str("responese.body", rs_body),
+            )
 
         try:
             wsframes = extra["websocket"]
@@ -227,16 +285,30 @@ def wrr_load_cbor_struct(data : _t.Any) -> Reqres:
             websocket = []
             for frame in wsframes:
                 sent_at, from_client, opcode, content = frame
-                websocket.append(WebSocketFrame(_t_timestamp("ws.sent_at", sent_at),
-                                                _t_bool("ws.from_client", from_client),
-                                                _t_int("ws.opcode", opcode),
-                                                _t_bytes("ws.content", content)))
+                websocket.append(
+                    WebSocketFrame(
+                        _t_timestamp("ws.sent_at", sent_at),
+                        _t_bool("ws.from_client", from_client),
+                        _t_int("ws.opcode", opcode),
+                        _t_bytes("ws.content", content),
+                    )
+                )
 
-        return Reqres(1, agent, protocol, request, response, _t_timestamp("finished_at", finished_at), extra, websocket)
+        return Reqres(
+            1,
+            agent,
+            protocol,
+            request,
+            response,
+            _t_timestamp("finished_at", finished_at),
+            extra,
+            websocket,
+        )
     else:
         raise WRRParsingError(gettext("Reqres parsing failure: unknown format `%s`"), data[0])
 
-def wrr_load_cbor_fileobj(fobj : _io.BufferedReader) -> Reqres:
+
+def wrr_load_cbor_fileobj(fobj: _io.BufferedReader) -> Reqres:
     try:
         struct = _cbor2.load(fobj)
     except _cbor2.CBORDecodeValueError:
@@ -244,7 +316,8 @@ def wrr_load_cbor_fileobj(fobj : _io.BufferedReader) -> Reqres:
 
     return wrr_load_cbor_struct(struct)
 
-def wrr_load(fobj : _io.BufferedReader) -> Reqres:
+
+def wrr_load(fobj: _io.BufferedReader) -> Reqres:
     fobj = ungzip_fileobj_maybe(fobj)
     if fobj.peek(1) == b"":
         raise WRRParsingError(gettext("expected CBOR data, got EOF"))
@@ -255,26 +328,44 @@ def wrr_load(fobj : _io.BufferedReader) -> Reqres:
         raise WRRParsingError(gettext("expected EOF, got `%s`"), p)
     return reqres
 
-def wrr_bundle_load(fobj : _io.BufferedReader) -> _t.Iterator[Reqres]:
+
+def wrr_bundle_load(fobj: _io.BufferedReader) -> _t.Iterator[Reqres]:
     fobj = ungzip_fileobj_maybe(fobj)
     while True:
-        if fobj.peek(1) == b"": break
+        if fobj.peek(1) == b"":
+            break
         yield wrr_load_cbor_fileobj(fobj)
 
-def wrr_loadf(path : _t.AnyStr) -> Reqres:
+
+def wrr_loadf(path: _t.AnyStr) -> Reqres:
     with open(path, "rb") as f:
         return wrr_load(f)
 
-def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
+
+def wrr_dumps(reqres: Reqres, compress: bool = True) -> bytes:
     req = reqres.request
-    request = _f_timestamp(req.started_at), req.method, req.url.raw_url, req.headers, req.complete, req.body
+    request = (
+        _f_timestamp(req.started_at),
+        req.method,
+        req.url.raw_url,
+        req.headers,
+        req.complete,
+        req.body,
+    )
     del req
 
     if reqres.response is None:
         response = None
     else:
         res = reqres.response
-        response = _f_timestamp(res.started_at), res.code, res.reason, res.headers, res.complete, res.body
+        response = (
+            _f_timestamp(res.started_at),
+            res.code,
+            res.reason,
+            res.headers,
+            res.complete,
+            res.body,
+        )
         del res
 
     extra = reqres.extra
@@ -282,18 +373,30 @@ def wrr_dumps(reqres : Reqres, compress : bool = True) -> bytes:
         extra = extra.copy()
         wsframes = []
         for frame in reqres.websocket:
-            wsframes.append([_f_timestamp(frame.sent_at), frame.from_client, frame.opcode, frame.content])
+            wsframes.append(
+                [_f_timestamp(frame.sent_at), frame.from_client, frame.opcode, frame.content]
+            )
         extra["websocket"] = wsframes
 
-    structure = ["WEBREQRES/1", reqres.agent, reqres.protocol, request, response, _f_timestamp(reqres.finished_at), extra]
+    structure = [
+        "WEBREQRES/1",
+        reqres.agent,
+        reqres.protocol,
+        request,
+        response,
+        _f_timestamp(reqres.finished_at),
+        extra,
+    ]
 
     data = _cbor2.dumps(structure)
     if compress:
         data = gzip_maybe(data)
     return data
 
-def wrr_dump(fobj : _io.BufferedWriter, reqres : Reqres, compress : bool = True) -> None:
+
+def wrr_dump(fobj: _io.BufferedWriter, reqres: Reqres, compress: bool = True) -> None:
     fobj.write(wrr_dumps(reqres, compress))
+
 
 ReqresExpr_derived_attrs = {
     "fs_path": "file system path for the WRR file containing this reqres; str | bytes | None",
@@ -345,7 +448,7 @@ ReqresExpr_url_attrs = {
     "net_hostname": "hostname part of `raw_url`, encoded as Punycode UTS46 IDNA; this is what actually gets sent to the server; ASCII str",
     "hostname": "`net_hostname` decoded back into UNICODE; this is the canonical hostname representation for which IDNA-encoding and decoding are bijective; UNICODE str",
     "rhostname": '`hostname` with the order of its parts reversed; e.g. `"www.example.org"` -> `"com.example.www"`; str',
-    "port": 'port part of `raw_url`; str',
+    "port": "port part of `raw_url`; str",
     "netloc": "netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str",
     #
     "raw_path": 'raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str',
@@ -367,17 +470,20 @@ ReqresExpr_url_attrs = {
     "ofm": "optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str",
 }
 ReqresExpr_derived_attrs.update(ReqresExpr_url_attrs)
-ReqresExpr_derived_attrs.update({
-    "status": '`"I"` or  `"C"` for `request.complete` (`I` for `false` , `C` for `true`) followed by either `"N"` when `response is None`, or `str(response.code)` followed by `"I"` or  `"C"` for `response.complete`; e.g. `C200C` (all "OK"), `CN` (request was sent, but it got no response), `I200C` (partial request with complete "OK" response), `C200I` (complete request with incomplete response, e.g. if download was interrupted), `C404C` (complete request with complete "Not Found" response), etc; str',
-    #
-    "request_mime": "`request.body` `MIME` type, note the underscore, this is not a field of `request`, this is a derived value that depends on `request` `Content-Type` header and `--sniff*` settings; str or None",
-    "response_mime": "`response.body` `MIME` type, note the underscore, this is not a field of `response`, this is a derived value that depends on `response` `Content-Type` header and `--sniff*` settings; str or None",
-    #
-    "filepath_parts": '`npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response_mime`; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
-    "filepath_ext": 'extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str',
-})
+ReqresExpr_derived_attrs.update(
+    {
+        "status": '`"I"` or  `"C"` for `request.complete` (`I` for `false` , `C` for `true`) followed by either `"N"` when `response is None`, or `str(response.code)` followed by `"I"` or  `"C"` for `response.complete`; e.g. `C200C` (all "OK"), `CN` (request was sent, but it got no response), `I200C` (partial request with complete "OK" response), `C200I` (complete request with incomplete response, e.g. if download was interrupted), `C404C` (complete request with complete "Not Found" response), etc; str',
+        #
+        "request_mime": "`request.body` `MIME` type, note the underscore, this is not a field of `request`, this is a derived value that depends on `request` `Content-Type` header and `--sniff*` settings; str or None",
+        "response_mime": "`response.body` `MIME` type, note the underscore, this is not a field of `response`, this is a derived value that depends on `response` `Content-Type` header and `--sniff*` settings; str or None",
+        #
+        "filepath_parts": '`npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response_mime`; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
+        "filepath_ext": 'extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str',
+    }
+)
 
-def _parse_rt(opt : str) -> RemapType:
+
+def _parse_rt(opt: str) -> RemapType:
     x = opt[:1]
     if x == "+":
         return RemapType.ID
@@ -391,8 +497,9 @@ def _parse_rt(opt : str) -> RemapType:
         return RemapType.FALLBACK
     raise CatastrophicFailure("unknown `scrub` option `%s`", opt)
 
+
 def linst_scrub() -> LinstAtom:
-    def func(part : str, optstr : str) -> _t.Callable[..., LinstFunc]:
+    def func(part: str, optstr: str) -> _t.Callable[..., LinstFunc]:
         rere = check_request_response("scrub", part)
 
         scrub_opts = ScrubbingOptions()
@@ -432,13 +539,13 @@ def linst_scrub() -> LinstAtom:
 
         scrubbers = make_scrubbers(scrub_opts)
 
-        def envfunc(rrexpr : _t.Any, v : _t.Any) -> _t.Any:
+        def envfunc(rrexpr: _t.Any, v: _t.Any) -> _t.Any:
             rrexpr = check_rrexpr("scrub", rrexpr)
 
-            reqres : Reqres = rrexpr.reqres
+            reqres: Reqres = rrexpr.reqres
             request = reqres.request
 
-            rere_obj : Request | Response
+            rere_obj: Request | Response
             if rere:
                 rere_obj = request
             elif reqres.response is None:
@@ -449,7 +556,7 @@ def linst_scrub() -> LinstAtom:
             if len(rere_obj.body) == 0:
                 return rere_obj.body
 
-            kinds : set[str]
+            kinds: set[str]
             kinds, mime, charset, _ = rere_obj.discern_content_type(rrexpr.sniff)
 
             censor = []
@@ -465,38 +572,77 @@ def linst_scrub() -> LinstAtom:
 
             if len(censor) > 0:
                 what = ", or ".join(censor)
-                return f"/* hoardy censored out {what} blob ({mime}) from here */\n" if scrub_opts.verbose else b""
+                return (
+                    f"/* hoardy censored out {what} blob ({mime}) from here */\n"
+                    if scrub_opts.verbose
+                    else b""
+                )
 
             if "html" in kinds:
-                return scrub_html(scrubbers, rrexpr.net_url, rrexpr.remap_url, rere_obj.headers, rere_obj.body, charset)
+                return scrub_html(
+                    scrubbers,
+                    rrexpr.net_url,
+                    rrexpr.remap_url,
+                    rere_obj.headers,
+                    rere_obj.body,
+                    charset,
+                )
             elif "css" in kinds:
-                return scrub_css(scrubbers, rrexpr.net_url, rrexpr.remap_url, rere_obj.headers, rere_obj.body, charset)
+                return scrub_css(
+                    scrubbers,
+                    rrexpr.net_url,
+                    rrexpr.remap_url,
+                    rere_obj.headers,
+                    rere_obj.body,
+                    charset,
+                )
             else:
                 # no scrubbing needed
                 return rere_obj.body
 
         return envfunc
+
     return [str, str], func
 
-def _scrub_to(x : str) -> str:
-    return "this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `%s`" % (x,)
+
+def _scrub_to(x: str) -> str:
+    return (
+        "this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `%s`"
+        % (x,)
+    )
+
+
 _in_out = "should be kept in or censored out"
 
 ReqresExpr_atoms = linst_atoms.copy()
-ReqresExpr_atoms.update({
-    "parse_path": ("parse a URL path component `str` into `path_parts` `list`",
-        linst_apply0(lambda v: parse_path(v))),
-    "unparse_path": ("encode `path_parts` `list` into a URL path component `str`",
-        linst_apply0(lambda v: unparse_path(v))),
-    "parse_query": ("parse a URL query component `str` into `query_parts` `list`",
-        linst_apply0(lambda v: parse_query(v))),
-    "unparse_query": ("encode `query_parts` `list` into a URL query component `str`",
-        linst_apply0(lambda v: unparse_query(v))),
-    "pp_to_path": ("encode `*path_parts` `list` into a POSIX path, quoting as little as needed",
-        linst_apply0(lambda v: pp_to_path(v))),
-    "qsl_to_path": ("encode `query_parts` `list` into a POSIX path, quoting as little as needed",
-        linst_apply0(lambda v: qsl_to_path(v))),
-    "scrub": (f"""scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on the `MIME` type of the value itself and the scrubbing options described below; this function takes two arguments:
+ReqresExpr_atoms.update(
+    {
+        "parse_path": (
+            "parse a URL path component `str` into `path_parts` `list`",
+            linst_apply0(lambda v: parse_path(v)),
+        ),
+        "unparse_path": (
+            "encode `path_parts` `list` into a URL path component `str`",
+            linst_apply0(lambda v: unparse_path(v)),
+        ),
+        "parse_query": (
+            "parse a URL query component `str` into `query_parts` `list`",
+            linst_apply0(lambda v: parse_query(v)),
+        ),
+        "unparse_query": (
+            "encode `query_parts` `list` into a URL query component `str`",
+            linst_apply0(lambda v: unparse_query(v)),
+        ),
+        "pp_to_path": (
+            "encode `*path_parts` `list` into a POSIX path, quoting as little as needed",
+            linst_apply0(lambda v: pp_to_path(v)),
+        ),
+        "qsl_to_path": (
+            "encode `query_parts` `list` into a POSIX path, quoting as little as needed",
+            linst_apply0(lambda v: qsl_to_path(v)),
+        ),
+        "scrub": (
+            f"""scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on the `MIME` type of the value itself and the scrubbing options described below; this function takes two arguments:
   - the first must be either of `request|response`, it controls which `HTTP` headers `scrub` should inspect to help it detect the `MIME` type;
   - the second is either `defaults` or ","-separated string of tokens which control the scrubbing behaviour:
     - `(+|-|*|/|&)jumps` controls how jump-links (`a href`, `area href`, and similar `HTML` tag attributes) should be remapped or censored out:
@@ -545,24 +691,29 @@ ReqresExpr_atoms.update({
     - `+unknown` which keeps data of unknown content `MIME` types as-is;
   - note however, that most `--remap-*` options set different defaults;
 """,
-        linst_scrub()),
-})
+            linst_scrub(),
+        ),
+    }
+)
 
 ReqresExpr_lookup = linst_custom_or_env(ReqresExpr_atoms)
 
-ReqresExpr_time_attrs = frozenset(["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"])
+ReqresExpr_time_attrs = frozenset(
+    ["time", "time_ms", "time_msq", "year", "month", "day", "hour", "minute", "second"]
+)
+
 
 @_dc.dataclass
 class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType]):
-    source : DeferredSourceType
+    source: DeferredSourceType
 
-    _reqres : Reqres | None
+    _reqres: Reqres | None
 
-    sniff : SniffContentType = _dc.field(default=SniffContentType.NONE)
-    remap_url : URLRemapperType | None = _dc.field(default = None)
+    sniff: SniffContentType = _dc.field(default=SniffContentType.NONE)
+    remap_url: URLRemapperType | None = _dc.field(default=None)
 
-    _original : _t.Any | None = _dc.field(default = None)
-    _approx_size : int = _dc.field(default = 0)
+    _original: _t.Any | None = _dc.field(default=None)
+    _approx_size: int = _dc.field(default=0)
 
     def __post_init__(self) -> None:
         LinstEvaluator.__init__(self, ReqresExpr_lookup)
@@ -572,10 +723,12 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
         mem.consumption -= self._approx_size
 
     def _resize(self) -> int:
-        self._approx_size = res = 128 + \
-            (self.source.approx_size() if self.source is not None else 0) + \
-            (self._reqres._resize() if self._reqres is not None else 0) + \
-            sum(map(lambda k: len(k) + 16, self.values.keys()))
+        self._approx_size = res = (
+            128
+            + (self.source.approx_size() if self.source is not None else 0)
+            + (self._reqres._resize() if self._reqres is not None else 0)
+            + sum(map(lambda k: len(k) + 16, self.values.keys()))
+        )
         return res
 
     def approx_size(self) -> int:
@@ -598,7 +751,7 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
         mem.consumption -= self._approx_size - self._resize()
         return reqres
 
-    def unload(self, completely : bool = True) -> None:
+    def unload(self, completely: bool = True) -> None:
         if isinstance(self.source, FileSource):
             # this `reqres` is cheap to re-load
             self._reqres = None
@@ -612,17 +765,17 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
     def get_fileobj(self) -> _io.BufferedReader:
         return BytesIOReader(wrr_dumps(self.reqres))
 
-    def same_as(self, other : DeferredSource) -> bool:
+    def same_as(self, other: DeferredSource) -> bool:
         if isinstance(other, ReqresExpr):
             return self.source.same_as(other.source)
         return self.source.same_as(other)
 
-    def replaces(self, other : DeferredSource) -> bool:
+    def replaces(self, other: DeferredSource) -> bool:
         if isinstance(other, ReqresExpr):
             return self.source.replaces(other.source)
         return self.source.replaces(other)
 
-    def _fill_time(self, prefix : str, ts : TimeStamp) -> None:
+    def _fill_time(self, prefix: str, ts: TimeStamp) -> None:
         dt = _time.gmtime(int(ts))
         self.values[prefix + "year"] = dt.tm_year
         self.values[prefix + "month"] = dt.tm_mon
@@ -631,7 +784,7 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
         self.values[prefix + "minute"] = dt.tm_min
         self.values[prefix + "second"] = dt.tm_sec
 
-    def get_attr(self, name : str) -> _t.Any:
+    def get_attr(self, name: str) -> _t.Any:
         if name == "fs_path":
             if isinstance(self.source, FileSource):
                 return self.source.path
@@ -643,17 +796,14 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
             self.values[name] = reqres.request.method
         elif name == "raw_url" or name == "request.url":
             self.values[name] = reqres.request.url.raw_url
-        elif (name.startswith("q") and \
-              name[1:] in ReqresExpr_time_attrs):
+        elif name.startswith("q") and name[1:] in ReqresExpr_time_attrs:
             qtime = reqres.request.started_at
             qtime_ms = int(qtime * 1000)
             self.values["qtime"] = qtime
             self.values["qtime_ms"] = qtime_ms
             self.values["qtime_msq"] = qtime_ms % 1000
             self._fill_time("q", qtime)
-        elif (name.startswith("s") and \
-              name[1:] in ReqresExpr_time_attrs) or \
-              name == "status":
+        elif (name.startswith("s") and name[1:] in ReqresExpr_time_attrs) or name == "status":
             if reqres.request.complete:
                 status = "C"
             else:
@@ -674,8 +824,7 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
             self.values["stime_ms"] = stime_ms
             self.values["stime_msq"] = stime_ms % 1000
             self._fill_time("s", stime)
-        elif (name.startswith("f") and \
-              name[1:] in ReqresExpr_time_attrs):
+        elif name.startswith("f") and name[1:] in ReqresExpr_time_attrs:
             ftime = reqres.finished_at
             ftime_ms = int(ftime * 1000)
             self.values["ftime"] = ftime
@@ -683,13 +832,13 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
             self.values["ftime_msq"] = ftime_ms % 1000
             self._fill_time("f", ftime)
         elif name == "request_mime":
-            _, cmime, _, _= reqres.request.discern_content_type(self.sniff)
+            _, cmime, _, _ = reqres.request.discern_content_type(self.sniff)
             self.values[name] = cmime
         elif name == "response_mime":
             if reqres.response is None:
                 cmime = None
             else:
-                _, cmime, _, _= reqres.response.discern_content_type(self.sniff)
+                _, cmime, _, _ = reqres.response.discern_content_type(self.sniff)
             self.values[name] = cmime
         elif name == "filepath_parts" or name == "filepath_ext":
             if reqres.response is not None:
@@ -720,16 +869,25 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
         except KeyError:
             assert False
 
-def rrexpr_wrr_load(fobj : _io.BufferedReader, source : DeferredSourceType) -> ReqresExpr[DeferredSourceType]:
+
+def rrexpr_wrr_load(
+    fobj: _io.BufferedReader, source: DeferredSourceType
+) -> ReqresExpr[DeferredSourceType]:
     return ReqresExpr(source, wrr_load(fobj))
 
-def rrexprs_wrr_bundle_load(fobj : _io.BufferedReader, source : DeferredSourceType) -> _t.Iterator[ReqresExpr[StreamElementSource[DeferredSourceType]]]:
+
+def rrexprs_wrr_bundle_load(
+    fobj: _io.BufferedReader, source: DeferredSourceType
+) -> _t.Iterator[ReqresExpr[StreamElementSource[DeferredSourceType]]]:
     n = 0
     for reqres in wrr_bundle_load(fobj):
         yield ReqresExpr(StreamElementSource(source, n), reqres)
         n += 1
 
-def rrexprs_wrr_some_load(fobj : _io.BufferedReader, source : DeferredSourceType) -> _t.Iterator[ReqresExpr[DeferredSourceType | StreamElementSource[DeferredSourceType]]]:
+
+def rrexprs_wrr_some_load(
+    fobj: _io.BufferedReader, source: DeferredSourceType
+) -> _t.Iterator[ReqresExpr[DeferredSourceType | StreamElementSource[DeferredSourceType]]]:
     fobj = ungzip_fileobj_maybe(fobj)
     if fobj.peek(1) == b"":
         raise WRRParsingError(gettext("expected CBOR data, got EOF"))
@@ -746,45 +904,73 @@ def rrexprs_wrr_some_load(fobj : _io.BufferedReader, source : DeferredSourceType
         reqres = wrr_load_cbor_fileobj(fobj)
         yield ReqresExpr(StreamElementSource(source, n), reqres)
         n += 1
-        if fobj.peek(1) == b"": break
+        if fobj.peek(1) == b"":
+            break
 
-def rrexpr_wrr_loadf(path : str | bytes, in_stat : _os.stat_result | None = None) -> ReqresExpr[FileSource]:
+
+def rrexpr_wrr_loadf(
+    path: str | bytes, in_stat: _os.stat_result | None = None
+) -> ReqresExpr[FileSource]:
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
         return rrexpr_wrr_load(f, make_FileSource(path, in_stat))
 
-def rrexprs_wrr_bundle_loadf(path : str | bytes, in_stat : _os.stat_result | None = None) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
+
+def rrexprs_wrr_bundle_loadf(
+    path: str | bytes, in_stat: _os.stat_result | None = None
+) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
         yield from rrexprs_wrr_bundle_load(f, make_FileSource(path, in_stat))
 
-def rrexprs_wrr_some_loadf(path : str | bytes, in_stat : _os.stat_result | None = None) -> _t.Iterator[ReqresExpr[FileSource | StreamElementSource[FileSource]]]:
+
+def rrexprs_wrr_some_loadf(
+    path: str | bytes, in_stat: _os.stat_result | None = None
+) -> _t.Iterator[ReqresExpr[FileSource | StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
         yield from rrexprs_wrr_some_load(f, make_FileSource(path, in_stat))
 
-def trivial_Reqres(url : ParsedURL,
-                   content_type : str = "text/html",
-                   qtime : TimeStamp = TimeStamp(0),
-                   stime : TimeStamp = TimeStamp(1000),
-                   ftime : TimeStamp = TimeStamp(2000),
-                   sniff : bool = False,
-                   headers : Headers = [],
-                   data : bytes = b"") -> Reqres:
-    nsh = [] if sniff else [("X-Content-Type-Options", b"nosniff")]
-    return Reqres(1, "hoardy-test/1", "HTTP/1.1",
-                  Request(qtime, "GET", url, [], True, b""),
-                  Response(stime, 200, "OK", [("Content-Type", content_type.encode("ascii"))] + nsh + headers, True, data),
-                  ftime,
-                  {}, None)
 
-def fallback_Reqres(url : ParsedURL,
-                    expected_mime : list[str],
-                    qtime : TimeStamp = TimeStamp(0),
-                    stime : TimeStamp = TimeStamp(1000),
-                    ftime : TimeStamp = TimeStamp(2000),
-                    headers : Headers = [],
-                    data : bytes = b"") -> Reqres:
+def trivial_Reqres(
+    url: ParsedURL,
+    content_type: str = "text/html",
+    qtime: TimeStamp = TimeStamp(0),
+    stime: TimeStamp = TimeStamp(1000),
+    ftime: TimeStamp = TimeStamp(2000),
+    sniff: bool = False,
+    headers: Headers = [],
+    data: bytes = b"",
+) -> Reqres:
+    nsh = [] if sniff else [("X-Content-Type-Options", b"nosniff")]
+    return Reqres(
+        1,
+        "hoardy-test/1",
+        "HTTP/1.1",
+        Request(qtime, "GET", url, [], True, b""),
+        Response(
+            stime,
+            200,
+            "OK",
+            [("Content-Type", content_type.encode("ascii"))] + nsh + headers,
+            True,
+            data,
+        ),
+        ftime,
+        {},
+        None,
+    )
+
+
+def fallback_Reqres(
+    url: ParsedURL,
+    expected_mime: list[str],
+    qtime: TimeStamp = TimeStamp(0),
+    stime: TimeStamp = TimeStamp(1000),
+    ftime: TimeStamp = TimeStamp(2000),
+    headers: Headers = [],
+    data: bytes = b"",
+) -> Reqres:
     """Similar to `trivial_Reqres`, but trying to guess the `Content-Type` from the given `expected_content_types` and the extension."""
 
     npath_parts = url.npath_parts
@@ -805,32 +991,47 @@ def fallback_Reqres(url : ParsedURL,
         return trivial_Reqres(url, cts[0], stime, stime, stime, headers=headers, data=data)
 
     # fallback this otherwise
-    return trivial_Reqres(url, "application/octet-stream", stime, stime, stime, headers=headers, data=data)
+    return trivial_Reqres(
+        url, "application/octet-stream", stime, stime, stime, headers=headers, data=data
+    )
 
-def mk_trivial_ReqresExpr(url : str, ct : str = "text/html", sniff : bool = False, headers : Headers = [], data : bytes = b"") -> ReqresExpr[UnknownSource]:
+
+def mk_trivial_ReqresExpr(
+    url: str, ct: str = "text/html", sniff: bool = False, headers: Headers = [], data: bytes = b""
+) -> ReqresExpr[UnknownSource]:
     x = trivial_Reqres(parse_url(url), ct, sniff=sniff, headers=headers, data=data)
     return ReqresExpr(UnknownSource(), x)
 
-def mk_fallback_ReqresExpr(url : str, cts : list[str] = ["text/html"], headers : Headers = [], data : bytes = b"") -> ReqresExpr[UnknownSource]:
+
+def mk_fallback_ReqresExpr(
+    url: str, cts: list[str] = ["text/html"], headers: Headers = [], data: bytes = b""
+) -> ReqresExpr[UnknownSource]:
     x = fallback_Reqres(parse_url(url), cts, headers=headers, data=data)
     return ReqresExpr(UnknownSource(), x)
 
-def test_ReqresExpr_url_parts() -> None:
-    def check(x : ReqresExpr[_t.Any], name : str, value : _t.Any) -> None:
-        if x[name] != value:
-            raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", name, x.reqres.request.url, value, x[name])
 
-    def check_fp(url : str, ext : str, *parts : str) -> None:
+def test_ReqresExpr_url_parts() -> None:
+    def check(x: ReqresExpr[_t.Any], name: str, value: _t.Any) -> None:
+        if x[name] != value:
+            raise CatastrophicFailure(
+                "while evaluating %s of %s, expected %s, got %s",
+                name,
+                x.reqres.request.url,
+                value,
+                x[name],
+            )
+
+    def check_fp(url: str, ext: str, *parts: str) -> None:
         x = mk_trivial_ReqresExpr(url)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
-    def check_fx(url : str, ct : str, sniff : bool, data : bytes, ext : str, *parts : str) -> None:
+    def check_fx(url: str, ct: str, sniff: bool, data: bytes, ext: str, *parts: str) -> None:
         x = mk_trivial_ReqresExpr(url, ct, sniff, [], data)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
 
-    def check_ff(url : str, cts : list[str], data : bytes, ext : str, *parts : str) -> None:
+    def check_ff(url: str, cts: list[str], data: bytes, ext: str, *parts: str) -> None:
         x = mk_fallback_ReqresExpr(url, cts, [], data)
         check(x, "filepath_ext", ext)
         check(x, "filepath_parts", list(parts))
@@ -842,11 +1043,19 @@ def test_ReqresExpr_url_parts() -> None:
     check_fp("https://example.org/test/index.html", ".html", "test", "index")
     check_fp("https://example.org/test.data", ".htm", "test.data")
 
-    check_fx("https://example.org/test.data", "application/octet-stream", False, b"", ".data", "test")
-    check_fx("https://example.org/test", "application/octet-stream", False, b"", ".data", "test", "index")
+    check_fx(
+        "https://example.org/test.data", "application/octet-stream", False, b"", ".data", "test"
+    )
+    check_fx(
+        "https://example.org/test", "application/octet-stream", False, b"", ".data", "test", "index"
+    )
 
-    check_fx("https://example.org/test.data", "application/octet-stream", True, b"", ".txt", "test.data")
-    check_fx("https://example.org/test", "application/octet-stream", True, b"", ".txt", "test", "index")
+    check_fx(
+        "https://example.org/test.data", "application/octet-stream", True, b"", ".txt", "test.data"
+    )
+    check_fx(
+        "https://example.org/test", "application/octet-stream", True, b"", ".txt", "test", "index"
+    )
 
     check_fx("https://example.org/test.data", "text/plain", True, b"\x00", ".data", "test")
     check_fx("https://example.org/test", "text/plain", True, b"\x00", ".data", "test", "index")
@@ -866,11 +1075,15 @@ def test_ReqresExpr_url_parts() -> None:
 
     x = mk_trivial_ReqresExpr("https://Königsgäßchen.example.org/испытание/../")
     check(x, "hostname", "königsgäßchen.example.org")
-    check(x, "net_url", "https://xn--knigsgchen-b4a3dun.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/../")
+    check(
+        x,
+        "net_url",
+        "https://xn--knigsgchen-b4a3dun.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/../",
+    )
 
     hostname = "ジャジェメント.ですの.example.org"
     ehostname = "xn--hck7aa9d8fj9i.xn--88j1aw.example.org"
-    path_query="/how%2Fdo%3Fyou%26like/these/components%E3%81%A7%E3%81%99%E3%81%8B%3F?empty&not=abit%3D%2F%3F%26weird"
+    path_query = "/how%2Fdo%3Fyou%26like/these/components%E3%81%A7%E3%81%99%E3%81%8B%3F?empty&not=abit%3D%2F%3F%26weird"
     path_components = ["how/do?you&like", "these", "componentsですか?"]
     query_components = [("empty", None), ("not", "abit=/?&weird")]
     x = mk_trivial_ReqresExpr(f"https://{hostname}{path_query}#hash")
@@ -883,20 +1096,31 @@ def test_ReqresExpr_url_parts() -> None:
     check(x, "fragment", "hash")
     check(x, "net_url", f"https://{ehostname}{path_query}")
 
-def check_request_response(cmd : str, part : str) -> bool:
+
+def check_request_response(cmd: str, part: str) -> bool:
     if part not in ["request", "response"]:
-        raise CatastrophicFailure("`%s`: unexpected argument, expected `request` or `response`, got `%s`", cmd, part)
+        raise CatastrophicFailure(
+            "`%s`: unexpected argument, expected `request` or `response`, got `%s`", cmd, part
+        )
     return part == "request"
 
-def check_rrexpr(cmd : str, rrexpr : _t.Any) -> ReqresExpr[_t.Any]:
+
+def check_rrexpr(cmd: str, rrexpr: _t.Any) -> ReqresExpr[_t.Any]:
     if not isinstance(rrexpr, ReqresExpr):
         typ = type(rrexpr)
-        raise CatastrophicFailure("`%s`: expecting `ReqresExpr` value as the command environment, got `%s`", cmd, typ.__name__)
+        raise CatastrophicFailure(
+            "`%s`: expecting `ReqresExpr` value as the command environment, got `%s`",
+            cmd,
+            typ.__name__,
+        )
     return rrexpr
 
-def check_scrub(opts : str, url : str, ct : str, headers : Headers, data : str, eres : str) -> None:
-    def sc(sniff : bool) -> None:
-        t = trivial_Reqres(parse_url(url), ct, sniff=sniff, headers=headers, data=data.encode("utf-8"))
+
+def check_scrub(opts: str, url: str, ct: str, headers: Headers, data: str, eres: str) -> None:
+    def sc(sniff: bool) -> None:
+        t = trivial_Reqres(
+            parse_url(url), ct, sniff=sniff, headers=headers, data=data.encode("utf-8")
+        )
         x = ReqresExpr(UnknownSource(), t)
 
         res = x[f"response.body|eb|scrub response {opts}"].decode("utf-8")
@@ -914,9 +1138,13 @@ def check_scrub(opts : str, url : str, ct : str, headers : Headers, data : str, 
             stdout.write_ln(res)
             stdout.write_ln("===== END =====")
             stdout.flush()
-            raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", opts, x, repr(eres), repr(res))
+            raise CatastrophicFailure(
+                "while evaluating %s of %s, expected %s, got %s", opts, x, repr(eres), repr(res)
+            )
+
     sc(False)
     sc(True)
+
 
 test_css_in1 = """
 body {
@@ -954,9 +1182,25 @@ test_css_out2 = """
 @import url(data:text/plain,%20) layer(default) supports(display: grid) screen;
 """
 
+
 def test_ReqresExpr_scrub_css() -> None:
-    check_scrub("+verbose,+whitespace", "https://example.com/test.css", "text/css", [], test_css_in1, test_css_out1)
-    check_scrub("+verbose,+whitespace", "https://example.com/test.css", "text/css", [], test_css_in2, test_css_out2)
+    check_scrub(
+        "+verbose,+whitespace",
+        "https://example.com/test.css",
+        "text/css",
+        [],
+        test_css_in1,
+        test_css_out1,
+    )
+    check_scrub(
+        "+verbose,+whitespace",
+        "https://example.com/test.css",
+        "text/css",
+        [],
+        test_css_in2,
+        test_css_out2,
+    )
+
 
 test_html_in1 = f"""<!DOCTYPE html>
 <html>
@@ -989,8 +1233,15 @@ test_html_in1 = f"""<!DOCTYPE html>
 </html>
 """
 
+
 def test_ReqresExpr_scrub_html() -> None:
-    check_scrub("-all_dyns,-verbose,-whitespace,+indent", "https://example.com/", "text/html", [], test_html_in1, f"""<!DOCTYPE html>
+    check_scrub(
+        "-all_dyns,-verbose,-whitespace,+indent",
+        "https://example.com/",
+        "text/html",
+        [],
+        test_html_in1,
+        f"""<!DOCTYPE html>
 <html>
   <head>
     <meta charset=utf-8>
@@ -1001,9 +1252,16 @@ def test_ReqresExpr_scrub_html() -> None:
     <h1>Test page</h1>
     <p>Test para.</p>
   </body>
-</html>""")
+</html>""",
+    )
 
-    check_scrub("+verbose,+whitespace", "https://example.com/", "text/html", [], test_html_in1, """<!DOCTYPE html><html><head>
+    check_scrub(
+        "+verbose,+whitespace",
+        "https://example.com/",
+        "text/html",
+        [],
+        test_html_in1,
+        """<!DOCTYPE html><html><head>
     <meta charset=utf-8>
     <!-- hoardy-web censored out EmptyTag base from here -->
     <base target=_blank>
@@ -1035,23 +1293,33 @@ body {
     <!-- hoardy-web censored out AssembledTag script from here -->
   
 
-</body></html>""")
+</body></html>""",
+    )
 
-    check_scrub("+all_refs,+scripts,+prefetches,+navigations,+verbose,-whitespace,+indent", "https://example.com/", "text/html", [
-        ("Link", b"</first.js>; as=script; rel=preload"),
-        ("Link", b"<https://example.com/second.js>; as=script; rel=preload"),
-        ("Link", b"<https://example.org/third.js>; as=script; rel=preload"),
-        ("Link", b"</first.css>; rel=stylesheet"),
-        # because browsers frequently squish headers together
-        ("Link", b"""<https://example.com/second.css>; rel=stylesheet
-<https://example.org/third.css>; rel=stylesheet"""),
-        ("Content-Security-Policy", b"default-src 'self' https://example.com"),
-        ("Content-Security-Policy", b"script-src https://example.com/"),
-        ("X-UA-Compatible", b"IE=edge"),
-        ("Refresh", b"10;url=/one.html"),
-        ("Refresh", b"100;url=/two.html"),
-        ("Refresh", b"200;url=https://example.org/three.html"),
-    ], test_html_in1, """<!DOCTYPE html>
+    check_scrub(
+        "+all_refs,+scripts,+prefetches,+navigations,+verbose,-whitespace,+indent",
+        "https://example.com/",
+        "text/html",
+        [
+            ("Link", b"</first.js>; as=script; rel=preload"),
+            ("Link", b"<https://example.com/second.js>; as=script; rel=preload"),
+            ("Link", b"<https://example.org/third.js>; as=script; rel=preload"),
+            ("Link", b"</first.css>; rel=stylesheet"),
+            # because browsers frequently squish headers together
+            (
+                "Link",
+                b"""<https://example.com/second.css>; rel=stylesheet
+<https://example.org/third.css>; rel=stylesheet""",
+            ),
+            ("Content-Security-Policy", b"default-src 'self' https://example.com"),
+            ("Content-Security-Policy", b"script-src https://example.com/"),
+            ("X-UA-Compatible", b"IE=edge"),
+            ("Refresh", b"10;url=/one.html"),
+            ("Refresh", b"100;url=/two.html"),
+            ("Refresh", b"200;url=https://example.org/three.html"),
+        ],
+        test_html_in1,
+        """<!DOCTYPE html>
 <html>
   <head>
     <meta charset=utf-8>
@@ -1097,10 +1365,17 @@ body {
     <script src="https://asset.example.com/inc2-asset.js"></script>
     <script src="https://base.example.com/inc2-base.js"></script>
   </body>
-</html>""")
+</html>""",
+    )
+
 
 def test_ReqresExpr_scrub_html_data_url_css() -> None:
-    check_scrub("+verbose,+whitespace", "https://example.com/", "text/html", [], f"""<!DOCTYPE html>
+    check_scrub(
+        "+verbose,+whitespace",
+        "https://example.com/",
+        "text/html",
+        [],
+        f"""<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -1112,7 +1387,8 @@ def test_ReqresExpr_scrub_html_data_url_css() -> None:
     <p>Test para.</p>
   </body>
 </html>
-""", f"""<!DOCTYPE html><html><head>
+""",
+        f"""<!DOCTYPE html><html><head>
     <meta charset=utf-8>
     <title>Test page</title>
     <link rel=stylesheet href='{unparse_data_url("text/css", [("charset", "utf-8")], test_css_out1.encode("ascii"))}'>
@@ -1122,4 +1398,5 @@ def test_ReqresExpr_scrub_html_data_url_css() -> None:
     <p>Test para.</p>
   
 
-</body></html>""")
+</body></html>""",
+    )

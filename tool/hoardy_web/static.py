@@ -64,4 +64,6 @@ locate_page_stpl = """<!DOCTYPE html>
     %end
   </body>
 </html>
-""".replace("@STYLE@", style)
+""".replace(
+    "@STYLE@", style
+)

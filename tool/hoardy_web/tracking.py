@@ -19,20 +19,23 @@ import collections as _c
 import dataclasses as _dc
 import typing as _t
 
+
 @_dc.dataclass
 class Memory:
-    consumption : int = 0
+    consumption: int = 0
+
 
 mem = Memory()
 
+
 @_dc.dataclass
 class SeenCounter(_t.Generic[_t.AnyStr]):
-    _state : _c.OrderedDict[_t.AnyStr, int] = _dc.field(default_factory=_c.OrderedDict)
+    _state: _c.OrderedDict[_t.AnyStr, int] = _dc.field(default_factory=_c.OrderedDict)
 
     def __len__(self) -> int:
         return len(self._state)
 
-    def count(self, value : _t.AnyStr) -> int:
+    def count(self, value: _t.AnyStr) -> int:
         try:
             count = self._state[value]
         except KeyError:

@@ -30,17 +30,26 @@ from kisstdlib.exceptions import *
 
 from .parser import *
 
-def scheck(v : _t.Any, what : str, value : _t.Any, expected : _t.Any) -> None:
+
+def scheck(v: _t.Any, what: str, value: _t.Any, expected: _t.Any) -> None:
     if value != expected:
-        raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", what, repr(v), repr(expected), repr(value))
+        raise CatastrophicFailure(
+            "while evaluating %s of %s, expected %s, got %s",
+            what,
+            repr(v),
+            repr(expected),
+            repr(value),
+        )
+
 
 ### Escaping stuff
 
-_miniquoters : dict[str, dict[str, str]] = {}
+_miniquoters: dict[str, dict[str, str]] = {}
 
-def miniquote(x : str, blacklist : str) -> str:
+
+def miniquote(x: str, blacklist: str) -> str:
     """Like `urllib.parse.quote`, with a blacklist instead of whitelist."""
-    miniquoter : dict[str, str]
+    miniquoter: dict[str, str]
     try:
         miniquoter = _miniquoters[blacklist]
     except KeyError:
@@ -54,7 +63,8 @@ def miniquote(x : str, blacklist : str) -> str:
 
     return "".join([miniquoter.get(c, c) for c in x])
 
-def miniescape(x : str, blacklist : str) -> str:
+
+def miniescape(x: str, blacklist: str) -> str:
     res = []
     for c in x:
         if c in blacklist:
@@ -63,35 +73,49 @@ def miniescape(x : str, blacklist : str) -> str:
             res.append(c)
     return "".join(res)
 
+
 ### URL parsing
 
 # URL double-slash scheme
-uds_str       = r"http|https|ftp|ftps"
+uds_str = r"http|https|ftp|ftps"
 # URL auth
-uauth_str     = r"\S+(?::\S*)?"
+uauth_str = r"\S+(?::\S*)?"
+
+
 # URL hostname
-def uhostname_str(d : str) -> str:
+def uhostname_str(d: str) -> str:
     return rf"[^:/?#\s{d}]+"
+
+
 # URL port
-uport_str     = r":\d+"
+uport_str = r":\d+"
+
+
 # URL path
-def upath_str(d : str) -> str:
+def upath_str(d: str) -> str:
     return rf"/[^?#\s{d}]*"
+
+
 # URL relative path
-def urel_str(d : str) -> str:
+def urel_str(d: str) -> str:
     return rf"[^?#\s{d}]+"
+
+
 # URL query
-def uquery_str(d : str) -> str:
+def uquery_str(d: str) -> str:
     return rf"[^#\s{d}]*"
+
+
 # URL fragment/hash
-def ufragment_str(d : str) -> str:
+def ufragment_str(d: str) -> str:
     return rf"[^\s{d}]*"
+
 
 # Regexp describing a URL, the second case is for common malformed path-less
 # URLs like "https://example.com" (which should actually be given as
 # "https://example.com/", but this is almost a universal mistake). The order
 # of cases matters, since `_re.match` and co are greedy.
-def url_re_str(d : str) -> str:
+def url_re_str(d: str) -> str:
     return rf"""(
 (
 (?:(?:{uds_str}):)?
@@ -113,40 +137,53 @@ def url_re_str(d : str) -> str:
 )
 (\?{uquery_str(d)})?
 (#{ufragment_str(d)})?
-)""".replace("\n", "")
+)""".replace(
+        "\n", ""
+    )
 
-#print(url_re_str(""))
+
+# print(url_re_str(""))
 
 url_re = _re.compile(url_re_str(""))
 
-def parse_path(path : str, encoding : str = "utf-8", errors : str = "replace") -> list[str]:
+
+def parse_path(path: str, encoding: str = "utf-8", errors: str = "replace") -> list[str]:
     return [_up.unquote(e, encoding=encoding, errors=errors) for e in path.split("/")]
 
-def unparse_path(path_parts : _t.Sequence[str], encoding : str = "utf-8", errors : str = "strict") -> str:
+
+def unparse_path(
+    path_parts: _t.Sequence[str], encoding: str = "utf-8", errors: str = "strict"
+) -> str:
     return "/".join(map(lambda p: _up.quote(p, ":", encoding=encoding, errors=errors), path_parts))
 
-def parse_query(query : str, encoding : str = "utf-8", errors : str = "replace") -> list[tuple[str, str | None]]:
+
+def parse_query(
+    query: str, encoding: str = "utf-8", errors: str = "replace"
+) -> list[tuple[str, str | None]]:
     """Like `urllib.parse.parse_qsl`, but "a=" still parses into ("a", "") while
-       just "a" parses into ("a", None). I.e. this keeps information about
-       whether "=" was present.
+    just "a" parses into ("a", None). I.e. this keeps information about
+    whether "=" was present.
     """
-    parts = [s2 for s1 in query.split('&') for s2 in s1.split(';')]
-    res : list[tuple[str, str | None]] = []
+    parts = [s2 for s1 in query.split("&") for s2 in s1.split(";")]
+    res: list[tuple[str, str | None]] = []
     for e in parts:
         eqp = e.find("=")
         if eqp == -1:
             name = _up.unquote_plus(e, encoding=encoding, errors=errors)
             res.append((name, None))
             continue
-        n, v = e[:eqp], e[eqp+1:]
+        n, v = e[:eqp], e[eqp + 1 :]
         name = _up.unquote_plus(n, encoding=encoding, errors=errors)
         value = _up.unquote_plus(v, encoding=encoding, errors=errors)
         res.append((name, value))
     return res
 
-def unparse_query(qsl : _t.Sequence[tuple[str, str | None]], encoding : str = "utf-8", errors : str = "strict") -> str:
+
+def unparse_query(
+    qsl: _t.Sequence[tuple[str, str | None]], encoding: str = "utf-8", errors: str = "strict"
+) -> str:
     """Like `urllib.parse.urlencode`, turns URL query components list back into a
-       query, except works with our `parse_query`.
+    query, except works with our `parse_query`.
     """
     l = []
     for k, v in qsl:
@@ -158,11 +195,13 @@ def unparse_query(qsl : _t.Sequence[tuple[str, str | None]], encoding : str = "u
             l.append(k + "=" + v)
     return "&".join(l)
 
-def pp_to_path(parts : list[str]) -> str:
+
+def pp_to_path(parts: list[str]) -> str:
     """Turn URL path components list into a minimally-quoted path."""
     return "/".join([miniquote(e, "/?") for e in parts])
 
-def qsl_to_path(qsl : _t.Sequence[tuple[str, str | None]]) -> str:
+
+def qsl_to_path(qsl: _t.Sequence[tuple[str, str | None]]) -> str:
     """Turn URL query components list into a minimally-quoted path."""
     l = []
     for k, v in qsl:
@@ -174,23 +213,24 @@ def qsl_to_path(qsl : _t.Sequence[tuple[str, str | None]]) -> str:
             l.append(k + "=" + v)
     return "&".join(l)
 
+
 @_dc.dataclass
 class ParsedURL:
-    raw_url : str
-    scheme : str
-    user : str
-    password : str
-    brackets : bool
-    raw_hostname : str
-    net_hostname : str
-    hostname : str
-    opm : str
-    port : str
-    raw_path : str
-    oqm : str
-    raw_query : str
-    ofm : str
-    fragment : str
+    raw_url: str
+    scheme: str
+    user: str
+    password: str
+    brackets: bool
+    raw_hostname: str
+    net_hostname: str
+    hostname: str
+    opm: str
+    port: str
+    raw_path: str
+    oqm: str
+    raw_query: str
+    ofm: str
+    fragment: str
 
     @property
     def net_auth(self) -> str:
@@ -211,13 +251,15 @@ class ParsedURL:
     @property
     def netloc(self) -> str:
         hn = self.hostname
-        if self.brackets: hn = "[" + hn + "]"
+        if self.brackets:
+            hn = "[" + hn + "]"
         return "".join([self.net_auth, hn, self.opm, self.port])
 
     @property
     def net_netloc(self) -> str:
         hn = self.net_hostname
-        if self.brackets: hn = "[" + hn + "]"
+        if self.brackets:
+            hn = "[" + hn + "]"
         return "".join([self.net_auth, hn, self.opm, self.port])
 
     @property
@@ -241,11 +283,17 @@ class ParsedURL:
         path = self.path
         if self.raw_hostname:
             nl = self.net_netloc
-            if nl != "": nl = "//" + nl
+            if nl != "":
+                nl = "//" + nl
             slash = "/" if path == "" else ""
-            return _up.quote(f"{self.scheme}:{nl}{path}{slash}{self.oqm}{self.query}", safe="%/:=&?~#+!$,;'@()*[]|")
+            return _up.quote(
+                f"{self.scheme}:{nl}{path}{slash}{self.oqm}{self.query}",
+                safe="%/:=&?~#+!$,;'@()*[]|",
+            )
         else:
-            return _up.quote(f"{self.scheme}:{path}{self.oqm}{self.query}", safe="%/:=&?~#+!$,;'@()*[]|")
+            return _up.quote(
+                f"{self.scheme}:{path}{self.oqm}{self.query}", safe="%/:=&?~#+!$,;'@()*[]|"
+            )
 
     @property
     def url(self) -> str:
@@ -256,7 +304,7 @@ class ParsedURL:
         parts_insecure = [e for e in self.path_parts if e != ""]
 
         # remove dots and securely interpret double dots
-        parts : list[str] = []
+        parts: list[str] = []
         for e in parts_insecure:
             if e == ".":
                 continue
@@ -267,7 +315,7 @@ class ParsedURL:
             parts.append(e)
         return parts
 
-    def filepath_parts_ext(self, default : str, extensions : list[str]) -> tuple[list[str], str]:
+    def filepath_parts_ext(self, default: str, extensions: list[str]) -> tuple[list[str], str]:
         parts = self.npath_parts
         if len(parts) == 0 or self.raw_path.endswith("/"):
             return parts + [default], extensions[0] if len(extensions) > 0 else ".data"
@@ -287,11 +335,11 @@ class ParsedURL:
 
     @property
     def query_nparts(self) -> list[tuple[str, str]]:
-        res : list[tuple[str, str]] = []
+        res: list[tuple[str, str]] = []
         for e in self.query_parts:
             x = e[1]
             if x is not None and x != "":
-                res.append(e) # type: ignore
+                res.append(e)  # type: ignore
         return res
 
     @property
@@ -314,7 +362,8 @@ class ParsedURL:
     def pretty_net_url(self) -> str:
         if self.raw_hostname:
             nl = self.netloc
-            if nl != "": nl = "//" + nl
+            if nl != "":
+                nl = "//" + nl
             slash = "/" if self.raw_path == "" else ""
             return f"{self.scheme}:{nl}{self.mq_path}{slash}{self.oqm}{self.mq_query}"
         else:
@@ -329,7 +378,8 @@ class ParsedURL:
         mq_npath = self.mq_npath
         if self.raw_hostname:
             nl = self.netloc
-            if nl != "": nl = "//" + nl
+            if nl != "":
+                nl = "//" + nl
             slash = "/" if self.raw_path.endswith("/") and len(mq_npath) > 0 else ""
             return f"{self.scheme}:{nl}/{mq_npath}{slash}{self.oqm}{self.mq_nquery}"
         else:
@@ -340,9 +390,12 @@ class ParsedURL:
     def pretty_nurl(self) -> str:
         return f"{self.pretty_net_nurl}{self.ofm}{self.fragment}"
 
-class URLParsingError(ValueError): pass
 
-def parse_url(url : str) -> ParsedURL:
+class URLParsingError(ValueError):
+    pass
+
+
+def parse_url(url: str) -> ParsedURL:
     try:
         scheme, netloc, path, query, fragment = _up.urlsplit(url)
     except Exception:
@@ -350,7 +403,7 @@ def parse_url(url : str) -> ParsedURL:
 
     userinfo, has_user, hostinfo = netloc.rpartition("@")
     if has_user:
-        user , _, password = userinfo.partition(":")
+        user, _, password = userinfo.partition(":")
         user = _up.quote(_up.unquote(user), safe="")
         password = _up.quote(_up.unquote(password), safe="")
     else:
@@ -379,7 +432,12 @@ def parse_url(url : str) -> ParsedURL:
             dehostname = _idna.decode(ehostname, uts46=True)
         except _idna.IDNAError as err:
             if ehostname[2:4] == "--":
-                _logging.warning("`parse_url` left `net_hostname` and related attrs of `%s` undecoded because `idna` module failed to decode `%s`: %s", url, ehostname, repr(err))
+                _logging.warning(
+                    "`parse_url` left `net_hostname` and related attrs of `%s` undecoded because `idna` module failed to decode `%s`: %s",
+                    url,
+                    ehostname,
+                    repr(err),
+                )
                 net_hostname = hostname = ehostname
             else:
                 raise URLParsingError(url)
@@ -395,15 +453,35 @@ def parse_url(url : str) -> ParsedURL:
 
     oqm = "?" if query != "" or (query == "" and url.endswith("?")) else ""
     ofm = "#" if fragment != "" or (fragment == "" and url.endswith("#")) else ""
-    return ParsedURL(url, scheme, user, password,
-                     brackets, raw_hostname, net_hostname, hostname,
-                     opm, port,
-                     path, oqm, query, ofm, fragment)
+    return ParsedURL(
+        url,
+        scheme,
+        user,
+        password,
+        brackets,
+        raw_hostname,
+        net_hostname,
+        hostname,
+        opm,
+        port,
+        path,
+        oqm,
+        query,
+        ofm,
+        fragment,
+    )
+
 
 def test_parse_url() -> None:
-    def check(x : ParsedURL, name : str, value : _t.Any) -> None:
+    def check(x: ParsedURL, name: str, value: _t.Any) -> None:
         if getattr(x, name) != value:
-            raise CatastrophicFailure("while evaluating %s of %s, expected %s, got %s", name, x.raw_url, value, getattr(x, name))
+            raise CatastrophicFailure(
+                "while evaluating %s of %s, expected %s, got %s",
+                name,
+                x.raw_url,
+                value,
+                getattr(x, name),
+            )
 
     example_org = [
         "http://example.org/",
@@ -423,7 +501,7 @@ def test_parse_url() -> None:
         "http://example.org/",
     ]
 
-    tests1 : list[list[str]]
+    tests1: list[list[str]]
     tests1 = [
         ["http://example.org"] + example_org,
         ["http://example.org/"] + example_org,
@@ -437,22 +515,26 @@ def test_parse_url() -> None:
         ["http://%20example.org/"] + example_org,
         #
         # with fragments and quoting
-        ["http://example.org/one+two#hash",
-         "http://example.org/one%2Btwo",
-         "http://example.org/one%2Btwo#hash",
-         "http://example.org/one+two#hash",
-         "http://example.org/one+two",
-         "http://example.org/one+two#hash",
-         "http://example.org/one+two"],
+        [
+            "http://example.org/one+two#hash",
+            "http://example.org/one%2Btwo",
+            "http://example.org/one%2Btwo#hash",
+            "http://example.org/one+two#hash",
+            "http://example.org/one+two",
+            "http://example.org/one+two#hash",
+            "http://example.org/one+two",
+        ],
         #
         # web.archive.org alikes
-        ["http://example.org/web/2/http://archived.example.org/one+two#hash",
-         "http://example.org/web/2/http://archived.example.org/one%2Btwo",
-         "http://example.org/web/2/http://archived.example.org/one%2Btwo#hash",
-         "http://example.org/web/2/http://archived.example.org/one+two#hash",
-         "http://example.org/web/2/http://archived.example.org/one+two",
-         "http://example.org/web/2/http:/archived.example.org/one+two#hash",
-         "http://example.org/web/2/http:/archived.example.org/one+two"],
+        [
+            "http://example.org/web/2/http://archived.example.org/one+two#hash",
+            "http://example.org/web/2/http://archived.example.org/one%2Btwo",
+            "http://example.org/web/2/http://archived.example.org/one%2Btwo#hash",
+            "http://example.org/web/2/http://archived.example.org/one+two#hash",
+            "http://example.org/web/2/http://archived.example.org/one+two",
+            "http://example.org/web/2/http:/archived.example.org/one+two#hash",
+            "http://example.org/web/2/http:/archived.example.org/one+two",
+        ],
     ]
 
     for raw_url, net_url, url, purl, pnet_url, pnurl, pnet_nurl in tests1:
@@ -465,51 +547,69 @@ def test_parse_url() -> None:
         check(x, "pretty_net_nurl", pnet_nurl)
         check(x, "pretty_nurl", pnurl)
 
-    tests2 : list[list[str| None]]
+    tests2: list[list[str | None]]
     tests2 = [
         ["http://example.org/", None],
         ["http://example.org/test", None],
         ["http://example.org/test/", None],
         ["http://example.org/unfinished/query?", None],
         #
-        ["http://example.org/unfinished/query?param",
-         "http://example.org/unfinished/query?"],
+        ["http://example.org/unfinished/query?param", "http://example.org/unfinished/query?"],
         #
-        ["http://example.org/unfinished/query?param=",
-         "http://example.org/unfinished/query?"],
+        ["http://example.org/unfinished/query?param=", "http://example.org/unfinished/query?"],
         #
         ["http://example.org/unfinished/query?param=0", None],
         ["http://example.org/unfinished/query?param=0&param=1", None],
         #
-        ["http://example.org/web/2/https://archived.example.org",
-         "http://example.org/web/2/https:/archived.example.org"],
+        [
+            "http://example.org/web/2/https://archived.example.org",
+            "http://example.org/web/2/https:/archived.example.org",
+        ],
         #
-        ["http://example.org/web/2/https://archived.example.org/",
-         "http://example.org/web/2/https:/archived.example.org/"],
+        [
+            "http://example.org/web/2/https://archived.example.org/",
+            "http://example.org/web/2/https:/archived.example.org/",
+        ],
         #
-        ["http://example.org/web/2/https://archived.example.org/test",
-         "http://example.org/web/2/https:/archived.example.org/test"],
+        [
+            "http://example.org/web/2/https://archived.example.org/test",
+            "http://example.org/web/2/https:/archived.example.org/test",
+        ],
         #
-        ["http://example.org/web/2/https://archived.example.org/test/",
-         "http://example.org/web/2/https:/archived.example.org/test/"],
+        [
+            "http://example.org/web/2/https://archived.example.org/test/",
+            "http://example.org/web/2/https:/archived.example.org/test/",
+        ],
         #
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?",
-         "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
+        [
+            "http://example.org/web/2/https://archived.example.org/unfinished/query?",
+            "http://example.org/web/2/https:/archived.example.org/unfinished/query?",
+        ],
         #
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param",
-         "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
+        [
+            "http://example.org/web/2/https://archived.example.org/unfinished/query?param",
+            "http://example.org/web/2/https:/archived.example.org/unfinished/query?",
+        ],
         #
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=",
-         "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
+        [
+            "http://example.org/web/2/https://archived.example.org/unfinished/query?param=",
+            "http://example.org/web/2/https:/archived.example.org/unfinished/query?",
+        ],
         #
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0",
-         "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
+        [
+            "http://example.org/web/2/https://archived.example.org/unfinished/query?param=0",
+            "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0",
+        ],
         #
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=",
-         "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
+        [
+            "http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=",
+            "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0",
+        ],
         #
-        ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1",
-         "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1"],
+        [
+            "http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1",
+            "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1",
+        ],
         #
         # work-arounds for hostnames that `idna` module fails to parse
         ["http://ab-cd-xxxxxxxxx-yyyy.example.org/", None],
@@ -531,18 +631,24 @@ def test_parse_url() -> None:
         check(x, "pretty_net_nurl", nurl)
         check(x, "pretty_nurl", nurl)
 
+
 ### MIME valuess
 
 Parameters = list[tuple[str, str]]
 
 ParamValueDefaultType = _t.TypeVar("ParamValueDefaultType", str, None)
-def get_parameter_value(ps : Parameters, name : str, default : ParamValueDefaultType) -> str | ParamValueDefaultType:
+
+
+def get_parameter_value(
+    ps: Parameters, name: str, default: ParamValueDefaultType
+) -> str | ParamValueDefaultType:
     for n, v in ps:
         if n == name:
             return v
     return default
 
-def set_parameter(ps : Parameters, name : str, value : str) -> Parameters:
+
+def set_parameter(ps: Parameters, name: str, value: str) -> Parameters:
     res = []
     not_done = True
     for n, v in ps:
@@ -556,13 +662,16 @@ def set_parameter(ps : Parameters, name : str, value : str) -> Parameters:
         res.append((name, value))
     return res
 
-token_ends = r'\s\t()\[\]<>@,:;\/?="'
-token_body_re = _re.compile(rf'([^{token_ends}]+)')
 
-def parse_token(p : Parser) -> str:
+token_ends = r'\s\t()\[\]<>@,:;\/?="'
+token_body_re = _re.compile(rf"([^{token_ends}]+)")
+
+
+def parse_token(p: Parser) -> str:
     return p.lexeme(token_body_re)
 
-def parse_mime_type(p : Parser, ends : list[str] = []) -> str:
+
+def parse_mime_type(p: Parser, ends: list[str] = []) -> str:
     ends = [";"] + ends
     try:
         maintype = parse_token(p)
@@ -575,22 +684,28 @@ def parse_mime_type(p : Parser, ends : list[str] = []) -> str:
         # RFC says invalid content types are to be interpreted as `text/plain`
         return "text/plain"
 
-attribute_ends = token_ends + "*'%"
-attribute_body_re = _re.compile(rf'([^{attribute_ends}]+)')
 
-def parse_attribute(p : Parser) -> str:
+attribute_ends = token_ends + "*'%"
+attribute_body_re = _re.compile(rf"([^{attribute_ends}]+)")
+
+
+def parse_attribute(p: Parser) -> str:
     return p.lexeme(attribute_body_re)
 
-extended_attribute_ends = token_ends + "*'"
-extended_attribute_body_re = _re.compile(rf'([^{extended_attribute_ends}]+)')
 
-def parse_extended_attribute(p : Parser) -> str:
+extended_attribute_ends = token_ends + "*'"
+extended_attribute_body_re = _re.compile(rf"([^{extended_attribute_ends}]+)")
+
+
+def parse_extended_attribute(p: Parser) -> str:
     return p.lexeme(extended_attribute_body_re)
+
 
 qcontent_body_re = _re.compile(rf'([^"\\]*)')
 qcontent_ends_str = '"\\'
 
-def parse_value(p : Parser, ends : list[str]) -> str:
+
+def parse_value(p: Parser, ends: list[str]) -> str:
     ws = p.opt_whitespace()
     if p.at_eof() or p.at_string_in(ends):
         raise ParseError("expected attribute value, got %s", repr(ws[0]))
@@ -601,7 +716,7 @@ def parse_value(p : Parser, ends : list[str]) -> str:
     else:
         res = []
         while not p.at_string('"'):
-            if p.at_string('\\'):
+            if p.at_string("\\"):
                 p.skip(1)
                 res.append(p.take(1))
             else:
@@ -612,7 +727,8 @@ def parse_value(p : Parser, ends : list[str]) -> str:
         token = "".join(res)
     return ws[0] + token
 
-def parse_parameter(p : Parser, ends : list[str]) -> tuple[str, str]:
+
+def parse_parameter(p: Parser, ends: list[str]) -> tuple[str, str]:
     key = parse_attribute(p)
     try:
         p.string("=")
@@ -622,11 +738,13 @@ def parse_parameter(p : Parser, ends : list[str]) -> tuple[str, str]:
         value = parse_value(p, ends)
     return key, value
 
-def parse_invalid_parameter(p : Parser, ends : list[str]) -> tuple[str, str]:
+
+def parse_invalid_parameter(p: Parser, ends: list[str]) -> tuple[str, str]:
     key = p.take_until_string_in(ends)
     return key.rstrip(), ""
 
-def parse_mime_parameters(p : Parser, ends : list[str] = []) -> Parameters:
+
+def parse_mime_parameters(p: Parser, ends: list[str] = []) -> Parameters:
     ends = [";"] + ends
     res = []
     while p.at_string(";"):
@@ -644,12 +762,15 @@ def parse_mime_parameters(p : Parser, ends : list[str] = []) -> Parameters:
         res.append(token)
     return res
 
-def unparse_mime_parameters(params : Parameters) -> str:
+
+def unparse_mime_parameters(params: Parameters) -> str:
     return "".join(map(lambda v: "; " + v[0] + '="' + v[1].replace('"', '\\"') + '"', params))
+
 
 ### `data:` URLs
 
-def parse_data_url(value : str) -> tuple[str, Parameters, bytes]:
+
+def parse_data_url(value: str) -> tuple[str, Parameters, bytes]:
     p = Parser(value)
     p.string("data:")
     if p.at_string(","):
@@ -667,14 +788,15 @@ def parse_data_url(value : str) -> tuple[str, Parameters, bytes]:
         params = params[:-1]
         base64 = True
 
-    data : str | bytes
+    data: str | bytes
     if base64:
         data = _base64.b64decode(p.leftovers)
     else:
         data = _up.unquote_to_bytes(p.leftovers)
     return mime_type, params, data
 
-def unparse_data_url(mime_type : str, params : Parameters, data : bytes) -> str:
+
+def unparse_data_url(mime_type: str, params: Parameters, data: bytes) -> str:
     res = [
         "data:",
         mime_type,
@@ -693,74 +815,122 @@ def unparse_data_url(mime_type : str, params : Parameters, data : bytes) -> str:
     ]
     return "".join(res)
 
+
 def test_parse_data_url() -> None:
-    def check(values : list[str], expected_mime_type : str, expected_params : Parameters, expected_data : bytes) -> None:
+    def check(
+        values: list[str],
+        expected_mime_type: str,
+        expected_params: Parameters,
+        expected_data: bytes,
+    ) -> None:
         for value in values:
             mime_type, params, data = parse_data_url(value)
             scheck(value, "mime_type", mime_type, expected_mime_type)
             scheck(value, "params", params, expected_params)
             scheck(value, "data", data, expected_data)
 
-    check(["data:,Hello%2C%20World%21",], "text/plain", [("charset", "US-ASCII")], b"Hello, World!")
+    check(
+        [
+            "data:,Hello%2C%20World%21",
+        ],
+        "text/plain",
+        [("charset", "US-ASCII")],
+        b"Hello, World!",
+    )
     check(["data:text/plain,Hello%2C%20World%21"], "text/plain", [], b"Hello, World!")
-    check([
-        "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==",
-        "data:text/plain; base64,SGVsbG8sIFdvcmxkIQ==",
-        "data:text/plain; base64 ,SGVsbG8sIFdvcmxkIQ==",
-    ], "text/plain", [], b"Hello, World!")
-    check([
-        "data:text/plain;charset=UTF-8;base64,SGVsbG8sIFdvcmxkIQ==",
-        "data:text/plain; charset=UTF-8;base64,SGVsbG8sIFdvcmxkIQ==",
-        "data:text/plain; charset=UTF-8 ;base64,SGVsbG8sIFdvcmxkIQ==",
-    ], "text/plain", [("charset", "UTF-8")], b"Hello, World!")
+    check(
+        [
+            "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==",
+            "data:text/plain; base64,SGVsbG8sIFdvcmxkIQ==",
+            "data:text/plain; base64 ,SGVsbG8sIFdvcmxkIQ==",
+        ],
+        "text/plain",
+        [],
+        b"Hello, World!",
+    )
+    check(
+        [
+            "data:text/plain;charset=UTF-8;base64,SGVsbG8sIFdvcmxkIQ==",
+            "data:text/plain; charset=UTF-8;base64,SGVsbG8sIFdvcmxkIQ==",
+            "data:text/plain; charset=UTF-8 ;base64,SGVsbG8sIFdvcmxkIQ==",
+        ],
+        "text/plain",
+        [("charset", "UTF-8")],
+        b"Hello, World!",
+    )
     # because RFC says invalid content types are to be interpreted as `text/plain`
-    check([
-        "data: ,Hello%2C%20World%21",
-        "data:bla,Hello%2C%20World%21",
-    ], "text/plain", [], b"Hello, World!")
+    check(
+        [
+            "data: ,Hello%2C%20World%21",
+            "data:bla,Hello%2C%20World%21",
+        ],
+        "text/plain",
+        [],
+        b"Hello, World!",
+    )
+
 
 def test_unparse_data_url() -> None:
-    def check(value : str, *args : _t.Any) -> None:
+    def check(value: str, *args: _t.Any) -> None:
         res = unparse_data_url(*args)
         scheck(args, "unparse", value, res)
         back = parse_data_url(res)
         scheck(value, "re-parse", back, args)
 
-    check('data:text/plain;base64,', "text/plain", [], b"")
-    check('data:text/html;base64,TllB', "text/html", [], b"NYA")
-    check('data:text/plain;charset="utf-8";base64,QUJD', "text/plain", [("charset", "utf-8")], b"ABC")
-    check('data:text/plain;charset="US-ASCII";token="\\"";token="\'A";base64,ZGF0YQ==', "text/plain", [("charset", 'US-ASCII'), ("token", '"'), ("token", "'A")], b"data")
+    check("data:text/plain;base64,", "text/plain", [], b"")
+    check("data:text/html;base64,TllB", "text/html", [], b"NYA")
+    check(
+        'data:text/plain;charset="utf-8";base64,QUJD', "text/plain", [("charset", "utf-8")], b"ABC"
+    )
+    check(
+        'data:text/plain;charset="US-ASCII";token="\\"";token="\'A";base64,ZGF0YQ==',
+        "text/plain",
+        [("charset", "US-ASCII"), ("token", '"'), ("token", "'A")],
+        b"data",
+    )
+
 
 ### HTTP Headers
 
 Headers = list[tuple[str, bytes]]
 
-def get_raw_headers(headers : Headers) -> list[tuple[str, bytes]]:
+
+def get_raw_headers(headers: Headers) -> list[tuple[str, bytes]]:
     # split because browsers frequently squish headers together
     return [(k, e) for k, v in headers for e in v.split(b"\n")]
 
-def get_headers(headers : Headers) -> list[tuple[str, str]]:
+
+def get_headers(headers: Headers) -> list[tuple[str, str]]:
     return [(k, v.decode("ascii")) for k, v in get_raw_headers(headers)]
 
-def get_raw_headers_bytes(headers : Headers) -> list[bytes]:
+
+def get_raw_headers_bytes(headers: Headers) -> list[bytes]:
     return [k.encode("ascii") + b": " + v for k, v in get_raw_headers(headers)]
 
-def get_raw_header_values(headers : Headers, name : str) -> list[bytes]:
+
+def get_raw_header_values(headers: Headers, name: str) -> list[bytes]:
     # similarly
     return [e for k, v in headers if k.lower() == name for e in v.split(b"\n")]
 
-def get_header_values(headers : Headers, name : str) -> list[str]:
-    return [v.decode("ascii") for v in get_raw_header_values(headers,name)]
+
+def get_header_values(headers: Headers, name: str) -> list[str]:
+    return [v.decode("ascii") for v in get_raw_header_values(headers, name)]
+
 
 HeaderValueDefaultType = _t.TypeVar("HeaderValueDefaultType", str, None)
-def get_header_value(headers : Headers, name : str, default : HeaderValueDefaultType) -> str | HeaderValueDefaultType:
+
+
+def get_header_value(
+    headers: Headers, name: str, default: HeaderValueDefaultType
+) -> str | HeaderValueDefaultType:
     res = get_header_values(headers, name)
     if len(res) == 0:
         return default
     else:
         return res[0]
 
-def parse_content_type_header(value : str) -> tuple[str, Parameters]:
+
+def parse_content_type_header(value: str) -> tuple[str, Parameters]:
     """Parse HTTP `Content-Type` header."""
     p = Parser(value)
     mime_type = parse_mime_type(p)
@@ -769,8 +939,9 @@ def parse_content_type_header(value : str) -> tuple[str, Parameters]:
     p.eof()
     return mime_type, params
 
+
 def test_parse_content_type_header() -> None:
-    def check(cts : list[str], expected_mime_type : str, expected_params : Parameters) -> None:
+    def check(cts: list[str], expected_mime_type: str, expected_params: Parameters) -> None:
         for ct in cts:
             mime_type, params = parse_content_type_header(ct)
             scheck(ct, "mime_type", mime_type, expected_mime_type)
@@ -778,39 +949,56 @@ def test_parse_content_type_header() -> None:
 
     check(["text/plain"], "text/plain", [])
     check(["text/html"], "text/html", [])
-    check([
-        "text/html;charset=utf-8",
-        "text/html ;charset=utf-8",
-        "text/html; charset=utf-8",
-        'text/html; charset="utf-8"',
-        'text/html; charset="utf-8";',
-        'text/html;; charset="utf-8";; ',
-        'text/html; ; charset="utf-8"; ; ',
-    ], "text/html", [("charset", "utf-8")])
-    check([
-        "text/html;charset=utf-8;lang=en",
-        "text/html; charset=utf-8; lang=en",
-        'text/html; charset="utf-8"; lang=en',
-        'text/html; charset="utf-8"; lang=en;',
-        'text/html;; charset="utf-8"; lang=en;; ',
-        'text/html; ; charset="utf-8"; lang=en; ; ',
-    ], "text/html", [("charset", "utf-8"), ("lang", "en")])
-    check([
-        'text/html;charset="\\"utf-8\\"";lang=en',
-        'text/html; charset="\\"utf-8\\""; lang=en',
-    ], "text/html", [("charset", '"utf-8"'), ("lang", "en")])
-    check([
-        'text/html; charset="utf-8"; %%; lang=en',
-        'text/html; charset="utf-8"; %% ; lang=en',
-    ], "text/html", [("charset", "utf-8"), ("%%", ""), ("lang", "en")])
+    check(
+        [
+            "text/html;charset=utf-8",
+            "text/html ;charset=utf-8",
+            "text/html; charset=utf-8",
+            'text/html; charset="utf-8"',
+            'text/html; charset="utf-8";',
+            'text/html;; charset="utf-8";; ',
+            'text/html; ; charset="utf-8"; ; ',
+        ],
+        "text/html",
+        [("charset", "utf-8")],
+    )
+    check(
+        [
+            "text/html;charset=utf-8;lang=en",
+            "text/html; charset=utf-8; lang=en",
+            'text/html; charset="utf-8"; lang=en',
+            'text/html; charset="utf-8"; lang=en;',
+            'text/html;; charset="utf-8"; lang=en;; ',
+            'text/html; ; charset="utf-8"; lang=en; ; ',
+        ],
+        "text/html",
+        [("charset", "utf-8"), ("lang", "en")],
+    )
+    check(
+        [
+            'text/html;charset="\\"utf-8\\"";lang=en',
+            'text/html; charset="\\"utf-8\\""; lang=en',
+        ],
+        "text/html",
+        [("charset", '"utf-8"'), ("lang", "en")],
+    )
+    check(
+        [
+            'text/html; charset="utf-8"; %%; lang=en',
+            'text/html; charset="utf-8"; %% ; lang=en',
+        ],
+        "text/html",
+        [("charset", "utf-8"), ("%%", ""), ("lang", "en")],
+    )
     # because RFC says invalid content types are to be interpreted as `text/plain`
     check(["bla; charset=utf-8; lang=en"], "text/plain", [("charset", "utf-8"), ("lang", "en")])
 
+
 link_url_re = _re.compile(url_re_str("<>"))
 
-def parse_link_value(p : Parser) -> tuple[str, Parameters]:
-    """Parse single sub-value of HTTP `Link` header.
-    """
+
+def parse_link_value(p: Parser) -> tuple[str, Parameters]:
+    """Parse single sub-value of HTTP `Link` header."""
     p.string("<")
     p.opt_whitespace()
     grp = p.regex(link_url_re)
@@ -820,9 +1008,11 @@ def parse_link_value(p : Parser) -> tuple[str, Parameters]:
     params = parse_mime_parameters(p, [","])
     return grp[0], params
 
+
 ParsedLinkHeader = list[tuple[str, Parameters]]
 
-def parse_link_header(value : str) -> ParsedLinkHeader:
+
+def parse_link_header(value: str) -> ParsedLinkHeader:
     """Parse HTTP `Link` header."""
     p = Parser(value)
     res = []
@@ -839,11 +1029,13 @@ def parse_link_header(value : str) -> ParsedLinkHeader:
         res.append(token)
     return res
 
-def unparse_link_header(links : ParsedLinkHeader) -> str:
+
+def unparse_link_header(links: ParsedLinkHeader) -> str:
     return ", ".join(map(lambda v: "<" + v[0] + ">" + unparse_mime_parameters(v[1]), links))
 
+
 def test_parse_link_header() -> None:
-    def check(lhs : list[str], expected_values : _t.Any) -> None:
+    def check(lhs: list[str], expected_values: _t.Any) -> None:
         for lh in lhs:
             values = parse_link_header(lh)
             for i in range(0, len(expected_values)):
@@ -853,63 +1045,87 @@ def test_parse_link_header() -> None:
                 scheck(lh, "params", params, expected_params)
             scheck(lh, "the whole", values, expected_values)
 
-    check([
-        "<https://example.org>",
-        " <https://example.org>",
-        "<https://example.org> ",
-        " <https://example.org> ",
-        " < https://example.org > ",
-    ], [
-        ("https://example.org", [])
-    ])
-    check([
-        "<https://example.org>;rel=me",
-        "<https://example.org>; rel=me",
-        " <https://example.org> ; rel=me",
-    ], [
-        ("https://example.org", [("rel", "me")])
-    ])
-    check([
-        "<https://example.org>; rel=preconnect; crossorigin",
-        "<https://example.org>; rel=preconnect ; crossorigin ",
-        " <https://example.org> ; rel=preconnect ; crossorigin ,",
-        " <https://example.org> ; rel=preconnect ; ; crossorigin ; , ,, ",
-        #" , <https://example.org>; rel=preconnect; crossorigin , ",
-    ], [
-        ("https://example.org", [("rel", "preconnect"), ("crossorigin", "")])
-    ])
-    check([
-        '<https://example.org/path/#hash>; rel=canonical; type="text/html"',
-    ], [
-        ("https://example.org/path/#hash", [("rel", "canonical"), ("type", "text/html")])
-    ])
-    check([
-        '<https://example.org>; rel=preconnect, ' +
-        '<https://example.org/index.css>; as=style; rel=preload; crossorigin, ' +
-        '<https://example.org/index.js>;; as=script; ; rel = "preload" ;  ; crossorigin;  , ' +
-        ', ' +
-        '<https://example.org/main.js>; as=script; rel=preload;;',
-    ], [
-        ('https://example.org', [('rel', 'preconnect')]),
-        ('https://example.org/index.css', [('as', 'style'), ('rel', 'preload'), ('crossorigin', '')]),
-        ('https://example.org/index.js', [('as', 'script'), ('rel', ' preload'), ('crossorigin', '')]),
-        ('https://example.org/main.js', [('as', 'script'), ('rel', 'preload')])
-    ])
+    check(
+        [
+            "<https://example.org>",
+            " <https://example.org>",
+            "<https://example.org> ",
+            " <https://example.org> ",
+            " < https://example.org > ",
+        ],
+        [("https://example.org", [])],
+    )
+    check(
+        [
+            "<https://example.org>;rel=me",
+            "<https://example.org>; rel=me",
+            " <https://example.org> ; rel=me",
+        ],
+        [("https://example.org", [("rel", "me")])],
+    )
+    check(
+        [
+            "<https://example.org>; rel=preconnect; crossorigin",
+            "<https://example.org>; rel=preconnect ; crossorigin ",
+            " <https://example.org> ; rel=preconnect ; crossorigin ,",
+            " <https://example.org> ; rel=preconnect ; ; crossorigin ; , ,, ",
+            # " , <https://example.org>; rel=preconnect; crossorigin , ",
+        ],
+        [("https://example.org", [("rel", "preconnect"), ("crossorigin", "")])],
+    )
+    check(
+        [
+            '<https://example.org/path/#hash>; rel=canonical; type="text/html"',
+        ],
+        [("https://example.org/path/#hash", [("rel", "canonical"), ("type", "text/html")])],
+    )
+    check(
+        [
+            "<https://example.org>; rel=preconnect, "
+            + "<https://example.org/index.css>; as=style; rel=preload; crossorigin, "
+            + '<https://example.org/index.js>;; as=script; ; rel = "preload" ;  ; crossorigin;  , '
+            + ", "
+            + "<https://example.org/main.js>; as=script; rel=preload;;",
+        ],
+        [
+            ("https://example.org", [("rel", "preconnect")]),
+            (
+                "https://example.org/index.css",
+                [("as", "style"), ("rel", "preload"), ("crossorigin", "")],
+            ),
+            (
+                "https://example.org/index.js",
+                [("as", "script"), ("rel", " preload"), ("crossorigin", "")],
+            ),
+            ("https://example.org/main.js", [("as", "script"), ("rel", "preload")]),
+        ],
+    )
+
 
 def test_unparse_link_header() -> None:
-    def check(lh : _t.Any, expected_value : _t.Any) -> None:
+    def check(lh: _t.Any, expected_value: _t.Any) -> None:
         value = unparse_link_header(lh)
         scheck(lh, "unparse", value, expected_value)
 
     check([("https://example.org", [("rel", "me")])], '<https://example.org>; rel="me"')
-    check([
-        ('https://example.org', [('rel', 'preconnect')]),
-        ('https://example.org/index.css', [('as', 'style'), ('rel', 'preload'), ('crossorigin', '')]),
-        ('https://example.org/index.js', [('as', 'script'), ('rel', ' preload'), ('crossorigin', '')]),
-        ('https://example.org/main.js', [('as', 'script'), ('rel', 'preload')])
-    ], '<https://example.org>; rel="preconnect", <https://example.org/index.css>; as="style"; rel="preload"; crossorigin="", <https://example.org/index.js>; as="script"; rel=" preload"; crossorigin="", <https://example.org/main.js>; as="script"; rel="preload"')
+    check(
+        [
+            ("https://example.org", [("rel", "preconnect")]),
+            (
+                "https://example.org/index.css",
+                [("as", "style"), ("rel", "preload"), ("crossorigin", "")],
+            ),
+            (
+                "https://example.org/index.js",
+                [("as", "script"), ("rel", " preload"), ("crossorigin", "")],
+            ),
+            ("https://example.org/main.js", [("as", "script"), ("rel", "preload")]),
+        ],
+        '<https://example.org>; rel="preconnect", <https://example.org/index.css>; as="style"; rel="preload"; crossorigin="", <https://example.org/index.js>; as="script"; rel=" preload"; crossorigin="", <https://example.org/main.js>; as="script"; rel="preload"',
+    )
 
-def parse_refresh_header(value : str) -> tuple[int, str]:
+
+def parse_refresh_header(value: str) -> tuple[int, str]:
     """Parse HTTP `Refresh` header."""
     p = Parser(value)
     p.opt_whitespace()
@@ -921,30 +1137,38 @@ def parse_refresh_header(value : str) -> tuple[int, str]:
     ugrp = p.regex(url_re)
     return int(ngrp[0]), ugrp[0]
 
-def unparse_refresh_header(secs : int, url : str) -> str:
+
+def unparse_refresh_header(secs: int, url: str) -> str:
     return f"{secs}; url={url}"
 
+
 def test_parse_refresh_header() -> None:
-    def check(rhs : list[str], expected_num : _t.Any, expected_url : _t.Any) -> None:
+    def check(rhs: list[str], expected_num: _t.Any, expected_url: _t.Any) -> None:
         for rh in rhs:
             num, url = parse_refresh_header(rh)
             scheck(rh, "num", num, expected_num)
             scheck(rh, "url", url, expected_url)
 
-    check([
-        "10;url=https://example.org/",
-        "10; url=https://example.org/",
-        "10 ;url=https://example.org/",
-        " 10;url=https://example.org/",
-        "10 ; url=https://example.org/",
-    ], 10, "https://example.org/")
+    check(
+        [
+            "10;url=https://example.org/",
+            "10; url=https://example.org/",
+            "10 ;url=https://example.org/",
+            " 10;url=https://example.org/",
+            "10 ; url=https://example.org/",
+        ],
+        10,
+        "https://example.org/",
+    )
+
 
 ### HTML attribute parsing
 
 opt_srcset_condition = _re.compile(r"(?:\s+([0-9]+(?:\.[0-9]+)?[xw]))?")
 opt_srcset_sep = _re.compile(r"(\s*,)?")
 
-def parse_srcset_attr(value : str) -> list[tuple[str, str]]:
+
+def parse_srcset_attr(value: str) -> list[tuple[str, str]]:
     """Parse HTML5 srcset attribute"""
     res = []
     p = Parser(value)
@@ -963,16 +1187,18 @@ def parse_srcset_attr(value : str) -> list[tuple[str, str]]:
         p.opt_whitespace()
         if url != "":
             res.append((url, cond))
-        #else: ignore it
+        # else: ignore it
     p.eof()
     return res
 
-def unparse_srcset_attr(value : list[tuple[str, str]]) -> str:
+
+def unparse_srcset_attr(value: list[tuple[str, str]]) -> str:
     """Unparse HTML5 srcset attribute"""
     return ", ".join([(f"{url} {cond}" if cond is not None else url) for url, cond in value])
 
+
 def test_parse_srcset_attr() -> None:
-    def check(attr : str, expected_values : _t.Any) -> None:
+    def check(attr: str, expected_values: _t.Any) -> None:
         values = parse_srcset_attr(attr)
         for i in range(0, len(expected_values)):
             url, cond = values[i]
@@ -981,22 +1207,34 @@ def test_parse_srcset_attr() -> None:
             scheck(attr, "cond", cond, expected_cond)
         scheck(attr, "the whole", values, expected_values)
 
-    check("https://example.org", [
-        ("https://example.org", None),
-    ])
-    check("https://example.org/1.jpg, https://example.org/2.jpg", [
-        ("https://example.org/1.jpg", None),
-        ("https://example.org/2.jpg", None),
-    ])
-    check("https://example.org/1.jpg 2.5x, https://example.org/2.jpg", [
-        ("https://example.org/1.jpg", "2.5x"),
-        ("https://example.org/2.jpg", None),
-    ])
-    check("""
+    check(
+        "https://example.org",
+        [
+            ("https://example.org", None),
+        ],
+    )
+    check(
+        "https://example.org/1.jpg, https://example.org/2.jpg",
+        [
+            ("https://example.org/1.jpg", None),
+            ("https://example.org/2.jpg", None),
+        ],
+    )
+    check(
+        "https://example.org/1.jpg 2.5x, https://example.org/2.jpg",
+        [
+            ("https://example.org/1.jpg", "2.5x"),
+            ("https://example.org/2.jpg", None),
+        ],
+    )
+    check(
+        """
         https://example.org/1.jpg    2.5x
         ,
         https://example.org/2.jpg
-    """, [
-        ("https://example.org/1.jpg", "2.5x"),
-        ("https://example.org/2.jpg", None),
-    ])
+    """,
+        [
+            ("https://example.org/1.jpg", "2.5x"),
+            ("https://example.org/2.jpg", None),
+        ],
+    )

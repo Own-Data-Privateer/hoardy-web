@@ -25,60 +25,72 @@ from sortedcontainers import SortedKeyList
 
 from decimal import Decimal
 
-SortedType = _t.TypeVar("SortedType", bound=Decimal|float|int)
+SortedType = _t.TypeVar("SortedType", bound=Decimal | float | int)
 
-def is_infinite(value : SortedType) -> bool:
-    return isinstance(value, Decimal) and value.is_infinite() or \
-           isinstance(value, float) and _math.isinf(value)
 
-def nearer_to_than(ideal : SortedType, value : SortedType, other : SortedType) -> bool | None:
+def is_infinite(value: SortedType) -> bool:
+    return (
+        isinstance(value, Decimal)
+        and value.is_infinite()
+        or isinstance(value, float)
+        and _math.isinf(value)
+    )
+
+
+def nearer_to_than(ideal: SortedType, value: SortedType, other: SortedType) -> bool | None:
     """Check whether `value` is nearer to `ideal` than `other`.
-       Return `None` if `other` and `value` are the same.
+    Return `None` if `other` and `value` are the same.
     """
     if other == value:
         return None
     elif is_infinite(ideal):
-        return (ideal < 0)  ^ (other < value) # type: ignore
+        return (ideal < 0) ^ (other < value)  # type: ignore
     else:
         return abs(ideal - value) < abs(ideal - other)  # type: ignore
+
 
 def test_nearer_to_than() -> None:
     assert nearer_to_than(1, 0, 0) == None
     assert nearer_to_than(0, 10, 100)
     assert not nearer_to_than(0, 100, 10)
 
-    inf : Decimal | float
-    for inf in [Decimal("+inf"), _math.inf]: # type: ignore
+    inf: Decimal | float
+    for inf in [Decimal("+inf"), _math.inf]:  # type: ignore
         assert nearer_to_than(inf, 1, 0)
         assert nearer_to_than(-inf, 0, 1)
         assert not nearer_to_than(inf, 0, 1)
         assert not nearer_to_than(-inf, 1, 0)
 
+
 SIKeyType = _t.TypeVar("SIKeyType")
 SIValueType = _t.TypeVar("SIValueType")
 
-def _fst(x : tuple[SortedType, SIValueType]) -> SortedType:
+
+def _fst(x: tuple[SortedType, SIValueType]) -> SortedType:
     return x[0]
+
 
 @_dc.dataclass
 class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
     """Essentially, `dict[SIKeyType, list[tuple[SortedType, SIValueType]]]` with
-       the `list` sorted by `SortedType`, with some uselful operations on top.
+    the `list` sorted by `SortedType`, with some uselful operations on top.
     """
 
-    ideal : SortedType | None = _dc.field(default = None)
-    _index : dict[SIKeyType, _abc.MutableSequence[tuple[SortedType, SIValueType]]] = _dc.field(default_factory = dict)
-    _size : int = _dc.field(default = 0)
+    ideal: SortedType | None = _dc.field(default=None)
+    _index: dict[SIKeyType, _abc.MutableSequence[tuple[SortedType, SIValueType]]] = _dc.field(
+        default_factory=dict
+    )
+    _size: int = _dc.field(default=0)
 
     def __len__(self) -> int:
         return self._size
 
-    def insert(self, key : SIKeyType, order : SortedType, value : SIValueType) -> bool:
+    def insert(self, key: SIKeyType, order: SortedType, value: SIValueType) -> bool:
         """`self[key].insert_sorted((order, value))`, except when `self.ideal` init
-           param is set, the `list` will only store the single `value` for
-           which the `order` is closest to `self.ideal`.
+        param is set, the `list` will only store the single `value` for
+        which the `order` is closest to `self.ideal`.
 
-           Returns `True` when the `value` was inserted and `False` otherwise.
+        Returns `True` when the `value` was inserted and `False` otherwise.
         """
 
         iobjs = self._index.get(key, None)
@@ -89,18 +101,18 @@ class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
         elif self.ideal is not None:
             if nearer_to_than(self.ideal, order, iobjs[0][0]):
                 iobjs.clear()
-                iobjs.add((order, value)) # type: ignore
+                iobjs.add((order, value))  # type: ignore
             else:
                 return False
         else:
-            iobjs.add((order, value)) # type: ignore
+            iobjs.add((order, value))  # type: ignore
             self._size += 1
         return True
 
-    def iter_from_to(self, key : SIKeyType, start : SortedType, end : SortedType) \
-        -> _t.Iterator[tuple[SortedType, SIValueType]]:
-        """Iterate `self[key]` `list` values from `start` (including) to `end` (not including).
-        """
+    def iter_from_to(
+        self, key: SIKeyType, start: SortedType, end: SortedType
+    ) -> _t.Iterator[tuple[SortedType, SIValueType]]:
+        """Iterate `self[key]` `list` values from `start` (including) to `end` (not including)."""
 
         try:
             iobjs = self._index[key]
@@ -111,15 +123,15 @@ class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
         left = _bisect.bisect_left(iobjs, start, key=lambda x: x[0])
         for i in range(left, len(iobjs)):
             cur = iobjs[i]
-            if start <= cur[0] < end: # type: ignore
+            if start <= cur[0] < end:  # type: ignore
                 yield cur
             else:
                 return
 
-    def iter_from_nearest(self, key : SIKeyType, ideal : SortedType) \
-        -> _t.Iterator[tuple[SortedType, SIValueType]]:
-        """Iterate `self[key]` `list` values in order of closeness to `ideal`.
-        """
+    def iter_from_nearest(
+        self, key: SIKeyType, ideal: SortedType
+    ) -> _t.Iterator[tuple[SortedType, SIValueType]]:
+        """Iterate `self[key]` `list` values in order of closeness to `ideal`."""
 
         try:
             iobjs = self._index[key]
@@ -135,7 +147,7 @@ class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
             # oldest or latest
             yield from iter(iobjs) if ideal < 0 else reversed(iobjs)
             return
-        #else: # nearest to `ideal`
+        # else: # nearest to `ideal`
 
         right = _bisect.bisect_right(iobjs, ideal, key=lambda x: x[0])
         if right == 0:
@@ -174,9 +186,12 @@ class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
             for i in range(left - 1, -1, -1):
                 yield iobjs[i]
 
-    def iter_nearest(self, key : SIKeyType, ideal : SortedType,
-                     predicate : _t.Callable[[SortedType, SIValueType], bool] | None = None) \
-                     -> _t.Iterator[tuple[SortedType, SIValueType]]:
+    def iter_nearest(
+        self,
+        key: SIKeyType,
+        ideal: SortedType,
+        predicate: _t.Callable[[SortedType, SIValueType], bool] | None = None,
+    ) -> _t.Iterator[tuple[SortedType, SIValueType]]:
         if predicate is None:
             yield from self.iter_from_nearest(key, ideal)
         else:
@@ -184,11 +199,13 @@ class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
                 if predicate(*e):
                     yield e
 
-    def get_nearest(self, key : SIKeyType, ideal : SortedType,
-                    predicate : _t.Callable[[SortedType, SIValueType], bool] | None = None) \
-                    -> tuple[SortedType, SIValueType] | None:
-        """Get the closest to `ideal` `self[key]` `list` value that also satisfies `predicate`.
-        """
+    def get_nearest(
+        self,
+        key: SIKeyType,
+        ideal: SortedType,
+        predicate: _t.Callable[[SortedType, SIValueType], bool] | None = None,
+    ) -> tuple[SortedType, SIValueType] | None:
+        """Get the closest to `ideal` `self[key]` `list` value that also satisfies `predicate`."""
         for e in self.iter_nearest(key, ideal, predicate):
             return e
         return None

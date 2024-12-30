@@ -26,10 +26,13 @@ from kisstdlib.exceptions import *
 
 import hoardy_web.parser as _p
 
+
 class TimeStamp(_dec.Decimal):
     """Seconds since UNIX epoch, with arbitrary precision."""
 
-    def format(self, fmt : str = "%Y-%m-%d %H:%M:%S", *, precision : int = 0, utc : bool = False) -> str:
+    def format(
+        self, fmt: str = "%Y-%m-%d %H:%M:%S", *, precision: int = 0, utc: bool = False
+    ) -> str:
         if self.is_infinite():
             if self < 0:
                 return "-inf"
@@ -43,31 +46,35 @@ class TimeStamp(_dec.Decimal):
         else:
             res = _time.strftime(fmt, _time.gmtime(i) if utc else _time.localtime(i))
         if precision > 0:
-            x = str(r)[2:precision + 2]
+            x = str(r)[2 : precision + 2]
             res += "." + x + "0" * (precision - len(x))
         return res
 
     def __repr__(self) -> str:
         return f"<TimeStamp {self.format(precision=9, utc=True)}>"
 
+
 at_timestamp_re = _re.compile(r"@(\d+)(?:\.(\d+))?")
-iso_timestamp_re = _re.compile(r"(\d\d\d\d)(?:[_-]?(\d\d)(?:[_-]?(\d\d)(?:[T_-]?\s*(\d\d)(?:[h:_-]?(\d\d)(?:[h:_-]?(\d\d)(?:[sd,.]?(\d+))?)?\s*(?:([_+-])?(\d\d)[:h]?(\d\d)m?)?)?)?)?)?")
+iso_timestamp_re = _re.compile(
+    r"(\d\d\d\d)(?:[_-]?(\d\d)(?:[_-]?(\d\d)(?:[T_-]?\s*(\d\d)(?:[h:_-]?(\d\d)(?:[h:_-]?(\d\d)(?:[sd,.]?(\d+))?)?\s*(?:([_+-])?(\d\d)[:h]?(\d\d)m?)?)?)?)?)?"
+)
 
-def parse_TimeStamp(value : str, *, utc : bool = False) -> tuple[tuple[TimeStamp, TimeStamp], str]:
+
+def parse_TimeStamp(value: str, *, utc: bool = False) -> tuple[tuple[TimeStamp, TimeStamp], str]:
     """Parse a given string `value` into a pair of `TimeStamp` values which
-       represent the start and the end (non-inclusive) of the continiuous time
-       interval for which all timestamps can be described as being part of
-       given `value`.
+    represent the start and the end (non-inclusive) of the continiuous time
+    interval for which all timestamps can be described as being part of
+    given `value`.
 
-       E.g.
-       - `parse_TimeStamp("2024") == (timestamp("2024-01-01 00:00:00"), timestamp("2025-01-01 00:00:00")), ""`
-       - `parse_TimeStamp("2024-12") == (timestamp("2024-12-01 00:00:00"), timestamp("2025-01-01 00:00:00")), ""`
-       - `parse_TimeStamp("2024-12-01 12:00:16") == (timestamp("2024-12-01 12:00:16"), timestamp("2024-12-01 12:00:17")), ""`
-       - `parse_TimeStamp("2024-12-01 12:00:16.5") == (timestamp("2024-12-01 12:00:16.5"), timestamp("2024-12-01 12:00:16.6")), ""`
+    E.g.
+    - `parse_TimeStamp("2024") == (timestamp("2024-01-01 00:00:00"), timestamp("2025-01-01 00:00:00")), ""`
+    - `parse_TimeStamp("2024-12") == (timestamp("2024-12-01 00:00:00"), timestamp("2025-01-01 00:00:00")), ""`
+    - `parse_TimeStamp("2024-12-01 12:00:16") == (timestamp("2024-12-01 12:00:16"), timestamp("2024-12-01 12:00:17")), ""`
+    - `parse_TimeStamp("2024-12-01 12:00:16.5") == (timestamp("2024-12-01 12:00:16.5"), timestamp("2024-12-01 12:00:16.6")), ""`
 
-       Also, return leftover part of `value`.
+    Also, return leftover part of `value`.
 
-       When the `value` includes no time zone information, it is interpreted as local time, unless `utc` is set.
+    When the `value` includes no time zone information, it is interpreted as local time, unless `utc` is set.
     """
 
     ending = True
@@ -79,13 +86,17 @@ def parse_TimeStamp(value : str, *, utc : bool = False) -> tuple[tuple[TimeStamp
         m = iso_timestamp_re.match(value)
         if m is not None:
             year, month, day, hour, minute, second, rs, sign, tzhour, tzminute = m.groups()
-            res = (int(year),
-                   int(month) if month is not None else 1,
-                   int(day) if day is not None else 1,
-                   int(hour) if hour is not None else 0,
-                   int(minute) if minute is not None else 0,
-                   int(second) if second is not None else 0,
-                   0, 1, -1)
+            res = (
+                int(year),
+                int(month) if month is not None else 1,
+                int(day) if day is not None else 1,
+                int(hour) if hour is not None else 0,
+                int(minute) if minute is not None else 0,
+                int(second) if second is not None else 0,
+                0,
+                1,
+                -1,
+            )
 
             hts = _time.struct_time(res)
 
@@ -130,26 +141,32 @@ def parse_TimeStamp(value : str, *, utc : bool = False) -> tuple[tuple[TimeStamp
     else:
         r, rp = 0, 0
 
-    hrem = _dec.Decimal(r) / (10 ** rp)
-    erem = _dec.Decimal(r + 1) / (10 ** rp) if ending else _dec.Decimal(0)
+    hrem = _dec.Decimal(r) / (10**rp)
+    erem = _dec.Decimal(r + 1) / (10**rp) if ending else _dec.Decimal(0)
 
-    return (TimeStamp(_dec.Decimal(hs) + hrem), TimeStamp(_dec.Decimal(es) + erem)), value[m.span()[1]:]
+    return (TimeStamp(_dec.Decimal(hs) + hrem), TimeStamp(_dec.Decimal(es) + erem)), value[
+        m.span()[1] :
+    ]
 
-def timestamp(value : str, start : bool = True, *, utc : bool = False) -> TimeStamp:
+
+def timestamp(value: str, start: bool = True, *, utc: bool = False) -> TimeStamp:
     """A simple wrapper over `parse_TimeStamp`."""
     (sres, eres), left = parse_TimeStamp(value, utc=utc)
     if len(left) > 0:
         raise _p.ParseError("failed to parse `%s` as a timestamp", value)
     return sres if start else eres
 
+
 def test_parse_TimeStamp() -> None:
-    def check(xs : str | list[str], value : TimeStamp, leftover : str = "") -> None:
+    def check(xs: str | list[str], value: TimeStamp, leftover: str = "") -> None:
         if isinstance(xs, str):
             xs = [xs]
         for x in xs:
             (res, _), left = parse_TimeStamp(x, utc=True)
             if (res, left) != (value, leftover):
-                raise CatastrophicFailure("while parsing `%s`, expected %s, got %s", x, (value, leftover), (res, left))
+                raise CatastrophicFailure(
+                    "while parsing `%s`, expected %s, got %s", x, (value, leftover), (res, left)
+                )
 
     # fmt: off
     check("@123",                       TimeStamp(123))
@@ -192,16 +209,29 @@ def test_parse_TimeStamp() -> None:
     check("2024-12-31 12:07:16 -0100 or so",  TimeStamp(1735650436), " or so")
     # fmt: on
 
+
 def test_format_TimeStamp() -> None:
-    assert timestamp("2024-12-31 12:07:16.456789", utc=True).format(precision=3, utc=True) == "2024-12-31 12:07:16.456"
-    assert timestamp("2024-12-31 12:07:16.450", utc=True).format(precision=3, utc=True) == "2024-12-31 12:07:16.450"
-    assert timestamp("2024-12-31 12:07:16", utc=True).format(precision=3, utc=True) == "2024-12-31 12:07:16.000"
+    assert (
+        timestamp("2024-12-31 12:07:16.456789", utc=True).format(precision=3, utc=True)
+        == "2024-12-31 12:07:16.456"
+    )
+    assert (
+        timestamp("2024-12-31 12:07:16.450", utc=True).format(precision=3, utc=True)
+        == "2024-12-31 12:07:16.450"
+    )
+    assert (
+        timestamp("2024-12-31 12:07:16", utc=True).format(precision=3, utc=True)
+        == "2024-12-31 12:07:16.000"
+    )
+
 
 def test_parse_TimeStamp_end() -> None:
-    def check(x : str, value : TimeStamp, leftover : str = "") -> None:
+    def check(x: str, value: TimeStamp, leftover: str = "") -> None:
         (_, res), left = parse_TimeStamp(x, utc=True)
         if (res, left) != (value, leftover):
-            raise CatastrophicFailure("while parsing `%s`, expected %s, got %s", x, (value, leftover), res)
+            raise CatastrophicFailure(
+                "while parsing `%s`, expected %s, got %s", x, (value, leftover), res
+            )
 
     # fmt: off
     check("@123",                       TimeStamp(124))
@@ -223,22 +253,23 @@ def test_parse_TimeStamp_end() -> None:
     check("2024-12-31 23:59:59.9",      timestamp("2025-01-01 00:00", utc=True))
     # fmt: on
 
+
 timerange_pre_re = _re.compile(r"[([{<]?")
 timerange_post_re = _re.compile(r"[)\]}>]?")
 timerange_delimiter_re = _re.compile("--?")
+
 
 @_dc.dataclass
 class TimeRange:
     """Continious time interval between two `TimeStamp` timestamps."""
 
-    start : TimeStamp
-    end : TimeStamp
-    includes_start : bool = _dc.field(default = True)
-    includes_end : bool = _dc.field(default = False)
+    start: TimeStamp
+    end: TimeStamp
+    includes_start: bool = _dc.field(default=True)
+    includes_end: bool = _dc.field(default=False)
 
-    def __contains__(self, value : TimeStamp) -> bool:
-        if self.includes_start and value == self.start or \
-           self.includes_end and value == self.end:
+    def __contains__(self, value: TimeStamp) -> bool:
+        if self.includes_start and value == self.start or self.includes_end and value == self.end:
             return True
         return self.start < value < self.end
 
@@ -250,13 +281,19 @@ class TimeRange:
     def delta(self) -> _dec.Decimal:
         return self.end - self.start
 
-    def format(self, fmt : str = "%Y-%m-%d %H:%M:%S", *, precision : int = 0, utc : bool = False) -> str:
-        return self.start.format(fmt, precision=precision, utc=utc) + "--" + self.end.format(fmt, precision=precision, utc=utc)
+    def format(
+        self, fmt: str = "%Y-%m-%d %H:%M:%S", *, precision: int = 0, utc: bool = False
+    ) -> str:
+        return (
+            self.start.format(fmt, precision=precision, utc=utc)
+            + "--"
+            + self.end.format(fmt, precision=precision, utc=utc)
+        )
 
     def __repr__(self) -> str:
         return f"<TimeRange {'[' if self.includes_start else '('}{self.format(precision=9, utc=True)}{']' if self.includes_end else ')'}>"
 
-    def format_org_delta(self, precision : int = 0) -> str:
+    def format_org_delta(self, precision: int = 0) -> str:
         r = self.delta
         hours = r // 3600
         r = r % 3600
@@ -266,16 +303,18 @@ class TimeRange:
         r = r - seconds
         res = str(hours) + ":" + format(minutes, "02") + ":" + format(seconds, "02")
         if precision > 0:
-            x = str(r)[2:precision + 2]
+            x = str(r)[2 : precision + 2]
             res += "." + x + "0" * (precision - len(x))
         return res
 
-    def format_org(self, *, precision : int = 0, utc : bool = False) -> str:
+    def format_org(self, *, precision: int = 0, utc: bool = False) -> str:
         return f"[{self.start.format(precision=precision, utc=utc)}]--[{self.end.format(precision=precision, utc=utc)}] => {self.format_org_delta(precision=precision)}"
+
 
 anytime = TimeRange(TimeStamp("-inf"), TimeStamp("+inf"), True, True)
 
-def parse_TimeRange(value : str, *, utc : bool = False) -> tuple[TimeRange, str]:
+
+def parse_TimeRange(value: str, *, utc: bool = False) -> tuple[TimeRange, str]:
     """Parse a given string `value` into `TimeRange`."""
     p = _p.Parser(value)
     if p.opt_string("*"):
@@ -298,21 +337,25 @@ def parse_TimeRange(value : str, *, utc : bool = False) -> tuple[TimeRange, str]
     except _p.ParseError:
         raise _p.ParseError("failed to parse `%s` as a time interval", value)
 
-def timerange(value : str, utc : bool = False) -> TimeRange:
+
+def timerange(value: str, utc: bool = False) -> TimeRange:
     """A simple wrapper over `parse_TimeRange`."""
     res, left = parse_TimeRange(value, utc=utc)
     if len(left) > 0:
         raise _p.ParseError("failed to parse `%s` as a time interval", value)
     return res
 
+
 def test_parse_TimeRange() -> None:
-    def check(xs : str | list[str], value : TimeRange, leftover : str = "") -> None:
+    def check(xs: str | list[str], value: TimeRange, leftover: str = "") -> None:
         if isinstance(xs, str):
             xs = [xs]
         for x in xs:
             res = parse_TimeRange(x, utc=True)
             if res != (value, leftover):
-                raise CatastrophicFailure("while parsing `%s`, expected %s, got %s", x, (value, leftover), res)
+                raise CatastrophicFailure(
+                    "while parsing `%s`, expected %s, got %s", x, (value, leftover), res
+                )
 
     # fmt: off
     check("*",                          anytime)

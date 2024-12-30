@@ -26,13 +26,15 @@ import mitmproxy.websocket
 
 from .wrr import *
 
-def _hd(x : _t.Any) -> Headers:
+
+def _hd(x: _t.Any) -> Headers:
     res = []
-    for (k, v) in x.fields:
+    for k, v in x.fields:
         res.append((k.decode("ascii"), v))
     return Headers(res)
 
-def mitmproxy_load_flow(flow : mitmproxy.http.HTTPFlow) -> Reqres | None:
+
+def mitmproxy_load_flow(flow: mitmproxy.http.HTTPFlow) -> Reqres | None:
     rq = flow.request
     if rq.scheme == "" and rq.method.upper() == "CONNECT":
         # skip mitmproxy CONNECT requests, these are logged my mitmproxy
@@ -58,7 +60,14 @@ def mitmproxy_load_flow(flow : mitmproxy.http.HTTPFlow) -> Reqres | None:
         maybeport = ":" + str(rq.port)
     url = f"{rq.scheme}://{rq.host}{maybeport}{rq.path}"
 
-    request = Request(TimeStamp(rq.timestamp_start), rq.method.upper(), parse_url(url), _hd(rq.headers), rq_complete, rq_body)
+    request = Request(
+        TimeStamp(rq.timestamp_start),
+        rq.method.upper(),
+        parse_url(url),
+        _hd(rq.headers),
+        rq_complete,
+        rq_body,
+    )
 
     rs = flow.response
     if rs is not None:
@@ -74,7 +83,14 @@ def mitmproxy_load_flow(flow : mitmproxy.http.HTTPFlow) -> Reqres | None:
             if cl is not None and int(cl) != len(rs_body):
                 rs_complete = False
 
-        response = Response(TimeStamp(rs.timestamp_start), rs.status_code, rs.reason, _hd(rs.headers), rs_complete, rs_body)
+        response = Response(
+            TimeStamp(rs.timestamp_start),
+            rs.status_code,
+            rs.reason,
+            _hd(rs.headers),
+            rs_complete,
+            rs_body,
+        )
 
         tend = rs.timestamp_end
         if tend is None:
@@ -101,7 +117,9 @@ def mitmproxy_load_flow(flow : mitmproxy.http.HTTPFlow) -> Reqres | None:
                 content = msg.content.encode("utf-8")
             else:
                 assert False
-            wsstream.append(WebSocketFrame(TimeStamp(msg.timestamp), msg.from_client, int(msg.type), content))
+            wsstream.append(
+                WebSocketFrame(TimeStamp(msg.timestamp), msg.from_client, int(msg.type), content)
+            )
 
         if ws.timestamp_end is not None:
             assert ws.closed_by_client is not None
@@ -109,12 +127,23 @@ def mitmproxy_load_flow(flow : mitmproxy.http.HTTPFlow) -> Reqres | None:
             assert ws.close_reason is not None
 
             # reconstruct the CLOSE frame
-            wsstream.append(WebSocketFrame(TimeStamp(ws.timestamp_end), ws.closed_by_client, 0x8,
-                                           _struct.pack("!H", ws.close_code) + ws.close_reason.encode("utf-8")))
+            wsstream.append(
+                WebSocketFrame(
+                    TimeStamp(ws.timestamp_end),
+                    ws.closed_by_client,
+                    0x8,
+                    _struct.pack("!H", ws.close_code) + ws.close_reason.encode("utf-8"),
+                )
+            )
 
-    return Reqres(1, "hoardy-mitmproxy/1", rq.http_version, request, response, finished_at, {}, wsstream)
+    return Reqres(
+        1, "hoardy-mitmproxy/1", rq.http_version, request, response, finished_at, {}, wsstream
+    )
 
-def rrexprs_mitmproxy_load_fileobj(fobj : _io.BufferedReader, source : DeferredSourceType) -> _t.Iterator[ReqresExpr[StreamElementSource[DeferredSourceType]]]:
+
+def rrexprs_mitmproxy_load_fileobj(
+    fobj: _io.BufferedReader, source: DeferredSourceType
+) -> _t.Iterator[ReqresExpr[StreamElementSource[DeferredSourceType]]]:
     stream = mitmproxy.io.FlowReader(fobj).stream()
     n = 0
     for flow in stream:
@@ -127,7 +156,10 @@ def rrexprs_mitmproxy_load_fileobj(fobj : _io.BufferedReader, source : DeferredS
         yield ReqresExpr(StreamElementSource(source, n), reqres)
         n += 1
 
-def rrexprs_mitmproxy_loadf(path : str | bytes) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
+
+def rrexprs_mitmproxy_loadf(
+    path: str | bytes,
+) -> _t.Iterator[ReqresExpr[StreamElementSource[FileSource]]]:
     with open(path, "rb") as f:
         in_stat = _os.fstat(f.fileno())
         yield from rrexprs_mitmproxy_load_fileobj(f, make_FileSource(path, in_stat))

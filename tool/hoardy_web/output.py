@@ -26,7 +26,8 @@ from kisstdlib.io.stdio import *
 
 from .wrr import *
 
-def plainify(obj : _t.Any) -> _t.Any:
+
+def plainify(obj: _t.Any) -> _t.Any:
     if isinstance(obj, TimeStamp):
         return float(obj)
     elif hasattr(obj, "__dataclass_fields__"):
@@ -37,7 +38,8 @@ def plainify(obj : _t.Any) -> _t.Any:
     else:
         raise Failure("can't plainify a value of type `%s`", type(obj).__name__)
 
-def abridge_anystr(value : _t.AnyStr, length : int, ln : bool) -> tuple[bool, _t.AnyStr]:
+
+def abridge_anystr(value: _t.AnyStr, length: int, ln: bool) -> tuple[bool, _t.AnyStr]:
     hlength = length // 2
     if len(value) > length:
         if isinstance(value, bytes):
@@ -47,7 +49,14 @@ def abridge_anystr(value : _t.AnyStr, length : int, ln : bool) -> tuple[bool, _t
     else:
         return False, value
 
-def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abridge : bool, sniff : SniffContentType) -> None:
+
+def wrr_pprint(
+    fobj: TIOWrappedWriter,
+    reqres: Reqres,
+    path: str | bytes,
+    abridge: bool,
+    sniff: SniffContentType,
+) -> None:
     req = reqres.request
     res = reqres.response
 
@@ -65,31 +74,43 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
             fobj.write_bytes_ln(path)
         else:
             assert False
-    fobj.write_str_ln(f"WEBREQRES/{str(reqres.version)} {reqres.protocol} {req.method} {req.url.raw_url} {code} {reason}")
+    fobj.write_str_ln(
+        f"WEBREQRES/{str(reqres.version)} {reqres.protocol} {req.method} {req.url.raw_url} {code} {reason}"
+    )
     fobj.write_str_ln(f"agent {reqres.agent}")
 
     req_complete = "incomplete"
     if req.complete:
         req_complete = "complete"
-    fobj.write_str_ln(f"request {req_complete} {str(len(req.headers))} headers {str(len(req.body))} bytes")
+    fobj.write_str_ln(
+        f"request {req_complete} {str(len(req.headers))} headers {str(len(req.body))} bytes"
+    )
 
     if res is not None:
         res_complete = "incomplete"
         if res.complete:
             res_complete = "complete"
-        fobj.write_str_ln(f"response {res_complete} {str(len(res.headers))} headers {str(len(res.body))} bytes")
+        fobj.write_str_ln(
+            f"response {res_complete} {str(len(res.headers))} headers {str(len(res.body))} bytes"
+        )
     else:
         fobj.write_str_ln("response none")
 
-    fobj.write_str_ln(f"clock {TimeRange(req.started_at, reqres.finished_at).format_org(precision=3)}")
+    fobj.write_str_ln(
+        f"clock {TimeRange(req.started_at, reqres.finished_at).format_org(precision=3)}"
+    )
 
     if len(reqres.extra) > 0:
         for k, v in reqres.extra.items():
             fobj.write_str(k + " ")
-            fobj.write_bytes(pyrepr_dumps(v, starting_indent = 2, width = 80, default = PyStreamEncoder.encode_py).lstrip())
+            fobj.write_bytes(
+                pyrepr_dumps(
+                    v, starting_indent=2, width=80, default=PyStreamEncoder.encode_py
+                ).lstrip()
+            )
             fobj.write_str_ln("")
 
-    def dump_data(rr : Request | Response, complete : str) -> None:
+    def dump_data(rr: Request | Response, complete: str) -> None:
         data = rr.body
         kinds, mime, charset, _ = rr.discern_content_type(sniff)
 
@@ -107,7 +128,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
                 kinds = set(["json", "text"])
                 mime = "application/json"
                 charset = charset or fobj.encoding
-                data = _json.dumps(js, ensure_ascii = False, indent = 2).encode(fobj.encoding)
+                data = _json.dumps(js, ensure_ascii=False, indent=2).encode(fobj.encoding)
                 unfinished = False
 
         if unfinished and ("cbor" in kinds or "unknown" in kinds) and isinstance(data, bytes):
@@ -117,7 +138,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
                     if len(fp.read()) != 0:
                         # not all of the data was decoded
                         raise Exception("failed to parse")
-                cbordump = pyrepr_dumps(cb, width = 80)
+                cbordump = pyrepr_dumps(cb, width=80)
             except Exception:
                 pass
             else:
@@ -138,7 +159,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
 
         abridged = abridge
         if abridge:
-            abridged, data = abridge_anystr(data, 1024, True) # type: ignore
+            abridged, data = abridge_anystr(data, 1024, True)  # type: ignore
         if abridged:
             status += ", abridged"
 
@@ -147,7 +168,7 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
         fobj.write(data)
         fobj.write_str_ln("")
 
-    def dump_headers(headers : Headers, indent : str = "") -> None:
+    def dump_headers(headers: Headers, indent: str = "") -> None:
         for name, value in headers:
             fobj.write_str(indent + name + ": ")
             fobj.write_bytes_ln(value)
@@ -179,9 +200,12 @@ def wrr_pprint(fobj : TIOWrappedWriter, reqres : Reqres, path : str | bytes, abr
     fobj.write_str_ln("")
     fobj.flush()
 
+
 StreamEncoderElem = _t.TypeVar("StreamEncoderElem")
+
+
 class StreamEncoder:
-    def __init__(self, fobj : TIOWrappedWriter, abridged : bool) -> None:
+    def __init__(self, fobj: TIOWrappedWriter, abridged: bool) -> None:
         self.fobj = fobj
         self.abridged = abridged
         self.not_first = False
@@ -189,28 +213,31 @@ class StreamEncoder:
     def start(self) -> None:
         self.not_first = False
 
-    def emit(self, path : str, names : list[str], values : list[_t.Any]) -> None:
+    def emit(self, path: str, names: list[str], values: list[_t.Any]) -> None:
         pass
 
     def finish(self) -> None:
         self.fobj.flush()
 
+
 class CBORStreamEncoder(StreamEncoder):
-    def __init__(self, fobj : TIOWrappedWriter, abridged : bool) -> None:
+    def __init__(self, fobj: TIOWrappedWriter, abridged: bool) -> None:
         super().__init__(fobj, abridged)
 
         encoders = _cbor2.default_encoders.copy()
         if abridged:
             encoders[bytes] = _t.cast(_t.Any, self.encode_cbor_abridged)
             encoders[str] = _t.cast(_t.Any, self.encode_cbor_abridged)
-        self.encoder = _cbor2.CBOREncoder(_io.BytesIO(), encoders = encoders, default = self.encode_cbor)
+        self.encoder = _cbor2.CBOREncoder(
+            _io.BytesIO(), encoders=encoders, default=self.encode_cbor
+        )
 
     @staticmethod
-    def encode_cbor(enc : _cbor2.CBOREncoder, obj : _t.Any) -> None:
+    def encode_cbor(enc: _cbor2.CBOREncoder, obj: _t.Any) -> None:
         enc.encode(plainify(obj))
 
     @staticmethod
-    def encode_cbor_abridged(enc : _cbor2.CBOREncoder, obj : _t.Any) -> None:
+    def encode_cbor_abridged(enc: _cbor2.CBOREncoder, obj: _t.Any) -> None:
         abridged, value = abridge_anystr(obj, 256, False)
         if isinstance(value, bytes):
             enc.encode_bytestring(value)
@@ -221,33 +248,39 @@ class CBORStreamEncoder(StreamEncoder):
 
     def start(self) -> None:
         super().start()
-        self.fobj.write_bytes(b"\x9f") # start indefinite-length array
+        self.fobj.write_bytes(b"\x9f")  # start indefinite-length array
 
-    def emit(self, path : str, names : list[str], values : list[_t.Any]) -> None:
+    def emit(self, path: str, names: list[str], values: list[_t.Any]) -> None:
         try:
             self.encoder.encode(values)
-            self.fobj.write_bytes(self.encoder.fp.getvalue()) # type: ignore
+            self.fobj.write_bytes(self.encoder.fp.getvalue())  # type: ignore
         finally:
             self.encoder.fp = _io.BytesIO()
 
     def finish(self) -> None:
-        self.fobj.write_bytes(b"\xff") # break symbol
+        self.fobj.write_bytes(b"\xff")  # break symbol
         super().finish()
 
+
 class PyStreamEncoder(StreamEncoder):
-    def __init__(self, fobj : TIOWrappedWriter, abridged : bool) -> None:
+    def __init__(self, fobj: TIOWrappedWriter, abridged: bool) -> None:
         super().__init__(fobj, abridged)
 
         encoders = pyrepr_default_encoders.copy()
         if abridged:
             encoders[bytes] = _t.cast(_t.Any, self.encode_py_abridged)
             encoders[str] = _t.cast(_t.Any, self.encode_py_abridged)
-        self.encoder = PyReprEncoder(_io.BytesIO(),
-                                     width = 80, indent = 2, starting_indent = 0,
-                                     encoders = encoders, default = self.encode_py)
+        self.encoder = PyReprEncoder(
+            _io.BytesIO(),
+            width=80,
+            indent=2,
+            starting_indent=0,
+            encoders=encoders,
+            default=self.encode_py,
+        )
 
     @staticmethod
-    def encode_py(enc : PyReprEncoder, obj : _t.Any) -> None:
+    def encode_py(enc: PyReprEncoder, obj: _t.Any) -> None:
         if isinstance(obj, TimeStamp):
             enc.lexeme(str(obj))
             enc.comment(obj.format())
@@ -255,7 +288,7 @@ class PyStreamEncoder(StreamEncoder):
             enc.encode(plainify(obj))
 
     @staticmethod
-    def encode_py_abridged(enc : PyReprEncoder, obj : _t.AnyStr) -> None:
+    def encode_py_abridged(enc: PyReprEncoder, obj: _t.AnyStr) -> None:
         abridged, value = abridge_anystr(repr(obj), 256, False)
         enc.lexeme(value)
         if abridged:
@@ -268,7 +301,7 @@ class PyStreamEncoder(StreamEncoder):
         super().start()
         self.fobj.write_str_ln("[")
 
-    def emit(self, path : str, names : list[str], values : list[_t.Any]) -> None:
+    def emit(self, path: str, names: list[str], values: list[_t.Any]) -> None:
         try:
             if self.not_first:
                 self.encoder.write_str(",")
@@ -284,19 +317,20 @@ class PyStreamEncoder(StreamEncoder):
         self.fobj.write_str_ln("\n]")
         super().finish()
 
+
 class JSONStreamEncoder(StreamEncoder):
     def start(self) -> None:
         super().start()
         self.fobj.write_str_ln("[")
 
     @staticmethod
-    def encode_json(obj : _t.Any) -> _t.Any:
+    def encode_json(obj: _t.Any) -> _t.Any:
         if isinstance(obj, bytes):
-            return obj.decode("utf-8", errors = "replace")
+            return obj.decode("utf-8", errors="replace")
         return plainify(obj)
 
     @staticmethod
-    def abridge_json(obj : _t.Any) -> _t.Any:
+    def abridge_json(obj: _t.Any) -> _t.Any:
         try:
             obj = plainify(obj)
         except Exception:
@@ -305,7 +339,7 @@ class JSONStreamEncoder(StreamEncoder):
         if obj is None or isinstance(obj, (bool, int, float)):
             return obj
         elif isinstance(obj, (str, bytes)):
-            _, value = abridge_anystr(obj, 256, False) # type: ignore
+            _, value = abridge_anystr(obj, 256, False)  # type: ignore
             return value
         elif isinstance(obj, list):
             return [JSONStreamEncoder.abridge_json(a) for a in obj]
@@ -313,10 +347,10 @@ class JSONStreamEncoder(StreamEncoder):
             return {k: JSONStreamEncoder.abridge_json(v) for k, v in obj.items()}
         raise Failure("can't abridge a value of type `%s`", type(obj).__name__)
 
-    def emit(self, path : str, names : list[str], values : list[_t.Any]) -> None:
+    def emit(self, path: str, names: list[str], values: list[_t.Any]) -> None:
         if self.abridged:
             values = self.abridge_json(values)
-        data = _json.dumps(values, ensure_ascii = False, indent = 2, default = self.encode_json)
+        data = _json.dumps(values, ensure_ascii=False, indent=2, default=self.encode_json)
         if self.not_first:
             self.fobj.write_str_ln(",")
         else:
@@ -327,8 +361,9 @@ class JSONStreamEncoder(StreamEncoder):
         self.fobj.write_str_ln("\n]")
         super().finish()
 
+
 class RawStreamEncoder(StreamEncoder):
-    def __init__(self, fobj : TIOWrappedWriter, abridged : bool, terminator : bytes) -> None:
+    def __init__(self, fobj: TIOWrappedWriter, abridged: bool, terminator: bytes) -> None:
         super().__init__(fobj, abridged)
         self.terminator = terminator
 
@@ -336,18 +371,23 @@ class RawStreamEncoder(StreamEncoder):
         if abridged:
             encoders[bytes] = _t.cast(_t.Any, self.encode_raw_abridged)
             encoders[str] = _t.cast(_t.Any, self.encode_raw_abridged)
-        self.encoder = TIOEncoder(_io.BytesIO(), self.terminator, stdout.encoding,
-                                  encoders = encoders, default = self.encode_raw)
+        self.encoder = TIOEncoder(
+            _io.BytesIO(),
+            self.terminator,
+            stdout.encoding,
+            encoders=encoders,
+            default=self.encode_raw,
+        )
 
     @staticmethod
-    def encode_raw(enc : TIOEncoder, obj : _t.Any) -> None:
+    def encode_raw(enc: TIOEncoder, obj: _t.Any) -> None:
         if isinstance(obj, TimeStamp):
             enc.write_str(str(obj))
         else:
             raise Failure("can't raw-encode a value of type `%s`", type(obj).__name__)
 
     @staticmethod
-    def encode_raw_abridged(enc : TIOEncoder, obj : _t.AnyStr) -> None:
+    def encode_raw_abridged(enc: TIOEncoder, obj: _t.AnyStr) -> None:
         abridged, value = abridge_anystr(obj, 256, False)
         if isinstance(obj, bytes):
             enc.write_bytes(value)
@@ -359,7 +399,7 @@ class RawStreamEncoder(StreamEncoder):
             else:
                 enc.write_str(f" # {len(obj)} characters total")
 
-    def emit(self, path : str, names : list[str], values : list[_t.Any]) -> None:
+    def emit(self, path: str, names: list[str], values: list[_t.Any]) -> None:
         try:
             for i in range(0, len(values)):
                 name, value = names[i], values[i]

@@ -27,6 +27,7 @@ from kisstdlib.exceptions import *
 
 from .io import *
 
+
 class DeferredSource(metaclass=_abc.ABCMeta):
     @_abc.abstractmethod
     def approx_size(self) -> int:
@@ -44,11 +45,12 @@ class DeferredSource(metaclass=_abc.ABCMeta):
         with self.get_fileobj() as f:
             return f.read()
 
-    def same_as(self, other : _t.Any) -> bool:
+    def same_as(self, other: _t.Any) -> bool:
         return False
 
-    def replaces(self, other : _t.Any) -> bool:
+    def replaces(self, other: _t.Any) -> bool:
         return True
+
 
 class UnknownSource(DeferredSource):
     def approx_size(self) -> int:
@@ -63,15 +65,18 @@ class UnknownSource(DeferredSource):
     def get_bytes(self) -> bytes:
         raise NotImplementedError()
 
+
 class _BytesIOReader(_io.BytesIO):
-    def peek(self, size : int = 0) -> bytes:
-        return self.getvalue()[self.tell():size]
+    def peek(self, size: int = 0) -> bytes:
+        return self.getvalue()[self.tell() : size]
+
 
 BytesIOReader = _t.cast(_t.Callable[[bytes], _io.BufferedReader], _BytesIOReader)
 
+
 @_dc.dataclass
 class BytesSource(DeferredSource):
-    data : bytes
+    data: bytes
 
     def approx_size(self) -> int:
         return 16 + len(self.data)
@@ -82,18 +87,18 @@ class BytesSource(DeferredSource):
     def get_bytes(self) -> bytes:
         return self.data
 
-    def replaces(self, other : DeferredSource) -> bool:
-        if isinstance(other, BytesSource) and \
-           self.data == other.data:
+    def replaces(self, other: DeferredSource) -> bool:
+        if isinstance(other, BytesSource) and self.data == other.data:
             return False
         return True
 
+
 @_dc.dataclass
 class FileSource(DeferredSource):
-    path : str | bytes
-    st_mtime_ns : int
-    st_dev : int
-    st_ino : int
+    path: str | bytes
+    st_mtime_ns: int
+    st_dev: int
+    st_ino: int
 
     def approx_size(self) -> int:
         return 40 + len(self.path)
@@ -108,29 +113,35 @@ class FileSource(DeferredSource):
             raise Failure("`%s` changed between accesses", self.path)
         return fobj
 
-    def same_as(self, other : DeferredSource) -> bool:
-        if isinstance(other, FileSource) and \
-           self.st_ino != 0 and other.st_ino != 0 and \
-           self.st_dev == other.st_dev and \
-           self.st_ino == other.st_ino:
+    def same_as(self, other: DeferredSource) -> bool:
+        if (
+            isinstance(other, FileSource)
+            and self.st_ino != 0
+            and other.st_ino != 0
+            and self.st_dev == other.st_dev
+            and self.st_ino == other.st_ino
+        ):
             # same source file inode
             return True
         return False
 
-    def replaces(self, other : DeferredSource) -> bool:
+    def replaces(self, other: DeferredSource) -> bool:
         if isinstance(other, FileSource) and self.path == other.path:
             return False
         return True
 
-def make_FileSource(path : str | bytes, in_stat : _os.stat_result) -> FileSource:
+
+def make_FileSource(path: str | bytes, in_stat: _os.stat_result) -> FileSource:
     return FileSource(path, in_stat.st_mtime_ns, in_stat.st_dev, in_stat.st_ino)
+
 
 DeferredSourceType = _t.TypeVar("DeferredSourceType", bound=DeferredSource)
 
+
 @_dc.dataclass
 class StreamElementSource(DeferredSource, _t.Generic[DeferredSourceType]):
-    stream_source : DeferredSourceType
-    num : int
+    stream_source: DeferredSourceType
+    num: int
 
     def approx_size(self) -> int:
         return 24 + self.stream_source.approx_size()
@@ -144,9 +155,11 @@ class StreamElementSource(DeferredSource, _t.Generic[DeferredSourceType]):
     def get_bytes(self) -> bytes:
         raise NotImplementedError()
 
-    def replaces(self, other : DeferredSource) -> bool:
-        if isinstance(other, StreamElementSource) and \
-           self.stream_source == other.stream_source and \
-           self.num == other.num:
+    def replaces(self, other: DeferredSource) -> bool:
+        if (
+            isinstance(other, StreamElementSource)
+            and self.stream_source == other.stream_source
+            and self.num == other.num
+        ):
             return False
         return True
