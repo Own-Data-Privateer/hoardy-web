@@ -357,12 +357,11 @@ class CSSScrubbingError(Failure):
     pass
 
 
-Scrubbers = tuple[
-    _t.Callable[
-        [URLType, URLRemapperType | None, Headers, _t.Iterator[HTML5Node]], _t.Iterator[HTML5Node]
-    ],
-    _t.Callable[[URLType, URLRemapperType | None, Headers, _t.Iterator[CSSNode]], list[CSSNode]],
+ScrubberNode = _t.TypeVar("ScrubberNode")
+ScrubberType = _t.Callable[
+    [URLType, URLRemapperType | None, Headers, _t.Iterator[ScrubberNode]], _t.Iterable[ScrubberNode]
 ]
+Scrubbers = tuple[ScrubberType[HTML5Node], ScrubberType[CSSNode]]
 
 iepragma_re = _re.compile(
     r"\s*(\[if ((lt|lte|gt|gte)\s+)?IE [^]]*\].*\[endif\]|\[if !IE\]><!|<!\[endif\])\s*"
@@ -1149,13 +1148,14 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
 
     pipe = make_func_pipe(stages)
 
-    process_html = lambda base_url, remap_url, headers, walker: pipe(
-        scrub_html(base_url, remap_url, headers, walker)
+    return (
+        lambda base_url, remap_url, headers, walker: pipe(
+            scrub_html(base_url, remap_url, headers, walker)
+        ),
+        lambda base_url, remap_url, headers, nodes: scrub_css(
+            base_url, remap_url, nodes, 0 if yes_indent else None
+        ),
     )
-    process_css = lambda base_url, remap_url, headers, nodes: scrub_css(
-        base_url, remap_url, nodes, 0 if yes_indent else None
-    )
-    return process_html, process_css
 
 
 def scrub_css(
