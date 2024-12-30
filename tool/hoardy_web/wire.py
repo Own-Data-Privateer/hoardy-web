@@ -427,14 +427,16 @@ def test_parse_url() -> None:
     tests1 = [
         ["http://example.org"] + example_org,
         ["http://example.org/"] + example_org,
-
+        #
+        # with fragments
         ["http://example.org#hash"] + example_org_hash,
         ["http://example.org/#hash"] + example_org_hash,
-
+        #
         # work-around for common typos
         ["http://%20example.org"] + example_org,
         ["http://%20example.org/"] + example_org,
-
+        #
+        # with fragments and quoting
         ["http://example.org/one+two#hash",
          "http://example.org/one%2Btwo",
          "http://example.org/one%2Btwo#hash",
@@ -442,7 +444,8 @@ def test_parse_url() -> None:
          "http://example.org/one+two",
          "http://example.org/one+two#hash",
          "http://example.org/one+two"],
-
+        #
+        # web.archive.org alikes
         ["http://example.org/web/2/http://archived.example.org/one+two#hash",
          "http://example.org/web/2/http://archived.example.org/one%2Btwo",
          "http://example.org/web/2/http://archived.example.org/one%2Btwo#hash",
@@ -468,46 +471,46 @@ def test_parse_url() -> None:
         ["http://example.org/test", None],
         ["http://example.org/test/", None],
         ["http://example.org/unfinished/query?", None],
-
+        #
         ["http://example.org/unfinished/query?param",
          "http://example.org/unfinished/query?"],
-
+        #
         ["http://example.org/unfinished/query?param=",
          "http://example.org/unfinished/query?"],
-
+        #
         ["http://example.org/unfinished/query?param=0", None],
         ["http://example.org/unfinished/query?param=0&param=1", None],
-
+        #
         ["http://example.org/web/2/https://archived.example.org",
          "http://example.org/web/2/https:/archived.example.org"],
-
+        #
         ["http://example.org/web/2/https://archived.example.org/",
          "http://example.org/web/2/https:/archived.example.org/"],
-
+        #
         ["http://example.org/web/2/https://archived.example.org/test",
          "http://example.org/web/2/https:/archived.example.org/test"],
-
+        #
         ["http://example.org/web/2/https://archived.example.org/test/",
          "http://example.org/web/2/https:/archived.example.org/test/"],
-
+        #
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?",
          "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
-
+        #
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param",
          "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
-
+        #
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=",
          "http://example.org/web/2/https:/archived.example.org/unfinished/query?"],
-
+        #
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0",
          "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
-
+        #
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=",
          "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0"],
-
+        #
         ["http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1",
          "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1"],
-
+        #
         # work-arounds for hostnames that `idna` module fails to parse
         ["http://ab-cd-xxxxxxxxx-yyyy.example.org/", None],
         ["http://ab--cd-xxxxxxxxx-yyyy.example.org/", None],

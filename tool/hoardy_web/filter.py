@@ -179,7 +179,8 @@ def mk_grep_filter(get_attr : _t.Callable[[FilterNameType], list[str]],
                    get_inputs : _t.Callable[[FilterValueType], IterSB]) \
                    -> FilterType[FilterValueType]:
     def grep_re_compile(x : str) -> tuple[_re.Pattern[str], _re.Pattern[bytes]]:
-        flags = _re.IGNORECASE if ignore_case is True or ignore_case is None and x.islower() else 0 # smart case
+        # smart case
+        flags = _re.IGNORECASE if ignore_case is True or ignore_case is None and x.islower() else 0
         return _re.compile(x, flags), _re.compile(x.encode("utf-8"), flags)
 
     def grep_str_compile(x : str) -> tuple[_re.Pattern[str], _re.Pattern[bytes]]:

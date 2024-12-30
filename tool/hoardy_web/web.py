@@ -239,8 +239,6 @@ def prettify_html(indent : int, relaxed : bool, walker : _t.Iterator[HTML5Node])
             newline = False
         elif typ == "EmptyTag":
             tn = token["name"]
-            #if tn == "input":
-            #    breakpoint()
             if preserve == 0:
                 yield from emit_indent()
             yield token
@@ -332,7 +330,7 @@ class ScrubbingOptions:
     debug : bool = _dc.field(default=False)
 
 ScrubbingReferenceOptions = ["jumps", "actions", "reqs"]
-ScrubbingDynamicOpts = ["styles", "scripts", "iepragmas", "iframes", "prefetches", "tracking", "navigations"]
+ScrubbingDynamicOpts = ["styles", "scripts", "iepragmas", "iframes", "prefetches", "tracking", "navigations"]  # fmt: skip
 
 class CSSScrubbingError(Failure): pass
 
@@ -357,13 +355,13 @@ attr_ref_type = {
     #(htmlns_link,   href_attr): handled_separately,
     (htmlns_object, data_attr): jump_ref,
     (htmlns_q,      cite_attr): jump_ref,
-
+    #
     (htmlns_a,      ping_attr): action_ref,
     (htmlns_area,   ping_attr): action_ref,
     (htmlns_button, formaction_attr): action_ref,
     (htmlns_form,   action_attr): action_ref,
     (htmlns_input,  formaction_attr): action_ref,
-
+    #
     (htmlns_audio,  src_attr): (LinkType.REQ, audio_mime + audio_video_mime),
     (htmlns_embed,  src_attr): (LinkType.REQ, ["application/octet-stream"]),
     (htmlns_frame,  src_attr): (LinkType.REQ, page_mime),
@@ -735,12 +733,13 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
 
                 # handle <base ...> tag
                 if nn == htmlns_base and in_head:
-                    href = map_optional(lambda x: x.strip(), attrs.pop(href_attr, None)) # NB: pop!
+                    # NB: pop!
+                    href = map_optional(lambda x: x.strip(), attrs.pop(href_attr, None))
                     if base_url_unset and href is not None:
                         # add root slash to the URL if it's missing one
                         purl = _up.urlsplit(href)
                         if purl.netloc != "" and purl.path == "":
-                            href = _up.urlunsplit((purl.scheme, purl.netloc, "/", purl.query, purl.fragment))
+                            href = _up.urlunsplit((purl.scheme, purl.netloc, "/", purl.query, purl.fragment))  # fmt: skip
                         else:
                             href = purl.geturl()
                         href = _up.urljoin(orig_base_url, href)
@@ -750,7 +749,8 @@ def make_scrubbers(opts : ScrubbingOptions) -> Scrubbers:
                         # can only be set once
                         base_url_unset = False
 
-                    target = map_optional(lambda x: x.strip(), attrs.get(target_attr, None)) # NB: get!
+                    # NB: get!
+                    target = map_optional(lambda x: x.strip(), attrs.get(target_attr, None))
                     if base_target_unset and target is not None:
                         base_target_unset = False
                         # and allow this tag to be emitted

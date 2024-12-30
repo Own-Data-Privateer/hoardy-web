@@ -297,10 +297,10 @@ def wrr_dump(fobj : _io.BufferedWriter, reqres : Reqres, compress : bool = True)
 
 ReqresExpr_derived_attrs = {
     "fs_path": "file system path for the WRR file containing this reqres; str | bytes | None",
-
+    #
     "raw_url": "aliast for `request.url`; str",
     "method": "aliast for `request.method`; str",
-
+    #
     "qtime": 'aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; TimeStamp',
     "qtime_ms": "`qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "qtime_msq": "three least significant digits of `qtime_ms`; int",
@@ -310,7 +310,7 @@ ReqresExpr_derived_attrs = {
     "qhour": "hour of `gmtime(qtime)` in 24h format; int",
     "qminute": "minute of `gmtime(qtime)`; int",
     "qsecond": "second of `gmtime(qtime)`; int",
-
+    #
     "stime": '`response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; seconds since UNIX epoch; TimeStamp',
     "stime_ms": "`stime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "stime_msq": "three least significant digits of `stime_ms`; int",
@@ -320,7 +320,7 @@ ReqresExpr_derived_attrs = {
     "shour": "similar to `qhour`, but for `stime`; int",
     "sminute": "similar to `qminute`, but for `stime`; int",
     "ssecond": "similar to `qsecond`, but for `stime`; int",
-
+    #
     "ftime": "aliast for `finished_at`; seconds since UNIX epoch; TimeStamp",
     "ftime_ms": "`ftime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "ftime_msq": "three least significant digits of `ftime_ms`; int",
@@ -339,6 +339,7 @@ ReqresExpr_url_attrs = {
     "pretty_url": "`pretty_net_url` with `fragment`/hash part appended; str",
     "pretty_net_nurl": "a variant of `pretty_net_url` that uses `mq_npath` instead of `mq_path` and `mq_nquery` instead of `mq_query`; i.e. this is `pretty_net_url` with normalized path and query; str",
     "pretty_nurl": "`pretty_net_nurl` with `fragment`/hash part appended; str",
+    #
     "scheme": "scheme part of `raw_url`; e.g. `http`, `https`, etc; str",
     "raw_hostname": "hostname part of `raw_url` as it is recorded in the reqres; str",
     "net_hostname": "hostname part of `raw_url`, encoded as Punycode UTS46 IDNA; this is what actually gets sent to the server; ASCII str",
@@ -346,12 +347,14 @@ ReqresExpr_url_attrs = {
     "rhostname": '`hostname` with the order of its parts reversed; e.g. `"www.example.org"` -> `"com.example.www"`; str',
     "port": 'port part of `raw_url`; str',
     "netloc": "netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str",
+    #
     "raw_path": 'raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str',
     "path_parts": 'component-wise unquoted "/"-split `raw_path`; list[str]',
     "path": "`path_parts` turned back into a quoted string, i.e. `raw_path` normalized like browsers do it; str",
     "npath_parts": '`path_parts` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]',
     "mq_path": "`path_parts` turned back into a minimally-quoted string; str",
     "mq_npath": "`npath_parts` turned back into a minimally-quoted string; str",
+    #
     "raw_query": "query part of `raw_url`, i.e. everything after the `?` character and before the `#` character; str",
     "query_parts": "parsed and component-wise unquoted `raw_query`; list[tuple[str, str | None]]",
     "query": "`query_parts` turned back into a quoted string, i.e. `raw_query` normalized like browsers do it; str",
@@ -359,16 +362,17 @@ ReqresExpr_url_attrs = {
     "mq_query": "`query_parts` turned back into a minimally-quoted string appropriate for use in filenames; str",
     "mq_nquery": "`query_ne_parts` turned back into a minimally-quoted string appropriate for use in filenames; str",
     "oqm": "optional query mark: `?` character if `query` is non-empty, an empty string otherwise; str",
+    #
     "fragment": "fragment (hash) part of the url; str",
     "ofm": "optional fragment mark: `#` character if `fragment` is non-empty, an empty string otherwise; str",
 }
 ReqresExpr_derived_attrs.update(ReqresExpr_url_attrs)
 ReqresExpr_derived_attrs.update({
     "status": '`"I"` or  `"C"` for `request.complete` (`I` for `false` , `C` for `true`) followed by either `"N"` when `response is None`, or `str(response.code)` followed by `"I"` or  `"C"` for `response.complete`; e.g. `C200C` (all "OK"), `CN` (request was sent, but it got no response), `I200C` (partial request with complete "OK" response), `C200I` (complete request with incomplete response, e.g. if download was interrupted), `C404C` (complete request with complete "Not Found" response), etc; str',
-
+    #
     "request_mime": "`request.body` `MIME` type, note the underscore, this is not a field of `request`, this is a derived value that depends on `request` `Content-Type` header and `--sniff*` settings; str or None",
     "response_mime": "`response.body` `MIME` type, note the underscore, this is not a field of `response`, this is a derived value that depends on `response` `Content-Type` header and `--sniff*` settings; str or None",
-
+    #
     "filepath_parts": '`npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response_mime`; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
     "filepath_ext": 'extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str',
 })

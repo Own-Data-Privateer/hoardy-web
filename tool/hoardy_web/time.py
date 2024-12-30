@@ -151,6 +151,7 @@ def test_parse_TimeStamp() -> None:
             if (res, left) != (value, leftover):
                 raise CatastrophicFailure("while parsing `%s`, expected %s, got %s", x, (value, leftover), (res, left))
 
+    # fmt: off
     check("@123",                       TimeStamp(123))
     check("@123.456",                   TimeStamp("123.456"))
     check("2024",                       TimeStamp(1704067200))
@@ -189,6 +190,7 @@ def test_parse_TimeStamp() -> None:
 
     check("20241231120716456-0100 or so",     TimeStamp("1735650436.456"), " or so")
     check("2024-12-31 12:07:16 -0100 or so",  TimeStamp(1735650436), " or so")
+    # fmt: on
 
 def test_format_TimeStamp() -> None:
     assert timestamp("2024-12-31 12:07:16.456789", utc=True).format(precision=3, utc=True) == "2024-12-31 12:07:16.456"
@@ -201,6 +203,7 @@ def test_parse_TimeStamp_end() -> None:
         if (res, left) != (value, leftover):
             raise CatastrophicFailure("while parsing `%s`, expected %s, got %s", x, (value, leftover), res)
 
+    # fmt: off
     check("@123",                       TimeStamp(124))
     check("@123.456",                   TimeStamp("123.457"))
     check("2024",                       timestamp("2025-01-01", utc=True))
@@ -218,6 +221,7 @@ def test_parse_TimeStamp_end() -> None:
     check("2024-12-31 23:59:59",        timestamp("2025-01-01 00:00", utc=True))
     check("2024-12-31 23:59:59.5",      timestamp("2024-12-31 23:59:59.6", utc=True))
     check("2024-12-31 23:59:59.9",      timestamp("2025-01-01 00:00", utc=True))
+    # fmt: on
 
 timerange_pre_re = _re.compile(r"[([{<]?")
 timerange_post_re = _re.compile(r"[)\]}>]?")
@@ -310,6 +314,7 @@ def test_parse_TimeRange() -> None:
             if res != (value, leftover):
                 raise CatastrophicFailure("while parsing `%s`, expected %s, got %s", x, (value, leftover), res)
 
+    # fmt: off
     check("*",                          anytime)
     check(["@123--@125",
            "<@123>--<@125>"],           TimeRange(TimeStamp(123), TimeStamp(126)))
@@ -323,5 +328,7 @@ def test_parse_TimeRange() -> None:
                                                   timestamp("2024-12-31 12:01", utc=True)))
     check("2024-12-31 23:59",           TimeRange(timestamp("2024-12-31 23:59", utc=True),
                                                   timestamp("2025-01-01 00:00", utc=True)))
-    check("[2024-12-31 23:59]--[2025-01-02]", TimeRange(timestamp("2024-12-31 23:59", utc=True),
-                                                        timestamp("2025-01-03 00:00", utc=True)))
+    check("[2024-12-31 23:59]--[2025-01-02]",
+                                        TimeRange(timestamp("2024-12-31 23:59", utc=True),
+                                                  timestamp("2025-01-03 00:00", utc=True)))
+    # fmt: on

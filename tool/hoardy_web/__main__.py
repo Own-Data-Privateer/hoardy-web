@@ -122,8 +122,7 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
     filters : list[FilterType[ReqresExpr[_t.Any]]] = []
 
     def add_yn_timestamp_filter(name : str, pred : _t.Callable[[str, TimeStamp, ReqresExpr[_t.Any]], bool]) -> None:
-        add_yn_filter(filters, get_attr, get_optname, name,
-                      mk_simple_filter, timestamp, lambda c, v: matches_all(pred, c, v))
+        add_yn_filter(filters, get_attr, get_optname, name, mk_simple_filter, timestamp, lambda c, v: matches_all(pred, c, v))  # fmt: skip
 
     def is_before(k : _t.Any, stime : TimeStamp, rrexpr : ReqresExpr[_t.Any]) -> bool:
         rrstime : TimeStamp = rrexpr.stime
@@ -145,7 +144,7 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
             l = [ value ] if value is not None else []
             return l, l
 
-        add_yn_filter(filters, get_attr, get_optname, name, mk_str_filter, str_id, str_id, get_inputs)
+        add_yn_filter(filters, get_attr, get_optname, name, mk_str_filter, str_id, str_id, get_inputs)  # fmt: skip
 
     add_yn_field_filter("protocol")
     add_yn_field_filter("request_method", "request.method")
@@ -160,7 +159,7 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
             lnet_url = [net_url]
             return lnet_url, lambda: [net_url, rrexpr.pretty_net_url]
 
-        add_yn_filter(filters, get_attr, get_optname, name, mk_str_filter, neturlify, neturlify, get_inputs)
+        add_yn_filter(filters, get_attr, get_optname, name, mk_str_filter, neturlify, neturlify, get_inputs)  # fmt: skip
 
     add_yn_url_filter("url")
 
@@ -172,7 +171,7 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
                 return get_raw_headers_bytes(value)
             return []
 
-        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)
+        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)  # fmt: skip
 
     def add_yn_field_grep_filter(name : str, field : str,
                                  matches : PredicateMatchesType[str, PatternSB, IterSB]) -> None:
@@ -181,7 +180,7 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
             l = [ value ] if value is not None else []
             return l
 
-        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)
+        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)  # fmt: skip
 
     def add_rr(side : str) -> None:
         add_yn_headers_grep_filter(f"{side}_headers_or_grep", f"{side}.headers", matches_any)
@@ -204,7 +203,7 @@ def compile_filters(cargs : _t.Any, attr_prefix : str = "") -> FilterType[Reqres
                 res.append(reqres.response.body)
             return res
 
-        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)
+        add_yn_filter(filters, get_attr, get_optname, name, mk_grep_filter, cargs.ignore_case, matches, get_inputs)  # fmt: skip
 
     add_yn_grep_filter("or_grep", matches_any)
     add_yn_grep_filter("and_grep", matches_all)
@@ -274,8 +273,11 @@ def load_map_orderly(load_func : LoadFFunc[_t.AnyStr, LoadResult],
             if follow_symlinks:
                 abs_path = _os.path.realpath(abs_path)
 
-            if seen_paths is not None and \
-               abs_path != abs_dir_or_file_path: # do not skip top-level paths added above
+            if (
+                seen_paths is not None
+                # do not skip top-level paths added above
+                and abs_path != abs_dir_or_file_path
+            ):
                 if abs_path in seen_paths:
                     continue
                 seen_paths.add(abs_path)
@@ -574,6 +576,7 @@ atom_test = [
 def atom_example(name : str, indent : int) -> str:
     return make_example(lambda url: getattr(parse_url(url), name), indent)
 
+# fmt: off
 ofdsd  = "%(syear)d/%(smonth)02d/%(sday)02d"
 ofdms  = "%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d"
 ofdd  = f"%(syear)d-%(smonth)02d-%(sday)02d_{ofdms}"
@@ -670,6 +673,7 @@ output_alias = {
 content_output_alias = {
     "default": "_content/sha256/%(content_sha256|take_prefix 1|to_hex)s/%(content_sha256|to_hex)s%(filepath_ext)s"
 }
+# fmt: on
 
 def output_example(name : str, indent : int) -> str:
     def gen(url : str) -> str:
@@ -2037,7 +2041,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
                         qstime, qrrexpr = qobj
                         if nearer_to_than(nearest, stime, qstime):
                             queue[pid] = (stime, rrexpr)
-                            report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1, qstime)
+                            report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1, qstime)  # fmt: skip
                         unqueued = False
 
             if unqueued and should_enqueue and root_filters_allow(rrexpr):
@@ -2045,7 +2049,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
                 pid = request_id if nearest is not None else page_id
                 #     ^ not `--all`                          ^ otherwise
                 queue[pid] = (stime, rrexpr)
-                report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1)
+                report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1)  # fmt: skip
 
             if unqueued or mem.consumption > max_memory_mib:
                 rrexpr.unload()
@@ -2180,7 +2184,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
 
                             # render it immediately
                             # NB: (breakCycles) breaks dependency cycles that can make this loop infinitely
-                            uabs_out_path = render(ustime, unet_url, upage_id, urrexpr, get_abs_out_path(urrexpr), enqueue, new_queue, level + 1)
+                            uabs_out_path = render(ustime, unet_url, upage_id, urrexpr, get_abs_out_path(urrexpr), enqueue, new_queue, level + 1)  # fmt: skip
                             urrexpr.unload()
                     elif id(urrexpr) in done:
                         # nothing to do
@@ -2195,7 +2199,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
                     elif enqueue:
                         uabs_out_path = get_abs_out_path(urrexpr)
                         new_queue[upage_id] = uobj
-                        report_queued(ustime, unet_url, upurl.pretty_net_url, urrexpr.source, level + 1)
+                        report_queued(ustime, unet_url, upurl.pretty_net_url, urrexpr.source, level + 1)  # fmt: skip
                         if mem.consumption > max_memory_mib:
                             rrexpr.unload()
                     else:
@@ -2299,7 +2303,7 @@ def cmd_mirror(cargs : _t.Any) -> None:
             else:
                 qrequest_id = qpid[1]
             qpage_id = (qstime, qrequest_id)
-            render(qstime, qrrexpr.net_url, qpage_id, qrrexpr, get_abs_out_path(qrrexpr), enqueue, new_queue, 0)
+            render(qstime, qrrexpr.net_url, qpage_id, qrrexpr, get_abs_out_path(qrrexpr), enqueue, new_queue, 0)  # fmt: skip
             qrrexpr.unload()
 
         queue = new_queue
@@ -2545,11 +2549,17 @@ def cmd_serve(cargs : _t.Any) -> None:
                 return None
             url_re = _re.compile(translate(turl))
             visits_total, url_visits = get_visits(url_re, interval.start, interval.end)
-            return locate_page.render({"matching": True, # type: ignore
-                                       "selector": selector,
-                                       "start": interval.start.format(), "end": interval.end.format(),
-                                       "pattern": turl,
-                                       "visits_total": visits_total, "url_visits": url_visits})
+            return locate_page.render(  # type: ignore
+                {
+                    "matching": True,
+                    "selector": selector,
+                    "start": interval.start.format(),
+                    "end": interval.end.format(),
+                    "pattern": turl,
+                    "visits_total": visits_total,
+                    "url_visits": url_visits,
+                }
+            )
 
         ideal : TimeStamp
         if selector in ["-inf", "0", "1", "oldest", "old", "first"]:
@@ -2594,13 +2604,18 @@ def cmd_serve(cargs : _t.Any) -> None:
                 visits_total, url_visits = get_visits(url_re, anytime.start, anytime.end)
 
                 bottle.response.status = 404
-                return locate_page.render({"matching": False, # type: ignore
-                                           "net_url": net_url,
-                                           "pretty_net_url": turl,
-                                           "selector": "*",
-                                           #"start": anytime.start.format(), "end": anytime.end.format(),
-                                           "pattern": pattern,
-                                           "visits_total": visits_total, "url_visits": url_visits})
+                return locate_page.render(  # type: ignore
+                    {
+                        "matching": False,
+                        "net_url": net_url,
+                        "pretty_net_url": turl,
+                        "selector": "*",
+                        # "start": anytime.start.format(), "end": anytime.end.format(),
+                        "pattern": pattern,
+                        "visits_total": visits_total,
+                        "url_visits": url_visits,
+                    }
+                )
 
         stime, rrexpr = uobj
         stime_selector = stime.format(time_format, precision=precision)
@@ -2737,6 +2752,7 @@ def cmd_serve(cargs : _t.Any) -> None:
 def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     _ : _t.Callable[[str], str] = gettext
 
+    # fmt: off
     fmt.add_text(_("# Examples"))
 
     fmt.start_section(_("Pretty-print all reqres in `../simple_server/pwebarc-dump` using an abridged (for ease of reading and rendering) verbose textual representation"))
@@ -2819,6 +2835,7 @@ def add_doc(fmt : argparse.BetterHelpFormatter) -> None:
     fmt.add_text(_("Or you could just dump raw response bodies separately:"))
     fmt.add_code(f"{__prog__} stream --format=raw -ue response.body ../simple_server/pwebarc-dump/path/to/file.wrr | less")
     fmt.add_code(f"{__prog__} get ../simple_server/pwebarc-dump/path/to/file.wrr | less")
+    # fmt: on
 
 class ArgumentParser(argparse.BetterArgumentParser):
     def error(self, message : str) -> _t.NoReturn:
@@ -2836,6 +2853,8 @@ _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a struct
         allow_abbrev = False,
         add_version = True,
         add_help = False)
+
+    # fmt: off
     parser.add_argument("-h", "--help", action="store_true", help=_("show this help message and exit"))
     parser.add_argument("--markdown", action="store_true", help=_("show help messages formatted in Markdown"))
 
@@ -3669,6 +3688,7 @@ The end.
     cmd.set_defaults(web_replay = True)
 
     cmd.set_defaults(func=cmd_serve)
+    # fmt: on
 
     return parser
 
