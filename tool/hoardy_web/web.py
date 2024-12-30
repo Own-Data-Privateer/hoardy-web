@@ -437,10 +437,16 @@ icon_link_rels = frozenset(
 
 link_rel_ref_type: dict[str, RefType]
 link_rel_ref_type = {}
-for e in stylesheet_link_rels:
-    link_rel_ref_type[e] = (LinkType.REQ, stylesheet_mime)
-for e in icon_link_rels:
-    link_rel_ref_type[e] = (LinkType.REQ, image_mime)
+
+
+def populate_link_rel_ref_type() -> None:
+    for e in stylesheet_link_rels:
+        link_rel_ref_type[e] = (LinkType.REQ, stylesheet_mime)
+    for e in icon_link_rels:
+        link_rel_ref_type[e] = (LinkType.REQ, image_mime)
+
+
+populate_link_rel_ref_type()
 
 
 def link_rels_of(

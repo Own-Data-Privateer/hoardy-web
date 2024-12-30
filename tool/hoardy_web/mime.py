@@ -120,14 +120,19 @@ mime_info_of = {
 possible_mimes_of_ext: dict[str, list[str]]
 possible_mimes_of_ext = {}
 
-for ct, (kinds, exts) in mime_info_of.items():
-    for ext in exts:
-        try:
-            ms = possible_mimes_of_ext[ext]
-        except KeyError:
-            ms = []
-            possible_mimes_of_ext[ext] = ms
-        ms.append(ct)
+
+def populate_possible_mimes_of_ext() -> None:
+    for ct, (_kinds, exts) in mime_info_of.items():
+        for ext in exts:
+            try:
+                ms = possible_mimes_of_ext[ext]
+            except KeyError:
+                ms = []
+                possible_mimes_of_ext[ext] = ms
+            ms.append(ct)
+
+
+populate_possible_mimes_of_ext()
 
 unknown_binary = ["unknown", "image", "audio", "video", "font", "dyndoc", "archive"]
 any_text = ["text", "javascript", "css", "json"]
