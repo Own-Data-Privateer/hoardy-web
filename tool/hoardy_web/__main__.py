@@ -3157,33 +3157,35 @@ class ArgumentParser(argparse.BetterArgumentParser):
 def make_argparser(real: bool = True) -> ArgumentParser:
     _: _t.Callable[[str], str] = gettext
 
+    # fmt: off
     parser = ArgumentParser(
         prog=__prog__,
-        description=_(
-            'Inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.'
-        )
+        description=_('Inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.')
         + "\n\n"
-        + _(
-            "Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata."
-        ),
+        + _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata."),
         additional_sections=[add_doc],
         allow_abbrev=False,
         add_version=True,
         add_help=False,
     )
 
-    # fmt: off
-    parser.add_argument("-h", "--help", action="store_true", help=_("show this help message and exit"))
-    parser.add_argument("--markdown", action="store_true", help=_("show help messages formatted in Markdown"))
+    parser.add_argument("-h", "--help", action="store_true",
+        help=_("show this help message and exit"),
+    )
+    parser.add_argument("--markdown", action="store_true",
+        help=_("show help messages formatted in Markdown"),
+    )
 
     subparsers = parser.add_subparsers(title="subcommands")
 
-    def add_errors(cmd : _t.Any) -> None:
+    def add_errors(cmd: _t.Any) -> None:
         grp = cmd.add_argument_group("error handling")
-        grp.add_argument("--errors", choices=["fail", "skip", "ignore"], default="fail", help=_("""when an error occurs:
+        grp.add_argument("--errors", choices=["fail", "skip", "ignore"], default="fail",
+            help=_("""when an error occurs:
 - `fail`: report failure and stop the execution; default
 - `skip`: report failure but skip the reqres that produced it from the output and continue
-- `ignore`: `skip`, but don't report the failure"""))
+- `ignore`: `skip`, but don't report the failure"""),
+        )
 
     date_spec = _("; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`")
     date_spec_id = _("; the `DATE` format is the same as above")
@@ -3193,43 +3195,61 @@ def make_argparser(real: bool = True) -> ArgumentParser:
     ie_whitelist = _("; in short, this option defines a whitelisted element rule")
     ie_blacklist = _("; in short, this option defines a blacklisted element rule")
 
-    def add_filter_options(cmd : _t.Any) -> None:
+    def add_filter_options(cmd: _t.Any) -> None:
         agrp = cmd.add_argument_group("filtering options")
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--ignore-case", dest="ignore_case", action="store_const", const=True, help=_("when filtering with `--*grep*`, match case-insensitively"))
-        grp.add_argument("--case-sensitive", dest="ignore_case", action="store_const", const=False, help=_("when filtering with `--*grep*`, match case-sensitively"))
-        grp.add_argument("--smart-case", dest="ignore_case", action="store_const", const=None, help=_("when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default"))
+        grp.add_argument("--ignore-case", dest="ignore_case", action="store_const", const=True,
+            help=_("when filtering with `--*grep*`, match case-insensitively"),
+        )
+        grp.add_argument("--case-sensitive", dest="ignore_case", action="store_const", const=False,
+            help=_("when filtering with `--*grep*`, match case-sensitively"),
+        )
+        grp.add_argument("--smart-case", dest="ignore_case", action="store_const", const=None,
+            help=_("when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default"),
+        )
 
-    def add_filters(cmd : _t.Any, do_what : str, root : bool = False) -> None:
+    def add_filters(cmd: _t.Any, do_what: str, root: bool = False) -> None:
         if not root:
-            intro = gettext("input filters; if none are specified, then all reqres from input `PATH`s will be taken")
+            intro = _("input filters; if none are specified, then all reqres from input `PATH`s will be taken")
             opt_prefix = ""
             root_short = []
         else:
-            intro = gettext("recursion root filters; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`)")
+            intro = _("recursion root filters; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`)")
             opt_prefix = "root-"
             root_short = ["--root", "-r"]
 
-        agrp = cmd.add_argument_group(intro + gettext("""; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`"""))
+        agrp = cmd.add_argument_group(
+            intro
+            + _("""; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`""")
+        )
 
-        def add_time_filter(opt : str, what : str, sub : str) -> None:
-            agrp.add_argument(f"--{opt_prefix}{opt}", metavar="DATE", action="append", type=str, default = [], help=_(f"{do_what} its `stime` is {what} than this") + sub)
+        def add_time_filter(opt: str, what: str, sub: str) -> None:
+            agrp.add_argument(f"--{opt_prefix}{opt}", metavar="DATE", action="append", type=str, default=[],
+                help=_(f"{do_what} its `stime` is {what} than this") + sub,
+            )
 
         add_time_filter("before", "smaller", date_spec)
         add_time_filter("not-before", "larger or equal", date_spec_id)
         add_time_filter("after", "larger", date_spec_id)
         add_time_filter("not-after", "smaller or equal", date_spec_id)
 
-        def map_opts(suffix : str, *opts : str) -> list[str]:
+        def map_opts(suffix: str, *opts: str) -> list[str]:
             return list(map(lambda opt: f"--{opt_prefix}{opt}{suffix}", opts))
 
         def add_str_filter(  # pylint: disable=dangerous-default-value
-            opt : str, yes : bool,
-            what : str, what_p : str, what_re : str,
+            opt: str,
+            yes: bool,
+            what: str,
+            what_p: str,
+            what_re: str,
             *,
-            short : list[str] = [],
-            abs_short : list[str] = [], abs_short_p : list[str] = [], abs_short_re : list[str] = [],
-            sub : str = "", sub_p : str = "", sub_re : str = ""
+            short: list[str] = [],
+            abs_short: list[str] = [],
+            abs_short_p: list[str] = [],
+            abs_short_re: list[str] = [],
+            sub: str = "",
+            sub_p: str = "",
+            sub_re: str = "",
         ) -> None:
             metavar = opt.upper().replace("-", "_")
             if yes:
@@ -3237,54 +3257,76 @@ def make_argparser(real: bool = True) -> ArgumentParser:
             else:
                 one_of, is_equal_to, is_a_prefix, matches, wb = "none of", "are equal to", "are a prefix", "match", ie_blacklist
 
-            agrp.add_argument(*map_opts("", opt, *short), *abs_short, metavar=metavar, action="append", type=str, default = [], help=_(f"{do_what} {one_of} the given `{metavar}` option arguments {is_equal_to} its {what}") + sub + wb)
-            agrp.add_argument(*map_opts("-prefix", opt, *short), *abs_short_p, metavar=f"{metavar}_PREFIX", action="append", type=str, default = [], help=_(f"{do_what} {one_of} the given `{metavar}_PREFIX` option arguments {is_a_prefix} of its {what_p}") + sub_p + wb)
-            agrp.add_argument(*map_opts("-re", opt, *short), *abs_short_re, metavar=f"{metavar}_RE", action="append", type=str, default = [], help=_(f"{do_what} {one_of} the given `{metavar}_RE` regular expressions {matches} its {what_re}") + sub_re + wb)
+            agrp.add_argument(*map_opts("", opt, *short), *abs_short, metavar=metavar, action="append", type=str, default=[],
+                help=_(f"{do_what} {one_of} the given `{metavar}` option arguments {is_equal_to} its {what}")
+                + sub + wb,
+            )
+            agrp.add_argument(*map_opts("-prefix", opt, *short), *abs_short_p, metavar=f"{metavar}_PREFIX", action="append", type=str, default=[],
+                help=_(f"{do_what} {one_of} the given `{metavar}_PREFIX` option arguments {is_a_prefix} of its {what_p}")
+                + sub_p + wb,
+            )
+            agrp.add_argument(*map_opts("-re", opt, *short), *abs_short_re, metavar=f"{metavar}_RE", action="append", type=str, default=[],
+                help=_(f"{do_what} {one_of} the given `{metavar}_RE` regular expressions {matches} its {what_re}")
+                + sub_re + wb,
+            )
 
-        def add_yn_str_filter(opt : str, *args : _t.Any, **kwargs : _t.Any) -> None:
+        def add_yn_str_filter(opt: str, *args: _t.Any, **kwargs: _t.Any) -> None:
             add_str_filter(opt, True, *args, **kwargs)
             kwargs["short"] = map(lambda opt: "not-" + opt, kwargs.get("short", []))
             add_str_filter("not-" + opt, False, *args, **kwargs)
 
-        def add_field_filter(opt : str, field : str, *args : _t.Any, **kwargs : _t.Any) -> None:
+        def add_field_filter(opt: str, field: str, *args: _t.Any, **kwargs: _t.Any) -> None:
             what = f"`{field}` (of `{__prog__} get --expr`, which see)"
             kwargs["sub_re"] = kwargs["sub_re"] + " " + fullmatch_re if "sub_re" in kwargs else fullmatch_re
             add_yn_str_filter(opt, what, what, what, *args, **kwargs)
 
         add_field_filter("protocol", "protocol")
-        add_field_filter("request-method", "request.method", short = ["method"])
+        add_field_filter("request-method", "request.method", short=["method"])
         add_field_filter("status", "status")
 
-        mixed_url_allowed = (_("; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `%s` will be silently normalized into its Punycode UTS46 and percent-encoded version of `%s`, which will then be matched against") % (example_url[-1], example_url[-2])).replace('%', '%%')
+        mixed_url_allowed = (
+            _("; Punycode UTS46 IDNAs, plain UNICODE IDNAs, percent-encoded URL components, and UNICODE URL components in arbitrary mixes and combinations are allowed; e.g. `%s` will be silently normalized into its Punycode UTS46 and percent-encoded version of `%s`, which will then be matched against")
+            % (example_url[-1], example_url[-2])
+        ).replace("%", "%%")
         similarly_allowed = _("; similarly to the previous option, arbitrary mixes of URL encodinds are allowed")
         unmixed_reurl_allowed = _("; only Punycode UTS46 IDNAs with percent-encoded URL components or plain UNICODE IDNAs with UNICODE URL components are allowed; regular expressions that use mixes of differently encoded parts will fail to match properly")
         same_allowed = _("; option argument format and caveats are idential to the `not-`less option above")
 
-        def add_url_filter(opt : str, field : str, yes : bool, **kwargs : _t.Any) -> None:
+        def add_url_filter(opt: str, field: str, yes: bool, **kwargs: _t.Any) -> None:
             what = f"`{field}` (of `{__prog__} get --expr`, which see)"
-            add_str_filter(opt, yes,
-                           what, what,
-                           f"`{field}` or `pretty_{field}` (of `{__prog__} get --expr`, which see)",
-                           sub = mixed_url_allowed if yes else same_allowed,
-                           sub_p = similarly_allowed if yes else same_allowed,
-                           sub_re = unmixed_reurl_allowed + fullmatch_re if yes else same_allowed,
-                           **kwargs)
+            add_str_filter(opt, yes, what, what,
+                f"`{field}` or `pretty_{field}` (of `{__prog__} get --expr`, which see)",
+                sub=mixed_url_allowed if yes else same_allowed,
+                sub_p=similarly_allowed if yes else same_allowed,
+                sub_re=unmixed_reurl_allowed + fullmatch_re if yes else same_allowed,
+                **kwargs,
+            )
 
-        add_url_filter("url", "net_url", True, abs_short_p = root_short)
+        add_url_filter("url", "net_url", True, abs_short_p=root_short)
         add_url_filter("not-url", "net_url", False)
 
-        def add_grep_filter( # pylint: disable=dangerous-default-value
-            opt : str, metavar : str,
-            what: str, what_re : str,
-            short : list[str] = [],
-            sub : str = "", sub_re : str = ""
+        def add_grep_filter(  # pylint: disable=dangerous-default-value
+            opt: str,
+            metavar: str,
+            what: str,
+            what_re: str,
+            short: list[str] = [],
+            sub: str = "",
+            sub_re: str = "",
         ) -> None:
-            agrp.add_argument(*map_opts("", opt, *short), metavar=metavar, action="append", type=str, default = [], help=_(f"{do_what} {what}") + sub)
-            agrp.add_argument(*map_opts("-re", opt, *short), metavar=f"{metavar}_RE", action="append", type=str, default = [], help=_(f"{do_what} {what_re}") + sub_re)
+            agrp.add_argument(*map_opts("", opt, *short), metavar=metavar, action="append", type=str, default=[],
+                help=_(f"{do_what} {what}") + sub,
+            )
+            agrp.add_argument(*map_opts("-re", opt, *short), metavar=f"{metavar}_RE", action="append", type=str, default=[],
+                help=_(f"{do_what} {what_re}") + sub_re,
+            )
 
         grep_headers = _("; each `HTTP` header of `*.headers` is matched as a single `<header_name>: <header_value>` value")
-        grep_binary =  _("; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly")
-        def add_greps(prefix : str, opt : str, multi : bool, what : str, what_id : str, sub : str, sub_id : str) -> None:
+        grep_binary = _("; at the moment, binary values are matched against given option arguments by encoding the latter into `UTF-8` first, which means that `*.headers` and `*.body` values that use encodings other than `UTF-8` are not guaranteed to match properly")
+
+        def add_greps(
+            prefix: str, opt: str, multi: bool, what: str, what_id: str, sub: str, sub_id: str
+        ) -> None:
             if not multi:
                 mall, many, msome, mel = "", "", "", ""
             else:
@@ -3294,48 +3336,60 @@ def make_argparser(real: bool = True) -> ArgumentParser:
                 mel = "the elements of "
 
             add_grep_filter(f"{prefix}or-{opt}", "OR_PATTERN",
-                            f"at least one of the given `OR_PATTERN` option arguments is a substring of {mall}{what}",
-                            f"at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of {mall}{what_id}",
-                            short = [f"{prefix}{opt}"],
-                            sub = sub + ie_whitelist, sub_re = sub_id + ie_whitelist)
+                f"at least one of the given `OR_PATTERN` option arguments is a substring of {mall}{what}",
+                f"at least one of the given `OR_PATTERN_RE` regular expressions matches a substring of {mall}{what_id}",
+                short=[f"{prefix}{opt}"],
+                sub=sub + ie_whitelist,
+                sub_re=sub_id + ie_whitelist,
+            )
             add_grep_filter(f"not-{prefix}or-{opt}", "NOT_OR_PATTERN",
-                            f"none of the given `NOT_OR_PATTERN` option arguments are substrings of {many}{what_id}",
-                            f"none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of {many}{what_id}",
-                            short = [f"not-{prefix}{opt}"],
-                            sub = sub_id + ie_blacklist, sub_re = sub_id + ie_blacklist)
+                f"none of the given `NOT_OR_PATTERN` option arguments are substrings of {many}{what_id}",
+                f"none of the given `NOT_OR_PATTERN_RE` regular expressions match any substrings of {many}{what_id}",
+                short=[f"not-{prefix}{opt}"],
+                sub=sub_id + ie_blacklist,
+                sub_re=sub_id + ie_blacklist,
+            )
 
             add_grep_filter(f"{prefix}and-{opt}", "AND_PATTERN",
-                            f"each of the given `AND_PATTERN` option arguments is a substring of {msome}{what_id}",
-                            f"each of the given `AND_PATTERN_RE` regular expressions matches a substring of {msome}{what_id}",
-                            sub = sub_id, sub_re = sub_id)
+                f"each of the given `AND_PATTERN` option arguments is a substring of {msome}{what_id}",
+                f"each of the given `AND_PATTERN_RE` regular expressions matches a substring of {msome}{what_id}",
+                sub=sub_id,
+                sub_re=sub_id,
+            )
             add_grep_filter(f"not-{prefix}and-{opt}", "NOT_AND_PATTERN",
-                            f"one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of {mel}{what_id}",
-                            f"one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of {mel}{what_id}",
-                            sub = sub_id, sub_re = sub_id)
+                f"one or more of the given `NOT_AND_PATTERN` option arguments is not a substring of {mel}{what_id}",
+                f"one or more of the given `NOT_AND_PATTERN_RE` regular expressions fails to match any substrings of {mel}{what_id}",
+                sub=sub_id,
+                sub_re=sub_id,
+            )
 
         example_mime = list(canonical_mime_of.items())[0]
         mixed_mime_allowed = _("; both canonical and non-canonical MIME types are allowed; e.g., giving `%s` or `%s` will produce the same predicate") % (example_mime[0], example_mime[1])
         unmixed_pmime_allowed = _("; given prefixes will only ever be matched against canonicalized MIME types")
         unmixed_remime_allowed = _("; given regular expressions will only ever be matched against canonicalized MIME types")
 
-        def add_mime_filter(opt : str, side : str, yes : bool) -> None:
+        def add_mime_filter(opt: str, side: str, yes: bool) -> None:
             what = f"`{side}_mime` (of `{__prog__} get --expr`, which see)"
-            add_str_filter(opt, yes,
-                           what, what, what,
-                           sub = mixed_mime_allowed if yes else same_allowed,
-                           sub_p = unmixed_pmime_allowed if yes else same_allowed,
-                           sub_re = unmixed_remime_allowed + fullmatch_re if yes else same_allowed)
+            add_str_filter(opt, yes, what, what, what,
+                sub=mixed_mime_allowed if yes else same_allowed,
+                sub_p=unmixed_pmime_allowed if yes else same_allowed,
+                sub_re=unmixed_remime_allowed + fullmatch_re if yes else same_allowed,
+            )
 
-        def add_rr_filter(side : str) -> None:
+        def add_rr_filter(side: str) -> None:
             add_greps(f"{side}-headers-", "grep", True,
-                      f"the list containing all `{side}.headers` (of `{__prog__} get --expr`, which see)",
-                      "the above list",
-                      grep_headers + grep_binary, _("; matching caveats are the same as above"))
+                f"the list containing all `{side}.headers` (of `{__prog__} get --expr`, which see)",
+                "the above list",
+                grep_headers + grep_binary,
+                _("; matching caveats are the same as above"),
+            )
 
             add_greps(f"{side}-body-", "grep", False,
-                      f"`{side}.body` (of `{__prog__} get --expr`, which see)",
-                      f"`{side}.body`",
-                      grep_binary, _("; matching caveats are the same as above"))
+                f"`{side}.body` (of `{__prog__} get --expr`, which see)",
+                f"`{side}.body`",
+                grep_binary,
+                _("; matching caveats are the same as above"),
+            )
 
             add_mime_filter(f"{side}-mime", side, True)
             add_mime_filter(f"not-{side}-mime", side, False)
@@ -3344,16 +3398,20 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         add_rr_filter("response")
 
         add_greps("", "grep", True,
-                  f"the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `{__prog__} get --expr`, which see)",
-                  "the above list",
-                  grep_headers + grep_binary, _("; matching caveats are the same as above"))
+            f"the list containing `raw_url`, `url`, `pretty_url`, all `request.headers`, `request.body`, all `response.headers`, and `response.body` (of `{__prog__} get --expr`, which see)",
+            "the above list",
+            grep_headers + grep_binary,
+            _("; matching caveats are the same as above"),
+        )
 
-        agrp.add_argument(f"--{opt_prefix}and", metavar="EXPR", action="append", type=str, default = [],
-                         help=_(f"{do_what} all of the given expressions of the same format as `{__prog__} get --expr` (which see) evaluate to `true`"))
-        agrp.add_argument(f"--{opt_prefix}or", metavar="EXPR", action="append", type=str, default = [],
-                         help=_(f"{do_what} some of the given expressions of the same format as `{__prog__} get --expr` (which see) evaluate to `true`"))
+        agrp.add_argument(f"--{opt_prefix}and", metavar="EXPR", action="append", type=str, default=[],
+            help=_(f"{do_what} all of the given expressions of the same format as `{__prog__} get --expr` (which see) evaluate to `true`"),
+        )
+        agrp.add_argument(f"--{opt_prefix}or", metavar="EXPR", action="append", type=str, default=[],
+            help=_(f"{do_what} some of the given expressions of the same format as `{__prog__} get --expr` (which see) evaluate to `true`"),
+        )
 
-    def add_default_filters(cmd : _t.Any, kind : str = "input") -> None:
+    def add_default_filters(cmd: _t.Any, kind: str = "input") -> None:
         agrp = cmd.add_argument_group(f"default {kind} filters")
         if kind == "input":
             def_def = '--status-re ".(200|30[012378])C"'
@@ -3369,19 +3427,29 @@ def make_argparser(real: bool = True) -> ArgumentParser:
             assert False
 
         ddest = f"default_{kind}_filters"
-        agrp.add_argument(f"--{unwhat}-some-{inputs}", dest=ddest, action="store_const", const=True, help=_(f"initialize {kind} filters to `%s`") % (def_def,) + def_note + _("; default"))
-        agrp.add_argument(f"--{what}-all-{inputs}", dest=ddest, action="store_const", const=False, help=_(f"do not set any {kind} filters by default") + undef_note)
+        agrp.add_argument(f"--{unwhat}-some-{inputs}", dest=ddest, action="store_const", const=True,
+            help=_(f"initialize {kind} filters to `%s`") % (def_def,) + def_note + _("; default"),
+        )
+        agrp.add_argument(f"--{what}-all-{inputs}", dest=ddest, action="store_const", const=False,
+            help=_(f"do not set any {kind} filters by default") + undef_note,
+        )
         cmd.set_defaults(**{ddest: True})
 
-    def add_pure(cmd : _t.Any) -> None:
-        cmd.add_argument("-q", "--quiet", action="store_true", help=_("don't print end-of-filtering warnings to stderr"))
+    def add_pure(cmd: _t.Any) -> None:
+        cmd.add_argument("-q", "--quiet", action="store_true",
+            help=_("don't print end-of-filtering warnings to stderr"),
+        )
 
-    def add_impure(cmd : _t.Any) -> None:
+    def add_impure(cmd: _t.Any) -> None:
         grp = cmd.add_mutually_exclusive_group()
-        grp.add_argument("--dry-run", action="store_true", help=_("perform a trial run without actually performing any changes"))
-        grp.add_argument("-q", "--quiet", action="store_true", help=_("don't log computed updates and don't print end-of-filtering warnings to stderr"))
+        grp.add_argument("--dry-run", action="store_true",
+            help=_("perform a trial run without actually performing any changes"),
+        )
+        grp.add_argument("-q", "--quiet", action="store_true",
+            help=_("don't log computed updates and don't print end-of-filtering warnings to stderr"),
+        )
 
-    def add_common(cmd : _t.Any, kind : str, filter_what : str) -> None:
+    def add_common(cmd: _t.Any, kind: str, filter_what: str) -> None:
         add_errors(cmd)
         add_paths(cmd, kind)
         add_sniff(cmd, kind)
@@ -3393,20 +3461,34 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         if kind == "mirror":
             add_default_filters(cmd, "root")
 
-    def add_abridged(cmd : _t.Any) -> None:
+    def add_abridged(cmd: _t.Any) -> None:
         grp = cmd.add_mutually_exclusive_group()
-        grp.add_argument("-u", "--unabridged", dest="abridged", action="store_false", help=_("print all data in full"))
-        grp.add_argument("--abridged", action="store_true", help=_("shorten long strings for brevity, useful when you want to visually scan through batch data dumps; default"))
-        cmd.set_defaults(abridged = True)
+        grp.add_argument("-u", "--unabridged", dest="abridged", action="store_false",
+            help=_("print all data in full"),
+        )
+        grp.add_argument("--abridged", action="store_true",
+            help=_("shorten long strings for brevity, useful when you want to visually scan through batch data dumps; default"),
+        )
+        cmd.set_defaults(abridged=True)
 
-    def add_termsep(cmd : _t.Any, name : str, what : str = "printing of `--expr` values", whatval : str = "print `--expr` values", allow_not : bool = True, allow_none : bool = False, short : bool = True) -> None:
+    def add_termsep(
+        cmd: _t.Any,
+        name: str,
+        what: str = "printing of `--expr` values",
+        whatval: str = "print `--expr` values",
+        allow_not: bool = True,
+        allow_none: bool = False,
+        short: bool = True,
+    ) -> None:
         agrp = cmd.add_argument_group(what)
         grp = agrp.add_mutually_exclusive_group()
 
         def_def = "; " + _("default")
-        def_val : bytes | None
+        def_val: bytes | None
         if allow_none:
-            grp.add_argument("--no-print", dest=f"{name}ator", action="store_const", const = None, help=_("don't print anything") + def_def)
+            grp.add_argument("--no-print", dest=f"{name}ator", action="store_const", const=None,
+                help=_("don't print anything") + def_def,
+            )
             def_lf = ""
             def_val = None
         else:
@@ -3414,29 +3496,39 @@ def make_argparser(real: bool = True) -> ArgumentParser:
             def_val = b"\n"
 
         if allow_not:
-            grp.add_argument(f"--not-{name}ated", dest=f"{name}ator", action="store_const", const = b"", help=_(f"{whatval} without {name}ating them with anything, just concatenate them"))
+            grp.add_argument(f"--not-{name}ated", dest=f"{name}ator", action="store_const", const=b"",
+                help=_(f"{whatval} without {name}ating them with anything, just concatenate them"),
+            )
 
         if short:
-            grp.add_argument("-l", f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const = b"\n", help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf)
-            grp.add_argument("-z", f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const = b"\0", help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"))
+            grp.add_argument("-l", f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const=b"\n",
+                help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf,
+            )
+            grp.add_argument("-z", f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const=b"\0",
+                help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"),
+            )
         else:
-            grp.add_argument(f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const = b"\n", help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf)
-            grp.add_argument(f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const = b"\0", help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"))
+            grp.add_argument(f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const=b"\n",
+                help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf,
+            )
+            grp.add_argument(f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const=b"\0",
+                help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"),
+            )
 
         if name == "termin":
-            cmd.set_defaults(terminator = def_val)
+            cmd.set_defaults(terminator=def_val)
         elif name == "separ":
-            cmd.set_defaults(separator = def_val)
+            cmd.set_defaults(separator=def_val)
 
-    def add_terminator(cmd : _t.Any, *args : _t.Any, **kwargs : _t.Any) -> None:
+    def add_terminator(cmd: _t.Any, *args: _t.Any, **kwargs: _t.Any) -> None:
         add_termsep(cmd, "termin", *args, **kwargs)
 
-    def add_separator(cmd : _t.Any, *args : _t.Any, **kwargs : _t.Any) -> None:
+    def add_separator(cmd: _t.Any, *args: _t.Any, **kwargs: _t.Any) -> None:
         add_termsep(cmd, "separ", *args, **kwargs)
 
-    def add_paths(cmd : _t.Any, kind : str) -> None:
-        def_paths : bool | str | None
-        def_walk : bool | str | None
+    def add_paths(cmd: _t.Any, kind: str) -> None:
+        def_paths: bool | str | None
+        def_walk: bool | str | None
         if kind == "organize":
             def_def = "; " + _("default when `--no-overwrite`")
             def_sup = "; " + _("default when `--latest`")
@@ -3450,33 +3542,59 @@ def make_argparser(real: bool = True) -> ArgumentParser:
 
         agrp = cmd.add_argument_group("path ordering")
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--paths-given-order", dest="walk_paths", action="store_const", const = None, help=_("`argv` and `--stdin0` `PATH`s are processed in the order they are given") + def_def)
-        grp.add_argument("--paths-sorted", dest="walk_paths", action="store_const", const = True, help=_("`argv` and `--stdin0` `PATH`s are processed in lexicographic order"))
-        grp.add_argument("--paths-reversed", dest="walk_paths", action="store_const", const = False, help=_("`argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order") + def_sup)
-        cmd.set_defaults(walk_paths = def_paths)
+        grp.add_argument("--paths-given-order", dest="walk_paths", action="store_const", const=None,
+            help=_("`argv` and `--stdin0` `PATH`s are processed in the order they are given") + def_def,
+        )
+        grp.add_argument("--paths-sorted", dest="walk_paths", action="store_const", const=True,
+            help=_("`argv` and `--stdin0` `PATH`s are processed in lexicographic order"),
+        )
+        grp.add_argument("--paths-reversed", dest="walk_paths", action="store_const", const=False,
+            help=_("`argv` and `--stdin0` `PATH`s are processed in reverse lexicographic order") + def_sup,
+        )
+        cmd.set_defaults(walk_paths=def_paths)
 
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--walk-fs-order", dest="walk_fs", action="store_const", const = None, help=_("recursive file system walk is done in the order `readdir(2)` gives results"))
-        grp.add_argument("--walk-sorted", dest="walk_fs", action="store_const", const = True, help=_("recursive file system walk is done in lexicographic order") + def_def)
-        grp.add_argument("--walk-reversed", dest="walk_fs", action="store_const", const = False, help=_("recursive file system walk is done in reverse lexicographic order") + def_sup)
-        cmd.set_defaults(walk_fs = def_walk)
+        grp.add_argument("--walk-fs-order", dest="walk_fs", action="store_const", const=None,
+            help=_("recursive file system walk is done in the order `readdir(2)` gives results"),
+        )
+        grp.add_argument("--walk-sorted", dest="walk_fs", action="store_const", const=True,
+            help=_("recursive file system walk is done in lexicographic order") + def_def,
+        )
+        grp.add_argument("--walk-reversed", dest="walk_fs", action="store_const", const=False,
+            help=_("recursive file system walk is done in reverse lexicographic order") + def_sup,
+        )
+        cmd.set_defaults(walk_fs=def_walk)
 
         agrp = cmd.add_argument_group("input loading")
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--load-any", dest="loader", action="store_const", const=None, help=_("for each given input `PATH`, decide which loader to use based on its file extension; default"))
-        grp.add_argument("--load-wrr", dest="loader", action="store_const", const="wrr", help=_("load all inputs using the single-`WRR` per-file loader"))
-        grp.add_argument("--load-wrrb", dest="loader", action="store_const", const="wrr", help=_("load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too"))
-        grp.add_argument("--load-mitmproxy", dest="loader", action="store_const", const="mitmproxy", help=_("load inputs using the `mitmproxy` dump loader"))
-        grp.set_defaults(loader = None)
+        grp.add_argument("--load-any", dest="loader", action="store_const", const=None,
+            help=_("for each given input `PATH`, decide which loader to use based on its file extension; default"),
+        )
+        grp.add_argument("--load-wrr", dest="loader", action="store_const", const="wrr",
+            help=_("load all inputs using the single-`WRR` per-file loader"),
+        )
+        grp.add_argument("--load-wrrb", dest="loader", action="store_const", const="wrr",
+            help=_("load all inputs using the `WRR` bundle loader, this will load separate `WRR` files as single-`WRR` bundles too"),
+        )
+        grp.add_argument("--load-mitmproxy", dest="loader", action="store_const", const="mitmproxy",
+            help=_("load inputs using the `mitmproxy` dump loader"),
+        )
+        grp.set_defaults(loader=None)
 
-        agrp.add_argument("--stdin0", action="store_true", help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments"))
+        agrp.add_argument("--stdin0", action="store_true",
+            help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments"),
+        )
 
         if kind == "mirror":
-            agrp.add_argument("--boring", metavar="PATH", action="append", type=str, default = [], help=_("low-priority input `PATH`; boring `PATH`s will be processed after all `PATH`s specified as positional command-line arguments and those given via `--stdin0` and will not be queued as roots even when no `--root-*` options are specified"))
+            agrp.add_argument("--boring", metavar="PATH", action="append", type=str, default=[],
+                help=_("low-priority input `PATH`; boring `PATH`s will be processed after all `PATH`s specified as positional command-line arguments and those given via `--stdin0` and will not be queued as roots even when no `--root-*` options are specified"),
+            )
 
-        agrp.add_argument("paths", metavar="PATH", nargs="*", type=str, help=_("inputs, can be a mix of files and directories (which will be traversed recursively)"))
+        agrp.add_argument("paths", metavar="PATH", nargs="*", type=str,
+            help=_("inputs, can be a mix of files and directories (which will be traversed recursively)"),
+        )
 
-    def add_sniff(cmd : _t.Any, kind : str) -> None:
+    def add_sniff(cmd: _t.Any, kind: str) -> None:
         oscrub = f"this influeences generated file names because `filepath_parts` and `filepath_ext` of `{__prog__} get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content"
         wscrub = "higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`"
         if kind == "pprint":
@@ -3488,16 +3606,25 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         else:
             what = f"{oscrub}; also, {wscrub}"
 
-        agrp = cmd.add_argument_group(_("`MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command " + what))
+        agrp = cmd.add_argument_group(
+            _("`MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command " + what)
+        )
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument("--sniff-default", dest="sniff", action="store_const", const=SniffContentType.NONE, help=_("run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default"))
-        grp.add_argument("--sniff-force", dest="sniff", action="store_const", const=SniffContentType.FORCE, help=_("run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`"))
-        grp.add_argument("--sniff-paranoid", dest="sniff", action="store_const", const=SniffContentType.PARANOID, help=_("do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script"))
-        grp.set_defaults(sniff = SniffContentType.NONE)
+        grp.add_argument("--sniff-default", dest="sniff", action="store_const", const=SniffContentType.NONE,
+            help=_("run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default"),
+        )
+        grp.add_argument("--sniff-force", dest="sniff", action="store_const", const=SniffContentType.FORCE,
+            help=_("run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`"),
+        )
+        grp.add_argument("--sniff-paranoid", dest="sniff", action="store_const", const=SniffContentType.PARANOID,
+            help=_("do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script"),
+        )
+        grp.set_defaults(sniff=SniffContentType.NONE)
 
-    def no_cmd(_cargs : _t.Any) -> None:
-        parser.print_help(stderr) # type: ignore
+    def no_cmd(_cargs: _t.Any) -> None:
+        parser.print_help(stderr)  # type: ignore
         _sys.exit(2)
+
     parser.set_defaults(func=no_cmd)
 
     if not real:
@@ -3505,21 +3632,35 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         add_filters(parser, "accept reqres for processing when")
 
     # pprint
-    cmd = subparsers.add_parser("pprint", aliases=["print", "inspect"], help=_("pretty-print given inputs"),
-                                description = _("""Pretty-print given inputs to stdout."""))
+    cmd = subparsers.add_parser("pprint", aliases=["print", "inspect"],
+        help=_("pretty-print given inputs"),
+        description=_("""Pretty-print given inputs to stdout."""),
+    )
     add_pure(cmd)
     add_common(cmd, "pprint", "pretty-print reqres when")
     add_abridged(cmd)
     cmd.set_defaults(func=cmd_pprint)
 
     class AddExpr(argparse.Action):
-        def __call__(self, parser : _t.Any, cfg : argparse.Namespace, value : _t.Any, option_string : _t.Optional[str] = None) -> None:
+        def __call__(
+            self,
+            parser: _t.Any,
+            cfg: argparse.Namespace,
+            value: _t.Any,
+            option_string: _t.Optional[str] = None,
+        ) -> None:
             cfg.exprs.append(compile_expr(value))
 
     fd_fileobj = {0: stdin, 1: stdout, 2: stderr}
 
     class AddExprFd(argparse.Action):
-        def __call__(self, parser : _t.Any, cfg : argparse.Namespace, value : _t.Any, option_string : _t.Optional[str] = None) -> None:
+        def __call__(
+            self,
+            parser: _t.Any,
+            cfg: argparse.Namespace,
+            value: _t.Any,
+            option_string: _t.Optional[str] = None,
+        ) -> None:
             fileno = cfg.expr_fd
             try:
                 fobj = fd_fileobj[fileno]
@@ -3535,26 +3676,45 @@ def make_argparser(real: bool = True) -> ArgumentParser:
 
             els.append(compile_expr(value))
 
-    def add_expr(cmd : _t.Any, kind : str) -> None:
-        def __(value : str, indent : int = 6) -> str:
+    def add_expr(cmd: _t.Any, kind: str) -> None:
+        def __(value: str, indent: int = 6) -> str:
             prefix = " " * indent
             lines = value.split("\n")
-            return f"\n{prefix}".join([_(line) for line in lines]).replace('%', '%%')
+            return f"\n{prefix}".join([_(line) for line in lines]).replace("%", "%%")
 
         agrp = cmd.add_argument_group("expression evaluation")
 
         if kind == "get":
-            agrp.add_argument("--expr-fd", metavar="INT", type=int, default = 1, help=_("file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `%(default)s`, i.e. `stdout`"))
+            agrp.add_argument("--expr-fd", metavar="INT", type=int, default=1,
+                help=_("file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `%(default)s`, i.e. `stdout`"),
+            )
 
-            agrp.add_argument("-e", "--expr", dest="mexprs", metavar="EXPR", action=AddExprFd, type=str, default = {}, help=_('an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially (see also "printing" options below); the default depends on options below') + \
-                _("; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following") + ":\n" + \
-                "- " + _("constants and functions:") + "\n" + \
-                "".join([f"  - `{name}`: {__(value[0])}\n" for name, value in ReqresExpr_atoms.items()]) + \
-                "- " + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:") + "\n" + \
-                "".join([f"  - `{name}`: {__(value)}\n" for name, value in Reqres_fields.items()]) + \
-                "- " + _("derived attributes:") + "\n" + \
-                "".join([f"  - `{name}`: {__(value)}\n" for name, value in ReqresExpr_derived_attrs.items()]) + \
-                "- " + _("a compound expression built by piping (`|`) the above, for example") + __(f""":
+            agrp.add_argument("-e", "--expr", dest="mexprs", metavar="EXPR", action=AddExprFd, type=str, default={},
+                help=_('an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially (see also "printing" options below); the default depends on options below')
+                + _("; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following")
+                + ":\n- "
+                + _("constants and functions:")
+                + "\n"
+                + "".join(
+                    [f"  - `{name}`: {__(value[0])}\n" for name, value in ReqresExpr_atoms.items()]
+                )
+                + "- "
+                + _("reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`")
+                + ":\n"
+                + "".join([f"  - `{name}`: {__(value)}\n" for name, value in Reqres_fields.items()])
+                + "- "
+                + _("derived attributes:")
+                + "\n"
+                + "".join(
+                    [
+                        f"  - `{name}`: {__(value)}\n"
+                        for name, value in ReqresExpr_derived_attrs.items()
+                    ]
+                )
+                + "- "
+                + _("a compound expression built by piping (`|`) the above, for example")
+                + __(
+                    f""":
 - `{default_expr("get", "raw_sbody")}` (the default for `get` and `run`) will print raw `response.body` or an empty byte string, if there was no response;
 - `{default_expr("get", "raw_sbody")}|scrub response defaults` will take the above value, `scrub` it using default content scrubbing settings which will censor out all actions and references to page requisites;
 - `response.complete` will print the value of `response.complete` or `None`, if there was no response;
@@ -3562,49 +3722,88 @@ def make_argparser(real: bool = True) -> ArgumentParser:
 - `net_url|to_ascii|sha256|to_hex` will print a hexadecimal representation of the `sha256` hash of the URL that was actually sent over the network;
 - `net_url|to_ascii|sha256|take_prefix 2|to_hex` will print the first 2 bytes (4 characters) of the above;
 - `path_parts|take_prefix 3|pp_to_path` will print first 3 path components of the URL, minimally quoted to be used as a path;
-- `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""", 2) + \
-                "\n\nExample URL mappings:\n" + \
-                "".join([f"  - `{name}`:\n" + atom_example(name, 4) + "\n" for name in atom_test])
+- `query_ne_parts|take_prefix 3|qsl_to_path|abbrev 128` will print first 3 non-empty query parameters of the URL, abbreviated to 128 characters or less, minimally quoted to be used as a path;""",
+                    2,
+                )
+                + "\n\nExample URL mappings:\n"
+                + "".join(
+                    [f"  - `{name}`:\n" + atom_example(name, 4) + "\n" for name in atom_test]
+                ),
             )
         else:
-            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action=AddExpr, type=str, default = [], help=_(f"an expression to compute, same expression format and semantics as `{__prog__} get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options below"))
+            agrp.add_argument("-e", "--expr", dest="exprs", metavar="EXPR", action=AddExpr, type=str, default=[],
+                help=_(f"an expression to compute, same expression format and semantics as `{__prog__} get --expr` (which see); can be specified multiple times; the default depends on `--remap-*` options below"),
+            )
 
         if kind == "stream":
             add_terminator(cmd, "`--format=raw` `--expr` printing", "print `--format=raw` `--expr` output values")
-            cmd.set_defaults(default_expr = "dot")
+            cmd.set_defaults(default_expr="dot")
         elif kind in ["mirror", "serve"]:
-            add_separator(cmd, "rendering of `--expr` values", "render `--expr` values into outputs", short = False)
-            cmd.set_defaults(default_expr = "all")
+            add_separator(cmd, "rendering of `--expr` values", "render `--expr` values into outputs", short=False)
+            cmd.set_defaults(default_expr="all")
         else:
             add_separator(cmd)
-            cmd.set_defaults(default_expr = "raw_sbody")
+            cmd.set_defaults(default_expr="raw_sbody")
 
-        def alias(what : str) -> str:
+        def alias(what: str) -> str:
             return _("set the default value of `--expr` to `%s`") % (default_expr(kind, what),)
 
         agrp = cmd.add_argument_group("default value of `--expr`")
         grp = agrp.add_mutually_exclusive_group()
 
         if kind == "stream":
-            grp.add_argument("--structure", dest="default_expr", action="store_const", const="dot", help=alias("dot") + _("; i.e. dump the whole structure; default"))
+            grp.add_argument("--structure", dest="default_expr", action="store_const", const="dot",
+                help=alias("dot") + _("; i.e. dump the whole structure; default"),
+            )
 
-        grp.add_argument("--raw-qbody", dest="default_expr", action="store_const", const="raw_qbody", help=alias("raw_qbody") + _("; i.e. produce the raw request body"))
-        grp.add_argument("--raw-sbody", "--no-remap", dest="default_expr", action="store_const", const="raw_sbody", help=alias("raw_sbody") + _("; i.e. produce the raw response body") + (_("; default") if kind in ["get", "run"] else ""))
+        grp.add_argument("--raw-qbody", dest="default_expr", action="store_const", const="raw_qbody",
+            help=alias("raw_qbody")
+            + _("; i.e. produce the raw request body"),
+        )
+        grp.add_argument("--raw-sbody", "--no-remap", dest="default_expr", action="store_const", const="raw_sbody",
+            help=alias("raw_sbody")
+            + _("; i.e. produce the raw response body")
+            + (_("; default") if kind in ["get", "run"] else ""),
+        )
 
-        grp.add_argument("--remap-id", dest="default_expr", action="store_const", const="id", help=alias("id") + _("; i.e. `scrub` response body as follows: remap all URLs with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones), censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained"))
-        grp.add_argument("--remap-void", dest="default_expr", action="store_const", const="void", help=alias("void") + _("; i.e. `scrub` response body as follows: remap all URLs into `javascript:void(0)` and empty `data:` URLs, censor out all dynamic content; results will be self-contained"))
+        grp.add_argument("--remap-id", dest="default_expr", action="store_const", const="id",
+            help=alias("id")
+            + _("; i.e. `scrub` response body as follows: remap all URLs with an identity function (which, as a whole, is NOT an identity function, it will transform all relative URLs into absolute ones), censor out all dynamic content (e.g. `JavaScript`); results will NOT be self-contained"),
+        )
+        grp.add_argument("--remap-void", dest="default_expr", action="store_const", const="void",
+            help=alias("void")
+            + _("; i.e. `scrub` response body as follows: remap all URLs into `javascript:void(0)` and empty `data:` URLs, censor out all dynamic content; results will be self-contained"),
+        )
 
         if kind == "serve":
-            grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi", help=alias("semi") + _("; i.e. `scrub` response body as follows: keeps all jump links pointing to unarchived URLs as-is, remap all other links and references to their replay URLs, censor out all dynamic content; results will be self-contained"))
-            grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _("; i.e. `scrub` response body as follows: remap all links and references to their replay URLs, even when they are not available in the index, censor out all dynamic content; results will be self-contained; default"))
+            grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi",
+                help=alias("semi")
+                + _("; i.e. `scrub` response body as follows: keeps all jump links pointing to unarchived URLs as-is, remap all other links and references to their replay URLs, censor out all dynamic content; results will be self-contained"),
+            )
+            grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all",
+                help=alias("all")
+                + _("; i.e. `scrub` response body as follows: remap all links and references to their replay URLs, even when they are not available in the index, censor out all dynamic content; results will be self-contained; default"),
+            )
             return
+
         if kind != "mirror":
             return
 
-        grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open", help=alias("open") + _("; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does, censor out all dynamic content; results almost certainly will NOT be self-contained"))
-        grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="open", help=alias("closed") + _("; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does, censor out all dynamic content; results will be self-contained"))
-        grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi", help=alias("semi") + _("; i.e. `scrub` response body as follows: remap all jump links like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does, censor out all dynamic content; this is a better version of `--remap-open` which keeps the `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained"))
-        grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _(f"""; i.e. `scrub` response body as follows: remap all links and references like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble, censor out all dynamic content; results will be self-contained; default
+        grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open",
+            help=alias("open")
+            + _("; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does, censor out all dynamic content; results almost certainly will NOT be self-contained"),
+        )
+        grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="open",
+            help=alias("closed")
+            + _("; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does, censor out all dynamic content; results will be self-contained"),
+        )
+        grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi",
+            help=alias("semi")
+            + _("; i.e. `scrub` response body as follows: remap all jump links like `--remap-open` does, remap action links and references to page requisites like `--remap-closed` does, censor out all dynamic content; this is a better version of `--remap-open` which keeps the `mirror`s self-contained with respect to page requisites, i.e. generated pages can be opened in a web browser without it trying to access the Internet, but all navigations to missing and unreachable URLs will still point to the original URLs; results will be semi-self-contained"),
+        )
+        grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all",
+            help=alias("all")
+            + _(f"""; i.e. `scrub` response body as follows: remap all links and references like `--remap-closed` does, except, instead of voiding missing and unreachable URLs, replace them with fallback URLs whenever possble, censor out all dynamic content; results will be self-contained; default
 
 `{__prog__} mirror` uses `--output` paths of trivial `GET <URL> -> 200 OK` as fallbacks for `&(jumps|actions|reqs)` options of `scrub`.
 This will remap links pointing to missing and unreachable URLs to missing files.
@@ -3613,18 +3812,24 @@ I.e. this behaviour allows you to add new data to an already existing mirror wit
 I.e. this allows `{__prog__} mirror` to be used incrementally.
 
 Note however, that using fallbacks when the `--output` format depends on anything but the URL itself (e.g. if it mentions timestamps) will produce a mirror with unrecoverably broken links.
-"""))
+"""),
+        )
 
         agrp = cmd.add_argument_group("link conversions")
         grp = agrp.add_mutually_exclusive_group()
 
-        grp.add_argument("--relative", dest="absolute", action="store_const", const=False, help=_("when remapping URLs to local files, produce links and references with relative URLs (relative to the `--output` files under `OUTPUT_DESTINATION`); default when `--copy` or `--hardlink`"))
-        grp.add_argument("--absolute", dest="absolute", action="store_const", const=True, help=_("when remapping URLs to local files, produce links and references with absolute URLs; default when `--symlink`"))
-        cmd.set_defaults(absolute = None)
+        grp.add_argument("--relative", dest="absolute", action="store_const", const=False,
+            help=_("when remapping URLs to local files, produce links and references with relative URLs (relative to the `--output` files under `OUTPUT_DESTINATION`); default when `--copy` or `--hardlink`"),
+        )
+        grp.add_argument("--absolute", dest="absolute", action="store_const", const=True,
+            help=_("when remapping URLs to local files, produce links and references with absolute URLs; default when `--symlink`"),
+        )
+        cmd.set_defaults(absolute=None)
 
     # get
-    cmd = subparsers.add_parser("get", help=_("print values produced by evaluating given expressions on a given input"),
-                                description = _("""Print results produced by evaluating given `EXPR`essions on a given input to stdout.
+    cmd = subparsers.add_parser("get",
+        help=_("print values produced by evaluating given expressions on a given input"),
+        description=_("""Print results produced by evaluating given `EXPR`essions on a given input to stdout.
 
 Algorithm:
 
@@ -3633,17 +3838,21 @@ Algorithm:
 - print all the results to stdout, terminating each value as specified.
 
 The end.
-"""))
+"""),
+    )
 
     add_sniff(cmd, "get")
     add_expr(cmd, "get")
 
-    cmd.add_argument("path", metavar="PATH", type=str, help=_("input `WRR` file path"))
+    cmd.add_argument("path", metavar="PATH", type=str,
+        help=_("input `WRR` file path"),
+    )
     cmd.set_defaults(func=cmd_get)
 
     # run
-    cmd = subparsers.add_parser("run", aliases=["spawn"], help=_("spawn a process with temporary files generated from given expressions evaluated on given inputs"),
-                                description = _("""Spawn `COMMAND` with given static `ARG`uments and `NUM` additional arguments generated by evaluating given `EXPR`essions on given `PATH`s into temporary files.
+    cmd = subparsers.add_parser("run", aliases=["spawn"],
+        help=_("spawn a process with temporary files generated from given expressions evaluated on given inputs"),
+        description=_("""Spawn `COMMAND` with given static `ARG`uments and `NUM` additional arguments generated by evaluating given `EXPR`essions on given `PATH`s into temporary files.
 
 Algorithm:
 
@@ -3659,20 +3868,30 @@ Algorithm:
 The end.
 
 Essentially, this is `{__prog__} get` into a temporary file for each given `PATH`, followed by spawning of `COMMAND`, followed by cleanup when it finishes.
-"""))
+"""),
+    )
 
     add_sniff(cmd, "run")
     add_expr(cmd, "run")
 
-    cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default = 1, help=_("number of `PATH`s; default: `%(default)s`"))
-    cmd.add_argument("command", metavar="COMMAND", type=str, help=_("command to spawn"))
-    cmd.add_argument("args", metavar="ARG", nargs="*", type=str, help=_("static arguments to give to the `COMMAND`"))
-    cmd.add_argument("paths", metavar="PATH", nargs="+", type=str, help=_("input `WRR` file paths to be mapped into new temporary files"))
+    cmd.add_argument("-n", "--num-args", metavar="NUM", type=int, default=1,
+        help=_("number of `PATH`s; default: `%(default)s`"),
+    )
+    cmd.add_argument("command", metavar="COMMAND", type=str,
+        help=_("command to spawn")
+    )
+    cmd.add_argument("args", metavar="ARG", nargs="*", type=str,
+        help=_("static arguments to give to the `COMMAND`"),
+    )
+    cmd.add_argument("paths", metavar="PATH", nargs="+", type=str,
+        help=_("input `WRR` file paths to be mapped into new temporary files"),
+    )
     cmd.set_defaults(func=cmd_run)
 
     # stream
-    cmd = subparsers.add_parser("stream", help=_(f"stream lists containing values produced by evaluating given expressions on given inputs, a generalized `{__prog__} get`"),
-                                description = _("""Stream lists of results produced by evaluating given `EXPR`essions on given inputs to stdout.
+    cmd = subparsers.add_parser("stream",
+        help=_(f"stream lists containing values produced by evaluating given expressions on given inputs, a generalized `{__prog__} get`"),
+        description=_("""Stream lists of results produced by evaluating given `EXPR`essions on given inputs to stdout.
 
 Algorithm:
 
@@ -3685,22 +3904,26 @@ Algorithm:
 The end.
 
 Esentially, this is a generalized `{__prog__} get`.
-"""))
+"""),
+    )
     add_pure(cmd)
     add_common(cmd, "stream", "stream-print reqres when")
     add_abridged(cmd)
-    cmd.add_argument("--format", metavar="FORMAT", choices=["py", "cbor", "json", "raw"], default="py", help=_("""generate output in:
+    cmd.add_argument("--format", metavar="FORMAT", choices=["py", "cbor", "json", "raw"], default="py",
+        help=_("""generate output in:
 - py: Pythonic Object Representation aka `repr`; default
 - cbor: Concise Binary Object Representation aka `CBOR` (RFC8949)
 - json: JavaScript Object Notation aka `JSON`; **binary data can't be represented, UNICODE replacement characters will be used**
 - raw: concatenate raw values; termination is controlled by `*-terminated` options
-"""))
+"""),
+    )
     add_expr(cmd, "stream")
     cmd.set_defaults(func=cmd_stream)
 
     # find
-    cmd = subparsers.add_parser("find", help=_("print paths of inputs matching specified criteria"),
-                                description = _("""Print paths of inputs matching specified criteria.
+    cmd = subparsers.add_parser("find",
+        help=_("print paths of inputs matching specified criteria"),
+        description=_("""Print paths of inputs matching specified criteria.
 
 Algorithm:
 
@@ -3710,60 +3933,103 @@ Algorithm:
   - print its path to stdout.
 
 The end.
-"""))
+"""),
+    )
     add_pure(cmd)
     add_common(cmd, "find", "print path of reqres when")
     add_terminator(cmd, "found files printing", "print absolute paths of matching `WRR` files", allow_not=False)
-    cmd.set_defaults(sniff = SniffContentType.NONE)
+    cmd.set_defaults(sniff=SniffContentType.NONE)
     cmd.set_defaults(func=cmd_find)
 
-    def add_organize_memory(cmd : _t.Any, max_deferred : int = 1024, max_batch : int = 128) -> None:
+    def add_organize_memory(cmd: _t.Any, max_deferred: int = 1024, max_batch: int = 128) -> None:
         agrp = cmd.add_argument_group("caching, deferring, and batching")
-        agrp.add_argument("--seen-number", metavar = "INT", dest="max_seen", type=int, default=16384, help=_(f"""track at most this many distinct generated `--output` values; default: `%(default)s`;
+        agrp.add_argument("--seen-number", metavar="INT", dest="max_seen", type=int, default=16384,
+            help=_(f"""track at most this many distinct generated `--output` values; default: `%(default)s`;
 making this larger improves disk performance at the cost of increased memory consumption;
-setting it to zero will force force `{__prog__}` to constantly re-check existence of `--output` files and force `{__prog__}` to execute  all IO actions immediately, disregarding `--defer-number` setting"""))
-        agrp.add_argument("--cache-number", metavar = "INT", dest="max_cached", type=int, default=8192, help=_(f"""cache `stat(2)` information about this many files in memory; default: `%(default)s`;
+setting it to zero will force force `{__prog__}` to constantly re-check existence of `--output` files and force `{__prog__}` to execute  all IO actions immediately, disregarding `--defer-number` setting"""),
+        )
+        agrp.add_argument("--cache-number", metavar="INT", dest="max_cached", type=int, default=8192,
+            help=_(f"""cache `stat(2)` information about this many files in memory; default: `%(default)s`;
 making this larger improves performance at the cost of increased memory consumption;
 setting this to a too small number will likely force `{__prog__}` into repeatedly performing lots of `stat(2)` system calls on the same files;
 setting this to a value smaller than `--defer-number` will not improve memory consumption very much since deferred IO actions also cache information about their own files
-"""))
-        agrp.add_argument("--defer-number", metavar = "INT", dest="max_deferred", type=int, default=max_deferred, help=_("""defer at most this many IO actions; default: `%(default)s`;
+"""),
+        )
+        agrp.add_argument("--defer-number", metavar="INT", dest="max_deferred", type=int, default=max_deferred,
+            help=_("""defer at most this many IO actions; default: `%(default)s`;
 making this larger improves performance at the cost of increased memory consumption;
-setting it to zero will force all IO actions to be applied immediately"""))
-        agrp.add_argument("--batch-number", metavar = "INT", dest="max_batched", type=int, default=max_batch, help=_("""queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: `%(default)s`"""))
-        agrp.add_argument("--max-memory", metavar = "INT", dest="max_memory", type=int, default=1024, help=_("""the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
+setting it to zero will force all IO actions to be applied immediately"""),
+        )
+        agrp.add_argument("--batch-number", metavar="INT", dest="max_batched", type=int, default=max_batch,
+            help=_("""queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: `%(default)s`"""),
+        )
+        agrp.add_argument("--max-memory", metavar="INT", dest="max_memory", type=int, default=1024,
+            help=_("""the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
 making this larger improves performance;
-the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`"""))
-        agrp.add_argument("--lazy", action="store_true", help=_(f"""sets all of the above options to positive infinity;
-most useful when doing `{__prog__} organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `{__prog__}` needs to keep in memory is small, in which case it will force `{__prog__}` to compute the desired file system state first and then perform all disk writes in a single batch"""))
+the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`"""),
+        )
+        agrp.add_argument("--lazy", action="store_true",
+            help=_(f"""sets all of the above options to positive infinity;
+most useful when doing `{__prog__} organize --symlink --latest --output flat` or similar, where the number of distinct generated `--output` values and the amount of other data `{__prog__}` needs to keep in memory is small, in which case it will force `{__prog__}` to compute the desired file system state first and then perform all disk writes in a single batch"""),
+        )
 
-    def add_fileout(cmd : _t.Any, kind : str) -> None:
+    def add_fileout(cmd: _t.Any, kind: str) -> None:
         if kind == "serve":
             agrp = cmd.add_argument_group("file output options")
             grp = agrp.add_mutually_exclusive_group()
-            grp.add_argument("--compress", dest="compress", action="store_const", const=True, help="compress new archivals before dumping them to disk; default")
-            grp.add_argument("--no-compress", "--uncompressed", dest="compress", action="store_const", const=False, help="dump new archivals to disk without compression")
-            cmd.set_defaults(compress = True)
+            grp.add_argument("--compress", dest="compress", action="store_const", const=True,
+                help="compress new archivals before dumping them to disk; default",
+            )
+            grp.add_argument("--no-compress", "--uncompressed", dest="compress", action="store_const", const=False,
+                help="dump new archivals to disk without compression",
+            )
+            cmd.set_defaults(compress=True)
 
         agrp = cmd.add_argument_group("file outputs")
 
         if kind == "organize":
-            agrp.add_argument("-t", "--to", f"--{kind}-to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, help=_("destination directory; when unset each source `PATH` must be a directory which will be treated as its own `OUTPUT_DESTINATION`"))
-            agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default="default", type=str, help=_("""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""") + "\n" + \
-                         "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
-                         "".join([f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`" + ("; the default" if name == "default" else "") + "\n" + output_example(name, 8) + "\n" for name, value in output_alias.items()]) + \
-                         "- " + _("available substitutions:") + "\n" + \
-                         "  - " + _(f"all expressions of `{__prog__} get --expr` (which see)") + ";\n" + \
-                         "  - `num`: " + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique"))
+            agrp.add_argument("-t", "--to", f"--{kind}-to", dest="destination", metavar="OUTPUT_DESTINATION", type=str,
+                help=_("destination directory; when unset each source `PATH` must be a directory which will be treated as its own `OUTPUT_DESTINATION`"),
+            )
+            agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default="default", type=str,
+                help=_("""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""")
+                + "\n- "
+                + _("available aliases and corresponding %%-substitutions:")
+                + "\n"
+                + "".join(
+                    [
+                        f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`"
+                        + ("; the default" if name == "default" else "")
+                        + "\n"
+                        + output_example(name, 8)
+                        + "\n"
+                        for name, value in output_alias.items()
+                    ]
+                )
+                + "- "
+                + _("available substitutions:")
+                + "\n  - "
+                + _(f"all expressions of `{__prog__} get --expr` (which see)")
+                + ";\n  - `num`: "
+                + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique"),
+            )
         elif kind in ["import", "mirror", "serve"]:
             if kind != "serve":
-                agrp.add_argument("-t", "--to", f"--{kind}-to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, required=True, help=_("destination directory; required"))
+                agrp.add_argument("-t", "--to", f"--{kind}-to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, required=True,
+                    help=_("destination directory; required"),
+                )
             else:
-                agrp.add_argument("-t", "--to", "--archive-to", dest="destination", metavar="ARCHIVE_DESTINATION", type=str, help=_("archiving destination directory; if left unset, which is the default, then archiving server support will be disabled"))
-                agrp.add_argument("-i", "--implicit", action="store_true", help=_("prepend `ARCHIVE_DESTINATION` to the list of input `PATH`s"))
+                agrp.add_argument("-t", "--to", "--archive-to", dest="destination", metavar="ARCHIVE_DESTINATION", type=str,
+                    help=_("archiving destination directory; if left unset, which is the default, then archiving server support will be disabled"),
+                )
+                agrp.add_argument("-i", "--implicit", action="store_true",
+                    help=_("prepend `ARCHIVE_DESTINATION` to the list of input `PATH`s"),
+                )
 
             def_def = "hupq_n" if kind == "mirror" else "default"
-            agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default=def_def, type=str, help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same expression format as `{__prog__} organize --output` (which see); default: `%(default)s`"""))
+            agrp.add_argument("-o", "--output", metavar="OUTPUT_FORMAT", default=def_def, type=str,
+                help=_(f"""format describing generated output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string; same expression format as `{__prog__} organize --output` (which see); default: `%(default)s`"""),
+            )
         else:
             assert False
 
@@ -3777,39 +4043,60 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
 
         def_disallow = _("disallow overwrites and replacements of any existing files under `OUTPUT_DESTINATION`, i.e. only ever create new files under `OUTPUT_DESTINATION`, producing errors instead of attempting any other updates; default")
 
-        def def_dangerous(what : str) -> str:
+        def def_dangerous(what: str) -> str:
             return _(f"DANGEROUS! not recommended, {what} to a new `OUTPUT_DESTINATION` with the default `--no-overwrite` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this")
 
         if kind == "organize":
-            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
-                _("""`--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
+            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False,
+                help=def_disallow
+                + ";\n"
+                + _("""`--output` targets that are broken symlinks will be considered to be non-existent and will be replaced;
 when the operation's source is binary-eqivalent to the `--output` target, the operation will be permitted, but the disk write will be reduced to a noop, i.e. the results will be deduplicated;
 the `dirname` of a source file and the `--to` target directories can be the same, in that case the source file will be renamed to use new `--output` name, though renames that attempt to swap files will still fail
-"""))
-            grp.add_argument("--latest", dest="allow_updates", action="store_const", const=True, help=_("""replace files under `OUTPUT_DESTINATION` with their latest version;
+"""),
+            )
+            grp.add_argument("--latest", dest="allow_updates", action="store_const", const=True,
+                help=_("""replace files under `OUTPUT_DESTINATION` with their latest version;
 this is only allowed in combination with `--symlink` at the moment;
 for each source `PATH` file, the destination `--output` file will be replaced with a symlink to the source if and only if `stime_ms` of the source reqres is newer than `stime_ms` of the reqres stored at the destination file
-"""))
+"""),
+            )
         elif kind == "import":
-            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False, help=def_disallow)
-            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("permit overwrites to files under `OUTPUT_DESTINATION`") + ";\n" + def_dangerous("importing"))
+            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False,
+                help=def_disallow,
+            )
+            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True,
+                help=_("permit overwrites to files under `OUTPUT_DESTINATION`")
+                + ";\n"
+                + def_dangerous("importing"),
+            )
         elif kind == "mirror":
-            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False, help=def_disallow + ";\n" + \
-                _("""repeated `mirror`s of the same targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
+            grp.add_argument("--no-overwrite", dest="allow_updates", action="store_const", const=False,
+                help=def_disallow
+                + ";\n"
+                + _("""repeated `mirror`s of the same targets with the same parameters (which, therefore, will produce the same `--output` data) are allowed and will be reduced to noops;
 however, trying to overwrite existing files under `OUTPUT_DESTINATION` with any new data will produce errors;
 this allows reusing the `OUTPUT_DESTINATION` between unrelated `mirror`s and between `mirror`s that produce the same data on disk in their common parts
-"""))
-            grp.add_argument("--skip-existing", "--partial", dest="allow_updates", action="store_const", const="partial", help=_("""skip rendering of targets which have a corresponding file under `OUTPUT_DESTINATION`, use the contents of such files instead;
+"""),
+            )
+            grp.add_argument("--skip-existing", "--partial", dest="allow_updates", action="store_const", const="partial",
+                help=_("""skip rendering of targets which have a corresponding file under `OUTPUT_DESTINATION`, use the contents of such files instead;
 using this together with `--depth` is likely to produce a partially broken result, since skipping of a document will also skip all of the things it references;
 on the other hand, this is quite useful when growing a partial mirror generated with `--remap-all`
-"""))
-            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True, help=_("mirror all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`") + ";\n" + def_dangerous("mirroring"))
+"""),
+            )
+            grp.add_argument("--overwrite-dangerously", dest="allow_updates", action="store_const", const=True,
+                help=_("mirror all targets while permitting overwriting of old `--output` files under `OUTPUT_DESTINATION`")
+                + ";\n"
+                + def_dangerous("mirroring"),
+            )
 
-        cmd.set_defaults(allow_updates = False)
+        cmd.set_defaults(allow_updates=False)
 
     # organize
-    cmd = subparsers.add_parser("organize", help=_("programmatically copy/rename/move/hardlink/symlink given input files based on their metadata and/or contents"),
-                                description = _(f"""Programmatically copy/rename/move/hardlink/symlink given input files based on their metadata and/or contents.
+    cmd = subparsers.add_parser("organize",
+        help=_("programmatically copy/rename/move/hardlink/symlink given input files based on their metadata and/or contents"),
+        description=_(f"""Programmatically copy/rename/move/hardlink/symlink given input files based on their metadata and/or contents.
 
 Algorithm:
 
@@ -3822,54 +4109,72 @@ The end.
 
 Operations that could lead to accidental data loss are not permitted.
 E.g. `{__prog__} organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
-"""))
+"""),
+    )
     add_organize_memory(cmd)
     add_impure(cmd)
     add_common(cmd, "organize", "organize reqres when")
 
     agrp = cmd.add_argument_group("action")
     grp = agrp.add_mutually_exclusive_group()
-    grp.add_argument("--move", dest="action", action="store_const", const="move", help=_("move source files under `OUTPUT_DESTINATION`; default"))
-    grp.add_argument("--copy", dest="action", action="store_const", const="copy", help=_("copy source files to files under `OUTPUT_DESTINATION`"))
-    grp.add_argument("--hardlink", dest="action", action="store_const", const="hardlink", help=_("create hardlinks from source files to paths under `OUTPUT_DESTINATION`"))
-    grp.add_argument("--symlink", dest="action", action="store_const", const="symlink", help=_("create symlinks from source files to paths under `OUTPUT_DESTINATION`"))
-    cmd.set_defaults(action = "move")
+    grp.add_argument("--move", dest="action", action="store_const", const="move",
+        help=_("move source files under `OUTPUT_DESTINATION`; default"),
+    )
+    grp.add_argument("--copy", dest="action", action="store_const", const="copy",
+        help=_("copy source files to files under `OUTPUT_DESTINATION`"),
+    )
+    grp.add_argument("--hardlink", dest="action", action="store_const", const="hardlink",
+        help=_("create hardlinks from source files to paths under `OUTPUT_DESTINATION`"),
+    )
+    grp.add_argument("--symlink", dest="action", action="store_const", const="symlink",
+        help=_("create symlinks from source files to paths under `OUTPUT_DESTINATION`"),
+    )
+    cmd.set_defaults(action="move")
 
     add_fileout(cmd, "organize")
 
     cmd.set_defaults(func=cmd_organize)
 
-    def add_import_args(cmd : _t.Any) -> None:
+    def add_import_args(cmd: _t.Any) -> None:
         add_organize_memory(cmd, 0, 1024)
         add_impure(cmd)
         add_common(cmd, "import", "import reqres when")
         add_fileout(cmd, "import")
 
     # import
-    supcmd = subparsers.add_parser("import", help=_("convert other `HTTP` archive formats into `WRR`"),
-                                   description = _(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
-In short, this is `{__prog__} organize --copy` for `INPUT` files that use different files formats."""))
+    supcmd = subparsers.add_parser("import",
+        help=_("convert other `HTTP` archive formats into `WRR`"),
+        description=_(f"""Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
+In short, this is `{__prog__} organize --copy` for `INPUT` files that use different files formats."""),
+    )
     supsub = supcmd.add_subparsers(title="file formats")
 
-    cmd = supsub.add_parser("wrrb", aliases=["bundle"], help=_("convert `WRR` bundles into separate `WRR` files"),
-                            description = _("""Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""))
+    cmd = supsub.add_parser("wrrb", aliases=["bundle"],
+        help=_("convert `WRR` bundles into separate `WRR` files"),
+        description=_("""Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""),
+    )
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_bundle)
 
-    cmd = supsub.add_parser("mitmproxy", aliases=["mitmdump"], help=_("convert `mitmproxy` stream dumps (files produced by `mitmdump`) into `WRR` files"),
-                            description = _("""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""))
+    cmd = supsub.add_parser("mitmproxy", aliases=["mitmdump"],
+        help=_("convert `mitmproxy` stream dumps (files produced by `mitmdump`) into `WRR` files"),
+        description=_("""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""),
+    )
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_mitmproxy)
 
-    def add_index_memory(cmd : _t.Any) -> None:
+    def add_index_memory(cmd: _t.Any) -> None:
         agrp = cmd.add_argument_group("caching")
-        agrp.add_argument("--max-memory", metavar = "INT", dest="max_memory", type=int, default=1024, help=_("""the caches, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
+        agrp.add_argument("--max-memory", metavar="INT", dest="max_memory", type=int, default=1024,
+            help=_("""the caches, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
 making this larger improves performance;
-the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`"""))
+the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <numer of indexed files> + <sum of lengths of all their --output paths> + <--max-memory>)`"""),
+        )
 
     # mirror
-    cmd = subparsers.add_parser("mirror", help=_("convert given inputs into a local offline static website mirror stored in interlinked files, a-la `wget -mpk`"),
-                                description = _(f"""Generate a local offline static website mirror from given intuts, producing results similar to those of `wget -mpk`.
+    cmd = subparsers.add_parser("mirror",
+        help=_("convert given inputs into a local offline static website mirror stored in interlinked files, a-la `wget -mpk`"),
+        description=_(f"""Generate a local offline static website mirror from given intuts, producing results similar to those of `wget -mpk`.
 
 Algorithm:
 
@@ -3887,7 +4192,8 @@ Algorithm:
 The end.
 
 Essentially, this is a combination of `{__prog__} organize --copy` followed by in-place `{__prog__} get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
-"""))
+"""),
+    )
     add_index_memory(cmd)
     add_impure(cmd)
     add_common(cmd, "mirror", "consider reqres for mirroring when")
@@ -3896,7 +4202,7 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
     agrp = cmd.add_argument_group("mirror what")
     grp = agrp.add_mutually_exclusive_group()
 
-    def which(x : str) -> str:
+    def which(x: str) -> str:
         return _(f"for each URL, mirror {x}")
 
     oldest = which("its oldest available version")
@@ -3906,51 +4212,97 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
     latest = which("its latest available version")
     hybrid = _(", except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document")
     hybrid_long = hybrid + _("; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`")
-    hybrid_short = hybrid +  _("; see `--oldest-hybrid` above for more info")
+    hybrid_short = hybrid + _("; see `--oldest-hybrid` above for more info")
 
     class EmitNear(argparse.Action):
-        def __call__(self, parser : _t.Any, cfg : argparse.Namespace, value : _t.Any, option_string : _t.Optional[str] = None) -> None:
+        def __call__(
+            self,
+            parser: _t.Any,
+            cfg: argparse.Namespace,
+            value: _t.Any,
+            option_string: _t.Optional[str] = None,
+        ) -> None:
             setattr(cfg, self.dest, self.const(timerange(value).middle))
 
-    grp.add_argument("--oldest", dest="mode", action="store_const", const=(True, anytime.start), help=oldest)
-    grp.add_argument("--oldest-hybrid", dest="mode", action="store_const", const=(False, anytime.start), help=oldest + hybrid_long)
-    grp.add_argument("--nearest", dest="mode", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: (True, x), help=near_long)
-    grp.add_argument("--nearest-hybrid", dest="mode", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: (False, x), help=near_short + hybrid_short)
-    grp.add_argument("--latest", dest="mode", action="store_const", const=(True, anytime.end), help=latest + _("; default"))
-    grp.add_argument("--latest-hybrid", dest="mode", action="store_const", const=(False, anytime.end), help=latest + hybrid_short)
-    grp.add_argument("--all", dest="mode", action="store_const", const=(False, None), help=_("mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!"))
-    cmd.set_defaults(mode=(True, anytime.end)) # `--latest`
+    grp.add_argument("--oldest", dest="mode", action="store_const", const=(True, anytime.start),
+        help=oldest,
+    )
+    grp.add_argument("--oldest-hybrid", dest="mode", action="store_const", const=(False, anytime.start),
+        help=oldest + hybrid_long,
+    )
+    grp.add_argument("--nearest", dest="mode", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: (True, x),
+        help=near_long,
+    )
+    grp.add_argument("--nearest-hybrid", dest="mode", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: (False, x),
+        help=near_short + hybrid_short,
+    )
+    grp.add_argument("--latest", dest="mode", action="store_const", const=(True, anytime.end),
+        help=latest + _("; default"),
+    )
+    grp.add_argument("--latest-hybrid", dest="mode", action="store_const", const=(False, anytime.end),
+        help=latest + hybrid_short,
+    )
+    grp.add_argument("--all", dest="mode", action="store_const", const=(False, None),
+        help=_("mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!"),
+    )
+    cmd.set_defaults(mode=(True, anytime.end))  # `--latest`
 
     add_fileout(cmd, "mirror")
 
     agrp = cmd.add_argument_group("content-addressed file output mode")
 
-    agrp.add_argument("--copy", dest="content_action", action="store_const", const="copy", help=_("do not use content-addressed outputs, simply write rendered output data to files under `OUTPUT_DESTINATION`"))
-    agrp.add_argument("--hardlink", dest="content_action", action="store_const", const="hardlink", help=_("write rendered output data to files under `CONTENT_DESTINATION`, then hardlink them to paths under `OUTPUT_DESTINATION`; default"))
-    agrp.add_argument("--symlink", dest="content_action", action="store_const", const="symlink", help=_("write rendered output data to files under `CONTENT_DESTINATION`, then symlink them to paths under `OUTPUT_DESTINATION`"))
-    cmd.set_defaults(content_action = "hardlink")
+    agrp.add_argument("--copy", dest="content_action", action="store_const", const="copy",
+        help=_("do not use content-addressed outputs, simply write rendered output data to files under `OUTPUT_DESTINATION`"),
+    )
+    agrp.add_argument("--hardlink", dest="content_action", action="store_const", const="hardlink",
+        help=_("write rendered output data to files under `CONTENT_DESTINATION`, then hardlink them to paths under `OUTPUT_DESTINATION`; default"),
+    )
+    agrp.add_argument("--symlink", dest="content_action", action="store_const", const="symlink",
+        help=_("write rendered output data to files under `CONTENT_DESTINATION`, then symlink them to paths under `OUTPUT_DESTINATION`"),
+    )
+    cmd.set_defaults(content_action="hardlink")
 
     agrp = cmd.add_argument_group("content-addressed file output settings")
 
-    agrp.add_argument("--content-to", dest="content_destination", metavar="CONTENT_DESTINATION", type=str, help=_("content-addressed destination directory; if not specified, reuses `OUTPUT_DESTINATION`"))
-    agrp.add_argument("--content-output", metavar="CONTENT_FORMAT", default="default", type=str, help=_("""format describing generated content-addressed output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""") + "\n" + \
-                      "- " + _("available aliases and corresponding %%-substitutions:") + "\n" + \
-                      "".join([f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`" + ("; the default" if name == "default" else "") + "\n" for name, value in content_output_alias.items()]) + \
-                      "- " + _("available substitutions:") + "\n" + \
-                      "  - " + _(f"all expressions of `{__prog__} get --expr` (which see)") + ";\n" + \
-                      "  - `content`: " + _("rendered content") + "\n" + \
-                      "  - `content_sha256`: " + _("alias for `content|sha256`"))
+    agrp.add_argument("--content-to", dest="content_destination", metavar="CONTENT_DESTINATION", type=str,
+        help=_("content-addressed destination directory; if not specified, reuses `OUTPUT_DESTINATION`"),
+    )
+    agrp.add_argument("--content-output", metavar="CONTENT_FORMAT", default="default", type=str,
+        help=_("""format describing generated content-addressed output paths, an alias name or "format:" followed by a custom pythonic %%-substitution string:""")
+        + "\n- "
+        + _("available aliases and corresponding %%-substitutions:")
+        + "\n"
+        + "".join(
+            [
+                f"  - `{name}`{' ' * (12 - len(name))}: `{value.replace('%', '%%')}`"
+                + ("; the default" if name == "default" else "")
+                + "\n"
+                for name, value in content_output_alias.items()
+            ]
+        )
+        + "- "
+        + _("available substitutions:")
+        + "\n  - "
+        + _(f"all expressions of `{__prog__} get --expr` (which see)")
+        + ";\n  - `content`: "
+        + _("rendered content")
+        + "\n  - `content_sha256`: "
+        + _("alias for `content|sha256`"),
+    )
 
     add_filters(cmd, "take reqres as a root when", True)
 
     agrp = cmd.add_argument_group("recursion depth")
-    agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0, help=_('maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also mirror one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'))
+    agrp.add_argument("-d", "--depth", metavar="DEPTH", type=int, default=0,
+        help=_('maximum recursion depth level; the default is `0`, which means "`--root-*` documents and their requisite resources only"; setting this to `1` will also mirror one level of documents referenced via jump and action links, if those are being remapped to local files with `--remap-*`; higher values will mean even more recursion'),
+    )
 
     cmd.set_defaults(func=cmd_mirror)
 
     # serve
-    cmd = subparsers.add_parser("serve", help=_("run an archiving server and/or serve given input files for replay over HTTP"),
-                                description = _("""Run an archiving server and/or serve given input files for replay over HTTP.
+    cmd = subparsers.add_parser("serve",
+        help=_("run an archiving server and/or serve given input files for replay over HTTP"),
+        description=_("""Run an archiving server and/or serve given input files for replay over HTTP.
 
 Algorithm:
 
@@ -3973,39 +4325,67 @@ Algorithm:
       - show a `Not Found` page with a list of similar URLs and visits matching the pattern.
 
 The end.
-"""))
-    cmd.add_argument("-q", "--quiet", action="store_true", help=_("don't don't print end-of-filtering warnings, don't print optional informational messages, and don't log HTTP requests to stderr"))
+"""),
+    )
+    cmd.add_argument("-q", "--quiet", action="store_true",
+        help=_("don't don't print end-of-filtering warnings, don't print optional informational messages, and don't log HTTP requests to stderr"),
+    )
     add_index_memory(cmd)
     add_common(cmd, "serve", "make reqres available when")
 
     agrp = cmd.add_argument_group("`HTTP` server options")
-    agrp.add_argument("--host", type=str, default="127.0.0.1", help=_("listen on what host/IP; default: `%(default)s`"))
-    agrp.add_argument("--port", type=int, default=3210, help=_("listen on what port; default: `%(default)s`"))
-    agrp.add_argument("--debug-bottle", action="store_true", help=_("run with `bottle`'s debugging enabled"))
+    agrp.add_argument("--host", type=str, default="127.0.0.1",
+        help=_("listen on what host/IP; default: `%(default)s`"),
+    )
+    agrp.add_argument("--port", type=int, default=3210,
+        help=_("listen on what port; default: `%(default)s`"),
+    )
+    agrp.add_argument("--debug-bottle", action="store_true",
+        help=_("run with `bottle`'s debugging enabled"),
+    )
 
     add_expr(cmd, "serve")
 
     agrp = cmd.add_argument_group("buckets")
-    agrp.add_argument("--default-bucket", "--default-profile", metavar="NAME", default="default", type=str, help=_("default bucket name to use when a client does not specify any; default: `%(default)s`"))
-    agrp.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true", help=_("ignore bucket names specified by clients and always use `--default-bucket` instead"))
+    agrp.add_argument("--default-bucket", "--default-profile", metavar="NAME", default="default", type=str,
+        help=_("default bucket name to use when a client does not specify any; default: `%(default)s`"),
+    )
+    agrp.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true",
+        help=_("ignore bucket names specified by clients and always use `--default-bucket` instead"),
+    )
 
     add_fileout(cmd, "serve")
 
     agrp = cmd.add_argument_group("replay what")
     grp = agrp.add_mutually_exclusive_group()
     fiar = "for each URL, index and replay only"
-    grp.add_argument("--no-replay", dest="replay", action="store_const", const=False, help=_("disable replay functionality, makes this into an archive-only server, like `hoardy-web-sas` is"))
-    grp.add_argument("--oldest", dest="replay", action="store_const", const=anytime.start, help=_(f"{fiar} the oldest visit; if `--to` is set, archiving a new visit for a URL will keep the indexed and replayable version as-is"))
-    grp.add_argument("--nearest", dest="replay", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: x, help=_(f"{fiar} the visit closest to the given `INTERVAL_DATE` value; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version if `INTERVAL_DATE` is in the future and keep it as-is otherwise") + interval_date_spec)
-    grp.add_argument("--latest", dest="replay", action="store_const", const=anytime.end, help=_("{fiar} the latest visit; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version with a new one"))
-    grp.add_argument("--all", dest="replay", action="store_const", const=None, help=_("index and replay all visits to all available URLs; if `--to` is given, archiving a new visit for a URL will update the index and make the new visit available for replay; default"))
-    cmd.set_defaults(replay = None) # --all
+    grp.add_argument("--no-replay", dest="replay", action="store_const", const=False,
+        help=_("disable replay functionality, makes this into an archive-only server, like `hoardy-web-sas` is"),
+    )
+    grp.add_argument("--oldest", dest="replay", action="store_const", const=anytime.start,
+        help=_(f"{fiar} the oldest visit; if `--to` is set, archiving a new visit for a URL will keep the indexed and replayable version as-is"),
+    )
+    grp.add_argument("--nearest", dest="replay", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: x,
+        help=_(f"{fiar} the visit closest to the given `INTERVAL_DATE` value; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version if `INTERVAL_DATE` is in the future and keep it as-is otherwise")
+        + interval_date_spec,
+    )
+    grp.add_argument("--latest", dest="replay", action="store_const", const=anytime.end,
+        help=_("{fiar} the latest visit; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version with a new one"),
+    )
+    grp.add_argument("--all", dest="replay", action="store_const", const=None,
+        help=_("index and replay all visits to all available URLs; if `--to` is given, archiving a new visit for a URL will update the index and make the new visit available for replay; default"),
+    )
+    cmd.set_defaults(replay=None)  # --all
 
     agrp = cmd.add_argument_group("replay how")
 
-    agrp.add_argument("--web", dest="web_replay", action="store_const", const=True, help=_("replay `HTTP` responses as close as possible to their original captures; default"))
-    agrp.add_argument("--mirror", dest="web_replay", action="store_const", const=False, help=_(f"replay `HTTP` responses like `{__prog__} mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `{__prog__} mirror`; i.e., enabling this option will, essentially, turn this sub-command into an on-demand `{__prog__} mirror` which you can query with `curl` or some such"))
-    cmd.set_defaults(web_replay = True)
+    agrp.add_argument("--web", dest="web_replay", action="store_const", const=True,
+        help=_("replay `HTTP` responses as close as possible to their original captures; default"),
+    )
+    agrp.add_argument("--mirror", dest="web_replay", action="store_const", const=False,
+        help=_(f"replay `HTTP` responses like `{__prog__} mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `{__prog__} mirror`; i.e., enabling this option will, essentially, turn this sub-command into an on-demand `{__prog__} mirror` which you can query with `curl` or some such"),
+    )
+    cmd.set_defaults(web_replay=True)
 
     cmd.set_defaults(func=cmd_serve)
     # fmt: on
