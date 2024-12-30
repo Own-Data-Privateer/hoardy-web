@@ -240,7 +240,7 @@ def _t_headers(n: str, x: _t.Any) -> Headers:
     if Headers.__instancecheck__(x):
         return _t.cast(Headers, x)
     raise WRRTypeError(
-        gettext("Reqres field `%s`: wrong type: want %s, got %s"), "Headers", type(x).__name__
+        gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "Headers", type(x).__name__
     )
 
 
