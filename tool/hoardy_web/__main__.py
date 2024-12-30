@@ -2312,7 +2312,7 @@ def cmd_serve(cargs : _t.Any) -> None:
     import bottle
     from fnmatch import translate
     import urllib.parse as _up
-    import hoardy_web.serve_static as _static
+    import hoardy_web.static as _static
 
     server_url_base = f"http://{cargs.host}:{cargs.port}"
 
