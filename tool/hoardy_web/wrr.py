@@ -42,8 +42,15 @@ from .source import *
 from .web import *
 
 
-class RRCommon:
+class RRCommon(metaclass=_abc.ABCMeta):
+    headers: Headers
+    complete: bool
+    body: bytes | str
     _dtc: dict[SniffContentType, DiscernContentType]
+
+    @_abc.abstractmethod
+    def get_content_type(self) -> tuple[str, bool]:
+        raise NotImplementedError()
 
     def discern_content_type(self, sniff: SniffContentType) -> DiscernContentType:
         """Run `mime.discern_content_type` on this."""
@@ -54,10 +61,10 @@ class RRCommon:
         except AttributeError:
             self._dtc = {}
 
-        ct, do_sniff = self.get_content_type()  # type: ignore
+        ct, do_sniff = self.get_content_type()
         if do_sniff and sniff == SniffContentType.NONE:
             sniff = SniffContentType.FORCE
-        res = discern_content_type(ct, sniff, self.body)  # type: ignore
+        res = discern_content_type(ct, sniff, self.body)
 
         self._dtc[sniff] = res
         return res
