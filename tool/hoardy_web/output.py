@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Pretty-printing of `Reqres` structures and computed `--expr` values."""
+
 import io as _io
 import json as _json
 import typing as _t

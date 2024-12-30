@@ -15,8 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Parsing and scrubbing of HTML data.
-"""
+"""Parsing and scrubbing of HTML data."""
 
 import collections as _c
 import collections.abc as _cabc

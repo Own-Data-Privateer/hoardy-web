@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""`TimeStamp`, `TimeRange`, and related things."""
+
 import calendar as _calendar
 import dataclasses as _dc
 import decimal as _dec

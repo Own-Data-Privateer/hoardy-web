@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Random utility functions."""
+
 import gzip as _gzip
 import io as _io
 import traceback as _traceback

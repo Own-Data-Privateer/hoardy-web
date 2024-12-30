@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Templates for the generated pages."""
+
 style = """
   html { background-color: #eee; font-family: sans-serif; }
   body { background-color: #fff; border: 1px solid #ddd; padding: 15px; margin: 15px; }

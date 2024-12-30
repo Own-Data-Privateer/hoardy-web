@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""`SortedIndex`, which is the main data structure of `mirror` and
+`serve` sub-commands, and related things."""
+
 import bisect as _bisect
 import collections.abc as _abc
 import dataclasses as _dc

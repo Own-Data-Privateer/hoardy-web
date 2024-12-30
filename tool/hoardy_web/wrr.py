@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Definition of `Reqres` and `ReqresExpr` structures, loading and
+dumping them from/to `WRR`."""
+
 import abc as _abc
 import dataclasses as _dc
 import gzip as _gzip

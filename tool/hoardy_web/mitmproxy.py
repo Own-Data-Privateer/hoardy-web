@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Loading of `mitmproxy` `mitmdump` files into `Reqres` structures."""
+
 import io as _io
 import os as _os
 import struct as _struct

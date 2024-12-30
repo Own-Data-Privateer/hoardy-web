@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Deferred and atomic IO operations."""
+
 import dataclasses as _dc
 import errno as _errno
 import io as _io

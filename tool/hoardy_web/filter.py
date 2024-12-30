@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""Generic filter generators."""
+
 import dataclasses as _dc
 import logging as _logging
 import re as _re

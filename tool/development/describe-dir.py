@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+"""A small utility that generates a recursive deterministic textual
+description of given input directories."""
 
 import argparse
 import hashlib
