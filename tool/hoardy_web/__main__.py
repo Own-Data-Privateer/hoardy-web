@@ -2302,7 +2302,6 @@ def cmd_mirror(cargs: _t.Any) -> None:
     def render(
         stime: TimeStamp,
         net_url: URLType,
-        page_id: PageIDType,
         rrexpr: ReqresExpr[DeferredSourceType],
         abs_out_path: PathType,
         enqueue: bool,
@@ -2434,7 +2433,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
                             # render it immediately
                             # NB: (breakCycles) breaks dependency cycles that can make this loop infinitely
-                            uabs_out_path = render(ustime, unet_url, upage_id, urrexpr, get_abs_out_path(urrexpr), enqueue, new_queue, level + 1)  # fmt: skip
+                            uabs_out_path = render(ustime, unet_url, urrexpr, get_abs_out_path(urrexpr), enqueue, new_queue, level + 1)  # fmt: skip
                             urrexpr.unload()
                     elif id(urrexpr) in done:
                         # nothing to do
@@ -2570,12 +2569,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
             qpid, qobj = queue.popitem(False)
             qstime, qrrexpr = qobj
-            if isinstance(qpid, RequestIDType):
-                qrequest_id = qpid
-            else:
-                qrequest_id = qpid[1]
-            qpage_id = (qstime, qrequest_id)
-            render(qstime, qrrexpr.net_url, qpage_id, qrrexpr, get_abs_out_path(qrrexpr), enqueue, new_queue, 0)  # fmt: skip
+            render(qstime, qrrexpr.net_url, qrrexpr, get_abs_out_path(qrrexpr), enqueue, new_queue, 0)  # fmt: skip
             qrrexpr.unload()
 
         queue = new_queue
