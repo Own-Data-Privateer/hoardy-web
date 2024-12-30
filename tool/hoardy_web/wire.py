@@ -398,8 +398,8 @@ class URLParsingError(ValueError):
 def parse_url(url: str) -> ParsedURL:
     try:
         scheme, netloc, path, query, fragment = _up.urlsplit(url)
-    except Exception:
-        raise URLParsingError(url)
+    except Exception as exc:
+        raise URLParsingError(url) from exc
 
     userinfo, has_user, hostinfo = netloc.rpartition("@")
     if has_user:
@@ -430,17 +430,17 @@ def parse_url(url: str) -> ParsedURL:
         # So, we turn `raw_hostname` into unicode `str` first.
         try:
             dehostname = _idna.decode(ehostname, uts46=True)
-        except _idna.IDNAError as err:
+        except _idna.IDNAError as exc:
             if ehostname[2:4] == "--":
                 _logging.warning(
                     "`parse_url` left `net_hostname` and related attrs of `%s` undecoded because `idna` module failed to decode `%s`: %s",
                     url,
                     ehostname,
-                    repr(err),
+                    repr(exc),
                 )
                 net_hostname = hostname = ehostname
             else:
-                raise URLParsingError(url)
+                raise URLParsingError(url) from exc
         else:
             try:
                 # Then encode it with uts46 enabled.
@@ -448,8 +448,8 @@ def parse_url(url: str) -> ParsedURL:
                 # And then decode it again to get the canonical unicode hostname for which
                 # encoding and decoding will be bijective
                 hostname = _idna.decode(net_hostname)
-            except _idna.IDNAError:
-                raise URLParsingError(url)
+            except _idna.IDNAError as exc:
+                raise URLParsingError(url) from exc
 
     oqm = "?" if query != "" or (query == "" and url.endswith("?")) else ""
     ofm = "#" if fragment != "" or (fragment == "" and url.endswith("#")) else ""

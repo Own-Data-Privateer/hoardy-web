@@ -323,7 +323,7 @@ def load_map_orderly(
             try:
                 data = load_func(abs_path)
             except OSError as exc:
-                raise Failure(gettext("failed to open `%s`"), path)
+                raise Failure(gettext("failed to open `%s`"), path) from exc
 
             emit_func(data)
         except Failure as exc:
@@ -1557,7 +1557,7 @@ def handle_ENAMETOOLONG(exc: OSError, name: str | bytes) -> None:
                 f"target file system rejects `%s` as too long: either one of the path components is longer than the maximum allowed file name on the target file system or the whole thing is longer than kernel MAX_PATH"
             ),
             name,
-        )
+        ) from exc
 
 
 class DeferredFileWrite(
@@ -1671,7 +1671,7 @@ def make_deferred_emit(
                     _logging.error("%s", str(exc))
                     return
                 # raise CatastrophicFailure so that load_map_orderly wouldn't try handling it
-                raise CatastrophicFailure("%s", str(exc))
+                raise CatastrophicFailure("%s", str(exc)) from exc
 
             if done_files is not None:
                 done_files.append(abs_out_path)
@@ -1992,13 +1992,13 @@ def make_organize_emit(
                             f"can't {action} the source to the destination because the source is not stored as a separate WRR file; did you mean to run with `--copy` intead of `--{action}`?"
                         )
                     )
-            except FileExistsError:
-                raise Failure(gettext(f"`%s` already exists"), self.destination)
+            except FileExistsError as exc:
+                raise Failure(gettext(f"`%s` already exists"), self.destination) from exc
             except OSError as exc:
                 handle_ENAMETOOLONG(exc, self.destination)
                 if exc.errno == _errno.EXDEV:
-                    raise Failure(gettext(f"can't {action} across file systems"))
-                raise exc
+                    raise Failure(gettext(f"can't {action} across file systems")) from exc
+                raise
 
     return make_deferred_emit(
         cargs,
@@ -2042,8 +2042,8 @@ def cmd_organize(cargs: _t.Any) -> None:
         for exp_path in cargs.paths:
             try:
                 path_stat = _os.stat(exp_path)
-            except FileNotFoundError:
-                raise Failure(gettext("`%s` does not exist"), exp_path)
+            except FileNotFoundError as exc:
+                raise Failure(gettext("`%s` does not exist"), exp_path) from exc
 
             if not _stat.S_ISDIR(path_stat.st_mode):
                 raise Failure(
@@ -2544,12 +2544,12 @@ def cmd_mirror(cargs: _t.Any) -> None:
             except FileExistsError as exc:
                 raise Failure(
                     gettext(f"trying to overwrite `%s` which already exists"), exc.filename
-                )
+                ) from exc
             except OSError as exc:
                 handle_ENAMETOOLONG(exc, exc.filename)
                 if exc.errno == _errno.EXDEV:
-                    raise Failure(gettext(f"can't {action} across file systems"))
-                raise exc
+                    raise Failure(gettext(f"can't {action} across file systems")) from exc
+                raise
         except Failure as exc:
             if cargs.errors == "ignore":
                 return abs_out_path
@@ -2557,7 +2557,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
             if cargs.errors != "fail":
                 _logging.error("%s", str(exc))
                 return abs_out_path
-            raise CatastrophicFailure("%s", str(exc))
+            raise CatastrophicFailure("%s", str(exc)) from exc
         except Exception:
             error(gettext("while processing `%s`"), source.show_source())
             raise
@@ -2765,8 +2765,9 @@ def cmd_serve(cargs: _t.Any) -> None:
         inf = env["wsgi.input"]
         try:
             todo = int(env["CONTENT_LENGTH"])
-        except Exception:
-            raise Failure(gettext("need `content-length`"))
+        except Exception as exc:
+            raise Failure(gettext("need `content-length`")) from exc
+
         while todo > 0:
             res = inf.read(todo)
             if len(res) == 0:
@@ -2778,7 +2779,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         try:
             reqres = wrr_load_cbor_fileobj(cborf)
         except Exception as exc:
-            raise Failure(gettext("failed to parse content body: %s"), str(exc))
+            raise Failure(gettext("failed to parse content body: %s"), str(exc)) from exc
 
         cborf.seek(0)
         data = cborf.getvalue()  # type: ignore
@@ -2802,7 +2803,9 @@ def cmd_serve(cargs: _t.Any) -> None:
             except FileExistsError:
                 pass
             except OSError as exc:
-                raise Failure(gettext("failed to write data to `%s`: %s"), exc.filename, str(exc))
+                raise Failure(
+                    gettext("failed to write data to `%s`: %s"), exc.filename, str(exc)
+                ) from exc
             else:
                 break
 

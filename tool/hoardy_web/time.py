@@ -334,8 +334,8 @@ def parse_TimeRange(value: str, *, utc: bool = False) -> tuple[TimeRange, str]:
                 _, end = p.chomp(parse_TimeStamp, utc=utc)
                 p.opt_regex(timerange_post_re)
         return TimeRange(start, end), p.leftovers
-    except _p.ParseError:
-        raise _p.ParseError("failed to parse `%s` as a time interval", value)
+    except _p.ParseError as exc:
+        raise _p.ParseError("failed to parse `%s` as a time interval", value) from exc
 
 
 def timerange(value: str, utc: bool = False) -> TimeRange:

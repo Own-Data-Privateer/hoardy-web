@@ -311,8 +311,8 @@ def wrr_load_cbor_struct(data: _t.Any) -> Reqres:
 def wrr_load_cbor_fileobj(fobj: _io.BufferedReader) -> Reqres:
     try:
         struct = _cbor2.load(fobj)
-    except _cbor2.CBORDecodeValueError:
-        raise WRRParsingError(gettext("CBOR parsing failure"))
+    except _cbor2.CBORDecodeValueError as exc:
+        raise WRRParsingError(gettext("CBOR parsing failure")) from exc
 
     return wrr_load_cbor_struct(struct)
 
