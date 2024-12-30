@@ -135,9 +135,9 @@ def wrr_pprint(
             try:
                 with _io.BytesIO(data) as fp:
                     cb = _cbor2.CBORDecoder(fp).decode()
-                    if len(fp.read()) != 0:
+                    if len(fp.read(1)) != 0:
                         # not all of the data was decoded
-                        raise Exception("failed to parse")
+                        raise ValueError("failed to parse")
                 cbordump = pyrepr_dumps(cb, width=80)
             except Exception:
                 pass
