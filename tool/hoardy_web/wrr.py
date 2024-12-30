@@ -965,9 +965,7 @@ def trivial_Reqres(
 def fallback_Reqres(
     url: ParsedURL,
     expected_mime: list[str],
-    qtime: TimeStamp = TimeStamp(0),
-    stime: TimeStamp = TimeStamp(1000),
-    ftime: TimeStamp = TimeStamp(2000),
+    time: TimeStamp = TimeStamp(0),
     headers: Headers = [],
     data: bytes = b"",
 ) -> Reqres:
@@ -986,14 +984,9 @@ def fallback_Reqres(
 
     # intersect, keeping the order in expected_mime
     cts = [ct for ct in expected_mime if ct in cts]
+    ct = cts[0] if len(cts) > 0 else "application/octet-stream"
 
-    if len(cts) > 0:
-        return trivial_Reqres(url, cts[0], stime, stime, stime, headers=headers, data=data)
-
-    # fallback this otherwise
-    return trivial_Reqres(
-        url, "application/octet-stream", stime, stime, stime, headers=headers, data=data
-    )
+    return trivial_Reqres(url, ct, time, time, time, headers=headers, data=data)
 
 
 def mk_trivial_ReqresExpr(

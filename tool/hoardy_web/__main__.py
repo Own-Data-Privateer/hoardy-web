@@ -2292,9 +2292,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
     def remap_url_fallback(
         stime: TimeStamp, purl: ParsedURL, expected_content_types: list[str]
     ) -> PathType:
-        trrexpr = ReqresExpr(
-            UnknownSource(), fallback_Reqres(purl, expected_content_types, stime, stime, stime)
-        )
+        trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime))
         trrexpr.values["num"] = 0
         rel_out_path: PathType = _os.path.join(destination, output_format % trrexpr)
         return _os.path.abspath(rel_out_path)
