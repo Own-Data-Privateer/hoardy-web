@@ -542,8 +542,8 @@ def cmd_run(cargs: _t.Any) -> None:
             with TIOWrappedWriter(_os.fdopen(fileno, "wb")) as f:
                 print_exprs(rrexpr, cargs.exprs, cargs.separator, f)
 
-        retcode = _subprocess.Popen([cargs.command] + args + tmp_paths).wait()
-        _sys.exit(retcode)
+        with _subprocess.Popen([cargs.command] + args + tmp_paths) as proc:
+            _sys.exit(proc.wait())
     finally:
         for path in tmp_paths:
             _os.unlink(path)
