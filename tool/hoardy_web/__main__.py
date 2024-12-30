@@ -2691,12 +2691,12 @@ def cmd_serve(cargs: _t.Any) -> None:
     )
 
     def get_visits(
-        url_re: _re.Pattern[str], start: TimeStamp, end: TimeStamp
+        url_like_re: _re.Pattern[str], start: TimeStamp, end: TimeStamp
     ) -> tuple[int, list[tuple[str, str, list[str]]]]:
         visits_total = 0
         url_visits = []
         for _rhost, pretty_net_url, net_url in all_urls:
-            if not url_re.fullmatch(pretty_net_url):
+            if not url_like_re.fullmatch(pretty_net_url):
                 continue
 
             visits = []
@@ -2838,8 +2838,8 @@ def cmd_serve(cargs: _t.Any) -> None:
             except CatastrophicFailure as exc:
                 bottle.abort(400, str(exc))
                 return None
-            url_re = _re.compile(translate(turl))
-            visits_total, url_visits = get_visits(url_re, interval.start, interval.end)
+            url_like_re = _re.compile(translate(turl))
+            visits_total, url_visits = get_visits(url_like_re, interval.start, interval.end)
             return locate_page.render(  # type: ignore
                 {
                     "matching": True,
@@ -2883,17 +2883,17 @@ def cmd_serve(cargs: _t.Any) -> None:
                 uobj = index.get_nearest(net_url + "?", ideal, normal_document)
             if uobj is None:
                 if "*" in turl:
-                    url_re = _re.compile(translate(turl))
+                    url_like_re = _re.compile(translate(turl))
                     pattern = turl
                 else:
                     mq_path = pturl.mq_path
                     if mq_path.endswith("/"):
                         mq_path = mq_path[:-1]
                     loc = pturl.netloc + mq_path
-                    url_re = _re.compile(".*" + _re.escape(loc) + ".*")
+                    url_like_re = _re.compile(".*" + _re.escape(loc) + ".*")
                     pattern = "*" + loc + "*"
 
-                visits_total, url_visits = get_visits(url_re, anytime.start, anytime.end)
+                visits_total, url_visits = get_visits(url_like_re, anytime.start, anytime.end)
 
                 bottle.response.status = 404
                 return locate_page.render(  # type: ignore

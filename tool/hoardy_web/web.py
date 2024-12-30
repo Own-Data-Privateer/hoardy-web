@@ -149,8 +149,8 @@ HTML5NodeAttrValues = _c.OrderedDict[HTML5NN, str]
 CSSNode: _t.TypeAlias = _tcss.ast.Node
 
 
-def debug_walker(walker: _t.Iterator[HTML5Node]) -> _t.Iterator[HTML5Node]:
-    for token in walker:
+def debug_walker(nodes: _t.Iterator[HTML5Node]) -> _t.Iterator[HTML5Node]:
+    for token in nodes:
         print(token)
         yield token
 
@@ -213,7 +213,7 @@ html_whitespace_ignore_tags = frozenset(["html", "head", "frameset"])
 
 
 def prettify_html(
-    indent: int, relaxed: bool, walker: _t.Iterator[HTML5Node]
+    indent: int, relaxed: bool, nodes: _t.Iterator[HTML5Node]
 ) -> _t.Iterator[HTML5Node]:
     """HTML prettification html5lib.Filter that adds lots of indent."""
 
@@ -241,7 +241,7 @@ def prettify_html(
             return current == 0
         return False
 
-    for token in walker:
+    for token in nodes:
         typ = token["type"]
         if typ == "Doctype":
             yield token
@@ -588,7 +588,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
             return get_void_url(link_type)
         return res
 
-    def scrub_css(
+    def scrub_css_nodes(
         base_url: URLType,
         remap_url: URLRemapperType | None,
         nodes: _t.Iterator[CSSNode],
@@ -638,11 +638,11 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                     prelude = at_import_prelude(node.prelude)
                 else:
                     prelude = node.prelude
-                node.prelude = scrub_css(base_url, remap_url, prelude)
+                node.prelude = scrub_css_nodes(base_url, remap_url, prelude)
                 if node.content is not None:
                     if current is not None:
                         try:
-                            content = scrub_css(
+                            content = scrub_css_nodes(
                                 base_url,
                                 remap_url,
                                 _tcss.parse_blocks_contents(node.content),
@@ -651,7 +651,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                             )
                         except CSSScrubbingError:
                             # it does not parse, scrub the tokens instead
-                            content = scrub_css(base_url, remap_url, node.content)
+                            content = scrub_css_nodes(base_url, remap_url, node.content)
                         node.content = (
                             [_tcss.ast.WhitespaceToken(0, 0, "\n")]
                             + content
@@ -664,10 +664,10 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                         del content
                     else:
                         # NB: no need to parse with `_tcss.parse_blocks_contents` in this case
-                        node.content = scrub_css(base_url, remap_url, node.content)
+                        node.content = scrub_css_nodes(base_url, remap_url, node.content)
             elif isinstance(node, _tcss.ast.Declaration):
                 emit_indent()
-                node.value = scrub_css(base_url, remap_url, node.value)
+                node.value = scrub_css_nodes(base_url, remap_url, node.value)
             elif isinstance(node, _tcss.ast.URLToken):
                 # remap the URL
                 url = remap_link_or_void(
@@ -689,7 +689,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                     rep = f"url({_tcss.serializer.serialize_url(url)})"
                     res.append(_tcss.ast.URLToken(node.source_line, node.source_column, url, rep))
                     continue
-                node.arguments = scrub_css(base_url, remap_url, node.arguments)
+                node.arguments = scrub_css_nodes(base_url, remap_url, node.arguments)
             elif isinstance(
                 node,
                 (
@@ -698,7 +698,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                     _tcss.ast.CurlyBracketsBlock,
                 ),
             ):
-                node.content = scrub_css(base_url, remap_url, node.content)
+                node.content = scrub_css_nodes(base_url, remap_url, node.content)
             elif isinstance(node, _tcss.ast.Comment):
                 emit_indent()
             elif isinstance(node, _tcss.ast.ParseError):
@@ -739,11 +739,11 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                 return True
         return False
 
-    def scrub_html(
+    def scrub_html_nodes(
         orig_base_url: URLType,
         remap_url: URLRemapperType | None,
         headers: Headers,
-        walker: _t.Iterator[HTML5Node],
+        nodes: _t.Iterator[HTML5Node],
     ) -> _t.Iterator[HTML5Node]:
         censor_lvl: int = 0
         stack: list[HTML5NN] = []
@@ -788,7 +788,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
             yield from emit_censored_comment(what)
 
         backlog: list[HTML5Node] = []
-        witer = iter(walker)
+        witer = iter(nodes)
 
         while True:
             if len(backlog) > 0:
@@ -962,7 +962,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                                         href_mime,
                                         href_params,
                                         _tcss.serialize(
-                                            scrub_css(base_url, remap_url, href_nodes, None)
+                                            scrub_css_nodes(base_url, remap_url, href_nodes, None)
                                         ).encode(href_charset),
                                     )
                                 except (ParseError, ValueError):
@@ -996,7 +996,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                             # scrub inline styles
                             if yes_styles:
                                 new_attrs[ann] = _tcss.serialize(
-                                    scrub_css(
+                                    scrub_css_nodes(
                                         base_url,
                                         remap_url,
                                         _tcss.parse_blocks_contents(value),
@@ -1059,7 +1059,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
 
                         if assemble_nn == htmlns_style:
                             adata = _tcss.serialize(
-                                scrub_css(
+                                scrub_css_nodes(
                                     base_url,
                                     remap_url,
                                     _tcss.parse_stylesheet(adata),
@@ -1147,10 +1147,10 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
     pipe = make_func_pipe(stages)
 
     return (
-        lambda base_url, remap_url, headers, walker: pipe(
-            scrub_html(base_url, remap_url, headers, walker)
+        lambda base_url, remap_url, headers, nodes: pipe(
+            scrub_html_nodes(base_url, remap_url, headers, nodes)
         ),
-        lambda base_url, remap_url, headers, nodes: scrub_css(
+        lambda base_url, remap_url, headers, nodes: scrub_css_nodes(
             base_url, remap_url, nodes, 0 if yes_indent else None
         ),
     )
