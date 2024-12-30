@@ -131,7 +131,7 @@ for ct, (kinds, exts) in mime_info_of.items():
 
 unknown_binary = ["unknown", "image", "audio", "video", "font", "dyndoc", "archive"]
 any_text = ["text", "javascript", "css", "json"]
-any_text_ext = [".txt", ".js", ".mjs" ".css", ".mcss", ".json"]
+any_text_ext = [".txt", ".js", ".mjs", ".css", ".mcss", ".json"]
 
 html_mime = ["text/html"]
 stylesheet_mime = ["text/css"]
