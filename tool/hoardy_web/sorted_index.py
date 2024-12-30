@@ -21,9 +21,9 @@ import dataclasses as _dc
 import math as _math
 import typing as _t
 
-from sortedcontainers import SortedKeyList
-
 from decimal import Decimal
+
+from sortedcontainers import SortedKeyList
 
 SortedType = _t.TypeVar("SortedType", bound=Decimal | float | int)
 
@@ -43,23 +43,22 @@ def nearer_to_than(ideal: SortedType, value: SortedType, other: SortedType) -> b
     """
     if other == value:
         return None
-    elif is_infinite(ideal):
+    if is_infinite(ideal):
         return (ideal < 0) ^ (other < value)  # type: ignore
-    else:
-        return abs(ideal - value) < abs(ideal - other)  # type: ignore
+    return abs(ideal - value) < abs(ideal - other)  # type: ignore
 
 
 def test_nearer_to_than() -> None:
-    assert nearer_to_than(1, 0, 0) == None
+    assert nearer_to_than(1, 0, 0) is None
     assert nearer_to_than(0, 10, 100)
-    assert not nearer_to_than(0, 100, 10)
+    assert nearer_to_than(0, 100, 10) is False
 
     inf: Decimal | float
     for inf in [Decimal("+inf"), _math.inf]:  # type: ignore
         assert nearer_to_than(inf, 1, 0)
         assert nearer_to_than(-inf, 0, 1)
-        assert not nearer_to_than(inf, 0, 1)
-        assert not nearer_to_than(-inf, 1, 0)
+        assert nearer_to_than(inf, 0, 1) is False
+        assert nearer_to_than(-inf, 1, 0) is False
 
 
 SIKeyType = _t.TypeVar("SIKeyType")
@@ -143,7 +142,7 @@ class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
         if ilen == 1:
             yield iobjs[0]
             return
-        elif is_infinite(ideal):
+        if is_infinite(ideal):
             # oldest or latest
             yield from iter(iobjs) if ideal < 0 else reversed(iobjs)
             return
@@ -153,7 +152,7 @@ class SortedIndex(_t.Generic[SIKeyType, SortedType, SIValueType]):
         if right == 0:
             yield from iter(iobjs)
             return
-        elif right >= ilen:
+        if right >= ilen:
             yield from reversed(iobjs)
             return
 

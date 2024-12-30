@@ -16,7 +16,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import abc as _abc
-import cbor2 as _cbor2
 import dataclasses as _dc
 import gzip as _gzip
 import hashlib as _hashlib
@@ -29,6 +28,8 @@ import urllib.parse as _up
 
 from decimal import Decimal
 from gettext import gettext
+
+import cbor2 as _cbor2
 
 from kisstdlib.exceptions import *
 from kisstdlib.io.stdio import *
@@ -108,7 +109,7 @@ class Response(RRCommon):
     def get_content_type(self) -> tuple[str, bool]:
         ct = get_header_value(self.headers, "content-type", "application/octet-stream")
         ct_opts = get_header_value(self.headers, "x-content-type-options", "")
-        if ct_opts == "nosniff" or ct_opts == "no-sniff":
+        if ct_opts in ("nosniff", "no-sniff"):
             sniff = False
         else:
             sniff = True
@@ -254,7 +255,7 @@ def _t_headers(n: str, x: _t.Any) -> Headers:
 def wrr_load_cbor_struct(data: _t.Any) -> Reqres:
     if not isinstance(data, list):
         raise WRRParsingError(gettext("Reqres parsing failure: wrong spine"))
-    elif len(data) == 7 and data[0] == "WEBREQRES/1":
+    if len(data) == 7 and data[0] == "WEBREQRES/1":
         _, agent, protocol, request_, response_, finished_at, extra = data
         rq_started_at, rq_method, rq_url, rq_headers, rq_complete, rq_body = request_
         purl = parse_url(_t_str("request.url", rq_url))
@@ -311,8 +312,8 @@ def wrr_load_cbor_struct(data: _t.Any) -> Reqres:
             extra,
             websocket,
         )
-    else:
-        raise WRRParsingError(gettext("Reqres parsing failure: unknown format `%s`"), data[0])
+
+    raise WRRParsingError(gettext("Reqres parsing failure: unknown format `%s`"), data[0])
 
 
 def wrr_load_cbor_fileobj(fobj: _io.BufferedReader) -> Reqres:
@@ -494,13 +495,13 @@ def _parse_rt(opt: str) -> RemapType:
     x = opt[:1]
     if x == "+":
         return RemapType.ID
-    elif x == "-":
+    if x == "-":
         return RemapType.VOID
-    elif x == "*":
+    if x == "*":
         return RemapType.OPEN
-    elif x == "/":
+    if x == "/":
         return RemapType.CLOSED
-    elif x == "&":
+    if x == "&":
         return RemapType.FALLBACK
     raise CatastrophicFailure("unknown `scrub` option `%s`", opt)
 
@@ -518,7 +519,7 @@ def linst_scrub() -> LinstAtom:
                     rtvalue = _parse_rt(opt)
                     setattr(scrub_opts, oname, rtvalue)
                     continue
-                elif oname == "all_refs":
+                if oname == "all_refs":
                     rtvalue = _parse_rt(opt)
                     for oname in ScrubbingReferenceOptions:
                         setattr(scrub_opts, oname, rtvalue)
@@ -531,7 +532,7 @@ def linst_scrub() -> LinstAtom:
                 if oname == "pretty":
                     scrub_opts.whitespace = not value
                     scrub_opts.indent = value
-                elif oname == "debug" and value == True:
+                elif oname == "debug" and value:
                     scrub_opts.verbose = True
                     scrub_opts.whitespace = False
                     scrub_opts.indent = True
@@ -546,7 +547,7 @@ def linst_scrub() -> LinstAtom:
 
         scrubbers = make_scrubbers(scrub_opts)
 
-        def envfunc(rrexpr: _t.Any, v: _t.Any) -> _t.Any:
+        def envfunc(rrexpr: _t.Any, v: _t.Any) -> _t.Any:  # pylint: disable=unused-argument
             rrexpr = check_rrexpr("scrub", rrexpr)
 
             reqres: Reqres = rrexpr.reqres
@@ -594,7 +595,7 @@ def linst_scrub() -> LinstAtom:
                     rere_obj.body,
                     charset,
                 )
-            elif "css" in kinds:
+            if "css" in kinds:
                 return scrub_css(
                     scrubbers,
                     rrexpr.net_url,
@@ -603,9 +604,9 @@ def linst_scrub() -> LinstAtom:
                     rere_obj.body,
                     charset,
                 )
-            else:
-                # no scrubbing needed
-                return rere_obj.body
+
+            # no scrubbing needed
+            return rere_obj.body
 
         return envfunc
 
@@ -613,10 +614,7 @@ def linst_scrub() -> LinstAtom:
 
 
 def _scrub_to(x: str) -> str:
-    return (
-        "this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `%s`"
-        % (x,)
-    )
+    return f"this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `{x}`"
 
 
 _in_out = "should be kept in or censored out"
@@ -626,27 +624,27 @@ ReqresExpr_atoms.update(
     {
         "parse_path": (
             "parse a URL path component `str` into `path_parts` `list`",
-            linst_apply0(lambda v: parse_path(v)),
+            linst_apply0(parse_path),
         ),
         "unparse_path": (
             "encode `path_parts` `list` into a URL path component `str`",
-            linst_apply0(lambda v: unparse_path(v)),
+            linst_apply0(unparse_path),
         ),
         "parse_query": (
             "parse a URL query component `str` into `query_parts` `list`",
-            linst_apply0(lambda v: parse_query(v)),
+            linst_apply0(parse_query),
         ),
         "unparse_query": (
             "encode `query_parts` `list` into a URL query component `str`",
-            linst_apply0(lambda v: unparse_query(v)),
+            linst_apply0(unparse_query),
         ),
         "pp_to_path": (
             "encode `*path_parts` `list` into a POSIX path, quoting as little as needed",
-            linst_apply0(lambda v: pp_to_path(v)),
+            linst_apply0(pp_to_path),
         ),
         "qsl_to_path": (
             "encode `query_parts` `list` into a POSIX path, quoting as little as needed",
-            linst_apply0(lambda v: qsl_to_path(v)),
+            linst_apply0(qsl_to_path),
         ),
         "scrub": (
             f"""scrub the value by optionally rewriting links and/or removing dynamic content from it; what gets done depends on the `MIME` type of the value itself and the scrubbing options described below; this function takes two arguments:
@@ -733,7 +731,11 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
         self._approx_size = res = (
             128
             + (self.source.approx_size() if self.source is not None else 0)
-            + (self._reqres._resize() if self._reqres is not None else 0)
+            + (
+                self._reqres._resize()  # pylint: disable=protected-access
+                if self._reqres is not None
+                else 0
+            )
             + sum(map(lambda k: len(k) + 16, self.values.keys()))
         )
         return res
@@ -763,7 +765,7 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
             # this `reqres` is cheap to re-load
             self._reqres = None
         if completely:
-            self.values = dict()
+            self.values = {}
         mem.consumption -= self._approx_size - self._resize()
 
     def show_source(self) -> str:
@@ -795,13 +797,12 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
         if name == "fs_path":
             if isinstance(self.source, FileSource):
                 return self.source.path
-            else:
-                return None
+            return None
 
         reqres = self.reqres
         if name == "method":
             self.values[name] = reqres.request.method
-        elif name == "raw_url" or name == "request.url":
+        elif name in ("raw_url", "request.url"):
             self.values[name] = reqres.request.url.raw_url
         elif name.startswith("q") and name[1:] in ReqresExpr_time_attrs:
             qtime = reqres.request.started_at
@@ -847,7 +848,7 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
             else:
                 _, cmime, _, _ = reqres.response.discern_content_type(self.sniff)
             self.values[name] = cmime
-        elif name == "filepath_parts" or name == "filepath_ext":
+        elif name in ("filepath_parts", "filepath_ext"):
             if reqres.response is not None:
                 _, _, _, extensions = reqres.response.discern_content_type(self.sniff)
             else:
@@ -939,7 +940,7 @@ def rrexprs_wrr_some_loadf(
         yield from rrexprs_wrr_some_load(f, make_FileSource(path, in_stat))
 
 
-def trivial_Reqres(
+def trivial_Reqres(  # pylint: disable=dangerous-default-value
     url: ParsedURL,
     content_type: str = "text/html",
     qtime: TimeStamp = TimeStamp(0),
@@ -969,7 +970,7 @@ def trivial_Reqres(
     )
 
 
-def fallback_Reqres(
+def fallback_Reqres(  # pylint: disable=dangerous-default-value
     url: ParsedURL,
     expected_mime: list[str],
     time: TimeStamp = TimeStamp(0),
@@ -996,15 +997,22 @@ def fallback_Reqres(
     return trivial_Reqres(url, ct, time, time, time, headers=headers, data=data)
 
 
-def mk_trivial_ReqresExpr(
-    url: str, ct: str = "text/html", sniff: bool = False, headers: Headers = [], data: bytes = b""
+def mk_trivial_ReqresExpr(  # pylint: disable=dangerous-default-value
+    url: str,
+    ct: str = "text/html",
+    sniff: bool = False,
+    headers: Headers = [],
+    data: bytes = b"",
 ) -> ReqresExpr[UnknownSource]:
     x = trivial_Reqres(parse_url(url), ct, sniff=sniff, headers=headers, data=data)
     return ReqresExpr(UnknownSource(), x)
 
 
-def mk_fallback_ReqresExpr(
-    url: str, cts: list[str] = ["text/html"], headers: Headers = [], data: bytes = b""
+def mk_fallback_ReqresExpr(  # pylint: disable=dangerous-default-value
+    url: str,
+    cts: list[str] = ["text/html"],
+    headers: Headers = [],
+    data: bytes = b"",
 ) -> ReqresExpr[UnknownSource]:
     x = fallback_Reqres(parse_url(url), cts, headers=headers, data=data)
     return ReqresExpr(UnknownSource(), x)
@@ -1241,7 +1249,7 @@ def test_ReqresExpr_scrub_html() -> None:
         "text/html",
         [],
         test_html_in1,
-        f"""<!DOCTYPE html>
+        """<!DOCTYPE html>
 <html>
   <head>
     <meta charset=utf-8>

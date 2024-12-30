@@ -75,7 +75,7 @@ want_stop = False
 should_raise = True
 
 
-def sig_handler(sig: int, frame: _t.Any) -> None:
+def sig_handler(sig: int, _frame: _t.Any) -> None:
     global want_stop
     global should_raise
     want_stop = True
@@ -95,14 +95,14 @@ def pred_linst(expr: str, func: LinstFunc, rrexpr: ReqresExpr[_t.Any]) -> bool:
     res = rrexpr.eval_func(func)
     if isinstance(res, bool):
         return res
-    else:
-        e = CatastrophicFailure(
-            gettext("while evaluating `%s`: expected a value of type `bool`, got `%s`"),
-            expr,
-            repr(res),
-        )
-        e.elaborate(gettext("while processing `%s`"), rrexpr.source.show_source())
-        raise e
+    # TODO: simplify
+    e = CatastrophicFailure(
+        gettext("while evaluating `%s`: expected a value of type `bool`, got `%s`"),
+        expr,
+        repr(res),
+    )
+    e.elaborate(gettext("while processing `%s`"), rrexpr.source.show_source())
+    raise e
 
 
 def mk_linst_filter(
@@ -141,11 +141,11 @@ def compile_filters(cargs: _t.Any, attr_prefix: str = "") -> FilterType[ReqresEx
     ) -> None:
         add_yn_filter(filters, get_attr, get_optname, name, mk_simple_filter, timestamp, lambda c, v: matches_all(pred, c, v))  # fmt: skip
 
-    def is_before(k: _t.Any, stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
+    def is_before(_k: _t.Any, stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
         rrstime: TimeStamp = rrexpr.stime
         return rrstime < stime
 
-    def is_after(k: _t.Any, stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
+    def is_after(_k: _t.Any, stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
         rrstime: TimeStamp = rrexpr.stime
         return stime < rrstime
 
@@ -240,24 +240,26 @@ def compile_expr(expr: str) -> tuple[str, LinstFunc]:
 
 
 def elaborate_output(kind: str, aliases: dict[str, str], value: str) -> str:
+    try:
+        return aliases[value]
+    except KeyError:
+        pass
+
     if value.startswith("format:"):
         return value[7:]
-    else:
-        try:
-            return aliases[value]
-        except KeyError:
-            raise CatastrophicFailure(
-                gettext(
-                    'unknown `%s` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'
-                ),
-                kind,
-                value,
-            )
+
+    raise CatastrophicFailure(
+        gettext(
+            'unknown `%s` alias "%s", prepend "format:" if you want it to be interpreted as a Pythonic %%-substutition'
+        ),
+        kind,
+        value,
+    )
 
 
 def elaborate_paths(paths: list[str | bytes]) -> None:
-    for i in range(0, len(paths)):
-        paths[i] = _os.path.expanduser(paths[i])
+    for i, p in enumerate(paths):
+        paths[i] = _os.path.expanduser(p)
 
 
 def handle_paths(cargs: _t.Any) -> None:
@@ -380,7 +382,7 @@ def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.An
     is_wrrb: IncludeFilesFunc[_t.AnyStr] = with_extension_in([".wrrb", b".wrrb"])
 
     def warn(path: _t.AnyStr, parser: str, exc: Exception) -> None:
-        _logging.warn(
+        _logging.warning(
             gettext("while processing `%s`: failed to parse with `%s` parser: %s"),
             path,
             parser,
@@ -410,7 +412,7 @@ def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.An
         if Mutable.not_warned:
             Mutable.not_warned = False
             for m, e in import_failed:
-                _logging.warn(gettext("failed to import `%s` parser: %s"), m, e)
+                _logging.warning(gettext("failed to import `%s` parser: %s"), m, e)
         raise Failure(gettext("failed to find a suitable parser"))
 
     return rrexprs_load
@@ -420,16 +422,15 @@ def mk_rrexprs_load(cargs: _t.Any) -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExp
     loader = cargs.loader
     if loader is None:
         return dispatch_rrexprs_load()
-    elif loader == "wrr":
+    if loader == "wrr":
         return rrexpr_wrr_loadf
-    elif loader == "wrrb":
+    if loader == "wrrb":
         return rrexprs_wrr_some_loadf
-    elif loader == "mitmproxy":
+    if loader == "mitmproxy":
         from .mitmproxy import rrexprs_mitmproxy_loadf
 
         return rrexprs_mitmproxy_loadf
-    else:
-        assert False
+    assert False
 
 
 def get_bytes(value: _t.Any) -> bytes:
@@ -438,12 +439,12 @@ def get_bytes(value: _t.Any) -> bytes:
 
     if isinstance(value, str):
         return value.encode(_sys.getdefaultencoding())
-    elif isinstance(value, bytes):
+    if isinstance(value, bytes):
         return value
-    else:
-        raise Failure(
-            gettext("don't know how to print an expression of type `%s`"), type(value).__name__
-        )
+
+    raise Failure(
+        gettext("don't know how to print an expression of type `%s`"), type(value).__name__
+    )
 
 
 def cmd_pprint(cargs: _t.Any) -> None:
@@ -496,8 +497,7 @@ default_root_status_re = ".[23]00C"
 def default_expr(kind: str, what: str) -> str:
     if kind != "serve" or what == "dot" or what.startswith("raw_"):
         return default_expr_values[what]
-    else:
-        return default_expr_values[what] + ",-inline_headers"
+    return default_expr_values[what] + ",-inline_headers"
 
 
 def cmd_get(cargs: _t.Any) -> None:
@@ -519,7 +519,7 @@ def cmd_run(cargs: _t.Any) -> None:
 
     if cargs.num_args < 1:
         raise Failure(gettext("`run` sub-command requires at least one PATH"))
-    elif cargs.num_args - 1 > len(cargs.args):
+    if cargs.num_args - 1 > len(cargs.args):
         raise Failure(gettext("not enough arguments to satisfy `--num-args`"))
 
     # move (num_args - 1) arguments from args to paths
@@ -632,9 +632,9 @@ def make_example(gen: _t.Callable[[str], str], indent: int) -> str:
         l.append(url)
 
     res = []
-    for r in rev:
+    for map_to, urls in rev.items():
         res.append(
-            " " * indent + "- " + ", ".join(map(lambda x: f"`{x}`", rev[r])) + " -> `" + r + "`"
+            " " * indent + "- " + ", ".join(map(lambda x: f"`{x}`", urls)) + " -> `" + map_to + "`"
         )
 
     return "\n".join(res).replace("%", "%%")
@@ -767,12 +767,12 @@ def test_outputs_aliases() -> None:
 
     res = []
     prev = ""
-    for name in output_alias:
+    for name, alias in output_alias.items():
         for url in example_url:
             x = mk(url)
             x.values["num"] = 0
             prefix = name + ":" + " " * (12 - len(name)) + " "
-            current = output_alias[name] % x
+            current = alias % x
             if prev != current:
                 res.append(prefix + current)
             else:
@@ -1477,11 +1477,10 @@ flat_mhstn:   ==
     pl = pristine.strip().split("\n")
     assert len(pl) == len(res)
 
-    for i in range(0, len(res)):
+    for i, b in enumerate(res):
         a = pl[i]
-        b = res[i]
         if a != b:
-            raise CatastrophicFailure("expected %s, got %s", a, b)
+            raise CatastrophicFailure("expected `%s`, got `%s`", a, b)
 
 
 not_allowed = gettext("; this is not allowed to prevent accidental data loss")
@@ -1554,7 +1553,7 @@ def handle_ENAMETOOLONG(exc: OSError, name: str | bytes) -> None:
     if exc.errno == _errno.ENAMETOOLONG:
         raise Failure(
             gettext(
-                f"target file system rejects `%s` as too long: either one of the path components is longer than the maximum allowed file name on the target file system or the whole thing is longer than kernel MAX_PATH"
+                "target file system rejects `%s` as too long: either one of the path components is longer than the maximum allowed file name on the target file system or the whole thing is longer than kernel MAX_PATH"
             ),
             name,
         ) from exc
@@ -1731,7 +1730,7 @@ def make_deferred_emit(
 
         # flush rrexpr_cache
         while num_cached > 0 and (num_cached > max_cached or mem.consumption > max_memory):
-            abs_out_path, source = rrexpr_cache.popitem(False)
+            abs_out_path, _source = rrexpr_cache.popitem(False)
             num_cached -= 1
             mem.consumption -= len(abs_out_path)
 
@@ -1764,36 +1763,36 @@ def make_deferred_emit(
                 return True, new_rrexpr, defer(new_rrexpr, abs_out_path, False, allow_updates)
             except OSError as exc:
                 handle_ENAMETOOLONG(exc, abs_out_path)
-                raise exc
+                raise
+
+            if _stat.S_ISLNK(out_lstat.st_mode):
+                # abs_out_path is a symlink
+                try:
+                    # check symlink target is reachable
+                    out_stat = _os.stat(abs_out_path)
+                except FileNotFoundError:
+                    # target is a broken symlink
+                    return (
+                        True,
+                        new_rrexpr,
+                        defer(new_rrexpr, abs_out_path, True, allow_updates),
+                    )
+
+                if not allow_updates and not symlinking:
+                    raise Failure("destination exists and is a symlink" + not_allowed)
+
+                # get symlink target and use it as abs_out_path, thus
+                # (SETSRC) below will re-create the original source
+                abs_in_path = _os.path.realpath(abs_out_path)
+
+                if isinstance(new_source, FileSource) and new_source.path == abs_out_path:
+                    # similarly to the above
+                    return True, prev_rrexpr, None
+            elif not allow_updates and symlinking:
+                raise Failure("destination exists and is not a symlink" + not_allowed)
             else:
-                if _stat.S_ISLNK(out_lstat.st_mode):
-                    # abs_out_path is a symlink
-                    try:
-                        # check symlink target is reachable
-                        out_stat = _os.stat(abs_out_path)
-                    except FileNotFoundError:
-                        # target is a broken symlink
-                        return (
-                            True,
-                            new_rrexpr,
-                            defer(new_rrexpr, abs_out_path, True, allow_updates),
-                        )
-                    else:
-                        if not allow_updates and not symlinking:
-                            raise Failure("destination exists and is a symlink" + not_allowed)
-
-                        # get symlink target and use it as abs_out_path, thus
-                        # (SETSRC) below will re-create the original source
-                        abs_in_path = _os.path.realpath(abs_out_path)
-
-                        if isinstance(new_source, FileSource) and new_source.path == abs_out_path:
-                            # similarly to the above
-                            return True, prev_rrexpr, None
-                elif not allow_updates and symlinking:
-                    raise Failure("destination exists and is not a symlink" + not_allowed)
-                else:
-                    out_stat = out_lstat
-                    abs_in_path = abs_out_path
+                out_stat = out_lstat
+                abs_in_path = abs_out_path
 
             # (SETSRC)
             old_rrexpr = rrexpr_wrr_loadf(abs_in_path, out_stat)
@@ -1992,7 +1991,7 @@ def make_organize_emit(
                         )
                     )
             except FileExistsError as exc:
-                raise Failure(gettext(f"`%s` already exists"), self.destination) from exc
+                raise Failure(gettext("`%s` already exists"), self.destination) from exc
             except OSError as exc:
                 handle_ENAMETOOLONG(exc, self.destination)
                 if exc.errno == _errno.EXDEV:
@@ -2015,7 +2014,7 @@ def cmd_organize(cargs: _t.Any) -> None:
     if cargs.walk_paths == "unset":
         cargs.walk_paths = None if not cargs.allow_updates else False
     if cargs.walk_fs == "unset":
-        cargs.walk_fs = True if not cargs.allow_updates else False
+        cargs.walk_fs = not cargs.allow_updates
 
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
     _num, filters_allow, filters_warn = compile_filters(cargs)
@@ -2102,7 +2101,7 @@ definitive_response_codes = frozenset([200, 204, 300, 404, 410])
 redirect_response_codes = frozenset([301, 302, 303, 307, 308])
 
 
-def complete_response(stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
+def complete_response(_stime: TimeStamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
     response = rrexpr.reqres.response
     return response is not None and response.complete
 
@@ -2143,7 +2142,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
     else:
         relative = not cargs.absolute
 
-    allow_updates = cargs.allow_updates == True
+    allow_updates = cargs.allow_updates is True
     skip_existing = cargs.allow_updates == "partial"
 
     singletons: bool
@@ -2163,8 +2162,8 @@ def cmd_mirror(cargs: _t.Any) -> None:
         body_ = body if isinstance(body, bytes) else body.encode("utf-8")
         return f"{request.method} {net_url} ".encode("utf-8") + _hashlib.sha256(body_).digest()
 
-    committed: dict[int, PathType] = dict()
-    done: dict[int, PathType | None] = dict()
+    committed: dict[int, PathType] = {}
+    done: dict[int, PathType | None] = {}
 
     def get_abs_out_path(rrexpr: ReqresExpr[_t.Any]) -> PathType:
         try:
@@ -2186,8 +2185,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
     if cargs.default_root_filters:
         cargs.root_status_re += [default_root_status_re]
 
-    root_filters_num, root_filters_allow, root_filters_warn = compile_filters(cargs, "root_")
-    have_root_filters = root_filters_num > 0
+    _root_filters_num, root_filters_allow, root_filters_warn = compile_filters(cargs, "root_")
 
     max_depth: int = cargs.depth
     max_memory_mib = cargs.max_memory * 1024 * 1024
@@ -2221,13 +2219,13 @@ def cmd_mirror(cargs: _t.Any) -> None:
         if old_stime is None:
             stdout.write_str_ln(
                 ispace
-                + gettext(f"queued [%s] %s from %s")
+                + gettext("queued [%s] %s from %s")
                 % (stime.format(precision=3), durl, source.show_source())
             )
         else:
             stdout.write_str_ln(
                 ispace
-                + gettext(f"requeued [%s] -> [%s] %s from %s")
+                + gettext("requeued [%s] -> [%s] %s from %s")
                 % (
                     old_stime.format(precision=3),
                     stime.format(precision=3),
@@ -2254,7 +2252,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                 for pid in (request_id, page_id):
                     qobj = queue.get(pid, None)
                     if qobj is not None:
-                        qstime, qrrexpr = qobj
+                        qstime, _qrrexpr = qobj
                         if nearer_to_than(nearest, stime, qstime):
                             queue[pid] = (stime, rrexpr)
                             report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1, qstime)  # fmt: skip
@@ -2328,7 +2326,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
         if level0:
             stdout.write_str_ln(
                 gettext(
-                    f"mirroring input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d"
+                    "mirroring input #%d, %.2f%% of %d queued (%.2f%% of %d indexed), document #%d, depth %d"
                 )
                 % (
                     n,
@@ -2344,7 +2342,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
             stdout.write_str_ln(
                 ispace
                 + gettext(
-                    f"mirroring requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)"
+                    "mirroring requisite input #%d, %.2f%% of %d queued (%.2f%% of %d indexed)"
                 )
                 % (n, n100 / n_total, n_total, n100 / indexed_num, indexed_num)
             )
@@ -2537,7 +2535,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                 return real_out_path
             except FileExistsError as exc:
                 raise Failure(
-                    gettext(f"trying to overwrite `%s` which already exists"), exc.filename
+                    gettext("trying to overwrite `%s` which already exists"), exc.filename
                 ) from exc
             except OSError as exc:
                 handle_ENAMETOOLONG(exc, exc.filename)
@@ -2547,7 +2545,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
         except Failure as exc:
             if cargs.errors == "ignore":
                 return abs_out_path
-            exc.elaborate(gettext(f"while processing `%s`"), source.show_source())
+            exc.elaborate(gettext("while processing `%s`"), source.show_source())
             if cargs.errors != "fail":
                 _logging.error("%s", str(exc))
                 return abs_out_path
@@ -2567,7 +2565,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
             if want_stop:
                 raise KeyboardInterrupt()
 
-            qpid, qobj = queue.popitem(False)
+            _qpid, qobj = queue.popitem(False)
             qstime, qrrexpr = qobj
             render(qstime, qrrexpr.net_url, qrrexpr, get_abs_out_path(qrrexpr), enqueue, new_queue, 0)  # fmt: skip
             qrrexpr.unload()
@@ -2582,7 +2580,6 @@ def cmd_mirror(cargs: _t.Any) -> None:
 def cmd_serve(cargs: _t.Any) -> None:
     import bottle
     from fnmatch import translate
-    import urllib.parse as _up
     import hoardy_web.static as _static
 
     server_url_base = f"http://{cargs.host}:{cargs.port}"
@@ -2614,7 +2611,9 @@ def cmd_serve(cargs: _t.Any) -> None:
     precision_delta = _dec.Decimal(10) ** -precision
 
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
-    destination = map_optional(lambda x: _os.path.expanduser(x), cargs.destination)
+    destination = map_optional(
+        lambda x: _os.path.expanduser(x), cargs.destination  # pylint: disable=unnecessary-lambda
+    )
 
     bucket_re = _re.compile(r"[\w -]+")
     ignore_buckets = cargs.ignore_buckets
@@ -2623,8 +2622,8 @@ def cmd_serve(cargs: _t.Any) -> None:
     compress = cargs.compress
     terminator = cargs.terminator
 
-    do_replay = cargs.replay != False
-    index_ideal = cargs.replay if cargs.replay != False else anytime.end
+    do_replay = cargs.replay is not False
+    index_ideal = cargs.replay if cargs.replay is not False else anytime.end
 
     inherit: str | None = None
     if len(cargs.exprs) == 0:
@@ -2685,7 +2684,10 @@ def cmd_serve(cargs: _t.Any) -> None:
         return pu.rhostname, pu.pretty_net_url, net_url
 
     all_urls = SortedList(
-        map(lambda net_url: url_info(net_url, parse_url(net_url)), index._index.keys())
+        map(
+            lambda net_url: url_info(net_url, parse_url(net_url)),
+            index._index.keys(),  # pylint: disable=protected-access
+        )
     )
 
     def get_visits(
@@ -2693,35 +2695,35 @@ def cmd_serve(cargs: _t.Any) -> None:
     ) -> tuple[int, list[tuple[str, str, list[str]]]]:
         visits_total = 0
         url_visits = []
-        for rhost, pretty_net_url, net_url in all_urls:
+        for _rhost, pretty_net_url, net_url in all_urls:
             if not url_re.fullmatch(pretty_net_url):
                 continue
 
             visits = []
-            for t, v in index.iter_from_to(net_url, start, end):
+            for when, _rrexpr in index.iter_from_to(net_url, start, end):
                 # if normal_document(t, v):
-                visits.append(t.format(time_format, precision=precision))
+                visits.append(when.format(time_format, precision=precision))
                 visits_total += 1
 
             if len(visits) > 0:
                 url_visits.append((net_url, pretty_net_url, visits))
         return visits_total, url_visits
 
-    server_info: dict[str, _t.Any] = {
+    server_info_dict: dict[str, _t.Any] = {
         "version": 1,
     }
     if destination is not None:
-        server_info["dump_wrr"] = "/pwebarc/dump"
+        server_info_dict["dump_wrr"] = "/pwebarc/dump"
     if do_replay:
-        server_info["index_ideal"] = (
+        server_info_dict["index_ideal"] = (
             None if index_ideal is None else index_ideal.format("@", precision=9)
         )
-        server_info["replay_oldest"] = "/web/-inf/{url}"
-        server_info["replay_latest"] = "/web/+inf/{url}"
+        server_info_dict["replay_oldest"] = "/web/-inf/{url}"
+        server_info_dict["replay_latest"] = "/web/+inf/{url}"
         if index_ideal is None:
-            server_info["replay_any"] = "/web/{timestamp}/{url}"
-    server_info_json = _json.dumps(server_info).encode("utf-8")
-    del server_info
+            server_info_dict["replay_any"] = "/web/{timestamp}/{url}"
+    server_info_json = _json.dumps(server_info_dict).encode("utf-8")
+    del server_info_dict
 
     @app.route("/hoardy-web/server-info")  # type: ignore
     def server_info() -> bytes:
@@ -2918,7 +2920,7 @@ def cmd_serve(cargs: _t.Any) -> None:
             def remap_url(
                 unet_url: URLType,
                 upurl: ParsedURL,
-                link_type: LinkType,
+                _link_type: LinkType,
                 fallbacks: list[str] | None,
             ) -> URLType | None:
                 unamespace = "unavailable"
@@ -2935,16 +2937,15 @@ def cmd_serve(cargs: _t.Any) -> None:
                         unamespace = "web"
                         ustime_selector = ustime.format(time_format, precision=precision)
                         break
-                    elif code in redirect_response_codes:
+                    if code in redirect_response_codes:
                         # that's a redirect, point it there, but timestamp transitively
                         unamespace = "redirect"
                         ustime_selector = stime_selector
                         break
-                    else:
-                        # that's something else
-                        unamespace = "other"
-                        ustime_selector = stime_selector
-                        # NB: continue trying other visits in this case
+                    # something else
+                    unamespace = "other"
+                    ustime_selector = stime_selector
+                    # NB: continue trying other visits in this case
 
                 if ustime_selector is None:
                     return None
@@ -3029,7 +3030,7 @@ def cmd_serve(cargs: _t.Any) -> None:
 
             return data
         except Failure as exc:
-            exc.elaborate(gettext(f"while processing [%s] `%s`"), stime.format(), turl)
+            exc.elaborate(gettext("while processing [%s] `%s`"), stime.format(), turl)
             bottle.abort(500, str(exc))
         finally:
             rrexpr.unload()
@@ -3070,7 +3071,7 @@ def add_doc(fmt: argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f'{__prog__} get ../simple_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
-    fmt.start_section(_(f"Pipe response body scrubbed of dynamic content from a given `WRR` file to stdout"))
+    fmt.start_section(_("Pipe response body scrubbed of dynamic content from a given `WRR` file to stdout"))
     fmt.add_code(f'{__prog__} get -e "response.body|eb|scrub response defaults" ../simple_server/pwebarc-dump/path/to/file.wrr')
     fmt.end_section()
 
@@ -3086,7 +3087,7 @@ def add_doc(fmt: argparse.BetterHelpFormatter) -> None:
     fmt.add_code(f"{__prog__} run -n 2 -- diff -u ../simple_server/pwebarc-dump/path/to/file-v1.wrr ../simple_server/pwebarc-dump/path/to/file-v2.wrr")
     fmt.end_section()
 
-    fmt.start_section(_(f"""List paths of all `WRR` files from `../simple_server/pwebarc-dump` that contain complete `200 OK` responses with `text/html` bodies larger than 1K"""))
+    fmt.start_section(_("""List paths of all `WRR` files from `../simple_server/pwebarc-dump` that contain complete `200 OK` responses with `text/html` bodies larger than 1K"""))
     fmt.add_code(f"""{__prog__} find --status-re .200C --response-mime text/html --and "response.body|len|> 1024" ../simple_server/pwebarc-dump""")
     fmt.end_section()
 
@@ -3193,23 +3194,21 @@ def make_argparser(real: bool = True) -> ArgumentParser:
     def add_filter_options(cmd : _t.Any) -> None:
         agrp = cmd.add_argument_group("filtering options")
         grp = agrp.add_mutually_exclusive_group()
-        grp.add_argument(f"--ignore-case", dest="ignore_case", action="store_const", const=True, help=_(f"when filtering with `--*grep*`, match case-insensitively"))
-        grp.add_argument(f"--case-sensitive", dest="ignore_case", action="store_const", const=False, help=_(f"when filtering with `--*grep*`, match case-sensitively"))
-        grp.add_argument(f"--smart-case", dest="ignore_case", action="store_const", const=None, help=_(f"when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default"))
+        grp.add_argument("--ignore-case", dest="ignore_case", action="store_const", const=True, help=_("when filtering with `--*grep*`, match case-insensitively"))
+        grp.add_argument("--case-sensitive", dest="ignore_case", action="store_const", const=False, help=_("when filtering with `--*grep*`, match case-sensitively"))
+        grp.add_argument("--smart-case", dest="ignore_case", action="store_const", const=None, help=_("when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default"))
 
     def add_filters(cmd : _t.Any, do_what : str, root : bool = False) -> None:
         if not root:
             intro = gettext("input filters; if none are specified, then all reqres from input `PATH`s will be taken")
             opt_prefix = ""
-            attr_prefix = ""
             root_short = []
         else:
             intro = gettext("recursion root filters; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`)")
             opt_prefix = "root-"
-            attr_prefix = "root_"
             root_short = ["--root", "-r"]
 
-        agrp = cmd.add_argument_group(intro + gettext(f"""; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`"""))
+        agrp = cmd.add_argument_group(intro + gettext("""; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`"""))
 
         def add_time_filter(opt : str, what : str, sub : str) -> None:
             agrp.add_argument(f"--{opt_prefix}{opt}", metavar="DATE", action="append", type=str, default = [], help=_(f"{do_what} its `stime` is {what} than this") + sub)
@@ -3222,12 +3221,14 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         def map_opts(suffix : str, *opts : str) -> list[str]:
             return list(map(lambda opt: f"--{opt_prefix}{opt}{suffix}", opts))
 
-        def add_str_filter(opt : str, yes : bool,
-                           what : str, what_p : str, what_re : str,
-                           *,
-                           short : list[str] = [],
-                           abs_short : list[str] = [], abs_short_p : list[str] = [], abs_short_re : list[str] = [],
-                           sub : str = "", sub_p : str = "", sub_re : str = "") -> None:
+        def add_str_filter(  # pylint: disable=dangerous-default-value
+            opt : str, yes : bool,
+            what : str, what_p : str, what_re : str,
+            *,
+            short : list[str] = [],
+            abs_short : list[str] = [], abs_short_p : list[str] = [], abs_short_re : list[str] = [],
+            sub : str = "", sub_p : str = "", sub_re : str = ""
+        ) -> None:
             metavar = opt.upper().replace("-", "_")
             if yes:
                 one_of, is_equal_to, is_a_prefix, matches, wb = "one of", "is equal to", "is a prefix", "matches", ie_whitelist
@@ -3270,10 +3271,12 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         add_url_filter("url", "net_url", True, abs_short_p = root_short)
         add_url_filter("not-url", "net_url", False)
 
-        def add_grep_filter(opt : str, metavar : str,
-                            what: str, what_re : str,
-                            short : list[str] = [], short_re : list[str] = [],
-                            sub : str = "", sub_re : str = "") -> None:
+        def add_grep_filter( # pylint: disable=dangerous-default-value
+            opt : str, metavar : str,
+            what: str, what_re : str,
+            short : list[str] = [],
+            sub : str = "", sub_re : str = ""
+        ) -> None:
             agrp.add_argument(*map_opts("", opt, *short), metavar=metavar, action="append", type=str, default = [], help=_(f"{do_what} {what}") + sub)
             agrp.add_argument(*map_opts("-re", opt, *short), metavar=f"{metavar}_RE", action="append", type=str, default = [], help=_(f"{do_what} {what_re}") + sub_re)
 
@@ -3476,7 +3479,7 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         wscrub = "higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`"
         if kind == "pprint":
             what = "this simply populates the `potentially` lists in the output in various ways"
-        elif kind == "organize" or kind == "import":
+        elif kind in ("organize", "import"):
             what = oscrub
         elif kind != "mirror":
             what = wscrub
@@ -3487,10 +3490,10 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         grp = agrp.add_mutually_exclusive_group()
         grp.add_argument("--sniff-default", dest="sniff", action="store_const", const=SniffContentType.NONE, help=_("run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default"))
         grp.add_argument("--sniff-force", dest="sniff", action="store_const", const=SniffContentType.FORCE, help=_("run `mimesniff` regardless of what `Content-Type`  and `X-Content-Type-Options` `HTTP` headers say; i.e. for each reqres, run `mimesniff` algorithm on the `Content-Type` `HTTP` header and the actual contents of `(request|response).body` (depending on the first argument of `scrub`) to determine what the body actually contains, then interpret the data as intersection of what `Content-Type` and `mimesniff` claim it to be; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain`"))
-        grp.add_argument("--sniff-paranoid", dest="sniff", action="store_const", const=SniffContentType.PARANOID, help=_(f"do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script"))
+        grp.add_argument("--sniff-paranoid", dest="sniff", action="store_const", const=SniffContentType.PARANOID, help=_("do what `--sniff-force` does, but interpret the results in the most paranoid way possible; e.g. if `Content-Type` says `text/plain` but `mimesniff` says `text/plain or text/javascript`, interpret it as `text/plain or text/javascript`; which, for instance, will then make `scrub` with `-scripts` censor it out, since it can be interpreted as a script"))
         grp.set_defaults(sniff = SniffContentType.NONE)
 
-    def no_cmd(cargs : _t.Any) -> None:
+    def no_cmd(_cargs : _t.Any) -> None:
         parser.print_help(stderr) # type: ignore
         _sys.exit(2)
     parser.set_defaults(func=no_cmd)
@@ -3539,9 +3542,9 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         agrp = cmd.add_argument_group("expression evaluation")
 
         if kind == "get":
-            agrp.add_argument("--expr-fd", metavar="INT", type=int, default = 1, help=_(f"file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `%(default)s`, i.e. `stdout`"))
+            agrp.add_argument("--expr-fd", metavar="INT", type=int, default = 1, help=_("file descriptor to which the results of evaluations of the following `--expr`s computations should be written; can be specified multiple times, thus separating different `--expr`s into different output streams; default: `%(default)s`, i.e. `stdout`"))
 
-            agrp.add_argument("-e", "--expr", dest="mexprs", metavar="EXPR", action=AddExprFd, type=str, default = {}, help=_(f'an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially (see also "printing" options below); the default depends on options below') + \
+            agrp.add_argument("-e", "--expr", dest="mexprs", metavar="EXPR", action=AddExprFd, type=str, default = {}, help=_('an expression to compute; can be specified multiple times in which case computed outputs will be printed sequentially (see also "printing" options below); the default depends on options below') + \
                 _("; each `EXPR` describes a state-transformer (pipeline) which starts from value `None` and evaluates a script built from the following") + ":\n" + \
                 "- " + _("constants and functions:") + "\n" + \
                 "".join([f"  - `{name}`: {__(value[0])}\n" for name, value in ReqresExpr_atoms.items()]) + \
@@ -3591,9 +3594,9 @@ def make_argparser(real: bool = True) -> ArgumentParser:
 
         if kind == "serve":
             grp.add_argument("--remap-semi", dest="default_expr", action="store_const", const="semi", help=alias("semi") + _("; i.e. `scrub` response body as follows: keeps all jump links pointing to unarchived URLs as-is, remap all other links and references to their replay URLs, censor out all dynamic content; results will be self-contained"))
-            grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _(f"; i.e. `scrub` response body as follows: remap all links and references to their replay URLs, even when they are not available in the index, censor out all dynamic content; results will be self-contained; default"))
+            grp.add_argument("--remap-all", dest="default_expr", action="store_const", const="all", help=alias("all") + _("; i.e. `scrub` response body as follows: remap all links and references to their replay URLs, even when they are not available in the index, censor out all dynamic content; results will be self-contained; default"))
             return
-        elif kind != "mirror":
+        if kind != "mirror":
             return
 
         grp.add_argument("--remap-open", "-k", "--convert-links", dest="default_expr", action="store_const", const="open", help=alias("open") + _("; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does, censor out all dynamic content; results almost certainly will NOT be self-contained"))
@@ -3619,7 +3622,7 @@ Note however, that using fallbacks when the `--output` format depends on anythin
 
     # get
     cmd = subparsers.add_parser("get", help=_("print values produced by evaluating given expressions on a given input"),
-                                description = _(f"""Print results produced by evaluating given `EXPR`essions on a given input to stdout.
+                                description = _("""Print results produced by evaluating given `EXPR`essions on a given input to stdout.
 
 Algorithm:
 
@@ -3695,7 +3698,7 @@ Esentially, this is a generalized `{__prog__} get`.
 
     # find
     cmd = subparsers.add_parser("find", help=_("print paths of inputs matching specified criteria"),
-                                description = _(f"""Print paths of inputs matching specified criteria.
+                                description = _("""Print paths of inputs matching specified criteria.
 
 Algorithm:
 
@@ -3725,7 +3728,7 @@ setting this to a value smaller than `--defer-number` will not improve memory co
         agrp.add_argument("--defer-number", metavar = "INT", dest="max_deferred", type=int, default=max_deferred, help=_("""defer at most this many IO actions; default: `%(default)s`;
 making this larger improves performance at the cost of increased memory consumption;
 setting it to zero will force all IO actions to be applied immediately"""))
-        agrp.add_argument("--batch-number", metavar = "INT", dest="max_batched", type=int, default=max_batch, help=_(f"""queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: `%(default)s`"""))
+        agrp.add_argument("--batch-number", metavar = "INT", dest="max_batched", type=int, default=max_batch, help=_("""queue at most this many deferred IO actions to be applied together in a batch; this queue will only be used if all other resource constraints are met; default: `%(default)s`"""))
         agrp.add_argument("--max-memory", metavar = "INT", dest="max_memory", type=int, default=1024, help=_("""the caches, the deferred actions queue, and the batch queue, all taken together, must not take more than this much memory in MiB; default: `%(default)s`;
 making this larger improves performance;
 the actual maximum whole-program memory consumption is `O(<size of the largest reqres> + <--seen-number> + <sum of lengths of the last --seen-number generated --output paths> + <--cache-number> + <--defer-number> + <--batch-number> + <--max-memory>)`"""))
@@ -3847,12 +3850,12 @@ In short, this is `{__prog__} organize --copy` for `INPUT` files that use differ
     supsub = supcmd.add_subparsers(title="file formats")
 
     cmd = supsub.add_parser("wrrb", aliases=["bundle"], help=_("convert `WRR` bundles into separate `WRR` files"),
-                            description = _(f"""Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""))
+                            description = _("""Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""))
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_bundle)
 
     cmd = supsub.add_parser("mitmproxy", aliases=["mitmdump"], help=_("convert `mitmproxy` stream dumps (files produced by `mitmdump`) into `WRR` files"),
-                            description = _(f"""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""))
+                            description = _("""Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata."""))
     add_import_args(cmd)
     cmd.set_defaults(func=cmd_import_mitmproxy)
 
@@ -3944,8 +3947,8 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
     cmd.set_defaults(func=cmd_mirror)
 
     # serve
-    cmd = subparsers.add_parser("serve", help=_(f"run an archiving server and/or serve given input files for replay over HTTP"),
-                                description = _(f"""Run an archiving server and/or serve given input files for replay over HTTP.
+    cmd = subparsers.add_parser("serve", help=_("run an archiving server and/or serve given input files for replay over HTTP"),
+                                description = _("""Run an archiving server and/or serve given input files for replay over HTTP.
 
 Algorithm:
 

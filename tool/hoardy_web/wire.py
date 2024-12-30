@@ -19,12 +19,13 @@
 
 import base64 as _base64
 import dataclasses as _dc
-import idna as _idna
 import logging as _logging
 import os as _os
 import re as _re
 import typing as _t
 import urllib.parse as _up
+
+import idna as _idna
 
 from kisstdlib.exceptions import *
 
@@ -56,9 +57,9 @@ def miniquote(x: str, blacklist: str) -> str:
         # build a dictionary from characters to their quotes
         miniquoter = {}
         for b in range(0, 32):
-            miniquoter[chr(b)] = "%{:02X}".format(b)
+            miniquoter[chr(b)] = "%{:02X}".format(b)  # pylint: disable=consider-using-f-string
         for c in "%" + blacklist:
-            miniquoter[c] = "%{:02X}".format(ord(c))
+            miniquoter[c] = "%{:02X}".format(ord(c))  # pylint: disable=consider-using-f-string
         _miniquoters[blacklist] = miniquoter
 
     return "".join([miniquoter.get(c, c) for c in x])
@@ -237,10 +238,8 @@ class ParsedURL:
         if self.user != "":
             if self.password != "":
                 return f"{self.user}:{self.password}@"
-            else:
-                return f"{self.user}@"
-        else:
-            return ""
+            return f"{self.user}@"
+        return ""
 
     @property
     def rhostname(self) -> str:
@@ -290,10 +289,9 @@ class ParsedURL:
                 f"{self.scheme}:{nl}{path}{slash}{self.oqm}{self.query}",
                 safe="%/:=&?~#+!$,;'@()*[]|",
             )
-        else:
-            return _up.quote(
-                f"{self.scheme}:{path}{self.oqm}{self.query}", safe="%/:=&?~#+!$,;'@()*[]|"
-            )
+        return _up.quote(
+            f"{self.scheme}:{path}{self.oqm}{self.query}", safe="%/:=&?~#+!$,;'@()*[]|"
+        )
 
     @property
     def url(self) -> str:
@@ -308,7 +306,7 @@ class ParsedURL:
         for e in parts_insecure:
             if e == ".":
                 continue
-            elif e == "..":
+            if e == "..":
                 if len(parts) > 0:
                     parts.pop()
                 continue
@@ -324,14 +322,13 @@ class ParsedURL:
         last_name, last_ext = _os.path.splitext(last)
         if last_ext == "":
             return parts + [default], extensions[0] if len(extensions) > 0 else ".data"
-        elif last_ext in extensions:
+        if last_ext in extensions:
             return parts[:-1] + [last_name], last_ext
-        elif len(extensions) > 0:
+        if len(extensions) > 0:
             return parts[:-1] + [last], extensions[0]
-        elif last_ext == ".data":
+        if last_ext == ".data":
             return parts[:-1] + [last_name], ".data"
-        else:
-            return parts[:-1] + [last], ".data"
+        return parts[:-1] + [last], ".data"
 
     @property
     def query_nparts(self) -> list[tuple[str, str]]:
@@ -366,8 +363,7 @@ class ParsedURL:
                 nl = "//" + nl
             slash = "/" if self.raw_path == "" else ""
             return f"{self.scheme}:{nl}{self.mq_path}{slash}{self.oqm}{self.mq_query}"
-        else:
-            return f"{self.scheme}:{self.mq_path}{self.oqm}{self.mq_query}"
+        return f"{self.scheme}:{self.mq_path}{self.oqm}{self.mq_query}"
 
     @property
     def pretty_url(self) -> str:
@@ -382,9 +378,8 @@ class ParsedURL:
                 nl = "//" + nl
             slash = "/" if self.raw_path.endswith("/") and len(mq_npath) > 0 else ""
             return f"{self.scheme}:{nl}/{mq_npath}{slash}{self.oqm}{self.mq_nquery}"
-        else:
-            slash = "/" if self.raw_path.endswith("/") else ""
-            return f"{self.scheme}:{mq_npath}{slash}{self.oqm}{self.mq_nquery}"
+        slash = "/" if self.raw_path.endswith("/") else ""
+        return f"{self.scheme}:{mq_npath}{slash}{self.oqm}{self.mq_nquery}"
 
     @property
     def pretty_nurl(self) -> str:
@@ -671,7 +666,9 @@ def parse_token(p: Parser) -> str:
     return p.lexeme(token_body_re)
 
 
-def parse_mime_type(p: Parser, ends: list[str] = []) -> str:
+def parse_mime_type(  # pylint: disable=dangerous-default-value
+    p: Parser, ends: list[str] = []
+) -> str:
     ends = [";"] + ends
     try:
         maintype = parse_token(p)
@@ -679,7 +676,7 @@ def parse_mime_type(p: Parser, ends: list[str] = []) -> str:
         subtype = parse_token(p)
         p.opt_whitespace()
         return maintype + "/" + subtype
-    except ParseError as err:
+    except ParseError:
         p.take_until_string_in(ends)
         # RFC says invalid content types are to be interpreted as `text/plain`
         return "text/plain"
@@ -701,7 +698,7 @@ def parse_extended_attribute(p: Parser) -> str:
     return p.lexeme(extended_attribute_body_re)
 
 
-qcontent_body_re = _re.compile(rf'([^"\\]*)')
+qcontent_body_re = _re.compile(r'([^"\\]*)')
 qcontent_ends_str = '"\\'
 
 
@@ -744,7 +741,9 @@ def parse_invalid_parameter(p: Parser, ends: list[str]) -> tuple[str, str]:
     return key.rstrip(), ""
 
 
-def parse_mime_parameters(p: Parser, ends: list[str] = []) -> Parameters:
+def parse_mime_parameters(  # pylint: disable=dangerous-default-value
+    p: Parser, ends: list[str] = []
+) -> Parameters:
     ends = [";"] + ends
     res = []
     while p.at_string(";"):
@@ -926,8 +925,7 @@ def get_header_value(
     res = get_header_values(headers, name)
     if len(res) == 0:
         return default
-    else:
-        return res[0]
+    return res[0]
 
 
 def parse_content_type_header(value: str) -> tuple[str, Parameters]:
@@ -1038,9 +1036,9 @@ def test_parse_link_header() -> None:
     def check(lhs: list[str], expected_values: _t.Any) -> None:
         for lh in lhs:
             values = parse_link_header(lh)
-            for i in range(0, len(expected_values)):
+            for i, val in enumerate(expected_values):
                 url, params = values[i]
-                expected_url, expected_params = expected_values[i]
+                expected_url, expected_params = val
                 scheck(lh, "url", url, expected_url)
                 scheck(lh, "params", params, expected_params)
             scheck(lh, "the whole", values, expected_values)
@@ -1200,9 +1198,9 @@ def unparse_srcset_attr(value: list[tuple[str, str]]) -> str:
 def test_parse_srcset_attr() -> None:
     def check(attr: str, expected_values: _t.Any) -> None:
         values = parse_srcset_attr(attr)
-        for i in range(0, len(expected_values)):
+        for i, val in enumerate(expected_values):
             url, cond = values[i]
-            expected_url, expected_cond = expected_values[i]
+            expected_url, expected_cond = val
             scheck(attr, "url", url, expected_url)
             scheck(attr, "cond", cond, expected_cond)
         scheck(attr, "the whole", values, expected_values)

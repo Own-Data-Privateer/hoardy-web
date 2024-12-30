@@ -28,7 +28,7 @@ def getattr_rec(obj: _t.Any, names: list[str]) -> _t.Any:
     this, *rest = names
     if hasattr(obj, this):
         return getattr_rec(getattr(obj, this), rest)
-    elif isinstance(obj, dict) and this in obj:
+    if isinstance(obj, dict) and this in obj:
         return getattr_rec(obj[this], rest)
 
     raise AttributeError(name=this, obj=obj)
@@ -41,15 +41,13 @@ OutType = _t.TypeVar("OutType")
 def map_optional(f: _t.Callable[[InType], OutType], x: InType | None) -> OutType | None:
     if x is None:
         return None
-    else:
-        return f(x)
+    return f(x)
 
 
 def map_optionals(f: _t.Callable[[InType], list[OutType]], x: InType | None) -> list[OutType]:
     if x is None:
         return []
-    else:
-        return f(x)
+    return f(x)
 
 
 def str_Exception(exc: Exception) -> str:
@@ -68,8 +66,7 @@ def gzip_maybe(data: bytes) -> bytes:
 
     if len(compressed_data) < len(data):
         return compressed_data
-    else:
-        return data
+    return data
 
 
 def ungzip_fileobj_maybe(fobj: _io.BufferedReader) -> _io.BufferedReader:

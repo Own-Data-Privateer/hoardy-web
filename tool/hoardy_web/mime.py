@@ -226,21 +226,21 @@ def normalize_content_type(header: str) -> tuple[list[str] | None, str, str | No
 
     if ct == "application/octet-stream":
         return _unknown_binary()
-    elif ct.startswith("image/"):
+    if ct.startswith("image/"):
         return ["image"], ct, charset, []
-    elif ct.startswith("audio/"):
+    if ct.startswith("audio/"):
         return ["audio"], ct, charset, []
-    elif ct.startswith("video/"):
+    if ct.startswith("video/"):
         return ["video"], ct, charset, []
-    elif ct.startswith("font/") or ct.startswith("application/font-"):
+    if ct.startswith("font/") or ct.startswith("application/font-"):
         return ["font"], ct, charset, []
-    elif ct.endswith("+zip"):
+    if ct.endswith("+zip"):
         kinds, exts = mime_info_of["application/zip"]
         return kinds, ct, charset, exts
-    elif ct.endswith("+xml"):
+    if ct.endswith("+xml"):
         kinds, exts = mime_info_of["text/xml"]
         return kinds, ct, charset, exts
-    elif ct.endswith("+json"):
+    if ct.endswith("+json"):
         kinds, exts = mime_info_of["text/json"]
         return kinds, ct, charset, exts
 
@@ -346,7 +346,7 @@ def sniff_mime_type(
                 charset = None
 
         if charset is None:
-            assert type(data) is bytes
+            assert isinstance(data, bytes)
 
             # detect BOM marks
             if data.startswith(b"\xef\xbb\xbf"):
@@ -372,7 +372,7 @@ def sniff_mime_type(
                 data = data.decode("ascii", "replace")
                 # TODO: detect pure ascii and UTF-8 without replacements here too?
 
-    assert type(data) is str
+    assert isinstance(data, str)
     assert ct is None
 
     if html_sniff_re.match(data):
@@ -391,7 +391,7 @@ def sniff_mime_type(
 
 def test_sniff_mime_type() -> None:
     def check(want_mime: str, data: bytes | str) -> None:
-        kinds, mime, charset, extensions = sniff_mime_type(data, None)
+        _kinds, mime, _charset, _extensions = sniff_mime_type(data, None)
         if mime != want_mime:
             raise CatastrophicFailure(
                 "while evaluating `sniff_mime_type` on %s, expected %s, got %s",

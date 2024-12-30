@@ -38,7 +38,7 @@ from kisstdlib.exceptions import *
 
 from .wire import *
 from .mime import *
-from .util import map_optional, map_optionals, make_func_pipe
+from .util import map_optional, make_func_pipe
 
 URLType: _t.TypeAlias = str
 
@@ -64,8 +64,7 @@ class LinkType(_enum.Enum):
 def get_void_url(link_type: LinkType) -> str:
     if link_type == LinkType.REQ:
         return "data:text/plain,%20"
-    else:
-        return "javascript:void(0)"
+    return "javascript:void(0)"
 
 
 RefType = tuple[LinkType, list[URLType]]  # tuple[LinkType, possible mime types]
@@ -78,7 +77,7 @@ noop_url_schemes = frozenset(["mailto", "irc", "magnet"])
 def remappable_web(scheme: str) -> bool | None:
     if scheme in noop_url_schemes:
         return None
-    elif scheme in web_url_schemes:
+    if scheme in web_url_schemes:
         return True
     return False
 
@@ -91,7 +90,7 @@ def cached_remap_url(
     paranoid: bool = False,
     handle_warning: _t.Callable[..., None] | None = None,
 ) -> URLRemapperType:
-    remap_cache: dict[tuple[URLType, bool], URLType | None] = dict()
+    remap_cache: dict[tuple[URLType, bool], URLType | None] = {}
 
     def our_remap_url(
         url: URLType, link_type: LinkType, fallbacks: list[str] | None
@@ -112,25 +111,23 @@ def cached_remap_url(
             if is_requisite or paranoid:
                 remap_cache[cache_id] = res = get_void_url(link_type)
                 return res
-            else:
-                remap_cache[cache_id] = url
-                return url
+            remap_cache[cache_id] = url
+            return url
 
         cr = remappable(purl.scheme)
         if cr is None:
             remap_cache[cache_id] = url
             return url
-        elif not cr:
+        if not cr:
             if is_requisite:
                 if handle_warning is not None:
                     handle_warning("malformed requisite URL `%s`", url)
                 remap_cache[cache_id] = res = get_void_url(link_type)
                 return res
-            else:
-                if handle_warning is not None:
-                    handle_warning("not remapping `%s`", url)
-                remap_cache[cache_id] = url
-                return url
+            if handle_warning is not None:
+                handle_warning("not remapping `%s`", url)
+            remap_cache[cache_id] = url
+            return url
 
         net_url = purl.net_url
 
@@ -242,10 +239,8 @@ def prettify_html(
                 chars = "\n" + " " * (indent * current)
             yield {"type": "SpaceCharacters", "data": chars}
             return current == 0
-        else:
-            return False
+        return False
 
-    prev_token: HTML5Node | None = None
     for token in walker:
         typ = token["type"]
         if typ == "Doctype":
@@ -294,7 +289,6 @@ def prettify_html(
             else:
                 on_space = False
                 newline = False
-        prev_token = token
 
 
 verbatim_http_headers = frozenset(["default-style", "x-ua-compatible"])
@@ -553,7 +547,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
 
         if is_data_url(url):
             return url
-        elif is_script_url(url):
+        if is_script_url(url):
             if not_scripts:
                 return None
             return url
@@ -568,7 +562,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
 
         if rt == RemapType.ID:
             return url
-        elif rt == RemapType.VOID:
+        if rt == RemapType.VOID:
             return None
 
         rurl: URLType | None = None
@@ -577,10 +571,10 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
 
         if rurl is not None:
             return rurl
-        elif rt == RemapType.OPEN:
+        if rt == RemapType.OPEN:
             return url
-        else:  # rt == RemapType.CLOSED or rt == RemapType.FALLBACK
-            return None
+        # if rt in (RemapType.CLOSED, RemapType.FALLBACK):
+        return None
 
     def remap_link_or_void(
         base_url: URLType,
@@ -603,10 +597,9 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
     ) -> list[CSSNode]:
         if not_styles:
             if not_verbose:
-                node = _tcss.ast.Comment(0, 0, f" hoardy-web censored out CSS data from here ")
+                node = _tcss.ast.Comment(0, 0, " hoardy-web censored out CSS data from here ")
                 return [node]
-            else:
-                return []
+            return []
 
         res = []
         newline: bool = True
@@ -736,9 +729,9 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
 
     def goes_before_inlines(nn: HTML5NN, attrs: HTML5NodeAttrValues) -> bool:
         """Should this `<html><head>` tag go before the ones produced by `headers_to_meta_http_equiv`?"""
-        if nn == htmlns_base or nn == htmlns_title:
+        if nn in (htmlns_base, htmlns_title):
             return True
-        elif nn == htmlns_meta:
+        if nn == htmlns_meta:
             if (None, "charset") in attrs:
                 return True
             he = attrs.get(http_equiv_attr, None)
@@ -808,17 +801,17 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
 
             typ = token["type"]
 
-            if assemble is not None and (typ == "Characters" or typ == "SpaceCharacters"):
+            if assemble is not None and typ in ("Characters", "SpaceCharacters"):
                 assemble_contents.append(token["data"])
                 continue
-            elif not_iepragmas and typ == "Comment" and iepragma_re.fullmatch(token["data"]):
+            if not_iepragmas and typ == "Comment" and iepragma_re.fullmatch(token["data"]):
                 yield from emit_censored_other("a comment with an IE pragma")
                 continue
 
             in_head = stack == [htmlns_html, htmlns_head]
             censor = censor_lvl != 0
 
-            if typ == "StartTag" or typ == "EmptyTag":
+            if typ in ("StartTag", "EmptyTag"):
                 nn = (token["namespace"], token["name"])
                 attrs: HTML5NodeAttrValues = token["data"]
 
@@ -911,8 +904,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                             # reset
                             backlog = nbacklog + backlog
                             continue
-                        else:
-                            censor = True
+                        censor = True
                     else:
                         # censor all others
                         censor = True
@@ -1053,7 +1045,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                     if censor:
                         censor_lvl += 1
 
-                    if nn == htmlns_style or nn == htmlns_script:
+                    if nn in (htmlns_style, htmlns_script):
                         # start assembling contents
                         assemble = token
                         continue
@@ -1103,7 +1095,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                         # ignore this
                         yield from emit_censored_token(typ, token)
                         continue
-                    elif in_head:
+                    if in_head:
                         # as a fallback, dump inlines here
                         if inline_headers_undone:
                             inline_headers_undone = False

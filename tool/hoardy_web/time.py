@@ -36,8 +36,7 @@ class TimeStamp(_dec.Decimal):
         if self.is_infinite():
             if self < 0:
                 return "-inf"
-            else:
-                return "+inf"
+            return "+inf"
 
         i = int(self)
         r = self - i

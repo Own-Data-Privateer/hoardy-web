@@ -36,8 +36,7 @@ else:
 def fsdecode_maybe(x: str | bytes) -> str:
     if isinstance(x, bytes):
         return _os.fsdecode(x)
-    else:
-        return x
+    return x
 
 
 def read_whole_file_maybe(path: str | bytes) -> bytes | None:

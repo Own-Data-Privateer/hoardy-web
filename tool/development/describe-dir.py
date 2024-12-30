@@ -31,13 +31,13 @@ import typing as _t
 def any_to_bytes(s: _t.Any) -> bytes:
     if isinstance(s, bytes):
         return s
-    elif isinstance(s, str):
+    if isinstance(s, str):
         return os.fsencode(s)
-    else:
-        try:
-            return os.fsencode(str(s))
-        except Exception:
-            return os.fsencode(repr(s))
+    try:
+        return os.fsencode(str(s))
+    except Exception:
+        pass
+    return os.fsencode(repr(s))
 
 
 binstdout = os.fdopen(sys.stdout.fileno(), "wb")
@@ -66,7 +66,7 @@ def hex_sha256_of(fpath: bytes) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="describe-dir",
-        description="generate a recursive deterministic textual textual description of given input directories",
+        description="generate a recursive deterministic textual description of given input directories",
     )
     parser.add_argument("--no-mtime", action="store_true", help="ignore mtimes")
     parser.add_argument("path", metavar="PATH", nargs="*", type=str, help="input directories")

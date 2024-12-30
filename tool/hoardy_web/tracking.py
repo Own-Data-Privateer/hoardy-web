@@ -42,10 +42,9 @@ class SeenCounter(_t.Generic[_t.AnyStr]):
             self._state[value] = 0
             mem.consumption += 16 + len(value)
             return 0
-        else:
-            count += 1
-            self._state[value] = count
-            return count
+        count += 1
+        self._state[value] = count
+        return count
 
     def pop(self) -> tuple[_t.AnyStr, int]:
         res = self._state.popitem(False)

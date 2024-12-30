@@ -15,10 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import cbor2 as _cbor2
 import io as _io
 import json as _json
 import typing as _t
+
+import cbor2 as _cbor2
 
 from kisstdlib.exceptions import *
 from kisstdlib.io import *
@@ -30,13 +31,12 @@ from .wrr import *
 def plainify(obj: _t.Any) -> _t.Any:
     if isinstance(obj, TimeStamp):
         return float(obj)
-    elif hasattr(obj, "__dataclass_fields__"):
-        res = dict()
+    if hasattr(obj, "__dataclass_fields__"):
+        res = {}
         for k in obj.__dataclass_fields__:
             res[k] = getattr(obj, k)
         return res
-    else:
-        raise Failure("can't plainify a value of type `%s`", type(obj).__name__)
+    raise Failure("can't plainify a value of type `%s`", type(obj).__name__)
 
 
 def abridge_anystr(value: _t.AnyStr, length: int, ln: bool) -> tuple[bool, _t.AnyStr]:
@@ -44,10 +44,8 @@ def abridge_anystr(value: _t.AnyStr, length: int, ln: bool) -> tuple[bool, _t.An
     if len(value) > length:
         if isinstance(value, bytes):
             return True, value[:hlength] + (b"\n...\n" if ln else b" ... ") + value[-hlength:]
-        else:
-            return True, value[:hlength] + ("\n...\n" if ln else " ... ") + value[-hlength:]
-    else:
-        return False, value
+        return True, value[:hlength] + ("\n...\n" if ln else " ... ") + value[-hlength:]
+    return False, value
 
 
 def wrr_pprint(
@@ -238,7 +236,7 @@ class CBORStreamEncoder(StreamEncoder):
 
     @staticmethod
     def encode_cbor_abridged(enc: _cbor2.CBOREncoder, obj: _t.Any) -> None:
-        abridged, value = abridge_anystr(obj, 256, False)
+        _abridged, value = abridge_anystr(obj, 256, False)
         if isinstance(value, bytes):
             enc.encode_bytestring(value)
         elif isinstance(value, str):
@@ -338,12 +336,12 @@ class JSONStreamEncoder(StreamEncoder):
 
         if obj is None or isinstance(obj, (bool, int, float)):
             return obj
-        elif isinstance(obj, (str, bytes)):
+        if isinstance(obj, (str, bytes)):
             _, value = abridge_anystr(obj, 256, False)  # type: ignore
             return value
-        elif isinstance(obj, list):
+        if isinstance(obj, list):
             return [JSONStreamEncoder.abridge_json(a) for a in obj]
-        elif isinstance(obj, dict):
+        if isinstance(obj, dict):
             return {k: JSONStreamEncoder.abridge_json(v) for k, v in obj.items()}
         raise Failure("can't abridge a value of type `%s`", type(obj).__name__)
 
@@ -401,8 +399,8 @@ class RawStreamEncoder(StreamEncoder):
 
     def emit(self, path: str, names: list[str], values: list[_t.Any]) -> None:
         try:
-            for i in range(0, len(values)):
-                name, value = names[i], values[i]
+            for i, value in enumerate(values):
+                name = names[i]
                 try:
                     self.encoder.encode(value)
                 except Failure as exc:

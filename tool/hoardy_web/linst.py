@@ -91,7 +91,8 @@ def _linst_compile(expr: str, lookup: _t.Callable[[str], LinstAtom]) -> LinstFun
 
     if len(pipe) == 0:
         raise LinstCompileError("empty pipe")
-    elif len(pipe) == 1:
+
+    if len(pipe) == 1:
         res = pipe[0]
     else:
         res = make_envfunc_pipe(pipe)
@@ -118,16 +119,16 @@ def linst_cast(typ: type, arg: _t.Any) -> _t.Any:
     if typ is str:
         if atyp is bool or atyp is int or atyp is float:
             return str(arg)
-        elif atyp is bytes:
+        if atyp is bytes:
             return arg.decode("utf-8")
     elif atyp is str:
         if typ is bool:
             return bool(arg)
-        elif typ is int:
+        if typ is int:
             return int(arg)
-        elif typ is float:
+        if typ is float:
             return float(arg)
-        elif typ is bytes:
+        if typ is bytes:
             return arg.encode("utf-8")
 
     raise AssertionError("can't cast %s to %s", atyp.__name__, typ.__name__)
@@ -139,7 +140,7 @@ def linst_cast_val(v: _t.Any, arg: _t.Any) -> _t.Any:
 
 def linst_const(data: _t.Any) -> LinstAtom:
     def args0() -> _t.Callable[..., LinstFunc]:
-        def envfunc(env: LinstEnv, v: _t.Any) -> _t.Any:
+        def envfunc(_env: LinstEnv, v: _t.Any) -> _t.Any:
             return v if v is not None else data
 
         return envfunc
@@ -149,7 +150,7 @@ def linst_const(data: _t.Any) -> LinstAtom:
 
 def linst_apply0(func: _t.Any) -> LinstAtom:
     def args0() -> _t.Callable[..., LinstFunc]:
-        def envfunc(env: LinstEnv, v: _t.Any) -> _t.Any:
+        def envfunc(_env: LinstEnv, v: _t.Any) -> _t.Any:
             return func(v)
 
         return envfunc
@@ -159,7 +160,7 @@ def linst_apply0(func: _t.Any) -> LinstAtom:
 
 def linst_apply1(typ: _t.Any, func: _t.Any) -> LinstAtom:
     def args1(arg: _t.Any) -> _t.Callable[..., LinstFunc]:
-        def envfunc(env: LinstEnv, v: _t.Any) -> _t.Any:
+        def envfunc(_env: LinstEnv, v: _t.Any) -> _t.Any:
             return func(v, arg)
 
         return envfunc
@@ -169,7 +170,7 @@ def linst_apply1(typ: _t.Any, func: _t.Any) -> LinstAtom:
 
 def linst_apply2(typ1: _t.Any, typ2: _t.Any, func: _t.Any) -> LinstAtom:
     def args2(arg1: _t.Any, arg2: _t.Any) -> _t.Callable[..., LinstFunc]:
-        def envfunc(env: LinstEnv, v: _t.Any) -> _t.Any:
+        def envfunc(_env: LinstEnv, v: _t.Any) -> _t.Any:
             return func(v, arg1, arg2)
 
         return envfunc
@@ -199,7 +200,7 @@ def abbrev(v: _t.AnyStr, n: int) -> _t.AnyStr:
 def linst_re_match(arg: _t.Any) -> _t.Callable[..., LinstFunc]:
     rec = _re.compile(arg)
 
-    def envfunc(env: LinstEnv, v: _t.Any) -> _t.Any:
+    def envfunc(_env: LinstEnv, v: _t.Any) -> _t.Any:
         m = rec.match(v)
         if m:
             return True
@@ -215,12 +216,12 @@ linst_atoms: dict[str, tuple[str, LinstAtom]] = {
     "true": ("replace `None` value with `True`", linst_const(True)),
     "missing": (
         "`True` if the value is `None`",
-        linst_apply0(lambda v: True if v is None else False),
+        linst_apply0(lambda v: v is None),
     ),
     "0": ("replace `None` value with `0`", linst_const(0)),
     "1": ("replace `None` value with `1`", linst_const(1)),
     "not": ("apply logical `not` to value", linst_apply0(lambda v: not v)),
-    "len": ("apply `len` to value", linst_apply0(lambda v: len(v))),
+    "len": ("apply `len` to value", linst_apply0(len)),
     "str": ("cast value to `str` or fail", linst_apply0(lambda v: linst_cast(str, v))),
     "bytes": ("cast value to `bytes` or fail", linst_apply0(lambda v: linst_cast(bytes, v))),
     "bool": ("cast value to `bool` or fail", linst_apply0(lambda v: linst_cast(bool, v))),
@@ -229,16 +230,16 @@ linst_atoms: dict[str, tuple[str, LinstAtom]] = {
     "echo": ("replace the value with the given string", linst_apply1(str, lambda v, arg: arg)),
     "quote": (
         "URL-percent-encoding quote value",
-        linst_apply1(str, lambda v, arg: _up.quote(v, arg)),
+        linst_apply1(str, _up.quote),
     ),
     "quote_plus": (
         "URL-percent-encoding quote value and replace spaces with `+` symbols",
-        linst_apply1(str, lambda v, arg: _up.quote_plus(v, arg)),
+        linst_apply1(str, _up.quote_plus),
     ),
-    "unquote": ("URL-percent-encoding unquote value", linst_apply0(lambda v: _up.unquote(v))),
+    "unquote": ("URL-percent-encoding unquote value", linst_apply0(_up.unquote)),
     "unquote_plus": (
         "URL-percent-encoding unquote value and replace `+` symbols with spaces",
-        linst_apply0(lambda v: _up.unquote_plus(v)),
+        linst_apply0(_up.unquote_plus),
     ),
     "to_ascii": (
         'encode `str` value into `bytes` with "ascii" codec, do nothing if the value is already `bytes`',
@@ -254,7 +255,7 @@ linst_atoms: dict[str, tuple[str, LinstAtom]] = {
     ),
     "from_hex": (
         "replace hexadecimal `str` value with its decoded `bytes` value",
-        linst_apply0(lambda v: bytes.fromhex(v)),
+        linst_apply0(bytes.fromhex),
     ),
     "sha256": (
         "replace `bytes` value with its `sha256` hash digest",
@@ -343,7 +344,7 @@ class LinstEvaluator:
         if values is not None:
             self.values = values
         else:
-            self.values = dict()
+            self.values = {}
 
     def get_attr(self, name: str) -> _t.Any:
         raise ValueError(name)

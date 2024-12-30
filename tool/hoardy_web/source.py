@@ -21,8 +21,6 @@ import io as _io
 import os as _os
 import typing as _t
 
-from gettext import gettext
-
 from kisstdlib.exceptions import *
 
 from .io import *
@@ -45,10 +43,10 @@ class DeferredSource(metaclass=_abc.ABCMeta):
         with self.get_fileobj() as f:
             return f.read()
 
-    def same_as(self, other: _t.Any) -> bool:
+    def same_as(self, other: _t.Any) -> bool:  # pylint: disable=unused-argument
         return False
 
-    def replaces(self, other: _t.Any) -> bool:
+    def replaces(self, other: _t.Any) -> bool:  # pylint: disable=unused-argument
         return True
 
 

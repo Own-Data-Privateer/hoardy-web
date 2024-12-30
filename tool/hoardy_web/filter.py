@@ -39,7 +39,7 @@ def mk_conditions(
     fv: _t.Callable[[str], ConditionsValueType],
     attrs: _t.Iterable[str],
 ) -> Conditions[ConditionsKeyType, ConditionsValueType]:
-    res: Conditions[ConditionsKeyType, ConditionsValueType] = dict()
+    res: Conditions[ConditionsKeyType, ConditionsValueType] = {}
     for v in attrs:
         res[fk(v)] = fv(v), ConditionUsage(0, 0)
     return res
@@ -135,14 +135,14 @@ def re_compile(x: str) -> _re.Pattern[str]:
     return _re.compile(x)
 
 
-def pred_has_prefix(k: _t.Any, p: str, vs: _t.Iterable[str]) -> bool:
+def pred_has_prefix(_k: _t.Any, p: str, vs: _t.Iterable[str]) -> bool:
     for v in vs:
         if v.startswith(p):
             return True
     return False
 
 
-def pred_fullmatch_re(k: _t.Any, p: _re.Pattern[str], vs: _t.Iterable[str]) -> bool:
+def pred_fullmatch_re(_k: _t.Any, p: _re.Pattern[str], vs: _t.Iterable[str]) -> bool:
     for v in vs:
         if p.fullmatch(v):
             return True
@@ -194,7 +194,7 @@ PatternSB = tuple[_re.Pattern[str], _re.Pattern[bytes]]
 IterSB: _t.TypeAlias = _t.Iterable[str | bytes]
 
 
-def pred_grep(k: _t.Any, rere: PatternSB, vs: IterSB) -> bool:
+def pred_grep(_k: _t.Any, rere: PatternSB, vs: IterSB) -> bool:
     rec, brec = rere
     for v in vs:
         if isinstance(v, str):
@@ -279,7 +279,7 @@ def merge_non_empty_filters(
 
     if num == 0:
 
-        def allows(v: FilterValueType) -> bool:
+        def allows(v: FilterValueType) -> bool:  # pylint: disable=unused-argument
             return True
 
     else:
