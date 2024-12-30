@@ -190,29 +190,42 @@ class HTTPDumpServer(_threading.Thread):
 def main() -> None:
     global _cbor2
 
-    parser = _argparse.ArgumentParser(
-        prog=__prog__,
+    # fmt: off
+    parser = _argparse.ArgumentParser(prog=__prog__,
         description="""A simple archiving server for the `Hoardy-Web` Web Extension browser add-on: listen on given `--host` and `--port` via `HTTP`, dump each `POST`ed `WRR` dump to `<--archive-to>/<bucket>/<year>/<month>/<day>/<epoch>_<number>.wrr`.""",
         add_help=False,
     )
 
-    # fmt: off
     parser.add_argument("-h", "--help", action="store_true", help="show this help message and exit")
     parser.add_argument("--version", action="version", version=f"{__prog__} {version}")
 
-    parser.add_argument("--host", type=str, default="127.0.0.1", help="listen on what host/IP; default: `%(default)s`")
+    parser.add_argument("--host", type=str, default="127.0.0.1",
+        help="listen on what host/IP; default: `%(default)s`",
+    )
     parser.add_argument("--port", type=int, default=3210, help="listen on what port; default: `%(default)s`")
-    parser.add_argument("-t", "--to", "--archive-to", "--root", dest="root", type=str, default="pwebarc-dump", help="path to dump data into; default: `%(default)s`")
+    parser.add_argument("-t", "--to", "--archive-to", "--root", dest="root", type=str, default="pwebarc-dump",
+        help="path to dump data into; default: `%(default)s`",
+    )
 
     grp = parser.add_mutually_exclusive_group()
-    grp.add_argument("--compress", dest="compress", action="store_const", const=True, help="compress new archivals before dumping them to disk; default")
-    grp.add_argument("--no-compress", "--uncompressed", dest="compress", action="store_const", const=False, help="dump new archivals to disk without compression")
-    parser.set_defaults(compress = True)
+    grp.add_argument("--compress", dest="compress", action="store_const", const=True,
+        help="compress new archivals before dumping them to disk; default",
+    )
+    grp.add_argument("--no-compress", "--uncompressed", dest="compress", action="store_const", const=False,
+        help="dump new archivals to disk without compression",
+    )
+    parser.set_defaults(compress=True)
 
-    parser.add_argument("--default-bucket", "--default-profile", metavar="NAME", default="default", type=str, help="default bucket to use when no `profile` query parameter is supplied by the extension; default: `%(default)s`")
-    parser.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true", help="ignore `profile` query parameter supplied by the extension and use the value of `--default-bucket` instead")
+    parser.add_argument("--default-bucket", "--default-profile", metavar="NAME", default="default", type=str,
+        help="default bucket to use when no `profile` query parameter is supplied by the extension; default: `%(default)s`",
+    )
+    parser.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true",
+        help="ignore `profile` query parameter supplied by the extension and use the value of `--default-bucket` instead",
+    )
 
-    parser.add_argument("--no-print", "--no-print-cbors", action="store_true", help="don't print parsed representations of newly archived CBORs to stdout even if `cbor2` module is available")
+    parser.add_argument("--no-print", "--no-print-cbors", action="store_true",
+        help="don't print parsed representations of newly archived CBORs to stdout even if `cbor2` module is available",
+    )
     # fmt: on
 
     cargs = parser.parse_args(_sys.argv[1:])
