@@ -1578,7 +1578,6 @@ def make_deferred_emit(
     cargs: _t.Any,
     destination: _t.AnyStr,
     output_format: _t.AnyStr,
-    action: str,
     actioning: str,
     defer: _t.Callable[
         [ReqresExpr[DeferredSourceType], _t.AnyStr, bool, bool],
@@ -2004,7 +2003,6 @@ def make_organize_emit(
         cargs,
         destination,
         output_format,
-        action,
         actioning,
         DeferredOrganize,
         allow_updates,
@@ -2074,7 +2072,6 @@ def cmd_import_generic(
         cargs,
         cargs.destination,
         output_format,
-        "import",
         "importing",
         DeferredFileWrite,
         cargs.allow_updates,
