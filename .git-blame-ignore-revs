@@ -1,0 +1,8 @@
+# re-format code with `black`
+3d4af2eba60b47d142e6ddefc23d770a2eed84cf
+aec958ed9fc6e898321e55a725862b9f563ac3e4
+dc27b78694dfa6d0c70e672be00116ba0c8b19f0
+480262959fc29eba02c23de9841a5f2c5bbad08f
+# fix style issues found by `pylint`
+4df5f8ecfbe4afb167015d2b8fd85ac827f84e4f
+ebefd024cdb2cfa77f87a9a1d1d01cfb16faefe2
