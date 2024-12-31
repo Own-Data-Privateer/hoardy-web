@@ -1,11 +1,12 @@
 { pkgs ? import <nixpkgs> {}
 , lib ? pkgs.lib
 , source ? import ../source.nix { inherit pkgs; }
+, developer ? true
 }:
 
-with pkgs;
+with pkgs.python3Packages;
 
-python3Packages.buildPythonApplication rec {
+buildPythonApplication (rec {
   pname = "hoardy-web-sas";
   version = "1.8.0";
   format = "pyproject";
@@ -13,8 +14,17 @@ python3Packages.buildPythonApplication rec {
   inherit (source) src unpackPhase;
   sourceRoot = "${src.name}/simple_server";
 
-  propagatedBuildInputs = with python3Packages; [
+  propagatedBuildInputs = [
     setuptools
     cbor2
   ];
-}
+
+} // lib.optionalAttrs developer {
+  nativeBuildInputs = [
+    build twine pip mypy pytest black pylint
+    pkgs.pandoc
+  ];
+
+  preBuild = "find . ; black --check . && mypy && pylint .";
+  postFixup = "find $out";
+})

@@ -1,11 +1,14 @@
 { pkgs ? import <nixpkgs> {}
-, debug ? false
+, developer ? false
 }:
 
-let source = import ./source.nix { inherit pkgs; }; in
+let
+  source = import ./source.nix { inherit pkgs; };
+  args = { inherit pkgs source developer; };
+in
 
 {
-  simple_server = import ./simple_server { inherit pkgs source; };
-  extension = import ./extension { inherit pkgs source; };
-  tool = import ./tool { inherit pkgs source debug; };
+  simple_server = import ./simple_server args;
+  extension = import ./extension args;
+  tool = import ./tool args;
 }

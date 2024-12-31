@@ -3,7 +3,7 @@
 , kisstdlib ? import ../vendor/kisstdlib { inherit pkgs; }
 , cbor2 ? import ../vendor/cbor2 { inherit pkgs; }
 , source ? import ../source.nix { inherit pkgs; }
-, debug ? false
+, developer ? false
 , mitmproxySupport ? true
 }:
 
@@ -36,14 +36,12 @@ buildPythonApplication (rec {
     install -m 755 -t $out/bin script/hoardy-*
   '';
 
-} // lib.optionalAttrs debug {
+} // lib.optionalAttrs developer {
   nativeBuildInputs = [
-    build twine pip black pylint
+    build twine pip mypy pytest black pylint
     pkgs.pandoc
-    mypy
-    pytest
   ];
 
-  preBuild = "find . ; mypy; pytest";
+  preBuild = "find . ; black --check . && mypy && pytest && pylint .";
   postFixup = "find $out";
 })

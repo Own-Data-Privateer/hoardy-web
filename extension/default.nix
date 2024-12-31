@@ -1,6 +1,7 @@
 { pkgs ? import <nixpkgs> {}
 , lib ? pkgs.lib
 , source ? import ../source.nix { inherit pkgs; }
+, developer ? false
 }:
 
 with pkgs;
