@@ -1,6 +1,6 @@
 # What is `hoardy-web`?
 
-`hoardy-web` is a tool to inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/), also [there](https://oxij.org/software/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.
+`hoardy-web` is a tool to inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://oxij.org/software/hoardy-web/tree/master/), also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.
 
 # How to read this document
 

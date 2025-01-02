@@ -4,39 +4,27 @@
 Not just the URLs, but also the contents and the requisite resources (images, media, `CSS`, fonts, etc) of the pages you visit.
 Not just the last 3 months, but from the beginning of time you start using it.
 
-Practically speaking, you [install the `Hoardy-Web` browser extension/add-on into your web browser](#quickstart) and just browse the web normally while `Hoardy-Web` passively, in background, captures and archives web pages you visit for later offline viewing, mirroring, and/or indexing.
+Practically speaking, you [install the `Hoardy-Web` browser extension/add-on into your web browser](#quickstart) and just browse the web normally while `Hoardy-Web` passively, in background, captures and archives web pages you visit for later offline viewing, replay, mirroring, data scraping, and/or indexing.
+The extension has a lot configuration options to help you tweak what should or should not be archived, provides indicators that can help you fully capture each page you do want to archive (it can notify you when some parts of a page failed to load in various ways), and has a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless you explicitly configure it to do otherwise to, e.g., minimize writes to disk instead).
 
-Note that `Hoardy-Web`'s browser extension
+Also, the extension can be used independently of other related tools, so you can install it and start saving your browsing history immediately, and then delay learning to use the rest for later.
 
-- can be used independently of other tools that are being developed in this repository, so you can install it and start saving your browsing history immediately, and then delay learning to use the rest of the tools developed here for later;
-
-- has a lot of configuration options to help you tweak what should or should not be archived and a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless you explicitly configure it to do otherwise to, e.g., minimize writes to disk instead).
-
-To view/replay your archived data you will need to install at least the [accompanying `hoardy-web` tool](./tool/) which can
+To view and replay your archived data you will need to install at least the [accompanying `hoardy-web` tool](./tool/) which can
 
 - replay your archives over `HTTP` (a-la a local [Wayback Machine](https://web.archive.org/)),
 - generate static website mirrors from them (a-la `wget -mpk`),
 - search, inspect, organize, manipulate, programmatically extract values from, and run scripts over your collected data.
 
-See the next section for a little storyboard explaining the above with pictures.
+With `Hoardy-Web`, capture, archival, and replay are all independent from each other.
+But `Hoardy-Web` browser extension implements optional integration of passive browsing data capture with archival to and the following replay from a `hoardy-web serve` instance.
 
-To learn more:
+**Therefore, on a modern browser, using both the `Hoardy-Web` browser extension and the `hoardy-web` tool simultaneously allows you to keep an arbitrary number of open tabs, allow your browser to unload them at will, and then switch to them later without re-fetching anything from the Internet, as if you had infinite amounts of RAM and never closed your browser or rebooted your computer.**
 
-- See the ["Supported use cases" section](#use-cases) below for the setups `Hoardy-Web` is designed for.
-- See the ["Why does `Hoardy-Web` exists?" section](#why) below for why you might want to do this.
-- See the ["Highlights" section](#highlights) below for a longer description of what `Hoardy-Web` does and does not do.
-- See the ["Alternatives"](#alternatives) below for in-depth comparisons to alternatives.
-- See the ["Frequently Asked Questions"  section](./extension/page/help.org#faq) of the extension's [`Help` page](./extension/page/help.org) for the answers to those.
-  Additionally, see the ["Quirks and Bugs" section there](./extension/page/help.org#bugs) for a full list of currently known quirks and issues/bugs.
-  These two sections of the [`Help` page](./extension/page/help.org) answer questions about most common issues you can encounter while using `Hoardy-Web` extension/add-on.
-- See the ["Quickstart" section](#quickstart) for setup instructions.
+The ["Storyboarded screenshots" section](#screenshots) explains the above with pictures.
 
 `Hoardy-Web` was previously known as "Personal Private Passive Web Archive" aka "pwebarc".
 
-If you are reading this on GitHub, be aware that this repository is a [mirror of a repository on the author's web site](https://oxij.org/software/hoardy-web/).
-In author's humble opinion, the rendering of the documentation pages there is superior to what can be seen on GitHub (its implemented via [`pandoc`](https://pandoc.org/) there).
-
-# Storyboarded screenshots
+# <span id="screenshots"/>Storyboarded screenshots
 
 So, for illustrative purposes, I [installed the `Hoardy-Web` extension](#quickstart), installed and [started a `hoardy-web serve` archiving server instance](./tool/README.md#quickstart), switched the extension to `Submit dumps via 'HTTP'` mode ([like this screenshot shows, on the `P&R` tab](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.19.0-pr.png); also, I ensured that `Server URL` there points to my `hoardy-web serve` instance, but it's the default), and then visited a Wikipedia page:
 
@@ -65,9 +53,63 @@ That is, you can use `Hoardy-Web` to implement the following browser workflow:
 - but, now, clicking on such a tab won't load anything from the Internet, since it will (re-)load its replay instead,
 - and this will work the same even if you re-start your browser and restore your session.
 
-**Essentially, with `Hoardy-Web`, you can keep an infinite number of open tabs and use your browser as if you had infinite amounts of RAM, newer closed your browser, and never rebooted your computer.**
+Thus, you can keep an arbitrary number of tabs open for free now.
 
-See the [screenshot gallery](./doc/gallery.md) for more screenshots, including those with `Hoardy-Web` running on Chromium and those showing off how nice and feature-rich the [`Help` page](./extension/page/help.org) becomes when you look at it by pressing the "Help" button in extension's UI.
+See the [screenshot gallery](./doc/gallery.md) for more screenshots, including those with `Hoardy-Web` running on Chromium.
+
+# Walkthrough
+
+If you are reading this on GitHub, be aware that this repository is a [mirror of a repository on the author's web site](https://oxij.org/software/hoardy-web/).
+In author's humble opinion, the rendering of the documentation pages there is superior to what can be seen on GitHub (its implemented via [`pandoc`](https://pandoc.org/) there).
+
+This page and other related pages here can be read linearly top to bottom, but you can also go directly to
+
+- the ["Quickstart" section](#quickstart) for setup instructions;
+- the ["Supported use cases" section](#use-cases) below for the setups `Hoardy-Web` is designed for;
+- the ["Why does `Hoardy-Web` exists?" section](#why) below for why you might want to do any of this;
+- the ["Highlights" section](#highlights) below for a longer description of what `Hoardy-Web` does and does not do;
+- the ["Parts and pieces" section](#pieces) below to see descriptions of the things that are being developed in this repository;
+- the ["Technical philosophy" section](#philosophy) below for a description of design principles of `Hoardy-Web`;
+- the ["Alternatives" section](#alternatives) below for in-depth comparisons to alternatives;
+- then notice that `Hoardy-Web` is the best among them, and return to ["Quickstart"](#quickstart). （ •̀ ω •́ ）✧
+
+After you've installed all the parts you want to use, you should read:
+
+- The [`Hoardy-Web` extension's `Help` page](./extension/page/help.org) for a long detailed description of what the extension does step-by-step.
+
+  It is a must-read, though instead of reading that file raw I highly recommend you read it by pressing the `Help` button in extension's UI, since doing that will make the whole thing pretty interactive, see the [screenshot gallery](./doc/gallery.md) for screenshots of how this will look.
+
+  In there, especially see:
+
+  - the ["Frequently Asked Questions" section](./extension/page/help.org#faq) for the answers to the frequently asked questions, including those about common quirks you can encounter while using it; and
+
+  - the ["Quirks and Bugs" section](./extension/page/help.org#bugs) for more info on quirks and limitations of `Hoardy-Web` when used on different browsers.
+
+- The [`hoardy-web`'s `README`](./tool/README.md) and/or the [`hoardy-web-sas`'s `README`](./simple_server/README.md).
+
+  The [former](./tool/README.md) of which has a bunch of advanced usage examples.
+
+  Also, you might want to see [`hoardy-web`'s example scripts](./tool/script/).
+
+- The ["Setup recommendations" section](#setup).
+
+Then, to follow the development:
+
+- See the ["Changelog" page](./CHANGELOG.md) for the progress log and human-readable description of recent changes (which is much shorter and more comprehensible than the commit log).
+
+  You can simply bookmark that URL and return to it periodically to follow new releases.
+
+  Alternatively, you can also read that page from extension's UI by pressing the button labeled with extension's version, but that version gets bundled with the extension, so it might be outdated sometimes.
+
+- See the [TODO list](./CHANGELOG.md#todo) for the list of things that are not implemented/ready yet.
+
+If you are a developer yourself:
+
+- See the [`Hoardy-Web` extension's `README`](./extension/README.md#development) for building from source and debugging instructions.
+
+- See all the `hoardy-web`'s-related links above, and also see the description of the [on-disk file format used by all these tools](./doc/data-on-disk.md).
+
+Finally, if your questions are still unanswered, then [open an issue on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues) or [get in touch otherwise](https://oxij.org/#contact).
 
 # <span id="use-cases"/>Supported use cases
 
@@ -141,7 +183,7 @@ Things vanish from the Internet all the time, [Wayback Machine](https://web.arch
 - they only archive a subset of the public web, and only what can be reached with `HTTP` `GET` requests,
 - a website you might want archived might be banned by the Wayback Machine,
 - or the website might ban Wayback Machine's crawler instead,
-- and they appear to remove/hide already archived data when threatened by policy makers and/or lawsuits.
+- and they appear to remove/hide already archived data when a host owner's requests it and under political pressure.
 
 (On that latter point, you should probably go and [donate to the Internet Archive](https://archive.org/donate) to help them fight it.)
 
@@ -253,9 +295,9 @@ But then I got annoyed by all the sites that don't work under `mitmproxy`, did s
 
 For more info see the [list of comparisons to alternatives](#alternatives).
 
-## <span id="pieces"/>Parts and pieces
+# <span id="pieces"/>Parts and pieces
 
-### Required
+## Required
 
 - The [`Hoardy-Web` browser extension](./extension/) that captures all `HTTP` requests and responses (and [`DOM` snapshots](./extension/page/help.org#faq-snapshot)) your browser fetches, dumps them [into `WRR` format](./doc/data-on-disk.md), and then exports them by generating fake-Downloads containing bundles of those dumps, submits them to the specified archiving server (by `POST`ing them to the specified URL), or saves the to browser's local storage.
 
@@ -268,7 +310,7 @@ For more info see the [list of comparisons to alternatives](#alternatives).
   See the ["Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for known issues.
   Also, `Hoardy-Web` is tested much less on Chromium than on Firefox.
 
-### Optional, but convenient
+## Optional, but convenient
 
 - The [`hoardy-web-sas` simple archiving server](./simple_server/) that simply dumps everything the `Hoardy-Web` extension submits to it to disk, one file per `HTTP` request+response.
 
@@ -277,11 +319,11 @@ For more info see the [list of comparisons to alternatives](#alternatives).
 
   The simple archiving server is *stable* (it's so simple there hardly could be any bugs there).
 
-### Optional, but almost always required at some point
+## Optional, but almost always required at some point
 
 - The [`hoardy-web` tool](./tool/), to quote from there:
 
-  > `hoardy-web` is a tool to inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/), also [there](https://oxij.org/software/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.
+  > `hoardy-web` is a tool to inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://oxij.org/software/hoardy-web/tree/master/), also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.
 
   That is, yes, it can also play the role of an advanced archiving server with replay support for the `Hoardy-Web` browser extension instead of the basic archiving server the `hoardy-web-sas` script is.
 
@@ -289,13 +331,13 @@ For more info see the [list of comparisons to alternatives](#alternatives).
   At the moment, it does about 85% of the stuff I want it to do, and the things it does it does not do as well as I'd like.
   See the [TODO list](./CHANGELOG.md#todo) for more info.
 
-### Optional, but useful
+## Optional, but useful
 
 - A [patch for Firefox](./firefox/) to allow `Hoardy-Web` extension to collect request `POST` data as-is. This is not required and even without that patch `Hoardy-Web` will collect everything in most cases, but it could be useful if you want to correctly capture `POST` requests that upload files.
 
   See the ["Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for more info.
 
-## <span id="philosophy"/>Technical Philosophy
+# <span id="philosophy"/>Technical Philosophy
 
 `Hoardy-Web` is designed to
 
@@ -334,41 +376,6 @@ To conform to the above design principles
 - by default, none these tools ever overwrite any files on disk (to prevent accidental data loss);
 
   this way, if something breaks, you can always trivially return to a known-good state by simply copying some old files from a backup as there's no need to track versions or anything like that.
-
-## <span id="more-docs"/>What does it do, exactly? I have questions.
-
-- See [extension's `Help` page](./extension/page/help.org) (or the `Help` button in the extension's UI, which will make it interactive) for a long detailed description of what the extension does step-by-step.
-
-    It is a must-read, though instead of reading that file raw I highly recommend you read it via the `Help` button of the extension's UI, since doing that will make the whole thing pretty interactive.
-
-  - See the ["Frequently Asked Questions" section of extension's `Help` page](./extension/page/help.org#faq) for the answers to the frequently asked questions, including those about common quirks you can encounter while using it.
-
-  - See the ["Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for more info on quirks and limitations of `Hoardy-Web` when used on different browsers.
-
-- See [below](#alternatives) for a long list of comparisons to its alternatives.
-
-- Then notice that `Hoardy-Web` is the best among them, and go follow ["Quickstart"](#quickstart) section for setup instructions. （ •̀ ω •́ ）✧
-
-- To follow the development:
-
-  - See the [CHANGELOG](./CHANGELOG.md) for the progress log and human-readable description of recent changes (which is much shorter and more comprehensible than the commit log).
-
-  - See the [TODO list](./CHANGELOG.md#todo) for the list of things that are not implemented/ready yet.
-
-- If you want to learn to use the `hoardy-web` tool, see [its README](./tool/README.md), which has a bunch of extended and explained usage examples.
-
-  - Also, a lot of info from that page can be seen by running `hoardy-web --help`.
-
-  - See [example scripts](./tool/script/) to learn how to do various interesting things with your archived data.
-
-- In the unlikely case you have problems with the `hoardy-web-sas` simple archiving server, see [its README](./simple_server/README.md).
-  Or you can read `hoardy-web-sas --help` instead.
-
-- If you want to build the extension from source, see [its README](./extension/README.md).
-
-- If you are a developer, see all the `hoardy-web`-related links above, and also see the description of the [on-disk file format used by all these tools](./doc/data-on-disk.md).
-
-- If your questions are not unanswered by these, then [open an issue on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues) or [get in touch otherwise](https://oxij.org/#contact).
 
 # Does the author eat what he cooks?
 
@@ -513,7 +520,7 @@ See ["Setup recommendations"](#setup) section for best practices for configuring
 
 ## In general
 
-- You can add `hoardy_web_sas.py` to Autorun or start it from your `~/.xsession`, `systemd --user`, etc.
+- You can add `hoardy-web-sas` to Autorun or start it from your `~/.xsession`, `systemd --user`, etc.
 
 - You can also make a new browser profile specifically for archived browsing, run Firefox as `firefox -ProfileManager` to get to the appropriate UI. On Windows you can just edit your desktop or toolbar shortcut to target
 
@@ -941,7 +948,7 @@ See the [bottom of `CHANGELOG.md`](./CHANGELOG.md#todo).
 
 [GPLv3](./LICENSE.txt)+, some small library parts are MIT.
 
-## Contributions
+## Contributing
 
 Contributions are accepted both via GitHub issues and PRs, and via pure email.
 In the latter case I expect to see patches formatted with `git-format-patch`.
