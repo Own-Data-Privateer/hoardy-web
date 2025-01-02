@@ -749,7 +749,13 @@ function historyFromTo(fromState, to) {
         return;
 
     let fromURL = "#" + fromState.id;
-    history.pushState(fromState, "", fromURL);
+    if (history.state !== null
+        && typeof history.state === "object"
+        && history.state.id !== undefined
+        && history.state.id.startsWith("link-"))
+        history.replaceState(fromState, "", fromURL);
+    else
+        history.pushState(fromState, "", fromURL);
 
     if (typeof to === "string")
         history.pushState({ skip: true }, "", to);
