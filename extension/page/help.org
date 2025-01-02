@@ -716,7 +716,7 @@ If you are reading this page outside of the extension's UI be sure to read the [
 
 - On Firefox, fetches that spawn new downloads will be marked as =problematic= by default, since Firefox's implementation of =webRequest.filterResponseData= API does not provide their contents to the extension and I have not figured out how to distinguish them from other fetches yet.
 ** Known issues that are consequences of issues of all supported browsers
-- When =Hoardy-Web= is reloaded without using the [[./popup.html#div-reloadSelf][=Reload= button]] or [[./popup.html#div-config.autoReloadOnUpdates][=Auto-reload on updates= option]], e... when =Hoardy-Web= is reloaded by clicking the "Reload" button in browser's extension list, then all [[./popup.html#this-tab-options][per-tab setting]] of all tabs will be reset to the [[./popup.html#root-tab-options][values used by the newly spawned root tabs]].
+- When =Hoardy-Web= is reloaded without using the [[./popup.html#div-reloadSelf][=Reload= button]] or [[./popup.html#div-config.autoReloadOnUpdates][=Auto-reload on updates= option]], e.g. when =Hoardy-Web= is reloaded by clicking the "Reload" button in browser's extension list, then all [[./popup.html#this-tab-config][per-tab setting]] of all tabs will be reset to the [[./popup.html#root-tab-options][values used by the newly spawned root tabs]].
 
   This issue is not applicable in the case when the reload happens because the extension was updated, in that case the browser will notify =Hoardy-Web= about it and =Hoardy-Web= will handle it properly, see the help string of the [[./popup.html#div-reloadSelf][=Reload= button]] for more info.
 
