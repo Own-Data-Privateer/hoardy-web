@@ -200,7 +200,7 @@ while (($# > 0)); do
     src=$1
     shift
 
-    td=$(mktemp --tmpdir -d hoadry-web-test-cli-XXXXXXXX)
+    td=$(mktemp --tmpdir -d hoardy-web-test-cli-XXXXXXXX)
     td=$(readlink -f "$td")
 
     uexprs=( \
