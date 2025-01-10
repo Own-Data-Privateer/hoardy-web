@@ -113,7 +113,16 @@ for target in "$@"; do
 
     echo "  Building page/help..."
 
-    cat page/help.org | runPandoc org page/help
+    cat page/help.org \
+        | sed '
+s%\[\[\.\./\.\.\/\]\[\([^]]*\)\]\]%[[https://oxij.org/software/hoardy-web/][\1]] (also on [[https://github.com/Own-Data-Privateer/hoardy-web][GitHub]])%g
+t end
+s%\[\[\.\./\.\.\/\([^]]*\)/\]\[\([^]]*\)\]\]%[[https://oxij.org/software/hoardy-web/tree/master/\1/][\2]] (also on [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/\1][GitHub]])%g
+t end
+s%\[\[\.\./\.\.\/\([^]]*\)\]\[\([^]]*\)\]\]%[[https://oxij.org/software/hoardy-web/tree/master/\1][\2]] (also on [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/\1][GitHub]])%g
+: end
+' \
+        | runPandoc org page/help
 
     echo "  Building page/changelog..."
 
