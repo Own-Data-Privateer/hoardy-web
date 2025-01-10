@@ -541,53 +541,6 @@ See ["Setup recommendations"](#setup) section for best practices for configuring
 
   This way you can easily share dumps from the "anonymous" instance without worrying about leaking your private data or login credentials.
 
-## <span id="in-tb"/>Using `Hoardy-Web` with Tor Browser
-
-When using `Hoardy-Web` with Tor Browser, you probably want to configure it all in such a way so that all of the machinery of `Hoardy-Web` is completely invisible to web pages running under your Tor Browser, to prevent fingerprinting.
-
-### Mostly convenient, paranoid
-
-So, in the mostly convenient yet sufficiently paranoid setup, you would only ever use `Hoardy-Web` extension configured to archive captured data to browser's local storage (which is the default) and then export your dumps manually at the end of a browsing session, see [re-archival intructions](./extension/page/help.org#re-archival).
-
-Yes, this is slightly annoying, but this is the [only absolutely safe way to export data out of `Hoardy-Web` without using submission via `HTTP`](./extension/page/help.org#faq-unsafe), and you don't need to do this at the end of each and every browsing session.
-
-### Simpler, but slightly unsafe
-
-You can also simply switch to using `Export dumps via 'saveAs'` by default instead.
-
-I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [this is unsafe](./extension/page/help.org#faq-unsafe).
-Also, by default, browser's UI will be slightly annoying, since `Hoardy-Web` will be generating new "Downloads" all the time, but that issue [can be fixed with a small `about:config` change](./extension/page/help.org#faq-firefox-saveas).
-
-### Most convenient, less paranoid
-
-In theory, running `./hoardy_web_sas.py` listening on a loopback IP address should prevent any web pages from accessing it, since the browsers disallow such cross-origin requests, thus making the normal `Submit dumps via 'HTTP'` mode setup quite viable.
-However, Tor Browser is configured to proxy everything via the TOR network by default, so you need to configure it to exclude the requests to `./hoardy_web_sas.py` from being proxied.
-
-A slightly more paranoid than normal way to do this is:
-
-- Run the server as `./hoardy_web_sas.py --host 127.0.99.1` or similar.
-- Go to `about:config` in your Tor Browser and add `127.0.99.1` to `network.proxy.no_proxies_on`.
-- Set the `Server URL` setting in the extension to `http://127.0.99.1:3210/pwebarc/dump`.
-
-Why?
-When using Tor Browser, you probably don't want to use `127.0.0.1` and `127.0.1.1` as those are normal loopback IP addresses used by most things, and you probably don't want to allow any `JavaScript` code running in Tor Browser to (potentially, if there are any bugs) access to those.
-Yes, if there are any bugs in the cross-domain check code, with this setup `JavaScript` could discover you are using `Hoardy-Web` (and then, in the worst case, DOS your system by flooding your disk with garbage dumps), but it won't be able to touch the rest of your stuff listening on your other loopback addresses.
-
-So, while this setup is not super-secure if your Tor Browser allows web pages to run arbitrary `JavaScript` (in which case, let's be honest, no setup is secure), with `JavaScript` always disabled, to me, it looks like a completely reasonable thing to do.
-
-### Best of both
-
-In theory, you can have the benefits of both invisibility of archival to local storage and convenience, guarantees, and error reporting of archival to an archiving server at the same time:
-
-- Run the server as `./hoardy_web_sas.py --host 127.0.99.1` or similar.
-- But archive to browser's local storage while browsing.
-- Then, at the end of the session, after you closed all the tabs, set `network.proxy.no_proxies_on`, enable submission via `HTTP` while disabling saving to local storage, re-archive, your local storage should now be empty, unset `network.proxy.no_proxies_on` again.
-
-In practice, doing this manually all the time is prone to errors.
-Automating this away is on the [TODO list](./CHANGELOG.md#todo).
-
-Then, you can improve on this setup even more by running both the Tor Browser and `./hoardy_web_sas.py` in separate containers/VMs.
-
 # <span id="alternatives"/>Alternatives
 
 Sorted by similarity to `Hoardy-Web`, most similar projects first.
