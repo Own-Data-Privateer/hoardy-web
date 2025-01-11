@@ -4,37 +4,39 @@
 
 - by saving them into your browser's local storage, which is the default;
 - by submitting them to your own private archiving server via `HTTP`, like
-  - the simple archiving-only server [`hoardy-web-sas`](../simple_server/) or
-  - the advanced archival+replay server [`hoardy-web serve`](../tool/);
+  - the advanced archival+replay server [`hoardy-web serve`](../tool/) or
+  - the simple archiving-only server [`hoardy-web-sas`](../simple_server/);
 - by generating fake-Downloads containing bundles of those dumps,
   making your browser simply save them to your `Downloads` directory.
 
 `Hoardy-Web` produces dumps in a very simple, yet efficient, [`WRR` file format](../doc/data-on-disk.md).
 
-Also, `Hoardy-Web` implements:
+Moreover, `Hoardy-Web` implements:
 
+- UI indicators that help in ensuring good and complete website captures,
+- optional post-capture machinery that helps in archiving only select subsets of captured data;
+- archival+replay integration when used in combination with an [advanced archiving+replay server like `hoardy-web serve`](../tool/);
 - capture of `DOM` snapshots;
-- various indicators that help in ensuring good and complete website captures,
 - inspection of captured `HTTP` traffic, similar to browser's own `Network Monitor`
   (except browser-wise, i.e., it can capture `HTTP` requests even when a page generates them when its tab/window closes;
   which a surprising number of websites does to prevent their web traffic from being inspected with `Network Monitor`);
-- some post-capture machinery that helps in archiving only select subsets of captured data;
-- archival+replay integration when used in combination with an advanced archiving+replay server like `hoardy-web serve`;
-- some more generally useful web browsing features (like per-tab `Work offline` mode);
-- etc.
+- some generally useful web browsing features (like per-tab `Work offline` mode).
 
 In other words, this extension implements an in-browser half of your own personal private passive [Wayback Machine](https://web.archive.org/) that archives everything you see, including `HTTP POST` requests and responses (e.g. answer pages of web search engines), as well as most other `HTTP`-level data (`AJAX`, `JSON RPC`, etc).
+
+For more information see [project's documentation](../README.md) and [extension's `Help` page](./page/help.org) (also distributed with the extension itself, available via the "Help" button from its popup UI), especially the ["Frequently Asked Questions" section there](./page/help.org#faq).
+
+Also, note that:
+
+- `Hoardy-Web` **DOES NOT** send any of your captured web browsing data anywhere, unless you explicitly configure it to do so.
+- `Hoardy-Web` **DOES NOT** send any telemetry anywhere.
+- Both of the above statements will apply to **all future versions** of `Hoardy-Web`.
 
 `Hoardy-Web` was previously known as "Personal Private Passive Web Archive" aka `pWebArc`.
 
 # Screenshots
 
 See the [gallery](../doc/gallery.md).
-
-# Documentation
-
-- See the [`Help` page](./page/help.org), especially, the ["Frequently Asked Questions" section of the `Help` page](./page/help.org#faq).
-- See the [higher-level README](../README.md), especially, the [comparisons to alternatives](../README.md#alternatives) and [design principles](../README.md#philosophy).
 
 # Installation
 
@@ -64,12 +66,7 @@ If you are [building from source](#build), this is a nice way to do development,
 
 ## <span id="install-chromium"/>On Chromium-based browsers (Chromium, Google Chrome, Ungoogled Chromium, Brave, etc)
 
-`Hoardy-Web` isn't on [Chrome Web Store](https://chromewebstore.google.com/) because `Hoardy-Web` appears to violate [its "Terms of Use"](https://web.archive.org/web/20240604062520/https://developer.chrome.com/docs/webstore/program-policies/terms).
-Specifically, the "enables the unauthorized download of streaming content or media" clause.
-See [higher-level README](../README.md#quickstart) for more info and discussion.
-
-So, installation on Chromium-based browsers (aka "Chromium forks") requires a little bit of work.
-There are several ways you can do it.
+There are several ways you can do this.
 **I recommend you read all of the following subsections first**, and then decide what you want to actually try doing.
 Do not rush.
 
@@ -166,13 +163,6 @@ Congratulations, from now on `Hoardy-Web` --- or any other extension that has `u
 - If you installed `Hoardy-Web` (or another extension) via `Load Unpacked`, you will have to manually re-install it from a [new release](https://github.com/Own-Data-Privateer/hoardy-web/releases) on updates, but you will at least get notified about it updating without you needing to check manually.
 
 See [`chromium-web-store`'s README](https://github.com/NeverDecaf/chromium-web-store) for more info and instructions, especially if you get `CRX_REQUIRED_PROOF_MISSING` or `Apps, extensions and user scripts cannot be added from this website` errors.
-
-# Recommended next steps
-
-- Open `Hoardy-Web`'s popup and press the `Help` button there.
-  Read the contents of that page.
-
-- Eventually, install and see the docs of the [`hoardy-web` CLI tool](../tool/).
 
 # Development
 

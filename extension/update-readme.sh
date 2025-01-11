@@ -5,6 +5,7 @@ this_links() {
 s%\[\([^]]*\)\](\(http[^)]*\))%[\1](\2)%g
 t end
 s%\[\([^]]*\)\](..\(/[^)]*\))%[\1](https://oxij.org/software/hoardy-web/tree/master\2) (also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master\2))%g
+s%\[\([^]]*\)\](.\(/[^)]*\))%[\1](https://oxij.org/software/hoardy-web/tree/master/extension\2) (also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/extension\2))%g
 : end
 '
 }
@@ -27,11 +28,8 @@ s%\(</\(ul\)>\)%\1\n%g
 '
 }
 {
-    cat ./README.md | sed -n '3, /was previously known as/ p' | head -n -1 | this_links | amo_html
-
-    cat ../README.md | sed -n '/can be used independently/, /was previously known as/ p' | head -n -1 | parent_links | amo_html
-
-    cat ./README.amo.md | this_links | amo_html
-
-    cat ./README.md | sed -n '/was previously known as/ p' | this_links | amo_html
+    cat ./README.md \
+        | sed 's%`Hoardy-Web` is a browser extension (add-on) that%`Hoardy-Web`%' \
+        | sed -n '3, /# Screenshots/ p' \
+        | head -n -1 | this_links | amo_html
 } > README.amo.html
