@@ -36,7 +36,7 @@
    * [heritrix](#heritrix)
    * [ArchiveBox](#archivebox)
    * [reminiscence](#reminiscence)
-   * [`wget -mpk` and `curl`](#wget-mpk-and-curl)
+   * [`wget -mpk` and `curl`](#wget--mpk-and-curl)
    * [wpull](#wpull)
    * [grab-site](#grab-site)
    * [monolith and obelisk](#monolith-and-obelisk)
