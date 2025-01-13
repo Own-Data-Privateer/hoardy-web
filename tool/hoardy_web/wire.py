@@ -27,9 +27,8 @@ import urllib.parse as _up
 
 import idna as _idna
 
-from kisstdlib.exceptions import *
-
-from .parser import *
+from kisstdlib.failure import *
+from kisstdlib.parsing import *
 
 
 def scheck(v: _t.Any, what: str, value: _t.Any, expected: _t.Any) -> None:

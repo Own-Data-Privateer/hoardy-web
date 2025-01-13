@@ -23,15 +23,16 @@ import typing as _t
 
 import cbor2 as _cbor2
 
-from kisstdlib.exceptions import *
+from kisstdlib.failure import *
 from kisstdlib.io import *
+from kisstdlib.pyrepr import *
 from kisstdlib.io.stdio import *
 
 from .wrr import *
 
 
 def plainify(obj: _t.Any) -> _t.Any:
-    if isinstance(obj, TimeStamp):
+    if isinstance(obj, Timestamp):
         return float(obj)
     if hasattr(obj, "__dataclass_fields__"):
         res = {}
@@ -97,7 +98,7 @@ def wrr_pprint(
         fobj.write_str_ln("response none")
 
     fobj.write_str_ln(
-        f"clock {TimeRange(req.started_at, reqres.finished_at).format_org(precision=3)}"
+        f"clock {Timerange(req.started_at, reqres.finished_at).format_org(precision=3)}"
     )
 
     if len(reqres.extra) > 0:
@@ -281,7 +282,7 @@ class PyStreamEncoder(StreamEncoder):
 
     @staticmethod
     def encode_py(enc: PyReprEncoder, obj: _t.Any) -> None:
-        if isinstance(obj, TimeStamp):
+        if isinstance(obj, Timestamp):
             enc.lexeme(str(obj))
             enc.comment(obj.format())
         else:
@@ -381,7 +382,7 @@ class RawStreamEncoder(StreamEncoder):
 
     @staticmethod
     def encode_raw(enc: TIOEncoder, obj: _t.Any) -> None:
-        if isinstance(obj, TimeStamp):
+        if isinstance(obj, Timestamp):
             enc.write_str(str(obj))
         else:
             raise Failure("can't raw-encode a value of type `%s`", type(obj).__name__)
@@ -406,8 +407,7 @@ class RawStreamEncoder(StreamEncoder):
                 try:
                     self.encoder.encode(value)
                 except Failure as exc:
-                    exc.elaborate("while encoding attribute `%s'", name)
-                    raise exc
+                    raise exc.elaborate("while encoding attribute `%s'", name)
                 self.encoder.write_bytes(self.terminator)
             self.fobj.write_bytes(self.encoder.fobj.getvalue())
         finally:

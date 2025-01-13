@@ -65,7 +65,7 @@ equal_file() {
 }
 
 equal_dir() {
-    if ! diff -U 0 <(./development/describe-dir.py --no-mtime "$2") <(./development/describe-dir.py --no-mtime "$3"); then
+    if ! diff -U 0 <(describe-dir --no-mtime "$2") <(describe-dir --no-mtime "$3"); then
         error "$1: equal_dir failed"
     fi
 }
@@ -87,7 +87,7 @@ fixed_target() {
 }
 
 fixed_dir() {
-    ./development/describe-dir.py --no-mtime "$3/$1" > "$3/$1.describe-dir"
+    describe-dir --no-mtime "$3/$1" > "$3/$1.describe-dir"
     fixed_target "$1.describe-dir" "$2" "$3"
 }
 
@@ -354,7 +354,7 @@ while (($# > 0)); do
     equal_dir "organize-seq = organize-sl" "$td/organize-sl" "$td/organize-seq"
 
     # ensure `organize` did not touch the source dir
-    ./development/describe-dir.py --no-mtime "$td/import-bundle" > "$td/import-bundle.describe-dir.2"
+    describe-dir --no-mtime "$td/import-bundle" > "$td/import-bundle.describe-dir.2"
     equal_file "organize-seq is src-pure" "$td/import-bundle.describe-dir" "$td/import-bundle.describe-dir.2"
 
     end

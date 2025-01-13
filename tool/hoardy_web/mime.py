@@ -25,7 +25,7 @@ import enum as _enum
 import re as _re
 import typing as _t
 
-from kisstdlib.exceptions import *
+from kisstdlib.failure import *
 
 from .wire import parse_content_type_header
 

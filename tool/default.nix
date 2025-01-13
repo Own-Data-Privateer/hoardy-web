@@ -40,6 +40,8 @@ buildPythonApplication (rec {
   nativeBuildInputs = [
     build twine pip mypy pytest black pylint
     pkgs.pandoc
+
+    kisstdlib # for `describe-dir` binary
   ];
 
   preBuild = "find . ; black --check . && mypy && pytest && pylint .";

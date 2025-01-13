@@ -19,8 +19,9 @@
 
 import gzip as _gzip
 import io as _io
-import traceback as _traceback
 import typing as _t
+
+from kisstdlib.util import *
 
 
 def getattr_rec(obj: _t.Any, names: list[str]) -> _t.Any:
@@ -36,26 +37,26 @@ def getattr_rec(obj: _t.Any, names: list[str]) -> _t.Any:
     raise AttributeError(name=this, obj=obj)
 
 
-InType = _t.TypeVar("InType")
-OutType = _t.TypeVar("OutType")
-
-
-def map_optional(f: _t.Callable[[InType], OutType], x: InType | None) -> OutType | None:
-    if x is None:
+def read_whole_file_maybe(path: str | bytes) -> bytes | None:
+    try:
+        with open(path, "rb") as f:
+            return f.read()
+    except FileNotFoundError:
         return None
-    return f(x)
 
 
-def map_optionals(f: _t.Callable[[InType], list[OutType]], x: InType | None) -> list[OutType]:
-    if x is None:
-        return []
-    return f(x)
+def fileobj_content_equals(f: _io.BufferedReader, data: bytes) -> bool:
+    # TODO more efficiently
+    fdata = f.read()
+    return fdata == data
 
 
-def str_Exception(exc: Exception) -> str:
-    fobj = _io.StringIO()
-    _traceback.print_exception(type(exc), exc, exc.__traceback__, 100, fobj)
-    return fobj.getvalue()
+def file_content_equals(path: str | bytes, data: bytes) -> bool:
+    try:
+        with open(path, "rb") as f:
+            return fileobj_content_equals(f, data)
+    except FileNotFoundError:
+        return False
 
 
 def gzip_maybe(data: bytes) -> bytes:

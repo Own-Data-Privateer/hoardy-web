@@ -30,16 +30,14 @@ import typing as _t
 import urllib.parse as _up
 
 from decimal import Decimal
-from gettext import gettext
 
 import cbor2 as _cbor2
 
-from kisstdlib.exceptions import *
-from kisstdlib.io.stdio import *
-from kisstdlib.path import *
+from kisstdlib.failure import *
+from kisstdlib.time import *
+import kisstdlib.io.stdio as _kstdio
 
 from .util import *
-from .time import *
 from .tracking import *
 from .linst import *
 from .source import *
@@ -76,7 +74,7 @@ class RRCommon(metaclass=_abc.ABCMeta):
 
 @_dc.dataclass
 class Request(RRCommon):
-    started_at: TimeStamp
+    started_at: Timestamp
     method: str
     url: ParsedURL
     headers: Headers
@@ -99,7 +97,7 @@ class Request(RRCommon):
 
 @_dc.dataclass
 class Response(RRCommon):
-    started_at: TimeStamp
+    started_at: Timestamp
     code: int
     reason: str
     headers: Headers
@@ -121,7 +119,7 @@ class Response(RRCommon):
 
 @_dc.dataclass
 class WebSocketFrame:
-    sent_at: TimeStamp
+    sent_at: Timestamp
     from_client: bool
     opcode: int
     content: bytes
@@ -134,19 +132,19 @@ Reqres_fields = {
     "version": "WEBREQRES format version; int",
     "agent": "`+`-separated list of applications that produced this reqres; str",
     "protocol": 'protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str',
-    "request.started_at": "request start time in seconds since 1970-01-01 00:00; TimeStamp",
+    "request.started_at": "request start time in seconds since 1970-01-01 00:00; Timestamp",
     "request.method": 'request `HTTP` method; e.g. `"GET"`, `"POST"`, etc; str',
     "request.url": "request URL, including the `fragment`/hash part; str",
     "request.headers": "request headers; list[tuple[str, bytes]]",
     "request.complete": "is request body complete?; bool",
     "request.body": "request body; bytes",
-    "response.started_at": "response start time in seconds since 1970-01-01 00:00; TimeStamp",
+    "response.started_at": "response start time in seconds since 1970-01-01 00:00; Timestamp",
     "response.code": "`HTTP` response code; e.g. `200`, `404`, etc; int",
     "response.reason": '`HTTP` response reason; e.g. `"OK"`, `"Not Found"`, etc; usually empty for Chromium and filled for Firefox; str',
     "response.headers": "response headers; list[tuple[str, bytes]]",
     "response.complete": "is response body complete?; bool",
     "response.body": "response body; Firefox gives raw bytes, Chromium gives UTF-8 encoded strings; bytes | str",
-    "finished_at": "request completion time in seconds since 1970-01-01 00:00; TimeStamp",
+    "finished_at": "request completion time in seconds since 1970-01-01 00:00; Timestamp",
     "websocket": "a list of WebSocket frames",
 }
 
@@ -158,7 +156,7 @@ class Reqres:
     protocol: str
     request: Request
     response: _t.Optional[Response]
-    finished_at: TimeStamp
+    finished_at: Timestamp
     extra: dict[str, _t.Any]
     websocket: _t.Optional[list[WebSocketFrame]]
     _approx_size: int = 0
@@ -197,7 +195,7 @@ def _t_bool(n: str, x: _t.Any) -> bool:
     if isinstance(x, bool):
         return x
     raise WRRTypeError(
-        gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "bool", type(x).__name__
+        "Reqres field `%s`: wrong type: want %s, got %s", n, "bool", type(x).__name__
     )
 
 
@@ -205,16 +203,14 @@ def _t_bytes(n: str, x: _t.Any) -> bytes:
     if isinstance(x, bytes):
         return x
     raise WRRTypeError(
-        gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "bytes", type(x).__name__
+        "Reqres field `%s`: wrong type: want %s, got %s", n, "bytes", type(x).__name__
     )
 
 
 def _t_str(n: str, x: _t.Any) -> str:
     if isinstance(x, str):
         return x
-    raise WRRTypeError(
-        gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "str", type(x).__name__
-    )
+    raise WRRTypeError("Reqres field `%s`: wrong type: want %s, got %s", n, "str", type(x).__name__)
 
 
 def _t_bytes_or_str(n: str, x: _t.Any) -> bytes | str:
@@ -223,27 +219,21 @@ def _t_bytes_or_str(n: str, x: _t.Any) -> bytes | str:
     if isinstance(x, str):
         return x
     raise WRRTypeError(
-        gettext("Reqres field `%s`: wrong type: want %s or %s, got %s"),
-        n,
-        "bytes",
-        "str",
-        type(x).__name__,
+        "Reqres field `%s`: wrong type: want %s or %s, got %s", n, "bytes", "str", type(x).__name__
     )
 
 
 def _t_int(n: str, x: _t.Any) -> int:
     if isinstance(x, int):
         return x
-    raise WRRTypeError(
-        gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "int", type(x).__name__
-    )
+    raise WRRTypeError("Reqres field `%s`: wrong type: want %s, got %s", n, "int", type(x).__name__)
 
 
-def _t_timestamp(n: str, x: _t.Any) -> TimeStamp:
-    return TimeStamp(Decimal(_t_int(n, x)) / 1000)
+def _t_timestamp(n: str, x: _t.Any) -> Timestamp:
+    return Timestamp(Decimal(_t_int(n, x)) / 1000)
 
 
-def _f_timestamp(x: TimeStamp) -> int:
+def _f_timestamp(x: Timestamp) -> int:
     return int(x * 1000)
 
 
@@ -251,20 +241,20 @@ def _t_headers(n: str, x: _t.Any) -> Headers:
     if Headers.__instancecheck__(x):
         return _t.cast(Headers, x)
     raise WRRTypeError(
-        gettext("Reqres field `%s`: wrong type: want %s, got %s"), n, "Headers", type(x).__name__
+        "Reqres field `%s`: wrong type: want %s, got %s", n, "Headers", type(x).__name__
     )
 
 
 def wrr_load_cbor_struct(data: _t.Any) -> Reqres:
     if not isinstance(data, list):
-        raise WRRParsingError(gettext("Reqres parsing failure: wrong spine"))
+        raise WRRParsingError("Reqres parsing failure: wrong spine")
     if len(data) == 7 and data[0] == "WEBREQRES/1":
         _, agent, protocol, request_, response_, finished_at, extra = data
         rq_started_at, rq_method, rq_url, rq_headers, rq_complete, rq_body = request_
         purl = parse_url(_t_str("request.url", rq_url))
         if purl.scheme not in Reqres_url_schemes:
             raise WRRParsingError(
-                gettext("Reqres field `request.url`: unsupported URL scheme `%s`"), purl.scheme
+                "Reqres field `request.url`: unsupported URL scheme `%s`", purl.scheme
             )
         request = Request(
             _t_timestamp("request.started_at", rq_started_at),
@@ -316,14 +306,14 @@ def wrr_load_cbor_struct(data: _t.Any) -> Reqres:
             websocket,
         )
 
-    raise WRRParsingError(gettext("Reqres parsing failure: unknown format `%s`"), data[0])
+    raise WRRParsingError("Reqres parsing failure: unknown format `%s`", data[0])
 
 
 def wrr_load_cbor_fileobj(fobj: _io.BufferedReader) -> Reqres:
     try:
         struct = _cbor2.load(fobj)
     except _cbor2.CBORDecodeValueError as exc:
-        raise WRRParsingError(gettext("CBOR parsing failure")) from exc
+        raise WRRParsingError("CBOR parsing failure") from exc
 
     return wrr_load_cbor_struct(struct)
 
@@ -331,12 +321,12 @@ def wrr_load_cbor_fileobj(fobj: _io.BufferedReader) -> Reqres:
 def wrr_load(fobj: _io.BufferedReader) -> Reqres:
     fobj = ungzip_fileobj_maybe(fobj)
     if fobj.peek(1) == b"":
-        raise WRRParsingError(gettext("expected CBOR data, got EOF"))
+        raise WRRParsingError("expected CBOR data, got EOF")
     reqres = wrr_load_cbor_fileobj(fobj)
     p = fobj.peek(1)
     if p != b"":
         # there's some junk after the end of the Reqres structure
-        raise WRRParsingError(gettext("expected EOF, got `%s`"), p)
+        raise WRRParsingError("expected EOF, got `%s`", p)
     return reqres
 
 
@@ -415,7 +405,7 @@ ReqresExpr_derived_attrs = {
     "raw_url": "aliast for `request.url`; str",
     "method": "aliast for `request.method`; str",
     #
-    "qtime": 'aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; TimeStamp',
+    "qtime": 'aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; Timestamp',
     "qtime_ms": "`qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "qtime_msq": "three least significant digits of `qtime_ms`; int",
     "qyear": "year number of `gmtime(qtime)` (UTC year number of `qtime`); int",
@@ -425,7 +415,7 @@ ReqresExpr_derived_attrs = {
     "qminute": "minute of `gmtime(qtime)`; int",
     "qsecond": "second of `gmtime(qtime)`; int",
     #
-    "stime": '`response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; seconds since UNIX epoch; TimeStamp',
+    "stime": '`response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; seconds since UNIX epoch; Timestamp',
     "stime_ms": "`stime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "stime_msq": "three least significant digits of `stime_ms`; int",
     "syear": "similar to `qyear`, but for `stime`; int",
@@ -435,7 +425,7 @@ ReqresExpr_derived_attrs = {
     "sminute": "similar to `qminute`, but for `stime`; int",
     "ssecond": "similar to `qsecond`, but for `stime`; int",
     #
-    "ftime": "aliast for `finished_at`; seconds since UNIX epoch; TimeStamp",
+    "ftime": "aliast for `finished_at`; seconds since UNIX epoch; Timestamp",
     "ftime_ms": "`ftime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int",
     "ftime_msq": "three least significant digits of `ftime_ms`; int",
     "fyear": "similar to `qyear`, but for `ftime`; int",
@@ -787,7 +777,7 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
             return self.source.replaces(other.source)
         return self.source.replaces(other)
 
-    def _fill_time(self, prefix: str, ts: TimeStamp) -> None:
+    def _fill_time(self, prefix: str, ts: Timestamp) -> None:
         dt = _time.gmtime(int(ts))
         self.values[prefix + "year"] = dt.tm_year
         self.values[prefix + "month"] = dt.tm_mon
@@ -901,7 +891,7 @@ def rrexprs_wrr_some_load(
 ) -> _t.Iterator[ReqresExpr[DeferredSourceType | StreamElementSource[DeferredSourceType]]]:
     fobj = ungzip_fileobj_maybe(fobj)
     if fobj.peek(1) == b"":
-        raise WRRParsingError(gettext("expected CBOR data, got EOF"))
+        raise WRRParsingError("expected CBOR data, got EOF")
 
     reqres = wrr_load_cbor_fileobj(fobj)
     if fobj.peek(1) == b"":
@@ -946,9 +936,9 @@ def rrexprs_wrr_some_loadf(
 def trivial_Reqres(  # pylint: disable=dangerous-default-value
     url: ParsedURL,
     content_type: str = "text/html",
-    qtime: TimeStamp = TimeStamp(0),
-    stime: TimeStamp = TimeStamp(1000),
-    ftime: TimeStamp = TimeStamp(2000),
+    qtime: Timestamp = Timestamp(0),
+    stime: Timestamp = Timestamp(1000),
+    ftime: Timestamp = Timestamp(2000),
     sniff: bool = False,
     headers: Headers = [],
     data: bytes = b"",
@@ -976,7 +966,7 @@ def trivial_Reqres(  # pylint: disable=dangerous-default-value
 def fallback_Reqres(  # pylint: disable=dangerous-default-value
     url: ParsedURL,
     expected_mime: list[str],
-    time: TimeStamp = TimeStamp(0),
+    time: Timestamp = Timestamp(0),
     headers: Headers = [],
     data: bytes = b"",
 ) -> Reqres:
@@ -1134,6 +1124,7 @@ def check_scrub(opts: str, url: str, ct: str, headers: Headers, data: str, eres:
         )
         x = ReqresExpr(UnknownSource(), t)
 
+        stdout = _kstdio.stdout
         res = x[f"response.body|eb|scrub response {opts}"].decode("utf-8")
         if res != eres:
             stdout.write_ln("input:")

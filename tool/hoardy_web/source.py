@@ -23,9 +23,8 @@ import io as _io
 import os as _os
 import typing as _t
 
-from kisstdlib.exceptions import *
-
-from .io import *
+from kisstdlib.failure import *
+import kisstdlib.os as _kos
 
 
 class DeferredSource(metaclass=_abc.ABCMeta):
@@ -107,7 +106,7 @@ class FileSource(DeferredSource):
         return 40 + len(self.path)
 
     def show_source(self) -> str:
-        return fsdecode_maybe(self.path)
+        return _kos.fsdecode_maybe(self.path)
 
     def get_fileobj(self) -> _io.BufferedReader:
         fobj = open(self.path, "rb")  # pylint: disable=consider-using-with

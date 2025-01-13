@@ -63,7 +63,7 @@ def mitmproxy_load_flow(flow: mitmproxy.http.HTTPFlow) -> Reqres | None:
     url = f"{rq.scheme}://{rq.host}{maybeport}{rq.path}"
 
     request = Request(
-        TimeStamp(rq.timestamp_start),
+        Timestamp(rq.timestamp_start),
         rq.method.upper(),
         parse_url(url),
         _hd(rq.headers),
@@ -86,7 +86,7 @@ def mitmproxy_load_flow(flow: mitmproxy.http.HTTPFlow) -> Reqres | None:
                 rs_complete = False
 
         response = Response(
-            TimeStamp(rs.timestamp_start),
+            Timestamp(rs.timestamp_start),
             rs.status_code,
             rs.reason,
             _hd(rs.headers),
@@ -103,7 +103,7 @@ def mitmproxy_load_flow(flow: mitmproxy.http.HTTPFlow) -> Reqres | None:
         if tend is None:
             tend = rq.timestamp_start
 
-    finished_at = TimeStamp(tend)
+    finished_at = Timestamp(tend)
 
     wsstream = None
     if flow.websocket is not None:
@@ -120,7 +120,7 @@ def mitmproxy_load_flow(flow: mitmproxy.http.HTTPFlow) -> Reqres | None:
             else:
                 assert False
             wsstream.append(
-                WebSocketFrame(TimeStamp(msg.timestamp), msg.from_client, int(msg.type), content)
+                WebSocketFrame(Timestamp(msg.timestamp), msg.from_client, int(msg.type), content)
             )
 
         if ws.timestamp_end is not None:
@@ -131,7 +131,7 @@ def mitmproxy_load_flow(flow: mitmproxy.http.HTTPFlow) -> Reqres | None:
             # reconstruct the CLOSE frame
             wsstream.append(
                 WebSocketFrame(
-                    TimeStamp(ws.timestamp_end),
+                    Timestamp(ws.timestamp_end),
                     ws.closed_by_client,
                     0x8,
                     _struct.pack("!H", ws.close_code) + ws.close_reason.encode("utf-8"),

@@ -32,7 +32,7 @@ import shlex as _shlex
 import typing as _t
 import urllib.parse as _up
 
-from kisstdlib.exceptions import *
+from kisstdlib.failure import *
 
 from .util import make_envfunc_pipe
 
@@ -107,8 +107,7 @@ def linst_compile(
     try:
         return _linst_compile(expr, lookup)
     except Failure as exc:
-        exc.elaborate("while compiling `%s`", expr)
-        raise exc
+        raise exc.elaborate("while compiling `%s`", expr)
 
 
 def linst_cast(typ: type, arg: _t.Any) -> _t.Any:

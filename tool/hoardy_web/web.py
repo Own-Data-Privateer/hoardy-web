@@ -33,7 +33,7 @@ import html5lib.filters.optionaltags as _h5ot
 
 import tinycss2 as _tcss
 
-from kisstdlib.exceptions import *
+from kisstdlib.failure import *
 
 from .wire import *
 from .mime import *
