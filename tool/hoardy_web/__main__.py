@@ -2584,6 +2584,8 @@ def cmd_serve(cargs: _t.Any) -> None:
     from fnmatch import translate
     import hoardy_web.static as _static
 
+    quiet = cargs.quiet
+
     server_url_base = f"http://{cargs.host}:{cargs.port}"
 
     locate_page = bottle.SimpleTemplate(source=_static.locate_page_stpl)
@@ -2600,9 +2602,15 @@ def cmd_serve(cargs: _t.Any) -> None:
             try:
                 return func(*args, **kwargs)
             except CatastrophicFailure as exc:
+                if not quiet:
+                    stderr.write_str_ln(str_Exception(exc))
+                    stderr.flush()
                 bottle.response.status = 400
                 return str(exc)
             except Exception as exc:
+                if not quiet:
+                    stderr.write_str_ln(str_Exception(exc))
+                    stderr.flush()
                 bottle.response.status = 500
                 return gettext("uncaught error: %s") % (str(exc),)
 
@@ -2676,7 +2684,7 @@ def cmd_serve(cargs: _t.Any) -> None:
             gettext("`--no-replay`: not allowed with a non-empty list of `PATH`s")
         )
 
-    if not cargs.quiet:
+    if not quiet:
         filters_warn()
 
     global should_raise
@@ -3056,7 +3064,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         stderr.write_bytes(b"\033[0m")
     stderr.flush()
 
-    app.run(host=cargs.host, port=cargs.port, quiet=cargs.quiet, debug=cargs.debug_bottle)
+    app.run(host=cargs.host, port=cargs.port, quiet=quiet, debug=cargs.debug_bottle)
 
 
 def add_doc(fmt: argparse.BetterHelpFormatter) -> None:
