@@ -932,7 +932,7 @@ Yes.
 This is why [[./popup.html#snapshotTab][=DOM=]]-[[./popup.html#snapshotAll][snapshot]] buttons exist, see the following question.
 
 In principle, =Hoardy-Web= will capture everything your browser fetches from the network as you browse the web, except for, at the moment, WebSockets data.
-So, web pages using only simple UI-related =JavaScript= code will work fine when you start replaying them "from scratch" via [[../../tool/][=hoardy-web mirror=]] or some such.
+So, web pages using only simple UI-related =JavaScript= code will work fine when you start replaying them "from scratch" via [[../../tool/][=hoardy-web serve=, =hoardy-web mirror=]], or some such.
 
 However, in the most general case, "from scratch" replay of pages dynamically generated via =JavaScript= is not guaranteed.
 For example, consider a web page with a =JavaScript= code that generates a random number, then queries a remote server with that number, and then renders the result somehow.
