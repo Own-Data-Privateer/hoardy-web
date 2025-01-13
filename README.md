@@ -4,10 +4,10 @@
 Not just the URLs, but also the contents and the requisite resources (images, media, `CSS`, fonts, etc) of the pages you visit.
 Not just the last 3 months, but from the beginning of time you start using it.
 
-Practically speaking, you [install its extension/add-on into your web browser](#quickstart) and just browse the web normally while `Hoardy-Web` passively, in background, captures and archives `HTTP` requests and responses your web browser does in the process.
+Practically speaking, you [install `Hoardy-Web`'s extension/add-on into your web browser](#quickstart) and just browse the web normally while it passively, in background, captures and archives `HTTP` requests and responses your web browser does in the process.
 The extension has a lot configuration options to help you tweak what should or should not be archived, provides indicators that can help you fully capture each page you do want to archive (it can notify you when some parts of a page failed to load in various ways), and has a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless you explicitly configure it to do otherwise to, e.g., minimize writes to disk instead).
 
-You can then view, replay, mirror, scrape, and/or index your archived data later by using `Hoardy-Web`'s own tool set, by plugging these tools into others, and/or by processing [`CBOR`-formatted outputs](./doc/data-on-disk.md) `Hoardy-Web` produces with your own tools.
+You can then view, replay, mirror, scrape, and/or index your archived data later by [using `Hoardy-Web`'s own tool set](./tool/), by plugging these tools into others, and/or by parsing and processing its [outputs](./doc/data-on-disk.md) with your own tools.
 
 `Hoardy-Web` was previously known as "Personal Private Passive Web Archive" aka "pwebarc".
 
@@ -34,7 +34,7 @@ You can then view, replay, mirror, scrape, and/or index your archived data later
   Now multiply all those values.
   **That's, on average, how many useful pages you unrecoverably lost today.**
 
-  Wouldn't it be nice if there was a tool that would, **in background, automatically, silently, and efficiently archive everything your browser fetches from the network while you surf the web, allowing you to search and replay captured versions of previously visited web pages later**.
+  Wouldn't it be nice if there was a tool that would allow you to **automatically and efficiently archive everything your browser fetches from the network while you surf the web, allowing you to search and replay captured versions of previously visited web pages later**.
 
 - Do you frequently find yourself making custom website data scrapers, for accessibility and/or data extraction reasons?
 
@@ -44,7 +44,7 @@ You can then view, replay, mirror, scrape, and/or index your archived data later
 
 ## The litmus test
 
-If you are running multiple browsers or browser profiles to isolate different browsing sessions from each other, and now you want to introduce some historic persistence into your setup, then `Hoardy-Web` is for you.
+If you are running multiple browsers or browser profiles to isolate different browsing sessions from each other, and you now want to introduce some historic persistence into your setup, then `Hoardy-Web` is for you.
 
 If you are not already isolating browsing sessions, however, then introducing `Hoardy-Web` into your setup, in the long run, will probably be a liability.
 In which case, `Hoardy-Web` is not for you, navigate away, please.
