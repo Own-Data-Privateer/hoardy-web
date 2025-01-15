@@ -172,12 +172,12 @@ class HTTPDumpServer(_threading.Thread):
             try:
                 with open(tmp_path, "wb") as f:
                     f.write(data)
-            except Exception as exc:
+            except Exception:
                 try:
                     _os.unlink(tmp_path)
                 except Exception:
                     pass
-                raise exc
+                raise
 
             _os.rename(tmp_path, path)
             print("dumped", path)
