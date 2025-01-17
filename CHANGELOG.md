@@ -6,6 +6,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [simple_server-v1.9.0] - 2025-01-17: Incremental improvements
+
+### Changed
+
+- Formatted code using `black`.
+- Fixed minor issues found by `pylint`.
+- Improved metadata.
+- Improved documentation.
+
+### Fixed
+
+- Fixed version detection, i.e. `--version` option works again.
+
 ## [tool-v0.21.0] - 2024-12-29: Bugfixes, incremental improvements
 
 ### Fixed
@@ -2103,6 +2116,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[simple_server-v1.9.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.8.0...simple_server-v1.9.0
 [tool-v0.21.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.20.0...tool-v0.21.0
 [extension-v1.19.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.18.0...extension-v1.19.0
 [extension-v1.18.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.17.2...extension-v1.18.0

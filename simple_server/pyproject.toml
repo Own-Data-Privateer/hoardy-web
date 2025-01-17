@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "hoardy-web-sas"
-version = "1.8.0"
+version = "1.9.0"
 authors = [{ name = "Jan Malakhovski", email = "oxij@oxij.org" }]
 description = "A simple archiving server for the `Hoardy-Web` Web Extension browser add-on."
 readme = "README.md"
