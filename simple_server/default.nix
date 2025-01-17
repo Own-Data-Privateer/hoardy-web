@@ -1,7 +1,7 @@
 { pkgs ? import <nixpkgs> {}
 , lib ? pkgs.lib
 , source ? import ../source.nix { inherit pkgs; }
-, developer ? true
+, developer ? false
 }:
 
 with pkgs.python3Packages;
