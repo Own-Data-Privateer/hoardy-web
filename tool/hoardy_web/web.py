@@ -964,7 +964,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                                             scrub_css_nodes(base_url, remap_url, href_nodes, None)
                                         ).encode(href_charset),
                                     )
-                                except (ParseError, ValueError):
+                                except ValueError:
                                     href = None
                             else:
                                 link_type, cts = rel_ref_type_of(link_rels)

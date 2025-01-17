@@ -675,7 +675,7 @@ def parse_mime_type(  # pylint: disable=dangerous-default-value
         subtype = parse_token(p)
         p.opt_whitespace()
         return maintype + "/" + subtype
-    except ParseError:
+    except ParsingFailure:
         p.take_until_string_in(ends)
         # RFC says invalid content types are to be interpreted as `text/plain`
         return "text/plain"
@@ -704,10 +704,10 @@ qcontent_ends_str = '"\\'
 def parse_value(p: Parser, ends: list[str]) -> str:
     ws = p.opt_whitespace()
     if p.at_eof() or p.at_string_in(ends):
-        raise ParseError("expected attribute value, got %s", repr(ws[0]))
+        raise ParsingFailure("expected attribute value, got %s", repr(ws[0]))
     try:
         p.string('"')
-    except ParseError:
+    except ParsingFailure:
         token = parse_extended_attribute(p)
     else:
         res = []
@@ -728,7 +728,7 @@ def parse_parameter(p: Parser, ends: list[str]) -> tuple[str, str]:
     key = parse_attribute(p)
     try:
         p.string("=")
-    except ParseError:
+    except ParsingFailure:
         value = ""
     else:
         value = parse_value(p, ends)
@@ -754,7 +754,7 @@ def parse_mime_parameters(  # pylint: disable=dangerous-default-value
         save = p.pos
         try:
             token = parse_parameter(p, ends)
-        except ParseError:
+        except ParsingFailure:
             p.pos = save
             token = parse_invalid_parameter(p, ends)
         res.append(token)
