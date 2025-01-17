@@ -6,6 +6,35 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [tool-v0.22.0] - 2025-01-17: Incremental improvements
+
+### Changed
+
+- `*`:
+  - Formatted code using `black`.
+  - Fixed minor issues found by `pylint`.
+  - Simplified a bunch of code.
+  - Moved a bunch of code to `kisstdlib`.
+  - Changed the rest to work with the new version of `kisstdlib`.
+  - Improved error handling and error messages.
+
+- `serve`:
+
+  - From now on, when archiving/dumping, by default, it will both return errors to the client and also print them to `stderr`.
+    The latter can be disabled by `--quiet`.
+
+- Improved documentation.
+
+### Fixed
+
+- `*`:
+  - Fixed extension detection for `.css` and `.mjs` files.
+  - Fixed a potential crash when parsing `WRR` files.
+
+- `serve` and, likely, `organize`:
+
+  - Fixed it not working on Windows. (Thanks to @douglasg14b on GitHub!)
+
 ## [simple_server-v1.9.0] - 2025-01-17: Incremental improvements
 
 ### Changed
@@ -2116,6 +2145,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.22.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.21.0...tool-v0.22.0
 [simple_server-v1.9.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.8.0...simple_server-v1.9.0
 [tool-v0.21.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.20.0...tool-v0.21.0
 [extension-v1.19.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.18.0...extension-v1.19.0
