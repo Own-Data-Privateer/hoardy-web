@@ -3089,3 +3089,6 @@ Sanity check and test `hoardy-web` command-line interface.
   hoardy-web find -z ~/hoardy-web/latest/archiveofourown.org ~/hoardy-web/latest/example.org > ./bunch.wrrtest
   ./test-cli.sh ./bunch.wrrtest
   ```
+# Development: `./test-cli-wine.sh [--help] PATH [PATH ...]`
+
+Sanity check `hoardy-web` command-line interface under `wine`.

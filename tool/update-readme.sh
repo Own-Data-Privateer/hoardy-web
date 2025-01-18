@@ -9,5 +9,8 @@ s/^\(#\+\) \(hoardy-web[^[({]*\) [[({].*/\1 \2/
 ./test-cli.sh --help | sed '
 s/^# usage: \(.*\)$/# Development: `\1`/
 ' >> README.new
+./test-cli-wine.sh --help | sed '
+s/^# usage: \(.*\)$/# Development: `\1`/
+' >> README.new
 mv README.new README.md
 pandoc -f markdown -t html README.md > README.html
