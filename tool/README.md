@@ -1186,25 +1186,25 @@ The end.
       - `version`: WEBREQRES format version; int
       - `agent`: `+`-separated list of applications that produced this reqres; str
       - `protocol`: protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str
-      - `request.started_at`: request start time in seconds since 1970-01-01 00:00; TimeStamp
+      - `request.started_at`: request start time in seconds since 1970-01-01 00:00; Timestamp
       - `request.method`: request `HTTP` method; e.g. `"GET"`, `"POST"`, etc; str
       - `request.url`: request URL, including the `fragment`/hash part; str
       - `request.headers`: request headers; list[tuple[str, bytes]]
       - `request.complete`: is request body complete?; bool
       - `request.body`: request body; bytes
-      - `response.started_at`: response start time in seconds since 1970-01-01 00:00; TimeStamp
+      - `response.started_at`: response start time in seconds since 1970-01-01 00:00; Timestamp
       - `response.code`: `HTTP` response code; e.g. `200`, `404`, etc; int
       - `response.reason`: `HTTP` response reason; e.g. `"OK"`, `"Not Found"`, etc; usually empty for Chromium and filled for Firefox; str
       - `response.headers`: response headers; list[tuple[str, bytes]]
       - `response.complete`: is response body complete?; bool
       - `response.body`: response body; Firefox gives raw bytes, Chromium gives UTF-8 encoded strings; bytes | str
-      - `finished_at`: request completion time in seconds since 1970-01-01 00:00; TimeStamp
+      - `finished_at`: request completion time in seconds since 1970-01-01 00:00; Timestamp
       - `websocket`: a list of WebSocket frames
     - derived attributes:
       - `fs_path`: file system path for the WRR file containing this reqres; str | bytes | None
       - `raw_url`: aliast for `request.url`; str
       - `method`: aliast for `request.method`; str
-      - `qtime`: aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; TimeStamp
+      - `qtime`: aliast for `request.started_at`; mnemonic: "reQuest TIME"; seconds since UNIX epoch; Timestamp
       - `qtime_ms`: `qtime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int
       - `qtime_msq`: three least significant digits of `qtime_ms`; int
       - `qyear`: year number of `gmtime(qtime)` (UTC year number of `qtime`); int
@@ -1213,7 +1213,7 @@ The end.
       - `qhour`: hour of `gmtime(qtime)` in 24h format; int
       - `qminute`: minute of `gmtime(qtime)`; int
       - `qsecond`: second of `gmtime(qtime)`; int
-      - `stime`: `response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; seconds since UNIX epoch; TimeStamp
+      - `stime`: `response.started_at` if there was a response, `finished_at` otherwise; mnemonic: "reSponse TIME"; seconds since UNIX epoch; Timestamp
       - `stime_ms`: `stime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int
       - `stime_msq`: three least significant digits of `stime_ms`; int
       - `syear`: similar to `qyear`, but for `stime`; int
@@ -1222,7 +1222,7 @@ The end.
       - `shour`: similar to `qhour`, but for `stime`; int
       - `sminute`: similar to `qminute`, but for `stime`; int
       - `ssecond`: similar to `qsecond`, but for `stime`; int
-      - `ftime`: aliast for `finished_at`; seconds since UNIX epoch; TimeStamp
+      - `ftime`: aliast for `finished_at`; seconds since UNIX epoch; Timestamp
       - `ftime_ms`: `ftime` in milliseconds rounded down to nearest integer; milliseconds since UNIX epoch; int
       - `ftime_msq`: three least significant digits of `ftime_ms`; int
       - `fyear`: similar to `qyear`, but for `ftime`; int
