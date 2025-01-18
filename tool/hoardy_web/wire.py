@@ -34,7 +34,7 @@ from kisstdlib.parsing import *
 def scheck(v: _t.Any, what: str, value: _t.Any, expected: _t.Any) -> None:
     if value != expected:
         raise CatastrophicFailure(
-            "while evaluating %s of %s, expected %s, got %s",
+            "while evaluating `%s` of `%s`: expected `%s`, got `%s`",
             what,
             repr(v),
             repr(expected),
@@ -470,7 +470,7 @@ def test_parse_url() -> None:
     def check(x: ParsedURL, name: str, value: _t.Any) -> None:
         if getattr(x, name) != value:
             raise CatastrophicFailure(
-                "while evaluating %s of %s, expected %s, got %s",
+                "while evaluating `%s` of `%s`: expected `%s`, got `%s`",
                 name,
                 x.raw_url,
                 value,

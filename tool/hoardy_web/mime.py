@@ -394,7 +394,7 @@ def test_sniff_mime_type() -> None:
         _kinds, mime, _charset, _extensions = sniff_mime_type(data, None)
         if mime != want_mime:
             raise CatastrophicFailure(
-                "while evaluating `sniff_mime_type` on %s, expected %s, got %s",
+                "while evaluating `sniff_mime_type` on `%s`: expected `%s`, got `%s`",
                 data,
                 want_mime,
                 mime,
