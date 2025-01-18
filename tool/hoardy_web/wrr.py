@@ -195,7 +195,10 @@ def _t_bool(n: str, x: _t.Any) -> bool:
     if isinstance(x, bool):
         return x
     raise WRRTypeError(
-        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`", n, "bool", type(x).__name__
+        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
+        n,
+        "bool",
+        type(x).__name__,
     )
 
 
@@ -203,14 +206,22 @@ def _t_bytes(n: str, x: _t.Any) -> bytes:
     if isinstance(x, bytes):
         return x
     raise WRRTypeError(
-        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`", n, "bytes", type(x).__name__
+        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
+        n,
+        "bytes",
+        type(x).__name__,
     )
 
 
 def _t_str(n: str, x: _t.Any) -> str:
     if isinstance(x, str):
         return x
-    raise WRRTypeError("while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`", n, "str", type(x).__name__)
+    raise WRRTypeError(
+        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
+        n,
+        "str",
+        type(x).__name__,
+    )
 
 
 def _t_bytes_or_str(n: str, x: _t.Any) -> bytes | str:
@@ -219,14 +230,23 @@ def _t_bytes_or_str(n: str, x: _t.Any) -> bytes | str:
     if isinstance(x, str):
         return x
     raise WRRTypeError(
-        "while parsing Reqres field `%s`: wrong type: expected `%s` or `%s`, got `%s`", n, "bytes", "str", type(x).__name__
+        "while parsing Reqres field `%s`: wrong type: expected `%s` or `%s`, got `%s`",
+        n,
+        "bytes",
+        "str",
+        type(x).__name__,
     )
 
 
 def _t_int(n: str, x: _t.Any) -> int:
     if isinstance(x, int):
         return x
-    raise WRRTypeError("while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`", n, "int", type(x).__name__)
+    raise WRRTypeError(
+        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
+        n,
+        "int",
+        type(x).__name__,
+    )
 
 
 def _t_timestamp(n: str, x: _t.Any) -> Timestamp:
@@ -241,7 +261,10 @@ def _t_headers(n: str, x: _t.Any) -> Headers:
     if Headers.__instancecheck__(x):
         return _t.cast(Headers, x)
     raise WRRTypeError(
-        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`", n, "Headers", type(x).__name__
+        "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
+        n,
+        "Headers",
+        type(x).__name__,
     )
 
 
@@ -1141,7 +1164,11 @@ def check_scrub(opts: str, url: str, ct: str, headers: Headers, data: str, eres:
             stdout.write_ln("===== END =====")
             stdout.flush()
             raise CatastrophicFailure(
-                "while evaluating `%s` of `%s`: expected `%s`, got `%s`", opts, x, repr(eres), repr(res)
+                "while evaluating `%s` of `%s`: expected `%s`, got `%s`",
+                opts,
+                x,
+                repr(eres),
+                repr(res),
             )
 
     sc(False)
