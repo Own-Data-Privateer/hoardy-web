@@ -58,4 +58,4 @@ And yet, even with it all the being this simple, directories full of non-de-dupl
 
 After converting all my previous `wget`, `curl`, [mitmproxy](https://github.com/mitmproxy/mitmproxy), and HAR archives into this and with some yet unpublished data de-duplication and xdelta compression between same-URL revisions `Hoardy-Web` is infinitely more efficient, even more efficient than WARC.
 
-For me, it uses about **3GiB per year of browsing** on average (\~5 years of mostly uninterrupted data collection ATM) but I use things like [uBlock Origin](https://github.com/gorhill/uBlock) and [uMatrix](https://github.com/gorhill/uMatrix) to cut things down, and image boorus and video hosting sites have their own pipelines.
+For me, it uses about **3GiB per year of browsing** on average (\~5 years of mostly uninterrupted data collection ATM) but I use things like [uBlock Origin](https://github.com/gorhill/uBlock) and [uMatrix](https://github.com/gorhill/uMatrix) to cut things down, and [image boorus and video hosting sites have their own pipelines](../README.md#also).

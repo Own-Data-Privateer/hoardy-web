@@ -19,45 +19,57 @@ This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/hoardy
 
 - Install `Python 3`:
 
-  - On Windows: [Download and install Python from the official website](https://www.python.org/downloads/windows/).
+  - On a Windows system: [Download Python installer from the official website](https://www.python.org/downloads/windows/), run it, **set `Add python.exe to PATH` checkbox**, then `Install` (the default options are fine).
   - On a conventional POSIX system like most GNU/Linux distros and MacOS X: Install `python3` via your package manager. Realistically, it probably is installed already.
 
 ## Installation
 
-- On a Windows system with unconfigured `PATH`, install with:
+- On a Windows system:
 
-  ``` bash
+  Open `cmd.exe` (press `Windows+R`, enter `cmd.exe`, press `Enter`), install this tool with
+  ```bash
+  python -m pip install hoardy-web-sas
+  ```
+  and run as
+  ```bash
+  python -m hoardy_web_sas --help
+  ```
+
+- On a POSIX system or on a Windows system with Python's `/Scripts` added to `PATH`:
+
+  Open a terminal/`cmd.exe`, install with
+  ```bash
   pip install hoardy-web-sas
   ```
   and run as
-  ``` bash
-  python3 -m hoardy_web_sas --help
-  ```
-
-- On a conventional POSIX system or on a Windows system with configured `PATH` environment variable, install it with:
-
-  ``` bash
-  pip install hoardy-web-sas
-  ```
-  and run as
-  ``` bash
+  ```bash
   hoardy-web-sas --help
   ```
 
 - Alternatively, run without installing:
 
-  ``` {.bash}
+  ```bash
+  python hoardy-web-sas.py --help
+  # or, on POSIX
   ./hoardy-web-sas.py --help
   ```
 
 - Alternatively, on a system with [Nix package manager](https://nixos.org/nix/)
 
-  ``` {.bash}
+  ```bash
   nix-env -i -f ./default.nix
   hoardy-web-sas --help
   ```
 
   Though, in this case, you'll probably want to do the first command from the parent directory, to install everything all at once.
+
+## Start archiving immediately
+
+```bash
+python -m hoardy_web_sas --archive-to C:\Users\Me\Documents\hoardy-web\raw
+# or
+hoardy-web-sas --archive-to ~/hoardy-web/raw
+```
 
 # Usage
 

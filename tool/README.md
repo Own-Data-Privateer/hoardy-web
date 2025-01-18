@@ -14,54 +14,91 @@ The ["Usage"](#usage) section can be read and referenced to in arbitrary order.
 
 - Install `Python 3`:
 
-  - On Windows: [Download and install Python from the official website](https://www.python.org/downloads/windows/).
+  - On a Windows system: [Download Python installer from the official website](https://www.python.org/downloads/windows/), run it, **set `Add python.exe to PATH` checkbox**, then `Install` (the default options are fine).
   - On a conventional POSIX system like most GNU/Linux distros and MacOS X: Install `python3` via your package manager. Realistically, it probably is installed already.
 
 ## Installation
 
-- On a Windows system with unconfigured `PATH`, install with:
+- On a Windows system:
 
-  ``` bash
+  Open `cmd.exe` (press `Windows+R`, enter `cmd.exe`, press `Enter`), install this with
+  ```bash
+  python -m pip install hoardy-web
+  ```
+  and run as
+  ```bash
+  python -m hoardy_web --help
+  ```
+
+- On a POSIX system or on a Windows system with Python's `/Scripts` added to `PATH`:
+
+  Open a terminal/`cmd.exe`, install this with
+  ```bash
   pip install hoardy-web
   ```
   and run as
-  ``` bash
-  python3 -m hoardy_web --help
-  ```
-
-- On a conventional POSIX system or on a Windows system with configured `PATH` environment variable, install it with:
-
-  ``` bash
-  pip install hoardy-web
-  ```
-  and run as
-  ``` bash
+  ```bash
   hoardy-web --help
   ```
 
-- Alternatively, on a POSIX system, run without installing:
+- Alternatively, for light development (without development tools, for those see `nix-shell` below):
 
+  Open a terminal/`cmd.exe`, `cd` into this directory, then install with
   ```bash
-  alias hoardy-web="python3 -m hoardy_web"
+  python -m pip install -e .
+  # or
+  pip install -e .
+  ```
+  and run as:
+  ```bash
+  python -m hoardy_web --help
+  # or
   hoardy-web --help
   ```
 
 - Alternatively, on a system with [Nix package manager](https://nixos.org/nix/)
 
-  ``` bash
+  ```bash
   nix-env -i -f ./default.nix
   hoardy-web --help
   ```
 
   Though, in this case, you'll probably want to do the first command from the parent directory, to install everything all at once.
 
+- Alternatively, to replicate my development environment:
+
+  ```bash
+  nix-shell ./default.nix --arg developer true
+  ```
+
+## Start archiving and replay immediately
+
+```bash
+python -m hoardy_web serve --implicit --archive-to C:\Users\Me\Documents\hoardy-web\raw
+# or
+hoardy-web serve --implicit --archive-to ~/hoardy-web/raw
+```
+
 ## Get some archived web data
 
-Install the [`Hoardy-Web` extension](../extension/) and get some archive data by browsing some websites.
+- Install the [`Hoardy-Web` extension](../extension/) into your browser.
+- Switch it to `Submit dumps via 'HTTP'` mode and ensure it points to the URL of the above `hoardy-web serve` instance ([like this screenshot of the `P&R` tab shows](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.19.0-pr.png)).
+- Browse some websites.
+
+## View/replay your archived data interactively over `HTTP`
+
+You can then navigate to
+
+- <http://127.0.0.1:3210/web/*/*> to see the list of all available URLs and their versions (visits), or to
+- something like <http://127.0.0.1:3210/web/2/https://archiveofourown.org/works/3733123> to view the latest archived version of that URL, or to
+- something like <http://127.0.0.1:3210/web/*/https://archiveofourown.org/works/3733123> to view the list of all visits to this URL,
+- which also works with glob patterns <http://127.0.0.1:3210/web/*/https://archiveofourown.org/works/[0-9]*>.
+
+This is very reminiscent of the [Wayback Machine](https://web.archive.org/) by design, yes.
 
 ## Make a website mirror from your archived data
 
-You can then use your archived data to generate a local offline static website mirror that can be opened in a web browser without accessing the Internet, similar to what `wget -mpk` does.
+You can also use your archived data to generate a local offline static website mirror that can be opened in a web browser without accessing the Internet, similar to what `wget -mpk` does.
 
 The invocation is slightly different depending on if the data was exported via `saveAs` by the [`Hoardy-Web` extension](../extension/) itself, saved via the [`hoardy-web-sas` simple archiving server](../simple_server/), or via `hoardy-web serve --archive-to` (see below):
 
@@ -76,41 +113,6 @@ hoardy-web mirror --to ~/hoardy-web/mirror1 ../simple_server/pwebarc-dump ~/hoar
 You can then, e.g. `rsync`/copy `~/hoardy-web/mirror1` to your e-book reader/phone before hopping on a plane or going on a deep-sea dive, and still be able to read all those pages.
 
 The default settings should work for most simple websites, but a [section below](#mirror) contains more info and more usage examples.
-
-## View/replay your archived data interactively over `HTTP`
-
-You can also view your archived pages by running `hoardy-web` in web server mode:
-
-```bash
-# serve a union af all available archives,
-# which are not at all required to use the same file format
-hoardy-web serve \
-  ~/hoardy-web/raw \
-  ../simple_server/pwebarc-dump \
-  ~/Downloads/Hoardy-Web-export-* \
-  mitmproxy.*.dump
-```
-
-You can then navigate to
-
-- <http://127.0.0.1:3210/web/*/*> to see the list of all available URLs and their versions (visits), or to
-- something like <http://127.0.0.1:3210/web/2/https://archiveofourown.org/works/3733123> to view the latest archived version of that URL, or to
-- something like <http://127.0.0.1:3210/web/*/https://archiveofourown.org/works/3733123> to view the list of all visits to this URL,
-- which also works with glob patterns <http://127.0.0.1:3210/web/*/https://archiveofourown.org/works/[0-9]*>.
-
-This is very reminiscent of the [Wayback Machine](https://web.archive.org/) by design, yes.
-
-You can also use `hoardy-web serve` to replace `hoardy-web-sas` simple archiving server by combining both archival and replay:
-
-```bash
-hoardy-web serve --implicit \
-  --archive-to ~/hoardy-web/raw \
-  ../simple_server/pwebarc-dump \
-  ~/Downloads/Hoardy-Web-export-* \
-  mitmproxy.*.dump
-```
-
-See a [section below](#serve) for more info and usage examples.
 
 # Glossary
 

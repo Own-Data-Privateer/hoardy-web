@@ -46,8 +46,9 @@ You can then view, replay, mirror, scrape, and/or index your archived data later
 
 If you are running multiple browsers or browser profiles to isolate different browsing sessions from each other, and you now want to introduce some historic persistence into your setup, then `Hoardy-Web` is for you.
 
-If you are not already isolating browsing sessions, however, then introducing `Hoardy-Web` into your setup, in the long run, will probably be a liability.
+If you are not isolating your browsing sessions already, however, then introducing `Hoardy-Web` into your setup, in the long run, will probably be a liability.
 In which case, `Hoardy-Web` is not for you, navigate away, please.
+If you let it, `Hoardy-Web` will happily capture and archive all your login credentials, in plain text.
 
 # Walkthrough
 
@@ -172,7 +173,7 @@ At the moment, `Hoardy-Web` tool set consists of the following pieces, all devel
 
 ## [The `Hoardy-Web` WebExtensions browser add-on](./extension/)
 
-... which can capture all `HTTP` requests and responses (and [`DOM` snapshots](./extension/page/help.org#faq-snapshot), i.e. the contents of the page after all `JavaScript` was run) your browser fetches, dump them [into `WRR` format](./doc/data-on-disk.md), and then archives those dumps
+... which can capture all `HTTP` requests and responses (and [`DOM` snapshots](./extension/page/help.org#faq-snapshot), i.e. the contents of the page after all `JavaScript` was run) your browser fetches, dump them [into `WRR` format](./doc/data-on-disk.md), and then archive those dumps
 
 - into browser's local storage (the default),
 
@@ -202,13 +203,13 @@ Note, however, that while `Hoardy-Web` works under Chromium-based browsers, user
 
 - hence, on Chromium-based browsers, `Hoardy-Web` (and its alternatives) have to use various debugging APIs instead, which are rather flaky;
 
-- also, Google dislikes tools like `Hoardy-Web` and [specifically forbids extensions that "enable unauthorized download of streaming content or media"](https://web.archive.org/web/20240604062520/https://developer.chrome.com/docs/webstore/program-policies/terms) from being hosted on [Chrome Web Store](https://chromewebstore.google.com/);
+- also, Google dislikes tools like `Hoardy-Web` and [specifically forbids extensions that "enable unauthorized downloads of streaming content or media"](https://web.archive.org/web/20240604062520/https://developer.chrome.com/docs/webstore/program-policies/terms) from being hosted on [Chrome Web Store](https://chromewebstore.google.com/);
 
   yes, this makes absolutely no technical sense, all "streaming content" is "downloaded" before being played, you can't both "authorize" a streaming and "unauthorize" its download, but that is what Chrome Web Store's "Terms of Use" say;
 
-  the latter is especially true for `Hoardy-Web` since, unlike most of [its alternatives](#alternatives), **it does not generate any requests itself, it only captures the data that a web page generates while you browse it**.
-
   ¯\\（◉◡◔）/¯
+
+  the latter is especially true for `Hoardy-Web` since, unlike most of [its alternatives](#alternatives), **it does not generate any requests itself, it only captures the data that a web page generates while you browse it**.
 
 The extension does, however, try its best to collect all web traffic you browser generates.
 Therefore, it can
@@ -220,7 +221,7 @@ Therefore, it can
 all the while
 
 - being invisible to websites you are browsing;
-- downloading everything only once, **not** once with your browser and then the second time with a separate tool like [ArchiveBox](https://github.com/ArchiveBox/ArchiveBox) (or with an extension like [SingleFile](https://github.com/gildas-lormeau/SingleFile), which can re-download some invalidated cached data when you ask it to save a page);
+- downloading everything only once, **not** once with your browser and then the second time with a separate tool like [ArchiveBox](https://github.com/ArchiveBox/ArchiveBox) (which will download everything the second time) or an extension like [SingleFile](https://github.com/gildas-lormeau/SingleFile) (which will re-download invalidated cached data when you ask it to save a page);
 - freeing you from worries of forgetting to archive something because you forgot to press a button somewhere.
 
 See the ["Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for known issues.
@@ -364,7 +365,9 @@ Repeat extension installation for all browsers/browser profiles as needed.
 
 **Technically speaking**, if you just want to collect everything and don't have time to figure out how to use the rest of this suite of tools right this moment, **you can stop here** and figure out how to use the rest of this suite later.
 
-**Except, be sure to see ["Setup recommendations"](#setup) below, since installing `Hoardy-Web` into a browser where you login into things, and then not configuring it properly, can make you more vulnerable.**
+**Except, if you use your browser to login into things, be sure to see ["Setup recommendations"](#setup) below.
+If you let it, `Hoardy-Web` will happily capture and archive all your login credentials, in plain text.
+So, in this case you should learn to use it properly as soon as possible.**
 
 It took me about 6 months before I had to refer back to previously archived data for the first time when I started using [mitmproxy](https://github.com/mitmproxy/mitmproxy) to sporadically collect my `HTTP` traffic in 2017.
 So, I recommend you start collecting immediately and be lazy about the rest.
@@ -393,20 +396,20 @@ Which is most useful when using `Hoardy-Web` under Tor Browser or similar.
 
 - Install everything by running
 
-  ``` bash
+  ```bash
   nix-env -i -f ./default.nix
   ```
 
 - Test the results work:
 
-  ``` bash
+  ```bash
   hoardy-web --help
   hoardy-web-sas --help
   ```
 
 - Also, instead of installing the add-on from `addons.mozilla.org` or from Releases on GitHub you can take freshly built XPI and Chromium ZIPs from
 
-  ``` bash
+  ```bash
   ls ~/.nix-profile/Hoardy-Web*
   ```
 
@@ -440,10 +443,17 @@ Which is most useful when using `Hoardy-Web` under Tor Browser or similar.
 
   This way, in the future, you can easily share dumps from the "anonymous" instance without worrying about leaking your private data or login credentials.
 
-- In a logged-in browser/profile you should probably disable capture by default, or enable "limbo" mode and disable `Stash 'collected' reqres into local storage`.
-  Then, you should probably perform actual logins in separate tabs, the collected data of which you then discard.
+- In a logged-in browser/profile you should either
 
-  This way, no login credentials will get accidentally saved by `Hoardy-Web`.
+  - train yourself to perform logins in separate tabs with capture disabled, or
+
+  - disable capture by default and only enable it in tabs you never login in, or
+
+  - (which, in author's humble opinion, is both most convenient and sufficiently paranoid)
+    enable "limbo" mode by default, disable `Stash 'collected' reqres into local storage`,
+    and then train yourself to perform logins in separate tabs (which is rather simple in this case: simply middle-click all "Login" links), the collected data of which you then discard.
+
+  This way, no login credentials will ever get accidentally saved by `Hoardy-Web`.
 
 - You can add `hoardy-web serve`/`hoardy-web-sas` to Autorun or start it from your `~/.xsession`, `systemd --user`, etc.
 
@@ -514,14 +524,14 @@ So, basically, you want a private personalized Bayesian recommendation system.
 
 "If it is on the Internet, it is on Internet forever\!" they said.
 "Everything will have a RESTful API\!" they said.
+"Semantic Web will allow arbitrarily complex queries spanning multiple data sources\!" they said.
 **They lied\!**
 
 Things vanish from the Internet, and from [Wayback Machine](https://web.archive.org/), all the time.
 
 A lot of useful stuff never got RESTful APIs, those RESTful APIs that exists are frequently buggy, you'll probably have to scrape data from `HTML`s anyway.
 
-"Semantic Web will allow arbitrarily complex queries spanning multiple data sources\!" they said.
-Well, 25 years later ("RDF Model and Syntax Specification" was published in 1999), almost no progress there, the most commonly used subset of RDF does what indexing systems in 1970s did, but less efficiently and with a worse UI.
+As to the RDF, well, 25 years later ("RDF Model and Syntax Specification" was published in 1999), almost no progress there, the most commonly used subset of RDF does what indexing systems in 1970s did, but less efficiently and with a worse UI.
 
 Meanwhile, `Hoardy-Web` provides tools to help with all of the above.
 
@@ -902,7 +912,22 @@ A self-hosted wiki that archives pages you link to in background.
 
 ArchiveBox wiki [has a long list](https://github.com/ArchiveBox/ArchiveBox/wiki/Web-Archiving-Community) or related things.
 
-# If you like this, you might also like
+# <span id="also"/>If you like this, you might also like
+
+## [yt-dlp](https://github.com/yt-dlp/yt-dlp)
+
+Essentially, a maintained fork of `youtube-dl`, with a bunch of cool features that are not in `youtube-dl`.
+
+## [hydrus](https://github.com/hydrusnetwork/hydrus)
+
+Which is a desktop (QT) app which does Danbooru-like image tagging and search.
+It also has optional tag data sharing and downloader/scraper for various image boorus.
+
+It's pretty cool, but rather memory hungry and slow.
+
+## [syncthing](https://syncthing.net/)
+
+A very nice file synchronization system, quite useful for backing up your `WRR` files, or anything else.
 
 ## [Perkeep](https://perkeep.org/)
 
