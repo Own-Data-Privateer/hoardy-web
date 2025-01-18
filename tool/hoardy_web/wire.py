@@ -56,9 +56,9 @@ def miniquote(x: str, blacklist: str) -> str:
         # build a dictionary from characters to their quotes
         miniquoter = {}
         for b in range(0, 32):
-            miniquoter[chr(b)] = "%{:02X}".format(b)  # pylint: disable=consider-using-f-string
+            miniquoter[chr(b)] = f"%{b:02X}"
         for c in "%" + blacklist:
-            miniquoter[c] = "%{:02X}".format(ord(c))  # pylint: disable=consider-using-f-string
+            miniquoter[c] = f"%{ord(c):02X}"
         _miniquoters[blacklist] = miniquoter
 
     return "".join([miniquoter.get(c, c) for c in x])
