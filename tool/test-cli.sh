@@ -142,6 +142,13 @@ while (($# > 0)); do
     input0="$td/input0"
     find "$idir" -type f -print0 | sort -z > "$input0"
 
+    if [[ -n "$short" ]]; then
+        sinput0="$td/sinput0"
+        cat "$input0" | shuf -z | head -zn "$short" > "$sinput0"
+    else
+        sinput0="$input0"
+    fi
+
     start "find..."
 
     fixed_output_selfsame "find-200-1024" "$src" "$td" "$idir" "$input0" \
@@ -238,6 +245,48 @@ while (($# > 0)); do
 
     end
 
+    start "serve archival..."
+    # feed results of `import bundle` to `serve` via `curl`, then check
+    # that the results are the same
+
+    mkdir -p "$td/serve"
+    python3 -m hoardy_web serve --host "127.1.1.1" --implicit --archive-to "$td/serve" &> "$td/serve.out" &
+    tpid=$!
+    sleep 3
+
+    # just to be sure
+    curl "http://127.1.1.1:3210/hoardy-web/server-info" > "$td/serve.info" 2> /dev/null
+    fixed_target "serve.info" "$src" "$td"
+
+    # feed it some data
+    while IFS= read -r -d $'\0' fname; do
+        zcat "$fname" | curl --data-binary "@-" -H "Content-type: application/x-wrr+cbor" "http://127.1.1.1:3210/pwebarc/dump"
+    done < "$sinput0"
+
+    # kill immediately, which must work
+    kill "$tpid"
+    tpid=
+
+    # ensure no .part files are left
+    find "$td/serve" -name '*.part' > "$td/serve.parts"
+
+    if [[ -s "$td/serve.parts" ]]; then
+        cat "$td/serve.parts"
+        error "serve left some \`.part\` files"
+    fi
+
+    # check equality to import-bundle
+    tdlen=${#td}
+    while IFS= read -r -d $'\0' fname; do
+        fname=${fname:$tdlen}
+        fname=${fname#/import-bundle/}
+        if ! diff "$td/import-bundle/$fname" "$td/serve/default/$fname"; then
+            error "$fname is not the same"
+        fi
+    done < "$sinput0"
+
+    end
+
     start "mirror urls..."
 
     fixed_output "mirror-urls" "$src" "$td" \
@@ -257,29 +306,22 @@ while (($# > 0)); do
 
     end
 
-    if [[ -n "$short" ]]; then
-        sinput0="$td/sinput0"
-        cat "$input0" | shuf -z | head -zn "$short" > "$sinput0"
-    else
-        sinput0="$input0"
-    fi
-
     start "get..."
 
-    cat "$sinput0" | while IFS= read -r -d $'\0' path; do
+    while IFS= read -r -d $'\0' path; do
         no_stderr "get-sniff-default" "$td"  get "${exprs[@]}" "$path"
         no_stderr "get-sniff-force" "$td"    get --sniff-force "${exprs[@]}" "$path"
         no_stderr "get-sniff-paranoid" "$td" get --sniff-paranoid "${exprs[@]}" "$path"
-    done
+    done < "$sinput0"
 
     end
 
     start "run..."
 
-    cat "$sinput0" | while IFS= read -r -d $'\0' path; do
+    while IFS= read -r -d $'\0' path; do
         no_stderr "run-cat" "$td"  run cat "$path"
         no_stderr "run-diff" "$td" run -n 2 -- diff "$path" "$path"
-    done
+    done < "$sinput0"
 
     end
 

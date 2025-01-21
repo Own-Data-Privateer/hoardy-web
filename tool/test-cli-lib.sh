@@ -119,6 +119,8 @@ fixed_output() {
 }
 
 td=
+tpid=
+
 set_temp() {
     td=$(mktemp --tmpdir -d hoardy-web-test-cli-XXXXXXXX)
     td=$(readlink -f "$td")
@@ -126,4 +128,4 @@ set_temp() {
 
 [[ $# < 1 ]] && die "need at least one source"
 umask 077
-trap '[[ -n "$td" ]] && rm -rf "$td"' 0
+trap '[[ -n "$td" ]] && rm -rf "$td" ; [[ -n "$tpid" ]] && kill -9 "$tpid"' 0
