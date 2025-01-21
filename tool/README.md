@@ -3053,7 +3053,7 @@ hoardy-web stream --format=raw -ue response.body ../simple_server/pwebarc-dump/p
 hoardy-web get ../simple_server/pwebarc-dump/path/to/file.wrr | less
 ```
 
-# Development: `./test-cli.sh [--help] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]`
+# Development: `./test-cli.sh [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]`
 
 Sanity check and test `hoardy-web` command-line interface.
 
@@ -3089,6 +3089,3 @@ Sanity check and test `hoardy-web` command-line interface.
   hoardy-web find -z ~/hoardy-web/latest/archiveofourown.org ~/hoardy-web/latest/example.org > ./bunch.wrrtest
   ./test-cli.sh ./bunch.wrrtest
   ```
-# Development: `./test-cli-wine.sh [--help] PATH [PATH ...]`
-
-Sanity check `hoardy-web` command-line interface under `wine`.
