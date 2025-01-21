@@ -32,9 +32,9 @@ keywords = [
     "download", "archive", "mirror",
     "wayback", "wayback machine",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "kisstdlib==0.0.7",
+    "kisstdlib==0.0.8",
     "cbor2",
     "idna",
     "html5lib",
@@ -54,7 +54,7 @@ wrrarms = "hoardy_web.__main__:main"
 "Support Development" = "https://oxij.org/#support"
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 implicit_reexport = true
 explicit_package_bases = true

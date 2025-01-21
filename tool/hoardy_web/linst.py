@@ -33,8 +33,7 @@ import typing as _t
 import urllib.parse as _up
 
 from kisstdlib.failure import *
-
-from .util import make_envfunc_pipe
+from kisstdlib.util import compose_env_calls
 
 LinstEnv = _t.Any  # TODO: _t.Callable[[str], _t.Any]
 LinstFunc = _t.Callable[[LinstEnv, _t.Any], _t.Any]
@@ -95,7 +94,7 @@ def _linst_compile(expr: str, lookup: _t.Callable[[str], LinstAtom]) -> LinstFun
     if len(pipe) == 1:
         res = pipe[0]
     else:
-        res = make_envfunc_pipe(pipe)
+        res = compose_env_calls(pipe)
 
     _compile_cache[expr] = res
     return res

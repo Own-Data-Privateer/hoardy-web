@@ -33,11 +33,12 @@ from decimal import Decimal
 
 import cbor2 as _cbor2
 
+from kisstdlib.compression import *
 from kisstdlib.failure import *
 from kisstdlib.time import *
+from kisstdlib.util import getattr_rec
 import kisstdlib.io.stdio as _kstdio
 
-from .util import *
 from .tracking import *
 from .linst import *
 from .source import *
@@ -183,18 +184,18 @@ class Reqres:
 Reqres_url_schemes = frozenset(["http", "https", "ftp", "ftps", "ws", "wss"])
 
 
-class WRRParsingError(Failure):
+class WRRParsingFailure(ParsingFailure):
     pass
 
 
-class WRRTypeError(WRRParsingError):
+class WRRTypeFailure(WRRParsingFailure):
     pass
 
 
 def _t_bool(n: str, x: _t.Any) -> bool:
     if isinstance(x, bool):
         return x
-    raise WRRTypeError(
+    raise WRRTypeFailure(
         "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
         n,
         "bool",
@@ -205,7 +206,7 @@ def _t_bool(n: str, x: _t.Any) -> bool:
 def _t_bytes(n: str, x: _t.Any) -> bytes:
     if isinstance(x, bytes):
         return x
-    raise WRRTypeError(
+    raise WRRTypeFailure(
         "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
         n,
         "bytes",
@@ -216,7 +217,7 @@ def _t_bytes(n: str, x: _t.Any) -> bytes:
 def _t_str(n: str, x: _t.Any) -> str:
     if isinstance(x, str):
         return x
-    raise WRRTypeError(
+    raise WRRTypeFailure(
         "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
         n,
         "str",
@@ -229,7 +230,7 @@ def _t_bytes_or_str(n: str, x: _t.Any) -> bytes | str:
         return x
     if isinstance(x, str):
         return x
-    raise WRRTypeError(
+    raise WRRTypeFailure(
         "while parsing Reqres field `%s`: wrong type: expected `%s` or `%s`, got `%s`",
         n,
         "bytes",
@@ -241,7 +242,7 @@ def _t_bytes_or_str(n: str, x: _t.Any) -> bytes | str:
 def _t_int(n: str, x: _t.Any) -> int:
     if isinstance(x, int):
         return x
-    raise WRRTypeError(
+    raise WRRTypeFailure(
         "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
         n,
         "int",
@@ -260,7 +261,7 @@ def _f_timestamp(x: Timestamp) -> int:
 def _t_headers(n: str, x: _t.Any) -> Headers:
     if Headers.__instancecheck__(x):
         return _t.cast(Headers, x)
-    raise WRRTypeError(
+    raise WRRTypeFailure(
         "while parsing Reqres field `%s`: wrong type: expected `%s`, got `%s`",
         n,
         "Headers",
@@ -270,13 +271,13 @@ def _t_headers(n: str, x: _t.Any) -> Headers:
 
 def wrr_load_cbor_struct(data: _t.Any) -> Reqres:
     if not isinstance(data, list):
-        raise WRRParsingError("Reqres parsing failure: wrong spine")
+        raise WRRParsingFailure("Reqres parsing failure: wrong spine")
     if len(data) == 7 and data[0] == "WEBREQRES/1":
         _, agent, protocol, request_, response_, finished_at, extra = data
         rq_started_at, rq_method, rq_url, rq_headers, rq_complete, rq_body = request_
         purl = parse_url(_t_str("request.url", rq_url))
         if purl.scheme not in Reqres_url_schemes:
-            raise WRRParsingError(
+            raise WRRParsingFailure(
                 "Reqres field `request.url`: unsupported URL scheme `%s`", purl.scheme
             )
         request = Request(
@@ -329,14 +330,14 @@ def wrr_load_cbor_struct(data: _t.Any) -> Reqres:
             websocket,
         )
 
-    raise WRRParsingError("Reqres parsing failure: unknown format `%s`", data[0])
+    raise WRRParsingFailure("Reqres parsing failure: unknown format `%s`", data[0])
 
 
 def wrr_load_cbor_fileobj(fobj: _io.BufferedReader) -> Reqres:
     try:
         struct = _cbor2.load(fobj)
     except _cbor2.CBORDecodeValueError as exc:
-        raise WRRParsingError("CBOR parsing failure") from exc
+        raise WRRParsingFailure("CBOR parsing failure") from exc
 
     return wrr_load_cbor_struct(struct)
 
@@ -344,12 +345,12 @@ def wrr_load_cbor_fileobj(fobj: _io.BufferedReader) -> Reqres:
 def wrr_load(fobj: _io.BufferedReader) -> Reqres:
     fobj = ungzip_fileobj_maybe(fobj)
     if fobj.peek(1) == b"":
-        raise WRRParsingError("expected CBOR data, got EOF")
+        raise WRRParsingFailure("expected CBOR data, got EOF")
     reqres = wrr_load_cbor_fileobj(fobj)
     p = fobj.peek(1)
     if p != b"":
         # there's some junk after the end of the Reqres structure
-        raise WRRParsingError("expected EOF, got `%s`", p)
+        raise WRRParsingFailure("expected EOF, got `%s`", p)
     return reqres
 
 
@@ -914,7 +915,7 @@ def rrexprs_wrr_some_load(
 ) -> _t.Iterator[ReqresExpr[DeferredSourceType | StreamElementSource[DeferredSourceType]]]:
     fobj = ungzip_fileobj_maybe(fobj)
     if fobj.peek(1) == b"":
-        raise WRRParsingError("expected CBOR data, got EOF")
+        raise WRRParsingFailure("expected CBOR data, got EOF")
 
     reqres = wrr_load_cbor_fileobj(fobj)
     if fobj.peek(1) == b"":

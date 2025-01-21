@@ -39,13 +39,13 @@ import urllib.parse as _up
 from gettext import gettext, ngettext
 
 from kisstdlib import argparse
-from kisstdlib.sorted import SortedList, SortedIndex, nearer_to_than
-
 from kisstdlib.failure import *
+from kisstdlib.fs import *
 from kisstdlib.io import *
 from kisstdlib.io.stdio import *
 from kisstdlib.logging import *
-from kisstdlib.os import *
+from kisstdlib.sorted import SortedList, SortedIndex, nearer_to_than
+from kisstdlib.util import str_Exception
 
 from .filter import *
 from .wrr import *
@@ -1482,10 +1482,8 @@ variance_help = (
     + not_allowed
 )
 
-DeferredDestinationType = _t.TypeVar("DeferredDestinationType")
 
-
-class DeferredOperation(_t.Generic[DeferredSourceType, DeferredDestinationType]):
+class DeferredOperation(_t.Generic[DeferredSourceType, _t.AnyStr]):
     """A deferred `source` -> `destination` operation with updatable `source`.
 
     This exists to help you to eliminatate away repeated `os.rename`,
@@ -1494,12 +1492,12 @@ class DeferredOperation(_t.Generic[DeferredSourceType, DeferredDestinationType])
     """
 
     source: DeferredSourceType
-    destination: DeferredDestinationType
+    destination: _t.AnyStr
 
     def __init__(
         self,
         source: DeferredSourceType,
-        destination: DeferredDestinationType,
+        destination: _t.AnyStr,
         overwrite: bool,
         allow_updates: bool,
     ) -> None:
@@ -1535,7 +1533,7 @@ class DeferredOperation(_t.Generic[DeferredSourceType, DeferredDestinationType])
         self.updated = True
         return True
 
-    def run(self, dsync: DeferredSync | None = None) -> None:
+    def run(self, dsync: DeferredSync[_t.AnyStr] | None = None) -> None:
         """Write the `source` to `destination`."""
         raise NotImplementedError()
 
@@ -1554,9 +1552,9 @@ class DeferredFileWrite(
     def approx_size(self) -> int:
         return super().approx_size() + len(self.destination)
 
-    def run(self, dsync: DeferredSync | None = None) -> None:
+    def run(self, dsync: DeferredSync[_t.AnyStr] | None = None) -> None:
         data = self.source.get_bytes()
-        if self.updated and file_content_equals(self.destination, data):
+        if self.updated and file_data_equals(self.destination, data):
             # nothing to do
             return
         atomic_write(data, self.destination, self.overwrite or self.allow_updates, dsync=dsync)
@@ -1595,7 +1593,7 @@ def make_deferred_emit(
     # Deferred file system updates. This collects references to everything
     # that should be fsynced to disk before proceeding to make flush_updates
     # below both atomic and efficient.
-    dsync = DeferredSync()
+    dsync: DeferredSync[_t.AnyStr] = DeferredSync()
 
     max_memory_mib = cargs.max_memory * 1024 * 1024
 
@@ -1702,8 +1700,8 @@ def make_deferred_emit(
             run_intent(abs_out_path, intent)
             num_deferred -= 1
 
-        # fsync
-        dsync.sync()
+        # fsync everything
+        dsync.finish()
 
         # report to stdout
         if done_files is not None:
@@ -1713,9 +1711,6 @@ def make_deferred_emit(
 
             stdout.flush()
             fsync_maybe(stdout.fobj.fileno())
-
-        # delete source files when doing --move, etc
-        dsync.finish()
 
         # flush rrexpr_cache
         while num_cached > 0 and (num_cached > max_cached or mem.consumption > max_memory):
@@ -1948,7 +1943,7 @@ def make_organize_emit(
             self.updated = True
             return True
 
-        def run(self, dsync: DeferredSync | None = None) -> None:
+        def run(self, dsync: DeferredSync[AnyStr2] | None = None) -> None:
             rrexpr = self.source
             source = rrexpr.source
             if isinstance(source, FileSource) and source.path == self.destination:
@@ -1965,7 +1960,7 @@ def make_organize_emit(
                     )
                 elif copying:
                     # fallback to DeferredFileWrite in this case
-                    super().run(dsync)
+                    super().run(dsync)  # type: ignore
                 else:
                     raise Failure(
                         f"can't {action} the source to the destination because the source is not stored as a separate WRR file; did you mean to run with `--copy` intead of `--{action}`?"
@@ -2451,7 +2446,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
             rrexpr.remap_url = cached_remap_url(net_url, remap_url, handle_warning=handle_warning)
 
-            old_data = read_whole_file_maybe(abs_out_path)
+            old_data = read_file_maybe(abs_out_path)
 
             data: bytes
             if skip_existing and old_data is not None:
@@ -2486,7 +2481,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                         content_destination, content_output_format % rrexpr
                     )
 
-                    old_content = read_whole_file_maybe(real_out_path)
+                    old_content = read_file_maybe(real_out_path)
 
                     if old_content is None:
                         atomic_write(data, real_out_path, False)
