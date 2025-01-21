@@ -185,6 +185,24 @@ while (($# > 0)); do
     fi
 
     if [[ -z "$in_wine" ]]; then
+        start "filter out \`.part\`s..."
+
+        ok_mixed "dotpart.1" "$td" stream --format=raw -ue url "$idir"
+
+        while IFS= read -r -d $'\0' fname; do
+            cp "$fname" "$fname.part"
+        done < "$sinput0"
+
+        ok_mixed "dotpart.2" "$td" stream --errors skip --format=raw -ue url "$idir"
+
+        while IFS= read -r -d $'\0' fname; do
+            rm "$fname.part"
+        done < "$sinput0"
+
+        equal_file "\`.part\`s are ignored" "$td/dotpart.1.out" "$td/dotpart.2.out"
+
+        end
+
         start "find..."
 
         fixed_output_selfsame "find-200-1024" "$src" "$td" "$idir" "$input0" \
