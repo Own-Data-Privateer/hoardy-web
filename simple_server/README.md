@@ -2,16 +2,12 @@
 
 `hoardy-web-sas` is a very simple archiving server for the [`Hoardy-Web` Web Extension browser add-on](https://oxij.org/software/hoardy-web/tree/master/extension/) (also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/extension/)).
 
-I.e. this is the thing you run and then paste the URL of into the `Server URL` setting of the `Hoardy-Web` add-on.
+I.e. this is the thing you run and then paste the URL of into the `Server URL` setting of `Hoardy-Web`.
 
 This is not the most feature-rich thing for doing that, [`hoardy-web serve`](https://oxij.org/software/hoardy-web/tree/master/tool/) (also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/tool/)) is much more powerful.
 But, `hoardy-web serve` is not at all simple and it depends on quite a lot of things.
 Meanwhile, this `hoardy-web-sas` thing is less than 300 lines of pure Python that only uses the Python\'s standard library and nothing else.
 You could be running it already.
-
-# Why does `hoardy-web-sas` exists?
-
-This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/README.md#quickstart) (also [there](https://oxij.org/software/hoardy-web/tree/master/README.md#quickstart)) that also [does reliable archiving](https://oxij.org/software/hoardy-web/tree/master/extension/page/help.org#faq-unsafe).
 
 # Quickstart
 
@@ -63,13 +59,17 @@ This was made for easy [Quickstart](https://github.com/Own-Data-Privateer/hoardy
 
   Though, in this case, you'll probably want to do the first command from the parent directory, to install everything all at once.
 
-## Start archiving immediately
+## Start archiving
 
 ```bash
 python -m hoardy_web_sas --archive-to C:\Users\Me\Documents\hoardy-web\raw
 # or
 hoardy-web-sas --archive-to ~/hoardy-web/raw
 ```
+
+## Capture and archive some websites
+
+See [`Hoardy-Web`'s "Quickstart"](https://oxij.org/software/hoardy-web/tree/master/README.md#quickstart) (also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/README.md#quickstart)).
 
 # Usage
 

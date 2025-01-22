@@ -980,6 +980,10 @@ In combination with [[./popup.html#closed-tab-options][=Closed tabs= options]] y
 - archive everything by default, but allow to exclude some things by manually discarding them from limbo;
 - only archive things that are explicitly manually collected, discard everything else by default.
 *** Why do pages under [[https://addons.mozilla.org/]] and [[https://chromewebstore.google.com/]] can not be captured by =Hoardy-Web=?
+:PROPERTIES:
+:CUSTOM_ID: store-pages
+:END:
+
 Browsers prevent extensions from running on extension store pages to prevent them from manipulating ratings, reviews, and etc such things.
 However, you can archive [[https://addons.mozilla.org/]] pages by running =Hoardy-Web= under Chromium and [[https://chromewebstore.google.com/]] pages by running =Hoardy-Web= under Firefox.
 *** When running =Hoardy-Web= under Chromium, a lot of my captures fail with =debugger::capture::EMIT_FORCED::BY_DETACHED_DEBUGGER=, =debugger::capture::NO_RESPONSE_BODY::DETACHED_DEBUGGER=, =webRequest::capture::CANCELED::NO_DEBUGGER=, and similar errors. What do I do?

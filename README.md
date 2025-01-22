@@ -355,15 +355,17 @@ After adding each new feature to the [`hoardy-web` tool](./tool/), as a rule, I 
 
 ## ... check it actually works
 
-Now load any web page in your browser.
+Now load any web page --- [except for browser's extension store pages (like `addons.mozilla.org`, `chromewebstore.google.com`, etc), as browsers disallow extensions from accessing these](./extension/page/help.org#store-pages)) --- in your browser.
+
 The extension will report if everything works okay, or tell you where the problem is if something is broken.
 
-## ... and you are done
+## ... and, if all you want is archival, you are done
 
-Assuming the extension reported success: **Congratulations\!** You are now collecting and archiving all your web browsing traffic originating from that browser.
+Assuming the extension reported success: **Congratulations\!**
+You are now collecting and archiving all your web browsing traffic originating from that browser.
 Repeat extension installation for all browsers/browser profiles as needed.
 
-**Technically speaking**, if you just want to collect everything and don't have time to figure out how to use the rest of this suite of tools right this moment, **you can stop here** and figure out how to use the rest of this suite later.
+**If you just want to collect and archive everything and don't have time to figure out how to use the rest of this suite of tools right this moment, you can stop here.**
 
 **Except, if you use your browser to login into things, be sure to see ["Setup recommendations"](#setup) below.
 If you let it, `Hoardy-Web` will happily capture and archive all your login credentials, in plain text.
@@ -376,15 +378,15 @@ So, I recommend you start collecting immediately and be lazy about the rest.
 You'd be surprised how many big websites generate `HTTP` requests with evil tracking data at the moment you close the containing tab.
 They do this because such requests can't be captured and inspected with browser's own Network Monitor, so most people are completely unaware.)
 
-## ... except, you should probably switch to `Submit dumps via 'HTTP'` mode
+## Switch to using an archiving server
 
-In practice, though, your will probably want to [install the `hoardy-web` tool and run `hoardy-web serve` archiving server](./tool/README.md#quickstart), then, [switch `Hoardy-Web` to `Submit dumps via 'HTTP'` mode](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.19.0-pr.png), and then enjoy **safe persistent archival with replay and search**, like on the screenshots above.
+In practice, though, your will probably want to [install the `hoardy-web` tool and run `hoardy-web serve` archiving server](./tool/README.md#quickstart), then, [switch `Hoardy-Web` to `Submit dumps via 'HTTP'` mode](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.19.0-pr.png), and then enjoy safe persistent archival with replay and search, like on the screenshots above.
 
 Or, alternatively, you might want to use the [`hoardy-web-sas` simple archiving server](./simple_server/) instead.
 
-**Technically speaking, archiving methods other than `Submit dumps via 'HTTP'` [are all unsafe, since you can lose some or all of your archived data if your disk ever gets out of space, or if you accidentally uninstall the `Hoardy-Web` extension, or mis-click a button in your browser's UI](./extension/page/help.org#faq-unsafe).**
+Technically speaking, archiving methods other than `Submit dumps via 'HTTP'` [are all unsafe, since you can lose some or all of your archived data if your disk ever gets out of space, or if you accidentally uninstall the `Hoardy-Web` extension, or mis-click a button in your browser's UI](./extension/page/help.org#faq-unsafe).
 
-## ... or if you are unable or unwilling to do that
+## ... or, if you are unable or unwilling to do that
 
 Alternatively, you can use the combination of archiving by saving of data to browser's local storage (the default) followed by [semi-manual export into `WRR` bundles](./extension/page/help.org#re-archival).
 

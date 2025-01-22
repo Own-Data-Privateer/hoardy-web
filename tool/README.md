@@ -71,7 +71,7 @@ The ["Usage"](#usage) section can be read and referenced to in arbitrary order.
   nix-shell ./default.nix --arg developer true
   ```
 
-## Start archiving and replay immediately
+## Start archiving and replaying
 
 ```bash
 python -m hoardy_web serve --implicit --archive-to C:\Users\Me\Documents\hoardy-web\raw
@@ -79,9 +79,13 @@ python -m hoardy_web serve --implicit --archive-to C:\Users\Me\Documents\hoardy-
 hoardy-web serve --implicit --archive-to ~/hoardy-web/raw
 ```
 
-## Get some archived web data
+## Capture and archive some websites
 
-- Install the [`Hoardy-Web` extension](../extension/) into your browser.
+See [`Hoardy-Web`'s "Quickstart"](https://oxij.org/software/hoardy-web/tree/master/README.md#quickstart) (also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/README.md#quickstart)).
+
+In short:
+
+- Install `Hoardy-Web`'s extension into your browser.
 - Switch it to `Submit dumps via 'HTTP'` mode and ensure it points to the URL of the above `hoardy-web serve` instance ([like this screenshot of the `P&R` tab shows](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.19.0-pr.png)).
 - Browse some websites.
 
