@@ -832,7 +832,7 @@ async function connectToExtension(init, uninit, extensionId, connectInfo) {
         ready = true;
 }
 
-function subscribeToExtension(processUpdate, reinit, isSafe, markLoading, markSettling, extensionId, connectInfo) {
+function subscribeToExtension(processUpdate, reinit, isUnsafe, markLoading, markSettling, extensionId, connectInfo) {
     // onMessage will not wait for an Promises. Thus, multiple updates could
     // race, so we have to run them synchronously here.
     let updateQueue = [];
@@ -863,8 +863,8 @@ function subscribeToExtension(processUpdate, reinit, isSafe, markLoading, markSe
 
         // by default, all async events mark the internal state to be
         // inconsistent
-        if (isSafe === undefined)
-            isSafe = () => false;
+        if (isUnsafe === undefined)
+            isUnsafe = () => true;
 
         // a flag which remembers if there were any updates while
         // reinit was running asynchronously
@@ -873,7 +873,7 @@ function subscribeToExtension(processUpdate, reinit, isSafe, markLoading, markSe
             return shouldReset;
         }
         function processUpdateSmartly(event) {
-            shouldReset = shouldReset || !isSafe(event);
+            shouldReset = shouldReset || isUnsafe(event);
             // apparently, this event can be processed synchronously
             processUpdateSync(event);
         }

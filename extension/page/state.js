@@ -161,7 +161,7 @@ async function stateMain() {
         resetUnarchived(unarchivedLog);
     }), (event) => {
         let cmd = event[0];
-        return !(cmd.startsWith("reset") || cmd.startsWith("new"));
+        return cmd.startsWith("reset") || cmd.startsWith("new");
     }, setPageLoading, setPageSettling);
 
     // show UI

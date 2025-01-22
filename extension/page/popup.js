@@ -422,7 +422,7 @@ async function popupMain() {
         }
     }), (event) => {
         let cmd = event[0];
-        return !(cmd.startsWith("update") || cmd === "switchTab");
+        return cmd.startsWith("update") || cmd === "switchTab";
     }, setPageLoading, setPageSettling);
 
     // show UI
