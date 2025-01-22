@@ -1,3 +1,69 @@
+# Table of Contents
+<details><summary>(Click me to see it.)</summary>
+<ul>
+<li><a href="#what-is-hoardy-web" id="toc-what-is-hoardy-web">What is <code>hoardy-web</code>?</a></li>
+<li><a href="#how-to-read-this-document" id="toc-how-to-read-this-document">How to read this document</a></li>
+<li><a href="#quickstart" id="toc-quickstart">Quickstart</a>
+<ul>
+<li><a href="#pre-installation" id="toc-pre-installation">Pre-installation</a></li>
+<li><a href="#installation" id="toc-installation">Installation</a></li>
+<li><a href="#start-archiving-and-replaying" id="toc-start-archiving-and-replaying">Start archiving and replaying</a></li>
+<li><a href="#capture-and-archive-some-websites" id="toc-capture-and-archive-some-websites">Capture and archive some websites</a></li>
+<li><a href="#viewreplay-your-archived-data-interactively-over-http" id="toc-viewreplay-your-archived-data-interactively-over-http">View/replay your archived data interactively over <code>HTTP</code></a></li>
+<li><a href="#make-a-website-mirror-from-your-archived-data" id="toc-make-a-website-mirror-from-your-archived-data">Make a website mirror from your archived data</a></li>
+</ul></li>
+<li><a href="#glossary" id="toc-glossary">Glossary</a></li>
+<li><a href="#supported-input-file-formats" id="toc-supported-input-file-formats">Supported input file formats</a></li>
+<li><a href="#recipes" id="toc-recipes">Recipes</a>
+<ul>
+<li><a href="#convert-anything-to-wrr" id="toc-convert-anything-to-wrr">Convert anything to <code>WRR</code></a></li>
+<li><a href="#find-and-filter-things" id="toc-find-and-filter-things"><span id="filter"/>Find and filter things</a></li>
+<li><a href="#merge-multiple-archive-directories" id="toc-merge-multiple-archive-directories">Merge multiple archive directories</a></li>
+<li><a href="#build-a-file-system-tree-of-latest-versions-of-all-hoarded-urls" id="toc-build-a-file-system-tree-of-latest-versions-of-all-hoarded-urls">Build a file system tree of latest versions of all hoarded URLs</a>
+<ul>
+<li><a href="#update-the-tree-incrementally-in-real-time" id="toc-update-the-tree-incrementally-in-real-time"><span id="symlink-latest"/>Update the tree incrementally, in real time</a></li>
+</ul></li>
+<li><a href="#generate-a-local-offline-static-website-mirror-similar-to-wget--mpk" id="toc-generate-a-local-offline-static-website-mirror-similar-to-wget--mpk"><span id="mirror"/>Generate a local offline static website mirror, similar to <code>wget -mpk</code></a>
+<ul>
+<li><a href="#update-your-mirror-incrementally" id="toc-update-your-mirror-incrementally">Update your mirror incrementally</a></li>
+<li><a href="#treat-missing-links-exactly-like-wget--mpk-does" id="toc-treat-missing-links-exactly-like-wget--mpk-does">Treat missing links exactly like <code>wget -mpk</code> does</a></li>
+<li><a href="#mirror-a-subset-of-archived-data" id="toc-mirror-a-subset-of-archived-data">Mirror a subset of archived data</a></li>
+<li><a href="#prioritize-some-files-over-others" id="toc-prioritize-some-files-over-others">Prioritize some files over others</a></li>
+<li><a href="#control-which-versions-visits-get-mirrored" id="toc-control-which-versions-visits-get-mirrored">Control which versions (visits) get mirrored</a></li>
+<li><a href="#content-addressed-outputs-and-de-duplication" id="toc-content-addressed-outputs-and-de-duplication">Content-addressed outputs and de-duplication</a></li>
+</ul></li>
+<li><a href="#use-hoardy-web-serve-for-archival-and-replay-over-http" id="toc-use-hoardy-web-serve-for-archival-and-replay-over-http"><span id="serve"/>Use <code>hoardy-web serve</code> for archival and replay over <code>HTTP</code></a></li>
+<li><a href="#generate-previews-for-wrr-files-listen-to-them-via-tts-open-them-with-xdg-open-etc" id="toc-generate-previews-for-wrr-files-listen-to-them-via-tts-open-them-with-xdg-open-etc">Generate previews for <code>WRR</code> files, listen to them via TTS, open them with <code>xdg-open</code>, etc</a></li>
+</ul></li>
+<li><a href="#usage" id="toc-usage">Usage</a>
+<ul>
+<li><a href="#hoardy-web" id="toc-hoardy-web">hoardy-web</a>
+<ul>
+<li><a href="#hoardy-web-pprint" id="toc-hoardy-web-pprint">hoardy-web pprint</a></li>
+<li><a href="#hoardy-web-get" id="toc-hoardy-web-get">hoardy-web get</a></li>
+<li><a href="#hoardy-web-run" id="toc-hoardy-web-run">hoardy-web run</a></li>
+<li><a href="#hoardy-web-stream" id="toc-hoardy-web-stream">hoardy-web stream</a></li>
+<li><a href="#hoardy-web-find" id="toc-hoardy-web-find">hoardy-web find</a></li>
+<li><a href="#hoardy-web-organize" id="toc-hoardy-web-organize">hoardy-web organize</a></li>
+<li><a href="#hoardy-web-import" id="toc-hoardy-web-import">hoardy-web import</a></li>
+<li><a href="#hoardy-web-import-wrrb" id="toc-hoardy-web-import-wrrb">hoardy-web import wrrb</a></li>
+<li><a href="#hoardy-web-import-mitmproxy" id="toc-hoardy-web-import-mitmproxy">hoardy-web import mitmproxy</a></li>
+<li><a href="#hoardy-web-mirror" id="toc-hoardy-web-mirror">hoardy-web mirror</a></li>
+<li><a href="#hoardy-web-serve" id="toc-hoardy-web-serve">hoardy-web serve</a></li>
+</ul></li>
+<li><a href="#examples" id="toc-examples">Examples</a></li>
+<li><a href="#advanced-examples" id="toc-advanced-examples">Advanced examples</a>
+<ul>
+<li><a href="#how-to-handle-binary-data" id="toc-how-to-handle-binary-data">How to handle binary data</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#development-.test-cli.sh---help---wine---all--subset-num---long--short-num-path-path-..." id="toc-development-.test-cli.sh---help---wine---all--subset-num---long--short-num-path-path-...">Development: <code>./test-cli.sh [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]</code></a>
+<ul>
+<li><a href="#examples-1" id="toc-examples-1">Examples</a></li>
+</ul></li>
+</ul>
+</details>
+
 # What is `hoardy-web`?
 
 `hoardy-web` is a tool to inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://oxij.org/software/hoardy-web/tree/master/), also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.

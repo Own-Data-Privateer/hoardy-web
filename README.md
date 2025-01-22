@@ -1,3 +1,76 @@
+# Table of Contents
+<details><summary>(Click me to see it.)</summary>
+<ul>
+<li><a href="#what-is-hoardy-web" id="toc-what-is-hoardy-web">What is <code>Hoardy-Web</code>?</a></li>
+<li><a href="#who-hoardy-web-is-for" id="toc-who-hoardy-web-is-for">Who <code>Hoardy-Web</code> is for?</a>
+<ul>
+<li><a href="#the-litmus-test" id="toc-the-litmus-test">The litmus test</a></li>
+</ul></li>
+<li><a href="#walkthrough" id="toc-walkthrough">Walkthrough</a>
+<ul>
+<li><a href="#the-magic" id="toc-the-magic">The magic</a></li>
+<li><a href="#well-alright-this-is-kinda-nice-but-i.-need.-more-power" id="toc-well-alright-this-is-kinda-nice-but-i.-need.-more-power">Well, alright, this is kinda nice, but I. Need. More! POWER!</a></li>
+</ul></li>
+<li><a href="#parts-and-pieces" id="toc-parts-and-pieces"><span id="pieces"/>Parts and pieces</a>
+<ul>
+<li><a href="#the-hoardy-web-webextensions-browser-add-on" id="toc-the-hoardy-web-webextensions-browser-add-on">The <code>Hoardy-Web</code> WebExtensions browser add-on</a></li>
+<li><a href="#the-hoardy-web-tool" id="toc-the-hoardy-web-tool">The <code>hoardy-web</code> tool</a></li>
+<li><a href="#the-hoardy-web-sas-simple-archiving-server" id="toc-the-hoardy-web-sas-simple-archiving-server">The <code>hoardy-web-sas</code> simple archiving server</a></li>
+<li><a href="#a-patch-for-firefox" id="toc-a-patch-for-firefox">A patch for Firefox</a></li>
+</ul></li>
+<li><a href="#what-hoardy-web-is-most-similar-to" id="toc-what-hoardy-web-is-most-similar-to">What <code>Hoardy-Web</code> is most similar to?</a></li>
+<li><a href="#does-the-author-eat-what-he-cooks" id="toc-does-the-author-eat-what-he-cooks">Does the author eat what he cooks?</a></li>
+<li><a href="#quickstart" id="toc-quickstart">Quickstart</a>
+<ul>
+<li><a href="#install-hoardy-web-browser-extensionadd-on" id="toc-install-hoardy-web-browser-extensionadd-on">Install <code>Hoardy-Web</code> browser extension/add-on</a></li>
+<li><a href="#check-it-actually-works" id="toc-check-it-actually-works">… check it actually works</a></li>
+<li><a href="#and-if-all-you-want-is-archival-you-are-done" id="toc-and-if-all-you-want-is-archival-you-are-done">… and, if all you want is archival, you are done</a></li>
+<li><a href="#switch-to-using-an-archiving-server" id="toc-switch-to-using-an-archiving-server">Switch to using an archiving server</a></li>
+<li><a href="#or-if-you-are-unable-or-unwilling-to-do-that" id="toc-or-if-you-are-unable-or-unwilling-to-do-that">… or, if you are unable or unwilling to do that</a></li>
+</ul></li>
+<li><a href="#alternatively-on-a-system-with-nix-package-manager" id="toc-alternatively-on-a-system-with-nix-package-manager">Alternatively, on a system with Nix package manager</a></li>
+<li><a href="#setup-recommendations" id="toc-setup-recommendations"><span id="setup"/>Setup recommendations</a></li>
+<li><a href="#recommended-next-steps" id="toc-recommended-next-steps">Recommended next steps</a></li>
+<li><a href="#why-does-hoardy-web-exists" id="toc-why-does-hoardy-web-exists"><span id="why"/>Why does <code>Hoardy-Web</code> exists?</a></li>
+<li><a href="#technical-philosophy" id="toc-technical-philosophy"><span id="philosophy"/>Technical Philosophy</a></li>
+<li><a href="#alternatives" id="toc-alternatives"><span id="alternatives"/>Alternatives</a>
+<ul>
+<li><a href="#downloadnet" id="toc-downloadnet">DownloadNet</a></li>
+<li><a href="#mitmproxy" id="toc-mitmproxy">mitmproxy</a></li>
+<li><a href="#but-you-could-just-enable-request-logging-in-your-browsers-network-monitor-and-manually-save-your-data-as-har-archives-from-time-to-time" id="toc-but-you-could-just-enable-request-logging-in-your-browsers-network-monitor-and-manually-save-your-data-as-har-archives-from-time-to-time">But you could just enable request logging in your browser’s Network Monitor and manually save your data as <code>HAR</code> archives from time to time</a></li>
+<li><a href="#but-you-could-setup-ssl-keys-dumping-then-use-wireshark-or-tcpdump-or-some-such-to-capture-your-web-traffic" id="toc-but-you-could-setup-ssl-keys-dumping-then-use-wireshark-or-tcpdump-or-some-such-to-capture-your-web-traffic">But you could setup SSL keys dumping then use <code>Wireshark</code>, or <code>tcpdump</code>, or some such, to capture your web traffic</a></li>
+<li><a href="#archiveweb.page-and-replayweb.page" id="toc-archiveweb.page-and-replayweb.page">archiveweb.page and replayweb.page</a></li>
+<li><a href="#singlefile-and-webscrapbook" id="toc-singlefile-and-webscrapbook">SingleFile and WebScrapBook</a></li>
+<li><a href="#worldbrain-memex" id="toc-worldbrain-memex">WorldBrain Memex</a></li>
+<li><a href="#pywb" id="toc-pywb">pywb</a></li>
+<li><a href="#heritrix" id="toc-heritrix">heritrix</a></li>
+<li><a href="#archivebox" id="toc-archivebox">ArchiveBox</a></li>
+<li><a href="#reminiscence" id="toc-reminiscence">reminiscence</a></li>
+<li><a href="#wget--mpk-and-curl" id="toc-wget--mpk-and-curl"><code>wget -mpk</code> and <code>curl</code></a></li>
+<li><a href="#wpull" id="toc-wpull">wpull</a></li>
+<li><a href="#grab-site" id="toc-grab-site">grab-site</a></li>
+<li><a href="#monolith-and-obelisk" id="toc-monolith-and-obelisk">monolith and obelisk</a></li>
+<li><a href="#single-file-cli" id="toc-single-file-cli">single-file-cli</a></li>
+<li><a href="#archivy" id="toc-archivy">Archivy</a></li>
+<li><a href="#others" id="toc-others">Others</a></li>
+</ul></li>
+<li><a href="#if-you-like-this-you-might-also-like" id="toc-if-you-like-this-you-might-also-like"><span id="also"/>If you like this, you might also like</a>
+<ul>
+<li><a href="#yt-dlp" id="toc-yt-dlp">yt-dlp</a></li>
+<li><a href="#hydrus" id="toc-hydrus">hydrus</a></li>
+<li><a href="#syncthing" id="toc-syncthing">syncthing</a></li>
+<li><a href="#perkeep" id="toc-perkeep">Perkeep</a></li>
+</ul></li>
+<li><a href="#meta" id="toc-meta">Meta</a>
+<ul>
+<li><a href="#changelog" id="toc-changelog">Changelog?</a></li>
+<li><a href="#todo" id="toc-todo">TODO?</a></li>
+<li><a href="#license" id="toc-license">License</a></li>
+<li><a href="#contributing" id="toc-contributing">Contributing</a></li>
+</ul></li>
+</ul>
+</details>
+
 # What is `Hoardy-Web`?
 
 `Hoardy-Web` is a suite of tools that helps you to **passively** capture, archive, and hoard your web browsing history.
