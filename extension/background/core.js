@@ -1614,10 +1614,10 @@ async function doUpdateDisplay(statsChanged, updatedTabId, tabChanged) {
 
 let udStatsChanged = false;
 let udUpdatedTabId;
-let udEpisode = 1;
 let udTabChanged = false;
+let udEpisode = 1;
 
-function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, timeout, tabChanged) {
+function scheduleUpdateDisplay(statsChanged, updatedTabId, tabChanged, episodic, timeout) {
     // merge succesive arguments
     statsChanged = udStatsChanged = udStatsChanged || statsChanged;
     updatedTabId = udUpdatedTabId = mergeUpdatedTabIds(udUpdatedTabId, updatedTabId);
@@ -1646,7 +1646,7 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, timeout, ta
 }
 
 async function forceUpdateDisplay(statsChanged, updatedTabId, episodic) {
-    scheduleUpdateDisplay(statsChanged, updatedTabId, episodic, 0);
+    scheduleUpdateDisplay(statsChanged, updatedTabId, false, episodic, 0);
     await popSingletonTimeout(scheduledHidden, "updateDisplay", true, true);
 }
 
@@ -2832,7 +2832,7 @@ async function processArchiving(updatedTabId) {
 
         let tabId = loggable.tabId;
         updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
-        scheduleUpdateDisplay(true, tabId, getEpisodic(reqresQueue.length));
+        scheduleUpdateDisplay(true, tabId, false, getEpisodic(reqresQueue.length));
     }
 
     broadcast(["resetQueued", getQueuedLog()]);
@@ -3225,7 +3225,7 @@ async function processAlmostDone(updatedTabId) {
         }
         let tabId = reqres.tabId;
         updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
-        scheduleUpdateDisplay(true, tabId, getEpisodic(reqresAlmostDone.length));
+        scheduleUpdateDisplay(true, tabId, false, getEpisodic(reqresAlmostDone.length));
     }
 
     truncateLog();
@@ -4061,7 +4061,7 @@ function handleTabActivated(e) {
         // Chromium does not provide `browser.menus.onShown` event
         updateMenu(getOriginConfig(tabId));
     // Usually, this will not be enough, see `handleTabUpdated`.
-    scheduleUpdateDisplay(false, tabId, 1, 0, true);
+    scheduleUpdateDisplay(false, tabId, true, 1, 0);
 }
 
 function handleTabUpdated(tabId, changeInfo, tab) {
@@ -4073,7 +4073,7 @@ function handleTabUpdated(tabId, changeInfo, tab) {
         // narrowed to a tracked tab. So, we skip updates until `tab.url` is
         // set.
         return;
-    scheduleUpdateDisplay(false, tabId, 1, 0, true);
+    scheduleUpdateDisplay(false, tabId, true, 1, 0);
 }
 
 // do we actually want to be reloaded?
@@ -4976,7 +4976,7 @@ async function init() {
         await checkServer();
     });
 
-    scheduleUpdateDisplay(true, null, 1, 0, true);
+    scheduleUpdateDisplay(true, null, true, 1, 0);
 }
 
 init();
