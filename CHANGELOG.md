@@ -6,6 +6,29 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [tool-v0.23.0] - 2025-01-22: Incremental improvements
+
+### Fixed
+
+- `*`:
+  - Fixed `.part` files not being properly filtered out from the inputs.
+    (#10 at GitHub. Thanks to @douglasg14b on GitHub for reporting it!)
+  - Fixed it `fsync`ing things out of proper order sometimes.
+
+### Changed
+
+- `*`:
+  - From now on, in most cases, newly created `.part` files should be automatically deleted if `hoardy-web` encounters an FS error.
+  - Improved error messages.
+
+- Improved documentation.
+
+### Added
+
+- `*`:
+  - Improved Windows support, added more tests under `wine`.
+  - Added tests for `.part` filtering and archival with `serve`.
+
 ## [tool-v0.22.0] - 2025-01-17: Incremental improvements
 
 ### Changed
@@ -2145,6 +2168,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[tool-v0.23.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.22.0...tool-v0.23.0
 [tool-v0.22.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.21.0...tool-v0.22.0
 [simple_server-v1.9.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.8.0...simple_server-v1.9.0
 [tool-v0.21.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.20.0...tool-v0.21.0
