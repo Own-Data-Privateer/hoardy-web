@@ -395,11 +395,11 @@ async function popupMain() {
             await updateStats(arg1);
             break;
         case "updateTabConfig":
-            if (tabbing && (arg1 === null || arg1 === tabId))
+            if (tabbing && arg1 === tabId)
                 await updateTabConfig(arg2);
             break;
         case "updateTabStats":
-            if (tabbing && (arg1 === null || arg1 === tabId))
+            if (tabbing && arg1 === tabId)
                 await updateTabStats(arg2);
             break;
         case "switchTab":
