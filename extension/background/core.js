@@ -1440,6 +1440,9 @@ async function doUpdateDisplay(statsChanged, updatedTabId, tabSwitched, tabUpdat
         if (statsChanged)
             broadcast(["updateStats", stats]);
 
+        if (config.debugging && !statsChanged && !equalRec(udStats, stats))
+            logError("`statsChanged` value is incorrect");
+
         udStats = stats;
     }
 
