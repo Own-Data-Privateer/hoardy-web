@@ -1630,7 +1630,7 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, tabChanged, episodic,
     }
     udEpisode = 1;
 
-    resetSingletonTimeout(scheduledHidden, "updateDisplay", timeout !== undefined ? timeout : 100, async () => {
+    resetSingletonTimeout(scheduledHidden, "updateDisplay", timeout !== undefined ? timeout : 200, async () => {
         // reset
         udStatsChanged = false;
         udUpdatedTabId = undefined;
@@ -4061,19 +4061,19 @@ function handleTabActivated(e) {
         // Chromium does not provide `browser.menus.onShown` event
         updateMenu(getOriginConfig(tabId));
     // Usually, this will not be enough, see `handleTabUpdated`.
-    scheduleUpdateDisplay(false, tabId, true, 1, 0);
+    scheduleUpdateDisplay(false, tabId, true);
 }
 
 function handleTabUpdated(tabId, changeInfo, tab) {
     if (config.debugging)
-        console.log("tab updated", tabId);
+        console.log("tab updated", tabId, getTabURL(tab));
     if (!useDebugger && tab.url === undefined)
         // On Firefox, there's no `tab.pendingUrl`, so `scheduleUpdateDisplay`
         // might get confused about which icon to show for our internal pages
         // narrowed to a tracked tab. So, we skip updates until `tab.url` is
         // set.
         return;
-    scheduleUpdateDisplay(false, tabId, true, 1, 0);
+    scheduleUpdateDisplay(false, tabId, true);
 }
 
 // do we actually want to be reloaded?
@@ -4976,7 +4976,7 @@ async function init() {
         await checkServer();
     });
 
-    scheduleUpdateDisplay(true, null, true, 1, 0);
+    scheduleUpdateDisplay(true, null, true);
 }
 
 init();
