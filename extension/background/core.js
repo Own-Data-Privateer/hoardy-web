@@ -234,7 +234,7 @@ function setServer() {
     try {
         serverURL = new URL(config.submitHTTPURLBase);
     } catch (err) {
-        logError(err);
+        logHandledError(err);
         browser.notifications.create("error-server-url", {
             title: "Hoardy-Web: ERROR",
             message: escapeNotification(config, `Malformed \`Server URL\` \`${config.submitHTTPURLBase}\`:\n${errorMessageOf(err)}`),
@@ -275,7 +275,7 @@ async function checkServer() {
     try {
         response = await fetch(infoURL.href);
     } catch (err) {
-        logError(err);
+        logHandledError(err);
         await browser.notifications.create("error-server-connection", {
             title: "Hoardy-Web: ERROR",
             message: escapeNotification(config, `\`Hoardy-Web\` can't establish a connection to the archiving server at \`${baseURL}\`:\n${errorMessageOf(err)}`),
