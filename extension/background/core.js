@@ -900,7 +900,7 @@ function getOriginState(tabId, fromExtension) {
     return cacheSingleton(tabState, tabId, () => assignRec({}, tabStateDefaults));
 }
 
-// asyncNotifications flags
+// doNotify flags
 // do we have a newly- or recently failed to be stashed or saved/archived to local storage reqres?
 let gotNewSyncedOrNot = false;
 // do we have a newly- or recently failed to be archived reqres?
@@ -1309,9 +1309,17 @@ let udBadge = null;
 let udColor = null;
 let udGTitle = null;
 
-// `updatedTabId === null` means "config changed or any tab could have been updated"
-// `updatedTabId === undefined` means "no tabs changed"
-// otherwise, it's a tabId of a changed tab
+// Update toolbar button state and tab states visible in popups.
+//
+// - `updatedTabId === undefined` means that no tabs were updated;
+// - `updatedTabId === null` means that the `config` changed or any tab could
+//   have been updated;
+// - `updatedTabId is int` is a `tabId` of the tab that was updated;
+// - `tabChanged === true` means that one of the windows changed its currently
+//   active tab or `updatedTabId`'s tab info (e.g., `.url`) was updated; we
+//   conflate these two cases because updated `tab.url` could change the result
+//   of `getStateTabIdOrTabId`, which will then effectively "switch" the tab
+//   under display.
 async function doUpdateDisplay(statsChanged, updatedTabId, tabChanged) {
     statsChanged = statsChanged || udStats === null;
     let wantUpdate = updatedTabId === null;
@@ -1511,9 +1519,12 @@ async function doUpdateDisplay(statsChanged, updatedTabId, tabChanged) {
         if (updatedTabId !== null && updatedTabId !== tabId && updatedTabId !== stateTabId)
             continue;
 
+        // we don't use `getOriginConfig` here to not introduced new `tabConfig`
+        // elements for yet-unprocessed tabs
         let tabcfg = tabConfig.get(stateTabId);
         if (tabcfg === undefined)
             tabcfg = prefillChildren(config.root);
+        // this one, handle like usual
         let tabstats = getTabStats(stateTabId);
 
         if (tab.active) {
@@ -1526,6 +1537,7 @@ async function doUpdateDisplay(statsChanged, updatedTabId, tabChanged) {
                 broadcast(["updateTabStats", stateTabId, tabstats]);
         }
 
+        // compute toolbar button state
         let icons = [];
 
         if (stats.errored > 0)
@@ -2511,9 +2523,8 @@ function bucketSaveAs(bucket, ifGEQ) {
         // never be run.
         //
         // Also note that it will work properly only if the above
-        // `runSynchronously` is run after run after `processArchiving` for
-        // the same archivables. (The code is written to always make this
-        // true.)
+        // `runSynchronously` is run after `processArchiving` for the same
+        // archivables. (The code is written to always make this true.)
         //
         // Now consider this:
         //
@@ -4524,6 +4535,7 @@ function initMenus() {
     }));
 }
 
+// keyboard shortcuts
 async function handleCommand(command) {
     let tab = await getActiveTab();
     if (tab === null)
