@@ -1099,7 +1099,7 @@ function unmarkProblematic(num, tabId, rrfilter) {
     broadcast(["resetInLimboLog", getInLimboLog()]);
     broadcast(["resetLog", reqresLog]);
 
-    scheduleEndgame(tabId);
+    scheduleEndgame(tabId, 0);
 
     return popped.length;
 }
@@ -1184,7 +1184,7 @@ function popInLimbo(collect, num, tabId, rrfilter) {
     if (newlyUnstashed.length > 0)
         runSynchronously("unstash", syncMany, newlyUnstashed, 0, false);
 
-    scheduleEndgame(tabId);
+    scheduleEndgame(tabId, 0);
 
     return popped.length;
 }
@@ -1674,7 +1674,7 @@ function scheduleFinishingUp() {
 let seUpdatedTabId;
 
 // schedule processArchiving, processAlmostDone, etc
-function scheduleEndgame(updatedTabId) {
+function scheduleEndgame(updatedTabId, doNotifyTimeout) {
     updatedTabId = seUpdatedTabId = mergeUpdatedTabIds(seUpdatedTabId, updatedTabId);
 
     if (synchronousClosures.length > 0) {
@@ -1707,12 +1707,12 @@ function scheduleEndgame(updatedTabId) {
 
             // TODO: this is inefficient, make all closures call us
             // explicitly instead or use `mergeUpdatedTabIds` above instead
-            scheduleEndgame(null);
+            scheduleEndgame(null, doNotifyTimeout);
         });
     } else if (wantCheckServer) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             await checkServer();
-            scheduleEndgame(updatedTabId);
+            scheduleEndgame(updatedTabId, doNotifyTimeout);
         });
     } else if (config.archive && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
@@ -1721,7 +1721,7 @@ function scheduleEndgame(updatedTabId) {
 
             await forceUpdateDisplay(true, updatedTabId);
             updatedTabId = await processArchiving(updatedTabId);
-            scheduleEndgame(updatedTabId);
+            scheduleEndgame(updatedTabId, doNotifyTimeout);
         });
     } else if (reqresAlmostDone.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
@@ -1730,7 +1730,7 @@ function scheduleEndgame(updatedTabId) {
 
             await forceUpdateDisplay(true, updatedTabId);
             updatedTabId = await processAlmostDone(updatedTabId);
-            scheduleEndgame(updatedTabId);
+            scheduleEndgame(updatedTabId, doNotifyTimeout);
         });
     } else /* if (!config.archive || reqresQueue.length == 0) */ {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
@@ -1800,7 +1800,7 @@ function scheduleEndgame(updatedTabId) {
                     });
             }
 
-            asyncNotifications(1000);
+            asyncNotifications(doNotifyTimeout !== undefined ? doNotifyTimeout : 1000);
 
             scheduleUpdateDisplay(true, updatedTabId);
         });
