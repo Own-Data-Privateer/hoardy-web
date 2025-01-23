@@ -12,7 +12,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 - `*`:
   - Fixed `.part` files not being properly filtered out from the inputs.
-    (#10 at GitHub. Thanks to @douglasg14b on GitHub for reporting it!)
+    (#10 on GitHub. Thanks to @douglasg14b on GitHub for reporting it!)
   - Fixed it `fsync`ing things out of proper order sometimes.
 
 ### Changed
@@ -56,7 +56,8 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 - `serve` and, likely, `organize`:
 
-  - Fixed it not working on Windows. (Thanks to @douglasg14b on GitHub!)
+  - Fixed it not working on Windows.
+    (Thanks to @douglasg14b on GitHub for reporting it!)
 
 ## [simple_server-v1.9.0] - 2025-01-17: Incremental improvements
 
@@ -1036,7 +1037,8 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
 - `get`, `export mirror`, etc:
 
-  - Added a work-around for `idna` module failing to parse some hostnames ([#5 on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues/5)).
+  - Added a work-around for `idna` module failing to parse some hostnames
+   (#5 on GitHub. Thanks to @philippelatulippe on GitHub for reporting it!).
 
 - `find`:
 
