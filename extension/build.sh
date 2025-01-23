@@ -134,6 +134,9 @@ s%\./extension/page/help\.org%./help.html%g
 s%#state-in-extension-ui-only%./state.html%g
 t end
 s%(\./\([^)]*\))%(https://oxij.org/software/hoardy-web/tree/master/\1)%g
+
+s%#\([0-9]\+\) on GitHub%[#\1 on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues/\1)%g
+s%@\(\S\+\) on GitHub%[\\@\1 on GitHub](https://github.com/\1)%g
 : end
 ' \
         | runPandoc markdown page/changelog
