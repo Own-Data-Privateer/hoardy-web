@@ -2023,10 +2023,10 @@ async function doNotify() {
         // clear stale
         await browser.notifications.clear("warning-fatLimbo");
 
-    if (gotNewProblematic) {
+    if (gotNewProblematic && reqresProblematic.length > 0) {
         gotNewProblematic = false;
 
-        if (config.problematicNotify && reqresProblematic.length > 0) {
+        if (config.problematicNotify) {
             // generate a new one
             //
             // make a log of no more than `problematicNotifyNumber`
