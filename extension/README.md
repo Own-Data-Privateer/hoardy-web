@@ -179,6 +179,7 @@ See [`chromium-web-store`'s README](https://github.com/NeverDecaf/chromium-web-s
 ### On Firefox-based browsers
 
 - To get the debugger console go to `about:debugging#/runtime/this-firefox` and press extension's `Inspect` button.
+- You should also probably set "Persist Logs" setting on the "Console" tab.
 
 ### On Chromium-based browsers
 
