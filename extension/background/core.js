@@ -311,7 +311,7 @@ async function checkServer() {
     if (!serverConfig.alive) {
         await browser.notifications.create("error-server", {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `The archiving server at \`${baseURL}\` appears to be defunct.`),
+            message: escapeNotification(config, `The archiving server at \`${baseURL}\` appears to be unavailable.`),
             iconUrl: iconURL("failed", 128),
             type: "basic",
         });
@@ -319,7 +319,7 @@ async function checkServer() {
     } else if (!serverConfig.canDump && config.archive && config.archiveSubmitHTTP) {
         await browser.notifications.create("error-server", {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `The archiving server at \`${baseURL}\` does not allow archiving, it appears to be a replay-only instance.`),
+            message: escapeNotification(config, `The archiving server at \`${baseURL}\` does not support archiving, it appears to be a replay-only instance.`),
             iconUrl: iconURL("failed", 128),
             type: "basic",
         });
@@ -343,7 +343,7 @@ async function checkServer() {
 }
 
 function checkReplay() {
-    const ifFixed = `\n\nIf you fixed it and the error persists, press the "Retry … failed" button in the popup.`;
+    const ifFixed = `\n\nIf you fixed it and the error persists, press the "Retry" button the "Queued/Failed" line in the popup.`;
 
     if (config.replaySubmitHTTP === false) {
         browser.notifications.create(`error-replay`, {
@@ -357,7 +357,7 @@ function checkReplay() {
     } else if (!serverConfig.alive) {
         browser.notifications.create(`error-replay`, {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `Replay is impossible because the archiving server at \`${serverConfig.baseURL}\` is unavailable or defunct.` + ifFixed),
+            message: escapeNotification(config, `Replay is impossible because the archiving server at \`${serverConfig.baseURL}\` is unavailable.` + ifFixed),
             iconUrl: iconURL("error", 128),
             type: "basic",
         }).catch(logError);
@@ -1786,9 +1786,13 @@ function scheduleEndgame(updatedTabId) {
                                   , null);
             }
 
-            if (wantRetryUnarchived || !serverConfig.canDump) {
+            if (wantRetryUnarchived) {
                 wantRetryUnarchived = false;
-                if (config.archive && reqresUnarchivedByArchivable.size > 0)
+                if (config.archive && reqresUnarchivedByArchivable.size > 0
+                    // and at least one error is recoverable
+                    && Array.from(reqresUnarchivedByArchiveError.values())
+                    .some((byErrorMap) => Array.from(byErrorMap.values())
+                          .some((unarchived) => unarchived.recoverable)))
                     // retry unarchived in 60s
                     scheduleActionEndgame(scheduledRetry, "retryUnarchived", 60000, () => {
                         syncRetryUnarchived(false);
@@ -1873,10 +1877,22 @@ function syncRetryUnarchived(unrecoverable) {
     broadcast(["resetUnarchived", getUnarchivedLog()]);
 }
 
-function formatFailures(why, list) {
+function formatFailures(why, list, recoverable) {
     let parts = [];
-    for (let [reason, unarchived] of list)
+    let someUnrecoverable = false;
+    let allUnrecoverable = true;
+    for (let [reason, unarchived] of list) {
+        someUnrecoverable = someUnrecoverable || !unarchived.recoverable;
+        allUnrecoverable = allUnrecoverable && !unarchived.recoverable;
         parts.push(`- ${why} ${unarchived.queue.length} items because ${reason}.`);
+    }
+    if (someUnrecoverable && recoverable) {
+        let recoverHow = `to retry them you will have to press the "Retry" button on the "Queued/Failed" line in the popup`;
+        if (allUnrecoverable)
+            parts.push(`\nNone of these will be retried automatically, ${recoverHow}.`)
+        else
+            parts.push(`\nSome of these will not be retried automatically, ${recoverHow}.`)
+    }
     return parts.join("\n");
 }
 
@@ -1921,7 +1937,7 @@ async function doNotify() {
             // generate a new one
             await browser.notifications.create("error-unstashed", {
                 title: "Hoardy-Web: FAILED",
-                message: escapeNotification(config, `For browser's local storage:\n${formatFailures("Failed to stash", rrUnstashed)}`),
+                message: escapeNotification(config, `For browser's local storage:\n${formatFailures("Failed to stash", rrUnstashed, true)}`),
                 iconUrl: iconURL("failed", 128),
                 type: "basic",
             });
@@ -1958,7 +1974,7 @@ async function doNotify() {
                     where = `Archiving server at ${archiveURL}`;
                 await browser.notifications.create(`error-unarchived-${archiveURL}`, {
                     title: "Hoardy-Web: FAILED",
-                    message: escapeNotification(config, `${where}:\n${formatFailures("Failed to archive", byErrorMap.entries())}`),
+                    message: escapeNotification(config, `${where}:\n${formatFailures("Failed to archive", byErrorMap.entries(), true)}`),
                     iconUrl: iconURL("failed", 128),
                     type: "basic",
                 });
@@ -2391,14 +2407,16 @@ function recordManyUnarchived(archiveURL, reason, recoverable, archivables, func
 
     gotNewArchivedOrNot = true;
     wantArchiveDoneNotify = true;
-    wantRetryUnarchived = true;
+    if (recoverable)
+        wantRetryUnarchived = true;
 }
 
 function recordOneUnarchivedTo(byErrorMap, reason, recoverable, archivable, dumpSize) {
     recordByError(byErrorMap, reason, recoverable, archivable, dumpSize);
     gotNewArchivedOrNot = true;
     wantArchiveDoneNotify = true;
-    wantRetryUnarchived = true;
+    if (recoverable)
+        wantRetryUnarchived = true;
 }
 
 function recordOneUnarchived(archiveURL, reason, recoverable, archivable, dumpSize) {
@@ -2406,15 +2424,15 @@ function recordOneUnarchived(archiveURL, reason, recoverable, archivable, dumpSi
     recordOneUnarchivedTo(m, reason, recoverable, archivable, dumpSize);
 }
 
-function recordOneAssumedBroken(archiveURL, archivable, dumpSize) {
+function recordOneAssumedBroken(archiveURL, reason, archivable, dumpSize) {
     let byErrorMap = reqresUnarchivedByArchiveError.get(archiveURL);
     if (byErrorMap !== undefined) {
         let recent = Array.from(byErrorMap.entries()).filter(
-            (x) => (Date.now() - x[1].when) < 1000 && !x[0].endsWith(" (assumed)")
+            (x) => (Date.now() - x[1].when) < 1000 && x[0] != reason
         )[0];
         if (recent !== undefined) {
             // we had recent errors there, fail this reqres immediately
-            recordOneUnarchivedTo(byErrorMap, recent[0] + " (assumed)", recent[1].recoverable, archivable, dumpSize);
+            recordOneUnarchivedTo(byErrorMap, reason, recent[1].recoverable, archivable, dumpSize);
             return true;
         }
     }
@@ -2567,7 +2585,7 @@ async function saveOne(archivable) {
     let dumpSize = loggable.dumpSize;
 
     let archiveURL = "localStorage";
-    if (recordOneAssumedBroken(archiveURL, archivable, dumpSize))
+    if (recordOneAssumedBroken(archiveURL, "this archiving method appears to be defunct", archivable, dumpSize))
         return false;
 
     // Prevent future calls to `doRetryAllUnstashed` from un-saving this
@@ -2737,8 +2755,11 @@ async function submitHTTPOne(archivable) {
         recordOneUnarchived(archiveURL, reason, recoverable, archivable, dumpSize);
     }
 
-    if (!serverConfig.canDump) {
-        broken(config.submitHTTPURLBase, "this archiving server is defunct", false);
+    if (!serverConfig.alive) {
+        broken(config.submitHTTPURLBase, "this archiving server is unavailable", true);
+        return false;
+    } else if (!serverConfig.canDump) {
+        broken(config.submitHTTPURLBase, "this archiving server does not support archiving", false);
         return false;
     }
 
@@ -2747,7 +2768,7 @@ async function submitHTTPOne(archivable) {
     serverURL.search = "profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
     let archiveURL = serverURL.href;
 
-    if (recordOneAssumedBroken(archiveURL, archivable, dumpSize))
+    if (recordOneAssumedBroken(archiveURL, "this archiving server appears to be defunct", archivable, dumpSize))
         return false;
 
     if (config.debugging)
@@ -2766,8 +2787,9 @@ async function submitHTTPOne(archivable) {
             body: dump,
         });
     } catch (err) {
-        broken(archiveURL, `\`Hoardy-Web\` can't establish a connection to the archiving server: ${errorMessageOf(err)}`, true);
-        // NB: not defuncting here because this might simply be a networking error
+        // NB: breaking the whole server here, not just `archiveURL`
+        broken(config.submitHTTPURLBase, `\`Hoardy-Web\` can't establish a connection to the archiving server: ${errorMessageOf(err)}`, true);
+        serverConfig.alive = false;
         return false;
     }
 
@@ -2775,7 +2797,6 @@ async function submitHTTPOne(archivable) {
 
     if (response.status !== 200) {
         broken(archiveURL, `request to the archiving server failed with ${response.status} ${response.statusText}: ${responseText}`, false);
-        serverConfig.canDump = false;
         return false;
     }
 
