@@ -134,6 +134,7 @@ let configDefaults = {
     // limbo notifications
     limboMaxNumber: 1024,
     limboMaxSize: 128,
+    limboNotifyInterval: 300,
     limboNotify: true,
 
     // automatic actions
@@ -910,6 +911,8 @@ let wantArchiveDoneNotify = true;
 let gotNewQueued = false;
 // do we have new reqres in limbo?
 let gotNewLimbo = false;
+// last time we notified the user about it
+let lastLimboNotication = 0;
 // do we have new problematic reqres?
 let gotNewProblematic = false;
 // do we have new buggy reqres?
@@ -1998,13 +2001,16 @@ async function doNotify() {
         }
     }
 
+    let now = Date.now();
     let fatLimbo = reqresLimbo.length > config.limboMaxNumber
                 || reqresLimboSize > config.limboMaxSize * MEGABYTE;
 
-    if (fatLimbo && gotNewLimbo) {
+    if (fatLimbo && gotNewLimbo && (now - lastLimboNotication) > config.limboNotifyInterval * 1000) {
         gotNewLimbo = false;
 
         if (config.limboNotify) {
+            lastLimboNotication = now;
+
             // generate a new one
             await browser.notifications.create("warning-fatLimbo", {
                 title: "Hoardy-Web: WARNING",

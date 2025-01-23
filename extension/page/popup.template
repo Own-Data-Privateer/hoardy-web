@@ -937,6 +937,7 @@ section {
     <div class="ishiftdots">
     <ui id="config.limboMaxNumber" type="number" class="c" data-help="Start complaining when more than this number of reqres are in `in_limbo` state.">... after {} elements,</ui>
     <ui id="config.limboMaxSize" type="number" class="c" data-help="Start complaining when the total size of all dumps in `in_limbo` state is larger than this many Megabytes.">... or {} MiB</ui>
+    <ui id="config.limboNotifyInterval" type="number" class="c" data-help="Produce notifications no more frequently than one in this many seconds.">... every {} s</ui>
     </div>
     </section>
     <ui id="config.autoNotify" type="boolean" class="prefer-on c" data-help="Generate a notification when an automatic action was performed in background.">... {} automatic actions</ui>
