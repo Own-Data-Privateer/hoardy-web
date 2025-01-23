@@ -104,6 +104,11 @@ a.popup {
   </head>
   <body style="visibility: hidden">
     <div id="body">
+      <h1>Table of Contents</h1>
+      <details><summary>(Click me to see it.)</summary>
+      $table-of-contents$
+      </details>
+
       $body$
     </div>
     <div id="container">

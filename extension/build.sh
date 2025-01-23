@@ -101,9 +101,14 @@ for target in "$@"; do
     fi
 
     runPandoc() {
-        local destfile="$DEST/$2".html
+        local format=$1
+        local path=$2
+        shift 2
+
+        local destfile="$DEST/$path".html
         mkdir -p "$(dirname "$destfile")"
-        pandoc -f $1 -t html --wrap=none --template="$2".template -M pagetitle="$2" "${pandocArgs[@]}" > "$destfile"
+        pandoc -f $format -t html --wrap=none --template="$path".template \
+               -M pagetitle="$path" "${pandocArgs[@]}" "$@" > "$destfile"
     }
 
     for p in background/main page/popup page/state page/saved; do
@@ -124,7 +129,10 @@ t end
 s%\[\[\.\./\.\.\/\([^]]*\)\]\[\([^]]*\)\]\]%[[https://oxij.org/software/hoardy-web/tree/master/\1][\2]] (also on [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/\1][GitHub]])%g
 : end
 ' \
-        | runPandoc org page/help
+        | runPandoc org page/help --toc
+
+    # hackity hack, because pandoc does not support ":UNNUMBERED: notoc" property
+    sed -i '/id="toc-top"/ d' "$DEST/page/help.html"
 
     echo "  Building page/changelog..."
 

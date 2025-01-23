@@ -7,10 +7,13 @@
 * How to read this document
 :PROPERTIES:
 :CUSTOM_ID: top
+:UNNUMBERED: notoc
 :END:
 
 It is highly recommended you view this page by clicking the =Help= button in the extension's own UI.
 Doing that will make this page interactive: the settings popup will be displayed on the right on this page and hovering over or clicking on any links pointing to =popup.html= will highlight those elements in the popup.
+
+It will also have a "Table of Contents" section there.
 
 See [[../../doc/gallery.md][screenshots]] if you want to see how it will look.
 
