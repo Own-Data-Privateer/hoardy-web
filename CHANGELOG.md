@@ -2241,6 +2241,10 @@ All planned features are complete now.
 
 ## `Hoardy-Web` extension
 
+- Core+UI:
+  - Improve integration with `hoardy-web serve`.
+  - (~25% done) Reorganize tracking- and problematic-related options into config profiles, allow them to override each over.
+  - Implement per-host profiles.
 - UI:
   - Improve `Internal State` and `Saved into Local Storage` UIs.
   - Add option persistence to `Internal State` and `Saved into Local Storage` UIs.
@@ -2248,8 +2252,6 @@ All planned features are complete now.
 - Core+UI:
   - Add a popup UI section for `Closed tabs`, so that you could easily collect/discard `in_limbo` reqres from such tabs.
   - Track navigations and allow to use them as boundaries between batches of reqres saved in limbo mode.
-  - (~25% done) Reorganize tracking- and problematic-related options into config profiles, allow them to override each over.
-  - Implement per-host profiles.
   - Implement automatic capture of `DOM` snapshots when a page changes.
 - Core:
   - Implement automatic management of `network.proxy.no_proxies_on` setting to allow `Hoardy-Web` archival to an archiving server to work out of the box when using proxies.
@@ -2257,6 +2259,14 @@ All planned features are complete now.
 
 ## `hoardy-web` tool
 
+- `*`:
+  - Allow unloading and lazy re-loading of reqres loaded from anything other than separate `WRR` files.
+    The fact that this is not possible at the moment makes memory consumption in those cases rather abysmal.
+- `serve`, `*`:
+  - File pre-indexing into an `sqlite` database.
+  - Search via the `sqlite` index.
+- `mirror`, `organize`:
+  - Implement on-the-fly mangling of reqres, so that, e.g. you could `organize` or `mirror` a reqres containing `https://web.archive.org/web/<something>/<URL>` as if it was just a `<URL>`.
 - `mirror`, `scrub`:
   - Handle SRI things.
   - Handle CSP things.
@@ -2266,10 +2276,6 @@ All planned features are complete now.
   - Implement automatic discernment of relatedness of `WRR` files (by URLs and similarity) and packing of related files into `WRR` bundles.
   - Maybe: Implement data de-duplication between `WRR` files.
   - Implement `un206` command/option, which would reassemble a bunch of `GET 206` `WRR` files into a single `GET 200` `WRR` file.
-- `mirror`, `organize`:
-  - Allow unloading and lazy re-loading of reqres loaded from anything other than separate `WRR` files.
-    The fact that this is not possible at the moment makes memory consumption in those cases rather abysmal.
-  - Implement on-the-fly mangling of reqres, so that, e.g. you could `organize` or `mirror` a reqres containing `https://web.archive.org/web/<something>/<URL>` as if it was just a `<URL>`.
 - `import`, `export`:
   - Converters from `HAR` and `WARC` to `WRR`.
   - Converter from `WRR` to `WARC`.
@@ -2277,4 +2283,4 @@ All planned features are complete now.
 - `serve`:
   - Allow to generate `--symlink --latest` hierarchies on-the-fly when running with `--archive-to`.
 - `*`:
-  - Maybe: Full text indexing and search. "Maybe", because offloading (almost) everything search-related to third-party tools may be a better idea.
+  - Full text indexing and search.
