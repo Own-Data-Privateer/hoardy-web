@@ -6,6 +6,62 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.20.0] - 2024-12-24: Annoyance and bug fixes
+
+### Added
+
+- Core + Popup UI:
+
+  - Implemented `config.limboNotifyInterval` option and its popup UI.
+
+    It prevents "Too much stuff in limbo" notifications from being generated more frequently than given number of seconds, which makes them much less annoying.
+
+### Changed
+
+- Core:
+
+  - From now on, `retryUnarchived` scheduled action can be canceled (until a new reqres gets captured) with the `cancelActions` (red square) button.
+
+  - Unavailable and non-archiving servers produce different notification error messages and are handled differently now.
+
+  - Archivals to broken servers and `localStorage` produce nicer notification errors now.
+
+  - Unrecoverable archival failures now get a hint about using the `retryFailed` popup UI button in their notification messages.
+
+  - From now on, pressing keyboard shortcuts and popup UI buttons will force immediate updates to displayed notifications.
+
+    I.e. no longer relevant notifications will disappear immediately.
+
+  (Thanks to @douglasg14b on GitHub for pointing out three out of five of the above.)
+
+- The [`Help` page](./extension/page/help.org):
+
+  - Added "Table of Contents" section.
+
+  - Moved and adapted a bunch move stuff from top-level [`README.md`](./README.md).
+
+  - Improved some pieces of it.
+
+- Other documentation pages:
+
+  - Improved rendering of various references, added more of them.
+
+  - Improved in many random places.
+
+### Fixed
+
+- All documentation pages:
+
+  - Clicking on internal links will now replace history states that point to other links.
+
+    This makes the use of "Back" browser button more intuitive.
+
+- Core:
+
+  - On Firefox, fixed an issue when, with a popup UI open, opening "Internal State" page would make the popup show the wrong tab stats until a tab switch.
+
+  - On Firefox, fixed popup UI's tab stats flickering between inconsistent states when, with a popup UI open, a new tab gets opened, starts loading, and then gets redirected, with all of it happening really fast.
+
 ## [tool-v0.23.0] - 2025-01-22: Incremental improvements
 
 ### Fixed
@@ -2170,6 +2226,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.20.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.19.0...extension-v1.20.0
 [tool-v0.23.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.22.0...tool-v0.23.0
 [tool-v0.22.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.21.0...tool-v0.22.0
 [simple_server-v1.9.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.8.0...simple_server-v1.9.0
