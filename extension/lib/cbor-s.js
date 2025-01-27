@@ -1,11 +1,5 @@
 /*
- * Simple CBOR encoder in pure JavaScript.
- *
- * Based on cbor.js <https://github.com/paroga/cbor-js> but a class,
- * encoder-only, supports chunked buffers made of Uint8Array's (for efficiency),
- * and can check for unexpected nulls and undefined values while encoding.
- *
- * Copyright (c) 2023 Jan Malakhovski <oxij@oxij.org>
+ * Copyright (c) 2023-2025 Jan Malakhovski <oxij@oxij.org>
  * Copyright (c) 2014-2016 Patrick Gansterer <paroga@paroga.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,6 +19,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ */
+
+/*
+ * A simple CBOR encoder in pure JavaScript.
+ *
+ * Based on cbor.js <https://github.com/paroga/cbor-js> but a class,
+ * encoder-only, supports chunked buffers made of Uint8Array's (for efficiency),
+ * and can check for unexpected nulls and undefined values while encoding.
  */
 
 "use strict";

@@ -1,10 +1,5 @@
 /*
- * Some utility functions and constants specific to `Hoardy-Web`.
- *
- * This file exists to prevent duplication between the core and the UI
- * parts of `Hoardy-Web`.
- *
- * Copyright (c) 2024 Jan Malakhovski <oxij@oxij.org>
+ * Copyright (c) 2024-2025 Jan Malakhovski <oxij@oxij.org>
  *
  * This file is a part of `hoardy-web` project.
  *
@@ -20,6 +15,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
+ * Some utility functions and constants specific to `Hoardy-Web`.
+ *
+ * This file exists to prevent duplication between the core and the UI
+ * parts of `Hoardy-Web`.
+ *
  */
 
 // see https://en.wikipedia.org/wiki/HTTP_status_codes

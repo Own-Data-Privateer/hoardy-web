@@ -1,7 +1,5 @@
 /*
- * Common parts between `state.js` and `saved.js`.
- *
- * Copyright (c) 2023-2024 Jan Malakhovski <oxij@oxij.org>
+ * Copyright (c) 2023-2025 Jan Malakhovski <oxij@oxij.org>
  *
  * This file is a part of `hoardy-web` project.
  *
@@ -17,6 +15,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
+ * Common parts between `state.js` and `saved.js`.
  */
 
 "use strict";

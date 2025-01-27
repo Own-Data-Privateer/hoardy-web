@@ -1,7 +1,5 @@
 /*
- * Same API as `idbp.js`, but using `browser.storage.local` API instead.
- *
- * Copyright (c) 2024 Jan Malakhovski <oxij@oxij.org>
+ * Copyright (c) 2024-2025 Jan Malakhovski <oxij@oxij.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +18,10 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ */
+
+/*
+ * Same API as `idbp.js`, but using `browser.storage.local` API instead.
  */
 
 "use strict";
