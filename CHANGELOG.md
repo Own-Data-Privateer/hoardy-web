@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
-## [extension-v1.20.0] - 2024-12-24: Annoyance and bug fixes
+## [extension-v1.20.0] - 2025-01-24: Annoyance and bug fixes
 
 ### Added
 
@@ -1561,7 +1561,7 @@ Generally:
         |\-> (srvIO) -> (stashIO?) -> (failed) |     \           |
         |       |                        ^     /      \          |
         |       v                        |    v        |         |
-        |   (sumbitted) --------------> (saveIO) --> (saved)     | {{!saving}}
+        |   (submitted) --------------> (saveIO) --> (saved)     | {{!saving}}
         |       \                                                |
         \-------->-----------------------------------------------/
   ```

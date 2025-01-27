@@ -106,7 +106,7 @@ Reqres change their internal states according to the following state diagram (wh
       |       |                        ^        /    |         |
       |       |                        |    /--/     |         |
       |       v                        |    v        |         |
-      |   (sumbitted) --------------> (saveIO) --> (saved)     | {{!saving}}
+      |   (submitted) --------------> (saveIO) --> (saved)     | {{!saving}}
       |       \                                                |
       \-------->-----------------------------------------------/
 #+END_SRC
