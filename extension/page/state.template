@@ -69,7 +69,7 @@
     <span id="tail"></span>
 
     <h1 id="queued">Queued</h1>
-    <div class="controls">
+    <div class="controls ui">
       <ui id="rrfilters.queued.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
       <ui id="rrfilters.queued.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
       <ui id="rrfilters.queued.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
