@@ -11,7 +11,7 @@
 <li><a href="#the-magic" id="toc-the-magic">The magic</a></li>
 <li><a href="#well-alright-this-is-kinda-nice-but-i.-need.-more-power" id="toc-well-alright-this-is-kinda-nice-but-i.-need.-more-power">Well, alright, this is kinda nice, but I. Need. More! POWER!</a></li>
 </ul></li>
-<li><a href="#parts-and-pieces" id="toc-parts-and-pieces"><span id="pieces"/>Parts and pieces</a>
+<li><a href="#parts-and-pieces" id="toc-parts-and-pieces">Parts and pieces</a>
 <ul>
 <li><a href="#the-hoardy-web-webextensions-browser-add-on" id="toc-the-hoardy-web-webextensions-browser-add-on">The <code>Hoardy-Web</code> WebExtensions browser add-on</a></li>
 <li><a href="#the-hoardy-web-tool" id="toc-the-hoardy-web-tool">The <code>hoardy-web</code> tool</a></li>
@@ -29,11 +29,11 @@
 <li><a href="#or-if-you-are-unable-or-unwilling-to-do-that" id="toc-or-if-you-are-unable-or-unwilling-to-do-that">… or, if you are unable or unwilling to do that</a></li>
 </ul></li>
 <li><a href="#alternatively-on-a-system-with-nix-package-manager" id="toc-alternatively-on-a-system-with-nix-package-manager">Alternatively, on a system with Nix package manager</a></li>
-<li><a href="#setup-recommendations" id="toc-setup-recommendations"><span id="setup"/>Setup recommendations</a></li>
+<li><a href="#setup-recommendations" id="toc-setup-recommendations">Setup recommendations</a></li>
 <li><a href="#recommended-next-steps" id="toc-recommended-next-steps">Recommended next steps</a></li>
-<li><a href="#why-does-hoardy-web-exists" id="toc-why-does-hoardy-web-exists"><span id="why"/>Why does <code>Hoardy-Web</code> exists?</a></li>
-<li><a href="#technical-philosophy" id="toc-technical-philosophy"><span id="philosophy"/>Technical Philosophy</a></li>
-<li><a href="#alternatives" id="toc-alternatives"><span id="alternatives"/>Alternatives</a>
+<li><a href="#why-does-hoardy-web-exists" id="toc-why-does-hoardy-web-exists">Why does <code>Hoardy-Web</code> exists?</a></li>
+<li><a href="#technical-philosophy" id="toc-technical-philosophy">Technical Philosophy</a></li>
+<li><a href="#alternatives" id="toc-alternatives">Alternatives</a>
 <ul>
 <li><a href="#downloadnet" id="toc-downloadnet">DownloadNet</a></li>
 <li><a href="#mitmproxy" id="toc-mitmproxy">mitmproxy</a></li>
@@ -54,7 +54,7 @@
 <li><a href="#archivy" id="toc-archivy">Archivy</a></li>
 <li><a href="#others" id="toc-others">Others</a></li>
 </ul></li>
-<li><a href="#if-you-like-this-you-might-also-like" id="toc-if-you-like-this-you-might-also-like"><span id="also"/>If you like this, you might also like</a>
+<li><a href="#if-you-like-this-you-might-also-like" id="toc-if-you-like-this-you-might-also-like">If you like this, you might also like</a>
 <ul>
 <li><a href="#yt-dlp" id="toc-yt-dlp">yt-dlp</a></li>
 <li><a href="#hydrus" id="toc-hydrus">hydrus</a></li>

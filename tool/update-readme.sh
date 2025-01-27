@@ -5,8 +5,8 @@ for i in 0 1; do
 {
     echo "# Table of Contents"
     echo "<details><summary>(Click me to see it.)</summary>"
-    pandoc --wrap=none --toc --template=toc.template --metadata title=toc -f markdown -t html README.md \
-        | sed '/Table of Contents/ d'
+    pandoc --wrap=none --toc --template=toc.template -M title=toc -f markdown -t html README.md \
+        | sed '/Table of Contents/ d; s%<span id="[^"]*"/>%%'
     echo "</details>"
     echo
 

@@ -17,13 +17,13 @@
 <li><a href="#recipes" id="toc-recipes">Recipes</a>
 <ul>
 <li><a href="#convert-anything-to-wrr" id="toc-convert-anything-to-wrr">Convert anything to <code>WRR</code></a></li>
-<li><a href="#find-and-filter-things" id="toc-find-and-filter-things"><span id="filter"/>Find and filter things</a></li>
+<li><a href="#find-and-filter-things" id="toc-find-and-filter-things">Find and filter things</a></li>
 <li><a href="#merge-multiple-archive-directories" id="toc-merge-multiple-archive-directories">Merge multiple archive directories</a></li>
 <li><a href="#build-a-file-system-tree-of-latest-versions-of-all-hoarded-urls" id="toc-build-a-file-system-tree-of-latest-versions-of-all-hoarded-urls">Build a file system tree of latest versions of all hoarded URLs</a>
 <ul>
-<li><a href="#update-the-tree-incrementally-in-real-time" id="toc-update-the-tree-incrementally-in-real-time"><span id="symlink-latest"/>Update the tree incrementally, in real time</a></li>
+<li><a href="#update-the-tree-incrementally-in-real-time" id="toc-update-the-tree-incrementally-in-real-time">Update the tree incrementally, in real time</a></li>
 </ul></li>
-<li><a href="#generate-a-local-offline-static-website-mirror-similar-to-wget--mpk" id="toc-generate-a-local-offline-static-website-mirror-similar-to-wget--mpk"><span id="mirror"/>Generate a local offline static website mirror, similar to <code>wget -mpk</code></a>
+<li><a href="#generate-a-local-offline-static-website-mirror-similar-to-wget--mpk" id="toc-generate-a-local-offline-static-website-mirror-similar-to-wget--mpk">Generate a local offline static website mirror, similar to <code>wget -mpk</code></a>
 <ul>
 <li><a href="#update-your-mirror-incrementally" id="toc-update-your-mirror-incrementally">Update your mirror incrementally</a></li>
 <li><a href="#treat-missing-links-exactly-like-wget--mpk-does" id="toc-treat-missing-links-exactly-like-wget--mpk-does">Treat missing links exactly like <code>wget -mpk</code> does</a></li>
@@ -32,7 +32,7 @@
 <li><a href="#control-which-versions-visits-get-mirrored" id="toc-control-which-versions-visits-get-mirrored">Control which versions (visits) get mirrored</a></li>
 <li><a href="#content-addressed-outputs-and-de-duplication" id="toc-content-addressed-outputs-and-de-duplication">Content-addressed outputs and de-duplication</a></li>
 </ul></li>
-<li><a href="#use-hoardy-web-serve-for-archival-and-replay-over-http" id="toc-use-hoardy-web-serve-for-archival-and-replay-over-http"><span id="serve"/>Use <code>hoardy-web serve</code> for archival and replay over <code>HTTP</code></a></li>
+<li><a href="#use-hoardy-web-serve-for-archival-and-replay-over-http" id="toc-use-hoardy-web-serve-for-archival-and-replay-over-http">Use <code>hoardy-web serve</code> for archival and replay over <code>HTTP</code></a></li>
 <li><a href="#generate-previews-for-wrr-files-listen-to-them-via-tts-open-them-with-xdg-open-etc" id="toc-generate-previews-for-wrr-files-listen-to-them-via-tts-open-them-with-xdg-open-etc">Generate previews for <code>WRR</code> files, listen to them via TTS, open them with <code>xdg-open</code>, etc</a></li>
 </ul></li>
 <li><a href="#usage" id="toc-usage">Usage</a>
