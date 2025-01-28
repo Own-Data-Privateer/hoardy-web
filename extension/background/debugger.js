@@ -505,7 +505,18 @@ function forceFinishingUpDebug(predicate, updatedTabId) {
                          "url", dreqres.url,
                          "dreqres", dreqres);
 
-        dreqresToReques(dreqres);
+        // Turn debugging `dreqres` into a structure that can be used as a normal
+        // webRequest `reqres`. This is used when Chromium bugs out and forgets to
+        // produce the webRequest part. Essentially, this is a continuation of
+        // emitDebugRequest, which finishes it up to become a valid `reqres`.
+        dreqres.requestBody = new ChunkedBuffer();
+        dreqres.requestComplete = true;
+        if (dreqres.responseBody === undefined)
+            dreqres.responseBody = new ChunkedBuffer();
+        // dreqres.responseComplete is set by emitDebugRequest
+        // TODO remove?
+        dreqres.originUrl = getHeaderValue(dreqres.requestHeaders, "Referer");
+
         reqresAlmostDone.push(dreqres);
         updatedTabId = mergeUpdatedTabIds(updatedTabId, dreqres.tabId);
     }
@@ -546,21 +557,6 @@ function debugHeadersMatchScore(reqres, dreqres) {
     if (config.debugging)
         console.log("debugHeadersMatchScore", score, reqres, dreqres);
     return score;
-}
-
-// Turn debugging `dreqres` into a structure that can be used as a normal
-// webRequest `reqres`. This is used when Chromium bugs out and forgets to
-// produce the webRequest part. Essentially, this is a continuation of
-// emitDebugRequest, which finishes it up to become a valid `reqres`.
-function dreqresToReques(dreqres) {
-    dreqres.requestBody = new ChunkedBuffer();
-    dreqres.requestComplete = true;
-    if (dreqres.responseBody === undefined)
-        dreqres.responseBody = new ChunkedBuffer();
-    // dreqres.responseComplete is set
-
-    // TODO remove?
-    dreqres.originUrl = getHeaderValue(dreqres.requestHeaders, "Referer");
 }
 
 // Update webRequest `reqres` with data collected in the debugging `dreqres`.
