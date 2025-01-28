@@ -4817,6 +4817,8 @@ function upgradeConfig(config) {
         console.warn(`Bad old config version ${config.version}, reusing values as-is without updates`);
         // the following updateFromRec will do its best
     }
+
+    config.version = configVersion;
 }
 
 function upgradeGlobals(globs) {
@@ -4854,7 +4856,6 @@ async function init() {
     savedGlobals = assignRec({}, globals);
 
     let lastSeenVersion = config.lastSeenVersion;
-    config.version = configVersion;
     config.ephemeral = false;
     if (config.seenChangelog && lastSeenVersion != manifest.version) {
         // reset `config.seenChangelog` when major version changes
