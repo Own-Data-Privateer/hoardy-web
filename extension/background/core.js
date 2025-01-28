@@ -110,6 +110,7 @@ let configDefaults = {
 
     // problematic options
     markProblematicPartialRequest: false,
+    markProblematicBuggy: true,
     markProblematicCanceled: false,
     markProblematicNoResponse: true,
     markProblematicIncomplete: true,
@@ -125,6 +126,7 @@ let configDefaults = {
 
     // picking options
     archivePartialRequest: true,
+    archiveBuggy: true,
     archiveCanceled: false,
     archiveNoResponse: false,
     archiveIncompleteResponse: false,
@@ -3112,10 +3114,18 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
     } else if (reqres.fromCache)
         state = "complete_fc";
 
+    let sent = reqres.submitted && !reqres.fromCache;
+
     if (!reqres.requestComplete) {
         // requestBody recovered from formData
-        problematic = problematic || config.markProblematicPartialRequest;
+        problematic = problematic || sent && config.markProblematicPartialRequest;
         picked = picked && config.archivePartialRequest;
+    }
+
+    if (reqres.requestBuggy || reqres.responseBuggy) {
+        // buggy metadata capture
+        problematic = problematic || sent && config.markProblematicBuggy;
+        picked = picked && config.archiveBuggy;
     }
 
     if (!reqres.responded || statusCode >= 200 && statusCode < 300) {
