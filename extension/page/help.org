@@ -196,6 +196,30 @@ Which is why =Hoardy-Web= has more states after =finished= and more steps after 
 
 When a reqres reaches the =finished= state it gets classified using algorithms described below.
 The results of these computations influence which of the next reqres processing steps get taken for that reqres and what gets displayed to the user.
+*** Buggy reqres
+:PROPERTIES:
+:CUSTOM_ID: buggy
+:END:
+
+Sometimes browser bugs prevent complete collection of (parts of) reqres data or metadata.
+Situations when this happens are discussed in detail [[#bugs][that section]].
+To provide indication of this, =Hoardy-Web= keeps track of such things and marks such reqres with flags (NOT states) signifying the reqres
+
+- having a =partial request body= ([[#firefox-bug-no-post][Firefox]], [[#chromium-bug-no-post][Chromium]]), which is denoted by =partial= flag on the [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]] page;
+
+- having an =incomplete response body=, denoted by =incomplete= flag on the [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]] page, which also forces the reqres to stop in =incomplete= or =incomplete_fc= final networking state;
+
+  usually, this is caused by banal networking issues like a connection getting interrupted before the whole body was fetched, but it can be caused by browser bugs, like [[#chromium-bug-autodetach][Chromium occasionally detaching its debugger at random]];
+
+- having =buggy request metadata= or =buggy response metadata= ([[#firefox-bug-race][Firefox]], [[#chromium-bug-no-wre][Chromium]]), which is denoted by =buggy= flag on the [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]] page.
+
+These flags influence some of the computations described below.
+
+- Disabling [[./popup.html#div-config.archivePartialRequest][this toggle]] will disable archiving of reqres with =partial request body= flag set.
+- Disabling [[./popup.html#div-config.archiveIncompleteResponse][this toggle]] will disable archiving of reqres with =incomplete response body= flag set.
+- Disabling [[./popup.html#div-config.archiveBuggy][this toggle]] will disable archiving of reqres with one of the =buggy * metadata= flags set.
+
+Disabling any of the above is not recommended, however, as archiving some data is usually better than archiving none.
 *** Problematic reqres
 :PROPERTIES:
 :CUSTOM_ID: problematic
@@ -209,14 +233,14 @@ Especially when parts of a dynamically loaded page might simply silently fail to
 So, to provide such an indicator, =Hoardy-Web= keeps track of reqres that fail to load properly and marks them with a =problematic= flag (NOT a state) which influences
 
 - toolbar button's icon, badge, and title, all of which depend on the numbers of currently =problematic= reqres;
-- [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]] page, which shows =problematic= reqres in a separate section;
+- the [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]] page, which shows =problematic= reqres in a separate section;
 - when [[./popup.html#div-config.problematicNotify][this option]] is enabled --- notifications, generating a new one each time a new =problematic= reqres appears in a tab for which [[./popup.html#div-tabconfig.problematicNotify][this option]] is set.
 
 What gets marked as =problematic= is controlled by [[./popup.html#problematic-options][=Mark reqres as 'problematic' when they finish= options]].
 
-By default, =HTTP= requests that failed to get a response, those that have incomplete response bodies, and those for which the browser reported potentially /problematic errors/ but then =Hoardy-Web= =picked= them anyway, will be marked as =problematic=.
+By default, =HTTP= requests that failed to get a response, those that have incomplete response bodies (i.e. =incomplete= or =incomplete_fc=), and those for which the browser reported /potentially problematic errors/ but then =Hoardy-Web= =picked= them anyway, will be marked as =problematic=.
 
-/Problematic errors/ are errors like
+/Potentially problematic errors/ are errors like
 
 - "this request failed because of a networking issue",
 - "this request was aborted because the =JavaScript= function making it decided to cancel it when you moved your mouse cursor away from a video thumbnail it was needed for",
@@ -736,12 +760,6 @@ In particular:
   also, this can happen when the debugger gets detached after the main frame was captured but its resources are still loading.
 
 - =webRequest::capture::CANCELED::BY_WORK_OFFLINE= is produced when the reqres was canceled by one of "Work offline" options, i.e. as a result of one or more of [[./popup.html#div-config.workOffline][this]]-[[./popup.html#div-tabconfig.workOffline][this]]-[[./popup.html#div-tabconfig.children.workOffline][this]]-[[./popup.html#div-config.root.workOffline][this]]-[[./popup.html#div-config.background.workOffline][or]]-[[./popup.html#div-config.extension.workOffline][that]] options being set.
-
-- @@html:<span id="error-race">@@ =webRequest::capture::RESPONSE::BROKEN= is produced when some response metadata is unavailable.
-  @@html:</span>@@
-
-  At the moment, this only appears to happen on Firefox when a request gets fulfilled by a service or shared worker after Firefox had already sent it to the server.
-  Firefox then interrupts the networking code and generates =NS_ERROR_NET_ON_*= error about the event failing to supply the response metadata generated by the service/shared worker.
 * Quirks and Bugs
 :PROPERTIES:
 :CUSTOM_ID: bugs
@@ -783,13 +801,10 @@ If you are reading this page outside of the extension's UI be sure to read the [
 - @@html:<span id="firefox-bug-no-post">@@ On Firefox-based browsers, without the [[../../firefox/][patch]], the browser only supplies =formData= to =webRequest.onBeforeRequest= handlers, thus making impossible to recover the actual request body for a =POST= request.
   @@html:</span>@@
 
-  =Hoardy-Web= will mark such requests as having a "partial request body" and try its best to recover the data from =formData= structure, but if a =POST= request was uploading files, they won't be recoverable from =formData= (in fact, it is not even possible to tell if there were any files attached there), and so your archived request data will be incomplete even after =Hoardy-Web= did its best.
-
-  Disabling [[./popup.html#div-config.archivePartialRequest][this toggle]] will disable archiving of such broken requests.
-  This is not recommended, however, as archiving some data is usually better than archiving none.
+  =Hoardy-Web= will mark such requests as having a =partial request body= and try its best to recover the data from =formData= structure, but if a =POST= request was uploading files, they won't be recoverable from =formData= (in fact, it is not even possible to tell if there were any files attached there), and so your archived request data will be incomplete even after =Hoardy-Web= did its best.
 
   With the above patch applied, small =POST= requests will be archived completely and correctly.
-  =POST= requests that upload large files and only those will be marked as having a "partial request body".
+  =POST= requests that upload large files and only those will be marked as having a =partial request body=.
 
 - =If-Modified-Since= and =If-None-Match= headers never get archived, because the browser never supplies them to the extensions. Thus, you can get =304 Not Modified= reqres response to a seemingly normal =GET= request.
 
@@ -804,6 +819,13 @@ If you are reading this page outside of the extension's UI be sure to read the [
   If [[./popup.html#div-config.workaroundFirefoxFirstRequest][this option]] is enabled, =Hoardy-Web= will transparently work around this bug by redirecting the very first navigation request to =about:blank= and then reloading the tab with its original URL.
 
 - Firefox-based browsers provide no API for archiving WebSockets data at the moment, unfortunately.
+
+- @@html:<span id="firefox-bug-race">@@ Firefox fails to provide response metadata when a request gets fulfilled by a service or shared worker after Firefox had already sent it to the server.
+  @@html:</span>@@
+
+  Firefox interrupts the networking code and generates =NS_ERROR_NET_ON_*= error about the event, but it fails to supply the response metadata generated by the service/shared worker in that event.
+
+  =Hoardy-Web= then has to take guesses, and marks such reqres with =incomplete response metadata= flag.
 ** Known issues that are consequences of issues of Firefox-based mobile browsers: Fenix aka Firefox for Android, Fennec, Mull, etc
 :PROPERTIES:
 :CUSTOM_ID: firefoxa-android-bugs
@@ -864,12 +886,9 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   @@html:</span>@@
 
 - @@html:<span id="chromium-bug-no-post">@@ Similarly to unpatched Firefox, Chromium-based browsers do not supply contents of files in =POST= request data.
-  They do, however, provide a way to see if files were present in the request, so =Hoardy-Web= will mark such and only such requests as having a "partial request body".
+  They do, however, provide a way to see if files were present in the request, so =Hoardy-Web= will mark such and only such requests as having a =partial request body=.
   There is no patch for Chromium to fix this, nor do I plan to make one (feel free to contribute one, though).
   @@html:</span>@@
-
-  As with Firefox, disabling [[./popup.html#div-config.archivePartialRequest][this toggle]] will disable archiving of such broken requests.
-  This is not recommended, however, as archiving some data is usually better than archiving none.
 
 - Chromium fails to provide =openerTabId= to tabs created with =chrome.tabs.create= API so in the unlikely case of opening two or more new tabs/windows in rapid succession via =Hoardy-Web= context menu actions and not giving them time to initialize =Hoardy-Web= could end up mixing up settings between the newly created tabs/windows.
   This bug is impossible to trigger unless your system is very slow or you are clicking things with automation tools like =AutoHotKey= or =xnee=.
@@ -878,7 +897,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   But Chromium generates different request IDs for events generated by these two different APIs and also generates those events in arbitrary order.
   Therefore, =Hoardy-Web= tracks reqres generated by both sets of APIs separately and then matches those two lists against each other heuristically, merging matching reqres together.
   Which is ugly enough.
-  But then Chromium sometimes generates debugging API events and forgets to produce the corresponding =webRequest= API events, or vice versa, thus leaving some of those reqres unmatched.
+  But then Chromium sometimes generates debugging API events and [[#chromium-bug-no-wre][forgets to produce the corresponding =webRequest= API events]], or vice versa, thus leaving some of those reqres unmatched.
 
   To work around that, =Hoardy-Web= waits [[./popup.html#div-config.workaroundChromiumDebugTimeout][this many seconds]] for new events to arrive, and if none do, forcefully finishes all unmatched but network-complete =in_flight= reqres.
   Yes, this means that some minor metadata fields (like =document_url=) of those reqres might be missing, but waiting more time usually won't fix it, so =Hoardy-Web= can't do anything else there.
@@ -890,6 +909,12 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   In that case, =Hoardy-Web= can't tell if a reqres is just slow at being loaded or if Chromium forgot about it, so those reqres will get stuck in the =in_flight= state indefinitely, at least until their originator tab gets closed, or until you press one of [[./popup.html#stopAllInFlight][this]] or [[./popup.html#stopTabInFlight][that]] buttons.
 
   =Hoardy-Web= might get another workaround for this bug later.
+
+- @@html:<span id="chromium-bug-no-wre">@@ Chromium sometimes simply does not generate any =webRequest= API events for a request it tracks.
+
+  Most commonly, this happens for responses loaded from cache, but it can also happen for network fetches, apparently, at random.
+
+  In this case, =Hoardy-Web= will collect no request data and metadata, this marking such reqres with both =partial request body= and =incomplete request metadata=.
 * Frequently Asked Questions
 :PROPERTIES:
 :CUSTOM_ID: faq
@@ -1015,7 +1040,7 @@ Also, [[#chromium-bug-autodetach][Chromium will occasionally detach its debugger
 :CUSTOM_ID: faq-disable-sw
 :END:
 
-This is a rare error caused by a [[#error-race][race condition between webpage's service/shared worker and browser's networking code]].
+This is a rare error caused by a [[#firefox-bug-race][race condition between webpage's service/shared worker and browser's networking code]].
 
 Usually, you can ignore this error, since loading another related page is likely to fulfill the same URL.
 
