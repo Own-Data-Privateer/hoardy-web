@@ -2231,6 +2231,7 @@ async function syncWriteOne(tss, state, clean, dump, dumpSize, dumpId, stashId, 
 
 async function doSyncOne(archivable, state, elide) {
     let [loggable, dump] = archivable;
+    let dumpSize = loggable.dumpSize;
 
     // Is it in `storage.local` (`true`), in `indexedDB` (`false`), or neither (`undefined`)?
     let inLS = loggable.inLS;
@@ -2255,26 +2256,29 @@ async function doSyncOne(archivable, state, elide) {
              && !dirty)
         return;
 
-    let dumpSize = loggable.dumpSize;
+    function scrub(what) {
+        delete what["dirty"];
+        delete what["inLS"];
+        delete what["dumpId"];
+        delete what["stashId"];
+        delete what["saveId"];
+        // NB: but keeping "dumpSize"
+    }
 
-    // Pristine version of loggable, which will be written to storage.
-    let clean = assignRec({}, loggable);
-    clean.version = 1;
-    delete clean["inLS"];
-    delete clean["dirty"];
-    delete clean["dumpId"];
-    delete clean["stashId"];
-    delete clean["saveId"];
-
-    if (state === 0)
+    if (state === 0) {
         // delete from the current store
         await syncWipeOne(selectTSS(inLS !== false), dumpSize, dumpId, stashId, saveId);
-    else {
-        // because we don't want to save these
-        deleteLoggableFields(clean);
+        scrub(loggable);
+    } else {
+        // make a pristine copy that will be saved into local storage
+        let clean = assignRec({}, loggable);
+        scrub(clean);
+        delete clean["status"];
+        // for future-proofing
+        clean.version = 1;
 
         if (inLS === undefined || inLS === wantInLS)
-            // first write or overwrite to the same store
+            // first write ever, or overwrite to the same store
             await syncWriteOne(selectTSS(wantInLS), state, clean, dump, dumpSize, dumpId, stashId, saveId);
         else {
             // we are moving the data from one store to the other
@@ -2283,12 +2287,14 @@ async function doSyncOne(archivable, state, elide) {
             await syncWipeOne(selectTSS(inLS), dumpSize, dumpId, stashId, saveId);
         }
 
-        clean.inLS = wantInLS;
-        // reuse old fields
-        copyLoggableFields(loggable, clean);
+        // update in-memory version
+        scrub(loggable);
+        loggable.inLS = wantInLS;
+        loggable.dumpId = clean.dumpId;
+        loggable.stashId = clean.stashId;
+        loggable.saveId = clean.saveId;
     }
 
-    archivable[0] = clean;
     if (elide)
         // free memory
         archivable[1] = null;
@@ -2297,7 +2303,7 @@ async function doSyncOne(archivable, state, elide) {
         console.warn(state === 0 ? "DELETED" : (state === 1 ? "STASHED" : "SAVED"),
                      "elide", elide,
                      "ids", dumpId, stashId, saveId,
-                     "clean", clean);
+                     "loggable", loggable);
 }
 
 async function syncOne(archivable, state, elide, rrFailed, rrLast) {
@@ -2630,7 +2636,7 @@ async function saveOne(archivable) {
 
 // this is used as an argument to `forEachSynced`
 function loadOneStashed(loggable) {
-    addLoggableFields(loggable);
+    deserializeLoggable(loggable);
 
     let info = getOriginState(loggable.tabId, loggable.fromExtension);
     let dumpId = loggable.dumpId;
@@ -2689,9 +2695,9 @@ async function getSavedLog(rrfilter, wantStop) {
     let [newSavedLS, newSavedIDB] = await forEachSynced("save", (loggable) => {
         if (wantStop !== undefined && wantStop())
             throw new StopIteration();
+        deserializeLoggable(loggable);
         if (!isAcceptedLoggable(null, rrfilter, loggable))
             return false;
-        addLoggableFields(loggable);
         res.push(loggable);
         return true;
     }, rrfilter !== null ? rrfilter.limit : null);
@@ -3632,20 +3638,16 @@ function shallowCopyOfReqres(reqres) {
     };
 }
 
+function deserializeLoggable(loggable) {
+    addLoggableFields(loggable);
+}
+
 function addLoggableFields(loggable) {
     // status in `hoardy-web`
     loggable.status = (loggable.requestComplete ? "C" : "I") +
         (loggable.responded
          ? loggable.statusCode.toString() + (loggable.responseComplete ? "C" : "I")
          : "N");
-}
-
-function copyLoggableFields(loggable, clean) {
-    clean.status = loggable.status;
-}
-
-function deleteLoggableFields(loggable) {
-    delete loggable["status"];
 }
 
 function makeLoggableReqres(reqres) {
