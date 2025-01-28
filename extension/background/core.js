@@ -4275,7 +4275,7 @@ function handleUpdateAvailable(details) {
 // open client tab ports
 let openPorts = new Map();
 
-// Yes, this overrides the function in ../lib/utils.js
+// Yes, this overrides the function in ../lib/base.js
 //
 // This is the whole point. In normal modules `broadcast` just sends data to
 // the `handleMessage` below, which then uses this function to broadcast it to

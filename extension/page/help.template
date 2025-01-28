@@ -116,8 +116,8 @@ a.popup {
     </div>
 
     <script src="../lib/compat.js"></script>
-    <script src="../lib/utils.js"></script>
-    <script src="../lib/lutils.js"></script>
+    <script src="../lib/base.js"></script>
+    <script src="../background/util.js"></script>
     <script src="help.js"></script>
   </body>
 </html>
