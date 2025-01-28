@@ -1,61 +1,264 @@
-# Data formats used by `Hoardy-Web`
+# The `WRR` Data File Format
 
-The file format used by `Hoardy-Web` shall hence be called "Web Request+Response" aka `WRR`, with file extension of `.wrr`.
+## Glossary
 
-Internally, a `WRR` file is a [`CBOR` (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) encoding of the following structure:
+- [*`WARC`*](https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1-annotated/) is an ISO web archiving file format used by the [Wayback Machine](https://web.archive.org/) ([heritrix](https://github.com/internetarchive/heritrix3)) and many other tools.
+
+- [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) is a tool stripping TLS from a connection, dumping and/or modifying the traffic going through it, and re-adding TLS back.
+  I.e. a Man-In-The-Middle proxy.
+
+  In the context of this project, *`mitmproxy`* is also a file format produced by the `mitmdump` tool.
+
+- *`HAR`* ([abandoned W3C spec](https://w3c.github.io/web-performance/specs/HAR/Overview.html), a [nicer spec](http://www.softwareishard.com/blog/har-12-spec/)) is an archiving file format used by the "Network Monitor" tools of most modern browsers.
+
+  It is similar to `mitmproxy` in that it, too, stores `HTTP` request+response pairs, but it uses a very inefficient `JSON` encoding with body data encoded as `base64` and a lot of the metadata duplicated multiple times across the structure.
+
+- [*`PCAP`*](https://en.wikipedia.org/wiki/Pcap) is a file format used by many raw packet capture tools.
+
+- *`WRR`* is a native archiving format used by `Hoardy-Web` project.
+  The abbreviation comes from "Web Request+Response".
+
+  `WRR` is very much inspired by `mitmproxy` in that it stores a raw `HTTP` request+response pairs (instead of encoding `GET` documents like `WARC` does), but, unlike, `mitmproxy`, `WRR` is a very simple [`CBOR` (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) encoding of `HTTP` request+response pairs, not a custom binary encoding.
+
+- A *`reqres`* (`Reqres` when a type/class) is an instance of an internal structure used by `WRR`, it represents `HTTP` request+response pair with some additional metadata.
+
+- A *`WRR dump`* is a `reqres` encoded into `CBOR`.
+
+- A *`WRR file`* is a single `WRR dump`, optionally compressed with `GZip`, stored as a separate file on disk.
+
+  These use `.wrr` file extension.
+
+- A *`WRR bundle`* is a concatenation of multiple `WRR dumps`, optionally compressed with `GZip`, stored in a file.
+
+  These use `.wrrb` file extension.
+
+## Definition of `WRR`
+
+A `WRR` dump is a [`CBOR` (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) encoding of the following structure (encoded in typed almost-`Python` syntax, with list elements allowed to declare types):
 
 ```
-reqres = reqresV1
-
-reqresV1 = [
-    "WEBREQRES/1",
-    agent,
-    protocol,
-    requestV1,
-    responseV1,
-    endTimeStamp,
-    optionalData,
-]
-
-requestV1 = [
-    requestTimeStamp,
-    requestMethod,
-    requestURL,
-    requestHeaders,
-    isRequestComplete,
-    requestBody,
-]
-
-responseV1 = null | [
-    responseTimeStamp,
-    responseStatusCode,
-    responseReason,
-    responseHeaders,
-    isResponseComplete,
-    responseBody,
-]
-
-optionalData = <map from str to anything>
+Reqres = ReqresV1
 ```
 
-- `agent` is a short description of the agent used to create this `reqres`, like `Firefox/102.0+Hoardy-Web/0.1`;
-- `optionalData` currently stores optional `origin_url` and `document_url` when different from both the URL in question and `Referer` request header (this is useful for indexing and search by URL);
-- `responseV1` can be `null` when the request got no response, like when experiencing a network issue (archival of such request+response pairs is disabled by default, see extension's settings).
+### Version 1
 
-On disk, [dumb archiving server](../simple_server/) stores them one request+response per file, compressed with `gzip` if compression reduces the size and uncompressed otherwise.
+```
+ReqresV1: list[Any]
+ReqresV1 = [
+    # magic
+    "WEBREQRES/1": str,
 
-Obviously, all of the above has an advantage of making WRR files easily parsable with readily available libraries in basically any programming language there is, CBOR is only slightly less supported than JSON (but it is much more space-efficient and can represent arbitrary binary data).
+    # a short description of software used to create this `reqres`,
+    # e.g. `Firefox/128.0+Hoardy-Web/1.20.0`
+    agent: str,
+    # networking protocol, e.g. `HTTP/1.1`, `HTTP/2`, etc
+    protocol: str,
 
-## Comparison to other web archival formats
+    # see below
+    request: RequestV1,
 
-And yet, even with it all the being this simple, directories full of non-de-duplicated `.wrr` files are still more efficient than:
+    # see below
+    response: ResponseV1 | None,
+    # note that this can be `None` (`null`), when the request got no response,
+    # like when experiencing a network issue (archival of such request+response pairs
+    # is disabled by default in the extension, see extension's settings)
 
-- `HAR` archives (unsurprisingly, since `HAR` stores binary data as uncompressed base64-encoded strings inside a JSON, which is at least 200+% blowup in size compared to raw data immediately),
+    # Finish time, milliseconds since UNIX epoch
+    ftime: int,
 
-- `mitmproxy` dumps (`Hoardy web` is ~20% better on average for me, but it will depend on how well the sites you visit compress the data they send),
+    # a dict from `str` to any `CBOR`-representable value
+    extra: dict[str, Any],
+    extra = {
+        # URLs of containing documents
+        document_url: str,
+        origin_url: str,
+        # both should be interpreted as set to `None` if missing from the dict
 
-- raw PCAP HTTP traffic dumps (similarly).
+        # any errors the agent reported while fetching and processing this `Reqres`
+        errors: list[str],
+        # an empty list if missing
 
-After converting all my previous `wget`, `curl`, [mitmproxy](https://github.com/mitmproxy/mitmproxy), and HAR archives into this and with some yet unpublished data de-duplication and xdelta compression between same-URL revisions `Hoardy-Web` is infinitely more efficient, even more efficient than WARC.
+        # was this response served from cache?
+        from_cache: bool,
+        # `False` if missing
+
+        # was this request actually sent?
+        sent: bool,
+        # `True` if undefined
+
+        # does this request have partial metadata?
+        fake: bool,
+        # `False` if undefined
+
+        # was this response generated by the browser/extension/service worker?
+        generated: bool,
+        # `False` if missing
+
+        # websocket frames
+        websocket: list[WebSocketFrameV1],
+        # `None` if missing
+    }
+]
+
+RequestV1: list[Any]
+RequestV1 = [
+    # reQuest time, milliseconds since UNIX epoch
+    qtime: int,
+
+    # protocol method, e.g. `GET`, `POST`
+    method: str,
+
+    # the URL
+    url: str,
+
+    # request headers
+    headers: list[HeaderV1],
+
+    # is the following `body` complete?
+    complete: bool,
+
+    # request body
+    body: str | bytes,
+]
+
+ResponseV1: list[Any]
+ResponseV1 = [
+    # reSponse time, milliseconds since UNIX epoch
+    stime: int,
+
+    # `HTTP` response code
+    code: int,
+
+    # `HTTP` response reason, if given
+    reason: str,
+
+    # response headers
+    headers: list[HeaderV1],
+
+    # is the following `body` complete?
+    complete: bool,
+
+    # response body
+    body: str | bytes,
+]
+
+# a single `HTTP` header
+HeaderV1: list[Any]
+HeaderV1 = [
+    name: str | bytes,
+
+    value: str | bytes,
+]
+
+# a single `WebSocket` frame
+WebSocketFrameV1: list[Any]
+WebSocketFrameV1 = [
+    # timestamp, milliseconds since UNIX epoch
+    sent_at: int,
+
+    # was this frame generated by the client?
+    from_client: bool,
+
+    # Operation Code
+    opcode: int,
+
+    # data
+    content: str | bytes,
+]
+```
+
+## Interpreting `WRR` values
+
+### Representation quirks
+
+Note that, unlike how it is with `mitmproxy`, with `WRR` the same `protocol` value is reused by both `request` and `response`.
+Thus, an `HTTP` protocol switch followed by an immediate server response of [Section 3.2 of RFC7540](https://datatracker.ietf.org/doc/html/rfc7540#section-3.2) is represented with a pair of `Reqres` like:
+
+- `[ "WEBREQRES/1", agent, "HTTP/1.1", request, [..., 101, "Switching Protocols", ...], ...]`
+- `[ "WEBREQRES/1", agent, "HTTP/2", request, [...], ...]`
+
+which, in theory,
+
+- is less efficient;
+- implies that `request.headers` for `HTTP/2` and later can be in `HTTP/1.1` format;
+
+but,
+
+- the latter quirk needs to be accounted for anyway, because Firefox generates headers in `HTTP/1.1` format regardless;
+- the browsers generate such pairs anyway and re-encoding them into `mitmproxy`-style on-the-fly would be annoying;
+- when both `Reqres` are compressed together, like with `WRR` bundles (see below), `request` duplication is eliminated from the stored data;
+- this doubled representation is almost never used anyway because most `HTTP/2`+ conversations happen over `TLS`, which does protocol negotiation separately.
+
+So, in practice, this design actually makes `WRR` simpler and more efficient than a `request.protocol+response.protocol` design, like `mitmproxy`, would be.
+
+On the same note, browsers also generate `304 Not Modified` answers in a similar fashion:
+
+- `[ "WEBREQRES/1", agent, "HTTP/1.1", request, [..., 304, "Not Modified", ...], ...]`
+- `[ "WEBREQRES/1", agent, "HTTP/2", request, [..., 200, "OK", ... original_response_data, ...]`
+
+### Grouping `Reqres` into web pages
+
+If you want to group reqres belonging to a single web page, you can look at their `document_url` fields.
+
+For the "root" web page, `document_url` will be unset, the "children" reqres will have `document_url` set to the URL of the corresponding "root" document.
+
+## `WRR` data on disk
+
+On disk, `Reqres` can be stored as
+
+- `WRR` files: binary `CBOR` dump of `Reqres` structure, one per file, optionally compressed with `GZip`;
+
+  when parsing, compression can be determined by looking at the first two bytes of input;
+
+  by default, all tools of this repository compress the dumps if it reduces the resulting size and keep them uncompressed otherwise;
+
+  when you use the [`Hoardy-Web` extension](../extension/) together with the [`hoardy-web-sas` archiving server](../simple_server/) or [`hoardy-web serve` archiving server](../tool/#serve), the archiving servers write `WRR` dumps the extension generates, one dump per file, into separate `.wrr` files in their dumping directories;
+
+  the situation is similar if you instead use the `Hoardy-Web` extension with `Export via 'saveAs'` option enabled but `Export via 'saveAs' > Bundle dumps` option disabled, the only difference is that `WRR` files get written to your `~/Downloads` or similar:
+
+  ```bash
+  ls ~/Downloads/Hoardy-Web-export-*
+  ```
+
+- `WRR` bundles: a concatenation of multiple `CBOR` dumps of multiple `Reqres` structures, optionally compressed with `GZip` (straight-through, which gives a much better compression ratio);
+
+  i.e., given a bunch of `*.wrr` files, you can produce a `.wrrb` compressed `WRR` bundle like this:
+
+  ```bash
+  # if .wrr files are compressed
+  zcat *.wrr | gzip - > bundle.wrrb
+
+  # if .wrr files are uncompressed
+  cat *.wrr | gzip - > bundle.wrrb
+
+  # `| gzip -` parts can also be ommited and the results will still be valid WRR bundles
+  ```
+
+  these files can then be parsed by optionally decompressing the input stream, giving it to your favorite `CBOR` parser, and asking it to deserialize another value repeatedly;
+
+  when you use the `Hoardy-Web` extension together with both `Export via 'saveAs'` and bundling options enabled, it archives your data by generating `WRR` bundles, which then get written to your `~/Downloads` or similar.
+
+Obviously, all of the above has an advantage of making `WRR` files and bundles easily parsable with readily available libraries in basically any programming language there is.
+After all, `gzip` is completely standard, and `CBOR` is only slightly less supported than `JSON`, but it is much more space-efficient and can represent arbitrary binary data.
+
+## Comparisons of `WRR` to other web archival formats
+
+Simple directories of non-de-duplicated compressed `WRR` files (not bundles!) are still more efficient than:
+
+- `HAR` archives;
+
+  which is unsurprising, since `HAR` stores binary data as uncompressed `base64`-encoded strings inside a `JSON`, which is at least 200+% blowup in size compared to raw data immediately;
+
+- `mitmproxy` dumps;
+
+  in my tests, simple piles of `WRR` files are about ~20% smaller on average, but this depends on how well the sites you visit compress the data they send, since `mitmproxy` stores whatever they send completely raw;
+
+- raw PCAP HTTP traffic dumps, obviously, for the same reasons.
+
+`WRR` bundles are effectively on-par with the storage efficiency of `WARC`s.
+Compared to `WRR`s, `WARC`s store less metadata, but `WRR`s are encoded more efficiently, so, for simple `GET` requests it's usually a wash.
+(Though, `WRR`s can store more than just `GET` requests, and `WARC`s can't.)
+
+After converting all my previous `wget`, `curl`, [`mitmproxy`](https://github.com/mitmproxy/mitmproxy), and `HAR` archives into this and with some yet unpublished data de-duplication and xdelta compression between same-URL revisions `WRR`s are infinitely more efficient than anything else.
 
 For me, it uses about **3GiB per year of browsing** on average (\~5 years of mostly uninterrupted data collection ATM) but I use things like [uBlock Origin](https://github.com/gorhill/uBlock) and [uMatrix](https://github.com/gorhill/uMatrix) to cut things down, and [image boorus and video hosting sites have their own pipelines](../README.md#also).

@@ -3133,7 +3133,7 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         prog=__prog__,
         description=_('Inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.')
         + "\n\n"
-        + _("Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata."),
+        + _("Glossary: a `reqres` (`Reqres` when a type/class) is an instance of a structure representing `HTTP` request+response pair with some additional metadata."),
         additional_sections=[add_doc],
         allow_abbrev=False,
         add_version=True,

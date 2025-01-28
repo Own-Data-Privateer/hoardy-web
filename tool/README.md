@@ -12,7 +12,6 @@
 <li><a href="#viewreplay-your-archived-data-interactively-over-http" id="toc-viewreplay-your-archived-data-interactively-over-http">View/replay your archived data interactively over <code>HTTP</code></a></li>
 <li><a href="#make-a-website-mirror-from-your-archived-data" id="toc-make-a-website-mirror-from-your-archived-data">Make a website mirror from your archived data</a></li>
 </ul></li>
-<li><a href="#glossary" id="toc-glossary">Glossary</a></li>
 <li><a href="#supported-input-file-formats" id="toc-supported-input-file-formats">Supported input file formats</a></li>
 <li><a href="#recipes" id="toc-recipes">Recipes</a>
 <ul>
@@ -184,45 +183,9 @@ You can then, e.g. `rsync`/copy `~/hoardy-web/mirror1` to your e-book reader/pho
 
 The default settings should work for most simple websites, but a [section below](#mirror) contains more info and more usage examples.
 
-# Glossary
-
-- A *`reqres`* (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata.
-
-- [*`WARC`*](https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1-annotated/) is an ISO web archiving file format used by the [Wayback Machine](https://web.archive.org/) ([heritrix](https://github.com/internetarchive/heritrix3)) and many other tools.
-
-- [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) is a tool stripping TLS from a connection, dumping and/or modifying the traffic going through it, and re-adding TLS back.
-  I.e. a Man-In-The-Middle proxy.
-
-  In the context of this project, *`mitmproxy`* is also a file format produced by the `mitmdump` tool.
-
-- [*`WRR`*](../doc/data-on-disk.md) is a native archiving format used by `Hoardy-Web` project.
-
-  It is very much inspired by `mitmproxy` in that it stores a raw `HTTP` request+response pairs (instead of encoding `GET` documents like `WARC` does), but, unlike, `mitmproxy`, `WRR` is a [CBOR (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) encoding of `HTTP` request+response pairs, not some custom binary encoding.
-
-- *`WRR` file* is a file with a single `WRR` dump in it.
-  Typically, these use `.wrr` file extension.
-
-  When you use the [`Hoardy-Web` extension](../extension/) together with the [`hoardy-web-sas` archiving server](../simple_server/) or [`hoardy-web serve`](#serve), the latter two write `WRR` dumps the extension generates, one dump per file, into separate `.wrr` files in its dumping directory.
-
-  The situation is similar if you instead use the `Hoardy-Web` extension with `Export via 'saveAs'` option enabled but `Export via 'saveAs' > Bundle dumps` option disabled.
-  The only difference is that `WRR` files get written to your `~/Downloads` or similar.
-
-  ```bash
-  ls ~/Downloads/Hoardy-Web-export-*
-  ```
-
-- *`WRR` bundle* is a file containing a concatenation of a bunch of plain uncompressed `WRR` dumps, which are then optionally compressed with `GZip`.
-  Typically, these use `.wrrb` file extension.
-
-  When you use the `Hoardy-Web` extension together with both `Export via 'saveAs'` and bundling options enabled, it archives your data by generating `WRR` bundles, which then get written to your `~/Downloads` or similar.
-
-- *`HAR`* ([abandoned W3C spec](https://w3c.github.io/web-performance/specs/HAR/Overview.html), a [nicer spec](http://www.softwareishard.com/blog/har-12-spec/)) is an archiving file format used by the "Network Monitor" tools of most modern browsers.
-
-  It is similar `mitmproxy` and `WRR` in that it, too, stores `HTTP` request+response pairs, but it uses a very inefficient `JSON` encoding with body data encoded as `base64` and a lot of the metadata duplicated multiple times across the structure.
-
-- [*`PCAP`*](https://en.wikipedia.org/wiki/Pcap) is a file format used by many raw packet capture tools.
-
 # Supported input file formats
+
+For definitions, see the ["Data formats used by `Hoardy-Web`" page](../doc/data-on-disk.md).
 
 At the moment `hoardy-web` tool supports
 
@@ -871,7 +834,7 @@ See the [`script` sub-directory](./script/) for examples that show how to use `p
 
 Inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.
 
-Glossary: a `reqres` (`Reqres` when a Python type) is an instance of a structure representing `HTTP` request+response pair with some additional metadata.
+Glossary: a `reqres` (`Reqres` when a type/class) is an instance of a structure representing `HTTP` request+response pair with some additional metadata.
 
 - options:
   - `--version`

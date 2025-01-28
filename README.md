@@ -628,7 +628,7 @@ To conform to the above design principles
 
 - also the `Hoardy-Web` extension collects data as browser gives it, without any data normalization and conversion, when possible;
 
-- the dumps are generated using the [simplest, trivially parsable with many third-party libraries, yet most space-efficient on-disk file format representing separate `HTTP` requests+responses there currently is (aka `Web Request+Response`, `WRR`)](./doc/data-on-disk.md), which is a file format that is [both more general and more simple than `WARC`, much simpler than that `mitmproxy` uses, and much more efficient than `HAR`](./tool/README.md#glossary);
+- the dumps are generated using the [simplest, trivially parsable with many third-party libraries, yet most space-efficient on-disk file format representing separate `HTTP` requests+responses there currently is (aka `Web Request+Response`, `WRR`), which is a file format that is both more general and more simple than `WARC`, much simpler than that `mitmproxy` uses, and much more efficient than `HAR`](./doc/data-on-disk.md);
 
 - the `Hoardy-Web` extension can write the dumps it produces to disk by itself by generating fake-Dowloads containing bundles of `WRR` dumps, but because of limitations of browser APIs, `Hoardy-Web` can't tell if a file generated this way succeeds at being written to disk;
 
@@ -710,7 +710,7 @@ Cons:
 - to do what `Hoardy-Web` does, you will have to manually enable it for each browser tab;
 - opening a link in a new tab will fail to archive the first page as you will not have Network Monitor open there yet; and then
 - you will have to check all your tabs for new data all the time and do \~5 clicks per tab to save it; and then
-- [`HAR`](./tool/README.md#glossary)s are `JSON`, meaning all that binary data gets encoded indirectly, thus making resulting `HAR` archives very inefficient for long-term storage, as they take a lot of disk space, even when compressed;
+- [`HAR`](./doc/data-on-disk.md)s are `JSON`, meaning all that binary data gets encoded indirectly, thus making resulting `HAR` archives very inefficient for long-term storage, as they take a lot of disk space, even when compressed;
 - and then you'll still need something like this suite to inspect the generated archives;
 - and then you'll still need some more tools to use those archives for Wayback Machine-like replay and generation of website mirrors.
 
@@ -727,7 +727,7 @@ Cons:
 
 - it is really painful to setup; and then
 - you are very likely to screw it up, loose/mismatch encryption keys, and make your captured data unusable; and even if you don't,
-- it takes a lot of effort to recover `HTTP` data from the [`PCAP`](./tool/README.md#glossary) dumps; and
+- it takes a lot of effort to recover `HTTP` data from the [`PCAP`](./doc/data-on-disk.md) dumps; and
 - `PCAP` dumps are IP packet-level, thus also inefficient for this use case; and
 - `PCAP` dumps of SSL traffic can not be compressed much, thus storing the raw captures will take a lot of disk space.
 - and then you'll still need something like this suite to inspect the generated archives;
@@ -741,7 +741,7 @@ Browser extensions similar to the [`Hoardy-Web` extension](./extension/) in thei
 
 Overall, `Hoardy-Web` and `archiveweb.page` extensions have a similar vibe, but the main difference is that `archiveweb.page` and related tools are designed for capturing web pages with the explicit aim to share the resulting archives with the public, while `Hoardy-Web` is designed for private capture of personally visited pages first.
 
-In practical terms, `archiveweb.page` has a "Record" button, which you need to press to start recording a browsing session in a separate tab into a separate [`WARC`](./tool/README.md#glossary) file.
+In practical terms, `archiveweb.page` has a "Record" button, which you need to press to start recording a browsing session in a separate tab into a separate [`WARC`](./doc/data-on-disk.md) file.
 In contrast, `Hoardy-Web`, by default, in background, captures and archives all successful `HTTP` requests and their responses from all your open browser tabs.
 
 Pros:
@@ -843,7 +843,7 @@ A tool similar to [`hoardy-web serve`](./tool/).
 
 Pros:
 
-- it produces and consumes archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard;
+- it produces and consumes archives in [`WARC`](./doc/data-on-disk.md) format, which is a de-facto standard;
 - its replay capabilities are more mature than what `hoardy-web serve` currently has;
 - it can update its configuration without a restart and re-index of given inputs.
 
@@ -869,7 +869,7 @@ A tool similar to [`hoardy-web serve`](./tool/).
 
 Pros:
 
-- it produces and consumes archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard;
+- it produces and consumes archives in [`WARC`](./doc/data-on-disk.md) format, which is a de-facto standard;
 - stable, well-tested, and well-supported.
 
 Cons:
@@ -887,7 +887,7 @@ A web crawler and self-hosted web app into which you can feed the URLs for them 
 
 Pros:
 
-- it produces and consumes archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard;
+- it produces and consumes archives in [`WARC`](./doc/data-on-disk.md) format, which is a de-facto standard;
 - it has a very nice web UI;
 - it it's an all-in-one archiving solution, also archiving YouTube videos with [yt-dlp](https://github.com/yt-dlp/yt-dlp), `git` repos, etc;
 - stable, well-tested, and well-supported.
@@ -915,7 +915,7 @@ Pros and Cons are almost identical to those of `ArchiveBox` above, except it has
 Pros:
 
 - both are probably already installed on your POSIX-compliant OS,
-- `wget` can produce archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard.
+- `wget` can produce archives in [`WARC`](./doc/data-on-disk.md) format, which is a de-facto standard.
 
 Cons:
 
@@ -933,7 +933,7 @@ Pros:
 
 - it can pause and resume fetching;
 - it can archive many dynamic websites via PhantomJS;
-- it produces archives in [`WARC`](./tool/README.md#glossary) format, which is a de-facto standard and has a lot of tooling around it;
+- it produces archives in [`WARC`](./doc/data-on-disk.md) format, which is a de-facto standard and has a lot of tooling around it;
 - stable, well-tested, and well-supported.
 
 Cons:
@@ -956,7 +956,7 @@ Cons:
 - to do what `Hoardy-Web` does, you will have to manually capture each page you want to save;
 - it can't really archive dynamic websites;
 - you won't be able to archive your `HTTP POST` requests with it;
-- it does not have replay capabilities, just generates [`WARC`](./tool/README.md#glossary) files.
+- it does not have replay capabilities, just generates [`WARC`](./doc/data-on-disk.md) files.
 
 ## [monolith](https://github.com/Y2Z/monolith) and [obelisk](https://github.com/go-shiori/obelisk)
 
