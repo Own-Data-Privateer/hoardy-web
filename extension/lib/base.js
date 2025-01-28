@@ -162,34 +162,65 @@ function cacheSingleton(map, key, func) {
 }
 
 // recursive equality comparison
-function equalRec(a, b) {
+function equalRec(a, b, diff, prefix) {
     if (a === b)
         return true;
 
-    if (a === undefined && b !== undefined || a !== undefined && b === undefined)
+    if (a === undefined && b !== undefined
+        || a !== undefined && b === undefined
+        || a === null && b !== null
+        || a !== null && b === null) {
+        if (diff !== undefined)
+            diff.push(prefix);
         return false;
-    if (a === null && b !== null || a !== null && b === null)
-        return false;
+    }
 
     let typ = typeof a;
-    if (typ == "boolean" || typ == "number" || typ == "string")
-        return a === b;
+    if (typ === "boolean" || typ === "number" || typ === "string") {
+        if (a !== b) {
+            if (diff !== undefined)
+                diff.push(prefix);
+            return false;
+        }
+        return true;
+    }
 
-    if (a instanceof Array && b instanceof Array)
-        return a.length === b.length && a.every((v, i) => equalRec(v, b[i]));
+    if (a instanceof Array && b instanceof Array) {
+        if (a.length !== b.length) {
+            if (diff !== undefined)
+                diff.push(prefix);
+            return false;
+        }
+
+        if (diff === undefined)
+            return a.every((v, i) => equalRec(v, b[i]));
+        else
+            return a.every((v, i) => equalRec(v, b[i], diff, prefix ? prefix + "." + i.toString() : i.toString()));
+    }
 
     if (a instanceof Object && b instanceof Object) {
         let ae = Array.from(Object.entries(a));
         let be = Array.from(Object.entries(b));
-        if (ae.length !== be.length)
+        if (ae.length !== be.length) {
+            if (diff !== undefined)
+                diff.push(prefix);
             return false;
+        }
 
         let res = true;
-        for (let [k, v] of ae)
-            if (!equalRec(v, b[k])) {
-                res = false;
-                break;
+        if (diff === undefined) {
+            for (let [k, v] of ae) {
+                if (!equalRec(v, b[k])) {
+                    res = false;
+                    break;
+                }
             }
+        } else {
+            for (let [k, v] of ae) {
+                if (!equalRec(v, b[k], diff, prefix ? prefix + "." + k : k))
+                    res = false;
+            }
+        }
         return res;
     }
 
