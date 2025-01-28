@@ -2947,14 +2947,17 @@ function renderReqres(encoder, reqres) {
     if (reqres.fromCache)
         rest.from_cache = true;
 
-    if (!reqres.sent)
-        rest.sent = false;
+    if (!reqres.submitted)
+        rest.submitted = false;
 
-    // Chromium did not emit the WebRequest half
-    if (reqres.fake)
-        rest.fake = true;
+    // buggy metadata capture
+    if (reqres.requestBuggy)
+        rest.request_buggy = true;
 
-    // The response was genererated by another extension or a service/shared worker.
+    if (reqres.responseBuggy)
+        rest.response_buggy = true;
+
+    // response was genererated by another extension or a service/shared worker
     if (reqres.generated)
         rest.generated = true;
 
@@ -3016,8 +3019,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
             reqres.responseTimeStamp = reqres.emitTimeStamp;
             reqres.statusCode = 200;
             reqres.reason = "Assumed OK";
-            // so that it would be marked as problematic, since actual metatada is not available
-            reqres.errors.push("webRequest::capture::RESPONSE::BROKEN");
+            reqres.responseBuggy = true;
         } else
             // This was a normal error, not a race between the response
             // generator and the networking code.
@@ -3075,7 +3077,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
     if (reqres.protocol === "SNAPSHOT") {
         // it's a snapshot
         state = "snapshot";
-    } else if (!reqres.sent) {
+    } else if (!reqres.submitted) {
         // it failed somewhere before handleSendHeaders or was redirected
         // internally (e.g. by an extension)
         state = "canceled";
@@ -3355,7 +3357,7 @@ async function snapshotOneTab(tabId, url) {
                 requestBody: new ChunkedBuffer(),
                 requestComplete: true,
 
-                sent: false,
+                submitted: false,
                 responded: true,
                 fromCache: false,
 
@@ -3621,8 +3623,9 @@ function shallowCopyOfReqres(reqres) {
 
         requestTimeStamp: reqres.requestTimeStamp,
         requestComplete: reqres.requestComplete,
+        requestBuggy: reqres.requestBuggy,
 
-        sent: reqres.sent,
+        submitted: reqres.submitted,
         responded: reqres.responded,
 
         responseTimeStamp: reqres.responseTimeStamp,
@@ -3631,6 +3634,7 @@ function shallowCopyOfReqres(reqres) {
         reason: reqres.reason,
         fromCache: reqres.fromCache,
         responseComplete: reqres.responseComplete,
+        responseBuggy: reqres.responseBuggy,
 
         redirectUrl: reqres.redirectUrl,
 
@@ -3639,6 +3643,31 @@ function shallowCopyOfReqres(reqres) {
 }
 
 function deserializeLoggable(loggable) {
+    // fixup various things
+    function rename(from, to) {
+        let old = loggable[from];
+        if (old === undefined)
+            return;
+        delete loggable[from];
+        loggable[to] = old;
+    }
+
+    rename("sent", "submitted");
+    rename("fake", "requestBuggy");
+    if (loggable.requestBuggy)
+        loggable.requestComplete = loggable.fromCache;
+
+    if (loggable.errors !== undefined) {
+        let [popped, unpopped] = partitionN(
+            (err) => err == "webRequest::capture::RESPONSE::BROKEN" || err == "webRequest::pWebArc::RESPONSE::BROKEN",
+            null, loggable.errors);
+
+        if (popped.length !== 0) {
+            loggable.responseBuggy = true;
+            loggable.errors = unpopped;
+        }
+    }
+
     addLoggableFields(loggable);
 }
 
@@ -3809,7 +3838,7 @@ function handleBeforeRequest(e) {
         requestBody: new ChunkedBuffer(),
         requestComplete: true,
 
-        sent: false,
+        submitted: false,
         responded: false,
 
         responseHeaders : [],
@@ -3910,7 +3939,7 @@ function handleSendHeaders(e) {
     if (reqres === undefined) return;
 
     logEvent("SendHeaders", e, reqres);
-    reqres.sent = true;
+    reqres.submitted = true;
     reqres.requestHeaders = e.requestHeaders;
 }
 
@@ -4774,6 +4803,8 @@ function fixConfig(config, oldConfig) {
 function upgradeConfig(config) {
     function rename(from, to) {
         let old = config[from];
+        if (old === undefined)
+            return;
         delete config[from];
         config[to] = old;
     }

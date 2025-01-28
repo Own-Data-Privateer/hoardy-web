@@ -274,9 +274,9 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         //requestHeadersDebug: undefined,
         //requestHeadersDebugExtra: undefined,
         //requestBody: undefined,
-        //requestComplete: true,
+        //requestComplete: false,
 
-        sent: false,
+        submitted: false,
         responded: false,
 
         //responseTimeStamp: undefined,
@@ -290,7 +290,6 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         responseComplete: false,
 
         fromCache: false,
-        fake: true,
     }; });
 
     if (nonExtra) {
@@ -320,7 +319,7 @@ function handleDebugResponseRecieved(nonExtra, e) {
 
     logDebugEvent("responseReceived", nonExtra, e, dreqres);
 
-    dreqres.sent = true;
+    dreqres.submitted = true;
     dreqres.responded = true;
 
     if (nonExtra) {
@@ -509,8 +508,9 @@ function forceFinishingUpDebug(predicate, updatedTabId) {
         // webRequest `reqres`. This is used when Chromium bugs out and forgets to
         // produce the webRequest part. Essentially, this is a continuation of
         // emitDebugRequest, which finishes it up to become a valid `reqres`.
+        dreqres.requestBuggy = true;
         dreqres.requestBody = new ChunkedBuffer();
-        dreqres.requestComplete = true;
+        dreqres.requestComplete = dreqres.fromCache;
         if (dreqres.responseBody === undefined)
             dreqres.responseBody = new ChunkedBuffer();
         // dreqres.responseComplete is set by emitDebugRequest
@@ -688,7 +688,7 @@ function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
             scheduleActionEndgame(scheduledCancelable, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000 + 500, () => {
                 // First, finish up unsent requests (which are usually redirects).
                 let olderThan1 = Date.now() - config.workaroundChromiumDebugTimeout * 1000;
-                updatedTabId2 = forceFinishingUpWebRequest((r) => !r.sent && r.emitTimeStamp <= olderThan1, updatedTabId2);
+                updatedTabId2 = forceFinishingUpWebRequest((r) => !r.submitted && r.emitTimeStamp <= olderThan1, updatedTabId2);
 
                 // Then, eventually, finish up the rest.
                 scheduleActionEndgame(scheduledCancelable, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 2000 + 500, () => {
