@@ -86,14 +86,17 @@ async function popupMain() {
     let hash = document.location.hash.substr(1);
     let tabId;
     let windowId;
+    let tabbing = true;
 
-    let tabbing = false;
-    if (hash === "options") {
+    if (hash)
         document.getElementById("tags").style.display = "none";
+
+    if (hash === "options") {
         document.getElementById("this-tab-options").style.display = "none";
         document.getElementById("this-tab-children-options").style.display = "none";
-    } else if (hash == "all") {
-        document.getElementById("tags").style.display = "none";
+        document.body.style.border = "none";
+        document.body.style.color = "inherit"; // to work-around Firefox default CSS
+        tabbing = false;
     } else {
         let tab = await getActiveTab();
         if (tab !== null) {
@@ -106,7 +109,6 @@ async function popupMain() {
             windowId = 0;
             tabId = 0;
         }
-        tabbing = true;
     }
 
     // generate UI
@@ -385,7 +387,7 @@ async function popupMain() {
     }
 
     // set default UI state
-    showTab(!!hash ? "all" : "common");
+    showTab(hash ? "all" : "common");
 
     async function processUpdate(update) {
         let [what, arg1, arg2] = update;
