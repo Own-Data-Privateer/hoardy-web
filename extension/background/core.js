@@ -1779,8 +1779,7 @@ function scheduleEndgame(updatedTabId, doNotifyTimeout) {
 
                 // is this change important?
                 let boring = true;
-                if (savedGlobals === undefined
-                    || wantReloadSelf
+                if (wantReloadSelf
                     || (!haveInFlight && (savedGlobals.collectedTotal !== globals.collectedTotal
                                           || savedGlobals.submittedHTTPTotal !== globals.submittedHTTPTotal
                                           || savedGlobals.exportedAsTotal !== globals.exportedAsTotal))
@@ -4842,8 +4841,8 @@ async function init() {
 
         upgradeConfig(oldConfig);
         config = updateFromRec(config, oldConfig);
-        savedConfig = config;
     }
+    savedConfig = assignRec({}, config);
 
     let oldGlobals = getFirstDefined(localData.globals, localData.persistentStats, localData.globalStats);
     if (oldGlobals !== undefined) {
@@ -4851,8 +4850,8 @@ async function init() {
 
         oldGlobals = upgradeGlobals(oldGlobals);
         globals = updateFromRec(globals, oldGlobals);
-        savedGlobals = globals;
     }
+    savedGlobals = assignRec({}, globals);
 
     let lastSeenVersion = config.lastSeenVersion;
     config.version = configVersion;
