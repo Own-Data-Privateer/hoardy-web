@@ -333,9 +333,12 @@ async function cancelAllSingletonTimeouts(map) {
 
 // recursive equality comparison
 function equalRec(a, b) {
+    if (a === b)
+        return true;
+
     if (a === undefined && b !== undefined || a !== undefined && b === undefined)
         return false;
-    else if (a === null && b !== null || a !== null && b === null)
+    if (a === null && b !== null || a !== null && b === null)
         return false;
 
     let typ = typeof a;
@@ -344,7 +347,8 @@ function equalRec(a, b) {
 
     if (a instanceof Array && b instanceof Array)
         return a.length === b.length && a.every((v, i) => equalRec(v, b[i]));
-    else if (a instanceof Object && b instanceof Object) {
+
+    if (a instanceof Object && b instanceof Object) {
         let ae = Array.from(Object.entries(a));
         let be = Array.from(Object.entries(b));
         if (ae.length !== be.length)
