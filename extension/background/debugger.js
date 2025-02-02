@@ -29,73 +29,8 @@ async function initDebugCapture(tabs) {
     await syncDebuggersState(tabs);
 }
 
-// tabs we are debugging in Chrome
-let tabsDebugging = new Set();
-let tabsAttaching = new Map();
-
-async function attachAndInitDebuggingTarget(tabId) {
-    let debuggee = { tabId };
-
-    let lastError = undefined;
-    for (let retries = 0; retries < 10; ++retries) {
-        try {
-            await browser.debugger.attach(debuggee, "1.3");
-        } catch (err) {
-            lastError = err;
-            if (typeof err !== "string")
-                throw err;
-            else if (err === "Cannot access a chrome:// URL"
-                || err.startsWith("Cannot access contents of url"))
-                throw err;
-            else if (!err.startsWith("Another debugger is already attached to the tab with id:"))
-                throw err;
-            // otherwise, continue as normal
-        }
-
-        try {
-            await browser.debugger.sendCommand(debuggee, "Network.enable", {});
-            //await browser.debugger.sendCommand(debuggee, "Fetch.enable", {});
-            //await browser.debugger.sendCommand(debuggee, "Page.enable", {});
-        } catch (err) {
-            // this could happen if the debugger gets detached immediately
-            // after it gets attached, so we retry again
-            lastError = err;
-            await sleep(100);
-            continue;
-        }
-
-        lastError = undefined;
-        break;
-    }
-
-    if (lastError !== undefined)
-        throw lastError;
-
-    tabsDebugging.add(tabId);
-    if (config.debugging)
-        console.log("attached debugger to tab", tabId);
-}
-
-async function attachDebugger(tabId) {
-    if (tabsDebugging.has(tabId))
-        // nothing to do
-        return;
-
-    if (config.debugging)
-        console.log("attaching debugger to tab", tabId);
-
-    // NB: self-destructing using `tabsAttaching.delete`
-    await cacheSingleton(tabsAttaching, tabId,
-        (tabId) => attachAndInitDebuggingTarget(tabId).finally(() => tabsAttaching.delete(tabId)));
-}
-
-function detachDebugger(tabId) {
-    let debuggee = { tabId };
-    return browser.debugger.detach(debuggee).then(() => {
-        tabsDebugging.delete(tabId);
-        if (config.debugging)
-            console.log("detached debugger from tab", tabId);
-    });
+function attachDebugger(tabId) {
+    return attachDebuggerWithSendCommands(tabId, "1.3", [["Network.enable", {}]]);
 }
 
 async function syncDebuggersState(tabs) {
