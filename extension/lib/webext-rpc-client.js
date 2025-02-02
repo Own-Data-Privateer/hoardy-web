@@ -28,6 +28,8 @@
 
 "use strict";
 
+let WEBEXT_RPC_MODE = 1;
+
 // Set to enable debugging.
 let DEBUG_WEBEXT_RPC = false;
 

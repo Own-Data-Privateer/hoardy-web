@@ -4292,47 +4292,7 @@ function handleUpdateAvailable(details) {
         scheduleUpdateDisplay(true);
 }
 
-// open client tab ports
-let openPorts = new Map();
-
-// Yes, this overrides the function in ../lib/base.js
-//
-// This is the whole point. In normal modules `broadcast` just sends data to
-// the `handleInternalRPC` below, which then uses this function to broadcast it to
-// all connected ports. And this module uses this function directly instead.
-// (So, this module is the center of a star message-passing topology.)
-function broadcast(data) {
-    if (config.debugging)
-        console.log("broadcasting", data);
-
-    for (let [portId, port] of openPorts.entries()) {
-        port.postMessage(data);
-    }
-}
-
-function handleConnect(port) {
-    let portId;
-    if (useDebugger) {
-        if (port.sender.tab !== undefined)
-            portId = port.sender.tab.id;
-        else
-            portId = port.sender.url;
-    } else
-        portId = port.sender.contextId;
-    if (config.debugging)
-        console.log("port opened", portId, port);
-    openPorts.set(portId, port);
-    port.onDisconnect.addListener(catchAll(() => {
-        if (config.debugging)
-            console.log("port disconnected", portId);
-        openPorts.delete(portId);
-    }));
-}
-
 function handleInternalMessage(request, sender, sendResponse) {
-    if (config.debugging)
-        console.log("got message", request);
-
     let [cmd, arg1, arg2, arg3, arg4] = request;
     switch (cmd) {
     case "reloadSelf":
@@ -5043,12 +5003,14 @@ async function init() {
     if (browser.commands !== undefined)
         browser.commands.onCommand.addListener(catchAll(handleShortcut));
 
-    browser.runtime.onMessage.addListener(catchAll(handleInternalMessage));
-    browser.runtime.onConnect.addListener(catchAll(handleConnect));
+    // Init UI handling.
 
     initMenus();
-
     browser.notifications.onClicked.addListener(catchAll(handleNotificationClicked));
+
+    // Init RPC.
+
+    initWebextRPC(handleInternalMessage);
 
     console.log("Ready to Hoard the Web!");
 
