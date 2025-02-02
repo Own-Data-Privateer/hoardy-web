@@ -412,7 +412,7 @@ async function popupMain() {
                 tabId = arg2;
             break;
         default:
-            await handleDefaultUpdate(update, "popup", () => showTab("all"));
+            await webextRPCHandleMessageDefault(update, "popup", () => showTab("all"));
         }
     }
 

@@ -154,12 +154,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         case "popupResized":
             resize();
         default:
-            await handleDefaultUpdate(update, "help");
+            await webextRPCHandleMessageDefault(update, "help");
         }
     }
 
     // add default handlers
-    await subscribeToExtension(catchAll(processUpdate), () => false);
+    await subscribeToExtensionSimple(catchAll(processUpdate));
 
     {
         let config = await browser.runtime.sendMessage(["getConfig"]);

@@ -63,7 +63,7 @@ async function stateMain() {
             resetDataNode("data", data);
             break;
         default:
-            await handleDefaultUpdate(update, thisTabId);
+            await webextRPCHandleMessageDefault(update, thisTabId);
         }
     }
 

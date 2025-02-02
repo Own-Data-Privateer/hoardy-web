@@ -137,7 +137,7 @@ async function stateMain() {
             appendToLog(document.getElementById("data_queued"), data, (loggable) => isAcceptedBy(rrfilters.queued, loggable));
             break;
         default:
-            await handleDefaultUpdate(update, thisTabId);
+            await webextRPCHandleMessageDefault(update, thisTabId);
         }
     }
 

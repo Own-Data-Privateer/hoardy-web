@@ -8,6 +8,8 @@
   <body>
     <script src="../lib/compat.js"></script>
     <script src="../lib/base.js"></script>
+    <script src="../lib/schedule-timeout.js"></script>
+    <script src="../lib/webext.js"></script>
     <script src="../lib/cbor-s.js"></script>
     <script src="../lib/pako.js"></script>
     <script src="../lib/pako-ext.js"></script>

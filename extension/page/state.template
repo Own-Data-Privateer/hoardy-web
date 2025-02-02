@@ -95,6 +95,9 @@
 
     <script src="../lib/compat.js"></script>
     <script src="../lib/base.js"></script>
+    <script src="../lib/ui.js"></script>
+    <script src="../lib/webext.js"></script>
+    <script src="../lib/webext-rpc-client.js"></script>
     <script src="../background/util.js"></script>
     <script src="reqres-ui.js"></script>
     <script src="state.js"></script>
