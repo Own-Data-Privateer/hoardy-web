@@ -213,8 +213,8 @@ async function saveConfig() {
     await browser.storage.local.set({ config: savedConfig }).catch(logError);
 }
 
-function asyncSaveConfig() {
-    scheduleAction(scheduledSaveState, "saveConfig", 1000, () => {
+function scheduleSaveConfig(timeout) {
+    scheduleAction(scheduledSaveState, "saveConfig", timeout, () => {
         saveConfig();
     });
     // NB: needs scheduleUpdateDisplay afterwards
@@ -713,7 +713,7 @@ function scheduleCleanupAfterTab(tabId) {
 function processRemoveTab(tabId) {
     openTabs.delete(tabId);
 
-    let updatedTabId = syncStopInFlight(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
+    let updatedTabId = stopInFlight(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
 
     scheduleCleanupAfterTab(tabId);
 
@@ -724,7 +724,7 @@ function processRemoveTab(tabId) {
 
 // reqres in-flight, indexed by requestId
 let reqresInFlight = new Map();
-// reqres that are "completed" by the browser, but might have an unfinished filterResponseData filter
+// reqres that were "completed" by the webRequest API, but might have unfinished filterResponseData filters
 let reqresFinishingUp = [];
 // completely finished reqres
 let reqresAlmostDone = [];
@@ -746,7 +746,7 @@ let reqresErrored = new Map();
 let reqresUnstashedByError = new Map();
 // same thing, but archivable as key, and `syncOne` args as values
 let reqresUnstashedByArchivable = new Map();
-// archivables that failed in server submission, indexed by archiveURL, then by error message
+// archivables that failed in server submission, indexed by storeID, then by error message
 let reqresUnarchivedByArchiveError = new Map();
 // map `archivables -> int`, the `int` is a count of how many times each archivable appears
 // in`reqresUnarchivedByArchiveError`
@@ -762,20 +762,20 @@ function getInFlightLog() {
     for (let [k, v] of debugReqresInFlight.entries()) {
         // `.url` can be unset, see (veryEarly) in `emitDebugRequest`.
         if (v.url !== undefined && !isBoringOrServerURL(v.url))
-            res.push(makeLoggableReqres(v));
+            res.push(makeLoggable(v));
     }
     for (let [k, v] of reqresInFlight.entries())
-        res.push(makeLoggableReqres(v));
+        res.push(makeLoggable(v));
     for (let v of debugReqresFinishingUp)
-        res.push(makeLoggableReqres(v));
+        res.push(makeLoggable(v));
     for (let v of reqresFinishingUp)
-        res.push(makeLoggableReqres(v));
+        res.push(makeLoggable(v));
     for (let v of reqresAlmostDone)
-        res.push(makeLoggableReqres(v));
+        res.push(makeLoggable(v));
     return res;
 }
 
-function getLoggables(archivables, res) {
+function pushFirstTo(archivables, res) {
     for (let [v, _x] of archivables) {
         res.push(v);
     }
@@ -783,34 +783,34 @@ function getLoggables(archivables, res) {
 }
 
 function getProblematicLog() {
-    return getLoggables(reqresProblematic, []);
+    return pushFirstTo(reqresProblematic, []);
 }
 
 function getInLimboLog() {
-    return getLoggables(reqresLimbo, []);
+    return pushFirstTo(reqresLimbo, []);
 }
 
 function getQueuedLog() {
-    return getLoggables(reqresQueue, []);
+    return pushFirstTo(reqresQueue, []);
 }
 
 function getUnarchivedLog() {
-    return getLoggables(reqresUnarchivedByArchivable.keys(), []);
+    return pushFirstTo(reqresUnarchivedByArchivable.keys(), []);
 }
 
-function getByErrorMap(archiveURL) {
-    return cacheSingleton(reqresUnarchivedByArchiveError, archiveURL, () => new Map());
+function getByReasonMap(storeID) {
+    return cacheSingleton(reqresUnarchivedByArchiveError, storeID, () => new Map());
 }
 
-function getByErrorMapRecord(byErrorMap, error) {
-    return cacheSingleton(byErrorMap, errorMessageOf(error), () => { return {
+function getByReasonRecord(byReasonMap, error) {
+    return cacheSingleton(byReasonMap, errorMessageOf(error), () => { return {
         recoverable: true,
         queue: [],
         size: 0,
     }; });
 }
 
-function recordByErrorTo(v, recoverable, archivable, size) {
+function recordByReasonTo(v, recoverable, archivable, size) {
     v.when = Date.now();
     v.recoverable = v.recoverable && recoverable;
     v.queue.push(archivable);
@@ -822,20 +822,20 @@ function recordByErrorTo(v, recoverable, archivable, size) {
     reqresUnarchivedByArchivable.set(archivable, count + 1);
 }
 
-function recordByError(byErrorMap, error, recoverable, archivable, size) {
-    let v = getByErrorMapRecord(byErrorMap, error);
-    recordByErrorTo(v, recoverable, archivable, size);
+function recordByReason(byReasonMap, error, recoverable, archivable, size) {
+    let v = getByReasonRecord(byReasonMap, error);
+    recordByReasonTo(v, recoverable, archivable, size);
 }
 
 function markAsErrored(error, archivable) {
     let dumpSize = archivable[0].dumpSize;
     if (dumpSize === undefined)
         dumpSize = 0;
-    recordByError(reqresErrored, error, false, archivable, dumpSize);
+    recordByReason(reqresErrored, error, false, archivable, dumpSize);
     gotNewErrored = true;
 }
 
-function syncDeleteErrored() {
+function syncDeleteAllErrored() {
     runSynchronously("deleteErrored", async () => {
         for (let f of reqresErrored.values())
             await syncMany(f.queue, 0, false);
@@ -870,7 +870,7 @@ let globals = assignRec({
     savedIDB: assignRec({}, dbstatsDefaults),
 }, persistentStatsDefaults);
 // did it change recently?
-let changedGlobals = false;
+let wantSaveGlobals = false;
 // last stats saved in storage
 let savedGlobals = undefined;
 
@@ -917,7 +917,7 @@ function getOriginState(tabId, fromExtension) {
     return cacheSingleton(tabState, tabId, () => assignRec({}, tabStateDefaults));
 }
 
-// doNotify flags
+// doGlobalNotify flags
 // do we have a newly- or recently failed to be stashed or saved/archived to local storage reqres?
 let gotNewSyncedOrNot = false;
 // do we have a newly- or recently failed to be archived reqres?
@@ -929,15 +929,15 @@ let gotNewQueued = false;
 // do we have new reqres in limbo?
 let gotNewLimbo = false;
 // last time we notified the user about it
-let lastLimboNotication = 0;
+let gotNewLimboLastNotification = 0;
 // do we have new problematic reqres?
 let gotNewProblematic = false;
 // do we have new buggy reqres?
 let gotNewErrored = false;
 
 // scheduleEndgame flags
-let gotNewExportedAs = false;
-let wantRetryUnarchived = false;
+let wantBucketSaveAs = false;
+let wantRetryAllUnarchived = false;
 let wantBroadcastSaved = false;
 
 function getNumberAndSizeFromQueues(m) {
@@ -1187,7 +1187,7 @@ function popInLimbo(collect, num, tabId, rrfilter) {
     reqresLimbo = unpopped;
     reqresLimboSize -= minusSize;
     truncateLog();
-    changedGlobals = true;
+    wantSaveGlobals = true;
 
     if (popped.some((r) => r.problematic === true))
         // reset problematic, since reqres statuses have changed
@@ -1200,7 +1200,7 @@ function popInLimbo(collect, num, tabId, rrfilter) {
         broadcast(["newLog", newlyLogged]);
 
     if (newlyStashed.length > 0)
-        runSynchronously("stashNew", syncMany, newlyStashed, 1, true);
+        runSynchronously("stash", syncMany, newlyStashed, 1, true);
     if (newlyUnstashed.length > 0)
         runSynchronously("unstash", syncMany, newlyUnstashed, 0, false);
 
@@ -1337,7 +1337,7 @@ let udGTitle = null;
 //   conflate these two cases because updated `tab.url` could change the result
 //   of `getStateTabIdOrTabId`, which will then effectively "switch" the tab
 //   under display.
-async function doUpdateDisplay(statsChanged, updatedTabId, tabChanged) {
+async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
     statsChanged = statsChanged || udStats === null;
     let wantUpdate = updatedTabId === null;
 
@@ -1668,7 +1668,7 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, tabChanged, episodic,
         udUpdatedTabId = undefined;
         udTabChanged = false;
 
-        await doUpdateDisplay(statsChanged, updatedTabId, tabChanged);
+        await updateDisplay(statsChanged, updatedTabId, tabChanged);
 
         // we schedule this here because otherwise we will have to schedule it
         // almost everywhere `scheduleUpdateDisplay` is used
@@ -1682,7 +1682,7 @@ async function forceUpdateDisplay(statsChanged, updatedTabId, episodic) {
     await popSingletonTimeout(scheduledHidden, "updateDisplay", true, true);
 }
 
-function getEpisodic(num) {
+function getGoodEpisodic(num) {
     if (num > 200)
         return 100;
     else if (num > 20)
@@ -1691,22 +1691,20 @@ function getEpisodic(num) {
         return 1;
 }
 
-// schedule processFinishingUp
-function scheduleFinishingUp() {
+// schedule processFinishingUpWebRequest
+function scheduleProcessFinishingUpWebRequest() {
     if (reqresFinishingUp.length == 0 && debugReqresFinishingUp.length == 0)
         // nothing to do
         return;
 
-    scheduleAction(scheduledInternal, "finishingUp", 100, () => {
-        return processFinishingUp(false);
-    });
+    scheduleAction(scheduledInternal, "finishingUp", 100, () => processFinishingUpWebRequest(false));
     scheduleUpdateDisplay(true);
 }
 
 let seUpdatedTabId;
 
 // schedule processArchiving, processAlmostDone, etc
-function scheduleEndgame(updatedTabId, doNotifyTimeout) {
+function scheduleEndgame(updatedTabId, notifyTimeout) {
     updatedTabId = seUpdatedTabId = mergeUpdatedTabIds(seUpdatedTabId, updatedTabId);
 
     if (synchronousClosures.length > 0) {
@@ -1721,7 +1719,7 @@ function scheduleEndgame(updatedTabId, doNotifyTimeout) {
                 if (config.debugging)
                     console.warn("running", key);
 
-                await forceUpdateDisplay(true, updatedTabId, getEpisodic(synchronousClosures.length));
+                await forceUpdateDisplay(true, updatedTabId, getGoodEpisodic(synchronousClosures.length));
                 updatedTabId = undefined;
 
                 try {
@@ -1739,12 +1737,12 @@ function scheduleEndgame(updatedTabId, doNotifyTimeout) {
 
             // TODO: this is inefficient, make all closures call us
             // explicitly instead or use `mergeUpdatedTabIds` above instead
-            scheduleEndgame(null, doNotifyTimeout);
+            scheduleEndgame(null, notifyTimeout);
         });
     } else if (wantCheckServer) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             await checkServer();
-            scheduleEndgame(updatedTabId, doNotifyTimeout);
+            scheduleEndgame(updatedTabId, notifyTimeout);
         });
     } else if (config.archive && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
@@ -1753,7 +1751,7 @@ function scheduleEndgame(updatedTabId, doNotifyTimeout) {
 
             await forceUpdateDisplay(true, updatedTabId);
             updatedTabId = await processArchiving(updatedTabId);
-            scheduleEndgame(updatedTabId, doNotifyTimeout);
+            scheduleEndgame(updatedTabId, notifyTimeout);
         });
     } else if (reqresAlmostDone.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
@@ -1762,7 +1760,7 @@ function scheduleEndgame(updatedTabId, doNotifyTimeout) {
 
             await forceUpdateDisplay(true, updatedTabId);
             updatedTabId = await processAlmostDone(updatedTabId);
-            scheduleEndgame(updatedTabId, doNotifyTimeout);
+            scheduleEndgame(updatedTabId, notifyTimeout);
         });
     } else /* if (!config.archive || reqresQueue.length == 0) */ {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
@@ -1779,8 +1777,8 @@ function scheduleEndgame(updatedTabId, doNotifyTimeout) {
             // do we have some reqres in flight?
             let haveInFlight = reqresInFlight.size + debugReqresInFlight.size + reqresFinishingUp.length + debugReqresFinishingUp.length > 0;
 
-            if (changedGlobals) {
-                changedGlobals = false;
+            if (wantSaveGlobals) {
+                wantSaveGlobals = false;
 
                 // is this change important?
                 let boring = true;
@@ -1797,37 +1795,37 @@ function scheduleEndgame(updatedTabId, doNotifyTimeout) {
                 scheduleSaveGlobals(boring ? 90000 : (wantReloadSelf ? 0 : 1000));
             }
 
-            if (gotNewExportedAs) {
-                gotNewExportedAs = false;
+            if (wantBucketSaveAs) {
+                wantBucketSaveAs = false;
                 // schedule exportAs for all buckets
-                asyncBucketSaveAs(haveInFlight
-                                  ? config.exportAsInFlightTimeout * 1000
-                                  : (wantReloadSelf ? 0 : config.exportAsTimeout * 1000)
-                                  , null);
+                scheduleBucketSaveAs(haveInFlight
+                                     ? config.exportAsInFlightTimeout * 1000
+                                     : (wantReloadSelf ? 0 : config.exportAsTimeout * 1000)
+                                     , null);
             }
 
-            if (wantRetryUnarchived) {
-                wantRetryUnarchived = false;
+            if (wantRetryAllUnarchived) {
+                wantRetryAllUnarchived = false;
                 if (config.archive && reqresUnarchivedByArchivable.size > 0
                     // and at least one error is recoverable
                     && Array.from(reqresUnarchivedByArchiveError.values())
-                    .some((byErrorMap) => Array.from(byErrorMap.values())
+                    .some((byReasonMap) => Array.from(byReasonMap.values())
                           .some((unarchived) => unarchived.recoverable)))
                     // retry unarchived in 60s
                     scheduleActionEndgame(scheduledRetry, "retryUnarchived", 60000, () => {
-                        syncRetryUnarchived(false);
+                        retryAllUnarchived(false);
                         return null;
                     });
             }
 
-            asyncNotifications(doNotifyTimeout !== undefined ? doNotifyTimeout : 1000);
+            scheduleGlobalNotifications(notifyTimeout !== undefined ? notifyTimeout : 1000);
 
             scheduleUpdateDisplay(true, updatedTabId);
         });
     }
 }
 
-async function doRetryAllUnstashed() {
+async function retryAllUnstashed() {
     let newByError = new Map();
     let newByArchivable = new Map();
     for (let [archivable, args] of reqresUnstashedByArchivable.entries()) {
@@ -1839,12 +1837,12 @@ async function doRetryAllUnstashed() {
     gotNewSyncedOrNot = true;
 }
 
-function syncRetryUnstashed() {
-    runSynchronously("retryUnstashed", doRetryAllUnstashed);
+function syncRetryAllUnstashed() {
+    runSynchronously("retryUnstashed", retryAllUnstashed);
 }
 
-async function doStashAll(alsoLimbo) {
-    await doRetryAllUnstashed();
+async function stashAll(alsoLimbo) {
+    await retryAllUnstashed();
     await syncMany(reqresQueue, 1, true);
     if (alsoLimbo)
         await syncMany(reqresLimbo, 1, true);
@@ -1854,14 +1852,14 @@ async function doStashAll(alsoLimbo) {
 }
 
 function syncStashAll(alsoLimbo) {
-    runSynchronously("stashAll", doStashAll, alsoLimbo);
+    runSynchronously("stash", stashAll, alsoLimbo);
 }
 
-function retryOneUnarchived(archiveURL, unrecoverable) {
-    let byErrorMap = reqresUnarchivedByArchiveError.get(archiveURL);
-    if (byErrorMap === undefined)
+function retryOneUnarchived(storeID, unrecoverable) {
+    let byReasonMap = reqresUnarchivedByArchiveError.get(storeID);
+    if (byReasonMap === undefined)
         return;
-    for (let [reason, unarchived] of Array.from(byErrorMap.entries())) {
+    for (let [reason, unarchived] of Array.from(byReasonMap.entries())) {
         if (!unrecoverable && !unarchived.recoverable)
             continue;
 
@@ -1878,20 +1876,20 @@ function retryOneUnarchived(archiveURL, unrecoverable) {
                 reqresUnarchivedByArchivable.delete(archivable);
         }
 
-        byErrorMap.delete(reason);
+        byReasonMap.delete(reason);
     }
-    if (byErrorMap.size === 0)
-        reqresUnarchivedByArchiveError.delete(archiveURL);
+    if (byReasonMap.size === 0)
+        reqresUnarchivedByArchiveError.delete(storeID);
 }
 
-function syncRetryUnarchived(unrecoverable) {
+function retryAllUnarchived(unrecoverable) {
     wantCheckServer = true;
 
     if (reqresUnarchivedByArchiveError.size == 0)
         return;
 
-    for (let archiveURL of Array.from(reqresUnarchivedByArchiveError.keys()))
-        retryOneUnarchived(archiveURL, unrecoverable);
+    for (let storeID of Array.from(reqresUnarchivedByArchiveError.keys()))
+        retryOneUnarchived(storeID, unrecoverable);
 
     broadcast(["resetQueued", getQueuedLog()]);
     broadcast(["resetUnarchived", getUnarchivedLog()]);
@@ -1916,7 +1914,7 @@ function formatFailures(why, list, recoverable) {
     return parts.join("\n");
 }
 
-async function doNotify() {
+async function doGlobalNotify() {
     // record the current state, because the rest of this chunk is async
     let rrErrored = Array.from(reqresErrored.entries());
     let rrUnstashed = Array.from(reqresUnstashedByError.entries());
@@ -1977,24 +1975,24 @@ async function doNotify() {
         for (let label in all) {
             if (!label.startsWith("error-unarchived-"))
                 continue;
-            let archiveURL = label.substr(17);
-            if (rrUnarchived.every((e) => e[0] !== archiveURL))
+            let storeID = label.substr(17);
+            if (rrUnarchived.every((e) => e[0] !== storeID))
                 await browser.notifications.clear(label);
         }
 
         if (config.archiveFailedNotify) {
             // generate new ones
-            for (let [archiveURL, byErrorMap] of rrUnarchived) {
+            for (let [storeID, byReasonMap] of rrUnarchived) {
                 let where;
-                if (archiveURL === "exportAs")
+                if (storeID === "exportAs")
                     where = "Export via `saveAs`";
-                else if (archiveURL === "localStorage")
+                else if (storeID === "localStorage")
                     where = "Browser's local storage";
                 else
-                    where = `Archiving server at ${archiveURL}`;
-                await browser.notifications.create(`error-unarchived-${archiveURL}`, {
+                    where = `Archiving server at ${storeID}`;
+                await browser.notifications.create(`error-unarchived-${storeID}`, {
                     title: "Hoardy-Web: FAILED",
-                    message: escapeNotification(config, `${where}:\n${formatFailures("Failed to archive", byErrorMap.entries(), true)}`),
+                    message: escapeNotification(config, `${where}:\n${formatFailures("Failed to archive", byReasonMap.entries(), true)}`),
                     iconUrl: iconURL("failed", 128),
                     type: "basic",
                 });
@@ -2022,11 +2020,11 @@ async function doNotify() {
     let fatLimbo = reqresLimbo.length > config.limboMaxNumber
                 || reqresLimboSize > config.limboMaxSize * MEGABYTE;
 
-    if (fatLimbo && gotNewLimbo && (now - lastLimboNotication) > config.limboNotifyInterval * 1000) {
+    if (fatLimbo && gotNewLimbo && (now - gotNewLimboLastNotification) > config.limboNotifyInterval * 1000) {
         gotNewLimbo = false;
 
         if (config.limboNotify) {
-            lastLimboNotication = now;
+            gotNewLimboLastNotification = now;
 
             // generate a new one
             await browser.notifications.create("warning-fatLimbo", {
@@ -2087,8 +2085,8 @@ async function doNotify() {
         await browser.notifications.clear("warning-problematic");
 }
 
-function asyncNotifications(timeout) {
-    resetSingletonTimeout(scheduledHidden, "notify", timeout, doNotify);
+function scheduleGlobalNotifications(timeout) {
+    resetSingletonTimeout(scheduledHidden, "notify", timeout, doGlobalNotify);
     // NB: needs scheduleUpdateDisplay after
 }
 
@@ -2103,7 +2101,7 @@ async function dumpLS() {
         await idbDump(reqresIDB);
 }
 
-async function loadDump(archivable, unelide, allowNull) {
+async function loadDumpFromStorage(archivable, unelide, allowNull) {
     let [loggable, dump] = archivable;
 
     let dumpId = loggable.dumpId;
@@ -2162,7 +2160,7 @@ function selectTSS(inLS) {
         return [mkIDBTransaction, globals.stashedIDB, globals.savedIDB];
 }
 
-async function syncWipeOne(tss, dumpSize, dumpId, stashId, saveId) {
+async function wipeFromStorage(tss, dumpSize, dumpId, stashId, saveId) {
     let [mkTransaction, stashStats, savedStats] = tss;
 
     await mkTransaction(async (transaction, dumpStore, stashStore, saveStore) => {
@@ -2177,16 +2175,16 @@ async function syncWipeOne(tss, dumpSize, dumpId, stashId, saveId) {
     if (stashId !== undefined) {
         stashStats.number -= 1;
         stashStats.size -= dumpSize;
-        changedGlobals = true;
+        wantSaveGlobals = true;
     }
     if (saveId !== undefined) {
         savedStats.number -= 1;
         savedStats.size -= dumpSize;
-        changedGlobals = true;
+        wantSaveGlobals = true;
     }
 }
 
-async function syncWriteOne(tss, state, clean, dump, dumpSize, dumpId, stashId, saveId) {
+async function writeToStorage(tss, state, clean, dump, dumpSize, dumpId, stashId, saveId) {
     let [mkTransaction, stashStats, savedStats] = tss;
 
     await mkTransaction(async (transaction, dumpStore, stashStore, saveStore) => {
@@ -2215,24 +2213,24 @@ async function syncWriteOne(tss, state, clean, dump, dumpSize, dumpId, stashId, 
     if (stashId === undefined && clean.stashId !== undefined) {
         stashStats.number += 1;
         stashStats.size += dumpSize;
-        changedGlobals = true;
+        wantSaveGlobals = true;
     } else if (stashId !== undefined && clean.stashId === undefined) {
         stashStats.number -= 1;
         stashStats.size -= dumpSize;
-        changedGlobals = true;
+        wantSaveGlobals = true;
     }
     if (saveId === undefined && clean.saveId !== undefined) {
         savedStats.number += 1;
         savedStats.size += dumpSize;
-        changedGlobals = true;
+        wantSaveGlobals = true;
     } else if (saveId !== undefined && clean.saveId === undefined) {
         savedStats.number -= 1;
         savedStats.size -= dumpSize;
-        changedGlobals = true;
+        wantSaveGlobals = true;
     }
 }
 
-async function doSyncOne(archivable, state, elide) {
+async function syncWithStorage(archivable, state, elide) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
@@ -2270,7 +2268,7 @@ async function doSyncOne(archivable, state, elide) {
 
     if (state === 0) {
         // delete from the current store
-        await syncWipeOne(selectTSS(inLS !== false), dumpSize, dumpId, stashId, saveId);
+        await wipeFromStorage(selectTSS(inLS !== false), dumpSize, dumpId, stashId, saveId);
         scrub(loggable);
     } else {
         // make a pristine copy that will be saved into local storage
@@ -2282,12 +2280,12 @@ async function doSyncOne(archivable, state, elide) {
 
         if (inLS === undefined || inLS === wantInLS)
             // first write ever, or overwrite to the same store
-            await syncWriteOne(selectTSS(wantInLS), state, clean, dump, dumpSize, dumpId, stashId, saveId);
+            await writeToStorage(selectTSS(wantInLS), state, clean, dump, dumpSize, dumpId, stashId, saveId);
         else {
             // we are moving the data from one store to the other
-            dump = await loadDump(archivable, true, true);
-            await syncWriteOne(selectTSS(wantInLS), state, clean, dump, dumpSize);
-            await syncWipeOne(selectTSS(inLS), dumpSize, dumpId, stashId, saveId);
+            dump = await loadDumpFromStorage(archivable, true, true);
+            await writeToStorage(selectTSS(wantInLS), state, clean, dump, dumpSize);
+            await wipeFromStorage(selectTSS(inLS), dumpSize, dumpId, stashId, saveId);
         }
 
         // update in-memory version
@@ -2319,10 +2317,10 @@ async function syncOne(archivable, state, elide, rrFailed, rrLast) {
     let dumpSize = loggable.dumpSize;
 
     try {
-        await doSyncOne(archivable, state, elide);
+        await syncWithStorage(archivable, state, elide);
     } catch (err) {
         logHandledError(err);
-        recordByError(rrFailed, err, false, archivable, dumpSize);
+        recordByReason(rrFailed, err, false, archivable, dumpSize);
         rrLast.set(archivable, [state, elide]);
         gotNewSyncedOrNot = true;
         return false;
@@ -2340,14 +2338,9 @@ async function syncMany(archivables, state, elide) {
     }
 }
 
-function isSynced(archivable) {
-    let [loggable, dump] = archivable;
-    return loggable.inLS !== undefined && !loggable.dirty;
-}
-
 class StopIteration extends Error {}
 
-async function forEachSynced(storeName, func, limit) {
+async function forEachInStorage(storeName, func, limit) {
     if (limit === undefined)
         limit = null;
 
@@ -2422,54 +2415,54 @@ async function forEachSynced(storeName, func, limit) {
 
 // reqres archiving
 
-function recordManyUnarchived(archiveURL, reason, recoverable, archivables, func) {
-    let m = getByErrorMap(archiveURL);
-    let v = getByErrorMapRecord(m, reason);
+function recordManyUnarchived(storeID, reason, recoverable, archivables, func) {
+    let byReasonMap = getByReasonMap(storeID);
+    let v = getByReasonRecord(byReasonMap, reason);
 
     for (let archivable of archivables) {
         let [loggable, dump] = archivable;
         let dumpSize = loggable.dumpSize;
         if (func !== undefined)
             func(loggable);
-        recordByErrorTo(v, recoverable, archivable, dumpSize);
+        recordByReasonTo(v, recoverable, archivable, dumpSize);
     }
 
     gotNewArchivedOrNot = true;
     wantArchiveDoneNotify = true;
     if (recoverable)
-        wantRetryUnarchived = true;
+        wantRetryAllUnarchived = true;
 }
 
-function recordOneUnarchivedTo(byErrorMap, reason, recoverable, archivable, dumpSize) {
-    recordByError(byErrorMap, reason, recoverable, archivable, dumpSize);
+function recordOneUnarchivedTo(byReasonMap, reason, recoverable, archivable, dumpSize) {
+    recordByReason(byReasonMap, reason, recoverable, archivable, dumpSize);
     gotNewArchivedOrNot = true;
     wantArchiveDoneNotify = true;
     if (recoverable)
-        wantRetryUnarchived = true;
+        wantRetryAllUnarchived = true;
 }
 
-function recordOneUnarchived(archiveURL, reason, recoverable, archivable, dumpSize) {
-    let m = getByErrorMap(archiveURL);
-    recordOneUnarchivedTo(m, reason, recoverable, archivable, dumpSize);
+function recordOneUnarchived(storeID, reason, recoverable, archivable, dumpSize) {
+    let byReasonMap = getByReasonMap(storeID);
+    recordOneUnarchivedTo(byReasonMap, reason, recoverable, archivable, dumpSize);
 }
 
-function recordOneAssumedBroken(archiveURL, reason, archivable, dumpSize) {
-    let byErrorMap = reqresUnarchivedByArchiveError.get(archiveURL);
-    if (byErrorMap !== undefined) {
-        let recent = Array.from(byErrorMap.entries()).filter(
+function recordOneAssumedBroken(storeID, reason, archivable, dumpSize) {
+    let byReasonMap = reqresUnarchivedByArchiveError.get(storeID);
+    if (byReasonMap !== undefined) {
+        let recent = Array.from(byReasonMap.entries()).filter(
             (x) => (Date.now() - x[1].when) < 1000 && x[0] != reason
         )[0];
         if (recent !== undefined) {
             // we had recent errors there, fail this reqres immediately
-            recordOneUnarchivedTo(byErrorMap, reason, recent[1].recoverable, archivable, dumpSize);
+            recordOneUnarchivedTo(byReasonMap, reason, recent[1].recoverable, archivable, dumpSize);
             return true;
         }
     }
     return false;
 }
 
-let lastExportEpoch;
-let lastExportNum = 0;
+let exportAsLastEpoch;
+let exportAsLastNum = 0;
 
 // export all reqresBundledAs as fake-"Download" with a WRR-bundle of their dumps
 function bucketSaveAs(bucket, ifGEQ) {
@@ -2491,11 +2484,11 @@ function bucketSaveAs(bucket, ifGEQ) {
 
         let now = Date.now();
         let epoch = Math.floor(now / 1000);
-        if (lastExportEpoch !== epoch)
-            lastExportNum = 0;
+        if (exportAsLastEpoch !== epoch)
+            exportAsLastNum = 0;
         else
-            lastExportNum += 1;
-        lastExportEpoch = epoch;
+            exportAsLastNum += 1;
+        exportAsLastEpoch = epoch;
 
         let dataChunks;
         if (config.gzipExportAs) {
@@ -2512,7 +2505,7 @@ function bucketSaveAs(bucket, ifGEQ) {
         else
             dt = epoch;
 
-        saveAs(dataChunks, mime, `Hoardy-Web-export-${bucket}-${dt}_${lastExportNum}.${ext}`);
+        saveAs(dataChunks, mime, `Hoardy-Web-export-${bucket}-${dt}_${exportAsLastNum}.${ext}`);
 
         globals.exportedAsTotal += res.queue.length;
         globals.exportedAsSize += res.size;
@@ -2526,7 +2519,7 @@ function bucketSaveAs(bucket, ifGEQ) {
         // events for a given archivable:
         //
         //   exportAsOne -> submitHTTPOne -> saveOne
-        //   -> ... -> scheduledEndgame -> asyncBucketSaveAs -> bucketSaveAs, which fails
+        //   -> ... -> scheduledEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
         //   -> recordManyUnarchived -> runSynchronously(syncMany, ...) -> scheduledEndgame
         //
         // It will first save the archivable, and then un-save and stash it
@@ -2539,8 +2532,8 @@ function bucketSaveAs(bucket, ifGEQ) {
         //
         // Now consider this:
         //
-        //   exportAsOne -> submitHTTPOne -> (no saveOne) -> syncOne(archivable, 0, ...)
-        //   -> ... -> scheduleEndgame -> asyncBucketSaveAs -> bucketSaveAs, which fails
+        //   exportAsOne -> submitHTTPOne -> (no saveOne) -> syncWithStorage(archivable, 0, ...)
+        //   -> ... -> scheduleEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
         //   -> recordManyUnarchived -> runSynchronously(syncMany, ...) -> scheduledEndgame
         //
         // Which will only work if that first `syncOne` does not elide the
@@ -2551,7 +2544,7 @@ function bucketSaveAs(bucket, ifGEQ) {
 }
 
 // schedule bucketSaveAs action
-function asyncBucketSaveAs(timeout, bucketOrNull) {
+function scheduleBucketSaveAs(timeout, bucketOrNull) {
     if (reqresBundledAs.size === 0)
         return;
 
@@ -2577,9 +2570,8 @@ async function exportAsOne(archivable) {
         return true;
 
     // load the dump
-    dump = await loadDump(archivable, true, false);
+    dump = await loadDumpFromStorage(archivable, true, false);
 
-    let archiveURL = "exportAs";
     let bucket = loggable.bucket;
     let maxSize = config.exportAsBundle ? config.exportAsMaxSize * MEGABYTE : 0;
 
@@ -2603,7 +2595,7 @@ async function exportAsOne(archivable) {
     // try exporting again
     bucketSaveAs(bucket, maxSize);
 
-    gotNewExportedAs = true;
+    wantBucketSaveAs = true;
 
     return true;
 }
@@ -2612,23 +2604,22 @@ async function saveOne(archivable) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
-    let archiveURL = "localStorage";
-    if (recordOneAssumedBroken(archiveURL, "this archiving method appears to be defunct", archivable, dumpSize))
+    if (recordOneAssumedBroken("localStorage", "this archiving method appears to be defunct", archivable, dumpSize))
         return false;
 
-    // Prevent future calls to `doRetryAllUnstashed` from un-saving this
+    // Prevent future calls to `retryAllUnstashed` from un-saving this
     // archivable, which can happen with, e.g., the following sequence of
     // events:
-    //   finished -> in_limbo -> syncOne -> out of disk space ->
+    //   finished -> in_limbo -> stashMany -> out of disk space ->
     //   the user fixes it -> popInLimbo ->
-    //   queued -> saveOne -> syncRetryUnstashed
+    //   queued -> saveOne -> syncRetryAllUnstashed
     reqresUnstashedByArchivable.delete(archivable);
 
     try {
-        await doSyncOne(archivable, 2, true);
+        await syncWithStorage(archivable, 2, true);
     } catch (err) {
         logHandledError(err);
-        recordOneUnarchived(archiveURL, err, false, archivable, dumpSize);
+        recordOneUnarchived("localStorage", err, false, archivable, dumpSize);
         return false;
     }
 
@@ -2637,7 +2628,7 @@ async function saveOne(archivable) {
     return true;
 }
 
-// this is used as an argument to `forEachSynced`
+// this is used as an argument to `forEachInStorage`
 function loadOneStashed(loggable) {
     deserializeLoggable(loggable);
 
@@ -2677,25 +2668,25 @@ function loadOneStashed(loggable) {
 }
 
 async function loadStashed() {
-    let [newStashedLS, newStashedIDB] = await forEachSynced("stash", loadOneStashed);
+    let [newStashedLS, newStashedIDB] = await forEachInStorage("stash", loadOneStashed);
 
     // recover from wrong counts
     if (newStashedLS !== undefined && !equalRec(globals.stashedLS, newStashedLS)) {
         globals.stashedLS = newStashedLS;
-        changedGlobals = true;
+        wantSaveGlobals = true;
     }
     if (newStashedIDB !== undefined && !equalRec(globals.stashedIDB, newStashedIDB)) {
         globals.stashedIDB = newStashedIDB;
-        changedGlobals = true;
+        wantSaveGlobals = true;
     }
 }
 
-async function getSavedLog(rrfilter, wantStop) {
+async function loadSaved(rrfilter, wantStop) {
     if (rrfilter === undefined)
         rrfilter = null;
 
     let res = [];
-    let [newSavedLS, newSavedIDB] = await forEachSynced("save", (loggable) => {
+    let [newSavedLS, newSavedIDB] = await forEachInStorage("save", (loggable) => {
         if (wantStop !== undefined && wantStop())
             throw new StopIteration();
         deserializeLoggable(loggable);
@@ -2708,11 +2699,11 @@ async function getSavedLog(rrfilter, wantStop) {
     // recover from wrong counts
     if (newSavedLS !== undefined && !equalRec(globals.savedLS, newSavedLS)) {
         globals.savedLS = newSavedLS;
-        changedGlobals = true;
+        wantSaveGlobals = true;
     }
     if (newSavedIDB !== undefined && !equalRec(globals.savedIDB, newSavedIDB)) {
         globals.savedIDB = newSavedIDB;
-        changedGlobals = true;
+        wantSaveGlobals = true;
     }
 
     return res;
@@ -2731,7 +2722,7 @@ function setSavedFilters(rrfilter) {
 function loadAndBroadcastSaved(rrfilter) {
     return async (wantStop) => {
         try {
-            let log = await getSavedLog(rrfilter, wantStop);
+            let log = await loadSaved(rrfilter, wantStop);
             broadcast(["resetSaved", log]);
         } catch (err) {
             if (!(err instanceof StopIteration))
@@ -2744,7 +2735,7 @@ function requeueSaved(reset) {
     runSynchronously("requeueSaved", async () => {
         broadcast(["resetSaved", [null]]); // invalidate UI
 
-        let log = await getSavedLog(savedFilters);
+        let log = await loadSaved(savedFilters);
         for (let loggable of log) {
             if (reset)
                 loggable.archived = 0;
@@ -2754,7 +2745,7 @@ function requeueSaved(reset) {
             // yes, this is inefficient, but without this, calling this
             // function twice in rapid succession can produce weird results
             try {
-                await doSyncOne(archivable, 1, false);
+                await syncWithStorage(archivable, 1, false);
             } catch(err) {
                 logError(err);
                 continue;
@@ -2772,12 +2763,12 @@ function deleteSaved() {
     runSynchronously("deleteSaved", async () => {
         broadcast(["resetSaved", [null]]); // invalidate UI
 
-        let log = await getSavedLog(savedFilters);
+        let log = await loadSaved(savedFilters);
         for (let loggable of log) {
             let archivable = [loggable, null];
 
             try {
-                await doSyncOne(archivable, 0, false);
+                await syncWithStorage(archivable, 0, false);
             } catch(err) {
                 logError(err);
                 continue;
@@ -2797,9 +2788,9 @@ async function submitHTTPOne(archivable) {
     if (isArchivedVia(loggable, archivedViaSubmitHTTP))
         return true;
 
-    function broken(archiveURL, reason, recoverable) {
+    function broken(storeID, reason, recoverable) {
         logHandledError(reason);
-        recordOneUnarchived(archiveURL, reason, recoverable, archivable, dumpSize);
+        recordOneUnarchived(storeID, reason, recoverable, archivable, dumpSize);
     }
 
     if (!serverConfig.alive) {
@@ -2813,19 +2804,19 @@ async function submitHTTPOne(archivable) {
     let serverURL = new URL(serverConfig.baseURL);
     serverURL.pathname = serverConfig.info.dump_wrr;
     serverURL.search = "profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
-    let archiveURL = serverURL.href;
+    let storeID = serverURL.href;
 
-    if (recordOneAssumedBroken(archiveURL, "this archiving server appears to be defunct", archivable, dumpSize))
+    if (recordOneAssumedBroken(storeID, "this archiving server appears to be defunct", archivable, dumpSize))
         return false;
 
     if (config.debugging)
         console.log("trying to archive", loggable);
 
-    dump = await loadDump(archivable, true, false);
+    dump = await loadDumpFromStorage(archivable, true, false);
 
     let response;
     try {
-        response = await fetch(archiveURL, {
+        response = await fetch(storeID, {
             method: "POST",
             headers: {
                 "Content-Type": "application/cbor",
@@ -2834,7 +2825,7 @@ async function submitHTTPOne(archivable) {
             body: dump,
         });
     } catch (err) {
-        // NB: breaking the whole server here, not just `archiveURL`
+        // NB: breaking the whole server here, not just `storeID`
         broken(config.submitHTTPURLBase, `\`Hoardy-Web\` can't establish a connection to the archiving server: ${errorMessageOf(err)}`, true);
         serverConfig.alive = false;
         return false;
@@ -2843,11 +2834,11 @@ async function submitHTTPOne(archivable) {
     let responseText = await response.text();
 
     if (response.status !== 200) {
-        broken(archiveURL, `request to the archiving server failed with ${response.status} ${response.statusText}: ${responseText}`, false);
+        broken(storeID, `request to the archiving server failed with ${response.status} ${response.statusText}: ${responseText}`, false);
         return false;
     }
 
-    retryOneUnarchived(archiveURL, true);
+    retryOneUnarchived(storeID, true);
     globals.submittedHTTPTotal += 1;
     globals.submittedHTTPSize += loggable.dumpSize;
     loggable.archived |= archivedViaSubmitHTTP;
@@ -2886,7 +2877,7 @@ async function processArchiving(updatedTabId) {
                 // it's in reqresUnarchivedByArchiveError now, stash it without
                 // recording it in reqresUnstashedByError and
                 // reqresUnstashedByArchivable
-                await doSyncOne(archivable, 1, true).catch(logError);
+                await syncWithStorage(archivable, 1, true).catch(logError);
             else if (config.archiveSaveLS)
                 await saveOne(archivable);
             else
@@ -2900,7 +2891,7 @@ async function processArchiving(updatedTabId) {
 
         let tabId = loggable.tabId;
         updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
-        scheduleUpdateDisplay(true, tabId, false, getEpisodic(reqresQueue.length));
+        scheduleUpdateDisplay(true, tabId, false, getGoodEpisodic(reqresQueue.length));
     }
 
     broadcast(["resetQueued", getQueuedLog()]);
@@ -3192,7 +3183,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
             "bucket", options.bucket,
             reqres);
 
-    let loggable = makeLoggableReqres(reqres);
+    let loggable = makeLoggable(reqres);
     loggable.bucket = options.bucket;
     loggable.net_state = state;
     loggable.was_problematic = loggable.problematic = problematic;
@@ -3248,7 +3239,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
             gotNewProblematic = true;
     }
 
-    changedGlobals = true;
+    wantSaveGlobals = true;
 }
 
 function processNonLimbo(collect, info, archivable, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
@@ -3303,7 +3294,7 @@ async function processAlmostDone(updatedTabId) {
         }
         let tabId = reqres.tabId;
         updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
-        scheduleUpdateDisplay(true, tabId, false, getEpisodic(reqresAlmostDone.length));
+        scheduleUpdateDisplay(true, tabId, false, getGoodEpisodic(reqresAlmostDone.length));
     }
 
     truncateLog();
@@ -3320,7 +3311,7 @@ async function processAlmostDone(updatedTabId) {
         broadcast(["newLog", newlyLogged]);
 
     if (newlyStashed.length > 0)
-        runSynchronously("stashNew", syncMany, newlyStashed, 1, true);
+        runSynchronously("stash", syncMany, newlyStashed, 1, true);
     if (newlyUnstashed.length > 0)
         runSynchronously("unstash", syncMany, newlyUnstashed, 0, false);
 
@@ -3549,7 +3540,7 @@ function forceFinishingUpWebRequest(predicate, updatedTabId) {
     return updatedTabId;
 }
 
-function syncStopInFlight(tabId, reason, updatedTabId) {
+function stopInFlight(tabId, reason, updatedTabId) {
     if (useDebugger)
         emitTabInFlightDebug(tabId, reason);
     emitTabInFlightWebRequest(tabId, reason);
@@ -3709,7 +3700,7 @@ function addLoggableFields(loggable) {
          : "N");
 }
 
-function makeLoggableReqres(reqres) {
+function makeLoggable(reqres) {
     let loggable = shallowCopyOfReqres(reqres);
     addLoggableFields(loggable);
     return loggable;
@@ -3936,7 +3927,7 @@ function handleBeforeRequest(e) {
                 console.log("filterResponseData", requestId, "finished");
             reqres.responseComplete = true;
             filter.disconnect();
-            scheduleFinishingUp(); // in case we were waiting for this filter
+            scheduleProcessFinishingUpWebRequest(); // in case we were waiting for this filter
         };
         filter.onerror = (event) => {
             if (filter.error !== "Invalid request ID") {
@@ -3946,14 +3937,14 @@ function handleBeforeRequest(e) {
                     console.error("filterResponseData", requestId, "error", error);
                 reqres.errors.push(error);
             }
-            scheduleFinishingUp(); // in case we were waiting for this filter
+            scheduleProcessFinishingUpWebRequest(); // in case we were waiting for this filter
         };
 
         reqres.filter = filter;
     }
 
     reqresInFlight.set(requestId, reqres);
-    broadcast(["newInFlight", [makeLoggableReqres(reqres)]]);
+    broadcast(["newInFlight", [makeLoggable(reqres)]]);
     scheduleUpdateDisplay(true, tabId);
 }
 
@@ -4219,10 +4210,15 @@ async function performReloadSelf() {
         + scheduledInternal.size;
         // scheduledHidden is ignored here;
 
+    function isInSyncWithLS(archivable) {
+        let [loggable, dump] = archivable;
+        return loggable.inLS !== undefined && !loggable.dirty;
+    }
+
     let allSynced
-        = reqresLimbo.every(isSynced)
-        && reqresQueue.every(isSynced)
-        && Array.from(reqresUnarchivedByArchivable.keys()).every(isSynced);
+        = reqresLimbo.every(isInSyncWithLS)
+        && reqresQueue.every(isInSyncWithLS)
+        && Array.from(reqresUnarchivedByArchivable.keys()).every(isInSyncWithLS);
 
     let reloadAllowed
         = notDoneReqres === 0
@@ -4298,7 +4294,7 @@ let openPorts = new Map();
 // Yes, this overrides the function in ../lib/base.js
 //
 // This is the whole point. In normal modules `broadcast` just sends data to
-// the `handleMessage` below, which then uses this function to broadcast it to
+// the `handleInternalRPC` below, which then uses this function to broadcast it to
 // all connected ports. And this module uses this function directly instead.
 // (So, this module is the center of a star message-passing topology.)
 function broadcast(data) {
@@ -4329,7 +4325,7 @@ function handleConnect(port) {
     }));
 }
 
-function handleMessage(request, sender, sendResponse) {
+function handleInternalMessage(request, sender, sendResponse) {
     if (config.debugging)
         console.log("got message", request);
 
@@ -4356,7 +4352,7 @@ function handleMessage(request, sender, sendResponse) {
         if (!config.ephemeral && !equalRec(config, oldConfig))
             // save config after a little pause to give the user time to click
             // the same toggle again without torturing the SSD
-            asyncSaveConfig();
+            scheduleSaveConfig(1000);
 
         if (useDebugger)
             syncDebuggersState();
@@ -4366,7 +4362,7 @@ function handleMessage(request, sender, sendResponse) {
         break;
     case "resetConfig":
         config = assignRec({}, configDefaults);
-        asyncSaveConfig();
+        scheduleSaveConfig(0);
         scheduleUpdateDisplay(true, null);
         broadcast(["updateConfig", config]);
         break;
@@ -4398,7 +4394,7 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(getInFlightLog());
         return;
     case "stopInFlight":
-        let updatedTabId = syncStopInFlight(arg1, "capture::EMIT_FORCED::BY_USER");
+        let updatedTabId = stopInFlight(arg1, "capture::EMIT_FORCED::BY_USER");
         scheduleEndgame(updatedTabId);
         break;
     case "getInLimboLog":
@@ -4423,12 +4419,12 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(getUnarchivedLog());
         return;
     case "retryFailed":
-        syncRetryUnstashed();
-        syncRetryUnarchived(true);
+        syncRetryAllUnstashed();
+        retryAllUnarchived(true);
         scheduleEndgame(null);
         break;
     case "retryUnarchived":
-        syncRetryUnarchived(true);
+        retryAllUnarchived(true);
         scheduleEndgame(null);
         break;
     case "getSavedFilters":
@@ -4445,7 +4441,7 @@ function handleMessage(request, sender, sendResponse) {
         deleteSaved();
         break;
     case "deleteErrored":
-        syncDeleteErrored();
+        syncDeleteAllErrored();
         scheduleEndgame(null);
         break;
     case "stashAll":
@@ -4453,7 +4449,7 @@ function handleMessage(request, sender, sendResponse) {
         scheduleEndgame(null);
         break;
     case "retryUnstashed":
-        syncRetryUnstashed();
+        syncRetryAllUnstashed();
         scheduleEndgame(null);
         break;
     case "snapshot":
@@ -4471,7 +4467,7 @@ function handleMessage(request, sender, sendResponse) {
         scheduleEndgame(null);
         break;
     case "exportAs":
-        asyncBucketSaveAs(0, arg1);
+        scheduleBucketSaveAs(0, arg1);
         scheduleUpdateDisplay(true);
         break;
     case "broadcast":
@@ -4598,7 +4594,7 @@ function initMenus() {
 }
 
 // keyboard shortcuts
-async function handleCommand(command) {
+async function handleShortcut(command) {
     let tab = await getActiveTab();
     if (tab === null)
         return;
@@ -4819,7 +4815,7 @@ function fixConfig(config, oldConfig) {
         && (config.archive !== oldConfig.archive
             || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
             || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)) {
-        syncRetryUnarchived(true);
+        retryAllUnarchived(true);
         wantArchiveDoneNotify = true;
     }
 
@@ -4883,11 +4879,11 @@ function upgradeConfig(config) {
     config.version = configVersion;
 }
 
-function upgradeGlobals(globs) {
-    if (globs.version === undefined)
-        globs.version = 1;
+function upgradeGlobals(globals) {
+    if (globals.version === undefined)
+        globals.version = 1;
 
-    return globs;
+    return globals;
 }
 
 function initCapture() {
@@ -5031,8 +5027,8 @@ async function init() {
     browser.webNavigation.onBeforeNavigate.addListener(catchAll(handleBeforeNavigate), filterAllN)
 
     initCapture();
-
-    browser.notifications.onClicked.addListener(catchAll(handleNotificationClicked));
+    if (useDebugger)
+        await initDebugCapture(tabs);
 
     browser.tabs.onCreated.addListener(catchAll(handleTabCreated));
     browser.tabs.onRemoved.addListener(catchAll(handleTabRemoved));
@@ -5041,15 +5037,14 @@ async function init() {
     browser.tabs.onUpdated.addListener(catchAll(handleTabUpdated));
 
     if (browser.commands !== undefined)
-        browser.commands.onCommand.addListener(catchAll(handleCommand));
+        browser.commands.onCommand.addListener(catchAll(handleShortcut));
 
-    browser.runtime.onMessage.addListener(catchAll(handleMessage));
+    browser.runtime.onMessage.addListener(catchAll(handleInternalMessage));
     browser.runtime.onConnect.addListener(catchAll(handleConnect));
 
     initMenus();
 
-    if (useDebugger)
-        await initDebugger(tabs);
+    browser.notifications.onClicked.addListener(catchAll(handleNotificationClicked));
 
     console.log("Ready to Hoard the Web!");
 
@@ -5076,7 +5071,7 @@ async function init() {
         }).catch(logError);
     }
 
-    asyncNotifications(1000);
+    scheduleGlobalNotifications(1000);
 
     resetSingletonTimeout(scheduledHidden, "endgame", 100, async () => {
         // a bit of a hack to only run this instead of the whole `scheduleEndgame(null)`

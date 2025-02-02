@@ -23,7 +23,7 @@
 
 "use strict";
 
-async function initDebugger(tabs) {
+async function initDebugCapture(tabs) {
     browser.debugger.onDetach.addListener(handleDebugDetach);
     browser.debugger.onEvent.addListener(handleDebugEvent);
     await syncDebuggersState(tabs);
@@ -151,11 +151,11 @@ function handleDebugEvent(debuggee, method, params) {
         break;
     case "Network.loadingFinished":
         params.tabId = debuggee.tabId;
-        handleDebugCompleted(params);
+        handleDebugLoadingFinished(params);
         break;
     case "Network.loadingFailed":
         params.tabId = debuggee.tabId;
-        handleDebugErrorOccuried(params);
+        handleDebugLoadingFailed(params);
         break;
     //case "Fetch.requestPaused":
     //    console.warn("FETCH", params);
@@ -181,7 +181,7 @@ function handleDebugDetach(debuggee, reason) {
     if (tabId !== undefined) {
         tabsDebugging.delete(tabId);
         // Unfortunately, this means all in-flight reqres of this tab are broken now
-        let updatedTabId = syncStopInFlight(tabId, "capture::EMIT_FORCED::BY_DETACHED_DEBUGGER");
+        let updatedTabId = stopInFlight(tabId, "capture::EMIT_FORCED::BY_DETACHED_DEBUGGER");
         if (config.collecting && reason !== "target_closed")
             // In Chrome, it's pretty easy to click the notification or press
             // Escape while doing Control+F and detach the debugger, so let's
@@ -191,11 +191,11 @@ function handleDebugDetach(debuggee, reason) {
     }
 }
 
-// state
+// State
 
-// similarly to reqresInFlight, indexed by requestId
+// debugger's reqres in-flight, indexed by requestId
 let debugReqresInFlight = new Map();
-// similarly to reqresFinishingUp
+// reqres that were "completed" by the debugger
 let debugReqresFinishingUp = [];
 
 function logDebugEvent(rtype, nonExtra, e, dreqres) {
@@ -300,7 +300,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
             dreqres.documentUrl = e.documentURL;
         dreqres.requestHeadersDebug = e.request.headers;
         if (!isBoringOrServerURL(dreqres.url))
-            broadcast(["newInFlight", [makeLoggableReqres(dreqres)]]);
+            broadcast(["newInFlight", [makeLoggable(dreqres)]]);
     } else {
         if (dreqres.requestTimeStamp === undefined)
             dreqres.requestTimeStamp = Date.now();
@@ -344,14 +344,14 @@ function handleDebugResponseRecieved(nonExtra, e) {
         dreqres.responseHeadersDebugExtra = e.headers;
         if (redirectStatusCodes.has(e.statusCode))
             // If this is a redirect request, emit it immediately, because
-            // there would be neither nonExtra, nor handleDebugCompleted event
+            // there would be neither nonExtra, nor handleDebugLoadingFinished event
             // for it
             emitDebugRequest(e.requestId, dreqres, false);
         else
             scheduleProcessMatchFinishingUpWebRequestDebug();
         // can't do the same for 304 Not Modified, because it needs to
         // accumulate both extra and non-extra data first to match to
-        // reqresFinishingUp requests, and it does get handleDebugCompleted
+        // reqresFinishingUp requests, and it does get handleDebugLoadingFinished
     }
 }
 
@@ -368,7 +368,7 @@ function handleRequestServedFromCache(e) {
     scheduleProcessMatchFinishingUpWebRequestDebug();
 }
 
-function handleDebugCompleted(e) {
+function handleDebugLoadingFinished(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
@@ -379,7 +379,7 @@ function handleDebugCompleted(e) {
     emitDebugRequest(e.requestId, dreqres, true);
 }
 
-function handleDebugErrorOccuried(e) {
+function handleDebugLoadingFailed(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
     if (dreqres === undefined) return;
 
