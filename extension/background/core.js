@@ -233,8 +233,8 @@ let serverConfigDefaults = {
 };
 let serverConfig = assignRec({}, serverConfigDefaults);
 
-function setServer() {
-    serverConfig = assignRec({}, serverConfigDefaults);
+function setServer(config) {
+    let res = assignRec({}, serverConfigDefaults);
 
     let serverURL;
     try {
@@ -260,7 +260,9 @@ function setServer() {
     serverURL.search = "";
     serverURL.hash = "";
 
-    serverConfig.baseURL = serverURL.href;
+    res.baseURL = serverURL.href;
+
+    return res;
 }
 
 let wantCheckServer = true;
@@ -4311,7 +4313,23 @@ function handleInternalMessage(request, sender, sendResponse) {
         let oldConfig = config;
         config = updateFromRec(assignRec({}, oldConfig), arg1);
 
-        fixConfig(config, oldConfig);
+        [config, serverConfig] = fixConfig(config, oldConfig, serverConfig);
+
+        if (config.stash && config.stash != oldConfig.stash)
+            syncStashAll(false);
+
+        if (config.archive && config.archiveSubmitHTTP
+            && (config.archive !== oldConfig.archive
+                || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
+                || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)) {
+            retryAllUnarchived(true);
+            wantArchiveDoneNotify = true;
+        }
+
+        if (config.replaySubmitHTTP !== false
+            && (config.replaySubmitHTTP !== oldConfig.replaySubmitHTTP
+                || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase))
+            wantCheckServer = true;
 
         if (!config.ephemeral && !equalRec(config, oldConfig))
             // save config after a little pause to give the user time to click
@@ -4668,7 +4686,7 @@ async function handleShortcut(command) {
     setTabConfig(tabId, tabcfg);
 }
 
-function fixConfig(config, oldConfig) {
+function fixConfig(config, oldConfig, serverConfig) {
     // reset to defaults
     if (!config.background.bucket)
         config.background.bucket = configDefaults.background.bucket;
@@ -4769,24 +4787,12 @@ function fixConfig(config, oldConfig) {
             }).catch(logError);
     }
 
-    if (config.stash && config.stash != oldConfig.stash)
-        syncStashAll(false);
-
     if (config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)
-        setServer();
+        serverConfig = setServer(config);
 
-    if (config.archive && config.archiveSubmitHTTP
-        && (config.archive !== oldConfig.archive
-            || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
-            || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)) {
-        retryAllUnarchived(true);
-        wantArchiveDoneNotify = true;
-    }
+    DEBUG_WEBEXT_RPC = DEBUG_CAYDARSC = config.debugging;
 
-    if (config.replaySubmitHTTP !== false
-        && (config.replaySubmitHTTP !== oldConfig.replaySubmitHTTP
-            || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase))
-        wantCheckServer = true;
+    return [config, serverConfig];
 }
 
 function upgradeConfig(config) {
@@ -4928,8 +4934,14 @@ async function init() {
         }).catch(logError);
     }
 
+    // Init `config` and `serverConfig`.
     // NB: this depends on reqresIDB
-    fixConfig(config, configDefaults);
+
+    [config, serverConfig] = fixConfig(config, configDefaults, serverConfig);
+
+    // Restore the old session, if reloading with `reloadSelf`.
+    // This restores old `sessionId`, tab configs, `reqresLog`,
+    // and its elements in `reqresProblematic`.
 
     let oldSession = localData.session;
     let sessionTabs = {};
