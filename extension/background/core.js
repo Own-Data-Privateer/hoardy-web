@@ -695,12 +695,11 @@ function cleanupAfterTab(tabId) {
     cleanupTabs();
 }
 
-function processRemoveTab(tabId) {
-    openTabs.delete(tabId);
+function scheduleCleanupAfterTab(tabId) {
+    if (!config.autoUnmarkProblematic && !config.autoPopInLimboCollect && !config.autoPopInLimboDiscard)
+        // nothing to do
+        return;
 
-    let updatedTabId = syncStopInFlight(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
-
-    // cleanup after this tab
     let tabstats = getTabStats(tabId);
     if (config.autoUnmarkProblematic && tabstats.problematic > 0
         || (config.autoPopInLimboCollect || config.autoPopInLimboDiscard)
@@ -709,6 +708,14 @@ function processRemoveTab(tabId) {
             cleanupAfterTab(tabId);
             return tabId;
         });
+}
+
+function processRemoveTab(tabId) {
+    openTabs.delete(tabId);
+
+    let updatedTabId = syncStopInFlight(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
+
+    scheduleCleanupAfterTab(tabId);
 
     scheduleEndgame(updatedTabId);
 }
@@ -876,6 +883,11 @@ async function saveGlobals() {
     await browser.storage.local.set({ globals: savedGlobals }).catch(logError);
     await browser.storage.local.remove("persistentStats").catch(() => {});
     await browser.storage.local.remove("globalStats").catch(() => {});
+}
+
+function scheduleSaveGlobals(timeout) {
+    scheduleAction(scheduledSaveState, "saveGlobals", timeout, saveGlobals);
+    // NB: needs scheduleUpdateDisplay afterwards
 }
 
 async function resetPersistentStats() {
@@ -1759,16 +1771,7 @@ function scheduleEndgame(updatedTabId, doNotifyTimeout) {
 
             if (wantBroadcastSaved) {
                 wantBroadcastSaved = false;
-                scheduleAction(scheduledInternal, "readSaved", 0, async (wantStop) => {
-                    let log;
-                    try {
-                        log = await getSavedLog(savedFilters, wantStop);
-                        broadcast(["resetSaved", log]);
-                    } catch (err) {
-                        if (!(err instanceof StopIteration))
-                            throw err;
-                    }
-                });
+                scheduleAction(scheduledInternal, "readSaved", 0, loadAndBroadcastSaved(savedFilters));
             }
 
             cleanupTabs();
@@ -1791,9 +1794,7 @@ function scheduleEndgame(updatedTabId, doNotifyTimeout) {
                     || savedGlobals.savedIDB.number !== globals.savedIDB.number)
                     boring = false;
 
-                scheduleAction(scheduledSaveState, "persistStats", boring ? 90000 : (wantReloadSelf ? 0 : 1000), () => {
-                    saveGlobals();
-                });
+                scheduleSaveGlobals(boring ? 90000 : (wantReloadSelf ? 0 : 1000));
             }
 
             if (gotNewExportedAs) {
@@ -2719,6 +2720,25 @@ async function getSavedLog(rrfilter, wantStop) {
 
 let savedFilters = assignRec({}, rrfilterDefaults);
 savedFilters.limit = 1024;
+
+function setSavedFilters(rrfilter) {
+    savedFilters = updateFromRec(savedFilters, rrfilter);
+    broadcast(["setSavedFilters", savedFilters]);
+    broadcast(["resetSaved", [null]]); // invalidate UI
+    wantBroadcastSaved = true;
+}
+
+function loadAndBroadcastSaved(rrfilter) {
+    return async (wantStop) => {
+        try {
+            let log = await getSavedLog(rrfilter, wantStop);
+            broadcast(["resetSaved", log]);
+        } catch (err) {
+            if (!(err instanceof StopIteration))
+                throw err;
+        }
+    };
+}
 
 function requeueSaved(reset) {
     runSynchronously("requeueSaved", async () => {
@@ -4415,10 +4435,7 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse(savedFilters);
         return;
     case "setSavedFilters":
-        savedFilters = updateFromRec(savedFilters, arg1);
-        broadcast(["setSavedFilters", savedFilters]);
-        broadcast(["resetSaved", [null]]); // invalidate UI
-        wantBroadcastSaved = true;
+        setSavedFilters(arg1);
         scheduleEndgame(null);
         break;
     case "requeueSaved":
@@ -4465,6 +4482,44 @@ function handleMessage(request, sender, sendResponse) {
         throw new Error("what request?");
     }
     sendResponse(null);
+}
+
+function handleMenuAction(info, tab) {
+    if (config.debugging)
+        console.log("menu action", info, tab);
+
+    let cmd = info.menuItemId;
+    let url = info.linkUrl;
+    let newWindow = cmd.endsWith("-window")
+        && (url.startsWith("http:") || url.startsWith("https:"));
+
+    if (cmd.startsWith("replay-")) {
+        if (!checkReplay())
+            return;
+        url = latestReplayOf(url);
+    } else if (cmd.startsWith("open-not-")) {
+        negateConfigFor.add(tab.id);
+        if (useDebugger)
+            // work around Chromium bug
+            negateOpenerTabIds.push(tab.id);
+    }
+
+    browser.tabs.create({
+        url,
+        openerTabId: tab.id,
+        windowId: tab.windowId,
+    }).then((tab) => {
+        if (config.debugging)
+            console.log("created new tab", tab);
+
+        if (!useDebugger && tab.url.startsWith("about:"))
+            // On Firefox, downloads spawned as new tabs become "about:blank"s and get closed.
+            // Spawning a new window in this case is counterproductive.
+            newWindow = false;
+
+        if (newWindow)
+            browser.windows.create({ tabId: tab.id }).catch(logError);
+    }, logError);
 }
 
 let menuTitleTab = {
@@ -4539,43 +4594,7 @@ function initMenus() {
         }));
     }
 
-    browser.menus.onClicked.addListener(catchAll((info, tab) => {
-        if (config.debugging)
-            console.log("menu action", info, tab);
-
-        let cmd = info.menuItemId;
-        let url = info.linkUrl;
-        let newWindow = cmd.endsWith("-window")
-            && (url.startsWith("http:") || url.startsWith("https:"));
-
-        if (cmd.startsWith("replay-")) {
-            if (!checkReplay())
-                return;
-            url = latestReplayOf(url);
-        } else if (cmd.startsWith("open-not-")) {
-            negateConfigFor.add(tab.id);
-            if (useDebugger)
-                // work around Chromium bug
-                negateOpenerTabIds.push(tab.id);
-        }
-
-        browser.tabs.create({
-            url,
-            openerTabId: tab.id,
-            windowId: tab.windowId,
-        }).then((tab) => {
-            if (config.debugging)
-                console.log("created new tab", tab);
-
-            if (!useDebugger && tab.url.startsWith("about:"))
-                // On Firefox, downloads spawned as new tabs become "about:blank"s and get closed.
-                // Spawning a new window in this case is counterproductive.
-                newWindow = false;
-
-            if (newWindow)
-                browser.windows.create({ tabId: tab.id }).catch(logError);
-        }, logError);
-    }));
+    browser.menus.onClicked.addListener(catchAll(handleMenuAction));
 }
 
 // keyboard shortcuts
@@ -4871,6 +4890,21 @@ function upgradeGlobals(globs) {
     return globs;
 }
 
+function initCapture() {
+    let filterAllR = { urls: ["<all_urls>"] };
+    if (useBlocking)
+        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, ["blocking", "requestBody"]);
+    else
+        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, ["requestBody"]);
+    browser.webRequest.onBeforeSendHeaders.addListener(catchAll(handleBeforeSendHeaders), filterAllR);
+    browser.webRequest.onSendHeaders.addListener(catchAll(handleSendHeaders), filterAllR, ["requestHeaders"]);
+    browser.webRequest.onHeadersReceived.addListener(catchAll(handleHeadersRecieved), filterAllR, ["responseHeaders"]);
+    browser.webRequest.onBeforeRedirect.addListener(catchAll(handleBeforeRedirect), filterAllR, ["responseHeaders"]);
+    browser.webRequest.onAuthRequired.addListener(catchAll(handleAuthRequired), filterAllR);
+    browser.webRequest.onCompleted.addListener(catchAll(handleCompleted), filterAllR, ["responseHeaders"]);
+    browser.webRequest.onErrorOccurred.addListener(catchAll(handleErrorOccurred), filterAllR);
+}
+
 async function init() {
     browser.runtime.onUpdateAvailable.addListener(catchAll(handleUpdateAvailable));
 
@@ -4993,22 +5027,10 @@ async function init() {
     console.log("config is", config);
     console.log("globals are", globals);
 
-    // `webNavigation` and `webRequest` use different filter formats, of course.
     let filterAllN = { url: [{}] };
-    let filterAllR = { urls: ["<all_urls>"] };
-
     browser.webNavigation.onBeforeNavigate.addListener(catchAll(handleBeforeNavigate), filterAllN)
-    if (useBlocking)
-        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, ["blocking", "requestBody"]);
-    else
-        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, ["requestBody"]);
-    browser.webRequest.onBeforeSendHeaders.addListener(catchAll(handleBeforeSendHeaders), filterAllR);
-    browser.webRequest.onSendHeaders.addListener(catchAll(handleSendHeaders), filterAllR, ["requestHeaders"]);
-    browser.webRequest.onHeadersReceived.addListener(catchAll(handleHeadersRecieved), filterAllR, ["responseHeaders"]);
-    browser.webRequest.onBeforeRedirect.addListener(catchAll(handleBeforeRedirect), filterAllR, ["responseHeaders"]);
-    browser.webRequest.onAuthRequired.addListener(catchAll(handleAuthRequired), filterAllR);
-    browser.webRequest.onCompleted.addListener(catchAll(handleCompleted), filterAllR, ["responseHeaders"]);
-    browser.webRequest.onErrorOccurred.addListener(catchAll(handleErrorOccurred), filterAllR);
+
+    initCapture();
 
     browser.notifications.onClicked.addListener(catchAll(handleNotificationClicked));
 
