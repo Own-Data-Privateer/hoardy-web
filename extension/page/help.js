@@ -24,10 +24,6 @@
 "use strict";
 
 document.addEventListener("DOMContentLoaded", async () => {
-    let selfURL = browser.runtime.getURL("/page/help.html");
-    let popupURL = browser.runtime.getURL("/page/popup.html");
-    let rootURL = browser.runtime.getURL("/");
-
     let body = document.getElementById("body");
     let iframe = document.getElementById("iframe");
     let minWidth = 1355; // see ./help.template
@@ -40,57 +36,52 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     setupHistoryPopState();
+    classifyDocumentLinks(document, [
+        ["/page/help.html", "internal"],
+        ["/page/popup.html", "popup"],
+        ["/", "local"],
+    ], (link, info) => {
+        let klass = info.klass;
+        if (klass !== undefined)
+            link.classList.add(klass);
 
-    // number of rewritten internal links
-    let num_links = 0;
-
-    // style links of different kinds differently, track history state,
-    // broadcast highlight messages on mouseovers over links to popup.html
-    for (let el of document.getElementsByTagName("a")) {
-        let id = `link-${num_links}`;
-        num_links += 1;
-        el.id = id;
-
-        if (el.href.startsWith(selfURL + "#")) {
-            let target = el.href.substr(selfURL.length + 1);
-            el.classList.add("internal");
-            el.href = "javascript:void(0)";
-            el.onclick = (event) => {
+        switch (info.klass) {
+        case "internal":
+            link.href = "javascript:void(0)";
+            link.onclick = (event) => {
                 event.cancelBubble = true;
-                historyFromTo({ id }, { id: target });
-                focusNode(target);
+                historyFromTo({ id: info.id }, { id: info.target });
+                focusNode(info.target);
             };
-            el.onmouseover = (event) => {
+            link.onmouseover = (event) => {
                 if (columns)
                     broadcast(["highlightNode", "popup", null]);
             };
-        } else if (el.href.startsWith(popupURL + "#")) {
-            let target = el.href.substr(popupURL.length + 1);
-            el.classList.add("popup");
-            el.href = "javascript:void(0)";
-            el.onclick = (event) => {
+            break;
+        case "popup":
+            link.href = "javascript:void(0)";
+            link.onclick = (event) => {
                 event.cancelBubble = true;
                 if (!columns)
-                    historyFromTo({ id }, popupURL + `#${target}`);
-                broadcast(["focusNode", "popup", target]);
+                    historyFromTo({ id: info.id }, info.href);
+                broadcast(["focusNode", "popup", info.target]);
             };
-            el.onmouseover = (event) => {
+            link.onmouseover = (event) => {
                 if (columns)
-                    broadcast(["focusNode", "popup", target]);
+                    broadcast(["focusNode", "popup", info.target]);
             };
-        } else {
-            if (el.href.startsWith(rootURL))
-                el.classList.add("local");
-
-            el.onclick = (event) => {
-                historyFromTo({ id });
+            break;
+        case "local":
+        default:
+            link.onclick = (event) => {
+                historyFromTo({ id: info.id });
             };
-            el.onmouseover = (event) => {
+            link.onmouseover = (event) => {
                 if (columns)
                     broadcast(["highlightNode", "popup", null]);
             };
         }
-    }
+    });
 
     // Resize elements to window. This switches between `columns` and
     // `linear` layouts depending on width. This part is not done via

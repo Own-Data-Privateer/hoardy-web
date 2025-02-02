@@ -411,3 +411,55 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     root.appendChild(main);
     root.appendChild(helpTip);
 }
+
+// Classify links under `node` based on their URLs. To get link highlights, run
+// `setupHistoryPopState` before running this.
+function classifyLinks(node, urlKlasses, setup) {
+    if (setup === undefined)
+        setup = (link, info) => {
+            let klass = info.klass;
+            if (klass !== undefined)
+                link.classList.add(klass);
+            link.onclick = (event) => {
+                historyFromTo({ id: info.id });
+            };
+        };
+
+    let num_links = 0;
+    for (let link of node.getElementsByTagName("a")) {
+        let href = link.href;
+        let hashlessUrl = new URL(href);
+        let hash = hashlessUrl.hash;
+        hashlessUrl.hash = "";
+        let hashlessHref = hashlessUrl.href;
+
+        let id = link.id;
+        if (!id) {
+            link.id = id = `link-${num_links}`;
+            num_links += 1;
+        }
+
+        let klass;
+        for (let [eurl, eklass] of urlKlasses) {
+            if (href === eurl || hashlessHref === eurl) {
+                // exact match
+                klass = eklass;
+                break;
+            } else if (klass === undefined && hashlessHref.startsWith(eurl)) {
+                // otherwise, take the first matching prefix
+                klass = eklass;
+            }
+        }
+
+        setup(link, { klass, id, href, hashlessHref, hash, target: hash.substr(1) });
+    }
+}
+
+// `classifyLinks` with automaic URL mapping relative to
+// `document.location.href`.
+function classifyDocumentLinks(node, urlKlasses, setup) {
+    return classifyLinks(node, urlKlasses.map((v) => {
+        let url = new URL(v[0], document.location.href);
+        return [url.href, v[1]]
+    }), setup);
+}

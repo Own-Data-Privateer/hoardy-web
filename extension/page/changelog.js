@@ -24,29 +24,11 @@
 "use strict";
 
 document.addEventListener("DOMContentLoaded", async () => {
-    let selfURL = browser.runtime.getURL("/page/changelog.html");
-    let rootURL = browser.runtime.getURL("/");
-
     setupHistoryPopState();
-
-    // number of rewritten internal links
-    let num_links = 0;
-
-    // style links of different kinds differently, track history state
-    for (let el of document.getElementsByTagName("a")) {
-        let id = `link-${num_links}`;
-        num_links += 1;
-        el.id = id;
-
-        if (el.href.startsWith(selfURL))
-            el.classList.add("internal");
-        else if (el.href.startsWith(rootURL))
-            el.classList.add("local");
-
-        el.onclick = (event) => {
-            historyFromTo({ id });
-        };
-    }
+    classifyDocumentLinks(document, [
+        ["/page/changelog.html", "internal"],
+        ["/", "local"],
+    ]);
 
     async function processUpdate(update) {
         let [what, data] = update;
