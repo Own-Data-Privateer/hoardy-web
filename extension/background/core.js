@@ -4103,6 +4103,9 @@ function handleErrorOccurred(e) {
 }
 
 function handleNotificationClicked(notificationId) {
+    if (config.debugging)
+        console.log("notification clicked", notificationId);
+
     if (notificationId.startsWith("error-"))
         showHelp("", "error-notifications");
 }
