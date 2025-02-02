@@ -2095,7 +2095,7 @@ function scheduleGlobalNotifications(timeout) {
 
 // reqres persistence
 
-let reqresIDB; // set in init
+let reqresIDB; // will be set in `main`
 
 async function dumpLS() {
     await lslotDump();
@@ -4871,8 +4871,10 @@ function initCapture() {
     browser.webRequest.onErrorOccurred.addListener(catchAll(handleErrorOccurred), filterAllR);
 }
 
-async function init() {
+async function main() {
     browser.runtime.onUpdateAvailable.addListener(catchAll(handleUpdateAvailable));
+
+    // Load old config and globals.
 
     let localData = await browser.storage.local.get([
         "config", "globals", "session",
@@ -4913,6 +4915,8 @@ async function init() {
         config.ephemeral = true;
         updateAvailable = true;
     }
+
+    // Init IndexedDB.
 
     // try opening indexedDB
     try {
@@ -4965,8 +4969,18 @@ async function init() {
         }
     }
 
-    // get all currently open tabs
+    // Get all currently open tabs
     let tabs = await browser.tabs.query({});
+    // ... and start listening for updates.
+
+    browser.tabs.onCreated.addListener(catchAll(handleTabCreated));
+    browser.tabs.onRemoved.addListener(catchAll(handleTabRemoved));
+    browser.tabs.onReplaced.addListener(catchAll(handleTabReplaced));
+    browser.tabs.onActivated.addListener(catchAll(handleTabActivated));
+    browser.tabs.onUpdated.addListener(catchAll(handleTabUpdated));
+
+    // Init configs and states of currently open tabs, possibly reusing old session data.
+
     for (let tab of tabs) {
         let tabId = tab.id;
         let tabUrl = getTabURL(tab);
@@ -4992,12 +5006,17 @@ async function init() {
         setTabConfigInternal(tabId, tabcfg);
     }
 
+    // Load stashed reqres.
+    // This might take a while, new tabs will get processed in the meantime.
+
     await loadStashed();
 
-    console.log(`initialized Hoardy-Web with source of '${sourceDesc}'`);
+    console.log(`Initialized Hoardy-Web with source of '${sourceDesc}'.`);
     console.log("runtime options are", { useSVGIcons, useBlocking, useDebugger });
     console.log("config is", config);
     console.log("globals are", globals);
+
+    // Init capture.
 
     let filterAllN = { url: [{}] };
     browser.webNavigation.onBeforeNavigate.addListener(catchAll(handleBeforeNavigate), filterAllN)
@@ -5005,12 +5024,6 @@ async function init() {
     initCapture();
     if (useDebugger)
         await initDebugCapture(tabs);
-
-    browser.tabs.onCreated.addListener(catchAll(handleTabCreated));
-    browser.tabs.onRemoved.addListener(catchAll(handleTabRemoved));
-    browser.tabs.onReplaced.addListener(catchAll(handleTabReplaced));
-    browser.tabs.onActivated.addListener(catchAll(handleTabActivated));
-    browser.tabs.onUpdated.addListener(catchAll(handleTabUpdated));
 
     if (browser.commands !== undefined)
         browser.commands.onCommand.addListener(catchAll(handleShortcut));
@@ -5023,6 +5036,8 @@ async function init() {
     // Init RPC.
 
     initWebextRPC(handleInternalMessage);
+
+    // Finishing up.
 
     console.log("Ready to Hoard the Web!");
 
@@ -5059,4 +5074,4 @@ async function init() {
     scheduleUpdateDisplay(true, null, true);
 }
 
-init();
+main();
