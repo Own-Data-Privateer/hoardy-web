@@ -862,13 +862,14 @@ let persistentStatsDefaults = {
 let dbstatsDefaults = { number: 0, size: 0 };
 // persistent global variables
 let globalsVersion = 1;
-let globals = assignRec({
+let globalsDefaults = assignRec({
     version: globalsVersion,
     stashedLS: assignRec({}, dbstatsDefaults),
     stashedIDB: assignRec({}, dbstatsDefaults),
     savedLS: assignRec({}, dbstatsDefaults),
     savedIDB: assignRec({}, dbstatsDefaults),
 }, persistentStatsDefaults);
+let globals = assignRec({}, globalsDefaults);
 // did it change recently?
 let wantSaveGlobals = false;
 // last stats saved in storage
