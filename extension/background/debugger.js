@@ -611,7 +611,7 @@ function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
         let notFinished = [];
 
         for (let dreqres of debugReqresFinishingUp) {
-            let nurl = normalizeURL(dreqres.url);
+            let nurl = normalizedURL(dreqres.url);
 
             let matching = [];
             let notMatching = [];
@@ -619,7 +619,7 @@ function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
                 if (dreqres.tabId === reqres.tabId
                     && dreqres.statusCode === reqres.statusCode
                     && dreqres.method === reqres.method
-                    && nurl === normalizeURL(reqres.url))
+                    && nurl === normalizedURL(reqres.url))
                     matching.push(reqres);
                 else
                     notMatching.push(reqres);

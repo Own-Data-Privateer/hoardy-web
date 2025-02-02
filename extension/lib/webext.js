@@ -93,14 +93,14 @@ function buttonToMessage(id, func) {
 }
 
 // activate a tab with a given document URL if exists, or open new if not
-async function openOrActivateTab(target, createProperties, currentWindow) {
+async function openOrActivateTab(url, createProperties, currentWindow) {
     if (currentWindow === undefined)
         currentWindow = true;
 
     let tabs = await browser.tabs.query({ currentWindow });
-    let targetNoHash = removeURLHash(target);
+    let nurl = normalizedURL(url);
     for (let tab of tabs) {
-        if (tab.url !== undefined && removeURLHash(tab.url) == targetNoHash) {
+        if (normalizedURL(getTabURL(tab, "about:blank")) === nurl) {
             // activate that tab instead
             await browser.tabs.update(tab.id, { active: true });
             return tab;
@@ -108,7 +108,7 @@ async function openOrActivateTab(target, createProperties, currentWindow) {
     }
 
     // open new tab
-    let res = await browser.tabs.create(assignRec({ url: target }, createProperties || {}));
+    let res = await browser.tabs.create(assignRec({ url }, createProperties || {}));
     return res;
 }
 

@@ -193,11 +193,9 @@ function subscribeToExtension(processUpdate, reinit, isUnsafe, markLoading, mark
 }
 
 function subscribeToExtensionSimple(processUpdate, extensionId, connectInfo) {
-    if (processUpdate === undefined) {
-        let href = new URL("", document.location.href).href;
+    if (processUpdate === undefined)
         processUpdate = catchAll(
-            (update) => webextRPCHandleMessageDefault(update, href));
-    }
+            (update) => webextRPCHandleMessageDefault(update, normalizedURL(document.location.href)));
     return subscribeToExtension(processUpdate, undefined, () => false, undefined, undefined, extensionId, connectInfo);
 }
 

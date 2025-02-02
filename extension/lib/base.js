@@ -364,24 +364,11 @@ function getMapURLParam(op, param, purl, f, def1, def2) {
     return def2;
 }
 
-// remove #.* from the end of the URL
-function removeURLHash(url) {
-    let pos = url.indexOf("#");
-    if (pos !== -1)
-        url = url.substring(0, pos);
-    return url;
-}
-
-// given a URL, return its canonical version
-function canonicalizeURL(url) {
-    let parsed = new URL(url);
-    return parsed.href;
-}
-
-// given a URL, return its normalized, i.e. minimal HTTP-wire-level
-// equal, version
-function normalizeURL(url) {
-    return canonicalizeURL(removeURLHash(url));
+// given a URL, return its HTTP-on-the-wire version
+function normalizedURL(url) {
+    let nurl = new URL(url);
+    nurl.hash = "";
+    return nurl.href;
 }
 
 function isDefinedURL(url) {
