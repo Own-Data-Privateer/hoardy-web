@@ -27,40 +27,49 @@
 
 // archivables that failed to be processed in some way
 // `Map` indexed by error message
-let reqresErroredIssueAcc = newIssueAcc();
+function newReqresErroredIssueAcc() {
+    return newIssueAcc((recoverable) => {
+        gotNewErrored = true;
+    });
+}
+let reqresErroredIssueAcc = newReqresErroredIssueAcc();
+
 // archivables that failed to by stashed to browser's local storage
 // `Map` indexed by error message
-let reqresUnstashedIssueAcc = newIssueAcc();
+function newReqresUnstashedIssueAcc() {
+    return newIssueAcc((recoverable) => {
+        gotNewSyncedOrNot = true;
+    });
+}
+let reqresUnstashedIssueAcc = newReqresUnstashedIssueAcc();
+
 // archivables that failed to be archived with at least one configured archiving method
 // `Map` indexed by storeID, then by error message
-let reqresUnarchivedIssueAcc = newIssueAcc();
+function newReqresUnarchivedIssueAcc() {
+    return newIssueAcc((recoverable) => {
+        gotNewArchivedOrNot = true;
+        wantArchiveDoneNotify = true;
+        if (recoverable)
+            wantRetryAllUnarchived = true;
+    });
+}
+let reqresUnarchivedIssueAcc = newReqresUnarchivedIssueAcc();
 
 function markAsErrored(err, archivable) {
     pushToIssueAcc(reqresErroredIssueAcc, errorMessageOf(err), false, archivable);
-    gotNewErrored = true;
-}
-
-function recordOneUnarchivedIssueAcc(accumulator, reason, recoverable, archivable) {
-    pushToIssueAcc(accumulator, reason, recoverable, archivable);
-    gotNewArchivedOrNot = true;
-    wantArchiveDoneNotify = true;
-    if (recoverable)
-        wantRetryAllUnarchived = true;
 }
 
 function recordOneUnarchived(accumulator, storeID, reason, recoverable, archivable) {
     let m = cacheSingleton(accumulator[1], storeID, () => new Map());
-    recordOneUnarchivedIssueAcc([accumulator[0], m], reason, recoverable, archivable);
+    pushToIssueAcc([accumulator[0], m], reason, recoverable, archivable);
 }
 
 function recordManyUnarchived(accumulator, storeID, reason, recoverable, archivables) {
     let byReasonMap = cacheSingleton(accumulator[1], storeID, () => new Map());
     let v = getByReasonMapRecord(byReasonMap, reason);
     pushManyToSetByReasonRecord(accumulator[0], v, recoverable, archivables);
-    gotNewArchivedOrNot = true;
-    wantArchiveDoneNotify = true;
-    if (recoverable)
-        wantRetryAllUnarchived = true;
+    if (accumulator[2] !== undefined)
+        accumulator[2](recoverable);
 }
 
 function recordOneAssumedBroken(accumulator, storeID, reason, archivable, dumpSize) {
@@ -73,7 +82,8 @@ function recordOneAssumedBroken(accumulator, storeID, reason, archivable, dumpSi
     if (recent === undefined)
         return false;
     // we had recent errors there, fail this reqres immediately
-    recordOneUnarchivedIssueAcc([accumulator[0], byReasonMap], reason, recent[1].recoverable, archivable);
+    let recoverable = recent[1].recoverable;
+    pushToIssueAcc([accumulator[0], byReasonMap], reason, recoverable, archivable);
     return true;
 }
 
@@ -121,7 +131,7 @@ function retryAllUnarchived(unrecoverable) {
         reqresQueue.push(archivable);
         reqresQueueSize += dumpSize;
     }
-    reqresUnarchivedIssueAcc = newIssueAcc();
+    reqresUnarchivedIssueAcc = newReqresUnarchivedIssueAcc();
 
     broadcast(["resetQueued", getQueuedLog()]);
     broadcast(["resetUnarchived", getUnarchivedLog()]);
@@ -324,7 +334,6 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
     loggable.archived |= archivedViaSubmitHTTP;
     loggable.dirty = true;
 
-    gotNewArchivedOrNot = true;
     return true;
 }
 
@@ -638,6 +647,7 @@ async function stashOne(archivable, unstashedAccumulator) {
         logHandledError(err);
         pushToIssueAcc(unstashedAccumulator, errorMessageOf(err), false, archivable);
     }
+
     gotNewSyncedOrNot = true;
 }
 
@@ -647,11 +657,10 @@ async function stashMany(archivables, unstashedAccumulator) {
 }
 
 async function retryAllUnstashed() {
-    let newUnstashed = newIssueAcc();
+    let newUnstashed = newReqresUnstashedIssueAcc();
     for (let archivable of reqresUnstashedIssueAcc[0])
         await stashOne(archivable, newUnstashed);
     reqresUnstashedIssueAcc = newUnstashed;
-    gotNewSyncedOrNot = true;
 }
 
 async function stashAll(alsoLimbo) {
@@ -702,11 +711,9 @@ async function saveOne(archivable, unarchivedAccumulator, unstashedAccumulator) 
     } catch (err) {
         logHandledError(err);
         recordOneUnarchived(unarchivedAccumulator, "localStorage", errorMessageOf(err), false, archivable);
-        gotNewArchivedOrNot = true;
         return false;
     }
 
-    gotNewArchivedOrNot = true;
     wantBroadcastSaved = true;
     return true;
 }
@@ -798,7 +805,7 @@ async function loadSaved(rrfilter, wantStop) {
 function syncDeleteAllErrored() {
     runSynchronously("deleteErrored", async () => {
         await unstashMany(reqresErroredIssueAcc[0]);
-        reqresErroredIssueAcc = newIssueAcc();
+        reqresErroredIssueAcc = newReqresErroredIssueAcc();
     });
 }
 
@@ -910,6 +917,8 @@ async function processArchiving(updatedTabId) {
             // try stashing without recording failures
             await syncWithStorage(archivable, 1, true).catch(logError);
         }
+
+        gotNewArchivedOrNot = true;
 
         let tabId = loggable.tabId;
         updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);

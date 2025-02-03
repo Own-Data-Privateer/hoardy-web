@@ -23,8 +23,8 @@
 
 "use strict";
 
-function newIssueAcc() {
-    return [new Set(), new Map()];
+function newIssueAcc(callback) {
+    return [new Set(), new Map(), callback];
 }
 
 function getByReasonMapRecord(byReasonMap, reason) {
@@ -58,4 +58,6 @@ function pushToByReasonMap(byReasonMap, reason, recoverable, archivable) {
 function pushToIssueAcc(accumulator, reason, recoverable, archivable) {
     accumulator[0].add(archivable);
     pushToByReasonMap(accumulator[1], reason, recoverable, archivable);
+    if (accumulator[2] !== undefined)
+        accumulator[2](recoverable);
 }
