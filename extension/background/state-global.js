@@ -321,8 +321,12 @@ function fixConfig(config, oldConfig, serverConfig) {
     }
 
     // these are mutually exclusive
-    if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard)
-        config.autoPopInLimboDiscard = false;
+    if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard) {
+        if (config.autoPopInLimboCollect != oldConfig.autoPopInLimboCollect)
+            config.autoPopInLimboDiscard = !config.autoPopInLimboCollect;
+        else
+            config.autoPopInLimboCollect = !config.autoPopInLimboDiscard;
+    }
 
     if (!config.debugRuntime && !isMobile && !config.spawnNewTabs) {
         // unavailable

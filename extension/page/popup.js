@@ -294,12 +294,6 @@ async function popupMain() {
                 if (newconfig.workOfflineImpure)
                     newconfig.extension.collecting = !newconfig.extension.workOffline;
                 break;
-            case "config.autoPopInLimboCollect":
-                newconfig.autoPopInLimboDiscard = newconfig.autoPopInLimboDiscard && !newconfig.autoPopInLimboCollect;
-                break;
-            case "config.autoPopInLimboDiscard":
-                newconfig.autoPopInLimboCollect = newconfig.autoPopInLimboCollect && !newconfig.autoPopInLimboDiscard;
-                break;
             }
             browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
         });
