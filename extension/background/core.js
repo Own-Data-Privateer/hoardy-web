@@ -346,8 +346,6 @@ async function checkServer() {
     } else
         // clear stale
         await browser.notifications.clear("warning-server");
-
-    retryOneUnarchived(config.submitHTTPURLBase, true);
 }
 
 function checkReplay() {
@@ -618,12 +616,11 @@ function getUsedTabs() {
         usedTabs.add(v.tabId);
     for (let [v, _x] of reqresQueue)
         usedTabs.add(v.tabId);
-    for (let f of reqresErrored.values())
-        for (let v of f.queue)
-            usedTabs.add(v[0].tabId);
-    for (let v of reqresUnstashedByArchivable.keys())
+    for (let f of reqresErroredIssueAcc[0])
         usedTabs.add(v[0].tabId);
-    for (let v of reqresUnarchivedByArchivable.keys())
+    for (let v of reqresUnstashedIssueAcc[0])
+        usedTabs.add(v[0].tabId);
+    for (let v of reqresUnarchivedIssueAcc[0])
         usedTabs.add(v[0].tabId);
 
     return usedTabs;
@@ -742,17 +739,20 @@ let reqresQueue = [];
 let reqresQueueSize = 0;
 // dumps ready for export, indexed by bucket
 let reqresBundledAs = new Map();
-// archivables that failed to be processed in some way, indexed by error message
-let reqresErrored = new Map();
-// archivables that failed to sync to indexedDB, indexed by error message
-let reqresUnstashedByError = new Map();
-// same thing, but archivable as key, and `syncOne` args as values
-let reqresUnstashedByArchivable = new Map();
-// archivables that failed in server submission, indexed by storeID, then by error message
-let reqresUnarchivedByArchiveError = new Map();
-// map `archivables -> int`, the `int` is a count of how many times each archivable appears
-// in`reqresUnarchivedByArchiveError`
-let reqresUnarchivedByArchivable = new Map();
+
+function newIssueAcc() {
+    return [new Set(), new Map()];
+}
+
+// archivables that failed to be processed in some way
+// `Map` indexed by error message
+let reqresErroredIssueAcc = newIssueAcc();
+// archivables that failed to by stashed to browser's local storage
+// `Map` indexed by error message
+let reqresUnstashedIssueAcc = newIssueAcc();
+// archivables that failed to be archived with at least one configured archiving method
+// `Map` indexed by storeID, then by error message
+let reqresUnarchivedIssueAcc = newIssueAcc();
 
 function truncateLog() {
     while (reqresLog.length > config.history)
@@ -797,51 +797,51 @@ function getQueuedLog() {
 }
 
 function getUnarchivedLog() {
-    return pushFirstTo(reqresUnarchivedByArchivable.keys(), []);
+    return pushFirstTo(reqresUnarchivedIssueAcc[0], []);
 }
 
-function getByReasonMap(storeID) {
-    return cacheSingleton(reqresUnarchivedByArchiveError, storeID, () => new Map());
-}
-
-function getByReasonRecord(byReasonMap, error) {
-    return cacheSingleton(byReasonMap, errorMessageOf(error), () => { return {
+function getByReasonMapRecord(byReasonMap, reason) {
+    return cacheSingleton(byReasonMap, reason, () => { return {
         recoverable: true,
         queue: [],
         size: 0,
     }; });
 }
 
-function recordByReasonTo(v, recoverable, archivable, size) {
+function pushToByReasonRecord(v, recoverable, archivable) {
     v.when = Date.now();
     v.recoverable = v.recoverable && recoverable;
     v.queue.push(archivable);
-    v.size += size;
-
-    let count = reqresUnarchivedByArchivable.get(archivable);
-    if (count === undefined)
-        count = 0;
-    reqresUnarchivedByArchivable.set(archivable, count + 1);
+    v.size += archivable[0].dumpSize || 0;
 }
 
-function recordByReason(byReasonMap, error, recoverable, archivable, size) {
-    let v = getByReasonRecord(byReasonMap, error);
-    recordByReasonTo(v, recoverable, archivable, size);
+function pushManyToSetByReasonRecord(set, v, recoverable, archivables) {
+    for (let archivable of archivables) {
+        set.add(archivable);
+        pushToByReasonRecord(v, recoverable, archivable);
+    }
 }
 
-function markAsErrored(error, archivable) {
-    let dumpSize = archivable[0].dumpSize;
-    if (dumpSize === undefined)
-        dumpSize = 0;
-    recordByReason(reqresErrored, error, false, archivable, dumpSize);
+function pushToByReasonMap(byReasonMap, reason, recoverable, archivable) {
+    let v = getByReasonMapRecord(byReasonMap, reason);
+    pushToByReasonRecord(v, recoverable, archivable);
+    return v;
+}
+
+function pushToIssueAcc(accumulator, reason, recoverable, archivable) {
+    accumulator[0].add(archivable);
+    pushToByReasonMap(accumulator[1], reason, recoverable, archivable);
+}
+
+function markAsErrored(err, archivable) {
+    pushToIssueAcc(reqresErroredIssueAcc, errorMessageOf(err), false, archivable);
     gotNewErrored = true;
 }
 
 function syncDeleteAllErrored() {
     runSynchronously("deleteErrored", async () => {
-        for (let f of reqresErrored.values())
-            await syncMany(f.queue, 0, false);
-        reqresErrored = new Map();
+        await unstashMany(reqresErroredIssueAcc[0]);
+        reqresErroredIssueAcc = newIssueAcc();
     });
 }
 
@@ -943,33 +943,33 @@ let wantBucketSaveAs = false;
 let wantRetryAllUnarchived = false;
 let wantBroadcastSaved = false;
 
-function getNumberAndSizeFromQueues(m) {
+// Stats counting.
+
+function sumStats(f, m) {
     let number = 0;
     let size = 0;
-    for (let f of m.values()) {
-        number += f.queue.length;
-        size += f.size;
+    for (let e of m) {
+        let [n, s] = f(e);
+        number += n;
+        size += s;
     }
     return [number, size];
 }
 
-function getNumberAndSizeFromKeys(m) {
-    let size = 0;
-    for (let v of m.keys())
-        size += v[0].dumpSize;
-    return [m.size, size];
+function sumIssueAccByReasonStats(m) {
+    return sumStats((f) => [f.queue.length, f.size], m);
 }
 
 // Compute total sizes of all queues and similar.
 // Used in the UI.
 function getStats() {
-    let [bundledAs, bundledAsSize] = getNumberAndSizeFromQueues(reqresBundledAs);
+    let [bundledAs, bundledAsSize] = sumIssueAccByReasonStats(reqresBundledAs.values());
 
-    let [errored, erroredSize] = getNumberAndSizeFromQueues(reqresErrored);
+    let [errored, erroredSize] = sumIssueAccByReasonStats(reqresErroredIssueAcc[1].values());
 
-    let [stashFailed, stashFailedSize] = getNumberAndSizeFromKeys(reqresUnstashedByArchivable);
+    let [stashFailed, stashFailedSize] = sumIssueAccByReasonStats(reqresUnstashedIssueAcc[1].values());
 
-    let [archiveFailed, archiveFailedSize] = getNumberAndSizeFromKeys(reqresUnarchivedByArchivable);
+    let [archiveFailed, archiveFailedSize] = sumStats((m) => sumIssueAccByReasonStats(m.values()), reqresUnarchivedIssueAcc[1].values());
 
     let in_flight = Math.max(reqresInFlight.size, debugReqresInFlight.size);
 
@@ -1203,9 +1203,9 @@ function popInLimbo(collect, num, tabId, rrfilter) {
         broadcast(["newLog", newlyLogged]);
 
     if (newlyStashed.length > 0)
-        runSynchronously("stash", syncMany, newlyStashed, 1, true);
+        runSynchronously("stash", stashMany, newlyStashed);
     if (newlyUnstashed.length > 0)
-        runSynchronously("unstash", syncMany, newlyUnstashed, 0, false);
+        runSynchronously("unstash", unstashMany, newlyUnstashed);
 
     scheduleEndgame(tabId, 0);
 
@@ -1809,11 +1809,11 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
 
             if (wantRetryAllUnarchived) {
                 wantRetryAllUnarchived = false;
-                if (config.archive && reqresUnarchivedByArchivable.size > 0
+                if (config.archive && reqresUnarchivedIssueAcc[0].size > 0
                     // and at least one error is recoverable
-                    && Array.from(reqresUnarchivedByArchiveError.values())
-                    .some((byReasonMap) => Array.from(byReasonMap.values())
-                          .some((unarchived) => unarchived.recoverable)))
+                    && Array.from(reqresUnarchivedIssueAcc[1].values())
+                            .some((byReasonMap) => Array.from(byReasonMap.values())
+                            .some((unarchived) => unarchived.recoverable)))
                     // retry unarchived in 60s
                     scheduleActionEndgame(scheduledRetry, "retryUnarchived", 60000, () => {
                         retryAllUnarchived(false);
@@ -1829,14 +1829,10 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
 }
 
 async function retryAllUnstashed() {
-    let newByError = new Map();
-    let newByArchivable = new Map();
-    for (let [archivable, args] of reqresUnstashedByArchivable.entries()) {
-        let [state, elide] = args;
-        await syncOne(archivable, state, elide, newByError, newByArchivable);
-    }
-    reqresUnstashedByError = newByError;
-    reqresUnstashedByArchivable = newByArchivable;
+    let newUnstashed = newIssueAcc();
+    for (let archivable of reqresUnstashedIssueAcc[0])
+        await stashOne(archivable, newUnstashed);
+    reqresUnstashedIssueAcc = newUnstashed;
     gotNewSyncedOrNot = true;
 }
 
@@ -1846,20 +1842,18 @@ function syncRetryAllUnstashed() {
 
 async function stashAll(alsoLimbo) {
     await retryAllUnstashed();
-    await syncMany(reqresQueue, 1, true);
+    await stashMany(reqresQueue);
     if (alsoLimbo)
-        await syncMany(reqresLimbo, 1, true);
-    for (let m of reqresUnarchivedByArchiveError.values())
-        for (let f of m.values())
-            await syncMany(f.queue, 1, true);
+        await stashMany(reqresLimbo);
+    await stashMany(reqresUnarchivedIssueAcc[0]);
 }
 
 function syncStashAll(alsoLimbo) {
     runSynchronously("stash", stashAll, alsoLimbo);
 }
 
-function retryOneUnarchived(storeID, unrecoverable) {
-    let byReasonMap = reqresUnarchivedByArchiveError.get(storeID);
+function retryStoreUnarchived(accumulator, storeID, unrecoverable) {
+    let byReasonMap = accumulator[1].get(storeID);
     if (byReasonMap === undefined)
         return;
     for (let [reason, unarchived] of Array.from(byReasonMap.entries())) {
@@ -1867,32 +1861,36 @@ function retryOneUnarchived(storeID, unrecoverable) {
             continue;
 
         for (let archivable of unarchived.queue) {
+            let had = accumulator[0].delete(archivable);
+            if (!had)
+                // this was queued already
+                continue;
+
             let [loggable, dump] = archivable;
             let dumpSize = loggable.dumpSize;
             reqresQueue.push(archivable);
             reqresQueueSize += dumpSize;
-
-            let count = reqresUnarchivedByArchivable.get(archivable);
-            if (count > 1)
-                reqresUnarchivedByArchivable.set(archivable, count - 1);
-            else if (count !== undefined)
-                reqresUnarchivedByArchivable.delete(archivable);
         }
 
         byReasonMap.delete(reason);
     }
     if (byReasonMap.size === 0)
-        reqresUnarchivedByArchiveError.delete(storeID);
+        accumulator[1].delete(storeID);
 }
 
 function retryAllUnarchived(unrecoverable) {
     wantCheckServer = true;
 
-    if (reqresUnarchivedByArchiveError.size == 0)
+    if (reqresUnarchivedIssueAcc[0].size === 0)
         return;
 
-    for (let storeID of Array.from(reqresUnarchivedByArchiveError.keys()))
-        retryOneUnarchived(storeID, unrecoverable);
+    for (let archivable of reqresUnarchivedIssueAcc[0]) {
+        let [loggable, dump] = archivable;
+        let dumpSize = loggable.dumpSize;
+        reqresQueue.push(archivable);
+        reqresQueueSize += dumpSize;
+    }
+    reqresUnarchivedIssueAcc = newIssueAcc();
 
     broadcast(["resetQueued", getQueuedLog()]);
     broadcast(["resetUnarchived", getUnarchivedLog()]);
@@ -1919,9 +1917,9 @@ function formatFailures(why, list, recoverable) {
 
 async function doGlobalNotify() {
     // record the current state, because the rest of this chunk is async
-    let rrErrored = Array.from(reqresErrored.entries());
-    let rrUnstashed = Array.from(reqresUnstashedByError.entries());
-    let rrUnarchived = Array.from(reqresUnarchivedByArchiveError.entries());
+    let rrErrored = Array.from(reqresErroredIssueAcc[1].entries());
+    let rrUnstashed = Array.from(reqresUnstashedIssueAcc[1].entries());
+    let rrUnarchived = Array.from(reqresUnarchivedIssueAcc[1].entries());
 
     if (gotNewErrored && rrErrored.length > 0) {
         gotNewErrored = false;
@@ -2310,35 +2308,44 @@ async function syncWithStorage(archivable, state, elide) {
                      "loggable", loggable);
 }
 
-async function syncOne(archivable, state, elide, rrFailed, rrLast) {
-    if (rrFailed === undefined)
-        rrFailed = reqresUnstashedByError;
-    if (rrLast === undefined)
-        rrLast = reqresUnstashedByArchivable;
-
-    let [loggable, dump] = archivable;
-    let dumpSize = loggable.dumpSize;
+async function stashOne(archivable, accumulator) {
+    if (accumulator === undefined)
+        accumulator = reqresUnstashedIssueAcc;
 
     try {
-        await syncWithStorage(archivable, state, elide);
-    } catch (err) {
-        logHandledError(err);
-        recordByReason(rrFailed, err, false, archivable, dumpSize);
-        rrLast.set(archivable, [state, elide]);
-        gotNewSyncedOrNot = true;
-        return false;
-    }
-
-    gotNewSyncedOrNot = true;
-    return true;
-}
-
-async function syncMany(archivables, state, elide) {
-    for (let archivable of archivables) {
         let [loggable, dump] = archivable;
         updateLoggable(loggable);
-        await syncOne(archivable, state, elide);
+    } catch (err) {
+        logHandledError(err);
+        markAsErrored(err, archivable);
     }
+
+    try {
+        await syncWithStorage(archivable, 1, true);
+    } catch (err) {
+        logHandledError(err);
+        pushToIssueAcc(accumulator, errorMessageOf(err), false, archivable);
+    }
+    gotNewSyncedOrNot = true;
+}
+
+async function stashMany(archivables, accumulator) {
+    for (let archivable of archivables)
+        await stashOne(archivable, accumulator);
+}
+
+async function unstashOne(archivable) {
+    try {
+        await syncWithStorage(archivable, 0, false);
+    } catch (err) {
+        logHandledError(err);
+        markAsErrored(err, archivable);
+    }
+}
+
+async function unstashMany(archivables) {
+    for (let archivable of archivables)
+        unstashOne(archivable);
 }
 
 class StopIteration extends Error {}
@@ -2418,50 +2425,41 @@ async function forEachInStorage(storeName, func, limit) {
 
 // reqres archiving
 
-function recordManyUnarchived(storeID, reason, recoverable, archivables, func) {
-    let byReasonMap = getByReasonMap(storeID);
-    let v = getByReasonRecord(byReasonMap, reason);
-
-    for (let archivable of archivables) {
-        let [loggable, dump] = archivable;
-        let dumpSize = loggable.dumpSize;
-        if (func !== undefined)
-            func(loggable);
-        recordByReasonTo(v, recoverable, archivable, dumpSize);
-    }
-
+function recordOneUnarchivedIssueAcc(accumulator, reason, recoverable, archivable) {
+    pushToIssueAcc(accumulator, reason, recoverable, archivable);
     gotNewArchivedOrNot = true;
     wantArchiveDoneNotify = true;
     if (recoverable)
         wantRetryAllUnarchived = true;
 }
 
-function recordOneUnarchivedTo(byReasonMap, reason, recoverable, archivable, dumpSize) {
-    recordByReason(byReasonMap, reason, recoverable, archivable, dumpSize);
+function recordOneUnarchived(accumulator, storeID, reason, recoverable, archivable) {
+    let m = cacheSingleton(accumulator[1], storeID, () => new Map());
+    recordOneUnarchivedIssueAcc([accumulator[0], m], reason, recoverable, archivable);
+}
+
+function recordManyUnarchived(accumulator, storeID, reason, recoverable, archivables) {
+    let byReasonMap = cacheSingleton(accumulator[1], storeID, () => new Map());
+    let v = getByReasonMapRecord(byReasonMap, reason);
+    pushManyToSetByReasonRecord(accumulator[0], v, recoverable, archivables);
     gotNewArchivedOrNot = true;
     wantArchiveDoneNotify = true;
     if (recoverable)
         wantRetryAllUnarchived = true;
 }
 
-function recordOneUnarchived(storeID, reason, recoverable, archivable, dumpSize) {
-    let byReasonMap = getByReasonMap(storeID);
-    recordOneUnarchivedTo(byReasonMap, reason, recoverable, archivable, dumpSize);
-}
-
-function recordOneAssumedBroken(storeID, reason, archivable, dumpSize) {
-    let byReasonMap = reqresUnarchivedByArchiveError.get(storeID);
-    if (byReasonMap !== undefined) {
-        let recent = Array.from(byReasonMap.entries()).filter(
-            (x) => (Date.now() - x[1].when) < 1000 && x[0] != reason
-        )[0];
-        if (recent !== undefined) {
-            // we had recent errors there, fail this reqres immediately
-            recordOneUnarchivedTo(byReasonMap, reason, recent[1].recoverable, archivable, dumpSize);
-            return true;
-        }
-    }
-    return false;
+function recordOneAssumedBroken(accumulator, storeID, reason, archivable, dumpSize) {
+    let byReasonMap = accumulator[1].get(storeID);
+    if (byReasonMap === undefined)
+        return false;
+    let recent = Array.from(byReasonMap.entries()).filter(
+        (x) => (Date.now() - x[1].when) < 1000 && x[0] != reason
+    )[0];
+    if (recent === undefined)
+        return false;
+    // we had recent errors there, fail this reqres immediately
+    recordOneUnarchivedIssueAcc([accumulator[0], byReasonMap], reason, recent[1].recoverable, archivable);
+    return true;
 }
 
 let exportAsLastEpoch;
@@ -2513,17 +2511,18 @@ function bucketSaveAs(bucket, ifGEQ) {
         globals.exportedAsTotal += res.queue.length;
         globals.exportedAsSize += res.size;
     } catch (err) {
-        recordManyUnarchived("exportAs", err, false, res.queue, (loggable) => {
+        for (let loggable of res.queue) {
             loggable.exportedAs = false;
             loggable.dirty = true;
-        });
-        runSynchronously("stash", syncMany, Array.from(res.queue), 1, true);
+        }
+        recordManyUnarchived(reqresUnarchivedIssueAcc, "exportAs", errorMessageOf(err), false, res.queue);
+        runSynchronously("stash", stashMany, Array.from(res.queue));
         // NB: This is slightly fragile, consider the following sequence of
         // events for a given archivable:
         //
         //   exportAsOne -> submitHTTPOne -> saveOne
         //   -> ... -> scheduledEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
-        //   -> recordManyUnarchived -> runSynchronously(syncMany, ...) -> scheduledEndgame
+        //   -> recordManyUnarchived -> runSynchronously(stashMany, ...) -> scheduledEndgame
         //
         // It will first save the archivable, and then un-save and stash it
         // instead. This is by design, since, ideally, this this `catch` would
@@ -2537,10 +2536,10 @@ function bucketSaveAs(bucket, ifGEQ) {
         //
         //   exportAsOne -> submitHTTPOne -> (no saveOne) -> syncWithStorage(archivable, 0, ...)
         //   -> ... -> scheduleEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
-        //   -> recordManyUnarchived -> runSynchronously(syncMany, ...) -> scheduledEndgame
+        //   -> recordManyUnarchived -> runSynchronously(stashMany, ...) -> scheduledEndgame
         //
-        // Which will only work if that first `syncOne` does not elide the
-        // dump from memory, see (notEliding).
+        // Which will only work if that `syncWithStorage` does not elide the
+        // dump from memory, which it does not, see (notEliding).
     } finally {
         reqresBundledAs.delete(bucket);
     }
@@ -2607,7 +2606,7 @@ async function saveOne(archivable) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
-    if (recordOneAssumedBroken("localStorage", "this archiving method appears to be defunct", archivable, dumpSize))
+    if (recordOneAssumedBroken(reqresUnarchivedIssueAcc, "localStorage", "this archiving method appears to be defunct", archivable, dumpSize))
         return false;
 
     // Prevent future calls to `retryAllUnstashed` from un-saving this
@@ -2616,13 +2615,14 @@ async function saveOne(archivable) {
     //   finished -> in_limbo -> stashMany -> out of disk space ->
     //   the user fixes it -> popInLimbo ->
     //   queued -> saveOne -> syncRetryAllUnstashed
-    reqresUnstashedByArchivable.delete(archivable);
+    reqresUnstashedIssueAcc[0].delete(archivable);
 
     try {
         await syncWithStorage(archivable, 2, true);
     } catch (err) {
         logHandledError(err);
-        recordOneUnarchived("localStorage", err, false, archivable, dumpSize);
+        recordOneUnarchived(reqresUnarchivedIssueAcc, "localStorage", errorMessageOf(err), false, archivable);
+        gotNewArchivedOrNot = true;
         return false;
     }
 
@@ -2793,7 +2793,7 @@ async function submitHTTPOne(archivable) {
 
     function broken(storeID, reason, recoverable) {
         logHandledError(reason);
-        recordOneUnarchived(storeID, reason, recoverable, archivable, dumpSize);
+        recordOneUnarchived(reqresUnarchivedIssueAcc, storeID, reason, recoverable, archivable);
     }
 
     if (!serverConfig.alive) {
@@ -2809,7 +2809,7 @@ async function submitHTTPOne(archivable) {
     serverURL.search = "profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
     let storeID = serverURL.href;
 
-    if (recordOneAssumedBroken(storeID, "this archiving server appears to be defunct", archivable, dumpSize))
+    if (recordOneAssumedBroken(reqresUnarchivedIssueAcc, storeID, "this archiving server appears to be defunct", archivable, dumpSize))
         return false;
 
     if (config.debugging)
@@ -2841,7 +2841,7 @@ async function submitHTTPOne(archivable) {
         return false;
     }
 
-    retryOneUnarchived(storeID, true);
+    retryStoreUnarchived(reqresUnarchivedIssueAcc, storeID, true);
     globals.submittedHTTPTotal += 1;
     globals.submittedHTTPSize += loggable.dumpSize;
     loggable.archived |= archivedViaSubmitHTTP;
@@ -2859,7 +2859,7 @@ async function processArchiving(updatedTabId) {
         reqresQueueSize -= dumpSize;
 
         if (config.discardAll) {
-            await syncOne(archivable, 0, false);
+            await unstashOne(archivable);
             continue;
         }
 
@@ -2877,19 +2877,18 @@ async function processArchiving(updatedTabId) {
             // other archival methods go here
 
             if (!allOK)
-                // it's in reqresUnarchivedByArchiveError now, stash it without
-                // recording it in reqresUnstashedByError and
-                // reqresUnstashedByArchivable
+                // it's in reqresUnarchivedIssueAcc now, try stashing it without failures
                 await syncWithStorage(archivable, 1, true).catch(logError);
             else if (config.archiveSaveLS)
                 await saveOne(archivable);
             else
                 // (notEliding)
-                await syncOne(archivable, 0, false);
+                await syncWithStorage(archivable, 0, false);
         } catch (err) {
             logHandledError(err);
             markAsErrored(err, archivable);
-            await syncOne(archivable, 1, true);
+            // try stashing without recording failures
+            await syncWithStorage(archivable, 1, true).catch(logError);
         }
 
         let tabId = loggable.tabId;
@@ -3314,9 +3313,9 @@ async function processAlmostDone(updatedTabId) {
         broadcast(["newLog", newlyLogged]);
 
     if (newlyStashed.length > 0)
-        runSynchronously("stash", syncMany, newlyStashed, 1, true);
+        runSynchronously("stash", stashMany, newlyStashed);
     if (newlyUnstashed.length > 0)
-        runSynchronously("unstash", syncMany, newlyUnstashed, 0, false);
+        runSynchronously("unstash", unstashMany, newlyUnstashed);
 
     return updatedTabId;
 }
@@ -4182,9 +4181,9 @@ async function performReloadSelf() {
         return;
 
     let notGood
-        = reqresErrored.size
-        + reqresUnstashedByArchivable.size;
-        //+ reqresUnarchivedByArchivable.size // these will be caught below
+        = reqresErroredIssueAcc[0].size
+        + reqresUnstashedIssueAcc[0].size;
+        //+ reqresUnarchivedIssueAcc[0].size // these will be caught below
 
     if (notGood !== 0) {
         browser.notifications.create("error-noReload", {
@@ -4221,15 +4220,15 @@ async function performReloadSelf() {
         return loggable.inLS !== undefined && !loggable.dirty;
     }
 
-    let allSynced
+    let allInSyncWithLS
         = reqresLimbo.every(isInSyncWithLS)
         && reqresQueue.every(isInSyncWithLS)
-        && Array.from(reqresUnarchivedByArchivable.keys()).every(isInSyncWithLS);
+        && Array.from(reqresUnarchivedIssueAcc[0]).every(isInSyncWithLS);
 
     let reloadAllowed
         = notDoneReqres === 0
         && notDoneTasks === 0
-        && allSynced;
+        && allInSyncWithLS;
 
     if (!reloadAllowed) {
         let stats = getStats()
@@ -4237,7 +4236,7 @@ async function performReloadSelf() {
                      "#reqres", notDoneReqres,
                      "running", stats.running_actions,
                      "scheduled", stats.scheduled_actions,
-                     "synced?", allSynced);
+                     "LS?", allInSyncWithLS);
         return;
     }
 
@@ -4772,7 +4771,7 @@ function fixConfig(config, oldConfig, serverConfig) {
 
     // to prevent surprises
     if (config.archive
-        && (reqresQueue.length > 0 || reqresUnarchivedByArchivable.size > 0)
+        && (reqresQueue.length > 0 || reqresUnarchivedIssueAcc[0].size > 0)
         && (config.archiveExportAs !== oldConfig.archiveExportAs
          || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
          || config.archiveSaveLS !== oldConfig.archiveSaveLS)) {
