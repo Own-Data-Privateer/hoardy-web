@@ -353,11 +353,11 @@ function fixConfig(config, oldConfig, serverConfig) {
             }).catch(logError);
     }
 
-    if (!config.debugRuntime && isMobile && isFirefox && config.archiveExportAs) {
-        // unavailable
+    let noArchiveExportAs = isMobile && isFirefox;
+    if (!config.debugRuntime && noArchiveExportAs && config.archiveExportAs) {
+        // Firefox on Android crashes with this set see "Quirks and Bugs" in ../page/help.org
         config.archiveExportAs = false;
 
-        // Firefox on Android does not switch to new tabs opened from the settings
         if (config.hintNotify)
             browser.notifications.create("hint-configNotSupported-archiveExportAs", {
                 title: "Hoardy-Web: HINT",
@@ -367,10 +367,9 @@ function fixConfig(config, oldConfig, serverConfig) {
             }).catch(logError);
     }
 
-    let anyA = config.archiveExportAs || config.archiveSubmitHTTP || config.archiveSaveLS;
-    if (!anyA) {
-        // at lest one of these must be set
-        if (config.archiveSaveLS !== oldConfig.archiveSaveLS)
+    // at lest one of these must be set
+    if (!(config.archiveExportAs || config.archiveSubmitHTTP || config.archiveSaveLS)) {
+        if (config.archiveSaveLS !== oldConfig.archiveSaveLS && !noArchiveExportAs)
             config.archiveExportAs = true;
         else
             config.archiveSaveLS = true;
