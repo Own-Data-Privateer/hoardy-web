@@ -25,6 +25,17 @@
  *
  */
 
+"use strict";
+
+class StopIteration extends Error {}
+
+function pushFirstTo(archivables, res) {
+    for (let [v, _x] of archivables) {
+        res.push(v);
+    }
+    return res;
+}
+
 // see https://en.wikipedia.org/wiki/HTTP_status_codes
 // and https://datatracker.ietf.org/doc/html/rfc9110
 let redirectStatusCodes = new Set([301, 302, 303, 307, 308]);

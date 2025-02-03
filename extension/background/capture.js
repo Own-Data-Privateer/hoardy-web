@@ -18,10 +18,13 @@
  */
 
 /*
- * HTTP request+response capture using Chromium's Debugger API.
+ * HTTP request+response capture via `webRequest` and Chromium`s
+ * `debugger` APIs.
  */
 
 "use strict";
+
+// Actions
 
 function attachDebugger(tabId) {
     return attachDebuggerWithSendCommands(tabId, "1.3", [["Network.enable", {}]]);
@@ -56,13 +59,183 @@ async function syncDebuggersState(tabs) {
     }
 }
 
+async function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
+    scheduleActionExtra(scheduledInternal, `reset-tab#${tabId}`, priority, 100, true, async () => {
+        let r;
+        if (resetFunc !== undefined)
+            r = await resetFunc(tabId);
+        scheduleActionExtra(scheduledInternal, `reload-tab#${tabId}`, priority, 300, true, async () => {
+            try {
+                if (preFunc !== undefined)
+                    await preFunc(tabId);
+                if (actionFunc !== undefined)
+                    await actionFunc(tabId, r);
+            } catch (err) {
+                logError(err);
+            }
+        }, false);
+    }, false);
+}
+
+function resetAndNavigateTab(tabId, url, priority) {
+    return sleepResetTab(tabId, priority,
+                         navigateTabToBlank, undefined,
+                         (tabId, _ignored) => navigateTabTo(tabId, url));
+}
+
+function resetAttachDebuggerAndNavigateTab(tabId, url, priority) {
+    return sleepResetTab(tabId, priority,
+                         navigateTabToBlank, attachDebugger,
+                         (tabId, _ignored) => navigateTabTo(tabId, url));
+}
+
+function resetAttachDebuggerAndReloadTab(tabId, priority) {
+    return sleepResetTab(tabId, priority,
+                         getTabURLThenNavigateTabToBlank, attachDebugger,
+                         navigateTabTo);
+}
+
+function attachDebuggerAndReloadTab(tabId, priority) {
+    return sleepResetTab(tabId, priority,
+                         undefined, attachDebugger,
+                         browser.tabs.reload);
+}
+
 // State
 
+// reqres in-flight, indexed by requestId
+let reqresInFlight = new Map();
 // debugger's reqres in-flight, indexed by requestId
 let debugReqresInFlight = new Map();
+// reqres that were "completed" by the webRequest API, but might have unfinished filterResponseData filters
+let reqresFinishingUp = [];
 // reqres that were "completed" by the debugger
 let debugReqresFinishingUp = [];
+// completely finished reqres
+let reqresAlmostDone = [];
 
+let workaroundFirstRequest = true;
+
+// Logging
+
+function getInFlightLog() {
+    let res = [];
+    for (let [k, v] of debugReqresInFlight.entries()) {
+        // `.url` can be unset, see (veryEarly) in `emitDebugRequest`.
+        if (v.url !== undefined && !isBoringOrServerURL(v.url))
+            res.push(makeLoggable(v));
+    }
+    for (let [k, v] of reqresInFlight.entries())
+        res.push(makeLoggable(v));
+    for (let v of debugReqresFinishingUp)
+        res.push(makeLoggable(v));
+    for (let v of reqresFinishingUp)
+        res.push(makeLoggable(v));
+    for (let v of reqresAlmostDone)
+        res.push(makeLoggable(v));
+    return res;
+}
+
+// Reqres data structures
+
+function shallowCopyOfReqres(reqres) {
+    return {
+        sessionId: reqres.sessionId,
+        requestId: reqres.requestId,
+        tabId: reqres.tabId,
+        fromExtension: reqres.fromExtension,
+
+        protocol: reqres.protocol,
+
+        method: reqres.method,
+        url: reqres.url,
+
+        documentUrl: reqres.documentUrl,
+        originUrl: reqres.originUrl,
+        errors: Array.from(reqres.errors),
+
+        requestTimeStamp: reqres.requestTimeStamp,
+        requestComplete: reqres.requestComplete,
+        requestBuggy: reqres.requestBuggy,
+
+        submitted: reqres.submitted,
+        responded: reqres.responded,
+
+        responseTimeStamp: reqres.responseTimeStamp,
+        statusLine: reqres.statusLine,
+        statusCode: reqres.statusCode,
+        reason: reqres.reason,
+        fromCache: reqres.fromCache,
+        responseComplete: reqres.responseComplete,
+        responseBuggy: reqres.responseBuggy,
+
+        redirectUrl: reqres.redirectUrl,
+
+        emitTimeStamp: reqres.emitTimeStamp,
+    };
+}
+
+function completedCopyOfReqres(reqres) {
+    let res = shallowCopyOfReqres(reqres);
+    // copy what shallowCopyOfReqres does not
+    res.requestHeaders = reqres.requestHeaders;
+    res.requestBody = reqres.requestBody;
+    res.formData = reqres.formData;
+    res.responseHeaders = reqres.responseHeaders;
+    // set responseBody to an empty buffer
+    res.responseBody = new ChunkedBuffer();
+    // and mark as complete, as the name implies
+    res.responseComplete = true;
+    // alno note that we ignore the filter here
+    return res;
+}
+
+function fillResponse(reqres, e) {
+    reqres.responded = true;
+    reqres.responseTimeStamp = e.timeStamp;
+    reqres.fromCache = e.fromCache;
+    reqres.statusCode = e.statusCode;
+    reqres.statusLine = e.statusLine;
+    reqres.responseHeaders = e.responseHeaders;
+}
+
+// In-flight reqres handling
+
+// flush reqresFinishingUp into the reqresAlmostDone, interrupting filters
+function forceFinishingUpWebRequest(predicate, updatedTabId) {
+    let notFinished = [];
+
+    for (let reqres of reqresFinishingUp) {
+        if (predicate !== undefined && !predicate(reqres)) {
+            notFinished.push(reqres);
+            continue;
+        }
+
+        // disconnect the filter, if not disconnected already
+        if (reqres.filter !== undefined) {
+            try {
+                reqres.filter.disconnect()
+            } catch (e) {
+                //ignore
+            }
+            delete reqres["filter"];
+        }
+
+        if (config.debugging)
+            console.warn("UNSTUCK webRequest requestId", reqres.requestId,
+                         "tabId", reqres.tabId,
+                         "url", reqres.url,
+                         "reqres", reqres);
+
+        reqresAlmostDone.push(reqres);
+        updatedTabId = mergeUpdatedTabIds(updatedTabId, reqres.tabId);
+    }
+
+    reqresFinishingUp = notFinished;
+    return updatedTabId;
+}
+
+// flush debugReqresFinishingUp into the reqresAlmostDone
 function forceFinishingUpDebug(predicate, updatedTabId) {
     let notFinished = [];
 
@@ -98,6 +271,50 @@ function forceFinishingUpDebug(predicate, updatedTabId) {
 
     debugReqresFinishingUp = notFinished;
     return updatedTabId;
+}
+
+// wait up for reqres filters to finish
+function processFinishingUpWebRequest(forcing, updatedTabId) {
+    let notFinished = [];
+
+    for (let reqres of reqresFinishingUp) {
+        if (reqres.filter === undefined) {
+            // this reqres finished even before having a filter
+            reqresAlmostDone.push(reqres);
+            updatedTabId = mergeUpdatedTabIds(updatedTabId, reqres.tabId);
+            continue;
+        }
+
+        let fs = reqres.filter.status;
+        if (fs == "disconnected" || fs == "closed" || fs == "failed") {
+            // the filter is done, remove it
+            delete reqres["filter"];
+            reqresAlmostDone.push(reqres);
+            updatedTabId = mergeUpdatedTabIds(updatedTabId, reqres.tabId);
+            continue;
+        }
+
+        // the filter of this reqres is not finished yet
+        // try again later
+        notFinished.push(reqres);
+    }
+
+    reqresFinishingUp = notFinished;
+
+    if (!forcing)
+        scheduleEndgame(updatedTabId);
+
+    return updatedTabId;
+}
+
+// schedule processFinishingUpWebRequest
+function scheduleProcessFinishingUpWebRequest() {
+    if (reqresFinishingUp.length == 0 && debugReqresFinishingUp.length == 0)
+        // nothing to do
+        return;
+
+    scheduleAction(scheduledInternal, "finishingUp", 100, () => processFinishingUpWebRequest(false));
+    scheduleUpdateDisplay(true);
 }
 
 function debugHeadersMatchScore(reqres, dreqres) {
@@ -297,6 +514,68 @@ function scheduleProcessMatchFinishingUpWebRequestDebug() {
                    processMatchFinishingUpWebRequestDebug);
 }
 
+let processFinishingUp = processFinishingUpWebRequest;
+if (useDebugger)
+    processFinishingUp = processMatchFinishingUpWebRequestDebug;
+
+function emitRequest(requestId, reqres, error, dontFinishUp) {
+    reqresInFlight.delete(requestId);
+
+    reqres.emitTimeStamp = Date.now();
+
+    if (reqres.formData !== undefined) {
+        // recover requestBody from formData
+        let contentType = getHeaderValue(reqres.requestHeaders, "Content-Type") || "";
+        let parts = contentType.split(";");
+        if (parts[0] == "application/x-www-form-urlencoded") {
+            let bodyParts = [];
+            for (const [name, value] of Object.entries(reqres.formData)) {
+                bodyParts.push(
+                    `${encodeURIComponent(name)}=${encodeURIComponent(value.join("")).replace(/%20/g, "+")}`,
+                );
+            }
+            let enc = new TextEncoder("utf-8", { fatal: true });
+            reqres.requestBody.push(enc.encode(bodyParts.join("&")));
+        } else if (parts[0] == "multipart/form-data") {
+            let boundary;
+            for (let i = 1; i < parts.length; ++i) {
+                if (parts[i].startsWith("boundary=")) {
+                    boundary = parts[i].substr(9);
+                    break;
+                }
+            }
+
+            if (config.debugging)
+                console.log(reqres.formData);
+
+            let enc = new TextEncoder("utf-8", { fatal: true });
+
+            if (boundary !== undefined) {
+                for (const [name, value] of Object.entries(reqres.formData)) {
+                    let data = enc.encode("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + encodeURIComponent(name) + "\"\r\n\r\n" + value.join("") + "\r\n")
+                    reqres.requestBody.push(data);
+                }
+
+                let epilog = enc.encode("--" + boundary + "--\r\n");
+                reqres.requestBody.push(epilog);
+            } else
+                console.warn("can't recover requestBody from formData, unknown Content-Type format", contentType);
+        } else
+            console.warn("can't recover requestBody from formData, unknown Content-Type format", contentType);
+        delete reqres["formData"];
+    }
+
+    if (error !== undefined) {
+        if (isUnknownError(error))
+            console.error("emitRequest", requestId, "error", error, reqres);
+        reqres.errors.push(error);
+    }
+
+    reqresFinishingUp.push(reqres);
+    if (!dontFinishUp)
+        processFinishingUp(false);
+}
+
 // Encode debugger's headers structure into the one used by webRequest API.
 function debugHeadersToHeaders(dheaders) {
     if (dheaders === undefined)
@@ -414,12 +693,385 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     }
 }
 
+function emitTabInFlightWebRequest(tabId, reason) {
+    for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
+        if (tabId === null || reqres.tabId === tabId)
+            emitRequest(requestId, reqres, "webRequest::" + reason, true);
+    }
+}
+
 function emitTabInFlightDebug(tabId, reason) {
     for (let [requestId, dreqres] of Array.from(debugReqresInFlight.entries())) {
         if (tabId === null || dreqres.tabId === tabId)
             emitDebugRequest(requestId, dreqres, false, "debugger::" + reason, true);
     }
 }
+
+function stopInFlight(tabId, reason, updatedTabId) {
+    if (useDebugger)
+        emitTabInFlightDebug(tabId, reason);
+    emitTabInFlightWebRequest(tabId, reason);
+
+    updatedTabId = processFinishingUp(true, tabId);
+
+    if (useDebugger)
+        updatedTabId = forceFinishingUpDebug((r) => tabId === null || r.tabId === tabId, updatedTabId);
+    updatedTabId = forceFinishingUpWebRequest((r) => tabId === null || r.tabId === tabId, updatedTabId);
+
+    return updatedTabId;
+    // NB: needs scheduleEndgame after
+}
+
+// webRequest handlers
+
+function logEvent(rtype, e, reqres) {
+    if (config.debugging)
+        console.warn("EVENT webRequest",
+                     rtype,
+                     "requestId", e.requestId,
+                     "tabId", e.tabId,
+                     "url", e.url,
+                     "event", e,
+                     "reqres", reqres);
+}
+
+function handleBeforeRequest(e) {
+    let url = e.url;
+
+    // Ignore data, file, and extension URLs as wel as all request to the
+    // archiving/replay server.
+    //
+    // NB: `file:` URLs only happen on Chromium, Firefox does not emit any
+    // `webRequest` events for those.
+    if (isBoringOrServerURL(url))
+        return;
+
+    let initiator;
+    if (isDefinedURL(e.documentUrl))
+        initiator = e.documentUrl; // Firefox
+    else if (isDefinedURL(e.initiator) && e.initiator !== "null")
+        initiator = e.initiator; // Chromium
+
+    let fromExtension = false;
+    if (initiator !== undefined) {
+        // ignore our own requests
+        if (initiator.startsWith(selfURL) // Firefox
+            || (initiator + "/") == selfURL) // Chromium
+            return;
+
+        // request originates from another extension
+        if (isExtensionURL(initiator))
+            fromExtension = true;
+    }
+
+    let options = getOriginConfig(e.tabId, fromExtension);
+    let workOffline = config.workOffline || options.workOffline;
+
+    // ignore this request if archiving is disabled
+    if (!config.collecting || !options.collecting) {
+        if (workOffline)
+            return { cancel: true };
+        return;
+    }
+
+    logEvent("BeforeRequest", e, undefined);
+
+    // Should we generate and then immediately cancel this reqres?
+    let reject = false;
+
+    // On Chromium, cancel all requests from a tab that is not yet debugged,
+    // start debugging, and then reload the tab.
+    if (useDebugger && e.tabId !== -1
+        && !tabsDebugging.has(e.tabId)
+        && (url.startsWith("http://") || url.startsWith("https://"))) {
+        if (config.debugging)
+            console.warn("canceling and restarting request to", url, "as tab", e.tabId, "is not managed yet");
+        if (e.type == "main_frame") {
+            // attach debugger and reload the main frame
+            attachDebuggerAndReloadTab(e.tabId).catch(logError);
+            // not using
+            //   resetAttachDebuggerAndNavigateTab(e.tabId, url).catch(logError);
+            // or
+            //   resetAttachDebuggerAndReloadTab(e.tabId).catch(logError);
+            // bacause they reset the referrer
+            return { cancel: true };
+        } else
+            // cancel it, but generate a reqres for it, so that it would be
+            // logged
+            reject = true;
+    }
+
+    // On Firefox, cancel the very first navigation request, redirect the tab
+    // to `about:blank`, and then reload the tab with the original URL to
+    // work-around a Firefox bug where it will fail to run `onstop` for the
+    // `filterResponseData` of the very first request, thus breaking it.
+    if (!useDebugger && workaroundFirstRequest && !workOffline) {
+        workaroundFirstRequest = false;
+        if (config.workaroundFirefoxFirstRequest
+            && e.tabId !== -1
+            && initiator === undefined
+            && e.type == "main_frame"
+            && (url.startsWith("http://") || url.startsWith("https://"))) {
+            if (config.debugging)
+                console.warn("canceling and restarting request to", url, "to workaround a bug in Firefox");
+            resetAndNavigateTab(e.tabId, url).catch(logError);
+            return { cancel: true };
+        }
+    }
+
+    let tabId = e.tabId;
+    let requestId = e.requestId;
+    let reqres = {
+        sessionId,
+        requestId,
+        tabId,
+        fromExtension,
+
+        method: e.method,
+        url,
+
+        errors: [],
+
+        requestTimeStamp: e.timeStamp,
+        requestHeaders: [],
+        requestBody: new ChunkedBuffer(),
+        requestComplete: true,
+
+        submitted: false,
+        responded: false,
+
+        responseHeaders : [],
+        responseBody: new ChunkedBuffer(),
+        responseComplete: false,
+        fromCache: false,
+    };
+
+    if (isDefinedURL(e.documentUrl)
+        && !e.documentUrl.startsWith(selfURL)) // just in case
+        reqres.documentUrl = e.documentUrl;
+
+    if (isDefinedURL(e.originUrl)
+        && !e.originUrl.startsWith(selfURL)) // do not leak extension id when using config.workaroundFirefoxFirstRequest
+        reqres.originUrl = e.originUrl; // Firefox
+    else if (isDefinedURL(e.initiator)
+             && e.initiator !== "null"
+             && !e.initiator.startsWith(selfURL)) // just in case
+        reqres.originUrl = e.initiator; // Chromium
+
+    if (e.requestBody !== undefined && e.requestBody !== null) {
+        if (e.requestBody.raw !== undefined) {
+            let raw = e.requestBody.raw;
+            let complete = true;
+            for (let i = 0; i < raw.length; ++i) {
+                let el = raw[i].bytes;
+                if (el === undefined) {
+                    complete = false;
+                    continue;
+                }
+                reqres.requestBody.push(new Uint8Array(el));
+            }
+            reqres.requestComplete = complete;
+        } else if (e.requestBody.formData !== undefined) {
+            reqres.formData = e.requestBody.formData;
+            reqres.requestComplete = false;
+        }
+    }
+
+    if (reject || workOffline) {
+        if (reject)
+            reqres.errors.push("webRequest::capture::CANCELED::NO_DEBUGGER")
+        if (workOffline)
+            reqres.errors.push("webRequest::capture::CANCELED::BY_WORK_OFFLINE")
+        reqresAlmostDone.push(reqres);
+        scheduleEndgame(tabId);
+        return { cancel: true };
+    }
+
+    if (!useDebugger) {
+        // Firefox
+        let filter = browser.webRequest.filterResponseData(requestId);
+        filter.onstart = (event) => {
+            if (config.debugging)
+                console.log("filterResponseData", requestId, "started");
+        };
+        filter.ondata = (event) => {
+            if (config.debugging)
+                console.log("filterResponseData", requestId, "chunk", event.data);
+            reqres.responseBody.push(new Uint8Array(event.data));
+            filter.write(event.data);
+        };
+        filter.onstop = (event) => {
+            if (config.debugging)
+                console.log("filterResponseData", requestId, "finished");
+            reqres.responseComplete = true;
+            filter.disconnect();
+            scheduleProcessFinishingUpWebRequest(); // in case we were waiting for this filter
+        };
+        filter.onerror = (event) => {
+            if (filter.error !== "Invalid request ID") {
+                // if filter was actually started
+                let error = "filterResponseData::" + filter.error;
+                if (isUnknownError(error))
+                    console.error("filterResponseData", requestId, "error", error);
+                reqres.errors.push(error);
+            }
+            scheduleProcessFinishingUpWebRequest(); // in case we were waiting for this filter
+        };
+
+        reqres.filter = filter;
+    }
+
+    reqresInFlight.set(requestId, reqres);
+    broadcast(["newInFlight", [makeLoggable(reqres)]]);
+    scheduleUpdateDisplay(true, tabId);
+}
+
+function handleBeforeSendHeaders(e) {
+    let reqres = reqresInFlight.get(e.requestId);
+    if (reqres === undefined) return;
+
+    logEvent("BeforeSendHeaders", e, reqres);
+}
+
+function handleSendHeaders(e) {
+    let reqres = reqresInFlight.get(e.requestId);
+    if (reqres === undefined) return;
+
+    logEvent("SendHeaders", e, reqres);
+    reqres.submitted = true;
+    reqres.requestHeaders = e.requestHeaders;
+}
+
+function handleHeadersRecieved(e) {
+    let reqres = reqresInFlight.get(e.requestId);
+    if (reqres === undefined) return;
+
+    logEvent("HeadersRecieved", e, reqres);
+
+    if (reqres.responded) {
+        // the browser can call this multiple times for the same request, e.g.
+        // when sending If-Modified-Since and If-None-Match and receiving
+        // 304 response.
+
+        // So, we emit a completed copy of this with an empty response body
+        let creqres = completedCopyOfReqres(reqres);
+        emitRequest(e.requestId, creqres);
+
+        // and continue with the old one (not vice versa, because the filter
+        // refers to the old one, and changing that reference would be
+        // impossible, since it's asynchronous)
+        reqresInFlight.set(e.requestId, reqres);
+    }
+
+    fillResponse(reqres, e);
+}
+
+function handleBeforeRedirect(e) {
+    let reqres = reqresInFlight.get(e.requestId);
+    if (reqres === undefined) return;
+
+    logEvent("BeforeRedirect", e, reqres);
+
+    reqres.redirectUrl = e.redirectUrl;
+    reqres.responseComplete = true;
+
+    if (!reqres.responded) {
+        // This happens when a request gets redirected right after
+        // `handleBeforeRequest` by the browser itself, by another extension,
+        // or a service/shared worker.
+        let firefoxInternalRedirect = !useDebugger && e.statusCode === 0;
+        let firefoxExtensionRedirectToSelf = !useDebugger && (e.statusCode < 300 || e.statusCode >= 400) && isExtensionURL(e.redirectUrl);
+        if (firefoxInternalRedirect || firefoxExtensionRedirectToSelf) {
+            // Work around internal Firefox redirects giving no codes and
+            // statuses or extensions redirecting to their local files under
+            // Firefox.
+            reqres.generated = true;
+            reqres.responded = true;
+            reqres.responseTimeStamp = e.timeStamp;
+            reqres.fromCache = false;
+            reqres.statusCode = 307;
+            reqres.reason = "Internal Redirect";
+            reqres.responseHeaders = [
+                { name: "Location", value: e.redirectUrl }
+            ];
+            // these give no data, usually
+            if (firefoxExtensionRedirectToSelf)
+                reqres.responseComplete = false;
+        } else
+            fillResponse(reqres, e);
+    }
+
+    emitRequest(e.requestId, reqres);
+
+    // after this it will go back to handleBeforeRequest, so we don't need to
+    // copy anything here
+}
+
+function handleAuthRequired(e) {
+    let reqres = reqresInFlight.get(e.requestId);
+    if (reqres === undefined) return;
+
+    logEvent("AuthRequired", e, reqres);
+
+    // similarly to above
+    let creqres = completedCopyOfReqres(reqres);
+    emitRequest(e.requestId, creqres);
+
+    // after this it will goto back to handleBeforeSendHeaders, so
+    reqresInFlight.set(e.requestId, reqres);
+}
+
+function handleCompleted(e) {
+    let reqres = reqresInFlight.get(e.requestId);
+    if (reqres === undefined) return;
+
+    logEvent("Completed", e, reqres);
+
+    if (!reqres.responded) {
+        // This happens when a request gets fulfilled by another extension or
+        // a service/shared worker.
+        reqres.generated = true;
+        fillResponse(reqres, e);
+    }
+
+    emitRequest(e.requestId, reqres);
+}
+
+function handleErrorOccurred(e) {
+    let reqres = reqresInFlight.get(e.requestId);
+    if (reqres === undefined) return;
+
+    logEvent("ErrorOccured", e, reqres);
+
+    if (!reqres.responded) {
+        // This happens when a request gets started as normal, but then the
+        // loading gets interrupted by another extension or a service/shared
+        // worker.
+        reqres.generated = true;
+        reqres.fromCache = e.fromCache;
+        // NB: Not setting `reqres.responded`, nor `reqres.responseTimeStamp` here.
+        // NB: This then continues to (raceCondition).
+    }
+
+    emitRequest(e.requestId, reqres, "webRequest::" + e.error);
+}
+
+function initCapture() {
+    let filterAllR = { urls: ["<all_urls>"] };
+    if (useBlocking)
+        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, ["blocking", "requestBody"]);
+    else
+        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, ["requestBody"]);
+    browser.webRequest.onBeforeSendHeaders.addListener(catchAll(handleBeforeSendHeaders), filterAllR);
+    browser.webRequest.onSendHeaders.addListener(catchAll(handleSendHeaders), filterAllR, ["requestHeaders"]);
+    browser.webRequest.onHeadersReceived.addListener(catchAll(handleHeadersRecieved), filterAllR, ["responseHeaders"]);
+    browser.webRequest.onBeforeRedirect.addListener(catchAll(handleBeforeRedirect), filterAllR, ["responseHeaders"]);
+    browser.webRequest.onAuthRequired.addListener(catchAll(handleAuthRequired), filterAllR);
+    browser.webRequest.onCompleted.addListener(catchAll(handleCompleted), filterAllR, ["responseHeaders"]);
+    browser.webRequest.onErrorOccurred.addListener(catchAll(handleErrorOccurred), filterAllR);
+}
+
+// Debugger handlers
 
 function logDebugEvent(rtype, nonExtra, e, dreqres) {
     if (config.debugging) {

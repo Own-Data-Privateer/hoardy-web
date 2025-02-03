@@ -18,7 +18,17 @@
     <script src="../lib/lslot.js"></script>
     <script src="../lib/caydarsc.js"></script>
     <script src="util.js"></script>
-    <script src="debugger.js"></script>
-    <script src="core.js"></script>
+    <script src="issue-acc.js"></script>
+    <script src="state-global.js"></script>
+    <script src="state-tab.js"></script>
+    <script src="notifier.js"></script>
+    <script src="scheduler.js"></script>
+    <script src="display.js"></script>
+    <script src="capture.js"></script>
+    <script src="capture-snapshot.js"></script>
+    <script src="loggable-dump.js"></script>
+    <script src="persistence.js"></script>
+    <script src="reload.js"></script>
+    <script src="main.js"></script>
   </body>
 </html>
