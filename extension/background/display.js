@@ -351,7 +351,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             color = Math.max(color, 1);
             chunks.push("ephemeral config");
         }
-        if (config.debugging || config.dumping) {
+        if (config.debugCaptures || config.dumpCaptures) {
             badge += "D";
             color = Math.max(color, 1);
             chunks.push("debug log (slow!)");
@@ -385,7 +385,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         if (statsChanged)
             broadcast(["updateStats", stats]);
 
-        if (config.debugging && !statsChanged && !equalRec(udStats, stats))
+        if (config.debugRuntime && !statsChanged && !equalRec(udStats, stats))
             logError("`statsChanged` value is incorrect");
 
         udStats = stats;
@@ -398,8 +398,8 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
     if (udBadge !== badge) {
         await browser.browserAction.setBadgeText({ text: badge });
         udBadge = badge;
-        if (config.debugging)
-            console.log(`updated browserAction: badge "${badge}"`);
+        if (config.debugRuntime)
+            console.info(`browserAction: badge: "${badge}"`);
     }
 
     if (udColor !== color) {
@@ -421,8 +421,8 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         await browser.browserAction.setBadgeBackgroundColor({ color: backgroundRGB });
         await browser.browserAction.setBadgeTextColor({ color: colorRGB });
         udColor = color;
-        if (config.debugging)
-            console.log(`updated browserAction: color "${color}"`);
+        if (config.debugRuntime)
+            console.info(`browserAction: color: ${color} (bg ${backgroundRGB}, fg ${colorRGB})`);
     }
 
     if (udGTitle !== gtitle)
@@ -556,8 +556,10 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         await setTitle(windowId, tabId, title);
         await setIcons(windowId, tabId, tab.active, icons, tabChanged);
 
-        if (config.debugging)
-            console.log(`updated browserAction: tabId ${tabId}: icons ${icons.join(", ")}, title "${title}"`);
+        if (config.debugRuntime) {
+            console.info(`browserAction of tab ${tabId}: icons: [${icons.join(", ")}]`);
+            console.info(`browserAction of tab ${tabId}: title: "${title}"`);
+        }
     }
 }
 

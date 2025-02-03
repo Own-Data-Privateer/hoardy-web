@@ -299,8 +299,8 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
     if (recordOneAssumedBroken(unarchivedAccumulator, storeID, "this archiving server appears to be defunct", archivable, dumpSize))
         return false;
 
-    if (config.debugging)
-        console.log("trying to archive", loggable);
+    if (config.debugPersisence)
+        console.info("PERSISTENCE: HTTP: submitting", loggable);
 
     dump = await loadDumpFromStorage(archivable, true, false);
 
@@ -548,8 +548,9 @@ async function syncWithStorage(archivable, state, elide) {
         // free memory
         archivable[1] = null;
 
-    if (config.debugging)
-        console.warn(state === 0 ? "DELETED" : (state === 1 ? "STASHED" : "SAVED"),
+    if (config.debugPersisence)
+        console.info("PERSISTENCE:",
+                     state === 0 ? "DELETED" : (state === 1 ? "STASHED" : "SAVED"),
                      "elide", elide,
                      "ids", dumpId, stashId, saveId,
                      "loggable", loggable);

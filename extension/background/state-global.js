@@ -179,11 +179,14 @@ let configDefaults = {
     },
 
     // debugging options
-    debugging: false, // verbose debugging logs
-    discardAll: false, // drop all reqres on archival
-    dumping: false, // dump dumps to console
     ephemeral: false, // stop the config from being saved to disk
     snapshotAny: false, // snapshot isBoringOrServerURL
+
+    debugRuntime: false, // log runtime events
+    debugCaptures: false, // log capture events
+    dumpCaptures: false, // log CBOR dumps
+    debugPersisence: false, // log stashes and archivals
+    discardAll: false, // drop all reqres on archival
 
     // meta
     lastSeenVersion: manifest.version,
@@ -393,7 +396,7 @@ function fixConfig(config, oldConfig, serverConfig) {
     if (config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)
         serverConfig = setServer(config);
 
-    DEBUG_WEBEXT_RPC = DEBUG_CAYDARSC = config.debugging;
+    DEBUG_WEBEXT_RPC = DEBUG_CAYDARSC = config.debugRuntime;
 
     return [config, serverConfig];
 }
@@ -453,7 +456,7 @@ async function saveConfig() {
     if (equalRec(savedConfig, config))
         return;
     savedConfig = assignRec({}, config);
-    if (config.debugging)
+    if (config.debugRuntime)
         console.log("saving config", savedConfig);
     await browser.storage.local.set({ config: savedConfig }).catch(logError);
 }
@@ -469,7 +472,7 @@ async function saveGlobals() {
     if (equalRec(savedGlobals, globals))
         return;
     savedGlobals = assignRec({}, globals);
-    if (config.debugging)
+    if (config.debugRuntime)
         console.log("saving globals", savedGlobals);
     await browser.storage.local.set({ globals: savedGlobals }).catch(logError);
     await browser.storage.local.remove("persistentStats").catch(() => {});

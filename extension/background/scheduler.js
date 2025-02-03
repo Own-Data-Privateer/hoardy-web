@@ -98,7 +98,7 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
                 let [name, fun, args] = synchronousClosures.shift();
 
                 let key = "endgame::" + name;
-                if (config.debugging)
+                if (config.debugRuntime)
                     console.warn("running", key);
 
                 await forceUpdateDisplay(true, updatedTabId, getGoodEpisodic(synchronousClosures.length));
@@ -112,7 +112,7 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
                     logError(err);
                 }
 
-                if (config.debugging)
+                if (config.debugRuntime)
                     console.warn("finished", key);
                 runningActions.delete(key);
             }
@@ -220,13 +220,13 @@ function scheduleActionExtra(map, key, priority, timeout, hurry, func, endgame) 
         return;
 
     value.before.push(async () => {
-        if (config.debugging)
+        if (config.debugRuntime)
             console.warn("running", key);
         runningActions.add(key);
         await forceUpdateDisplay(true);
     });
     value.after.push(async (results) => {
-        if (config.debugging)
+        if (config.debugRuntime)
             console.warn("finished", key, results);
         runningActions.delete(key);
 

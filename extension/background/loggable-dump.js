@@ -582,7 +582,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
     let in_limbo = picked && options.limbo || !picked && options.negLimbo;
 
     // dump it to console when debugging
-    if (config.debugging)
+    if (config.debugCaptures || config.dumpCaptures)
         console.warn(
             picked ? "PICKED" : "DROPPED",
             in_limbo ? "LIMBO" : "QUEUED",
@@ -614,7 +614,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
             dump = encoder.result();
             dumpSize = dump.byteLength;
 
-            if (config.dumping)
+            if (config.dumpCaptures)
                 dumpToConsole(dump);
         } else {
             dump = null;

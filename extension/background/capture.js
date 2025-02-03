@@ -221,8 +221,8 @@ function forceFinishingUpWebRequest(predicate, updatedTabId) {
             delete reqres["filter"];
         }
 
-        if (config.debugging)
-            console.warn("UNSTUCK webRequest requestId", reqres.requestId,
+        if (config.debugCaptures)
+            console.warn("CAPTURE: FORCE-UNSTUCK webRequest requestId", reqres.requestId,
                          "tabId", reqres.tabId,
                          "url", reqres.url,
                          "reqres", reqres);
@@ -246,8 +246,8 @@ function forceFinishingUpDebug(predicate, updatedTabId) {
             continue;
         }
 
-        if (config.debugging)
-            console.warn("UNSTUCK debugRequest drequestId", dreqres.requestId,
+        if (config.debugCaptures)
+            console.warn("CAPTURE: FORCE-UNSTUCK debugRequest drequestId", dreqres.requestId,
                          "tabId", dreqres.tabId,
                          "url", dreqres.url,
                          "dreqres", dreqres);
@@ -346,8 +346,9 @@ function debugHeadersMatchScore(reqres, dreqres) {
     match(reqres.responseHeaders, dreqres.responseHeaders);
 
     let score = matching - unmatching * 1000;
-    if (config.debugging)
-        console.log("debugHeadersMatchScore", score, reqres, dreqres);
+    if (config.debugCaptures)
+        console.debug("CAPTURE: debugHeadersMatchScore", score, reqres, dreqres);
+
     return score;
 }
 
@@ -435,8 +436,8 @@ function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
                         notMatching.push(next);
                 }
 
-                if (config.debugging)
-                    console.warn("MATCHED", dreqres, closest);
+                if (config.debugCaptures)
+                    console.info("CAPTURE: MATCHED", dreqres, closest);
 
                 mergeInDebugReqres(closest, dreqres);
                 reqresAlmostDone.push(closest);
@@ -495,12 +496,12 @@ function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
         }
     }
 
-    if (config.debugging) {
+    if (config.debugCaptures) {
         if (debugReqresInFlight.size > 0 || reqresInFlight.size > 0)
-            console.log("still in-flight", debugReqresInFlight, reqresInFlight);
+            console.debug("CAPTURE: still in-flight", debugReqresInFlight, reqresInFlight);
 
         if (debugReqresFinishingUp.length > 0 || reqresFinishingUp.length > 0)
-            console.log("still unmatched", debugReqresFinishingUp, reqresFinishingUp);
+            console.debug("CAPTURE: still unmatched", debugReqresFinishingUp, reqresFinishingUp);
     }
 
     if (!forcing)
@@ -545,8 +546,8 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
                 }
             }
 
-            if (config.debugging)
-                console.log(reqres.formData);
+            if (config.debugCaptures)
+                console.debug("CAPTURE: formData", reqres.formData);
 
             let enc = new TextEncoder("utf-8", { fatal: true });
 
@@ -559,15 +560,15 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
                 let epilog = enc.encode("--" + boundary + "--\r\n");
                 reqres.requestBody.push(epilog);
             } else
-                console.warn("can't recover requestBody from formData, unknown Content-Type format", contentType);
+                console.warn("CAPTURE: can't recover requestBody from formData, unknown Content-Type format", contentType);
         } else
-            console.warn("can't recover requestBody from formData, unknown Content-Type format", contentType);
+            console.warn("CAPTURE: can't recover requestBody from formData, unknown Content-Type format", contentType);
         delete reqres["formData"];
     }
 
     if (error !== undefined) {
         if (isUnknownError(error))
-            console.error("emitRequest", requestId, "error", error, reqres);
+            console.error("CAPTURE: emitRequest", requestId, "error", error, reqres);
         reqres.errors.push(error);
     }
 
@@ -629,7 +630,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
 
     if (error !== undefined) {
         if (isUnknownError(error))
-            console.error("emitDebugRequest", requestId, "error", error, dreqres);
+            console.error("CAPTURE: emitDebugRequest", requestId, "error", error, dreqres);
         dreqres.errors.push(error);
     }
 
@@ -643,7 +644,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
         mergeInHeaders(dreqres.responseHeaders, debugHeadersToHeaders(dreqres.responseHeadersDebugExtra));
     }
 
-    if (!config.debugging) {
+    if (!config.debugCaptures) {
         delete dreqres["requestHeadersDebug"];
         delete dreqres["requestHeadersDebugExtra"];
         delete dreqres["responseHeadersDebug"];
@@ -672,8 +673,8 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
             logError(err);
         }).finally(() => {
             debugReqresFinishingUp.push(dreqres);
-            if (config.debugging)
-                console.warn("CAPTURED debugRequest drequestId", dreqres.requestId,
+            if (config.debugCaptures)
+                console.info("CAPTURE: CAPTURED debugRequest drequestId", dreqres.requestId,
                              "tabId", dreqres.tabId,
                              "url", dreqres.url,
                              "dreqres", dreqres);
@@ -683,8 +684,8 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     } else {
         dreqres.responseComplete = error === undefined;
         debugReqresFinishingUp.push(dreqres);
-        if (config.debugging)
-            console.warn("CAPTURED debugRequest drequestId", dreqres.requestId,
+        if (config.debugCaptures)
+            console.info("CAPTURE: CAPTURED debugRequest drequestId", dreqres.requestId,
                          "tabId", dreqres.tabId,
                          "url", dreqres.url,
                          "dreqres", dreqres);
@@ -725,8 +726,8 @@ function stopInFlight(tabId, reason, updatedTabId) {
 // webRequest handlers
 
 function logEvent(rtype, e, reqres) {
-    if (config.debugging)
-        console.warn("EVENT webRequest",
+    if (config.debugCaptures)
+        console.info("CAPTURE: EVENT webRequest",
                      rtype,
                      "requestId", e.requestId,
                      "tabId", e.tabId,
@@ -784,8 +785,8 @@ function handleBeforeRequest(e) {
     if (useDebugger && e.tabId !== -1
         && !tabsDebugging.has(e.tabId)
         && (url.startsWith("http://") || url.startsWith("https://"))) {
-        if (config.debugging)
-            console.warn("canceling and restarting request to", url, "as tab", e.tabId, "is not managed yet");
+        if (config.debugRuntime)
+            console.warn("CAPTURE: canceling and restarting request to", url, "as tab", e.tabId, "is not managed yet");
         if (e.type == "main_frame") {
             // attach debugger and reload the main frame
             attachDebuggerAndReloadTab(e.tabId).catch(logError);
@@ -812,8 +813,8 @@ function handleBeforeRequest(e) {
             && initiator === undefined
             && e.type == "main_frame"
             && (url.startsWith("http://") || url.startsWith("https://"))) {
-            if (config.debugging)
-                console.warn("canceling and restarting request to", url, "to workaround a bug in Firefox");
+            if (config.debugRuntime)
+                console.warn("CAPTURE: canceling and restarting request to", url, "to workaround a bug in Firefox");
             resetAndNavigateTab(e.tabId, url).catch(logError);
             return { cancel: true };
         }
@@ -891,18 +892,18 @@ function handleBeforeRequest(e) {
         // Firefox
         let filter = browser.webRequest.filterResponseData(requestId);
         filter.onstart = (event) => {
-            if (config.debugging)
-                console.log("filterResponseData", requestId, "started");
+            if (config.debugCaptures)
+                console.info("CAPTURE: filterResponseData", requestId, "started");
         };
         filter.ondata = (event) => {
-            if (config.debugging)
-                console.log("filterResponseData", requestId, "chunk", event.data);
+            if (config.debugCaptures)
+                console.info("CAPTURE: filterResponseData", requestId, "chunk", event.data);
             reqres.responseBody.push(new Uint8Array(event.data));
             filter.write(event.data);
         };
         filter.onstop = (event) => {
-            if (config.debugging)
-                console.log("filterResponseData", requestId, "finished");
+            if (config.debugCaptures)
+                console.info("CAPTURE: filterResponseData", requestId, "finished");
             reqres.responseComplete = true;
             filter.disconnect();
             scheduleProcessFinishingUpWebRequest(); // in case we were waiting for this filter
@@ -912,7 +913,7 @@ function handleBeforeRequest(e) {
                 // if filter was actually started
                 let error = "filterResponseData::" + filter.error;
                 if (isUnknownError(error))
-                    console.error("filterResponseData", requestId, "error", error);
+                    console.error("CAPTURE: filterResponseData", requestId, "error", error);
                 reqres.errors.push(error);
             }
             scheduleProcessFinishingUpWebRequest(); // in case we were waiting for this filter
@@ -1074,11 +1075,11 @@ function initCapture() {
 // Debugger handlers
 
 function logDebugEvent(rtype, nonExtra, e, dreqres) {
-    if (config.debugging) {
+    if (config.debugCaptures) {
         let url;
         if (e.request !== undefined)
             url = e.request.url;
-        console.warn("EVENT debugRequest",
+        console.info("CAPTURE: EVENT debugRequest",
                      rtype + (nonExtra ? "" : "ExtraInfo"),
                      "drequestId", e.requestId,
                      "tabId", e.tabId,
@@ -1268,7 +1269,7 @@ function handleDebugEvent(debuggee, method, params) {
         handleDebugLoadingFailed(params);
         break;
     //case "Fetch.requestPaused":
-    //    console.warn("FETCH", params);
+    //    console.warn("CAPTURE: FETCH", params);
     //    browser.debugger.sendCommand(debuggee, "Fetch.continueRequest", { requestId: params.requestId });
     //    break;
     case "Inspector.detached":
@@ -1277,15 +1278,14 @@ function handleDebugEvent(debuggee, method, params) {
         // ignore
         break;
     default:
-        console.warn("debugger", debuggee, method, params);
+        console.warn("CAPTURE: debugger said", debuggee, method, params);
     }
 }
 
 function handleDebugDetach(debuggee, reason) {
-    if (reason !== "target_closed")
-        console.warn("debugger detached", debuggee, reason);
-    else if (config.debugging)
-        console.log("debugger detached", debuggee, reason);
+    let logfunc = reason !== "target_closed" ? console.warn : (config.debugRuntime ? console.debug : undefined);
+    if (logfunc !== undefined)
+        logfunc("CAPTURE: debugger detached unexpectedly from", debuggee, "reason", reason);
 
     let tabId = debuggee.tabId;
     if (tabId !== undefined) {

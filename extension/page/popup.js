@@ -329,7 +329,7 @@ async function popupMain() {
         setUI(document, "stats", present(stats));
 
         setConditionalClass(reloadSelfButton, "attention", stats.update_available);
-        implySetConditionalClass(dbody, "on-reload",  "hidden", !hash && !(stats.update_available || config.debugging));
+        implySetConditionalClass(dbody, "on-reload",  "hidden", !hash && !(stats.update_available || config.debugRuntime));
         implySetConditionalClass(dbody, "on-pending", "hidden", !stats.reload_pending);
         implySetConditionalOff(dbody, "on-replay", !(config.replaySubmitHTTP !== false && stats.can_replay));
     }

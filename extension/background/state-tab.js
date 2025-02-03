@@ -126,7 +126,7 @@ function cleanupTabs() {
     for (let tabId of Array.from(tabConfig.keys())) {
         if(tabId === -1 || openTabs.has(tabId) || usedTabs.has(tabId))
             continue;
-        if (config.debugging)
+        if (config.debugRuntime)
             console.log("removing config of tab", tabId);
         tabConfig.delete(tabId);
         tabState.delete(tabId);

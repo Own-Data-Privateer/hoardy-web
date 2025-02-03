@@ -32,14 +32,14 @@ function cleanupAfterTab(tabId) {
     let unlimbo = 0;
 
     if (config.autoUnmarkProblematic) {
-        if (config.debugging)
-            console.log("cleaning up reqresProblematic after tab", tabId);
+        if (config.debugRuntime)
+            console.log("MAIN: cleaning up reqresProblematic after tab", tabId);
         unprob = unmarkProblematic(null, tabId);
     }
 
     if (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) {
-        if (config.debugging)
-            console.log("cleaning up reqresLimbo after tab", tabId);
+        if (config.debugRuntime)
+            console.log("MAIN: cleaning up reqresLimbo after tab", tabId);
         if (config.autoPopInLimboCollect)
             unlimbo = popInLimbo(true, null, tabId);
         else if (config.autoPopInLimboDiscard)
@@ -116,7 +116,8 @@ async function checkServer() {
 
     let baseURL = serverConfig.baseURL;
 
-    console.log("checking the archiving server at", baseURL);
+    if (config.debugRuntime)
+        console.log("MAIN: checking the archiving server at", baseURL);
 
     let infoURL = new URL("hoardy-web/server-info", baseURL);
 
@@ -252,8 +253,8 @@ async function replay(tabIdNull, direction) {
         let url = getTabURL(tab);
         if (tabIdNull === null && !tabcfg.replayable
             || isBoringOrServerURL(url)) {
-            if (config.debugging)
-                console.log("NOT replaying tab", tabId, url);
+            if (config.debugRuntime)
+                console.log("MAIN: NOT replaying tab", tabId, url);
             continue;
         }
         await navigateTabTo(tabId, latestReplayOf(url));
@@ -300,8 +301,8 @@ function chromiumResetRootTab(tabId, tabcfg) {
 function handleTabCreated(tab) {
     let tabId = tab.id;
 
-    if (config.debugging)
-        console.log("tab added", tabId, tab.openerTabId);
+    if (config.debugRuntime)
+        console.log("BROWSER: tab added", tabId, tab.openerTabId);
 
     if (useDebugger && tab.pendingUrl === "chrome://newtab/") {
         // work around Chrome's "New Tab" action creating a child tab by
@@ -314,22 +315,22 @@ function handleTabCreated(tab) {
 }
 
 function handleTabRemoved(tabId) {
-    if (config.debugging)
-        console.log("tab removed", tabId);
+    if (config.debugRuntime)
+        console.log("BROWSER: tab removed", tabId);
     processRemoveTab(tabId);
 }
 
 function handleTabReplaced(addedTabId, removedTabId) {
-    if (config.debugging)
-        console.log("tab replaced", removedTabId, addedTabId);
+    if (config.debugRuntime)
+        console.log("BROWSER: tab replaced", removedTabId, addedTabId);
     processRemoveTab(removedTabId);
     processNewTab(addedTabId);
 }
 
 function handleTabActivated(e) {
     let tabId = e.tabId;
-    if (config.debugging)
-        console.log("tab activated", tabId);
+    if (config.debugRuntime)
+        console.log("BROWSER: tab activated", tabId);
     if (useDebugger)
         // Chromium does not provide `browser.menus.onShown` event
         updateMenu(getOriginConfig(tabId));
@@ -338,8 +339,8 @@ function handleTabActivated(e) {
 }
 
 function handleTabUpdated(tabId, changeInfo, tab) {
-    if (config.debugging)
-        console.log("tab updated", tabId, getTabURL(tab));
+    if (config.debugRuntime)
+        console.log("BROWSER: tab updated", tabId, getTabURL(tab));
     if (!useDebugger && tab.url === undefined)
         // On Firefox, there's no `tab.pendingUrl`, so `scheduleUpdateDisplay`
         // might get confused about which icon to show for our internal pages
@@ -511,13 +512,16 @@ function handleInternalMessage(request, sender, sendResponse) {
         broadcast(arg1);
         break;
     default:
-        console.error("what?", request);
+        console.error("BROWSER: RPC: unknown request", request);
         throw new Error("what request?");
     }
     sendResponse(null);
 }
 
 async function handleShortcut(command) {
+    if (config.debugRuntime)
+        console.log("BROWSER: SHORTCUT: request", command);
+
     let tab = await getActiveTab();
     if (tab === null)
         return;
@@ -620,7 +624,7 @@ async function handleShortcut(command) {
         tabcfg.children.limbo = !tabcfg.children.limbo;
         break;
     default:
-        console.error(`unknown command ${command}`);
+        console.error("BROWSER: SHORTCUT: unknown command", command);
         return;
     }
 
@@ -628,8 +632,8 @@ async function handleShortcut(command) {
 }
 
 function handleNotificationClicked(notificationId) {
-    if (config.debugging)
-        console.log("notification clicked", notificationId);
+    if (config.debugRuntime)
+        console.log("BROWSER: NOTIFICATION: clicked", notificationId);
 
     if (notificationId.startsWith("error-"))
         showHelp("", "error-notifications");
@@ -668,8 +672,8 @@ function updateMenu(tabcfg) {
 }
 
 function handleMenuAction(info, tab) {
-    if (config.debugging)
-        console.log("menu action", info, tab);
+    if (config.debugRuntime)
+        console.log("BROWSER: MENU: request", info, "in tab", tab);
 
     let cmd = info.menuItemId;
     let url = info.linkUrl;
@@ -692,8 +696,8 @@ function handleMenuAction(info, tab) {
         openerTabId: tab.id,
         windowId: tab.windowId,
     }).then((tab) => {
-        if (config.debugging)
-            console.log("created new tab", tab);
+        if (config.debugRuntime)
+            console.log("BROWSER: MENU: spawned new tab", tab, "with url", url);
 
         if (!useDebugger && tab.url.startsWith("about:"))
             // On Firefox, downloads spawned as new tabs become "about:blank"s and get closed.
@@ -761,7 +765,7 @@ async function main() {
 
     let oldConfig = localData.config;
     if (oldConfig !== undefined) {
-        console.log(`Loading config of version ${oldConfig.version}`);
+        console.log(`MAIN: Loading config of version ${oldConfig.version}`);
 
         upgradeConfig(oldConfig);
         config = updateFromRec(config, oldConfig);
@@ -770,7 +774,7 @@ async function main() {
 
     let oldGlobals = getFirstDefined(localData.globals, localData.persistentStats, localData.globalStats);
     if (oldGlobals !== undefined) {
-        console.log(`Loading globals of version ${oldGlobals.version}`);
+        console.log(`MAIN: Loading globals of version ${oldGlobals.version}`);
 
         oldGlobals = upgradeGlobals(oldGlobals);
         globals = updateFromRec(globals, oldGlobals);
@@ -831,7 +835,7 @@ async function main() {
         await browser.storage.local.remove("session").catch(() => {});
 
         sessionId = oldSession.id;
-        console.log(`Loading old session ${oldSession.id}`);
+        console.log(`MAIN: Loading old session ${oldSession.id}`);
         sessionTabs = oldSession.tabs;
         reqresLog = oldSession.log;
 
@@ -887,10 +891,10 @@ async function main() {
 
     await loadStashed();
 
-    console.log(`Initialized Hoardy-Web with source of '${sourceDesc}'.`);
-    console.log("runtime options are", { useSVGIcons, useBlocking, useDebugger });
-    console.log("config is", config);
-    console.log("globals are", globals);
+    console.log(`MAIN: Initialized Hoardy-Web with source of '${sourceDesc}'.`);
+    console.log("MAIN: runtime options are", { useSVGIcons, useBlocking, useDebugger });
+    console.log("MAIN: config is", config);
+    console.log("MAIN: globals are", globals);
 
     // Init capture.
 
@@ -915,7 +919,7 @@ async function main() {
 
     // Finishing up.
 
-    console.log("Ready to Hoard the Web!");
+    console.log("MAIN: Ready to Hoard the Web!");
 
     if (lastSeenVersion != manifest.version) {
         browser.notifications.create("info-updated", {

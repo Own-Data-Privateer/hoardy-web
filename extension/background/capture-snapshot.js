@@ -24,7 +24,7 @@
 "use strict";
 
 async function snapshotOneTab(tabId, url) {
-    if (config.debugging)
+    if (config.debugRuntime)
         console.log("taking DOM snapshot of tab", tabId, url);
 
     let start = Date.now();
@@ -36,7 +36,7 @@ async function snapshotOneTab(tabId, url) {
             allFrames: true,
         });
 
-        if (config.debugging)
+        if (config.debugRuntime)
             console.log("snapshot.js returned", allResults);
 
         let emit = Date.now();
@@ -52,7 +52,7 @@ async function snapshotOneTab(tabId, url) {
             if (!config.snapshotAny && isBoringOrServerURL(url)) {
                 // skip stuff like handleBeforeRequest does, again, now for
                 // sub-frames
-                if (config.debugging)
+                if (config.debugRuntime)
                     console.log("NOT taking DOM snapshot of sub-frame of tab", tabId, url);
                 continue;
             } else if (errors.length > 0) {
@@ -130,7 +130,7 @@ async function snapshot(tabIdNull) {
         let url = getTabURL(tab);
         if (tabIdNull === null && !tabcfg.snapshottable
             || !config.snapshotAny && isBoringOrServerURL(url)) {
-            if (config.debugging)
+            if (config.debugRuntime)
                 console.log("NOT taking DOM snapshot of tab", tabId, url);
             continue;
         }
