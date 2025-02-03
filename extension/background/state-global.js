@@ -324,7 +324,7 @@ function fixConfig(config, oldConfig, serverConfig) {
     if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard)
         config.autoPopInLimboDiscard = false;
 
-    if (!isMobile && !config.spawnNewTabs) {
+    if (!config.debugRuntime && !isMobile && !config.spawnNewTabs) {
         // unavailable
         config.spawnNewTabs = true;
 
@@ -339,7 +339,7 @@ function fixConfig(config, oldConfig, serverConfig) {
 
     if (reqresIDB === undefined)
         config.preferIndexedDB = false;
-    else if (useDebugger && !config.preferIndexedDB) {
+    else if (!config.debugRuntime && useDebugger && !config.preferIndexedDB) {
         // can not be disabled on Chromium ATM, since serialization of
         // Uint8Array to `storage.local` won't work there
         config.preferIndexedDB = true;
@@ -353,7 +353,7 @@ function fixConfig(config, oldConfig, serverConfig) {
             }).catch(logError);
     }
 
-    if (isMobile && isFirefox && config.archiveExportAs) {
+    if (!config.debugRuntime && isMobile && isFirefox && config.archiveExportAs) {
         // unavailable
         config.archiveExportAs = false;
 
