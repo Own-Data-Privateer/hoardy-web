@@ -136,7 +136,10 @@ let exportAsLastEpoch;
 let exportAsLastNum = 0;
 
 // export all reqresBundledAs as fake-"Download" with a WRR-bundle of their dumps
-function bucketSaveAs(bucket, ifGEQ) {
+function bucketSaveAs(bucket, ifGEQ, unarchivedAccumulator) {
+    if (unarchivedAccumulator === undefined)
+        unarchivedAccumulator = reqresUnarchivedIssueAcc;
+
     let res = reqresBundledAs.get(bucket);
     if (res === undefined
         || ifGEQ !== undefined && res.size < ifGEQ)
@@ -185,7 +188,7 @@ function bucketSaveAs(bucket, ifGEQ) {
             loggable.exportedAs = false;
             loggable.dirty = true;
         }
-        recordManyUnarchived(reqresUnarchivedIssueAcc, "exportAs", errorMessageOf(err), false, res.queue);
+        recordManyUnarchived(unarchivedAccumulator, "exportAs", errorMessageOf(err), false, res.queue);
         runSynchronously("stash", stashMany, Array.from(res.queue));
         // NB: This is slightly fragile, consider the following sequence of
         // events for a given archivable:
@@ -215,7 +218,7 @@ function bucketSaveAs(bucket, ifGEQ) {
     }
 }
 
-async function exportAsOne(archivable) {
+async function exportAsOne(archivable, unarchivedAccumulator) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
@@ -229,7 +232,7 @@ async function exportAsOne(archivable) {
     let maxSize = config.exportAsBundle ? config.exportAsMaxSize * MEGABYTE : 0;
 
     // export if this dump will not fit
-    bucketSaveAs(bucket, maxSize - dumpSize);
+    bucketSaveAs(bucket, maxSize - dumpSize, unarchivedAccumulator);
 
     // record it in the bundle
     let u = cacheSingleton(reqresBundledAs, bucket, () => { return {
@@ -246,7 +249,7 @@ async function exportAsOne(archivable) {
     loggable.dirty = true;
 
     // try exporting again
-    bucketSaveAs(bucket, maxSize);
+    bucketSaveAs(bucket, maxSize, unarchivedAccumulator);
 
     wantBucketSaveAs = true;
 
@@ -255,7 +258,10 @@ async function exportAsOne(archivable) {
 
 // Archival via submission to an HTTP archiving server.
 
-async function submitHTTPOne(archivable) {
+async function submitHTTPOne(archivable, unarchivedAccumulator) {
+    if (unarchivedAccumulator === undefined)
+        unarchivedAccumulator = reqresUnarchivedIssueAcc;
+
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
@@ -264,7 +270,7 @@ async function submitHTTPOne(archivable) {
 
     function broken(storeID, reason, recoverable) {
         logHandledError(reason);
-        recordOneUnarchived(reqresUnarchivedIssueAcc, storeID, reason, recoverable, archivable);
+        recordOneUnarchived(unarchivedAccumulator, storeID, reason, recoverable, archivable);
     }
 
     if (!serverConfig.alive) {
@@ -280,7 +286,7 @@ async function submitHTTPOne(archivable) {
     serverURL.search = "profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
     let storeID = serverURL.href;
 
-    if (recordOneAssumedBroken(reqresUnarchivedIssueAcc, storeID, "this archiving server appears to be defunct", archivable, dumpSize))
+    if (recordOneAssumedBroken(unarchivedAccumulator, storeID, "this archiving server appears to be defunct", archivable, dumpSize))
         return false;
 
     if (config.debugging)
@@ -312,7 +318,7 @@ async function submitHTTPOne(archivable) {
         return false;
     }
 
-    retryStoreUnarchived(reqresUnarchivedIssueAcc, storeID, true);
+    retryStoreUnarchived(unarchivedAccumulator, storeID, true);
     globals.submittedHTTPTotal += 1;
     globals.submittedHTTPSize += loggable.dumpSize;
     loggable.archived |= archivedViaSubmitHTTP;
@@ -614,9 +620,9 @@ async function forEachInStorage(storeName, func, limit) {
 }
 
 // Saving
-async function stashOne(archivable, accumulator) {
-    if (accumulator === undefined)
-        accumulator = reqresUnstashedIssueAcc;
+async function stashOne(archivable, unstashedAccumulator) {
+    if (unstashedAccumulator === undefined)
+        unstashedAccumulator = reqresUnstashedIssueAcc;
 
     try {
         let [loggable, dump] = archivable;
@@ -630,14 +636,14 @@ async function stashOne(archivable, accumulator) {
         await syncWithStorage(archivable, 1, true);
     } catch (err) {
         logHandledError(err);
-        pushToIssueAcc(accumulator, errorMessageOf(err), false, archivable);
+        pushToIssueAcc(unstashedAccumulator, errorMessageOf(err), false, archivable);
     }
     gotNewSyncedOrNot = true;
 }
 
-async function stashMany(archivables, accumulator) {
+async function stashMany(archivables, unstashedAccumulator) {
     for (let archivable of archivables)
-        await stashOne(archivable, accumulator);
+        await stashOne(archivable, unstashedAccumulator);
 }
 
 async function retryAllUnstashed() {
@@ -671,11 +677,16 @@ async function unstashMany(archivables) {
 }
 
 
-async function saveOne(archivable) {
+async function saveOne(archivable, unarchivedAccumulator, unstashedAccumulator) {
+    if (unarchivedAccumulator === undefined)
+        unarchivedAccumulator = reqresUnarchivedIssueAcc;
+    if (unstashedAccumulator === undefined)
+        unstashedAccumulator = reqresUnstashedIssueAcc;
+
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
-    if (recordOneAssumedBroken(reqresUnarchivedIssueAcc, "localStorage", "this archiving method appears to be defunct", archivable, dumpSize))
+    if (recordOneAssumedBroken(unarchivedAccumulator, "localStorage", "this archiving method appears to be defunct", archivable, dumpSize))
         return false;
 
     // Prevent future calls to `retryAllUnstashed` from un-saving this
@@ -684,13 +695,13 @@ async function saveOne(archivable) {
     //   finished -> in_limbo -> stashMany -> out of disk space ->
     //   the user fixes it -> popInLimbo ->
     //   queued -> saveOne -> syncRetryAllUnstashed
-    reqresUnstashedIssueAcc[0].delete(archivable);
+    unstashedAccumulator[0].delete(archivable);
 
     try {
         await syncWithStorage(archivable, 2, true);
     } catch (err) {
         logHandledError(err);
-        recordOneUnarchived(reqresUnarchivedIssueAcc, "localStorage", errorMessageOf(err), false, archivable);
+        recordOneUnarchived(unarchivedAccumulator, "localStorage", errorMessageOf(err), false, archivable);
         gotNewArchivedOrNot = true;
         return false;
     }
@@ -885,7 +896,8 @@ async function processArchiving(updatedTabId) {
             // other archival methods go here
 
             if (!allOK)
-                // it's in reqresUnarchivedIssueAcc now, try stashing it without failures
+                // it's in reqresUnarchivedIssueAcc now
+                // try stashing it without recording failures
                 await syncWithStorage(archivable, 1, true).catch(logError);
             else if (config.archiveSaveLS)
                 await saveOne(archivable);
