@@ -33,8 +33,8 @@ let WEBEXT_RPC_MODE = 1;
 // Set to enable debugging.
 let DEBUG_WEBEXT_RPC = false;
 
-function webextRPCHandleMessageDefault(update, thisTabId, showAllFunc, hideAllFunc) {
-    let [what, reqTabId, data1, data2] = update;
+function webextRPCHandleMessageDefault(request, thisTabId, showAllFunc, hideAllFunc) {
+    let [what, reqTabId, data1, data2] = request;
     if (reqTabId !== thisTabId)
         return;
 
@@ -96,22 +96,26 @@ async function connectToExtension(init, uninit, extensionId, connectInfo) {
         ready = true;
 }
 
-function subscribeToExtension(processUpdate, reinit, isUnsafe, markLoading, markSettling, extensionId, connectInfo) {
+function subscribeToExtension(handleMessage, reinit, isUnsafe, markLoading, markSettling, extensionId, connectInfo) {
     // onMessage will not wait for an Promises. Thus, multiple updates could
     // race, so we have to run them synchronously here.
     let updateQueue = [];
+    let running = false;
     let queueSyncRunning = false;
 
     async function doQueueSync() {
         queueSyncRunning = true;
         while (updateQueue.length > 0) {
             let update = updateQueue.shift();
-            await processUpdate(update);
+            await handleMessage(update);
         }
         queueSyncRunning = false;
     }
 
-    function processUpdateSync(event) {
+    function handleMessageSync(event) {
+        if (!running)
+            return;
+
         updateQueue.push(event);
         if (queueSyncRunning)
             return;
@@ -121,7 +125,8 @@ function subscribeToExtension(processUpdate, reinit, isUnsafe, markLoading, mark
     return connectToExtension(async () => {
         if (reinit === undefined) {
             // the boring use case, no inconsistencies possible here
-            webextRPCPortToExtension.onMessage.addListener(processUpdateSync);
+            running = true;
+            webextRPCPortToExtension.onMessage.addListener(handleMessageSync);
             return;
         }
 
@@ -136,69 +141,73 @@ function subscribeToExtension(processUpdate, reinit, isUnsafe, markLoading, mark
         function willReset() {
             return shouldReset;
         }
-        function processUpdateSmartly(event) {
+        function handleMessageSmartly(event) {
             shouldReset = shouldReset || isUnsafe(event);
             // apparently, this event can be processed synchronously
-            processUpdateSync(event);
+            handleMessageSync(event);
         }
-        webextRPCPortToExtension.onMessage.addListener(processUpdateSmartly);
 
         // delay `markLoading` a bit so that it would not be called if
         // the rest of this happens fast enough
-        let markLoadingTID = null;
-        if (markLoading !== undefined)
-            markLoadingTID = setTimeout(markLoading, 300);
-
+        let markLoadingTID;
         function clearLoading() {
-            if (markLoadingTID === undefined)
-                return;
-
-            clearTimeout(markLoadingTID);
-            markLoadingTID = undefined;
-        }
-
-        while (true) {
-            // start processing updates
-            updateQueue = [];
-            shouldReset = false;
-            webextRPCPortToExtension.onMessage.addListener(processUpdateSmartly);
-
-            // run full update
-            let done = await reinit(willReset);
-
-            if (done || !shouldReset)
-                break;
-
-            // if there were messages in-between, async reinit
-            // could have resulted in an inconsistent state, retry in 1s
-            console.warn("received some breaking async state updates while doing async page init, the result is probably inconsistent, retrying");
-
-            // stop processing updates
-            webextRPCPortToExtension.onMessage.removeListener(processUpdateSmartly);
-
-            if (markSettling !== undefined) {
-                clearLoading();
-                markSettling();
+            if (markLoadingTID !== undefined) {
+                clearTimeout(markLoadingTID);
+                markLoadingTID = undefined;
             }
-
-            await sleep(1000);
         }
 
-        clearLoading();
+        webextRPCPortToExtension.onMessage.addListener(handleMessageSmartly);
 
-        // cleanup
-        webextRPCPortToExtension.onMessage.removeListener(processUpdateSmartly);
-        webextRPCPortToExtension.onMessage.addListener(processUpdateSync);
+        try {
+            if (markLoading !== undefined)
+                markLoadingTID = setTimeout(markLoading, 300);
+
+            while (true) {
+                // reset and start processing updates
+                updateQueue = [];
+                shouldReset = false;
+                running = true;
+
+                // run reinit
+                let done = await reinit(willReset);
+
+                // if it run ok and there were no consistency-breaking messages,
+                // stop here
+                if (done || !shouldReset)
+                    break;
+
+                // if there were consistency-breaking messages, async reinit
+                // could have resulted in an inconsistent state, retry in 1s
+                console.warn("received some breaking async state updates while doing async page init, the result is probably inconsistent, retrying");
+
+                // stop processing updates
+                running = false;
+
+                if (markSettling !== undefined) {
+                    clearLoading();
+                    markSettling();
+                }
+
+                await sleep(1000);
+            }
+        } finally {
+            // cleanup
+            clearLoading();
+            webextRPCPortToExtension.onMessage.removeListener(handleMessageSmartly);
+        }
+
+        webextRPCPortToExtension.onMessage.addListener(handleMessageSync);
     }, async () => {
-        webextRPCPortToExtension.onMessage.removeListener(processUpdateSync);
+        webextRPCPortToExtension.onMessage.removeListener(handleMessageSync);
     }, extensionId, connectInfo);
 }
 
-function subscribeToExtensionSimple(processUpdate, extensionId, connectInfo) {
-    if (processUpdate === undefined)
-        processUpdate = catchAll(
-            (update) => webextRPCHandleMessageDefault(update, normalizedURL(document.location.href)));
-    return subscribeToExtension(processUpdate, undefined, () => false, undefined, undefined, extensionId, connectInfo);
+function subscribeToExtensionSimple(handleMessage, extensionId, connectInfo) {
+    if (handleMessage === undefined)
+        handleMessage = catchAll(
+            (request) => webextRPCHandleMessageDefault(request, normalizedURL(document.location.href)));
+    return subscribeToExtension(handleMessage, undefined, () => false, undefined, undefined, extensionId, connectInfo);
 }
 
 // Ask WebExtension RPC server to broadcast this `args` to all open
