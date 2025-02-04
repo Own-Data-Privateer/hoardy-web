@@ -262,8 +262,6 @@ function forceFinishingUpDebug(predicate, updatedTabId) {
         if (dreqres.responseBody === undefined)
             dreqres.responseBody = new ChunkedBuffer();
         // dreqres.responseComplete is set by emitDebugRequest
-        // TODO remove?
-        dreqres.originUrl = getHeaderValue(dreqres.requestHeaders, "Referer");
 
         reqresAlmostDone.push(dreqres);
         updatedTabId = mergeUpdatedTabIds(updatedTabId, dreqres.tabId);
