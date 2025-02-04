@@ -390,7 +390,7 @@ function handleInternalMessage(request, sender, sendResponse) {
         if (!config.ephemeral && !equalRec(config, oldConfig))
             // save config after a little pause to give the user time to click
             // the same toggle again without torturing the SSD
-            scheduleSaveConfig(1000);
+            scheduleSaveConfig(1000, true);
 
         if (useDebugger)
             syncDebuggersState();
@@ -400,7 +400,7 @@ function handleInternalMessage(request, sender, sendResponse) {
         break;
     case "resetConfig":
         config = assignRec({}, configDefaults);
-        scheduleSaveConfig(0);
+        scheduleSaveConfig(0, true);
         scheduleUpdateDisplay(true, null);
         broadcast(false, "updateConfig", config);
         break;

@@ -455,8 +455,8 @@ let globals = assignRec({}, globalsDefaults);
 // last global stats saved in storage, will be set in `main`
 let savedGlobals;
 
-async function saveConfig() {
-    if (equalRec(savedConfig, config))
+async function saveConfig(force) {
+    if (!force && equalRec(savedConfig, config))
         return;
     savedConfig = assignRec({}, config);
     if (config.debugRuntime)
@@ -464,15 +464,15 @@ async function saveConfig() {
     await browser.storage.local.set({ config: savedConfig }).catch(logError);
 }
 
-function scheduleSaveConfig(timeout) {
-    scheduleActionWhen(!equalRec(savedConfig, config), scheduledSaveState, "saveConfig", timeout, () => {
-        saveConfig();
+function scheduleSaveConfig(timeout, force) {
+    scheduleActionWhen(force || !equalRec(savedConfig, config), scheduledSaveState, "saveConfig", timeout, () => {
+        saveConfig(force);
     });
     // NB: needs scheduleUpdateDisplay afterwards
 }
 
-async function saveGlobals() {
-    if (equalRec(savedGlobals, globals))
+async function saveGlobals(force) {
+    if (!force && equalRec(savedGlobals, globals))
         return;
     savedGlobals = assignRec({}, globals);
     if (config.debugRuntime)
@@ -482,8 +482,10 @@ async function saveGlobals() {
     await browser.storage.local.remove("globalStats").catch(() => {});
 }
 
-function scheduleSaveGlobals(timeout) {
-    scheduleActionWhen(!equalRec(savedGlobals, globals), scheduledSaveState, "saveGlobals", timeout, saveGlobals);
+function scheduleSaveGlobals(timeout, force) {
+    scheduleActionWhen(force || !equalRec(savedGlobals, globals), scheduledSaveState, "saveGlobals", timeout, () => {
+        saveGlobals(force);
+    });
     // NB: needs scheduleUpdateDisplay afterwards
 }
 
