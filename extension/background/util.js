@@ -118,6 +118,11 @@ function broadcastToState(tabId, ...args) {
     return broadcastToName(lazy, "state", ...res);
 }
 
+function broadcastToStateWhen(condition, ...args) {
+    if (condition)
+        return broadcastToState(...args);
+}
+
 function broadcastToSaved(...args) {
     return broadcastToName(true, "saved", ...args);
 }

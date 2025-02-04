@@ -1142,8 +1142,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         if (isDefinedURL(e.documentURL))
             dreqres.documentUrl = e.documentURL;
         dreqres.requestHeadersDebug = e.request.headers;
-        if (!isBoringOrServerURL(dreqres.url))
-            broadcastToState(tabId, "newInFlight", () => [makeLoggable(dreqres)]);
+        broadcastToStateWhen(!isBoringOrServerURL(dreqres.url), tabId, "newInFlight", () => [makeLoggable(dreqres)]);
     } else {
         if (dreqres.requestTimeStamp === undefined)
             dreqres.requestTimeStamp = Date.now();

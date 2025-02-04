@@ -163,20 +163,15 @@ function popInLimbo(collect, num, tabId, rrfilter) {
     truncateLog();
     wantSaveGlobals = true;
 
-    if (popped.some((r) => r.problematic === true))
-        // reset problematic, since reqres statuses have changed
-        broadcastToState(tabId, "resetProblematicLog", getProblematicLog);
+    // reset problematic, since reqres statuses have changed
+    broadcastToStateWhen(popped.some((r) => r.problematic === true), tabId, "resetProblematicLog", getProblematicLog);
     // since (popped.length > 0)
     broadcastToState(tabId, "resetInLimboLog", getInLimboLog);
-    if (newlyQueued.length > 0)
-        broadcastToState(tabId, "newQueued", newlyQueued);
-    if (newlyLogged.length > 0)
-        broadcastToState(tabId, "newLog", newlyLogged);
+    broadcastToStateWhen(newlyQueued.length > 0, tabId, "newQueued", newlyQueued);
+    broadcastToStateWhen(newlyLogged.length > 0, tabId, "newLog", newlyLogged);
 
-    if (newlyStashed.length > 0)
-        runSynchronously("stash", stashMany, newlyStashed);
-    if (newlyUnstashed.length > 0)
-        runSynchronously("unstash", unstashMany, newlyUnstashed);
+    runSynchronouslyWhen(newlyStashed.length > 0, "stash", stashMany, newlyStashed);
+    runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", unstashMany, newlyUnstashed);
 
     scheduleEndgame(tabId, 0);
 
@@ -681,19 +676,13 @@ async function processAlmostDone(updatedTabId) {
 
     broadcastToState(updatedTabId, "resetInFlight", getInFlightLog);
 
-    if (newlyProblematic.length > 0)
-        broadcastToState(updatedTabId, "newProblematic", newlyProblematic);
-    if (newlyLimboed.length > 0)
-        broadcastToState(updatedTabId, "newLimbo", newlyLimboed);
-    if (newlyQueued.length > 0)
-        broadcastToState(updatedTabId, "newQueued", newlyQueued);
-    if (newlyLogged.length > 0)
-        broadcastToState(updatedTabId, "newLog", newlyLogged);
+    broadcastToStateWhen(newlyProblematic.length > 0, updatedTabId, "newProblematic", newlyProblematic);
+    broadcastToStateWhen(newlyLimboed.length > 0, updatedTabId, "newLimbo", newlyLimboed);
+    broadcastToStateWhen(newlyQueued.length > 0, updatedTabId, "newQueued", newlyQueued);
+    broadcastToStateWhen(newlyLogged.length > 0, updatedTabId, "newLog", newlyLogged);
 
-    if (newlyStashed.length > 0)
-        runSynchronously("stash", stashMany, newlyStashed);
-    if (newlyUnstashed.length > 0)
-        runSynchronously("unstash", unstashMany, newlyUnstashed);
+    runSynchronouslyWhen(newlyStashed.length > 0, "stash", stashMany, newlyStashed);
+    runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", unstashMany, newlyUnstashed);
 
     return updatedTabId;
 }

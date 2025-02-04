@@ -465,7 +465,7 @@ async function saveConfig() {
 }
 
 function scheduleSaveConfig(timeout) {
-    scheduleAction(scheduledSaveState, "saveConfig", timeout, () => {
+    scheduleActionWhen(!equalRec(savedConfig, config), scheduledSaveState, "saveConfig", timeout, () => {
         saveConfig();
     });
     // NB: needs scheduleUpdateDisplay afterwards
@@ -483,7 +483,7 @@ async function saveGlobals() {
 }
 
 function scheduleSaveGlobals(timeout) {
-    scheduleAction(scheduledSaveState, "saveGlobals", timeout, saveGlobals);
+    scheduleActionWhen(!equalRec(savedGlobals, globals), scheduledSaveState, "saveGlobals", timeout, saveGlobals);
     // NB: needs scheduleUpdateDisplay afterwards
 }
 

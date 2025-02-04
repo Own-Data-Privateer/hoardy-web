@@ -816,14 +816,14 @@ async function loadSaved(rrfilter, wantStop) {
 // The main thing.
 
 function syncDeleteAllErrored() {
-    runSynchronously("deleteErrored", async () => {
+    runSynchronouslyWhen(reqresErroredIssueAcc[0].size > 0, "deleteErrored", async () => {
         await unstashMany(reqresErroredIssueAcc[0]);
         reqresErroredIssueAcc = newReqresErroredIssueAcc();
     });
 }
 
 function syncRetryAllUnstashed() {
-    runSynchronously("retryUnstashed", retryAllUnstashed);
+    runSynchronouslyWhen(reqresUnstashedIssueAcc[0].size > 0, "retryUnstashed", retryAllUnstashed);
 }
 
 function syncStashAll(alsoLimbo) {
