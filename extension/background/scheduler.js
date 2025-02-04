@@ -100,6 +100,7 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
                 let key = "endgame::" + name;
                 if (config.debugRuntime)
                     console.warn("running", key);
+                runningActions.add(key);
 
                 await forceUpdateDisplay(true, updatedTabId, getGoodEpisodic(synchronousClosures.length));
                 updatedTabId = undefined;

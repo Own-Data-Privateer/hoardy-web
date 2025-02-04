@@ -116,6 +116,14 @@ function sumIssueAccByReasonStats(m) {
     return sumStats((f) => [f.queue.length, f.size], m);
 }
 
+function pushNotRunning(m, actions) {
+    for (let key of m) {
+        if (runningActions.has(key))
+            continue;
+        actions.push(key);
+    }
+}
+
 // Compute total sizes of all queues and similar.
 // Used in the UI.
 function getStats() {
@@ -132,14 +140,14 @@ function getStats() {
     let finishing_up = Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length) + reqresAlmostDone.length;
 
     let actions = [];
-    scheduledCancelable.forEach((v, key) => actions.push(key));
-    scheduledRetry.forEach((v, key) => actions.push(key));
-    scheduledDelayed.forEach((v, key) => actions.push(key));
-    scheduledSaveState.forEach((v, key) => actions.push(key));
+    pushNotRunning(scheduledCancelable.keys(), actions);
+    pushNotRunning(scheduledRetry.keys(), actions);
+    pushNotRunning(scheduledDelayed.keys(), actions);
+    pushNotRunning(scheduledSaveState.keys(), actions);
     let low_prio = actions.length;
-    scheduledInternal.forEach((v, key) => actions.push(key));
+    pushNotRunning(scheduledInternal.keys(), actions);
     // scheduledHidden are not shown to the UI
-    synchronousClosures.forEach((v) => actions.push(v[0]));
+    pushNotRunning(synchronousClosures, actions);
 
     return {
         update_available: updateAvailable,
