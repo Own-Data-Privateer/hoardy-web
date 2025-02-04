@@ -137,6 +137,18 @@ function retryAllUnarchived(unrecoverable) {
     broadcastToState(null, "resetUnarchived", getUnarchivedLog);
 }
 
+function scheduleRetryAllUnarchived(timeout) {
+    if (config.archive && reqresUnarchivedIssueAcc[0].size > 0
+        // and at least one error is recoverable
+        && Array.from(reqresUnarchivedIssueAcc[1].values())
+                .some((byReasonMap) => Array.from(byReasonMap.values())
+                .some((unarchived) => unarchived.recoverable)))
+        scheduleActionEndgame(scheduledRetry, "retryUnarchived", timeout, () => {
+            retryAllUnarchived(false);
+            return null;
+        });
+}
+
 // Archival with exportSaveAs.
 
 // dumps ready for export, indexed by bucket

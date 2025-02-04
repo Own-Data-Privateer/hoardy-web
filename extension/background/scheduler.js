@@ -189,16 +189,8 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
 
             if (wantRetryAllUnarchived) {
                 wantRetryAllUnarchived = false;
-                if (config.archive && reqresUnarchivedIssueAcc[0].size > 0
-                    // and at least one error is recoverable
-                    && Array.from(reqresUnarchivedIssueAcc[1].values())
-                            .some((byReasonMap) => Array.from(byReasonMap.values())
-                            .some((unarchived) => unarchived.recoverable)))
-                    // retry unarchived in 60s
-                    scheduleActionEndgame(scheduledRetry, "retryUnarchived", 60000, () => {
-                        retryAllUnarchived(false);
-                        return null;
-                    });
+                // retry unarchived in 60s
+                scheduleRetryAllUnarchived(60000);
             }
 
             scheduleGlobalNotifications(notifyTimeout !== undefined ? notifyTimeout : 1000);
