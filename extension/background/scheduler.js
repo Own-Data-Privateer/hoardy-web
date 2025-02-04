@@ -162,19 +162,18 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
 
             if (wantSaveGlobals) {
                 wantSaveGlobals = false;
-
-                // is this change important?
-                let boring = true;
-                if (wantReloadSelf
-                    || (!haveInFlight && (savedGlobals.collectedTotal !== globals.collectedTotal
-                                          || savedGlobals.submittedHTTPTotal !== globals.submittedHTTPTotal
-                                          || savedGlobals.exportedAsTotal !== globals.exportedAsTotal))
-                    || savedGlobals.stashedLS.number !== globals.stashedLS.number
-                    || savedGlobals.stashedIDB.number !== globals.stashedIDB.number
-                    || savedGlobals.savedLS.number !== globals.savedLS.number
-                    || savedGlobals.savedIDB.number !== globals.savedIDB.number)
-                    boring = false;
-
+                // is this change un important?
+                let boring = (
+                    !wantReloadSelf
+                    && (haveInFlight || (
+                        savedGlobals.collectedTotal === globals.collectedTotal
+                        && savedGlobals.submittedHTTPTotal === globals.submittedHTTPTotal
+                        && savedGlobals.exportedAsTotal === globals.exportedAsTotal))
+                    && savedGlobals.stashedLS.number === globals.stashedLS.number
+                    && savedGlobals.stashedIDB.number === globals.stashedIDB.number
+                    && savedGlobals.savedLS.number === globals.savedLS.number
+                    && savedGlobals.savedIDB.number === globals.savedIDB.number
+                );
                 scheduleSaveGlobals(boring ? 90000 : (wantReloadSelf ? 0 : 1000));
             }
 
