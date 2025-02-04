@@ -65,6 +65,7 @@ function makeSingletonTimeout(priority, timeout, func) {
         results: [],
         before: [],
         after: [],
+        then: [],
     };
     value.tid = setTimeout(() => evalSingletonTimeout(value, true), timeout);
     return value;
@@ -121,7 +122,8 @@ async function evalSingletonTimeout(value, run) {
     // mark as running
     value.tid = null;
 
-    await asyncEvalSequence(value.before);
+    if (run)
+        await asyncEvalSequence(value.before);
 
     let first = true;
     while (run) {
@@ -164,7 +166,10 @@ async function evalSingletonTimeout(value, run) {
     value.stop = true;
     value.tid = undefined;
 
-    await asyncEvalSequence(value.after, value.results);
+    await asyncEvalSequence(value.then, value.results);
+
+    if (run)
+        await asyncEvalSequence(value.after, value.results);
 }
 
 // Immediately run or cancel a given singletonTimeout.
@@ -180,7 +185,7 @@ async function emitSingletonTimeout(value, run, synchronous) {
         if (synchronous)
             // wait for it to finish
             await new Promise((resolve, reject) => {
-                value.after.push(resolve);
+                value.then.push(resolve);
             });
     } else {
         // it's not yet running
@@ -201,7 +206,7 @@ function resetSingletonTimeout(map, key, timeout, func, priority, hurry) {
     value = setSingletonTimeout(value, priority, timeout, func, hurry);
     if (value !== undefined) {
         // a newly created one
-        value.after.push(() => map.delete(key));
+        value.then.push(() => map.delete(key));
         map.set(key, value);
     }
     return value;
