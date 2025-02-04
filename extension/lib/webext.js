@@ -93,7 +93,7 @@ function buttonToMessage(id, func) {
 }
 
 // activate a tab with a given document URL if exists, or open new if not
-async function openOrActivateTab(url, createProperties, currentWindow) {
+async function spawnOrActivateTab(url, createProperties, currentWindow) {
     if (currentWindow === undefined)
         currentWindow = true;
 
@@ -103,13 +103,13 @@ async function openOrActivateTab(url, createProperties, currentWindow) {
         if (normalizedURL(getTabURL(tab, "about:blank")) === nurl) {
             // activate that tab instead
             await browser.tabs.update(tab.id, { active: true });
-            return tab;
+            return [tab, false];
         }
     }
 
     // open new tab
     let res = await browser.tabs.create(assignRec({ url }, createProperties || {}));
-    return res;
+    return [res, true];
 }
 
 async function showInternalPageAtNode(url, id, tabId, spawn, scrollIntoViewOptions) {
@@ -118,14 +118,14 @@ async function showInternalPageAtNode(url, id, tabId, spawn, scrollIntoViewOptio
         window.location = rurl;
         return null;
     } else {
-        let tab;
+        let tab, spawned;
         try {
-            tab = await openOrActivateTab(rurl, { openerTabId: tabId });
+            [tab, spawned] = await spawnOrActivateTab(rurl, { openerTabId: tabId });
         } catch (e) {
             // in case tabId points to a dead tab
-            tab = await openOrActivateTab(rurl);
+            [tab, spawned] = await spawnOrActivateTab(rurl);
         }
-        if (id !== undefined)
+        if (!spawned && id !== undefined)
             broadcastToURL(false, url, "viewNode", id, scrollIntoViewOptions);
         return tab.id;
     }
