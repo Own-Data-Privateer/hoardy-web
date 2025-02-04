@@ -528,21 +528,21 @@ async function handleShortcut(command) {
     // The map is set this way so that show-state -> show-tab-state would open
     // the state narrowed to background tasks. This is not very intuitive but
     // rather useful.
-    let tabId = getMapURLParam(stateURL, "tab", new URL(getTabURL(tab, "")), toNumber, -1, tab.id);
+    let tabId = getMapURLParam(statePageURL, "tab", new URL(getTabURL(tab, "")), toNumber, -1, tab.id);
 
     let tabcfg = undefined;
     switch (command) {
     case "showState":
-        showState("", "top", tab.id);
+        showState(null, "top", tab.id);
         return;
     case "showLog":
-        showState("", "tail", tab.id);
+        showState(null, "tail", tab.id);
         return;
     case "showTabState":
-        showState(`?tab=${tabId}`, "top", tab.id);
+        showState(tabId, "top", tab.id);
         return;
     case "showTabLog":
-        showState(`?tab=${tabId}`, "tail", tab.id);
+        showState(tabId, "tail", tab.id);
         return;
     case "unmarkAllProblematic":
         unmarkProblematic(null, null);
@@ -636,7 +636,7 @@ function handleNotificationClicked(notificationId) {
         console.log("BROWSER: NOTIFICATION: clicked", notificationId);
 
     if (notificationId.startsWith("error-"))
-        showHelp("", "error-notifications");
+        showHelp("error-notifications");
 }
 
 let menuTitleTab = {

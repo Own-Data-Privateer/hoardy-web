@@ -50,8 +50,13 @@ let transientStatusCodes = new Set([
     526, 530, 540, 598, 599,
 ]);
 
-// for filtering out our own requests, pages, etc
+// internal URLs
 let selfURL = browser.runtime.getURL("/");
+let popupPageURL = browser.runtime.getURL("/page/popup.html");
+let changelogPageURL = browser.runtime.getURL("/page/changelog.html");
+let helpPageURL = browser.runtime.getURL("/page/help.html");
+let statePageURL = browser.runtime.getURL("/page/state.html");
+let savedPageURL = browser.runtime.getURL("/page/saved.html");
 
 function iconPath(name, size) {
     if (useSVGIcons)
@@ -70,26 +75,24 @@ function mkIcons(what) {
     };
 }
 
-let stateURL = browser.runtime.getURL("/page/state.html");
-
 function getStateTabIdOrTabId(tab) {
-    return getMapURLParam(stateURL, "tab", new URL(getTabURL(tab, "")), toNumber, tab.id, tab.id);
+    return getMapURLParam(statePageURL, "tab", new URL(getTabURL(tab, "")), toNumber, tab.id, tab.id);
 }
 
-function showChangelog(suffix, ...args) {
-    return showInternalPageAtNode("/page/changelog.html" + suffix, ...args);
+function showChangelog(...args) {
+    return showInternalPageAtNode(changelogPageURL, ...args);
 }
 
-function showHelp(suffix, ...args) {
-    return showInternalPageAtNode("/page/help.html" + suffix, ...args);
+function showHelp(...args) {
+    return showInternalPageAtNode(helpPageURL, ...args);
 }
 
-function showState(suffix, ...args) {
-    return showInternalPageAtNode("/page/state.html" + suffix, ...args);
+function showState(tabId, ...args) {
+    return showInternalPageAtNode(statePageURL + (tabId !== null ? `?tab=${tabId}` : ""), ...args);
 }
 
-function showSaved(suffix, ...args) {
-    return showInternalPageAtNode("/page/saved.html" + suffix, ...args);
+function showSaved(...args) {
+    return showInternalPageAtNode(savedPageURL, ...args);
 }
 
 function setPageLoading() {

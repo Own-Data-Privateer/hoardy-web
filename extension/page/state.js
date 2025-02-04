@@ -31,7 +31,7 @@ let rrfilters = {
     unarchived: assignRec({}, rrfilterDefaults),
 };
 
-let tabId = getMapURLParam(stateURL, "tab", document.location, toNumber, null, null);
+let tabId = getMapURLParam(statePageURL, "tab", document.location, toNumber, null, null);
 if (tabId !== null)
     document.title = `Hoardy-Web: tab ${tabId}: Internal State`;
 

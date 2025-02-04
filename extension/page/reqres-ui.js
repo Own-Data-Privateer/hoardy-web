@@ -37,7 +37,7 @@ async function showStateOfDataTabId(dataTabId) {
     if (tab !== null)
         tabId = tab.id;
 
-    showState(`?tab=${dataTabId}`, "top", tabId);
+    showState(dataTabId, "top", tabId);
 }
 
 // caches of `switchToDataTabId` and `showStateOfDataTabId` bound to a

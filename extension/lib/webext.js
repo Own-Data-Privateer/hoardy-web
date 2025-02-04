@@ -113,7 +113,7 @@ async function openOrActivateTab(url, createProperties, currentWindow) {
 }
 
 async function showInternalPageAtNode(url, id, tabId, spawn, scrollIntoViewOptions) {
-    let rurl = browser.runtime.getURL(url + (id ? "#" + id : ""));
+    let rurl = url + (id ? "#" + id : "");
     if (spawn === false) {
         window.location = rurl;
         return null;

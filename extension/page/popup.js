@@ -174,11 +174,11 @@ async function popupMain() {
         pureTextState = config.pureText;
     }
 
-    async function replaceWith(open, prefix, id, isHelp) {
+    async function replaceWith(isHelp, open, ...args) {
         if (isMobile) {
             let config = await browser.runtime.sendMessage(["getConfig"]);
             let spawn = config.spawnNewTabs;
-            await open(prefix, id, tabId, spawn);
+            await open(...args, tabId, spawn);
             if (spawn && config.invisibleUINotify)
                 // Firefox on Android does not switch to new tabs opened from the settings
                 browser.notifications.create("pageSpawnedAway", {
@@ -196,31 +196,31 @@ async function popupMain() {
                     type: "basic",
                 }).catch(logError);
         } else {
-            await open(prefix, id, tabId);
+            await open(...args, tabId);
             window.close();
         }
     }
 
-    async function resetAndReplace(reset, open, ...args) {
+    async function resetAndReplace(isHelp, reset, open, ...args) {
         // reset given config setting
         await browser.runtime.sendMessage(["setConfig", reset]);
         // and then replace this page with
-        await replaceWith(open, ...args);
+        await replaceWith(isHelp, open, ...args);
     }
 
     let versionButton = document.getElementById("version");
     versionButton.value = "v" + manifest.version;
-    versionButton.onclick = catchAll(() => resetAndReplace({ seenChangelog: true }, showChangelog, "", ""));
+    versionButton.onclick = catchAll(() => resetAndReplace(false, { seenChangelog: true }, showChangelog, ""));
 
     let helpButton = document.getElementById("showHelp");
-    helpButton.onclick = catchAll(() => resetAndReplace({ seenHelp: true }, showHelp, "", "", true));
+    helpButton.onclick = catchAll(() => resetAndReplace(true, { seenHelp: true }, showHelp, ""));
     // NB: `spawn = true` here because otherwise on Fenix a large chunk of the
     // page will be taken by the navigation toolbar and there will be no
     // search function, which is very useful there.
 
     let reloadSelfButton = buttonToMessage("reloadSelf");
     buttonToMessage("cancelReloadSelf");
-    buttonToAction("showState", catchAll(() => replaceWith(showState, "", "top")));
+    buttonToAction("showState",    catchAll(() => replaceWith(false, showState, null, "top")));
     buttonToMessage("forgetHistory",           () => ["forgetHistory", null]);
     buttonToMessage("snapshotAll",             () => ["snapshot", null]);
     buttonToMessage("replayAll",               () => ["replay", null, null]);
@@ -230,7 +230,7 @@ async function popupMain() {
     buttonToMessage("unmarkAllProblematic",    () => ["unmarkProblematic", null, null]);
     buttonToMessage("stopAllInFlight",         () => ["stopInFlight", null]);
 
-    buttonToAction("showTabState", catchAll(() => replaceWith(showState, `?tab=${tabId}`, "top")));
+    buttonToAction("showTabState", catchAll(() => replaceWith(false, showState, tabId, "top")));
     buttonToMessage("forgetTabHistory",        () => ["forgetHistory", tabId]);
     buttonToMessage("snapshotTab",             () => ["snapshot", tabId]);
     buttonToMessage("replayTabBack",           () => ["replay", tabId, false]);
@@ -247,7 +247,7 @@ async function popupMain() {
     buttonToMessage("retryUnarchived");
     buttonToMessage("stashAll");
     buttonToMessage("retryUnstashed");
-    buttonToAction("showSaved",    catchAll(() => replaceWith(showSaved, "", "top")));
+    buttonToAction("showSaved",    catchAll(() => replaceWith(false, showSaved, "top")));
 
     buttonToAction("resetPersistentStats", catchAll(() => {
         if (!window.confirm("Really?"))
