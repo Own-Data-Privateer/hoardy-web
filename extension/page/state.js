@@ -137,11 +137,12 @@ async function stateMain() {
             appendToLog(document.getElementById("data_queued"), data, (loggable) => isAcceptedBy(rrfilters.queued, loggable));
             break;
         default:
-            await webextRPCHandleMessageDefault(update, thisTabId);
+            await webextRPCHandleMessageDefault(update);
         }
     }
 
-    await subscribeToExtension(catchAll(processUpdate), catchAll(async (willReset) => {
+    await subscribeToExtension("state" + (tabId !== null ? `#${tabId}` : ""),
+                               catchAll(processUpdate), catchAll(async (willReset) => {
         await updateConfig();
         let inFlightLog = await browser.runtime.sendMessage(["getInFlightLog"]);
         let problematicLog = await browser.runtime.sendMessage(["getProblematicLog"]);

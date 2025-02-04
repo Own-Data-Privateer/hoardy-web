@@ -126,7 +126,7 @@ async function showInternalPageAtNode(url, id, tabId, spawn, scrollIntoViewOptio
             tab = await openOrActivateTab(rurl);
         }
         if (id !== undefined)
-            broadcast(["viewNode", tab.id, id, scrollIntoViewOptions]);
+            broadcastToURL(false, url, "viewNode", id, scrollIntoViewOptions);
         return tab.id;
     }
 }

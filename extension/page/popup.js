@@ -265,7 +265,7 @@ async function popupMain() {
     for (let tn of tagNames)
       buttonToAction(`showTag-${tn}`, catchAll(() => {
           showTab(tn);
-          broadcast(["popupResized"]);
+          broadcastToHelp("popupResized");
       }));
 
     let config;
@@ -406,11 +406,11 @@ async function popupMain() {
                 tabId = arg2;
             break;
         default:
-            await webextRPCHandleMessageDefault(update, "popup", () => showTab("all"));
+            await webextRPCHandleMessageDefault(update, () => showTab("all"));
         }
     }
 
-    await subscribeToExtension(catchAll(processUpdate), catchAll(async (willReset) => {
+    await subscribeToExtension("popup", catchAll(processUpdate), catchAll(async (willReset) => {
         await updateConfig();
         await updateStats();
         if (willReset()) return;
@@ -431,7 +431,7 @@ async function popupMain() {
     focusHashNode();
 
     // notify the others we are done here
-    broadcast(["popupResized"]);
+    broadcastToHelp("popupResized");
 }
 
 document.addEventListener("DOMContentLoaded", () => popupMain().catch(setPageError), setPageError);

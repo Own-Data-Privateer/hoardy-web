@@ -95,6 +95,33 @@ function showSaved(...args) {
     return showInternalPageAtNode(savedPageURL, ...args);
 }
 
+function broadcastToPopup(...args) {
+    return broadcastToName(true, "popup", ...args);
+}
+
+function broadcastToHelp(...args) {
+    return broadcastToName(true, "help", ...args);
+}
+
+function broadcastToState(tabId, ...args) {
+    if (tabId === undefined)
+        // nothing to do
+        return;
+
+    if (tabId === null)
+        // broadcast to all
+        return broadcastToNamePrefix(true, "state", ...args);
+
+    // broadcast to per-tab pages
+    let [lazy, res] = broadcastToNamePrefix(true, `state#${tabId}`, ...args);
+    // and to the global ones
+    return broadcastToName(lazy, "state", ...res);
+}
+
+function broadcastToSaved(...args) {
+    return broadcastToName(true, "saved", ...args);
+}
+
 function setPageLoading() {
     document.getElementById("body_loading").innerHTML = "<p>Loading...</p>";
 }

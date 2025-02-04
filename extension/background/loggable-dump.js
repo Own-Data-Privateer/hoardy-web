@@ -89,9 +89,9 @@ function unmarkProblematic(num, tabId, rrfilter) {
     reqresProblematic = unpopped;
 
     // reset all the logs, since some statuses may have changed
-    broadcast(["resetProblematicLog", getProblematicLog()]);
-    broadcast(["resetInLimboLog", getInLimboLog()]);
-    broadcast(["resetLog", reqresLog]);
+    broadcastToState(tabId, "resetProblematicLog", getProblematicLog);
+    broadcastToState(tabId, "resetInLimboLog", getInLimboLog);
+    broadcastToState(tabId, "resetLog", reqresLog);
 
     scheduleEndgame(tabId, 0);
 
@@ -113,7 +113,7 @@ function rotateProblematic(num, tabId, rrfilter) {
     unpopped.push(...popped);
     reqresProblematic = unpopped;
 
-    broadcast(["resetProblematicLog", getProblematicLog()]);
+    broadcastToState(tabId, "resetProblematicLog", getProblematicLog);
 }
 
 function popInLimbo(collect, num, tabId, rrfilter) {
@@ -165,13 +165,13 @@ function popInLimbo(collect, num, tabId, rrfilter) {
 
     if (popped.some((r) => r.problematic === true))
         // reset problematic, since reqres statuses have changed
-        broadcast(["resetProblematicLog", getProblematicLog()]);
+        broadcastToState(tabId, "resetProblematicLog", getProblematicLog);
     // since (popped.length > 0)
-    broadcast(["resetInLimboLog", getInLimboLog()]);
+    broadcastToState(tabId, "resetInLimboLog", getInLimboLog);
     if (newlyQueued.length > 0)
-        broadcast(["newQueued", newlyQueued]);
+        broadcastToState(tabId, "newQueued", newlyQueued);
     if (newlyLogged.length > 0)
-        broadcast(["newLog", newlyLogged]);
+        broadcastToState(tabId, "newLog", newlyLogged);
 
     if (newlyStashed.length > 0)
         runSynchronously("stash", stashMany, newlyStashed);
@@ -198,7 +198,7 @@ function rotateInLimbo(num, tabId, rrfilter) {
     unpopped.push(...popped);
     reqresLimbo = unpopped;
 
-    broadcast(["resetInLimboLog", getInLimboLog()]);
+    broadcastToState(tabId, "resetInLimboLog", getInLimboLog);
 }
 
 function truncateLog() {
@@ -220,7 +220,7 @@ function forgetHistory(tabId, rrfilter) {
         return;
 
     reqresLog = unpopped;
-    broadcast(["resetLog", reqresLog]);
+    broadcastToState(tabId, "resetLog", reqresLog);
     scheduleUpdateDisplay(true, tabId);
 }
 
@@ -679,16 +679,16 @@ async function processAlmostDone(updatedTabId) {
 
     truncateLog();
 
-    broadcast(["resetInFlight", getInFlightLog()]);
+    broadcastToState(updatedTabId, "resetInFlight", getInFlightLog);
 
     if (newlyProblematic.length > 0)
-        broadcast(["newProblematic", newlyProblematic]);
+        broadcastToState(updatedTabId, "newProblematic", newlyProblematic);
     if (newlyLimboed.length > 0)
-        broadcast(["newLimbo", newlyLimboed]);
+        broadcastToState(updatedTabId, "newLimbo", newlyLimboed);
     if (newlyQueued.length > 0)
-        broadcast(["newQueued", newlyQueued]);
+        broadcastToState(updatedTabId, "newQueued", newlyQueued);
     if (newlyLogged.length > 0)
-        broadcast(["newLog", newlyLogged]);
+        broadcastToState(updatedTabId, "newLog", newlyLogged);
 
     if (newlyStashed.length > 0)
         runSynchronously("stash", stashMany, newlyStashed);

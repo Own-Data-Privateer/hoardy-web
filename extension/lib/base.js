@@ -76,6 +76,17 @@ function catchAll(func) {
     };
 }
 
+function evalFunctionsAway(list) {
+    let res = [];
+    for (let e of list) {
+        if (typeof e !== "function")
+            res.push(e);
+        else
+            res.push(e());
+    }
+    return res;
+}
+
 async function asyncEvalSequence(list, ...args) {
     while (list.length > 0) {
         let func = list.shift();

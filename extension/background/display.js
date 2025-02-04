@@ -383,7 +383,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             || stats.bundledAs !== udStats.bundledAs;
 
         if (statsChanged)
-            broadcast(["updateStats", stats]);
+            broadcastToPopup("updateStats", stats);
 
         if (config.debugRuntime && !statsChanged && !equalRec(udStats, stats))
             logError("`statsChanged` value is incorrect");
@@ -464,11 +464,11 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         if (tab.active) {
             // update popup UI
             if (tabChanged) {
-                broadcast(["switchTab", windowId, stateTabId]);
-                broadcast(["updateTabConfig", stateTabId, tabcfg]);
-                broadcast(["updateTabStats", stateTabId, tabstats]);
+                broadcastToPopup("switchTab", windowId, stateTabId);
+                broadcastToPopup("updateTabConfig", stateTabId, tabcfg);
+                broadcastToPopup("updateTabStats", stateTabId, tabstats);
             } else if (statsChanged)
-                broadcast(["updateTabStats", stateTabId, tabstats]);
+                broadcastToPopup("updateTabStats", stateTabId, tabstats);
         }
 
         // compute toolbar button state

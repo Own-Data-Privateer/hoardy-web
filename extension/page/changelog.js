@@ -37,12 +37,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             setRootClasses(data);
             break;
         default:
-            await webextRPCHandleMessageDefault(update, "changelog");
+            await webextRPCHandleMessageDefault(update);
         }
     }
 
     // add default handlers
-    await subscribeToExtensionSimple(catchAll(processUpdate));
+    await subscribeToExtensionSimple("changelog", catchAll(processUpdate));
 
     {
         let config = await browser.runtime.sendMessage(["getConfig"]);

@@ -63,11 +63,11 @@ async function stateMain() {
             resetDataNode("data", data);
             break;
         default:
-            await webextRPCHandleMessageDefault(update, thisTabId);
+            await webextRPCHandleMessageDefault(update);
         }
     }
 
-    await subscribeToExtension(catchAll(processUpdate), catchAll(async (willReset) => {
+    await subscribeToExtension("saved", catchAll(processUpdate), catchAll(async (willReset) => {
         await updateConfig();
     }), () => false, setPageLoading, setPageSettling);
 

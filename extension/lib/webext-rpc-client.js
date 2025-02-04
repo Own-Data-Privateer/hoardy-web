@@ -33,14 +33,17 @@ let WEBEXT_RPC_MODE = 1;
 // Set to enable debugging.
 let DEBUG_WEBEXT_RPC = false;
 
-function webextRPCHandleMessageDefault(request, thisTabId, showAllFunc, hideAllFunc) {
-    let [what, reqTabId, data1, data2] = request;
-    if (reqTabId !== thisTabId)
+let webextRPCHandleMessageDefaultIgnore = new Set();
+
+function webextRPCHandleMessageDefault(request, showAllFunc, hideAllFunc) {
+    let [cmd, data1, data2] = request;
+
+    if (webextRPCHandleMessageDefaultIgnore.has(cmd))
         return;
 
     hideHelp();
 
-    switch (what) {
+    switch (cmd) {
     case "showAll":
         if (showAllFunc !== undefined)
             showAllFunc();
@@ -58,6 +61,9 @@ function webextRPCHandleMessageDefault(request, thisTabId, showAllFunc, hideAllF
     case "focusNode":
         focusNode(data1, data2 ? data2 : {}, showAllFunc, hideAllFunc);
         return;
+    default:
+        console.error("WEBEXT_RPC: unknown request", request);
+        throw new Error(`unknown request`);
     }
 }
 
@@ -67,17 +73,17 @@ let webextRPCPortToExtension;
 // Open port to extension asynchronously, running async init and uninit
 // functions properly in the correct order. Reconnect, if the connection
 // closes unexpectedly.
-async function connectToExtension(init, uninit, extensionId, connectInfo) {
+async function connectToExtension(name, init, uninit, extensionId, connectInfo) {
     function retry() {
         setTimeout(catchAll(
-            () => connectToExtension(init, uninit, extensionId, connectInfo)
+            () => connectToExtension(name, init, uninit, extensionId, connectInfo)
         ), 1000)
     }
 
     let doUninit = false;
     let ready = false;
 
-    webextRPCPortToExtension = browser.runtime.connect(extensionId, connectInfo);
+    webextRPCPortToExtension = browser.runtime.connect(extensionId, assignRec({name}, connectInfo));
     webextRPCPortToExtension.onDisconnect.addListener(async () => {
         if (ready) {
             await uninit();
@@ -96,7 +102,7 @@ async function connectToExtension(init, uninit, extensionId, connectInfo) {
         ready = true;
 }
 
-function subscribeToExtension(handleMessage, reinit, isUnsafe, markLoading, markSettling, extensionId, connectInfo) {
+function subscribeToExtension(name, handleMessage, reinit, isUnsafe, markLoading, markSettling, extensionId, connectInfo) {
     // onMessage will not wait for an Promises. Thus, multiple updates could
     // race, so we have to run them synchronously here.
     let updateQueue = [];
@@ -122,7 +128,7 @@ function subscribeToExtension(handleMessage, reinit, isUnsafe, markLoading, mark
         doQueueSync();
     }
 
-    return connectToExtension(async () => {
+    return connectToExtension(name, async () => {
         if (reinit === undefined) {
             // the boring use case, no inconsistencies possible here
             running = true;
@@ -203,15 +209,35 @@ function subscribeToExtension(handleMessage, reinit, isUnsafe, markLoading, mark
     }, extensionId, connectInfo);
 }
 
-function subscribeToExtensionSimple(handleMessage, extensionId, connectInfo) {
+function subscribeToExtensionSimple(name, handleMessage, extensionId, connectInfo) {
     if (handleMessage === undefined)
-        handleMessage = catchAll(
-            (request) => webextRPCHandleMessageDefault(request, normalizedURL(document.location.href)));
-    return subscribeToExtension(handleMessage, undefined, () => false, undefined, undefined, extensionId, connectInfo);
+        handleMessage = catchAll(webextRPCHandleMessageDefault);
+    return subscribeToExtension(name, handleMessage, undefined, () => false, undefined, undefined, extensionId, connectInfo);
 }
 
-// Ask WebExtension RPC server to broadcast this `args` to all open
-// pages belonging to this extension.
-function broadcast(data) {
-    return browser.runtime.sendMessage(["broadcast", data]);
+function sendMessageWithLazyArgs(lazy, args, ...prefix) {
+    if (lazy)
+        args = evalFunctionsAway(args);
+    browser.runtime.sendMessage([...prefix, ...args]);
+    return [false, args];
+}
+
+function broadcast(lazy, ...args) {
+    return sendMessageWithLazyArgs(lazy, args, "broadcast");
+}
+
+function broadcastToURL(lazy, url, ...args) {
+    return sendMessageWithLazyArgs(lazy, args, "broadcastToURL", url);
+}
+
+function broadcastToURLPrefix(lazy, url, ...args) {
+    return sendMessageWithLazyArgs(lazy, args, "broadcastToURLPrefix", url);
+}
+
+function broadcastToName(lazy, name, ...args) {
+    return sendMessageWithLazyArgs(lazy, args, "broadcastToName", name);
+}
+
+function broadcastToNamePrefix(lazy, name, ...args) {
+    return sendMessageWithLazyArgs(lazy, args, "broadcastToNamePrefix", name);
 }

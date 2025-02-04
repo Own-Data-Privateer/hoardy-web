@@ -78,7 +78,7 @@ function setTabConfigInternal(tabId, tabcfg) {
 function setTabConfig(tabId, tabcfg) {
     setTabConfigInternal(tabId, tabcfg);
 
-    broadcast(["updateTabConfig", tabId, tabcfg]);
+    broadcastToPopup("updateTabConfig", tabId, tabcfg);
 
     if (useDebugger) {
         // Chromium does not provide `browser.menus.onShown` event

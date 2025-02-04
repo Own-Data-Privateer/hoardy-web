@@ -133,8 +133,8 @@ function retryAllUnarchived(unrecoverable) {
     }
     reqresUnarchivedIssueAcc = newReqresUnarchivedIssueAcc();
 
-    broadcast(["resetQueued", getQueuedLog()]);
-    broadcast(["resetUnarchived", getUnarchivedLog()]);
+    broadcastToState(null, "resetQueued", getQueuedLog);
+    broadcastToState(null, "resetUnarchived", getUnarchivedLog);
 }
 
 // Archival with exportSaveAs.
@@ -822,7 +822,7 @@ function loadAndBroadcastSaved(rrfilter) {
     return async (wantStop) => {
         try {
             let log = await loadSaved(rrfilter, wantStop);
-            broadcast(["resetSaved", log]);
+            broadcastToSaved("resetSaved", log);
         } catch (err) {
             if (!(err instanceof StopIteration))
                 throw err;
@@ -832,7 +832,7 @@ function loadAndBroadcastSaved(rrfilter) {
 
 function requeueSaved(reset) {
     runSynchronously("requeueSaved", async () => {
-        broadcast(["resetSaved", [null]]); // invalidate UI
+        broadcastToSaved("resetSaved", [null]); // invalidate UI
 
         let log = await loadSaved(savedFilters);
         for (let loggable of log) {
@@ -860,7 +860,7 @@ function requeueSaved(reset) {
 
 function deleteSaved() {
     runSynchronously("deleteSaved", async () => {
-        broadcast(["resetSaved", [null]]); // invalidate UI
+        broadcastToSaved("resetSaved", [null]); // invalidate UI
 
         let log = await loadSaved(savedFilters);
         for (let loggable of log) {
@@ -926,8 +926,8 @@ async function processArchiving(updatedTabId) {
         scheduleUpdateDisplay(true, tabId, false, getGoodEpisodic(reqresQueue.length));
     }
 
-    broadcast(["resetQueued", getQueuedLog()]);
-    broadcast(["resetUnarchived", getUnarchivedLog()]);
+    broadcastToState(null, "resetQueued", getQueuedLog);
+    broadcastToState(null, "resetUnarchived", getUnarchivedLog);
 
     return updatedTabId;
 }

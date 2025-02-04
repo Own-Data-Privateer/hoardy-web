@@ -38,40 +38,88 @@ let webextRPCOpenPorts = new Map();
 
 function webextRPCHandleConnect(port) {
     let portId;
+    let url = normalizedURL(port.sender.url);
     if (useDebugger) {
         if (port.sender.tab !== undefined)
             portId = port.sender.tab.id;
         else
-            portId = port.sender.url;
+            portId = url;
     } else
         portId = port.sender.contextId;
 
     if (DEBUG_WEBEXT_RPC)
-        console.debug("WEBEXT_RPC: port opened", portId, port);
+        console.debug("WEBEXT_RPC: port opened", portId, url);
 
-    webextRPCOpenPorts.set(portId, port);
+    webextRPCOpenPorts.set(portId, {port, name: port.name, url});
     port.onDisconnect.addListener(catchAll(() => {
         if (DEBUG_WEBEXT_RPC)
-            console.debug("WEBEXT_RPC: port disconnected", portId);
+            console.debug("WEBEXT_RPC: port disconnected", portId, url);
 
         webextRPCOpenPorts.delete(portId);
     }));
 }
 
+function broadcastToMatching(lazy, predicate, ...args) {
+    let res = args;
+    let number = 0;
+    for (let [portId, info] of webextRPCOpenPorts.entries()) {
+        if (predicate === undefined || predicate(info)) {
+            if (lazy) {
+                res = evalFunctionsAway(res);
+                lazy = false;
+            }
+            info.port.postMessage(res);
+            number += 1;
+        }
+    }
+
+    if (DEBUG_WEBEXT_RPC)
+        console.debug("WEBEXT_RPC: broadcasted", args, "to", number, "recipients");
+
+    return [lazy, res];
+}
+
+function broadcast(lazy, ...args) {
+    return broadcastToMatching(lazy, undefined, ...args);
+}
+
+function broadcastToURL(lazy, url, ...args) {
+    return broadcastToMatching(lazy, (info) => info.url === url, ...args);
+}
+
+function broadcastToURLPrefix(lazy, url, ...args) {
+    return broadcastToMatching(lazy, (info) => info.url.startsWith(url), ...args);
+}
+
+function broadcastToName(lazy, name, ...args) {
+    return broadcastToMatching(lazy, (info) => info.name === name, ...args);
+}
+
+function broadcastToNamePrefix(lazy, name, ...args) {
+    return broadcastToMatching(lazy, (info) => info.name.startsWith(name), ...args);
+}
+
+let webextRPCFuncs = {
+    broadcast,
+    broadcastToURL,
+    broadcastToURLPrefix,
+    broadcastToName,
+    broadcastToNamePrefix,
+};
+
 function initWebextRPC(handleMessage) {
     browser.runtime.onMessage.addListener(catchAll((request, ...args) => {
         if (DEBUG_WEBEXT_RPC)
             console.debug("WEBEXT_RPC: message", request);
+
+        let cmd = request[0];
+        let func = webextRPCFuncs[cmd];
+        if (func !== undefined) {
+            func(false, ...(request.splice(1)));
+            return;
+        }
+
         handleMessage(request, ...args)
     }));
     browser.runtime.onConnect.addListener(catchAll(webextRPCHandleConnect));
-}
-
-function broadcast(data) {
-    if (DEBUG_WEBEXT_RPC)
-        console.debug("WEBEXT_RPC: broadcasting", data);
-
-    for (let [portId, port] of webextRPCOpenPorts.entries()) {
-        port.postMessage(data);
-    }
 }

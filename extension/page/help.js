@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // allow to un-highlight currently highlighted node
     document.body.addEventListener("click", (event) => {
         highlightNode(null);
-        broadcast(["highlightNode", "popup", null]);
+        broadcastToPopup("highlightNode", null);
     });
 
     setupHistoryPopState();
@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             };
             link.onmouseover = (event) => {
                 if (columns)
-                    broadcast(["highlightNode", "popup", null]);
+                    broadcastToPopup("highlightNode", null);
             };
             break;
         case "popup":
@@ -64,11 +64,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                 event.cancelBubble = true;
                 if (!columns)
                     historyFromTo({ id: info.id }, info.href);
-                broadcast(["focusNode", "popup", info.target]);
+                broadcastToPopup("focusNode", info.target);
             };
             link.onmouseover = (event) => {
                 if (columns)
-                    broadcast(["focusNode", "popup", info.target]);
+                    broadcastToPopup("focusNode", info.target);
             };
             break;
         case "local":
@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             };
             link.onmouseover = (event) => {
                 if (columns)
-                    broadcast(["highlightNode", "popup", null]);
+                    broadcastToPopup("highlightNode", null);
             };
         }
     });
@@ -144,13 +144,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             break;
         case "popupResized":
             resize();
+            break;
         default:
-            await webextRPCHandleMessageDefault(update, "help");
+            await webextRPCHandleMessageDefault(update);
         }
     }
 
     // add default handlers
-    await subscribeToExtensionSimple(catchAll(processUpdate));
+    await subscribeToExtensionSimple("help", catchAll(processUpdate));
 
     {
         let config = await browser.runtime.sendMessage(["getConfig"]);

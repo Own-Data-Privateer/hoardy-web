@@ -71,8 +71,8 @@ savedFilters.limit = 1024;
 
 function setSavedFilters(rrfilter) {
     savedFilters = updateFromRec(savedFilters, rrfilter);
-    broadcast(["setSavedFilters", savedFilters]);
-    broadcast(["resetSaved", [null]]); // invalidate UI
+    broadcastToSaved("setSavedFilters", savedFilters);
+    broadcastToSaved("resetSaved", [null]); // invalidate UI
     wantBroadcastSaved = true;
 }
 

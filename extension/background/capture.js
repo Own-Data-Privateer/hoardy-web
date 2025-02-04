@@ -923,7 +923,7 @@ function handleBeforeRequest(e) {
     }
 
     reqresInFlight.set(requestId, reqres);
-    broadcast(["newInFlight", [makeLoggable(reqres)]]);
+    broadcastToState(tabId, "newInFlight", () => [makeLoggable(reqres)]);
     scheduleUpdateDisplay(true, tabId);
 }
 
@@ -1143,7 +1143,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
             dreqres.documentUrl = e.documentURL;
         dreqres.requestHeadersDebug = e.request.headers;
         if (!isBoringOrServerURL(dreqres.url))
-            broadcast(["newInFlight", [makeLoggable(dreqres)]]);
+            broadcastToState(tabId, "newInFlight", () => [makeLoggable(dreqres)]);
     } else {
         if (dreqres.requestTimeStamp === undefined)
             dreqres.requestTimeStamp = Date.now();

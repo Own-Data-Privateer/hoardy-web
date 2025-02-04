@@ -396,13 +396,13 @@ function handleInternalMessage(request, sender, sendResponse) {
             syncDebuggersState();
 
         scheduleEndgame(null);
-        broadcast(["updateConfig", config]);
+        broadcast(false, "updateConfig", config);
         break;
     case "resetConfig":
         config = assignRec({}, configDefaults);
         scheduleSaveConfig(0);
         scheduleUpdateDisplay(true, null);
-        broadcast(["updateConfig", config]);
+        broadcast(false, "updateConfig", config);
         break;
     case "getTabConfig":
         sendResponse(getOriginConfig(arg1));
@@ -507,9 +507,6 @@ function handleInternalMessage(request, sender, sendResponse) {
     case "exportAs":
         scheduleBucketSaveAs(0, arg1);
         scheduleUpdateDisplay(true);
-        break;
-    case "broadcast":
-        broadcast(arg1);
         break;
     default:
         console.error("BROWSER: RPC: unknown request", request);
