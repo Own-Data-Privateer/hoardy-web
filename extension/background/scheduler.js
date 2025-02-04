@@ -41,6 +41,32 @@ let scheduledHidden = new Map();
 // a list of [function, args] pairs; these are closures that need to be run synchronously
 let synchronousClosures = [];
 
+async function evalSynchronousClosures(closures, updatedTabId) {
+    while (closures.length > 0) {
+        let [name, fun, args] = closures.shift();
+
+        let key = "endgame::" + name;
+        if (config.debugRuntime)
+            console.warn("running", key);
+        runningActions.add(key);
+
+        await forceUpdateDisplay(true, updatedTabId, getGoodEpisodic(closures.length));
+        updatedTabId = undefined;
+
+        try {
+            let res = fun(...args);
+            if (res instanceof Promise)
+                await res;
+        } catch (err) {
+            logError(err);
+        }
+
+        if (config.debugRuntime)
+            console.warn("finished", key);
+        runningActions.delete(key);
+    }
+}
+
 // syntax sugar
 function runSynchronously(name, func, ...args) {
     synchronousClosures.push([name, func, args]);
@@ -91,36 +117,8 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
 
     if (synchronousClosures.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
-            // reset
-            seUpdatedTabId = undefined;
-
-            while (synchronousClosures.length > 0) {
-                let [name, fun, args] = synchronousClosures.shift();
-
-                let key = "endgame::" + name;
-                if (config.debugRuntime)
-                    console.warn("running", key);
-                runningActions.add(key);
-
-                await forceUpdateDisplay(true, updatedTabId, getGoodEpisodic(synchronousClosures.length));
-                updatedTabId = undefined;
-
-                try {
-                    let res = fun(...args);
-                    if (res instanceof Promise)
-                        await res;
-                } catch (err) {
-                    logError(err);
-                }
-
-                if (config.debugRuntime)
-                    console.warn("finished", key);
-                runningActions.delete(key);
-            }
-
-            // TODO: this is inefficient, make all closures call us
-            // explicitly instead or use `mergeUpdatedTabIds` above instead
-            scheduleEndgame(null, notifyTimeout);
+            await evalSynchronousClosures(synchronousClosures, updatedTabId);
+            scheduleEndgame(undefined, notifyTimeout);
         });
     } else if (wantCheckServer) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
