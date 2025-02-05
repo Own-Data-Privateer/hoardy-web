@@ -73,7 +73,7 @@ async function stateMain() {
     buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, null, tabId, rrfilters.in_limbo]);
     buttonToMessage("stopAllInFlight",      () => ["stopInFlight", tabId]);
 
-    buttonToMessage("retryUnarchived");
+    buttonToMessage("retryAllUnarchived");
 
     setUI(document, "rrfilters", rrfilters, (value, path) => {
         if (path.startsWith("rrfilters.problematic."))

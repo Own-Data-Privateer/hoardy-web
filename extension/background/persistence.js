@@ -143,7 +143,7 @@ function scheduleRetryAllUnarchived(timeout) {
         && Array.from(reqresUnarchivedIssueAcc[1].values())
                 .some((byReasonMap) => Array.from(byReasonMap.values())
                 .some((unarchived) => unarchived.recoverable)))
-        scheduleActionEndgame(scheduledRetry, "retryUnarchived", timeout, () => {
+        scheduleActionEndgame(scheduledRetry, "retryAllUnarchived", timeout, () => {
             retryAllUnarchived(false);
             return null;
         });
@@ -816,14 +816,14 @@ async function loadSaved(rrfilter, wantStop) {
 // The main thing.
 
 function syncDeleteAllErrored() {
-    runSynchronouslyWhen(reqresErroredIssueAcc[0].size > 0, "deleteErrored", async () => {
+    runSynchronouslyWhen(reqresErroredIssueAcc[0].size > 0, "deleteAllErrored", async () => {
         await unstashMany(reqresErroredIssueAcc[0]);
         reqresErroredIssueAcc = newReqresErroredIssueAcc();
     });
 }
 
 function syncRetryAllUnstashed() {
-    runSynchronouslyWhen(reqresUnstashedIssueAcc[0].size > 0, "retryUnstashed", retryAllUnstashed);
+    runSynchronouslyWhen(reqresUnstashedIssueAcc[0].size > 0, "retryAllUnstashed", retryAllUnstashed);
 }
 
 function syncStashAll(alsoLimbo) {

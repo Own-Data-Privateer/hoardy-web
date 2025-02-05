@@ -335,3 +335,13 @@ function annoyingNotification(config, what) {
     else
         return "";
 }
+
+function inheritTabConfigWorkOffline(config, tabcfg, tabcfgChildren) {
+    if (tabcfgChildren !== undefined)
+        tabcfgChildren.workOffline = tabcfg.workOffline;
+    if (config.workOfflineImpure) {
+        tabcfg.collecting = !tabcfg.workOffline;
+        if (tabcfgChildren !== undefined)
+            tabcfgChildren.collecting = !tabcfg.workOffline;
+    }
+}

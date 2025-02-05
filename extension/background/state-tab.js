@@ -184,21 +184,13 @@ function processRemoveTab(tabId) {
     scheduleEndgame(updatedTabId);
 }
 
-function toggleTabConfigWorkOffline(tabcfg) {
-    if (config.workOfflineImpure) {
-        tabcfg.collecting = tabcfg.workOffline;
-        tabcfg.children.collecting = tabcfg.workOffline;
-    }
-    tabcfg.workOffline = !tabcfg.workOffline;
-    tabcfg.children.workOffline = tabcfg.workOffline;
-}
-
 function resetTabConfigWorkOffline(tabcfg, url) {
     if (config.workOfflineFile && url.startsWith("file:")
         || config.workOfflineReplay && isServerURL(url)
         || config.workOfflineData && url.startsWith("data:")) {
         if (!tabcfg.workOffline) {
-            toggleTabConfigWorkOffline(tabcfg);
+            tabcfg.workOffline = true;
+            inheritTabConfigWorkOffline(config, tabcfg, tabcfg.children);
             return true;
         }
     }

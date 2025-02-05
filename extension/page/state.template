@@ -80,7 +80,7 @@
 
     <h1 id="unarchived" class="ui">Failed to archive
       <span class="right">
-        <input type="button" id="retryUnarchived" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake." value="Retry all" />
+        <input type="button" id="retryAllUnarchived" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake." value="Retry all" />
       </span>
     </h1>
     <div class="controls ui">

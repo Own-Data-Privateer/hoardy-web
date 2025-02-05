@@ -129,15 +129,15 @@ async function popupMain() {
         reloadSelf: "（🌟ω🌟）",
         snapshotAll: "📸",
         replayAll: "⏏",
-        forgetHistory: "🧹",
+        forgetAllHistory: "🧹",
         showState: "📜",
         runActions: "🟢",
         cancelActions: "🟥",
         exportAsAll: "💾",
-        retryFailed: "♻",
-        retryUnarchived: "♻",
+        retryAllFailed: "♻",
+        retryAllUnarchived: "♻",
         stashAll: "💾",
-        retryUnstashed: "♻",
+        retryAllUnstashed: "♻",
         collectAllInLimbo: "✔",
         discardAllInLimbo: "✖",
         unmarkAllProblematic: "🧹",
@@ -145,12 +145,12 @@ async function popupMain() {
         snapshotTab: "📸",
         replayTabBack: "⏮",
         //replayTabForward: "⏭",
-        forgetTabHistory: "🧹",
+        forgetAllTabHistory: "🧹",
         showTabState: "📜",
         collectAllTabInLimbo: "✔",
         discardAllTabInLimbo: "✖",
         unmarkAllTabProblematic: "🧹",
-        stopTabInFlight: "⏹",
+        stopAllTabInFlight: "⏹",
     };
 
     // populate with the original values from the ./popup.html
@@ -208,6 +208,14 @@ async function popupMain() {
         await replaceWith(isHelp, open, ...args);
     }
 
+    // Setup buttons.
+
+    for (let tn of tagNames)
+      buttonToAction(`showTag-${tn}`, catchAll(() => {
+          showTab(tn);
+          broadcastToHelp("popupResized");
+      }));
+
     let versionButton = document.getElementById("version");
     versionButton.value = "v" + manifest.version;
     versionButton.onclick = catchAll(() => resetAndReplace(false, { seenChangelog: true }, showChangelog, ""));
@@ -218,37 +226,10 @@ async function popupMain() {
     // page will be taken by the navigation toolbar and there will be no
     // search function, which is very useful there.
 
-    let reloadSelfButton = buttonToMessage("reloadSelf");
-    buttonToMessage("cancelReloadSelf");
+    let reloadSelfButton = document.getElementById("reloadSelf");
     buttonToAction("showState",    catchAll(() => replaceWith(false, showState, null, "top")));
-    buttonToMessage("forgetHistory",           () => ["forgetHistory", null]);
-    buttonToMessage("snapshotAll",             () => ["snapshot", null]);
-    buttonToMessage("replayAll",               () => ["replay", null, null]);
-    buttonToMessage("exportAsAll",             () => ["exportAs", null]);
-    buttonToMessage("collectAllInLimbo",       () => ["popInLimbo", true, null, null]);
-    buttonToMessage("discardAllInLimbo",       () => ["popInLimbo", false, null, null]);
-    buttonToMessage("unmarkAllProblematic",    () => ["unmarkProblematic", null, null]);
-    buttonToMessage("stopAllInFlight",         () => ["stopInFlight", null]);
-
     buttonToAction("showTabState", catchAll(() => replaceWith(false, showState, tabId, "top")));
-    buttonToMessage("forgetTabHistory",        () => ["forgetHistory", tabId]);
-    buttonToMessage("snapshotTab",             () => ["snapshot", tabId]);
-    buttonToMessage("replayTabBack",           () => ["replay", tabId, false]);
-    //buttonToMessage("replayTabForward",        () => ["replay", tabId, true]);
-    buttonToMessage("collectAllTabInLimbo",    () => ["popInLimbo", true, null, tabId]);
-    buttonToMessage("discardAllTabInLimbo",    () => ["popInLimbo", false, null, tabId]);
-    buttonToMessage("unmarkAllTabProblematic", () => ["unmarkProblematic", null, tabId]);
-    buttonToMessage("stopTabInFlight",         () => ["stopInFlight", tabId]);
-
-    buttonToMessage("runActions");
-    buttonToMessage("cancelActions");
-    buttonToMessage("deleteErrored");
-    buttonToMessage("retryFailed");
-    buttonToMessage("retryUnarchived");
-    buttonToMessage("stashAll");
-    buttonToMessage("retryUnstashed");
     buttonToAction("showSaved",    catchAll(() => replaceWith(false, showSaved, "top")));
-
     buttonToAction("resetPersistentStats", catchAll(() => {
         if (!window.confirm("Really?"))
             return;
@@ -262,11 +243,25 @@ async function popupMain() {
         browser.runtime.sendMessage(["resetConfig"]).catch(logError);
     }));
 
-    for (let tn of tagNames)
-      buttonToAction(`showTag-${tn}`, catchAll(() => {
-          showTab(tn);
-          broadcastToHelp("popupResized");
-      }));
+    let shortcutButtons = [
+        "reloadSelf", "cancelReloadSelf",
+        "runActions", "cancelActions",
+        "forgetAllHistory", "forgetAllTabHistory",
+        "deleteAllErrored",
+        "retryAllFailed", "retryAllUnstashed", "retryAllUnarchived",
+        "exportAsAll", "stashAll",
+        "stopAllInFlight", "stopAllTabInFlight",
+        "unmarkAllProblematic", "unmarkAllTabProblematic",
+        "collectAllInLimbo", "collectAllTabInLimbo",
+        "discardAllInLimbo", "discardAllTabInLimbo",
+        "snapshotAll", "snapshotTab",
+        "replayAll", "replayTabBack", // "replayTabForward"
+    ];
+    for (let id of shortcutButtons) {
+        buttonToMessage(id, () => [id, tabId]);
+    }
+
+    // Track updates.
 
     let config;
 
@@ -279,20 +274,16 @@ async function popupMain() {
         setUI(document, "config", config, (newconfig, path) => {
             switch (path) {
             case "config.workOffline":
-                if (newconfig.workOfflineImpure)
-                    newconfig.collecting = !newconfig.workOffline;
+                inheritTabConfigWorkOffline(newconfig, newconfig);
                 break;
             case "config.root.workOffline":
-                if (newconfig.workOfflineImpure)
-                    newconfig.root.collecting = !newconfig.root.workOffline;
+                inheritTabConfigWorkOffline(newconfig, newconfig.root);
                 break;
             case "config.background.workOffline":
-                if (newconfig.workOfflineImpure)
-                    newconfig.background.collecting = !newconfig.background.workOffline;
+                inheritTabConfigWorkOffline(newconfig, newconfig.background);
                 break;
             case "config.extension.workOffline":
-                if (newconfig.workOfflineImpure)
-                    newconfig.extension.collecting = !newconfig.extension.workOffline;
+                inheritTabConfigWorkOffline(newconfig, newconfig.extension);
                 break;
             }
             browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
@@ -333,41 +324,19 @@ async function popupMain() {
             tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
         setUI(document, "tabconfig", tabconfig, (newtabconfig, path) => {
             switch (path) {
-            case "tabconfig.snapshottable":
-                newtabconfig.children.snapshottable = newtabconfig.snapshottable;
-                break;
-            case "tabconfig.replayable":
-                newtabconfig.children.replayable = newtabconfig.replayable;
-                break;
             case "tabconfig.workOffline":
-                if (config.workOfflineImpure)
-                    newtabconfig.collecting = !newtabconfig.workOffline;
-                newtabconfig.children.workOffline = newtabconfig.workOffline;
-                if (config.workOfflineImpure)
-                    newtabconfig.children.collecting = newtabconfig.collecting;
+                inheritTabConfigWorkOffline(config, newtabconfig, newtabconfig.children);
                 break;
             case "tabconfig.children.workOffline":
-                if (config.workOfflineImpure)
-                    newtabconfig.children.collecting = !newtabconfig.children.workOffline;
+                inheritTabConfigWorkOffline(config, newtabconfig.children);
                 break;
-            case "tabconfig.collecting":
-                newtabconfig.children.collecting = newtabconfig.collecting;
-                break;
-            case "tabconfig.problematicNotify":
-                newtabconfig.children.problematicNotify = newtabconfig.problematicNotify;
-                break;
-            case "tabconfig.limbo":
-                newtabconfig.children.limbo = newtabconfig.limbo;
-                break;
-            case "tabconfig.negLimbo":
-                newtabconfig.children.negLimbo = newtabconfig.negLimbo;
-                break;
-            case "tabconfig.stashLimbo":
-                newtabconfig.children.stashLimbo = newtabconfig.stashLimbo;
-                break;
-            case "tabconfig.bucket":
-                newtabconfig.children.bucket = newtabconfig.bucket;
-                break;
+            default:
+                if (!path.startsWith("tabconfig.children.")) {
+                    let field = path.substr(10);
+                    if (newtabconfig[field] === undefined)
+                        throw Error(`no such field ${field}`);
+                    newtabconfig.children[field] = newtabconfig[field];
+                }
             }
             browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]).catch(logError);
         });

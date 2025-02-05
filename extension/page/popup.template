@@ -281,7 +281,7 @@ section {
       <div id="div-stats.queued_failed" class="tag-common tag-pr tag-run" data-help="At the moment, the number of reqres that are waiting to be archived in the archival queue (and the sum total of all sizes of their dumps). / At the moment, the number of reqres that failed to be archived via one or more of the selected archiving methods and/or failed to be stashed to local storage (and the sum total of all sizes of their dumps).">
         <span>Queued/Failed</span>
         <span>
-          <input type="button" id="retryFailed" data-help="Retry archiving of all reqres that failed to be archived via one or more selected archiving methods. Then, retry stashing of all reqres that failed to be stashed to local storage." value="Retry" />
+          <input type="button" id="retryAllFailed" data-help="Retry archiving of all reqres that failed to be archived via one or more selected archiving methods. Then, retry stashing of all reqres that failed to be stashed to local storage." value="Retry" />
         </span>
         <span>
           <span id="stats.queued">0</span>
@@ -300,7 +300,7 @@ section {
       <span class="right tag-common tag-main">
         <input type="button" id="snapshotAll" data-shortcut="snapshotAll" data-help="Take DOM snapshots of all frames of all open tabs for which `Include in global snapshots` setting is enabled." value="Snapshot" />
         <input type="button" id="replayAll" class="on-replay" data-shortcut="replayAll" data-help="Re-navigate all open tabs for which `Include in global replays` setting is enabled to their replays." value="Replay" />
-        <input type="button" id="forgetHistory" data-help="Forget recent history." value="Forget" />
+        <input type="button" id="forgetAllHistory" data-help="Forget recent history." value="Forget" />
         <input type="button" id="showState" data-shortcut="showState" data-help="Show the internal state and reqres history logs." value="State" />
       </span>
     </h2>
@@ -425,7 +425,7 @@ section {
         <input type="button" id="snapshotTab" data-shortcut="snapshotTab" data-help="Take DOM snapshots of all frames of this tab, regardless of `Include in global snapshots` setting." value="Snapshot" />
         <input type="button" id="replayTabBack" class="on-replay" data-shortcut="replayTabBack" data-help="Re-navigate this tab to its replay, regardless of `Include in global replays` setting." value="Replay" />
         <!-- input type="button" id="replayTabForward" class="on-replay" data-shortcut="replayTabForward" data-help="" value="Replay Forward" / -->
-        <input type="button" id="forgetTabHistory" data-help="For reqres of this tab, forget recent history." value="Forget" />
+        <input type="button" id="forgetAllTabHistory" data-help="For reqres of this tab, forget recent history." value="Forget" />
         <input type="button" id="showTabState" tabindex=2 data-shortcut="showTabState" data-help="For reqres of this tab, show the internal state and reqres history logs." value="State" />
       </span>
     </h2>
@@ -490,7 +490,7 @@ section {
       <div id="div-tabstats.in_flight" class="tag-common tag-this" data-help="For this tab, the number of in-flight reqres that have not `finished` yet. See the `Help` page for more info.">
         <span>In flight</span>
         <span>
-          <input type="button" id="stopTabInFlight" data-help="For reqres of this tab, stop tracking progress of all in-flight requests and either collect them for archival or fail them, depending on completion and `Pick reqres for archival when they finish` options." value="Stop" />
+          <input type="button" id="stopAllTabInFlight" data-help="For reqres of this tab, stop tracking progress of all in-flight requests and either collect them for archival or fail them, depending on completion and `Pick reqres for archival when they finish` options." value="Stop" />
         </span>
         <span>
           <span id="tabstats.in_flight">0</span>
@@ -666,7 +666,7 @@ section {
       <div id="div-stats.unarchived" data-help="At the moment, the number of reqres that failed to be archived via one or more of the selected archiving methods (and the sum total of all sizes of their dumps).">
         <span>Failed to Archive</span>
         <span>
-          <input type="button" id="retryUnarchived" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake. (Archivals that fail because of networking issues will be retried automatically every 60 seconds, others will not.) See the `Help` page for more info." value="Retry" />
+          <input type="button" id="retryAllUnarchived" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake. (Archivals that fail because of networking issues will be retried automatically every 60 seconds, others will not.) See the `Help` page for more info." value="Retry" />
         </span>
         <span>
           <span id="stats.unarchived">0</span>
@@ -676,7 +676,7 @@ section {
       <div id="div-stats.unstashed" data-help="At the moment, the number of reqres that failed to be stashed to local storage (and the sum total of all sizes of their dumps). Note that this number does not include reqres for which stashing was not even attempted, that number is not tracked at the moment.">
         <span>Failed to Stash</span>
         <span>
-          <input type="button" id="retryUnstashed" data-help="Retry stashing of all reqres that failed to be stashed to local storage." value="Retry" />
+          <input type="button" id="retryAllUnstashed" data-help="Retry stashing of all reqres that failed to be stashed to local storage." value="Retry" />
         </span>
         <span>
           <span id="stats.unstashed">0</span>
@@ -893,7 +893,7 @@ In all cases, toggling this option off will automatically fix your config. You c
     <span class="center">
       <input type="button" id="resetConfig" data-help="Reset all config options to their default values." value="Reset config!" />
       <input type="button" id="resetPersistentStats" data-help="Reset all persistent `collected`, `discarded`, `picked`, and `dropped` stats to zero." value="Reset stats!" />
-      <input type="button" id="deleteErrored" data-help="Delete all errored reqres." value="Delete errored!" />
+      <input type="button" id="deleteAllErrored" data-help="Delete all errored reqres." value="Delete errored!" />
     </span>
 
     <!-- destructiveOptions -->

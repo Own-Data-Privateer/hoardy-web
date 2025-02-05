@@ -350,21 +350,161 @@ function handleTabUpdated(tabId, changeInfo, tab) {
     scheduleUpdateDisplay(false, tabId, true);
 }
 
-function handleInternalMessage(request, sender, sendResponse) {
-    let [cmd, arg1, arg2, arg3, arg4] = request;
-    switch (cmd) {
+function evalSimpleRequest(command, tabId, activeTabId) {
+    let handled = true;
+
+    switch (command) {
     case "reloadSelf":
         reloadSelf();
         break;
     case "cancelReloadSelf":
         cancelReloadSelf();
         break;
+
+    case "runActions":
+        syncRunActions();
+        scheduleEndgame(null);
+        break;
+    case "cancelActions":
+        syncCancelActions();
+        scheduleEndgame(null);
+        break;
+
+    case "showState":
+        showState(null, "top", activeTabId);
+        break;
+    case "showLog":
+        showState(null, "tail", activeTabId);
+        break;
+    case "forgetAllHistory":
+        forgetHistory(null);
+        break;
+
+    case "showTabState":
+        showState(tabId, "top", activeTabId);
+        break;
+    case "showTabLog":
+        showState(tabId, "tail", activeTabId);
+        break;
+    case "forgetAllTabHistory":
+        forgetHistory(tabId);
+        break;
+
+    case "deleteAllErrored":
+        syncDeleteAllErrored();
+        scheduleEndgame(null);
+    case "retryAllFailed":
+        syncRetryAllUnstashed();
+        retryAllUnarchived(true);
+        scheduleEndgame(null);
+        break;
+    case "retryAllUnstashed":
+        syncRetryAllUnstashed();
+        scheduleEndgame(null);
+        break;
+    case "retryAllUnarchived":
+        retryAllUnarchived(true);
+        scheduleEndgame(null);
+        break;
+
+    case "exportAsAll":
+        scheduleBucketSaveAs(0, null);
+        scheduleUpdateDisplay(true);
+        break;
+    case "stashAll":
+        syncStashAll(true);
+        scheduleEndgame(null);
+        break;
+
+    case "stopAllInFlight":
+        syncStopInFlight(null);
+        break;
+    case "stopAllTabInFlight":
+        syncStopInFlight(tabId);
+        break;
+
+    case "unmarkAllProblematic":
+        unmarkProblematic(null, null);
+        break;
+    case "unmarkAllTabProblematic":
+        unmarkProblematic(null, tabId);
+        break;
+
+    case "collectAllInLimbo":
+        popInLimbo(true, null, null);
+        break;
+    case "collectAllTabInLimbo":
+        popInLimbo(true, null, tabId);
+        break;
+
+    case "discardAllInLimbo":
+        popInLimbo(false, null, null);
+        break;
+    case "discardAllTabInLimbo":
+        popInLimbo(false, null, tabId);
+        break;
+
+    case "snapshotAll":
+        snapshot(null);
+        break;
+    case "replayAll":
+        replay(null, null);
+        break;
+
+    case "snapshotTab":
+        snapshot(tabId);
+        break;
+    case "replayTabBack":
+        replay(tabId, false);
+        break;
+    case "replayTabForward":
+        replay(tabId, true);
+        break;
+    default:
+        handled = false;
+    }
+
+    if (handled)
+        return true;
+
+    if (command.startsWith("toggleTabConfig")) {
+        let tabcfg = getOriginConfig(tabId);
+        let field, cfg, cfgChildren;
+        if (command.startsWith("toggleTabConfigChildren")) {
+            field = command.substr(23);
+            cfg = tabcfg.children;
+        } else {
+            field = command.substr(15);
+            cfg = tabcfg;
+            cfgChildren = tabcfg.children;
+        }
+        field = field.substr(0, 1).toLowerCase() + field.substr(1);
+        if (field === "tracking") // TODO: remove
+            field = "collecting";
+        if (cfg[field] === undefined)
+            throw Error(`no such field ${field}`);
+        cfg[field] = !cfg[field];
+        if (field === "workOffline")
+            inheritTabConfigWorkOffline(config, cfg, cfgChildren);
+        else if (cfgChildren !== undefined)
+            cfgChildren[field] = cfg[field];
+
+        setTabConfig(tabId, tabcfg);
+
+        return true;
+    }
+
+    return false;
+}
+
+function evalRPCRequest(request) {
+    let [cmd, arg1, arg2, arg3, arg4] = request;
+    switch (cmd) {
     case "getSessionId":
-        sendResponse(sessionId);
-        return;
+        return sessionId;
+
     case "getConfig":
-        sendResponse(config);
-        return;
+        return config;
     case "setConfig":
         let oldConfig = config;
         config = updateFromRec(assignRec({}, oldConfig), arg1);
@@ -397,235 +537,126 @@ function handleInternalMessage(request, sender, sendResponse) {
 
         scheduleEndgame(null);
         broadcast(false, "updateConfig", config);
-        break;
+        return null;
     case "resetConfig":
         config = assignRec({}, configDefaults);
         scheduleSaveConfig(0, true);
         scheduleUpdateDisplay(true, null);
         broadcast(false, "updateConfig", config);
-        break;
+        return null;
+
     case "getTabConfig":
-        sendResponse(getOriginConfig(arg1));
-        return;
+        return getOriginConfig(arg1);
     case "setTabConfig":
         setTabConfig(arg1, arg2);
-        break;
+        return null;
+
     case "getStats":
-        sendResponse(getStats());
-        return;
+        return getStats();
     case "resetPersistentStats":
         resetPersistentStats();
-        break;
+        return null;
+
     case "getTabStats":
-        sendResponse(getTabStats(arg1));
-        return;
-    case "getProblematicLog":
-        sendResponse(getProblematicLog());
-        return;
-    case "unmarkProblematic":
-        unmarkProblematic(arg1, arg2, arg3);
-        break;
-    case "rotateProblematic":
-        rotateProblematic(arg1, arg2, arg3);
-        break;
-    case "getInFlightLog":
-        sendResponse(getInFlightLog());
-        return;
-    case "stopInFlight":
-        let updatedTabId = stopInFlight(arg1, "capture::EMIT_FORCED::BY_USER");
-        scheduleEndgame(updatedTabId);
-        break;
-    case "getInLimboLog":
-        sendResponse(getInLimboLog());
-        return;
-    case "popInLimbo":
-        popInLimbo(arg1, arg2, arg3, arg4);
-        break;
-    case "rotateInLimbo":
-        rotateInLimbo(arg1, arg2, arg3);
-        break;
+        return getTabStats(arg1);
+
     case "getLog":
-        sendResponse(reqresLog);
-        return;
+        return reqresLog;
     case "forgetHistory":
         forgetHistory(arg1, arg2);
-        break;
-    case "getQueuedLog":
-        sendResponse(getQueuedLog());
-        return;
-    case "getUnarchivedLog":
-        sendResponse(getUnarchivedLog());
-        return;
-    case "retryFailed":
-        syncRetryAllUnstashed();
-        retryAllUnarchived(true);
-        scheduleEndgame(null);
-        break;
-    case "retryUnarchived":
-        retryAllUnarchived(true);
-        scheduleEndgame(null);
-        break;
-    case "getSavedFilters":
-        sendResponse(savedFilters);
-        return;
-    case "setSavedFilters":
-        setSavedFilters(arg1);
-        scheduleEndgame(null);
-        break;
-    case "requeueSaved":
-        requeueSaved(arg1);
-        break;
-    case "deleteSaved":
-        deleteSaved();
-        break;
-    case "deleteErrored":
-        syncDeleteAllErrored();
-        scheduleEndgame(null);
-        break;
-    case "stashAll":
-        syncStashAll(true);
-        scheduleEndgame(null);
-        break;
-    case "retryUnstashed":
-        syncRetryAllUnstashed();
-        scheduleEndgame(null);
-        break;
-    case "snapshot":
-        snapshot(arg1);
-        break;
-    case "replay":
-        replay(arg1, arg2);
-        break;
-    case "runActions":
-        syncRunActions();
-        scheduleEndgame(null);
-        break;
-    case "cancelActions":
-        syncCancelActions();
-        scheduleEndgame(null);
-        break;
+        return null;
+
     case "exportAs":
         scheduleBucketSaveAs(0, arg1);
         scheduleUpdateDisplay(true);
-        break;
+        return null;
+
+    case "getSavedFilters":
+        return savedFilters;
+    case "setSavedFilters":
+        setSavedFilters(arg1);
+        scheduleEndgame(null);
+        return null;
+    case "requeueSaved":
+        requeueSaved(arg1);
+        return null;
+    case "deleteSaved":
+        deleteSaved();
+        return null;
+
+    case "stopInFlight":
+        syncStopInFlight(arg1);
+        return null;
+
+    case "getInFlightLog":
+        return getInFlightLog();
+
+    case "getProblematicLog":
+        return getProblematicLog();
+    case "unmarkProblematic":
+        unmarkProblematic(arg1, arg2, arg3);
+        return null;
+    case "rotateProblematic":
+        rotateProblematic(arg1, arg2, arg3);
+        return null;
+
+    case "getInLimboLog":
+        return getInLimboLog();
+    case "popInLimbo":
+        popInLimbo(arg1, arg2, arg3, arg4);
+        return null;
+    case "rotateInLimbo":
+        rotateInLimbo(arg1, arg2, arg3);
+        return null;
+
+    case "getQueuedLog":
+        return getQueuedLog();
+
+    case "getUnarchivedLog":
+        return getUnarchivedLog();
+
+    case "snapshot":
+        snapshot(arg1);
+        return null;
+
+    case "replay":
+        replay(arg1, arg2);
+        return null;
+
     default:
+        let res = evalSimpleRequest(cmd, arg1, arg1);
+        if (res)
+            return null;
+
         console.error("BROWSER: RPC: unknown request", request);
-        throw new Error("what request?");
+        throw new Error(`unknown request`);
     }
-    sendResponse(null);
 }
 
-async function handleShortcut(command) {
+function handleInternalMessage(request, sender, sendResponse) {
+    sendResponse(evalRPCRequest(request));
+}
+
+async function handleShortcut(request) {
     if (config.debugRuntime)
-        console.log("BROWSER: SHORTCUT: request", command);
+        console.log("BROWSER: SHORTCUT: request", request);
 
     let tab = await getActiveTab();
     if (tab === null)
         return;
+    let activeTabId = tab.id;
+
     // The map is set this way so that show-state -> show-tab-state would open
     // the state narrowed to background tasks. This is not very intuitive but
     // rather useful.
-    let tabId = getMapURLParam(statePageURL, "tab", new URL(getTabURL(tab, "")), toNumber, -1, tab.id);
+    let tabId = getMapURLParam(statePageURL, "tab", new URL(getTabURL(tab, "")), toNumber, -1, activeTabId);
 
-    let tabcfg = undefined;
-    switch (command) {
-    case "showState":
-        showState(null, "top", tab.id);
+    let res = evalSimpleRequest(request, tabId, activeTabId);
+    if (res)
         return;
-    case "showLog":
-        showState(null, "tail", tab.id);
-        return;
-    case "showTabState":
-        showState(tabId, "top", tab.id);
-        return;
-    case "showTabLog":
-        showState(tabId, "tail", tab.id);
-        return;
-    case "unmarkAllProblematic":
-        unmarkProblematic(null, null);
-        return;
-    case "collectAllInLimbo":
-        popInLimbo(true, null, null);
-        return;
-    case "discardAllInLimbo":
-        popInLimbo(false, null, null);
-        return;
-    case "unmarkAllTabProblematic":
-        unmarkProblematic(null, tabId);
-        return;
-    case "collectAllTabInLimbo":
-        popInLimbo(true, null, tabId);
-        return;
-    case "discardAllTabInLimbo":
-        popInLimbo(false, null, tabId);
-        return;
-    case "snapshotAll":
-        snapshot(null);
-        return;
-    case "snapshotTab":
-        snapshot(tabId);
-        return;
-    case "replayAll":
-        replay(null, null);
-        return;
-    case "replayTabBack":
-        replay(tabId, false);
-        return;
-    case "replayTabForward":
-        replay(tabId, true);
-        return;
-    case "toggleTabConfigSnapshottable":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.snapshottable = !tabcfg.snapshottable;
-        tabcfg.children.snapshottable = tabcfg.snapshottable;
-        break;
-    case "toggleTabConfigChildrenSnapshottable":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.children.snapshottable = !tabcfg.children.snapshottable;
-        break;
-    case "toggleTabConfigWorkOffline":
-        tabcfg = getOriginConfig(tabId);
-        toggleTabConfigWorkOffline(tabcfg);
-        break;
-    case "toggleTabConfigChildrenWorkOffline":
-        tabcfg = getOriginConfig(tabId);
-        if (config.workOfflineImpure)
-            tabcfg.children.collecting = tabcfg.children.workOffline;
-        tabcfg.children.workOffline = !tabcfg.children.workOffline;
-        break;
-    case "toggleTabConfigTracking":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.collecting = !tabcfg.collecting;
-        tabcfg.children.collecting = tabcfg.collecting;
-        break;
-    case "toggleTabConfigChildrenTracking":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.children.collecting = !tabcfg.children.collecting;
-        break;
-    case "toggleTabConfigProblematicNotify":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.problematicNotify = !tabcfg.problematicNotify;
-        tabcfg.children.problematicNotify = tabcfg.problematicNotify;
-        break;
-    case "toggleTabConfigChildrenProblematicNotify":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.children.problematicNotify = !tabcfg.children.problematicNotify;
-        break;
-    case "toggleTabConfigLimbo":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.limbo = !tabcfg.limbo;
-        tabcfg.children.limbo = tabcfg.limbo;
-        break;
-    case "toggleTabConfigChildrenLimbo":
-        tabcfg = getOriginConfig(tabId);
-        tabcfg.children.limbo = !tabcfg.children.limbo;
-        break;
-    default:
-        console.error("BROWSER: SHORTCUT: unknown command", command);
-        return;
-    }
 
-    setTabConfig(tabId, tabcfg);
+    console.error("BROWSER: SHORTCUT: unknown request", request);
+    throw new Error(`unknown request`);
 }
 
 function handleNotificationClicked(notificationId) {
