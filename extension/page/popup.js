@@ -25,7 +25,7 @@
 
 let dbody = document.body;
 
-const tagNames = ["common", "main", "bg", "this", "class", "pr", "run", "ui", "all"];
+const tagNames = ["common", "main", "bg", "this", "class", "pr", "rt", "ui", "all"];
 
 function showTab(name) {
     //implySetConditionalClass(dbody, "more", "hidden", !condition);
