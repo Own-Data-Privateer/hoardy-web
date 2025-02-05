@@ -489,14 +489,16 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         }
 
         if (iconSlots.some((k) => now[k] !== prev[k])) {
+            if (child)
+                // add a separator
+                icons.push("bar");
             for (let k of iconSlots) {
                 let v = now[k];
                 if (v !== undefined)
                     icons.push(v);
             }
-            // add a separator
             if (child)
-                icons.push("main");
+                icons.push("dot");
         }
 
         return now;
