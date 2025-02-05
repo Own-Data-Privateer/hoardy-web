@@ -37,12 +37,6 @@
         "showTabLog": {
             "description": "Show Tab Log: For the currently active tab, open the log of recently collected and discarded reqres"
         },
-        "toggleTabConfigSnapshottable": {
-            "description": "Toggle Tab Snapshottable: For the currently active tab, toggle `Include in global snapshots` setting and reset the related option for the tab's new children"
-        },
-        "toggleTabConfigChildrenSnapshottable": {
-            "description": "Toggle Children Snapshottable: For currently active tab's new children, toggle `Set 'Include in global snapshots'` setting"
-        },
         "toggleTabConfigWorkOffline": {
             "description": "Toggle Tab Work Offline: For the currently active tab, toggle `Work Offline` setting (then, if impure, set `Track new requests` setting to the opposite value) and reset the related option for the tab's new children"
         },
@@ -93,6 +87,12 @@
         },
         "discardAllTabInLimbo": {
             "description": "Discard Tab Limbo: For the currently active tab, discard all reqres in limbo"
+        },
+        "toggleTabConfigSnapshottable": {
+            "description": "Toggle Tab Snapshottable: For the currently active tab, toggle `Include in global snapshots` setting and reset the related option for the tab's new children"
+        },
+        "toggleTabConfigChildrenSnapshottable": {
+            "description": "Toggle Children Snapshottable: For currently active tab's new children, toggle `Set 'Include in global snapshots'` setting"
         },
         "snapshotAll": {
             "description": "Snapshot All: Take DOM snapshots of all frames of all open tabs for which `Include in global snapshots` option is set"

@@ -147,8 +147,6 @@ let configDefaults = {
     collecting: true,
 
     root: {
-        snapshottable: true,
-        replayable: true,
         workOffline: false,
         collecting: true,
         problematicNotify: true,
@@ -156,6 +154,8 @@ let configDefaults = {
         negLimbo: false,
         stashLimbo: true,
         bucket: "default",
+        snapshottable: true,
+        replayable: true,
     },
 
     extension: {

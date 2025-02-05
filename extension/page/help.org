@@ -612,20 +612,20 @@ Then, you can improve on this setup even more by running both the Tor Browser an
 - open the =Internal State and Logs= page, scrolled to the end of the log, {{{shortcut(showLog)}}};
 - open the [[./popup.html#showTabState][=Internal State and Logs= page]] narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
 - open the =Internal State and Logs= page narrowed to the currently active tab's data, scrolled to the end of the log, {{{shortcut(showTabLog)}}};
-- toggle [[./popup.html#div-tabconfig.snapshottable][inclusion of the currently active tab in global snapshots]] {{{shortcut(toggleTabConfigSnapshottable)}}};
-- toggle [[./popup.html#div-tabconfig.children.snapshottable][inclusion of the currently active tab's children in global snapshots]], {{{shortcut(toggleTabConfigChildrenSnapshottable)}}};
 - toggle [[./popup.html#div-tabconfig.workOffline][work offline mode in the currently active tab]] (the action depends on [[./popup.html#div-config.workOfflineImpure][impure toggling]]) {{{shortcut(toggleTabConfigWorkOffline)}}};
 - toggle [[./popup.html#div-tabconfig.children.workOffline][work offline mode in the currently active tab's new children]] (the action depends on [[./popup.html#div-config.workOfflineImpure][impure toggling]]) {{{shortcut(toggleTabConfigChildrenWorkOffline)}}};
 - toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned =HTTP= requests in the currently active tab]] {{{shortcut(toggleTabConfigTracking)}}};
 - toggle [[./popup.html#div-tabconfig.children.collecting][tracking of newly spawned =HTTP= requests currently active tab's children]], {{{shortcut(toggleTabConfigChildrenTracking)}}};
-- toggle [[./popup.html#div-tabconfig.limbo][limbo mode in the currently active tab]] {{{shortcut(toggleTabConfigLimbo)}}};
-- toggle [[./popup.html#div-tabconfig.children.limbo][limbo mode in currently active tab's children]], {{{shortcut(toggleTabConfigChildrenLimbo)}}};
 - [[./popup.html#unmarkAllProblematic][unmark all problematic reqres]], {{{shortcut(unmarkAllProblematic)}}};
 - [[./popup.html#unmarkAllTabProblematic][unmark all current tab's problematic reqres]], {{{shortcut(unmarkAllTabProblematic)}}};
+- toggle [[./popup.html#div-tabconfig.limbo][limbo mode in the currently active tab]] {{{shortcut(toggleTabConfigLimbo)}}};
+- toggle [[./popup.html#div-tabconfig.children.limbo][limbo mode in currently active tab's children]], {{{shortcut(toggleTabConfigChildrenLimbo)}}};
 - [[./popup.html#collectAllInLimbo][collect all reqres from limbo]], {{{shortcut(collectAllInLimbo)}}};
 - [[./popup.html#collectAllTabInLimbo][collect all reqres from limbo for the currently active tab]], {{{shortcut(collectAllTabInLimbo)}}};
 - [[./popup.html#discardAllInLimbo][discard all reqres from limbo]], {{{shortcut(discardAllInLimbo)}}};
 - [[./popup.html#discardAllTabInLimbo][discard all reqres from limbo for the currently active tab]], {{{shortcut(discardAllTabInLimbo)}}};
+- toggle [[./popup.html#div-tabconfig.snapshottable][inclusion of the currently active tab in global snapshots]] {{{shortcut(toggleTabConfigSnapshottable)}}};
+- toggle [[./popup.html#div-tabconfig.children.snapshottable][inclusion of the currently active tab's children in global snapshots]], {{{shortcut(toggleTabConfigChildrenSnapshottable)}}};
 - [[./popup.html#snapshotAll][take =DOM= snapshot of all tabs]] for which [[./popup.html#div-tabconfig.snapshottable][=Include in global snapshots= setting]] is enabled, {{{shortcut(snapshotAll)}}};
 - [[./popup.html#snapshotTab][take =DOM= snapshot of the currently active tab]], {{{shortcut(snapshotTab)}}}.
 - [[./popup.html#replayAll][replay all tabs]] for which [[./popup.html#div-tabconfig.replayable][=Include in global replays= setting]] is enabled, {{{shortcut(replayAll)}}};
