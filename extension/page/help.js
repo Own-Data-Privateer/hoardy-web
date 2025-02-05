@@ -90,7 +90,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         let w = window.innerWidth;
         let h = window.innerHeight;
 
-        console.log("current width:", w);
+        console.log("current viewport:", w, h);
         columns = w >= minWidth;
 
         setConditionalClass(document.body, "columns", columns);
@@ -98,13 +98,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Prevent independent scroll in `columns` layout.
         let h1 = columns ? `${h - 5}px` : null;
-        body.style["max-height"]
-            = iframe.style["max-height"]
+        body.style["min-height"]
+            = body.style["max-height"]
+            = body.style["height"]
             = h1;
-
-        // To simplify things a bit.
-        let h2 = columns ? h1 : null;
-        body.style["min-height"] = h2;
 
         let ib = iframe.contentDocument.body;
         if (ib === null)
@@ -112,8 +109,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
 
         // Prevent in-iframe scroll in `linear` layout.
-        let h3 = columns ? h1 : `${ib.scrollHeight + 20}px`;
-        iframe.style["min-height"] = h3;
+        let h2 = columns ? h1 : `${ib.scrollHeight + 20}px`;
+        iframe.style["min-height"]
+            = iframe.style["max-height"]
+            = iframe.style["height"]
+            = h2;
     }
 
     // expand shortcut macros
