@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   id="svg8"
+   version="1.1"
+   viewBox="0 0 160 160"
+   height="160mm"
+   width="160mm">
+  <defs
+     id="defs2" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <circle
+     cx="80"
+     cy="80"
+     id="path2181"
+     r="77"
+     style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:3;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <path
+     id="path8594"
+     transform="scale(0.26458333)"
+     d="M 339.74414 121.39062 L 339.74414 194.63477 L 206.41016 194.63477 L 206.41016 141.9043 L 108.97461 141.9043 L 108.97461 194.63477 L 83.351562 194.63477 L 83.351562 467.77734 L 508.24219 467.77734 L 508.24219 194.63477 L 487.17969 194.63477 L 487.17969 121.39062 L 339.74414 121.39062 z "
+     style="opacity:1;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:3.77999973;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  <path
+     d="m 98.688389,34.466829 -8.30521,-13.075095 12.546691,9.083782 -2.66939,-15.258079 8.11542,13.193733 3.37282,-15.118159 2.44865,15.295057 8.90154,-12.676636 -3.5909,15.067847 13.07509,-8.30521 -9.08378,12.546694 15.25808,-2.669392 -13.19374,8.115421 15.11816,3.372818 -15.29505,2.448648 12.67663,8.901546 -15.06784,-3.590908 8.30521,13.075094 -12.5467,-9.083782 2.66939,15.258079 -8.11542,-13.193733 -3.37282,15.118159 -2.44864,-15.295057 -8.90155,12.676636 3.59091,-15.067847 L 89.100844,63.591656 98.184626,51.044961 82.926548,53.714353 96.12028,45.598932 81.002122,42.226114 96.297178,39.777466 83.620542,30.87592 Z"
+     id="path8542"
+     style="fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.16486602px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+  <circle
+     r="24.931889"
+     cy="90.631683"
+     cx="78.187775"
+     id="path8523"
+     style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.83533162;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+</svg>
