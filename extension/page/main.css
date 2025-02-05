@@ -392,7 +392,7 @@ div.help-tip {
     animation-name: highlight;
     animation-duration: 5s;
     animation-timing-function: linear;
-    animation-iteration-count: infinite;
+    animation-iteration-count: 10;
 }
 
 .target * {
@@ -431,7 +431,7 @@ input.attention {
     animation-name: attention;
     animation-duration: 5s;
     animation-timing-function: ease-in-out;
-    animation-iteration-count: infinite;
+    animation-iteration-count: 10;
 }
 
 @keyframes attention {
