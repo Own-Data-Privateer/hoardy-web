@@ -452,6 +452,47 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         // to simplify the logic below
         updatedTabId = null;
 
+    let iconSlots = ["wicon", "icon"];
+
+    function addIconsAndChunks(prev, icons, chunks, cfg, child) {
+        let now = {};
+
+        if (config.workOffline || cfg.workOffline) {
+            now.wicon = "work_offline";
+            chunks.push("work offline");
+        }
+
+        if (!config.collecting || !cfg.collecting) {
+            now.icon = "off";
+            chunks.push("ignore new requests");
+        } else if (cfg.limbo && cfg.negLimbo) {
+            now.icon = "bothlimbo";
+            chunks.push("pick and drop into limbo");
+        } else if (cfg.limbo) {
+            now.icon = "limbo";
+            chunks.push("pick into limbo");
+        } else if (cfg.negLimbo) {
+            now.icon = "neglimbo";
+            chunks.push("drop into limbo");
+        } else {
+            now.icon = "idle";
+            chunks.push("queue normally");
+        }
+
+        if (iconSlots.some((k) => now[k] !== prev[k])) {
+            for (let k of iconSlots) {
+                let v = now[k];
+                if (v !== undefined)
+                    icons.push(v);
+            }
+            // add a separator
+            if (child)
+                icons.push("main");
+        }
+
+        return now;
+    }
+
     for (let tab of tabs) {
         let windowId = tab.windowId;
         let tabId = tab.id;
@@ -509,49 +550,8 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             tchunks.push(`${tabstats.in_limbo} in-limbo reqres`);
         }
 
-        let pwicon;
-        let picon;
-        function addSub(icons, chunks, cfg, child) {
-            let wicon;
-            let icon;
-
-            if (config.workOffline || cfg.workOffline) {
-                wicon = "work_offline";
-                chunks.push("work offline");
-            }
-
-            if (!config.collecting || !cfg.collecting) {
-                icon = "off";
-                chunks.push("ignore new requests");
-            } else if (cfg.limbo && cfg.negLimbo) {
-                icon = "bothlimbo";
-                chunks.push("pick and drop into limbo");
-            } else if (cfg.limbo) {
-                icon = "limbo";
-                chunks.push("pick into limbo");
-            } else if (cfg.negLimbo) {
-                icon = "neglimbo";
-                chunks.push("drop into limbo");
-            } else {
-                icon = "idle";
-                chunks.push("queue normally");
-            }
-
-            if (wicon !== pwicon || icon !== picon) {
-                if (wicon)
-                    icons.push(wicon);
-                icons.push(icon);
-                // add a separator
-                if (child)
-                    icons.push("main");
-            }
-
-            pwicon = wicon;
-            picon = icon;
-        }
-
-        addSub(icons, tchunks, tabcfg);
-        addSub(icons, cchunks, tabcfg.children, true);
+        let prev = addIconsAndChunks({}, icons, tchunks, tabcfg);
+        addIconsAndChunks(prev, icons, cchunks, tabcfg.children, true);
 
         let ttitle = tchunks.join(", ");
         let ctitle = cchunks.join(", ");
