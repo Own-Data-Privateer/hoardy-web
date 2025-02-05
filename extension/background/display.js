@@ -452,7 +452,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         // to simplify the logic below
         updatedTabId = null;
 
-    let iconSlots = ["wicon", "icon"];
+    let iconSlots = ["wicon", "icon", "sicon", "ricon"];
 
     function addIconsAndChunks(prev, icons, chunks, cfg, child) {
         let now = {};
@@ -477,6 +477,15 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         } else {
             now.icon = "idle";
             chunks.push("queue normally");
+        }
+
+        if (!cfg.snapshottable) {
+            now.sicon = "unsnapshottable";
+            chunks.push("not snapshottable");
+        }
+        if (!cfg.replayable) {
+            now.ricon = "unreplayable";
+            chunks.push("not replayable");
         }
 
         if (iconSlots.some((k) => now[k] !== prev[k])) {
