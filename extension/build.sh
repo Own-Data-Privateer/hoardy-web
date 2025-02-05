@@ -23,7 +23,7 @@ for target in "$@"; do
         echo "  Tailing all icons into a single image..."
 
         icons=()
-        for a in icon/"$iconTheme"/{main,work_offline,off,idle,limbo,neglimbo,bothlimbo,tracking,problematic,in_limbo,archiving,failed}.svg icon/"$iconTheme"/*.svg; do
+        for a in icon/"$iconTheme"/{main,work_offline,off,idle,limbo,neglimbo,bothlimbo,tracking,problematic,bar,in_limbo,archiving,failed,unsnapshottable,unreplayable,error,dot}.svg icon/"$iconTheme"/*.svg; do
             n=$(basename "$a")
             file="$DEST/$n.png"
             if [[ "$a" -nt "$file" ]]; then
@@ -62,8 +62,12 @@ for target in "$@"; do
 
         maketile $l 1 white
         maketile $l 1 black
-        maketile 16 6 white
-        maketile 16 6 black
+        maketile $l 6 white
+        maketile $l 6 black
+        maketile $((l+1)) 6 white
+        maketile $((l+1)) 6 black
+        maketile $((l-1)) 6 white
+        maketile $((l-1)) 6 black
 
         continue
     fi
