@@ -218,12 +218,12 @@ section {
       <input type="button" id="showTag-this" tabindex=4 title="Actions, stats, and settings related to the currently active tab" value="This" />
       <input type="button" id="showTag-bg" tabindex=4 title="Actions, stats, and settings related to background tabs and requests" value="BG" />
       <input type="button" id="showTag-class" tabindex=4 title="Reqres classifier settings" value="CLS" />
-      <input type="button" id="showTag-pr" tabindex=4 title="Actions, stats, and settings related to archival, stashing, and replay" value="P&amp;R" />
       <span class="spacer"></span>
-      <input type="button" id="showTag-rt" tabindex=4 title="Actions, stats, and settings controlling runtime behaviour" value="RT" />
       <input type="button" id="showTag-ui" tabindex=4 title="User Interface options" value="UI" />
-      <input type="button" id="showTag-all" tabindex=1 title="Show everything all at once" value="All" />
+      <input type="button" id="showTag-pr" tabindex=4 title="Actions, stats, and settings related to archival, stashing, and replay" value="P&amp;R" />
+      <input type="button" id="showTag-rt" tabindex=4 title="Actions, stats, and settings controlling runtime behaviour" value="RT" />
       <span class="spacer"></span>
+      <input type="button" id="showTag-all" tabindex=1 title="Show everything all at once" value="All" />
       <span class="ui">
         <input type="button" id="showHelp" data-help="Open the `Help` page." value="Help" />
       </span>
@@ -657,6 +657,67 @@ section {
     <!-- classifierOptions -->
     </section>
 
+    <section id="ui-options" class="tag-ui">
+    <h2>User Interface</h2>
+    <div class="idots ui">
+    <!-- uiOptions -->
+
+    <ui id="config.colors" type="tristate" data-help="Color scheme tristate: light mode, browser&#039;s default, dark mode.">Color scheme</ui>
+    <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
+    <ui id="config.seasonal" type="boolean" data-help="Allow `Hoardy-Web` to use seasonal themes. Disabling this will forbid the use of the following sub-options, including those that might be added here in future versions of `Hoardy-Web`. Enabled by default. You might want to disable this if you hate fun.">Allow seasonal theming</ui>
+    <section class="on-seasonal">
+    <div class="isubdots">
+    <ui id="config.season.halloween" type="tristate" data-help="Tristate controlling the use of the &quot;Halloween&quot; theme: disabled, enabled when close to Halloween, enabled. When enabled, this theme will force the dark mode theme regardless of what the `Color scheme` setting above says.">🦇 Halloween mode</ui>
+    <ui id="config.season.winter" type="tristate" data-help="Tristate controlling the use of the &quot;Winter Days&quot; theme: disabled, enabled between Winter Solstice and Orthodox Christmas (which also includes Yuletide, Catholic Christmas, Newtonmas, New Year, and, sometimes, Hanukkah), enabled. When enabled, this theme will force the dark mode theme regardless of what the `Color scheme` setting above says.">🎄 Winter Days mode</ui>
+    </div>
+    </section>
+    <ui id="config.pureText" type="boolean" data-help="Do not use emojis in UI labels. Makes screen readers happier.">Use pure text labels</ui>
+    <ui id="config.animateIcon" type="number" class="c" data-help="When `Hoardy-Web` wants to display more than one toolbar icon, switch them every this many milliseconds.">Animate toolbar icon every {}ms</ui>
+    <section class="on-mobile">
+    <ui id="config.spawnNewTabs" type="boolean" data-help="Open the other pages of this extension in newly created tabs instead of reusing the current window. This is enabled by default and can not disabled when `Hoardy-Web` runs on a desktop browser. This is disabled by default when `Hoardy-Web` runs on a mobile browser.">Spawn internal pages in new tabs</ui>
+    </section>
+
+    <ui id="config.verbose" type="boolean" data-help="Produce more verbose notifications. Enabled by default for on-boarding new users. You can safely disable this if you are aware that almost anything `Hoardy-Web` does can be changed by one of its settings, and/or if long notifications annoy you by taking a lot of screen area and/or speech time of you TTS engine.">Verbose notifications</ui>
+    <ui id="config.escapeNotifications" type="boolean" data-help="When generating notifications, escape some characters in their messages so prevent them from being interpreted as `HTML` by the notification daemon. Useful when not using the default notifications mechanism on some systems.">Escape notification messages</ui>
+
+    <!-- half uiOptions -->
+    </div>
+
+    <section id="notification-options">
+    <h3>Generate notifications about</h3>
+    <div class="isubdots ui">
+    <!-- notificationOptions -->
+
+    <ui id="config.hintNotify" type="boolean" class="prefer-on c" data-help="Generate notifications explaining various non-obvious things `Hoardy-Web` does.">... {} UI hints</ui>
+    <section class="on-mobile">
+    <ui id="config.invisibleUINotify" type="boolean" class="c" data-help="Generate notifications about actions that are quirky on mobile browsers. This only has an effect if `Hoardy-Web` runs on a mobile browser like Fenix/Fennec/Mull/etc.">... {} mobile UI quirks</ui>
+    </section>
+    <ui id="config.problematicNotify" type="boolean" class="c" data-help="Complain when a new `problematic` reqres appears.">... {} new <code>problematic</code> reqres</ui>
+    <section class="on-problematicNotify">
+    <div class="ishiftdots">
+    <ui id="config.problematicNotifyNumber" type="number" class="c" data-help="Show no more than this many latest METHOD + URL lines in the generated `problematic` reqres notification.">... but no more than {} lines</ui>
+    </div>
+    </section>
+    <ui id="config.limboNotify" type="boolean" class="c" data-help="Complain when too much stuff is being held in limbo. You can safely disable this or set the following sub-options to absurdly high values if `Stash 'collected' reqres into local storage` and all `Stash 'in_limbo' reqres` options are set.">... {} too much stuff in <code>in_limbo</code> state</ui>
+    <section class="on-limboNotify">
+    <div class="ishiftdots">
+    <ui id="config.limboMaxNumber" type="number" class="c" data-help="Start complaining when more than this number of reqres are in `in_limbo` state.">... after {} elements,</ui>
+    <ui id="config.limboMaxSize" type="number" class="c" data-help="Start complaining when the total size of all dumps in `in_limbo` state is larger than this many Megabytes.">... or {} MiB</ui>
+    <ui id="config.limboNotifyInterval" type="number" class="c" data-help="Produce notifications no more frequently than one in this many seconds.">... every {} s</ui>
+    </div>
+    </section>
+    <ui id="config.autoNotify" type="boolean" class="prefer-on c" data-help="Generate a notification when an automatic action was performed in background.">... {} automatic actions</ui>
+    <ui id="config.archiveStuckNotify" type="boolean" class="prefer-on c" data-help="Complain when the archival queue is not empty but both `Archive 'collected' reqres` and `Stash 'collected' reqres into local storage` options are disabled.">... {} unstashed stuck archival queue</ui>
+    <ui id="config.archiveFailedNotify" type="boolean" class="prefer-on c" data-help="Complain when some reqres fail to be stashed or archived to persistent storage (browser&#039;s local storage, the archiving server, etc).">... {} archival errors</ui>
+    <ui id="config.archiveDoneNotify" type="boolean" class="c" data-help="Generate an &quot;All OK&quot; notification when the archival queue becomes empty the very first time or after a previous archival failure. This exists mostly for on-boarding new users.">... {} newly empty archival queue</ui>
+
+    <!-- notificationOptions -->
+    </div>
+    </section>
+
+    <!-- uiOptions -->
+    </section>
+
     <section id="persistence-options" class="tag-pr">
     <h2>Persistence</h2>
     <div class="idots ui">
@@ -901,67 +962,6 @@ In all cases, toggling this option off will automatically fix your config. You c
     </section>
 
     <!-- half debuggingOptions -->
-    </section>
-
-    <section id="ui-options" class="tag-ui">
-    <h2>User Interface</h2>
-    <div class="idots ui">
-    <!-- uiOptions -->
-
-    <ui id="config.colors" type="tristate" data-help="Color scheme tristate: light mode, browser&#039;s default, dark mode.">Color scheme</ui>
-    <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
-    <ui id="config.seasonal" type="boolean" data-help="Allow `Hoardy-Web` to use seasonal themes. Disabling this will forbid the use of the following sub-options, including those that might be added here in future versions of `Hoardy-Web`. Enabled by default. You might want to disable this if you hate fun.">Allow seasonal theming</ui>
-    <section class="on-seasonal">
-    <div class="isubdots">
-    <ui id="config.season.halloween" type="tristate" data-help="Tristate controlling the use of the &quot;Halloween&quot; theme: disabled, enabled when close to Halloween, enabled. When enabled, this theme will force the dark mode theme regardless of what the `Color scheme` setting above says.">🦇 Halloween mode</ui>
-    <ui id="config.season.winter" type="tristate" data-help="Tristate controlling the use of the &quot;Winter Days&quot; theme: disabled, enabled between Winter Solstice and Orthodox Christmas (which also includes Yuletide, Catholic Christmas, Newtonmas, New Year, and, sometimes, Hanukkah), enabled. When enabled, this theme will force the dark mode theme regardless of what the `Color scheme` setting above says.">🎄 Winter Days mode</ui>
-    </div>
-    </section>
-    <ui id="config.pureText" type="boolean" data-help="Do not use emojis in UI labels. Makes screen readers happier.">Use pure text labels</ui>
-    <ui id="config.animateIcon" type="number" class="c" data-help="When `Hoardy-Web` wants to display more than one toolbar icon, switch them every this many milliseconds.">Animate toolbar icon every {}ms</ui>
-    <section class="on-mobile">
-    <ui id="config.spawnNewTabs" type="boolean" data-help="Open the other pages of this extension in newly created tabs instead of reusing the current window. This is enabled by default and can not disabled when `Hoardy-Web` runs on a desktop browser. This is disabled by default when `Hoardy-Web` runs on a mobile browser.">Spawn internal pages in new tabs</ui>
-    </section>
-
-    <ui id="config.verbose" type="boolean" data-help="Produce more verbose notifications. Enabled by default for on-boarding new users. You can safely disable this if you are aware that almost anything `Hoardy-Web` does can be changed by one of its settings, and/or if long notifications annoy you by taking a lot of screen area and/or speech time of you TTS engine.">Verbose notifications</ui>
-    <ui id="config.escapeNotifications" type="boolean" data-help="When generating notifications, escape some characters in their messages so prevent them from being interpreted as `HTML` by the notification daemon. Useful when not using the default notifications mechanism on some systems.">Escape notification messages</ui>
-
-    <!-- half uiOptions -->
-    </div>
-
-    <section id="notification-options">
-    <h3>Generate notifications about</h3>
-    <div class="isubdots ui">
-    <!-- notificationOptions -->
-
-    <ui id="config.hintNotify" type="boolean" class="prefer-on c" data-help="Generate notifications explaining various non-obvious things `Hoardy-Web` does.">... {} UI hints</ui>
-    <section class="on-mobile">
-    <ui id="config.invisibleUINotify" type="boolean" class="c" data-help="Generate notifications about actions that are quirky on mobile browsers. This only has an effect if `Hoardy-Web` runs on a mobile browser like Fenix/Fennec/Mull/etc.">... {} mobile UI quirks</ui>
-    </section>
-    <ui id="config.problematicNotify" type="boolean" class="c" data-help="Complain when a new `problematic` reqres appears.">... {} new <code>problematic</code> reqres</ui>
-    <section class="on-problematicNotify">
-    <div class="ishiftdots">
-    <ui id="config.problematicNotifyNumber" type="number" class="c" data-help="Show no more than this many latest METHOD + URL lines in the generated `problematic` reqres notification.">... but no more than {} lines</ui>
-    </div>
-    </section>
-    <ui id="config.limboNotify" type="boolean" class="c" data-help="Complain when too much stuff is being held in limbo. You can safely disable this or set the following sub-options to absurdly high values if `Stash 'collected' reqres into local storage` and all `Stash 'in_limbo' reqres` options are set.">... {} too much stuff in <code>in_limbo</code> state</ui>
-    <section class="on-limboNotify">
-    <div class="ishiftdots">
-    <ui id="config.limboMaxNumber" type="number" class="c" data-help="Start complaining when more than this number of reqres are in `in_limbo` state.">... after {} elements,</ui>
-    <ui id="config.limboMaxSize" type="number" class="c" data-help="Start complaining when the total size of all dumps in `in_limbo` state is larger than this many Megabytes.">... or {} MiB</ui>
-    <ui id="config.limboNotifyInterval" type="number" class="c" data-help="Produce notifications no more frequently than one in this many seconds.">... every {} s</ui>
-    </div>
-    </section>
-    <ui id="config.autoNotify" type="boolean" class="prefer-on c" data-help="Generate a notification when an automatic action was performed in background.">... {} automatic actions</ui>
-    <ui id="config.archiveStuckNotify" type="boolean" class="prefer-on c" data-help="Complain when the archival queue is not empty but both `Archive 'collected' reqres` and `Stash 'collected' reqres into local storage` options are disabled.">... {} unstashed stuck archival queue</ui>
-    <ui id="config.archiveFailedNotify" type="boolean" class="prefer-on c" data-help="Complain when some reqres fail to be stashed or archived to persistent storage (browser&#039;s local storage, the archiving server, etc).">... {} archival errors</ui>
-    <ui id="config.archiveDoneNotify" type="boolean" class="c" data-help="Generate an &quot;All OK&quot; notification when the archival queue becomes empty the very first time or after a previous archival failure. This exists mostly for on-boarding new users.">... {} newly empty archival queue</ui>
-
-    <!-- notificationOptions -->
-    </div>
-    </section>
-
-    <!-- uiOptions -->
     </section>
 
     <!-- idContent -->
