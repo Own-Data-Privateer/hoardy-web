@@ -42,7 +42,7 @@ let configDefaults = {
         winter: null,
     },
     pureText: false,
-    animateIcon: 500,
+    animateIcon: 800,
     spawnNewTabs: !isMobile,
 
     // notifications
