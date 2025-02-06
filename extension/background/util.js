@@ -306,7 +306,10 @@ let rrfilterDefaults = {
 
 // loggable is accepted by the rrfilter
 function isAcceptedBy(rrfilter, loggable) {
-    if ((rrfilter.picked !== null && loggable.picked !== rrfilter.picked)
+    if (rrfilter === null)
+        return true;
+    if (rrfilter === undefined
+        || (rrfilter.picked !== null && loggable.picked !== rrfilter.picked)
         || (rrfilter.was_problematic !== null && loggable.was_problematic !== rrfilter.was_problematic)
         || (rrfilter.problematic !== null && loggable.problematic !== rrfilter.problematic)
         || (rrfilter.was_in_limbo !== null && loggable.was_in_limbo !== rrfilter.was_in_limbo)

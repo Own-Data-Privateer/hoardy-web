@@ -54,7 +54,7 @@ function getQueuedLog() {
 
 function isAcceptedLoggable(tabId, rrfilter, loggable) {
     return (tabId === null || loggable.sessionId === sessionId && loggable.tabId === tabId)
-        && (rrfilter === null || isAcceptedBy(rrfilter, loggable));
+        && isAcceptedBy(rrfilter, loggable);
 }
 
 function unmarkProblematic(num, tabId, rrfilter) {

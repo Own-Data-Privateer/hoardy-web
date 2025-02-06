@@ -786,9 +786,6 @@ async function loadStashed() {
 }
 
 async function loadSaved(rrfilter, wantStop) {
-    if (rrfilter === undefined)
-        rrfilter = null;
-
     let res = [];
     let [newSavedLS, newSavedIDB] = await forEachInStorage("save", (loggable) => {
         if (wantStop !== undefined && wantStop())
@@ -798,7 +795,7 @@ async function loadSaved(rrfilter, wantStop) {
             return false;
         res.push(loggable);
         return true;
-    }, rrfilter !== null ? rrfilter.limit : null);
+    }, rrfilter !== undefined && rrfilter !== null ? rrfilter.limit : null);
 
     // recover from wrong counts
     if (newSavedLS !== undefined && !equalRec(globals.savedLS, newSavedLS)) {
