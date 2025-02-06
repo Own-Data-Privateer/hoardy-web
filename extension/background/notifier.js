@@ -48,7 +48,7 @@ function formatFailures(why, list, recoverable) {
     for (let [reason, unarchived] of list) {
         someUnrecoverable = someUnrecoverable || !unarchived.recoverable;
         allUnrecoverable = allUnrecoverable && !unarchived.recoverable;
-        parts.push(`- ${why} ${unarchived.queue.length} items because ${reason}.`);
+        parts.push(`- ${why} ${unarchived.queue.length} reqres because ${reason}.`);
     }
     if (someUnrecoverable && recoverable) {
         let recoverHow = `to retry them you will have to press the "Retry" button on the "Queued/Failed" line in the popup`;
@@ -58,6 +58,24 @@ function formatFailures(why, list, recoverable) {
             parts.push(`\nSome of these will not be retried automatically, ${recoverHow}.`)
     }
     return parts.join("\n");
+}
+
+async function notifyAboutUnarchived(id, why, rrUnarchived) {
+    for (let [storeID, byReasonMap] of rrUnarchived) {
+        let where;
+        if (storeID === "exportAs")
+            where = "Export via `saveAs`";
+        else if (storeID === "localStorage")
+            where = "Browser's local storage";
+        else
+            where = `Archiving server at ${storeID}`;
+        await browser.notifications.create(`error-${id}-${storeID}`, {
+            title: "Hoardy-Web: FAILED",
+            message: escapeNotification(config, `${where}:\n${formatFailures(why, byReasonMap.entries(), true)}`),
+            iconUrl: iconURL("failed", 128),
+            type: "basic",
+        });
+    }
 }
 
 async function doGlobalNotify() {
@@ -126,24 +144,9 @@ async function doGlobalNotify() {
                 await browser.notifications.clear(label);
         }
 
-        if (config.archiveFailedNotify) {
+        if (config.archiveFailedNotify)
             // generate new ones
-            for (let [storeID, byReasonMap] of rrUnarchived) {
-                let where;
-                if (storeID === "exportAs")
-                    where = "Export via `saveAs`";
-                else if (storeID === "localStorage")
-                    where = "Browser's local storage";
-                else
-                    where = `Archiving server at ${storeID}`;
-                await browser.notifications.create(`error-unarchived-${storeID}`, {
-                    title: "Hoardy-Web: FAILED",
-                    message: escapeNotification(config, `${where}:\n${formatFailures("Failed to archive", byReasonMap.entries(), true)}`),
-                    iconUrl: iconURL("failed", 128),
-                    type: "basic",
-                });
-            }
-        }
+            await notifyAboutUnarchived("unarchived", "Failed to archive", rrUnarchived);
 
         let isDone = rrUnstashed.length === 0 && rrUnarchived.length === 0;
 
