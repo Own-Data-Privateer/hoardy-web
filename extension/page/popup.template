@@ -724,16 +724,6 @@ section {
     <!-- persistenceOptions -->
 
     <div class="stats">
-      <div id="div-stats.unarchived" data-help="At the moment, the number of reqres that failed to be archived via one or more of the selected archiving methods (and the sum total of all sizes of their dumps).">
-        <span>Failed to Archive</span>
-        <span>
-          <input type="button" id="retryAllUnarchived" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake. (Archivals that fail because of networking issues will be retried automatically every 60 seconds, others will not.) See the `Help` page for more info." value="Retry" />
-        </span>
-        <span>
-          <span id="stats.unarchived">0</span>
-          (<span id="stats.unarchived_size">0</span>)
-        </span>
-      </div>
       <div id="div-stats.unstashed" data-help="At the moment, the number of reqres that failed to be stashed to local storage (and the sum total of all sizes of their dumps). Note that this number does not include reqres for which stashing was not even attempted, that number is not tracked at the moment.">
         <span>Failed to Stash</span>
         <span>
@@ -742,6 +732,35 @@ section {
         <span>
           <span id="stats.unstashed">0</span>
           (<span id="stats.unstashed_size">0</span>)
+        </span>
+      </div>
+      <div id="div-stats.stashed" data-help="At the moment, the number of reqres that are currently stashed in browser&#039;s local storage and thus will not be lost on reload (and the sum total of all sizes of their dumps).">
+        <span>Stashed in LS</span>
+        <span>
+        </span>
+        <span>
+          <span id="stats.stashed">0</span>
+          (<span id="stats.stashed_size">0</span>)
+        </span>
+      </div>
+      <div class="isubdots">
+      <div id="div-stats.not_stashed" data-help="Reqres that were not stashed in local storage and exist only in RAM.">
+        <span>... not; In RAM</span>
+        <span>
+          <input type="button" id="stashAll" data-help="Stash all `queued`, `in_limbo`, and `unarchived` reqres into browser&#039;s local storage, regardless of `Stash 'collected' reqres into local storage` and `Stash 'in_limbo' reqres` options." value="Stash" />
+        </span>
+        <span>
+        </span>
+      </div>
+      </div>
+      <div id="div-stats.unarchived" data-help="At the moment, the number of reqres that failed to be archived via one or more of the selected archiving methods (and the sum total of all sizes of their dumps).">
+        <span>Failed to Archive</span>
+        <span>
+          <input type="button" id="retryAllUnarchived" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake. (Archivals that fail because of networking issues will be retried automatically every 60 seconds, others will not.) See the `Help` page for more info." value="Retry" />
+        </span>
+        <span>
+          <span id="stats.unarchived">0</span>
+          (<span id="stats.unarchived_size">0</span>)
         </span>
       </div>
       <div id="div-stats.exportedAs" data-help="From the last reset, the number of reqres that were successfully archived by being exported via `saveAs` mechanism as fake-Downloads (and the sum total of all sizes of their dumps).">
@@ -784,26 +803,9 @@ section {
           (<span id="stats.saved_size">0</span>)
         </span>
       </div>
-      <div id="div-stats.stashed" data-help="At the moment, the number of reqres that are currently stashed in browser&#039;s local storage and thus will not be lost on reload (and the sum total of all sizes of their dumps).">
-        <span>Stashed in LS</span>
-        <span>
-        </span>
-        <span>
-          <span id="stats.stashed">0</span>
-          (<span id="stats.stashed_size">0</span>)
-        </span>
-      </div>
-      <div class="isubdots">
-      <div id="div-stats.not_stashed" data-help="Reqres that were not stashed in local storage and exist only in RAM.">
-        <span>... not; In RAM</span>
-        <span>
-          <input type="button" id="stashAll" data-help="Stash all `queued`, `in_limbo`, and `unarchived` reqres into browser&#039;s local storage, regardless of `Stash 'collected' reqres into local storage` and `Stash 'in_limbo' reqres` options." value="Stash" />
-        </span>
-        <span>
-        </span>
-      </div>
-      </div>
     </div>
+
+    <ui id="config.stash" type="boolean" class="prefer-on" data-help="Automatically backup stuck `queued` and `unarchived` reqres into browser&#039;s local storage. With this option enabled `Hoardy-Web` will keep `collected` but not yet archived reqres across browser restarts and extension reloads. See also `Stash 'in_limbo' reqres` options below. See the `Help` page for more info.">Stash <code>collected</code> reqres into local storage</ui>
 
     <ui id="config.archive" type="boolean" class="prefer-on" data-help="Automatically archive `queued` reqres into persistent storage using one or more of the following methods. Enabling more than one of the sub-options will archive the same reqres using all of the enabled methods. (If two identical copies of the same reqres ever reach `hoardy-web organize`, it will deduplicate them.) Disabling this option will keep `queued` reqres stuck in the archiving queue indefinitely. If `Stash 'collected' reqres into local storage` option above is enabled, restarting the browser or reloading the extension will not loose them, but they will still be taking up your browser&#039;s memory. Which is why you probably shouldn&#039;t disable this option, unless you want to disable this, atomically change some of the following sub-options or the `Bucket` settings below, and then enable this again.">Archive <code>collected</code> reqres</ui>
     <section id="on-archive" class="on-archive">
@@ -818,7 +820,6 @@ section {
     </div>
     </section>
 
-    <ui id="config.stash" type="boolean" class="prefer-on" data-help="Automatically backup stuck `queued` and `unarchived` reqres into browser&#039;s local storage. With this option enabled `Hoardy-Web` will keep `collected` but not yet archived reqres across browser restarts and extension reloads. See also `Stash 'in_limbo' reqres` options below. See the `Help` page for more info.">Stash <code>collected</code> reqres into local storage</ui>
 
     <!-- persistenceOptions -->
     </div>
