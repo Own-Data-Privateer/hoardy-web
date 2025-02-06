@@ -122,15 +122,15 @@ let seUpdatedTabId;
 function scheduleEndgame(updatedTabId, notifyTimeout) {
     updatedTabId = seUpdatedTabId = mergeUpdatedTabIds(seUpdatedTabId, updatedTabId);
 
-    if (synchronousClosures.length > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
-            await evalSynchronousClosures(synchronousClosures, updatedTabId);
-            scheduleEndgame(undefined, notifyTimeout);
-        });
-    } else if (wantCheckServer) {
+    if (wantCheckServer) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             await checkServer();
             scheduleEndgame(updatedTabId, notifyTimeout);
+        });
+    } else if (synchronousClosures.length > 0) {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
+            await evalSynchronousClosures(synchronousClosures, updatedTabId);
+            scheduleEndgame(undefined, notifyTimeout);
         });
     } else if (config.archive && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {

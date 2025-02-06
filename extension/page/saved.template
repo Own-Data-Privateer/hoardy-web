@@ -15,9 +15,10 @@
 
     <h1 class="ui">Saved
       <span class="right">
-        <input type="button" id="requeueSaved" data-help-class="help-tip-right" data-help="Put all reqres below back into the archiving queue. Note that for each given reqres and each archiving method `Hoardy-Web` remembers if the reqres in question was ever successfully archived using that archiving method and will not re-archive it the second time." value="Re-queue" />
-        <input type="button" id="rearchiveSaved" data-help="Re-queue, but reset all internal per-reqres per-archiving method status flags, forcing all these reqres to be archived again, regardless of any previous successes or failures." value="Re-archive" />
-        <input type="button" id="deleteSaved" data-help="Delete all reqres below from local storage." value="Delete" />
+        <input type="button" id="rearchiveSaved" class="on-rearchive" data-help="Re-archive reqres currently displayed below with all currently enabled re-archival methods (configured in the settings)." value="Re-archive" />
+        <ui id="rearchive.andDelete" type="boolean" class="on-rearchive" style="font-size: 50%" data-help="After re-archival succeeds, delete them from browser&#039;s local storage.">... and delete</ui>
+        <ui id="rearchive.andRewrite" type="boolean" style="font-size: 50%" data-help="After re-archival, forcefully re-write them from/to browser&#039;s local storage. This is only useful for debugging and for migration between local storage backends.">... and re-write</ui>
+        <input type="button" id="deleteSaved" data-help-class="help-tip-right" data-help="Delete all reqres currently displayed below from local storage." value="Delete" />
       </span>
     </h1>
     <div class="controls ui">

@@ -90,7 +90,9 @@ function scheduleCleanupAfterTab(tabId) {
 async function checkServer() {
     wantCheckServer = false;
 
-    if (!(config.archive && config.archiveSubmitHTTP || config.replaySubmitHTTP))
+    if (!(config.archive && config.archiveSubmitHTTP
+          || config.rearchiveSubmitHTTP
+          || config.replaySubmitHTTP))
         return;
 
     let baseURL = serverConfig.baseURL;
@@ -394,6 +396,10 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         syncStashAll(true);
         scheduleEndgame(null);
         break;
+    case "rearchiveAdjunctSaved":
+        syncRearchiveSaved(null, false, false, false);
+        scheduleEndgame(null);
+        break;
 
     case "stopAllInFlight":
         syncStopInFlight(null);
@@ -501,7 +507,10 @@ function evalRPCRequest(request) {
             wantArchiveDoneNotify = true;
         }
 
-        if (config.replaySubmitHTTP !== false
+        if (config.rearchiveSubmitHTTP
+            && (config.rearchiveSubmitHTTP !== oldConfig.rearchiveSubmitHTTP
+                || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)
+         || config.replaySubmitHTTP !== false
             && (config.replaySubmitHTTP !== oldConfig.replaySubmitHTTP
                 || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase))
             wantCheckServer = true;
@@ -556,11 +565,14 @@ function evalRPCRequest(request) {
         setSavedFilters(arg1);
         scheduleEndgame(null);
         return null;
-    case "requeueSaved":
-        requeueSaved(arg1);
+
+    case "rearchiveSaved":
+        syncRearchiveSaved(arg1, arg2, arg3, arg4);
+        scheduleEndgame(null);
         return null;
     case "deleteSaved":
-        deleteSaved();
+        syncDeleteSaved(arg1);
+        scheduleEndgame(null);
         return null;
 
     case "stopInFlight":

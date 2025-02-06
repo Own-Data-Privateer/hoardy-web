@@ -734,7 +734,7 @@ async function unstashMany(archivables) {
 }
 
 
-async function saveOne(archivable, unarchivedAccumulator) {
+async function saveOne(archivable, elide, unarchivedAccumulator) {
     if (unarchivedAccumulator === undefined)
         unarchivedAccumulator = reqresUnarchivedIssueAcc;
 
@@ -746,7 +746,7 @@ async function saveOne(archivable, unarchivedAccumulator) {
 
     let res;
     try {
-        res = await syncWithStorage(archivable, 2, true);
+        res = await syncWithStorage(archivable, 2, elide);
     } catch (err) {
         logHandledError(err);
         recordOneUnarchived(unarchivedAccumulator, "localStorage", errorMessageOf(err), false, archivable);
@@ -864,54 +864,6 @@ function loadAndBroadcastSaved(rrfilter) {
     };
 }
 
-function requeueSaved(reset) {
-    runSynchronously("requeueSaved", async () => {
-        broadcastToSaved("resetSaved", [null]); // invalidate UI
-
-        let log = await loadSaved(savedFilters);
-        for (let loggable of log) {
-            if (reset)
-                loggable.archived = 0;
-
-            let archivable = [loggable, null];
-
-            // yes, this is inefficient, but without this, calling this
-            // function twice in rapid succession can produce weird results
-            try {
-                await syncWithStorage(archivable, 1, false);
-            } catch(err) {
-                logError(err);
-                continue;
-            }
-
-            reqresQueue.push(archivable);
-            reqresQueueSize += loggable.dumpSize;
-        }
-    });
-    wantBroadcastSaved = true;
-    scheduleEndgame(null);
-}
-
-function deleteSaved() {
-    runSynchronously("deleteSaved", async () => {
-        broadcastToSaved("resetSaved", [null]); // invalidate UI
-
-        let log = await loadSaved(savedFilters);
-        for (let loggable of log) {
-            let archivable = [loggable, null];
-
-            try {
-                await syncWithStorage(archivable, 0, false);
-            } catch(err) {
-                logError(err);
-                continue;
-            }
-        }
-    });
-    wantBroadcastSaved = true;
-    scheduleEndgame(null);
-}
-
 async function processArchiving(updatedTabId) {
     while (config.archive && reqresQueue.length > 0) {
         let archivable = reqresQueue.shift();
@@ -950,7 +902,7 @@ async function processArchiving(updatedTabId) {
                 // try stashing it without recording failures
                 await syncWithStorage(archivable, 1, true).catch(logError);
             else if (config.archiveSaveLS) {
-                let res = await saveOne(archivable);
+                let res = await saveOne(archivable, true);
                 if (res !== false)
                     // Prevent future calls to `retryAllUnstashed` from un-saving this
                     // archivable, which can happen with, e.g., the following sequence of
@@ -983,4 +935,147 @@ async function processArchiving(updatedTabId) {
     broadcastToState(null, "resetUnarchived", getUnarchivedLog);
 
     return updatedTabId;
+}
+
+// the number of times `processRearchiving` was run
+let rearchiveNum = 0;
+
+async function processRearchiving(rrfilter, reset, andDelete, andRewrite) {
+    rearchiveNum +=1;
+    await browser.notifications.create(`running-rearchive-${rearchiveNum}`, {
+        title: "Hoardy-Web: RUNNING",
+        message: escapeNotification(config, "Re-archival is now running. The main thread of `Hoardy-Web` will be blocked until completion. This might take awhile."),
+        iconUrl: iconURL("archiving", 128),
+        type: "basic",
+    }).catch(logError);
+
+    broadcastToSaved("resetSaved", [null]); // invalidate UI
+    wantBroadcastSaved = true;
+
+    let unrearchivedAccumulator = newIssueAcc();
+    let bundleBuckets = new Map();
+
+    let wantFlags = 0;
+    if (config.rearchiveExportAs)
+        wantFlags = archivedViaExportAs;
+    if (config.rearchiveSubmitHTTP)
+        wantFlags = wantFlags | archivedViaSubmitHTTP;
+
+    let unsetFlags = ~wantFlags;
+
+    let modNumber = 0;
+    let actNumber = 0;
+    let log = await loadSaved(rrfilter);
+    let totalNumber = log.length;
+    let partialNumber = 0;
+    for (let loggable of log) {
+        let archivable = [loggable, null];
+
+        try {
+            let oldFlags = loggable.archived;
+            if (reset)
+                loggable.archived &= unsetFlags;
+
+            let allOK = true;
+            let acted = false;
+
+            if (config.rearchiveExportAs) {
+                let res = await exportAsOne(archivable, bundleBuckets, unrearchivedAccumulator);
+                allOK &&= res !== false;
+                if (res === true) {
+                    acted = true;
+                    actNumber += 1;
+                }
+            }
+
+            if (config.rearchiveSubmitHTTP) {
+                let res = await submitHTTPOne(archivable, unrearchivedAccumulator);
+                allOK &&= res !== false;
+                if (res === true) {
+                    acted = true;
+                    actNumber += 1;
+                }
+            }
+
+            if (andRewrite)
+                // force a re-write
+                loggable.dirty = true;
+            else if (loggable.archived === oldFlags)
+                // optimize a bit, elide away noops
+                loggable.dirty = false;
+
+            if (allOK && andDelete) {
+                let res = await syncWithStorage(archivable, 0, false);
+                allOK &&= res !== false;
+                if (res === true) {
+                    acted = true;
+                    modNumber += 1;
+                }
+            } else {
+                let res = await saveOne(archivable, false, unrearchivedAccumulator);
+                allOK &&= res !== false;
+                if (res === true) {
+                    acted = true;
+                    modNumber += 1;
+                }
+            }
+
+            if (acted)
+                // at least one action was taken
+                partialNumber += 1;
+        } catch(err) {
+            logError(err);
+            markAsErrored(err, archivable);
+        }
+    }
+
+    for (let bucket of Array.from(bundleBuckets.keys()))
+        bucketSaveAs(bucket, 0, bundleBuckets, unrearchivedAccumulator);
+
+    // allow to GC immediately
+    log = undefined;
+
+    // re-load everything again to update `globals`
+    if (modNumber > 0 && andDelete)
+        await loadSaved();
+
+    await browser.notifications.clear(`running-rearchive-${rearchiveNum}`).catch(logError);
+
+    let unarchivedNumber = unrearchivedAccumulator[0].size;
+    let allOK = unarchivedNumber === 0;
+
+    if (!allOK)
+        await notifyAboutUnarchived("unrearchived", "Failed to re-archive", unrearchivedAccumulator[1].entries()).catch(logError);
+
+    await browser.notifications.create(`ok-rearchived-${rearchiveNum}`, {
+        title: `Hoardy-Web: ${allOK ? "OK" : (partialNumber > 0 ? "Some OK" : "NOOP")}`,
+        message: escapeNotification(config, `${allOK ? "Re-archived" + (andDelete ? " and deleted" : ""): "Partially re-archived"} ${partialNumber} reqres invoking ${actNumber} archiving actions and ${modNumber} local storage modifications.`),
+        iconUrl: iconURL(allOK ? "idle" : "archiving", 128),
+        type: "basic",
+    }).catch(logError);
+}
+
+function syncRearchiveSaved(rrfilter, reset, andDelete, andRewrite) {
+    runSynchronouslyWhen(config.rearchiveExportAs || config.rearchiveSubmitHTTP || andRewrite, "rearchiveSaved",
+                         () => processRearchiving(rrfilter, reset, andDelete, andRewrite));
+}
+
+function syncDeleteSaved(rrfilter) {
+    runSynchronously("deleteSaved", async () => {
+        broadcastToSaved("resetSaved", [null]); // invalidate UI
+        wantBroadcastSaved = true;
+
+        let log = await loadSaved(rrfilter);
+        for (let loggable of log) {
+            let archivable = [loggable, null];
+
+            try {
+                await syncWithStorage(archivable, 0, false);
+            } catch(err) {
+                logError(err);
+                markAsErrored(err, archivable);
+                continue;
+            }
+        }
+    });
 }

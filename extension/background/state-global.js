@@ -79,6 +79,7 @@ let configDefaults = {
 
     // export via exportAs
     archiveExportAs: false,
+    rearchiveExportAs: !isMobile,
     exportAsHumanReadable: true,
     exportAsBundle: true,
     exportAsMaxSize: 32,
@@ -88,6 +89,7 @@ let configDefaults = {
 
     // submission and replay via HTTP
     archiveSubmitHTTP: false,
+    rearchiveSubmitHTTP: false,
     replaySubmitHTTP: null,
     submitHTTPURLBase: "http://127.0.0.1:3210/",
 
@@ -358,9 +360,10 @@ function fixConfig(config, oldConfig, serverConfig) {
     }
 
     let noArchiveExportAs = isMobile && isFirefox;
-    if (!config.debugRuntime && noArchiveExportAs && config.archiveExportAs) {
+    if (!config.debugRuntime && noArchiveExportAs && (config.archiveExportAs || config.rearchiveExportAs)) {
         // Firefox on Android crashes with this set see "Quirks and Bugs" in ../page/help.org
         config.archiveExportAs = false;
+        config.rearchiveExportAs = false;
 
         if (config.hintNotify)
             browser.notifications.create("hint-configNotSupported-archiveExportAs", {

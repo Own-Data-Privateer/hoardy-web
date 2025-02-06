@@ -289,6 +289,24 @@ function isArchivedVia(loggable, flag) {
     return (loggable.archived & flag) !== 0;
 }
 
+function newRearchiveVars() {
+    return {
+        andDelete: false,
+        andRewrite: false,
+    };
+}
+
+function updateRearchiveVars(rearchive, path) {
+    switch (path) {
+    case "rearchive.andDelete":
+        rearchive.andRewrite = rearchive.andRewrite && !rearchive.andDelete;
+        break;
+    case "rearchive.andRewrite":
+        rearchive.andDelete = rearchive.andDelete && !rearchive.andRewrite;
+        break;
+    }
+}
+
 // filter expression
 let rrfilterDefaults = {
     limit: null,

@@ -160,9 +160,14 @@ async function popupMain() {
         emojiButtonsOriginals[k] = node.value;
     }
 
+    // Config-dependent UI
+
+    let config;
+    let rearchive = newRearchiveVars();
+
     // sync config state and UI state
     let pureTextState = true;
-    function resetPureText(config) {
+    function resetPureText() {
         if (pureTextState == config.pureText)
             return;
 
@@ -176,7 +181,6 @@ async function popupMain() {
 
     async function replaceWith(isHelp, open, ...args) {
         if (isMobile) {
-            let config = await browser.runtime.sendMessage(["getConfig"]);
             let spawn = config.spawnNewTabs;
             await open(...args, tabId, spawn);
             if (spawn && config.invisibleUINotify)
@@ -243,6 +247,9 @@ async function popupMain() {
         browser.runtime.sendMessage(["resetConfig"]).catch(logError);
     }));
 
+    buttonToMessage("rearchiveAllSaved", () => ["rearchiveSaved", null, true, rearchive.andDelete, rearchive.andRewrite]);
+    buttonToMessage("rearchiveAdjunctSaved", () => ["rearchiveSaved", null, false, rearchive.andDelete, rearchive.andRewrite]);
+
     let shortcutButtons = [
         "reloadSelf", "cancelReloadSelf",
         "runActions", "cancelActions",
@@ -261,9 +268,36 @@ async function popupMain() {
         buttonToMessage(id, () => [id, tabId]);
     }
 
-    // Track updates.
+    function updateUI() {
+        setRootClasses(config);
+        resetPureText();
+        setConditionalClass(versionButton, "attention", !config.seenChangelog);
+        setConditionalClass(helpButton, "attention", !config.seenHelp);
 
-    let config;
+        implySetConditionalOff(dbody, "on-seasonal", !config.seasonal);
+        implySetConditionalOff(dbody, "on-collecting", !config.collecting);
+        implySetConditionalOff(dbody, "on-stash", !config.stash);
+        implySetConditionalOff(dbody, "on-archive", !config.archive);
+        implySetConditionalClass(dbody, "on-unsafe-archive", "hidden", !(config.archive && config.archiveExportAs && !config.archiveSubmitHTTP && !config.archiveSaveLS));
+        implySetConditionalOff(dbody, "on-rearchive", !(config.rearchiveExportAs || config.rearchiveSubmitHTTP || rearchive.andRewrite));
+        implySetConditionalClass(dbody, "on-carefully", "hidden", !((config.rearchiveExportAs || config.rearchiveSubmitHTTP) && rearchive.andDelete));
+        implySetConditionalClass(dbody, "on-unsafe-rearchive", "hidden", !(config.rearchiveExportAs && !config.rearchiveSubmitHTTP && rearchive.andDelete));
+        implySetConditionalOff(dbody, "on-exportAs", !(config.archive && config.archiveExportAs
+                                                      || config.rearchiveExportAs));
+        implySetConditionalOff(dbody, "on-exportAsBundle", !config.exportAsBundle);
+        implySetConditionalOff(dbody, "on-useHTTP", !(config.archive && config.archiveSubmitHTTP
+                                                      || config.rearchiveSubmitHTTP
+                                                      || config.replaySubmitHTTP));
+        implySetConditionalOff(dbody, "on-LS", !(config.stash || config.archive && config.archiveSaveLS));
+        implySetConditionalOff(dbody, "on-auto", !config.autoUnmarkProblematic && !config.autoPopInLimboCollect && !config.autoPopInLimboDiscard);
+        implySetConditionalOff(dbody, "on-problematicNotify", !config.problematicNotify);
+        implySetConditionalOff(dbody, "on-limboNotify", !config.limboNotify);
+    }
+
+    setUIRec(document, "rearchive", rearchive, (newrearchive, path) => {
+        updateRearchiveVars(newrearchive, path);
+        updateUI();
+    });
 
     async function updateConfig(nconfig) {
         if (nconfig === undefined)
@@ -289,23 +323,7 @@ async function popupMain() {
             browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
         });
 
-        setRootClasses(config);
-        resetPureText(config);
-        setConditionalClass(versionButton, "attention", !config.seenChangelog);
-        setConditionalClass(helpButton, "attention", !config.seenHelp);
-
-        implySetConditionalOff(dbody, "on-seasonal", !config.seasonal);
-        implySetConditionalOff(dbody, "on-collecting", !config.collecting);
-        implySetConditionalOff(dbody, "on-stash", !config.stash);
-        implySetConditionalOff(dbody, "on-archive", !config.archive);
-        implySetConditionalOff(dbody, "on-exportAs", !(config.archive && config.archiveExportAs));
-        implySetConditionalOff(dbody, "on-exportAsBundle", !config.exportAsBundle);
-        implySetConditionalOff(dbody, "on-useHTTP", !(config.archive && config.archiveSubmitHTTP
-                                                      || config.replaySubmitHTTP));
-        implySetConditionalOff(dbody, "on-LS", !config.stash && !(config.archive && config.archiveSaveLS));
-        implySetConditionalOff(dbody, "on-auto", !config.autoUnmarkProblematic && !config.autoPopInLimboCollect && !config.autoPopInLimboDiscard);
-        implySetConditionalOff(dbody, "on-problematicNotify", !config.problematicNotify);
-        implySetConditionalOff(dbody, "on-limboNotify", !config.limboNotify);
+        updateUI();
     }
 
     async function updateStats(stats) {
@@ -322,6 +340,7 @@ async function popupMain() {
     async function updateTabConfig(tabconfig) {
         if (tabconfig === undefined)
             tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
+
         setUI(document, "tabconfig", tabconfig, (newtabconfig, path) => {
             switch (path) {
             case "tabconfig.workOffline":

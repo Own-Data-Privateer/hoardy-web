@@ -116,10 +116,6 @@ h4 input[type="button"] {
     margin: 5px 0 7px 5px;
 }
 
-.ui input[type="button"], .help-btn {
-    vertical-align: top;
-}
-
 .indent, .idots, .isubdots, .ishiftdots {
     padding-left: 10px;
 }
@@ -774,9 +770,15 @@ section {
     <ui id="config.stash" type="boolean" class="prefer-on" data-help="Automatically backup stuck `queued` and `unarchived` reqres into browser&#039;s local storage. With this option enabled `Hoardy-Web` will keep `collected` but not yet archived reqres across browser restarts and extension reloads. See also `Stash 'in_limbo' reqres` options below. See the `Help` page for more info.">Stash <code>collected</code> reqres into local storage</ui>
 
     <ui id="config.archive" type="boolean" class="prefer-on" data-help="Automatically archive `queued` reqres into persistent storage using one or more of the following methods. Enabling more than one of the sub-options will archive the same reqres using all of the enabled methods. (If two identical copies of the same reqres ever reach `hoardy-web organize`, it will deduplicate them.) Disabling this option will keep `queued` reqres stuck in the archiving queue indefinitely. If `Stash 'collected' reqres into local storage` option above is enabled, restarting the browser or reloading the extension will not loose them, but they will still be taking up your browser&#039;s memory. Which is why you probably shouldn&#039;t disable this option, unless you want to disable this, atomically change some of the following sub-options or the `Bucket` settings below, and then enable this again.">Archive <code>collected</code> reqres</ui>
-    <section id="on-archive" class="on-archive">
+    <section id="archive-method" class="on-archive">
     <div class="isubdots">
     <!-- archiveOptions -->
+
+    <div class="flex on-unsafe-archive attention">
+    <p class="center">
+      <span data-help="This combination of options is unsafe! Export via `saveAs` is unable to report most errors. Thus, for instance, if the generated dump file fails to be written to disk because the file system is out of space, that data will be lost. See the `Help` page for more info.">THIS IS UNSAFE!</span>
+    </p>
+    </div>
 
     <ui id="config.archiveExportAs" type="boolean" data-help="Archive `collected` reqres by generating in-browser fake-Downloads with their dumps. If the value of the `Bundle up to MiB` option below is larger than zero, `Hoardy-Web` will export dumps in per-`bucket` bundles. I.e., while processing the archiving queue, it will continue to concatenate dumps belonging to the same `bucket` while the sum of their sizes is smaller than the value of that option and only then export the result. The values of `bucket` can be controlled by the `Bucket` settings below. See the `Help` page for more info.">Export dumps via <code>saveAs</code></ui>
     <ui id="config.archiveSubmitHTTP" type="boolean" data-help="Archive `collected` reqres by submitting their dumps via `HTTP` by `POST`ing them to the archiving server at the URL set in the `Server URL` option. See the `Help` page for more info.">Submit dumps via <code>HTTP</code></ui>
@@ -786,6 +788,47 @@ section {
     </div>
     </section>
 
+    <h3>Re-archival from local storage</h3>
+    <section>
+    <div class="isubdots">
+    <!-- rearchiveOptions -->
+
+    <div id="rearchive-methods">
+    <ui id="config.rearchiveExportAs" type="boolean" data-help="Re-archive reqres saved in browser&#039;s local storage by generating in-browser fake-Downloads with their dumps. See the similar option above for more info.">Export dumps via <code>saveAs</code></ui>
+    <ui id="config.rearchiveSubmitHTTP" type="boolean" data-help="Re-archive reqres saved in browser&#039;s local storage by submitting their dumps via `HTTP` by `POST`ing them to the archiving server at the URL set in the `Server URL` option. See the similar option above for more info.">Submit dumps via <code>HTTP</code></ui>
+    </div>
+
+    <h3>Quick re-archival</h3>
+    <section>
+    <!-- rearchiveActions -->
+    <div class="on-rearchive">
+
+    <div class="flex on-unsafe-rearchive attention">
+    <p class="center">
+      <span data-help="This combination of options can be used safely, but the way to do it is not obvious. See the `Help` page for more info.">This might be UNSAFE!</span>
+    </p>
+    </div>
+
+    <center id="rearchive-actions" class="ui">
+      <input type="button" id="rearchiveAllSaved" data-help="Re-archive all reqres saved in browser&#039;s local storage using all of the enabled re-archival methods. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive all" />
+      <div class="on-carefully attention">
+        <p><span data-help="With current settings, pressing the following button will skip re-archival of reqres that were previously ARCHIVED OR RE-ARCHIVED using all of the enabled re-archival methods, pretend that it re-archived them again, and then DELETE ALL AND EVERY REQRES SAVED INTO BROWSER&#039;S LOCAL STORAGE. This might be exactly what you want to happen, but it might not. Use this feature wisely.">Use the following button with CAUTION!</span></p>
+      </div>
+      <input type="button" id="rearchiveAdjunctSaved" data-shortcut="rearchiveAdjunctSaved" data-help="Re-archive a new batch of reqres using the configured re-archival methods. That is, re-archive all reqres saved in browser&#039;s local storage, but for each enabled re-archival method, skip actual (re-)archival action for those reqres that were previously (re-)archived using the same method. (In other words, for all of the enabled re-archival methods and all saved reqres, only actually run (re-)archival actions on reqres they were not yet run on. Or, in set-theoretic terms, only run on the set that completes the set of &lt;method, reqres&gt; tuples for all enabled re-archival methods and all reqres saved in browser&#039;s local storage. I.e. process the adjunct set.) Then, if deletion is enabled, proceed like the previous button does." value="Re-archive adjunct" />
+    </center>
+
+    <ui id="rearchive.andDelete" type="boolean" data-help="After re-archival of a reqres with all of the above methods succeeds, delete it from browser&#039;s local storage.">... and delete everything afterwards</ui>
+
+    <!-- rearchiveActions -->
+    </div>
+
+    <ui id="rearchive.andRewrite" type="boolean" data-help="After re-archival of a reqres with all of the above methods, forcefully re-write them from/to browser&#039;s local storage. This is only useful for debugging and migration between local storage backends.">... and force a re-write</ui>
+
+    </section>
+
+    <!-- rearchiveOptions -->
+    </div>
+    </section>
 
     <!-- persistenceOptions -->
     </div>

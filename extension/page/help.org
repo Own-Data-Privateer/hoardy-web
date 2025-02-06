@@ -397,12 +397,12 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres= toggle]] is
 
 - finally, if [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is disabled or if saving to local storage succeeds, =Hoardy-Web= will discard the reqres from memory.
 
-You can enable more than one [[./popup.html#on-archive][archival method]] at the same time.
+You can enable more than one [[./popup.html#archive-methods][archival method]] at the same time.
 For a given =loggable=, =Hoardy-Web= will remember and skip previously successful archival methods if the =loggable= ever returns to the archival queue again (e.g., when one of the archival methods fails and you later ask =Hoardy-Web= to retry the archival, or when you re-queue a reqres from local storage from the [[./popup.html#showSaved][=Saved in Local Storage= page]]).
 
 Note the difference between /stashed/ and /saved/ reqres:
 
-- /stashed/ reqres are kept in memory until they get successfully archived by all configured [[./popup.html#on-archive][archival methods]] (or until you manually discard them, in case they were stashed =in_limbo=);
+- /stashed/ reqres are kept in memory until they get successfully archived by all configured [[./popup.html#archive-methods][archival methods]] (or until you manually discard them, in case they were stashed =in_limbo=);
 - /saved/ reqres get dumped into browser's local storage and, if that succeeds, discarded from memory (until you manually load them back from [[./popup.html#showSaved][there]]).
 *** Buckets (aka collections)
 :PROPERTIES:
@@ -436,9 +436,9 @@ So, for example, if you want to share a subset of your captures, you can
 - set [[./popup.html#div-tabconfig.bucket][this option]] in a tab to, say, "share",
 - clear your browser's cache,
 - then and only then navigate to a web page archives of which you plan to share,
-- thus separating out those reqres into separate =saveAs= =bundle='s with "share" in their name and/or putting them into a separate archiving server directory named "share", depending on [[./popup.html#on-archive][archival methods]].
+- thus separating out those reqres into separate =saveAs= =bundle='s with "share" in their name and/or putting them into a separate archiving server directory named "share", depending on [[./popup.html#archive-methods][archival methods]].
 *** Handling of failures
-As noted above, if any of the [[./popup.html#on-archive][archival methods]] fail, the reqres in question will be moved into the =unarchived= state.
+As noted above, if any of the [[./popup.html#archive-methods][archival methods]] fail, the reqres in question will be moved into the =unarchived= state.
 
 Submissions of reqres that =unarchived= because of networking issues will be retried automatically every 60 seconds.
 Archivals of reqres rejected by the archiving server or those that failed to be saved to browser's local storage will not be retried automatically as those usually happen when there is no space left on the device you are archiving to.
@@ -450,7 +450,7 @@ E.g., after the extension got reloaded with a non-empty queue, or if you previou
 If [[./popup.html#div-config.archiveFailedNotify][this option]] is enabled and a new reqres recently moved to the =unarchived= state, a new notification will be generated.
 If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
-- A [[./popup.html#div-stats.unarchived][/failed to archive reqres/]] is a reqres that is currently =unarchived=, i.e. a reqres that failed to be archived by one of the enabled [[./popup.html#on-archive][archival methods]].
+- A [[./popup.html#div-stats.unarchived][/failed to archive reqres/]] is a reqres that is currently =unarchived=, i.e. a reqres that failed to be archived by one of the enabled [[./popup.html#archive-methods][archival methods]].
   It is also a part of the sum of the "Failed" part of the [[./popup.html#div-stats.queued_failed][Queued/Failed]] line.
 
   You can retry archiving these by pressing [[./popup.html#retryAllUnarchived][this button]].

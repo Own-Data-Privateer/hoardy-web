@@ -26,28 +26,44 @@
 // TODO: remove this
 let tabId = null;
 
+let dbody = document.body;
+
 async function stateMain() {
     await commonMain();
 
-    buttonToMessage("requeueSaved",   () => ["requeueSaved", false]);
-    buttonToMessage("rearchiveSaved", () => ["requeueSaved", true]);
-    buttonToAction("deleteSaved", catchAll(() => {
-        if (!window.confirm("Really?"))
-            return;
+    let config;
+    let rearchive = newRearchiveVars();
 
-        browser.runtime.sendMessage(["deleteSaved"]).catch(logError);
-    }));
-
-    async function setupUI(rrfilters) {
-        setUI(document, "rrfilters", rrfilters, (value, path) => {
-            browser.runtime.sendMessage(["setSavedFilters", value]).catch(logError);
-        });
+    function updateUI() {
+        setRootClasses(config);
+        implySetConditionalOff(dbody, "on-rearchive", !(config.rearchiveExportAs || config.rearchiveSubmitHTTP || rearchive.andRewrite));
     }
 
-    async function updateConfig(config) {
-        if (config === undefined)
+    setUIRec(document, "rearchive", rearchive, (newrearchive, path) => {
+        updateRearchiveVars(newrearchive, path);
+        updateUI();
+    });
+
+    async function updateConfig(nconfig) {
+        if (nconfig === undefined)
             config = await browser.runtime.sendMessage(["getConfig"]);
-        setRootClasses(config);
+        else
+            config = nconfig;
+
+        updateUI();
+    }
+
+    let savedFilters;
+
+    async function updateSavedFilters(nsavedFilters) {
+        if (nsavedFilters === undefined)
+            savedFilters = await browser.runtime.sendMessage(["getSavedFilters"]);
+        else
+            savedFilters = nsavedFilters;
+
+        setUI(document, "rrfilters", savedFilters, (value, path) => {
+            browser.runtime.sendMessage(["setSavedFilters", value]).catch(logError);
+        });
     }
 
     async function processUpdate(update) {
@@ -57,7 +73,7 @@ async function stateMain() {
             await updateConfig(data);
             break;
         case "setSavedFilters":
-            setupUI(data);
+            await updateSavedFilters(data);
             break;
         case "resetSaved":
             resetDataNode("data", data);
@@ -67,12 +83,20 @@ async function stateMain() {
         }
     }
 
+    buttonToMessage("rearchiveSaved", () => ["rearchiveSaved", savedFilters, true, rearchive.andDelete, rearchive.andRewrite]);
+    buttonToAction("deleteSaved", catchAll(() => {
+        if (!window.confirm("Really?"))
+            return;
+
+        browser.runtime.sendMessage(["deleteSaved", savedFilters]).catch(logError);
+    }));
+
     await subscribeToExtension("saved", catchAll(processUpdate), catchAll(async (willReset) => {
         await updateConfig();
+        await updateSavedFilters();
     }), () => false, setPageLoading, setPageSettling);
 
-    let rrfilters = await browser.runtime.sendMessage(["getSavedFilters"]);
-    await browser.runtime.sendMessage(["setSavedFilters", rrfilters]);
+    await browser.runtime.sendMessage(["setSavedFilters", savedFilters]);
 
     // show UI
     setPageLoaded();
