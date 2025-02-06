@@ -246,6 +246,19 @@ function setUI(node, prefix, value, update) {
         el.innerText = value;
 }
 
+// setUI, but with recursive updates
+function setUIRec(node, prefix, value, update) {
+    if (update === undefined)
+        return setUI(node, prefix, value);
+
+    function recUpdate(nvalue, path) {
+        update(nvalue, path);
+        setUI(node, prefix, nvalue, recUpdate);
+    }
+
+    return setUI(node, prefix, value, recUpdate);
+}
+
 // given a DOM node, replace <ui> nodes with corresponding UI elements
 function makeUI(node) {
     for (let child of node.childNodes) {
