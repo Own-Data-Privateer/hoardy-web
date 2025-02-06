@@ -591,3 +591,39 @@ input.attention {
     transform: translate(19px, calc(50% - 15px));
 }
 }
+
+@layer overrides {
+.hidden {
+    display: none;
+}
+
+.off, .off * {
+    --box-shadow-color: var(--text-inactive-background);
+    --button-background: var(--text-inactive-background);
+    --button-color: var(--text-inactive-color);
+    --code-background: var(--text-inactive-background);
+    --hover-background: var(--text-inactive-color);
+    --hover-color: var(--text-inactive-background);
+    --input-border-color: var(--text-inactive-color);
+    --input-color: var(--text-inactive-color);
+    --separator-color: var(--text-inactive-color);
+    --text-background: var(--text-inactive-background);
+    --text-color: var(--text-inactive-color);
+    --text-shadow-color: var(--text-inactive-background);
+    --toggle-background-bad: var(--text-inactive-background);
+    --toggle-background-good: var(--text-inactive-background);
+    --toggle-background: var(--text-inactive-background);
+    --toggle-border-color-bad: var(--text-inactive-color);
+    --toggle-border-color-good: var(--text-inactive-color);
+    --toggle-border-color: var(--text-inactive-color);
+    --toggle-border-color: var(--text-inactive-color);
+    --toggle-dot-background: var(--text-inactive-background);
+    --untoggle-background-bad: var(--text-inactive-background);
+    --untoggle-background-good: var(--text-inactive-background);
+    --untoggle-background: var(--text-inactive-background);
+    --untoggle-border-color-bad: var(--text-inactive-color);
+    --untoggle-border-color-good: var(--text-inactive-color);
+    --untoggle-border-color: var(--text-inactive-color);
+    --untoggle-dot-background: var(--text-inactive-background);
+}
+}
