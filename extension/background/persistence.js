@@ -536,7 +536,7 @@ async function syncWithStorage(archivable, state, elide) {
     let saveId = loggable.saveId;
 
     // Do we want it to be stored in `storage.local`?
-    let wantInLS = inLS === true || !config.preferIndexedDB || reqresIDB === undefined;
+    let wantInLS = !config.preferIndexedDB || reqresIDB === undefined;
 
     // Do we even have anything to do?
     if (state === 0 && dumpId === undefined && stashId === undefined && saveId === undefined)
