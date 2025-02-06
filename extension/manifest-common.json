@@ -100,6 +100,12 @@
         "snapshotTab": {
             "description": "Snapshot Tab's: Take DOM snapshots of all frames of the currently active tab"
         },
+        "toggleTabConfigReplayable": {
+            "description": "Toggle Tab's Replayable: For the currently active tab, toggle `Include in global replays` setting and reset the related option for the tab's new children"
+        },
+        "toggleTabConfigChildrenReplayable": {
+            "description": "Toggle Children's Replayable: For currently active tab's new children, toggle `Set 'Include in global replays'` setting"
+        },
         "replayAll": {
             "description": "Replay All: If the archiving server supports replay, re-navigate all tabs that finished loading to their replayed versions"
         },

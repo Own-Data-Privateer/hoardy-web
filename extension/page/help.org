@@ -628,6 +628,8 @@ Then, you can improve on this setup even more by running both the Tor Browser an
 - toggle [[./popup.html#div-tabconfig.children.snapshottable][inclusion of the currently active tab's children in global snapshots]], {{{shortcut(toggleTabConfigChildrenSnapshottable)}}};
 - [[./popup.html#snapshotAll][take =DOM= snapshot of all tabs]] for which [[./popup.html#div-tabconfig.snapshottable][=Include in global snapshots= setting]] is enabled, {{{shortcut(snapshotAll)}}};
 - [[./popup.html#snapshotTab][take =DOM= snapshot of the currently active tab]], {{{shortcut(snapshotTab)}}}.
+- toggle [[./popup.html#div-tabconfig.replayable][inclusion of the currently active tab in global replays]] {{{shortcut(toggleTabConfigReplayable)}}};
+- toggle [[./popup.html#div-tabconfig.children.replayable][inclusion of the currently active tab's children in global replays]], {{{shortcut(toggleTabConfigChildrenReplayable)}}};
 - [[./popup.html#replayAll][replay all tabs]] for which [[./popup.html#div-tabconfig.replayable][=Include in global replays= setting]] is enabled, {{{shortcut(replayAll)}}};
 - [[./popup.html#replayTabBack][replay the currently active tab]], {{{shortcut(replayTabBack)}}}.
 ** Context menu actions
