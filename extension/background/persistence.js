@@ -158,13 +158,14 @@ let exportAsLastEpoch;
 let exportAsLastNum = 0;
 
 // export all reqresBundledAs as fake-"Download" with a WRR-bundle of their dumps
-function bucketSaveAs(bucket, ifGEQ, unarchivedAccumulator) {
+function bucketSaveAs(bucket, ifGEQ, bundleBuckets, unarchivedAccumulator) {
+    if (bundleBuckets === undefined)
+        bundleBuckets = reqresBundledAs;
     if (unarchivedAccumulator === undefined)
         unarchivedAccumulator = reqresUnarchivedIssueAcc;
 
-    let res = reqresBundledAs.get(bucket);
-    if (res === undefined
-        || ifGEQ !== undefined && res.size < ifGEQ)
+    let res = bundleBuckets.get(bucket);
+    if (res === undefined || res.size < ifGEQ)
         return;
 
     try {
@@ -236,11 +237,14 @@ function bucketSaveAs(bucket, ifGEQ, unarchivedAccumulator) {
         // Which will only work if that `syncWithStorage` does not elide the
         // dump from memory, which it does not, see (notEliding).
     } finally {
-        reqresBundledAs.delete(bucket);
+        bundleBuckets.delete(bucket);
     }
 }
 
-async function exportAsOne(archivable, unarchivedAccumulator) {
+async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
+    if (bundleBuckets === undefined)
+        bundleBuckets = reqresBundledAs;
+
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
@@ -254,10 +258,10 @@ async function exportAsOne(archivable, unarchivedAccumulator) {
     let maxSize = config.exportAsBundle ? config.exportAsMaxSize * MEGABYTE : 0;
 
     // export if this dump will not fit
-    bucketSaveAs(bucket, maxSize - dumpSize, unarchivedAccumulator);
+    bucketSaveAs(bucket, maxSize - dumpSize, bundleBuckets, unarchivedAccumulator);
 
     // record it in the bundle
-    let u = cacheSingleton(reqresBundledAs, bucket, () => { return {
+    let u = cacheSingleton(bundleBuckets, bucket, () => { return {
         queue: [],
         dumps: [],
         size: 0,
@@ -271,9 +275,7 @@ async function exportAsOne(archivable, unarchivedAccumulator) {
     loggable.dirty = true;
 
     // try exporting again
-    bucketSaveAs(bucket, maxSize, unarchivedAccumulator);
-
-    wantBucketSaveAs = true;
+    bucketSaveAs(bucket, maxSize, bundleBuckets, unarchivedAccumulator);
 
     return true;
 }

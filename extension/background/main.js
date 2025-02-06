@@ -100,7 +100,7 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
 
     for (let bucket of buckets)
         scheduleAction(scheduledDelayed, `exportAs-${bucket}`, timeout, () => {
-            bucketSaveAs(bucket);
+            bucketSaveAs(bucket, 0);
         });
 
     // NB: needs scheduleUpdateDisplay after
