@@ -32,40 +32,40 @@
             "description": "Show Log: Open the log of recently collected and discarded reqres"
         },
         "showTabState": {
-            "description": "Show Tab State: For the currently active tab, open the internal state page"
+            "description": "Show Tab's State: For the currently active tab, open the internal state page"
         },
         "showTabLog": {
-            "description": "Show Tab Log: For the currently active tab, open the log of recently collected and discarded reqres"
+            "description": "Show Tab's Log: For the currently active tab, open the log of recently collected and discarded reqres"
         },
         "toggleTabConfigWorkOffline": {
-            "description": "Toggle Tab Work Offline: For the currently active tab, toggle `Work Offline` setting (then, if impure, set `Track new requests` setting to the opposite value) and reset the related option for the tab's new children"
+            "description": "Toggle Tab's Work Offline: For the currently active tab, toggle `Work Offline` setting (then, if impure, set `Track new requests` setting to the opposite value) and reset the related option for the tab's new children"
         },
         "toggleTabConfigChildrenWorkOffline": {
-            "description": "Toggle Children Work Offline: For currently active tab's new children, toggle `Set 'Work Offline'` setting (then, if impure, set `Set 'Track new requests'` setting to the opposite value)"
+            "description": "Toggle Children's Work Offline: For currently active tab's new children, toggle `Set 'Work Offline'` setting (then, if impure, set `Set 'Track new requests'` setting to the opposite value)"
         },
         "toggleTabConfigTracking": {
             "suggested_key": {
                 "default": "Alt+C"
             },
-            "description": "Toggle Tab Tracking: For the currently active tab, toggle `Track new requests` setting and reset the related option for the tab's new children"
+            "description": "Toggle Tab's Tracking: For the currently active tab, toggle `Track new requests` setting and reset the related option for the tab's new children"
         },
         "toggleTabConfigChildrenTracking": {
-            "description": "Toggle Children Tracking: For currently active tab's new children, toggle `Set 'Track new requests' setting`"
+            "description": "Toggle Children's Tracking: For currently active tab's new children, toggle `Set 'Track new requests' setting`"
         },
         "toggleTabConfigProblematicNotify": {
-            "description": "Toggle Tab Notify Problematic: For the currently active tab, toggle `Notify about 'problematic' reqres` setting and reset the related option  for the tab's new children"
+            "description": "Toggle Tab's Notify Problematic: For the currently active tab, toggle `Notify about 'problematic' reqres` setting and reset the related option  for the tab's new children"
         },
         "toggleTabConfigChildrenProblematicNotify": {
-            "description": "Toggle Children Notify Problematic: For currently active tab's new children, toggle `Set 'Notify about 'problematic' reqres'` setting"
+            "description": "Toggle Children's Notify Problematic: For currently active tab's new children, toggle `Set 'Notify about 'problematic' reqres'` setting"
         },
         "toggleTabConfigLimbo": {
             "suggested_key": {
                 "default": "Alt+L"
             },
-            "description": "Toggle Tab Limbo: For the currently active tab, toggle `Pick into limbo` setting and reset the related option for the tab's new children"
+            "description": "Toggle Tab's Limbo: For the currently active tab, toggle `Pick into limbo` setting and reset the related option for the tab's new children"
         },
         "toggleTabConfigChildrenLimbo": {
-            "description": "Toggle Children Limbo: For currently active tab's new children, toggle `Set 'Pick into limbo'` setting"
+            "description": "Toggle Children's Limbo: For currently active tab's new children, toggle `Set 'Pick into limbo'` setting"
         },
         "unmarkAllProblematic": {
             "description": "Unmark All Problematic: Unmark all problematic reqres"
@@ -74,37 +74,37 @@
             "suggested_key": {
                 "default": "Alt+U"
             },
-            "description": "Unmark Tab Problematic: For the currently active tab, unmark all problematic reqres"
+            "description": "Unmark Tab's Problematic: For the currently active tab, unmark all problematic reqres"
         },
         "collectAllInLimbo": {
             "description": "Collect All Limbo: Collect all reqres in limbo"
         },
         "collectAllTabInLimbo": {
-            "description": "Collect Tab Limbo: For the currently active tab, collect all reqres in limbo"
+            "description": "Collect Tab's Limbo: For the currently active tab, collect all reqres in limbo"
         },
         "discardAllInLimbo": {
             "description": "Discard All Limbo: Discard all reqres in limbo"
         },
         "discardAllTabInLimbo": {
-            "description": "Discard Tab Limbo: For the currently active tab, discard all reqres in limbo"
+            "description": "Discard Tab's Limbo: For the currently active tab, discard all reqres in limbo"
         },
         "toggleTabConfigSnapshottable": {
-            "description": "Toggle Tab Snapshottable: For the currently active tab, toggle `Include in global snapshots` setting and reset the related option for the tab's new children"
+            "description": "Toggle Tab's Snapshottable: For the currently active tab, toggle `Include in global snapshots` setting and reset the related option for the tab's new children"
         },
         "toggleTabConfigChildrenSnapshottable": {
-            "description": "Toggle Children Snapshottable: For currently active tab's new children, toggle `Set 'Include in global snapshots'` setting"
+            "description": "Toggle Children's Snapshottable: For currently active tab's new children, toggle `Set 'Include in global snapshots'` setting"
         },
         "snapshotAll": {
             "description": "Snapshot All: Take DOM snapshots of all frames of all open tabs for which `Include in global snapshots` option is set"
         },
         "snapshotTab": {
-            "description": "Snapshot Tab: Take DOM snapshots of all frames of the currently active tab"
+            "description": "Snapshot Tab's: Take DOM snapshots of all frames of the currently active tab"
         },
         "replayAll": {
             "description": "Replay All: If the archiving server supports replay, re-navigate all tabs that finished loading to their replayed versions"
         },
         "replayTabBack": {
-            "description": "Replay Tab: If the archiving server supports replay and the currently active tab has finished loading, re-navigate it to its replayed version"
+            "description": "Replay Tab Back: If the archiving server supports replay and the currently active tab has finished loading, re-navigate it to its replayed version"
         }
     }
 }
