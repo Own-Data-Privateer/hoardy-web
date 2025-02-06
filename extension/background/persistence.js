@@ -166,7 +166,7 @@ function bucketSaveAs(bucket, ifGEQ, bundleBuckets, unarchivedAccumulator) {
 
     let res = bundleBuckets.get(bucket);
     if (res === undefined || res.size < ifGEQ)
-        return;
+        return null;
 
     try {
         let mime;
@@ -206,39 +206,66 @@ function bucketSaveAs(bucket, ifGEQ, bundleBuckets, unarchivedAccumulator) {
 
         globals.exportedAsTotal += res.queue.length;
         globals.exportedAsSize += res.size;
+
+        return true;
     } catch (err) {
+        // Yes, it will first save it marked with `archivedViaExportAs`, in
+        // `processArchiving`, and then un-mark it here, and then stash it in
+        // `scheduleBucketSaveAs`. This is by design, since, ideally, this this
+        // `catch` would never be run.
         for (let loggable of res.queue) {
-            loggable.exportedAs = false;
+            loggable.archived &= ~archivedViaExportAs;
             loggable.dirty = true;
         }
         recordManyUnarchived(unarchivedAccumulator, "exportAs", errorMessageOf(err), false, res.queue);
-        runSynchronously("stash", stashMany, Array.from(res.queue));
-        // NB: This is slightly fragile, consider the following sequence of
-        // events for a given archivable:
-        //
-        //   exportAsOne -> submitHTTPOne -> saveOne
-        //   -> ... -> scheduledEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
-        //   -> recordManyUnarchived -> runSynchronously(stashMany, ...) -> scheduledEndgame
-        //
-        // It will first save the archivable, and then un-save and stash it
-        // instead. This is by design, since, ideally, this this `catch` would
-        // never be run.
-        //
-        // Also note that it will work properly only if the above
-        // `runSynchronously` is run after `processArchiving` for the same
-        // archivables. (The code is written to always make this true.)
-        //
-        // Now consider this:
-        //
-        //   exportAsOne -> submitHTTPOne -> (no saveOne) -> syncWithStorage(archivable, 0, ...)
-        //   -> ... -> scheduleEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
-        //   -> recordManyUnarchived -> runSynchronously(stashMany, ...) -> scheduledEndgame
-        //
-        // Which will only work if that `syncWithStorage` does not elide the
-        // dump from memory, which it does not, see (notEliding).
+
+        return false;
     } finally {
         bundleBuckets.delete(bucket);
     }
+}
+
+// Schedule bucketSaveAs for given buckets.
+function scheduleBucketSaveAs(timeout, bucketOrNull) {
+    if (reqresBundledAs.size === 0)
+        return;
+
+    let buckets;
+    if (bucketOrNull === null)
+        buckets = Array.from(reqresBundledAs.keys());
+    else
+        buckets = [ bucketOrNull ];
+
+    for (let bucket of buckets)
+        scheduleActionEndgame(scheduledDelayed, `exportAs-${bucket}`, timeout, () => {
+            let res = bucketSaveAs(bucket, 0);
+            if (res === false)
+                runSynchronously("stash", async () => {
+                    await stashMany(reqresUnarchivedIssueAcc[0]);
+                });
+        });
+    // NB: This is slightly fragile, consider the following sequence of
+    // events for a given archivable:
+    //
+    //   exportAsOne -> submitHTTPOne -> saveOne
+    //   -> ... -> scheduledEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
+    //   and does recordManyUnarchived -> evalSynchronousClosures -> stashMany
+    //
+    // Also note that it will work properly only if the above
+    // `runSynchronously` is run after `processArchiving` for the same
+    // archivables. (The code is written to always make this true.)
+    //
+    // Now consider this:
+    //
+    //   exportAsOne -> submitHTTPOne -> (no saveOne)
+    //   -> syncWithStorage(archivable, 0, ...)
+    //   -> ... -> scheduleEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
+    //   and does recordManyUnarchived -> evalSynchronousClosures -> stashMany
+    //
+    // Which will only work if that `syncWithStorage` does not elide the
+    // dump from memory, which it does not, see (notEliding).
+
+    // NB: needs scheduleUpdateDisplay after
 }
 
 async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
@@ -249,7 +276,7 @@ async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
     let dumpSize = loggable.dumpSize;
 
     if (isArchivedVia(loggable, archivedViaExportAs))
-        return true;
+        return null;
 
     // load the dump
     dump = await loadDumpFromStorage(archivable, true, false);
@@ -258,7 +285,9 @@ async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
     let maxSize = config.exportAsBundle ? config.exportAsMaxSize * MEGABYTE : 0;
 
     // export if this dump will not fit
-    bucketSaveAs(bucket, maxSize - dumpSize, bundleBuckets, unarchivedAccumulator);
+    let res1 = bucketSaveAs(bucket, maxSize - dumpSize, bundleBuckets, unarchivedAccumulator);
+    if (res1 === false)
+        return false;
 
     // record it in the bundle
     let u = cacheSingleton(bundleBuckets, bucket, () => { return {
@@ -275,7 +304,9 @@ async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
     loggable.dirty = true;
 
     // try exporting again
-    bucketSaveAs(bucket, maxSize, bundleBuckets, unarchivedAccumulator);
+    let res2 = bucketSaveAs(bucket, maxSize, bundleBuckets, unarchivedAccumulator);
+    if (res2 === false)
+        return false;
 
     return true;
 }
@@ -290,7 +321,7 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
     let dumpSize = loggable.dumpSize;
 
     if (isArchivedVia(loggable, archivedViaSubmitHTTP))
-        return true;
+        return null;
 
     function broken(storeID, reason, recoverable) {
         logHandledError(reason);
@@ -509,7 +540,7 @@ async function syncWithStorage(archivable, state, elide) {
 
     // Do we even have anything to do?
     if (state === 0 && dumpId === undefined && stashId === undefined && saveId === undefined)
-        return;
+        return null;
     else if ((dumpId !== undefined || dump === null)
              && (
               (state === 1 && stashId !== undefined && saveId === undefined)
@@ -517,7 +548,7 @@ async function syncWithStorage(archivable, state, elide) {
              )
              && inLS === wantInLS
              && !dirty)
-        return;
+        return null;
 
     function scrub(what) {
         delete what["dirty"];
@@ -568,6 +599,8 @@ async function syncWithStorage(archivable, state, elide) {
                      "elide", elide,
                      "ids", dumpId, stashId, saveId,
                      "loggable", loggable);
+
+    return true;
 }
 
 async function forEachInStorage(storeName, func, limit) {
@@ -701,11 +734,9 @@ async function unstashMany(archivables) {
 }
 
 
-async function saveOne(archivable, unarchivedAccumulator, unstashedAccumulator) {
+async function saveOne(archivable, unarchivedAccumulator) {
     if (unarchivedAccumulator === undefined)
         unarchivedAccumulator = reqresUnarchivedIssueAcc;
-    if (unstashedAccumulator === undefined)
-        unstashedAccumulator = reqresUnstashedIssueAcc;
 
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
@@ -713,24 +744,16 @@ async function saveOne(archivable, unarchivedAccumulator, unstashedAccumulator) 
     if (recordOneAssumedBroken(unarchivedAccumulator, "localStorage", "this archiving method appears to be defunct", archivable, dumpSize))
         return false;
 
-    // Prevent future calls to `retryAllUnstashed` from un-saving this
-    // archivable, which can happen with, e.g., the following sequence of
-    // events:
-    //   finished -> in_limbo -> stashMany -> out of disk space ->
-    //   the user fixes it -> popInLimbo ->
-    //   queued -> saveOne -> syncRetryAllUnstashed
-    unstashedAccumulator[0].delete(archivable);
-
+    let res;
     try {
-        await syncWithStorage(archivable, 2, true);
+        res = await syncWithStorage(archivable, 2, true);
     } catch (err) {
         logHandledError(err);
         recordOneUnarchived(unarchivedAccumulator, "localStorage", errorMessageOf(err), false, archivable);
         return false;
     }
 
-    wantBroadcastSaved = true;
-    return true;
+    return res;
 }
 
 // Loading
@@ -906,11 +929,19 @@ async function processArchiving(updatedTabId) {
 
             let allOK = true;
 
-            if (config.archiveExportAs)
-                allOK &&= await exportAsOne(archivable);
+            // NB: below, `res === null` means "no action was taken"
 
-            if (config.archiveSubmitHTTP)
-                allOK &&= await submitHTTPOne(archivable);
+            if (config.archiveExportAs) {
+                let res = await exportAsOne(archivable);
+                allOK &&= res !== false;
+                if (res === true)
+                    wantBucketSaveAs = true;
+            }
+
+            if (config.archiveSubmitHTTP) {
+                let res = await submitHTTPOne(archivable);
+                allOK &&= res !== false;
+            }
 
             // other archival methods go here
 
@@ -918,8 +949,19 @@ async function processArchiving(updatedTabId) {
                 // it's in reqresUnarchivedIssueAcc now
                 // try stashing it without recording failures
                 await syncWithStorage(archivable, 1, true).catch(logError);
-            else if (config.archiveSaveLS)
-                await saveOne(archivable);
+            else if (config.archiveSaveLS) {
+                let res = await saveOne(archivable);
+                if (res !== false)
+                    // Prevent future calls to `retryAllUnstashed` from un-saving this
+                    // archivable, which can happen with, e.g., the following sequence of
+                    // events:
+                    //   finished -> in_limbo -> stashMany -> out of disk space ->
+                    //   the user fixes it -> popInLimbo ->
+                    //   queued -> saveOne -> syncRetryAllUnstashed
+                    reqresUnstashedIssueAcc[0].delete(archivable);
+                if (res === true)
+                    wantBroadcastSaved = true;
+            }
             else
                 // (notEliding)
                 await syncWithStorage(archivable, 0, false);

@@ -85,27 +85,6 @@ function scheduleCleanupAfterTab(tabId) {
         });
 }
 
-// Archivig via `exportSaveAs`.
-
-// Schedule bucketSaveAs for given buckets.
-function scheduleBucketSaveAs(timeout, bucketOrNull) {
-    if (reqresBundledAs.size === 0)
-        return;
-
-    let buckets;
-    if (bucketOrNull === null)
-        buckets = Array.from(reqresBundledAs.keys());
-    else
-        buckets = [ bucketOrNull ];
-
-    for (let bucket of buckets)
-        scheduleAction(scheduledDelayed, `exportAs-${bucket}`, timeout, () => {
-            bucketSaveAs(bucket, 0);
-        });
-
-    // NB: needs scheduleUpdateDisplay after
-}
-
 // Archiving/replay via an archiving server.
 
 async function checkServer() {
