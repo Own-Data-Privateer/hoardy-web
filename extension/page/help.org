@@ -25,12 +25,11 @@ Also, the [[https://oxij.org/software/hoardy-web/tree/master/extension/page/help
 * What is this?
 This page is the primary documentation of the =Hoardy-Web= browser extension (add-on), it
 
-- describes [[#start][what the extension does under the hood]],
-- while discussing extension's most important configuration options and their effects,
-- explains some [[#workflows][common workflows and available integrations with related tools]],
-- lists all available [[#keyboard-shortcuts][keyboard]] and [[#context-menu-shortcuts][context menu]] shortcuts,
+- describes [[#start][what the extension does under the hood to capture, archive, and replay your web traffic]], while explaining its most important configuration options, invokable actions, their effects, and available integrations with related tools;
+- discusses some [[#workflows][additional workflows]] =Hoardy-Web= implements support for;
+- lists all available [[#keyboard-shortcuts][keyboard]] and [[#context-menu-shortcuts][context menu]] shortcuts;
 - explains all [[#errors][error messages and codes]] the extension can produce;
-- lists all known [[#bugs][extension's own issues and relevant web brower bugs]],
+- lists all known [[#bugs][extension's own issues and relevant web brower bugs]];
 - and answers various [[#faq][frequently asked questions]].
 
 For more information see [[../../][project's documentation]].
@@ -378,14 +377,17 @@ To forget about them, you will have to first unset the =problematic= flag on the
 ** Step 4: Archival
 When [[./popup.html#div-config.archive][=Archive 'collected' reqres= toggle]] is enabled, =Hoardy-Web= will pop =queued= reqres from the archival queue one by one and then perform one or more of the following (in order they are listed):
 
-- if [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'= option]] is enabled, =Hoardy-Web= will
-  - append the =dump=, as a byte string, to a (per-=bucket=, see below) =bundle=,
-  - and then
-    - if the =bundle= gets larger than [[./popup.html#div-config.exportAsMaxSize][this]] or
-    - after a delay controlled by [[./popup.html#div-config.exportAsInFlightTimeout][that]] and [[./popup.html#div-config.exportAsTimeout][this]] options
-    export the resulting =bundle= via browser's =saveAs= mechanism (i.e. generate a fake-Download);
+- if [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'= option]] is enabled but [[./popup.html#div-config.exportAsBundle][bundling]] is disabled, =Hoardy-Web= will simply
+  - compress the =dump=, [[./popup.html#div-config.gzipExportAs][if enabled]], and
+  - export the resulting =WRR file= via browser's =saveAs= mechanism (i.e. generate a fake-Download);
 
-- if [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'= option]] is enabled, =Hoardy-Web= will submit the =dump= to the archiving server at [[./popup.html#div-config.submitHTTPURLBase][=Server URL= setting]] by making an =HTTP POST= request with the =dump= as request body (which is denoted by =srvIO= states on the diagram above);
+- if both [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'= option]] and [[./popup.html#div-config.exportAsBundle][bundling]] are enabled, =Hoardy-Web= will
+  - append the =dump=, as a byte string, to a (per-=bucket=, see below) [[../../doc/data-on-disk.md][=WRR bundle=]],
+  - and then, if the =WRR bundle= gets larger than [[./popup.html#div-config.exportAsMaxSize][this]] or after a delay controlled by [[./popup.html#div-config.exportAsInFlightTimeout][that]] and [[./popup.html#div-config.exportAsTimeout][this]] options,
+    - compress the result, [[./popup.html#div-config.gzipExportAs][if enabled]], and
+    - export the resulting =WRR bundle= via browser's =saveAs= mechanism (i.e. generate a fake-Download);
+
+- if [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'= option]] is enabled, =Hoardy-Web= will submit the =dump= to the archiving server at [[./popup.html#div-config.submitHTTPURLBase][=Server URL= setting]] by making an =HTTP POST= request with the =dump= as request body (which is denoted by =srvIO= state on the diagram above);
 
 - if any of the above fails =Hoardy-Web= will
 
@@ -402,6 +404,8 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres= toggle]] is
   - if saving fails, it will move the reqres into the =unarchived= state instead, and stop processing this reqres;
 
 - finally, if [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is disabled or if saving to local storage succeeds, =Hoardy-Web= will discard the reqres from memory.
+
+In the cases of stashing and archiving to local storage, the =dump='s get compressed if [[./popup.html#div-config.gzipLSDumps][this option]] is enabled.
 
 You can enable more than one [[./popup.html#archive-methods][archival method]] at the same time.
 For a given =loggable=, =Hoardy-Web= will remember and skip previously successful archival methods if the =loggable= ever returns to the archival pipeline.
@@ -430,8 +434,8 @@ To implement this, for each reqres in the archival queue, =Hoardy-Web= takes a =
 
 Evaluation of =bucket= is done just before each archival attempt, so if the queue is not yet empty, and you disable [[./popup.html#div-config.archive][=Archive 'collected' reqres=]], edit some of the "Bucket" settings, and enable [[./popup.html#div-config.archive][it]] again, =Hoardy-Web= will start using the new setting immediately.
 
-When exporting via =saveAs=, =bucket= value will be used in the file name of the generated fake-Download =.wrrb= file and the dumps will be split into separate fake-Download files by said =bucket=.
-I.e., internally, the =bundle= discussed above is actually a set of per-=bucket= =bundle='s.
+When exporting via =saveAs=, =bucket= value will be used in the file name of the generated fake-Download =WRR bundle= file (=.wrrb=) and the dumps will be split into separate fake-Download files by said =bucket=.
+I.e., internally, the =WRR bundle= discussed above is actually a set of per-=bucket= =WRR bundle='s.
 
 When submitting to an =HTTP= server, =Hoardy-Web= will specify =bucket= as a query parameter (named "profile", for historical reasons) to each =HTTP POST= request, which will cause the [[./popup.html#div-config.submitHTTPURLBase][configured archiving server]] to put those =WRR= files into a directory with the same name.
 
@@ -443,7 +447,7 @@ So, for example, if you want to share a subset of your captures, you can
 - set [[./popup.html#div-tabconfig.bucket][this option]] in a tab to, say, "share",
 - clear your browser's cache,
 - then and only then navigate to a web page archives of which you plan to share,
-- thus separating out those reqres into separate =saveAs= =bundle='s with "share" in their name and/or putting them into a separate archiving server directory named "share", depending on [[./popup.html#archive-methods][archival methods]].
+- thus separating out those reqres into separate =saveAs= =WRR bundle='s with "share" in their name and/or putting them into a separate archiving server directory named "share", depending on [[./popup.html#archive-methods][archival methods]].
 *** Handling of failures
 As noted above, if any of the [[./popup.html#archive-methods][archival methods]] fail, the reqres in question will be moved into the =unarchived= state.
 
@@ -538,11 +542,7 @@ However, these options should be used with caution:
   Keeping [[./popup.html#div-config.archive][=Archive 'collected' reqres= option]] enabled will not break anything in the internal machinery, but if another reqres gets captured and then sneakily =saved= a moment before you press the [[./popup.html#rearchiveAdjunctSaved][=Re-archive adjunct= button]] and the generated =WRR bundle= then [[#unsafe-saveas][silently fails to be saved to disk via =saveAs=]], then that sneaky reqres will still get deleted, and, thus, permanently lost.
 
 Also, note that the [[./popup.html#div-local.rearchiveDelete][deletion option]] and its equivalent on [[./popup.html#showSaved][=Saved in Local Storage= page]] are ephemeral and will be reset the next time you reopen the popup or that page.
-* Common workflows
-:PROPERTIES:
-:CUSTOM_ID: workflows
-:END:
-** Replay integration
+** (Optional) Step 5: Replay integration
 :PROPERTIES:
 :CUSTOM_ID: replay
 :END:
@@ -550,6 +550,10 @@ Also, note that the [[./popup.html#div-local.rearchiveDelete][deletion option]] 
 When your [[./popup.html#div-config.submitHTTPURLBase][archiving server]] supports it and [[./popup.html#div-config.replaySubmitHTTP][this option]] is not disabled, =Hoardy-Web= enables its integration with replay over =HTTP=.
 
 At the moment, this includes [[./popup.html#replayAll][two]] [[./popup.html#replayTabBack][buttons]] which re-navigate all tabs or the currently active tab (respectively) to their replay pages as well as keyboard shortcuts and context menu actions [[#shortcuts][described below]].
+* Workflows
+:PROPERTIES:
+:CUSTOM_ID: workflows
+:END:
 ** "Work offline" mode
 :PROPERTIES:
 :CUSTOM_ID: work-offline
@@ -568,7 +572,7 @@ Meanwhile, normally, when using the [[../../tool/][=hoardy-web= tool]], pages of
 But =HTML5= specification is quite large and gets updated all the time, interactions between remapped pages and some browser extensions can sometimes break things, and =hoardy-web= can have bugs in its remapping code.
 So, remapping of some of those URLs can fail sometimes.
 
-Say, however, you want to ensure that
+Say that, after being informed by the previous two paragraphs, you now want to ensure that
 
 - your browser won't notify a page's origin server when you start interacting with it long after you loaded it, and
 - your browser won't try to access the Internet when you open one of =hoardy-web mirror='ed or =hoardy-web serve='d pages.
@@ -597,18 +601,18 @@ So, for convenience, there is also a [[./popup.html#div-config.workOfflineImpure
 
 Finally, there is also a [[./popup.html#special-tab-options][bunch options]] that automatically enable "Work offline" mode in tabs with various classes of URLs.
 By default, "Work offline" mode is enabled for =file:= and replay URLs to stop any pages generated by =hoardy-web mirror= and =hoardy-web serve= to accessing the Internet.
-** Using with Tor Browser
+** Using =Hoardy-Web= with Tor Browser
 :PROPERTIES:
 :CUSTOM_ID: tor-browser
 :END:
 
-When using =Hoardy-Web= with Tor Browser, you probably want to configure it all in such a way so that all of the machinery of =Hoardy-Web= is completely invisible to web pages running under your Tor Browser, to prevent fingerprinting.
+When running =Hoardy-Web= under Tor Browser, you probably want to configure it all in such a way so that all of the machinery of =Hoardy-Web= is completely invisible to web pages running under your Tor Browser, to prevent fingerprinting.
 *** Mostly convenient, paranoid
 So, in the mostly convenient yet sufficiently paranoid setup, you would only ever use =Hoardy-Web= extension configured to [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'=]] (which is the default) and then export your dumps manually at the end of a browsing via [[#re-archival][re-archival]].
 *** Slightly simpler, but slightly unsafe
 You can also simply switch to using [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'=]] by default instead, disabling the other archiving methods.
 
-I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [[#faq-unsafe][this is unsafe]].
+I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [[#unsafe-saveas][this is unsafe]].
 Also, by default, browser's UI will be slightly annoying, since =Hoardy-Web= will be generating new "Downloads" all the time, but that issue [[#faq-firefox-saveas][can be fixed with a small =about:config= change]].
 *** Most convenient, less paranoid
 In theory, running [[../../simple_server/][=hoardy-web-sas= simple archiving server script]] listening on a loopback IP address should prevent web pages from accessing it, since the browsers disallow cross-origin requests from non-localhost domains to localhost, thus making the normal [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'= mode]] setup quite viable.
@@ -845,6 +849,10 @@ If you are reading this page outside of the extension's UI be sure to read the [
 - If an =HTTP= server supplies the same header multiple times --- which happens sometimes, most commonly with =Set-Cookie= headers --- then the archived response headers will usually become weird, with multiple headers squished into a single value, separated by newline symbols.
 
   This is just the way both Firefox (usually) and Chromium (always) supply those headers to extensions and =Hoardy-Web= does not try to undo it.
+
+- @@html:<span id="unsafe-saveas">@@ Browsers do not report a fake-Download file failing to be written to disk via =saveAs= API as an error.
+  This makes [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'= archival]] and [[./popup.html#div-config.rearchiveExportAs][similar re-archival]] options technically unsafe.
+  @@html:</span>@@
 ** Known issues that are consequences of issues of Firefox-based desktop browsers: Firefox, Tor Browser, LibreWolf, etc
 :PROPERTIES:
 :CUSTOM_ID: firefox-bugs
@@ -1112,7 +1120,7 @@ Most notably:
 :CUSTOM_ID: faq-unsafe
 :END:
 
-Archival [[./popup.html#div-config.archiveExportAs][by exporting using =saveAs=]] (generation of fake-Downloads) can fail and **lose a bit of your collected data at a time** if you press a wrong button in you browser's UI, mis-reconfigure your browser a bit, or your disk gets out of space unexpectedly.
+Archival [[./popup.html#div-config.archiveExportAs][by exporting using =saveAs=]] (generation of fake-Downloads) can fail and **lose a bit of your collected data at a time** if you press a wrong button in you browser's UI, mis-reconfigure your browser a bit, or [[#unsafe-saveas][your disk gets out of space unexpectedly]].
 
 Archival [[./popup.html#div-config.archiveSaveLS][to browser's local storage]] (which is what =Hoardy-Web= is doing by default) can **loose all your collected data at the same time** if you uninstall the extension by accident.
 
