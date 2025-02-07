@@ -82,7 +82,7 @@ let configDefaults = {
     rearchiveExportAs: !isMobile,
     exportAsHumanReadable: true,
     exportAsBundle: true,
-    exportAsMaxSize: 32,
+    exportAsMaxSize: 64,
     exportAsTimeout: 3,
     exportAsInFlightTimeout: 60,
     gzipExportAs: true,
@@ -309,7 +309,7 @@ function fixConfig(config, oldConfig, serverConfig) {
     // clamp
     config.animateIcon = clamp(100, 5000, toNumber(config.animateIcon));
 
-    config.exportAsMaxSize = clamp(1, useDebugger ? 512 : 32, toNumber(config.exportAsMaxSize));
+    config.exportAsMaxSize = clamp(1, 512, toNumber(config.exportAsMaxSize));
     config.exportAsTimeout = clamp(0, 900, toNumber(config.exportAsTimeout));
     config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 900, toNumber(config.exportAsInFlightTimeout));
 
