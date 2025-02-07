@@ -96,18 +96,23 @@ Reqres change their internal states according to the following state diagram (wh
       |                                 \- (in_limbo) <- (stashToLS?) <- (dropped)
       v                                           |                         |
   (queued) <---- (unarchived) <- (stashToLS?)     |                         |
-   ^  |                               ^           \-----> (discarded) <-----/
-   |  |          /---> {U} -----------/                        ^
- {RE} |          v                                             | {{!saving}}
+      |                               ^           \-----> (discarded) <-----/
+   /-\|          /---> {U} -----------/                        ^
+   ^  |          |      \                                      |
+   |  |          |       \--> (forgotten) ((-> (saved)))       |
+   |  |          |                                             |
+ {RE} |          v                  {{!saving && !submitting}} |
       |\----> (saveAs) -> (exported) -------------------------/|
       |                       /                                |
       | {U} <-\    /---------/                                 |
-      |        v   v                                           |
+      |        v   v                        {{!saving}}        |
       |\----> (srvIO) -> (submitted) -------------------------/|
-      |                    /                                   |
-      | {U} <-\    /------/                                    |
-      |        v   v                                           |
-      |\---> (saveToLS) -> (saved) -> {RE}                     |
+      |                     /                                  |
+      |                    /              {{delete}}           |
+      | {U} <-\     /-----/     /-----------------------------/|
+      |        \   /           /                               |
+      |        v   v          /       {{re-archive}}           |
+      |\---> (saveToLS) -> (saved) -------------------> {RE}   |
       |                                                        |
       \--------------------------------------------------------/
 #+END_SRC
@@ -399,7 +404,8 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres= toggle]] is
 - finally, if [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is disabled or if saving to local storage succeeds, =Hoardy-Web= will discard the reqres from memory.
 
 You can enable more than one [[./popup.html#archive-methods][archival method]] at the same time.
-For a given =loggable=, =Hoardy-Web= will remember and skip previously successful archival methods if the =loggable= ever returns to the archival queue again (e.g., when one of the archival methods fails and you later ask =Hoardy-Web= to retry the archival, or when you re-queue a reqres from local storage from the [[./popup.html#showSaved][=Saved in Local Storage= page]]).
+For a given =loggable=, =Hoardy-Web= will remember and skip previously successful archival methods if the =loggable= ever returns to the archival pipeline.
+This can happen when one of the archival methods fails and =Hoardy-Web= auto-retries it, or you later ask =Hoardy-Web= to retry the archival manually (with [[./popup.html#retryAllUnarchived][this]] or [[./popup.html#retryAllFailed][that]] buttons), or if you [[#re-archival][re-archive]] it again.
 
 Note the difference between /stashed/ and /saved/ reqres:
 
@@ -463,6 +469,75 @@ If [[./popup.html#div-config.archiveDoneNotify][this option]] is enabled, a new 
 - A [[./popup.html#div-stats.saved][/saved reqres/]] is a reqres that was successfully =saved= by being archived into browser's local storage.
 
 - /An archived reqres/ is either /exported/, /submitted/, or /saved/ reqres.
+** (Optional) Step 4.5: Re-archival
+:PROPERTIES:
+:CUSTOM_ID: re-archival
+:END:
+
+=Hoardy-Web= allows reqres =saved= in browser's local storage to be re-archived the second (third, fourth, etc) time.
+This feature uses the same archiving pipeline as above with three major differences:
+
+- Unlike archival, re-archival is not automatic.
+
+  You will have to manually press its [[./popup.html#rearchive-actions][popup UI action buttons]], a similar button on the [[./popup.html#showSaved][=Saved in Local Storage= page]], or [[#keyboard-shortcuts][keyboard shortcuts]].
+
+- Re-archival pipeline uses a separate data structure for recording reqres that end up in the =unarchived= state.
+  The =unarchived= reqres of re-archival pipeline do not retried, becoming =forgotten= instead.
+
+  After all, they are already archived in browser's local storage, thus, if they fail to re-archive, =Hoardy-Web= can simply forget about them until they get re-loaded from local storage again.
+
+- For performance and safety reasons (to prevent possible race conditions between archival and re-archival), re-archival pipeline currently blocks the main thread of =Hoardy-Web= completely, until all re-archival actions finish.
+
+  The capture machinery and some UI updates will continue to work, but stashing, archival, and post-archival computations will not happen while re-archival is running.
+
+Re-archival can be useful, for instance, in following use cases:
+
+- You want to collect and accumulate lots of reqres before re-archiving them by the means of [[./popup.html#div-config.rearchiveExportAs][=Export via 'saveAs'=]] to make the UI less annoying and [[./popup.html#div-config.gzipExportAs][compress]] the resulting =WRR bundle='s better.
+
+- You run =Hoardy-Web= under a Fenix-based mobile browser, where [[./popup.html#div-config.archiveExportAs][Export via =saveAs=]] does not work, you are unable to run an [[./popup.html#div-config.submitHTTPURLBase][archiving server]] on the same device, because it's un-rooted mobile phone, and you don't want to submit your dumps over the Internet, because you are feeling paranoid.
+
+  By using this feature, you can delay re-archival to your archiving server until you get back to your home WiFi network, and re-archive everything all at once there.
+
+- You run [[#tor-browser][=Hoardy-Web= under Tor Browser]].
+*** Controlling what gets re-archived
+The simplest way to re-archive old data is to configure the desired [[./popup.html#rearchive-methods][re-archival methods]] and then press [[./popup.html#rearchiveAllSaved][this button]].
+This will simply re-archive everything stored in local storage unconditionally.
+
+Since archival and re-archival use the same archiving pipeline, similarly to =unarchived= reqres, re-archival also remembers if a given reqres was previously (re-)archived using the given archival method.
+Thus, enabling a [[./popup.html#rearchive-methods][re-archival method]] and then pressing [[./popup.html#rearchiveAdjunctSaved][this button]] will skip re-archival of reqres that were previously archived or re-archived using that same method.
+
+I.e., you can just configure the desired [[./popup.html#rearchive-methods][re-archival methods]] and then press [[./popup.html#rearchiveAdjunctSaved][that button]] from time to time, with each new press re-archiving a new batch.
+
+If you want more control over what gets re-archived, you can also
+
+- open the [[./popup.html#showSaved][=Saved in Local Storage= page]],
+- make a subset of =saved= reqres using the filtering options there, and then
+- re-archive only those, by pressing the =Re-archive= button there.
+*** Deleting re-archived reqres
+Successfully re-archived reqres can be deleted automatically by setting [[./popup.html#div-local.rearchiveDelete][=... and delete everything afterwards=]] and a similar option on the [[./popup.html#showSaved][=Saved in Local Storage= page]].
+However, these options should be used with caution:
+
+- The behaviour of the [[./popup.html#rearchiveAdjunctSaved][=Re-archive adjunct= button]] with [[./popup.html#div-local.rearchiveDelete][that option]] enabled can be surprising if you sometimes use both available [[./popup.html#rearchive-methods][re-archival methods]] and sometimes only one of them.
+  See its help string for more info.
+
+- Re-archiving by the means of [[./popup.html#div-config.rearchiveExportAs][=Export via 'saveAs'=]] with [[./popup.html#div-local.rearchiveDelete][that option]] enabled is [[#unsafe-saveas][unsafe because of browser API limitations]].
+
+  If you want to do this safely, you should:
+
+  - disable [[./popup.html#div-config.archive][=Archive 'collected' reqres= option]];
+  - re-archive with [[./popup.html#div-local.rearchiveDelete][deletion]] disabled, by using any one of [[./popup.html#rearchive-actions][the buttons]];
+  - confirm that all generated fake-Downloads were actually successfully saved to disk;
+  - enable [[./popup.html#div-local.rearchiveDelete][deletion]] without changing any other options;
+  - press [[./popup.html#rearchiveAdjunctSaved][=Re-archive adjunct= button]].
+
+  The last action should then produce an =Re-archived and deleted <N> reqres invoking 0 archiving actions.= notification.
+  I.e. it will just delete all of them, without actually performing any archivals.
+
+  Or, alternatively, as a last step, you can open [[./popup.html#showSaved][=Saved in Local Storage= page]], set =Exported via 'saveAs'= filter to =true= and then press =Delete=.
+
+  Keeping [[./popup.html#div-config.archive][=Archive 'collected' reqres= option]] enabled will not break anything in the internal machinery, but if another reqres gets captured and then sneakily =saved= a moment before you press the [[./popup.html#rearchiveAdjunctSaved][=Re-archive adjunct= button]] and the generated =WRR bundle= then [[#unsafe-saveas][silently fails to be saved to disk via =saveAs=]], then that sneaky reqres will still get deleted, and, thus, permanently lost.
+
+Also, note that the [[./popup.html#div-local.rearchiveDelete][deletion option]] and its equivalent on [[./popup.html#showSaved][=Saved in Local Storage= page]] are ephemeral and will be reset the next time you reopen the popup or that page.
 * Common workflows
 :PROPERTIES:
 :CUSTOM_ID: workflows
@@ -522,31 +597,6 @@ So, for convenience, there is also a [[./popup.html#div-config.workOfflineImpure
 
 Finally, there is also a [[./popup.html#special-tab-options][bunch options]] that automatically enable "Work offline" mode in tabs with various classes of URLs.
 By default, "Work offline" mode is enabled for =file:= and replay URLs to stop any pages generated by =hoardy-web mirror= and =hoardy-web serve= to accessing the Internet.
-** Re-archival
-:PROPERTIES:
-:CUSTOM_ID: re-archival
-:END:
-
-If you archived some data [[./popup.html#div-config.archiveSaveLS][by saving it into local storage]] and you now want to re-archive the same data using another method, do the following:
-
-- enable the [[./popup.html#on-archive][option for your desired archival method]] (e.g., [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'=]]),
-- but keep the [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] enabled,
-- if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=exporting them via 'saveAs'= option]], you should probably temporarily set [[./popup.html#div-config.exportAsTimeout][this timeout]] to =0= to prevent idle waiting,
-- press the [[./popup.html#showSaved][=Show= button on =Saved in LS= line]] in the popup to open the =Saved in Local Storage= page;
-- set the filter of you desired archival method there to =false= (red) to make it only display reqres that were not yet archived using that archival method (e.g., set =Exported via 'saveAs'= to =false=);
-- then re-queue the data saved in local storage:
-  - press the =Re-queue= button;
-  - wait for =Hoardy-Web= to finish archival of newly re-queued reqres;
-  - (if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=exporting them via 'saveAs'= option]] while running on a truly ancient hardware and the above process is slow, you can disable the [[./popup.html#div-config.gzipExportAs][=GZip outputs= option]]; though, the resulting =WRR= bundles will take a lot of disk space in this case);
-  - (also, if you are re-archiving by [[./popup.html#div-config.archiveExportAs][=exporting them via 'saveAs'= option]], then after each =Re-queue= you should wait for the browser to save the resulting generated =WRR= bundles to disk and then confirm that each generated fake-Download did not fail; why? because if you re-archive a lot of data, thus generating many =WRR= bundles at once, and you run out of disk space in the process, the browser might fail a random subset of the generated fake-Downloads without telling =Hoardy-Web= anything about it; this is not an issue when archiving by [[./popup.html#div-config.archiveSubmitHTTP][=... submitting them via 'HTTP'=]], because archiving servers report their errors properly);
-  - =Re-queue= more data, repeat until everything is re-archived.
-- set [[./popup.html#div-config.exportAsTimeout][this timeout]] to its previous value, if you changed it.
-
-If after you confirming everything was properly re-archived you now want to wipe that re-archived data from local storage, do the following:
-
-- press the [[./popup.html#showSaved][=Show= button on =Saved in LS= line]] in the popup to open the =Saved in Local Storage= page;
-- set the filter of you desired archival method there to =true= (green) to make it only display reqres that were already archived using that archived method;
-- press the =Delete= button there repeatedly, until everything is deleted.
 ** Using with Tor Browser
 :PROPERTIES:
 :CUSTOM_ID: tor-browser
@@ -554,10 +604,8 @@ If after you confirming everything was properly re-archived you now want to wipe
 
 When using =Hoardy-Web= with Tor Browser, you probably want to configure it all in such a way so that all of the machinery of =Hoardy-Web= is completely invisible to web pages running under your Tor Browser, to prevent fingerprinting.
 *** Mostly convenient, paranoid
-So, in the mostly convenient yet sufficiently paranoid setup, you would only ever use =Hoardy-Web= extension configured to [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'=]] (which is the default) and then export your dumps manually at the end of a browsing session, see [[#re-archival][re-archival intructions]].
-
-Yes, this is slightly annoying, but this is the [[#faq-unsafe][only absolutely safe way to export data out of =Hoardy-Web= without using submission via =HTTP=]], and you don't need to do this at the end of each and every browsing session.
-*** Simpler, but slightly unsafe
+So, in the mostly convenient yet sufficiently paranoid setup, you would only ever use =Hoardy-Web= extension configured to [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'=]] (which is the default) and then export your dumps manually at the end of a browsing via [[#re-archival][re-archival]].
+*** Slightly simpler, but slightly unsafe
 You can also simply switch to using [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'=]] by default instead, disabling the other archiving methods.
 
 I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [[#faq-unsafe][this is unsafe]].
@@ -613,6 +661,7 @@ Then, you can improve on this setup even more by running both the Tor Browser an
 - open the =Internal State and Logs= page, scrolled to the end of the log, {{{shortcut(showLog)}}};
 - open the [[./popup.html#showTabState][=Internal State and Logs= page]] narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
 - open the =Internal State and Logs= page narrowed to the currently active tab's data, scrolled to the end of the log, {{{shortcut(showTabLog)}}};
+- simulate [[./popup.html#rearchiveAdjunctSaved][=Re-archive adjunct= button]] press with [[./popup.html#div-local.rearchiveDelete][deletion]] disabled, {{{shortcut(rearchiveAdjunctSaved)}}};
 - toggle [[./popup.html#div-tabconfig.workOffline][work offline mode in the currently active tab]] (the action depends on [[./popup.html#div-config.workOfflineImpure][impure toggling]]) {{{shortcut(toggleTabConfigWorkOffline)}}};
 - toggle [[./popup.html#div-tabconfig.children.workOffline][work offline mode in the currently active tab's new children]] (the action depends on [[./popup.html#div-config.workOfflineImpure][impure toggling]]) {{{shortcut(toggleTabConfigChildrenWorkOffline)}}};
 - toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned =HTTP= requests in the currently active tab]] {{{shortcut(toggleTabConfigTracking)}}};
@@ -710,15 +759,14 @@ Then, you can improve on this setup even more by running both the Tor Browser an
   To make archives currently saved in =IndexedDB= accessible to =Hoardy-Web= under =Always use private browsing mode= you need to:
 
   - Disable =Always use private browsing mode= browser setting and restart the browser, thus allowing =Hoardy-Web= access to =IndexedDB= again.
-  - Ensure [[./popup.html#div-config.preferIndexedDB][=Prefer 'IndexedDB' API= setting]] is disabled.
-  - Ensure [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is enabled.
-  - Ensure [[./popup.html#div-config.archive][=Archive 'collected' reqres=]] is enabled.
-  - Open the [[./popup.html#showSaved][=Saved in Local Storage= page]].
-  - Set =In 'storage.local'= filter there to =false= (red).
-  - Press =Re-queue= button there to re-archive all those saved reqres from =IndexedDB= to =storage.local=.
+  - Disable [[./popup.html#div-config.preferIndexedDB][=Prefer 'IndexedDB' API= setting]].
+  - Disable all [[./popup.html#rearchive-methods][re-archival methods]].
+  - Enable [[./popup.html#div-rearchive.andRewrite][=... and force a re-write= option]],
+  - press [[./popup.html#rearchiveAdjunctSaved][=Re-archive adjunct= button]],
+  - and wait for re-archival to finish.
   - Now, you can re-enable the =Always use private browsing mode= browser setting and restart you browser again.
 
-  All old data should be available from the [[./popup.html#showSaved][=Saved in Local Storage= page]] now.
+  All old data should be available at the [[./popup.html#showSaved][=Saved in Local Storage= page]] now.
 
 - =Failed to process <N> items becase <reason>=
 
