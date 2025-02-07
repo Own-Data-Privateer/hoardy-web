@@ -103,7 +103,7 @@ async function snapshotOneTab(tabId, url) {
             reqresAlmostDone.push(reqres);
         }
     } catch (err) {
-        allErrors.push(err.toString());
+        allErrors.push(errorMessageOf(err));
     } finally {
         if (allErrors.length > 0)
             await browser.notifications.create(`error-snapshot-${tabId}`, {
