@@ -91,24 +91,25 @@ Reqres change their internal states according to the following state diagram (wh
    |\--> (complete_fc) ----/                                             /  |
    |                      /                                             /   |
    \----> (snapshot) ----/       /- (collected) <--------- (picked) <--/    |
-                                /        ^                     |            |
-               (stashIO?) <----/         |                     v            v
-                   |                     \-- (in_limbo) <- (stashIO?) <- (dropped)
-                   v                              |                         |
-                (queued) <--------------------\   |                         |
-                / |  ^ \                       \  \-----> (discarded) <-----/
-  (exported) <-/  |  |  \-------------------\   \              ^
-      |           |  |                       \   \             |
-      |       /---/  \-----------------\      \   \            |
-      |       |                        |       \   \           |
-      |       v                        |        \   \          |
-      |\-> (srvIO) -> (stashIO?) -> (unarchived) |   \         |
-      |       |                        ^        /    |         |
-      |       |                        |    /--/     |         |
-      |       v                        |    v        |         |
-      |   (submitted) --------------> (saveIO) --> (saved)     | {{!saving}}
-      |       \                                                |
-      \-------->-----------------------------------------------/
+                                /       ^                      |            |
+ (stashToLS?) <----------------/        |                      v            v
+      |                                 \- (in_limbo) <- (stashToLS?) <- (dropped)
+      v                                           |                         |
+  (queued) <---- (unarchived) <- (stashToLS?)     |                         |
+   ^  |                               ^           \-----> (discarded) <-----/
+   |  |          /---> {U} -----------/                        ^
+ {RE} |          v                                             | {{!saving}}
+      |\----> (saveAs) -> (exported) -------------------------/|
+      |                       /                                |
+      | {U} <-\    /---------/                                 |
+      |        v   v                                           |
+      |\----> (srvIO) -> (submitted) -------------------------/|
+      |                    /                                   |
+      | {U} <-\    /------/                                    |
+      |        v   v                                           |
+      |\---> (saveToLS) -> (saved) -> {RE}                     |
+      |                                                        |
+      \--------------------------------------------------------/
 #+END_SRC
 ** Step 1: Tracking
 =Hoardy-Web= attaches to your browser's runtime and tracks progress of =HTTP= requests and their responses, capturing both their request and response headers and data at appropriate times in the browser's request and response processing pipeline.
@@ -385,13 +386,13 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres= toggle]] is
 
   - move the reqres into the =unarchived= state,
 
-  - if [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] is enabled, it will try stashing the =(loggable, dump)= tuple into browser's local storage (which is denoted by =stashIO= states on the diagram above) and record but ignore any errors produced while doing that, and
+  - if [[./popup.html#div-config.stash][=Stash 'collected' reqres into local storage= option]] is enabled, it will try stashing the =(loggable, dump)= tuple into browser's local storage (which is denoted by =stashToLS?= states on the diagram above) and record but ignore any errors produced while doing that, and
 
   - stop processing this reqres;
 
 - otherwise, if [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is enabled, =Hoardy-Web= will
 
-  - try to save the =(loggable, dump)= tuple into browser's local storage (which is denoted by =saveIO= states on the diagram above),
+  - try to save the =(loggable, dump)= tuple into browser's local storage (which is denoted by =saveToLS= state on the diagram above),
 
   - if saving fails, it will move the reqres into the =unarchived= state instead, and stop processing this reqres;
 
