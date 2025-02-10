@@ -18,15 +18,17 @@
  */
 
 /*
- * The "Changelog" page.
+ * Minimal page infrastructure.
  */
 
 "use strict";
 
+let pageName = document.location.pathname.substr(6).split(".")[0];
+
 document.addEventListener("DOMContentLoaded", async () => {
     setupHistoryPopState();
     classifyDocumentLinks(document, [
-        ["/page/changelog.html", "internal"],
+        [`/page/${pageName}.html`, "internal"],
         ["/", "local"],
     ]);
 
@@ -42,7 +44,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // add default handlers
-    await subscribeToExtensionSimple("changelog", catchAll(processUpdate));
+    await subscribeToExtensionSimple(pageName, catchAll(processUpdate));
 
     {
         let config = await browser.runtime.sendMessage(["getConfig"]);

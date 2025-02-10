@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Hoardy-Web: Changelog</title>
+    <title>Hoardy-Web: $title$</title>
     <link rel="shortcut icon" type="$iconMIME$" href="../icon/$iconFile$">
     <link rel="stylesheet" href="main.css?v=$version$">
     <style>
@@ -55,6 +55,6 @@ ul > li {
     <script src="../lib/webext.js"></script>
     <script src="../lib/webext-rpc-client.js"></script>
     <script src="../background/util.js"></script>
-    <script src="changelog.js"></script>
+    <script src="minimal.js"></script>
   </body>
 </html>

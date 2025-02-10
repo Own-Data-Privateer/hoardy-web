@@ -107,11 +107,19 @@ for target in "$@"; do
     runPandoc() {
         local format=$1
         local path=$2
+        local template="--template=$2.template"
         shift 2
+
+        while (($# > 0)); do
+            case "$1" in
+            --template) template="--template=$2.template"; shift 2 ;;
+            *) break; ;;
+            esac
+        done
 
         local destfile="$DEST/$path".html
         mkdir -p "$(dirname "$destfile")"
-        pandoc -f $format -t html --wrap=none --template="$path".template \
+        pandoc -f "$format" -t html --wrap=none "$template" \
                -M pagetitle="$path" "${pandocArgs[@]}" "$@" > "$destfile"
     }
 
@@ -124,6 +132,7 @@ for target in "$@"; do
 
     cat page/help.org \
         | sed '
+s%\.\./\.\./doc/data-on-disk\.md%./data-on-disk.html%g
 s%\.\./\.\./CHANGELOG\.md%./changelog.html%g
 
 s%\[\[\.\./\.\.\/\]\[\([^]]*\)\]\]%[[https://oxij.org/software/hoardy-web/][\1]] (also on [[https://github.com/Own-Data-Privateer/hoardy-web][GitHub]])%g
@@ -142,16 +151,26 @@ s%\[\[\.\./\.\.\/\([^]]*\)\]\[\([^]]*\)\]\]%[[https://oxij.org/software/hoardy-w
 
     cat ../CHANGELOG.md \
         | sed '
+s%\./doc/data-on-disk\.md%./data-on-disk.html%g
 s%\./extension/page/help\.org%./help.html%g
 s%#state-in-extension-ui-only%./state.html%g
 t end
-s%(\./\([^)]*\))%(https://oxij.org/software/hoardy-web/tree/master/\1)%g
+s%\[\([^]]*\)\](\./\([^)]*\))%[\1](https://oxij.org/software/hoardy-web/tree/master/\2) (also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/\2))%g
 
 s%#\([0-9]\+\) on GitHub%[#\1 on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues/\1)%g
 s%@\(\S\+\) on GitHub%[\\@\1 on GitHub](https://github.com/\1)%g
 : end
 ' \
-        | runPandoc markdown page/changelog
+        | runPandoc markdown page/changelog --template page/minimal -V title=Changelog
+
+    cat ../doc/data-on-disk.md \
+        | sed '
+s%\[\([^]]*\)\](\.\./\([^)]*\))%[\1](https://oxij.org/software/hoardy-web/tree/master/\2) (also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/\2))%g
+
+s%#\([0-9]\+\) on GitHub%[#\1 on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues/\1)%g
+s%@\(\S\+\) on GitHub%[\\@\1 on GitHub](https://github.com/\1)%g
+' \
+        | runPandoc markdown page/data-on-disk --template page/minimal -V title="The WRR Data File Format"
 
     echo "  Copying files..."
 
