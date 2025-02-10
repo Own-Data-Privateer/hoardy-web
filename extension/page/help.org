@@ -73,6 +73,10 @@ The above rules are also apply on all other internal pages of =Hoardy-Web=, e.g.
 :END:
 ** Glossary
 - A /reqres/ (/REQuest/ + /RESponse/) is an internal object containing captured information about an =HTTP= request and its response, including their headers and data, and some meta-information (whether it originates from an extension, =tabId= it originates from, its state, etc).
+
+  =Hoardy-Web= captures, dumps, archives, and manipulates reqres by first rendering them into [[../../doc/data-on-disk.md][=WRR= ("Web Response+Request") file format]].
+
+  The page referenced by the above link has a longer data-format glossary, comparison of =WRR= to other related file formats, and the complete formal definition of =WRR=, if you are interested.
 ** State Diagram
 Reqres change their internal states according to the following state diagram (which is explained below):
 
@@ -225,6 +229,8 @@ These flags influence some of the computations described below.
 - Disabling [[./popup.html#div-config.archiveBuggy][this toggle]] will disable archiving of reqres with one of the =buggy * metadata= flags set.
 
 Disabling any of the above is not recommended, however, as archiving some data is usually better than archiving none.
+
+See [[../../doc/data-on-disk.md][=WRR= file format documentation]] on how these flags get actually recorded in the generated dumps.
 *** Problematic reqres
 :PROPERTIES:
 :CUSTOM_ID: problematic
@@ -379,7 +385,7 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres= toggle]] is
 
 - if [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'= option]] is enabled but [[./popup.html#div-config.exportAsBundle][bundling]] is disabled, =Hoardy-Web= will simply
   - compress the =dump=, [[./popup.html#div-config.gzipExportAs][if enabled]], and
-  - export the resulting =WRR file= via browser's =saveAs= mechanism (i.e. generate a fake-Download);
+  - export the resulting [[../../doc/data-on-disk.md][=WRR file=]] via browser's =saveAs= mechanism (i.e. generate a fake-Download);
 
 - if both [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'= option]] and [[./popup.html#div-config.exportAsBundle][bundling]] are enabled, =Hoardy-Web= will
   - append the =dump=, as a byte string, to a (per-=bucket=, see below) [[../../doc/data-on-disk.md][=WRR bundle=]],
