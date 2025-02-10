@@ -154,6 +154,7 @@ s%\[\[\.\./\.\.\/\([^]]*\)\]\[\([^]]*\)\]\]%[[https://oxij.org/software/hoardy-w
 s%\./doc/data-on-disk\.md%./data-on-disk.html%g
 s%\./extension/page/help\.org%./help.html%g
 s%#state-in-extension-ui-only%./state.html%g
+s%#saved-in-extension-ui-only%./saved.html%g
 t end
 s%\[\([^]]*\)\](\./\([^)]*\))%[\1](https://oxij.org/software/hoardy-web/tree/master/\2) (also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/\2))%g
 

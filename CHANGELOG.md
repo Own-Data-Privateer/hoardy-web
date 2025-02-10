@@ -58,7 +58,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 - Core:
 
-  - On Firefox, fixed an issue when, with a popup UI open, opening "Internal State" page would make the popup show the wrong tab stats until a tab switch.
+  - On Firefox, fixed an issue when, with a popup UI open, opening the [`Internal State` page](#state-in-extension-ui-only) would make the popup show the wrong tab stats until a tab switch.
 
   - On Firefox, fixed popup UI's tab stats flickering between inconsistent states when, with a popup UI open, a new tab gets opened, starts loading, and then gets redirected, with all of it happening really fast.
 
@@ -1504,7 +1504,7 @@ Generally:
   pWebArc can now save and reload `collected` but not archived reqres (including those `in_limbo`) by stashing them into browser's local storage.
   This is now enabled by default, but it can be disabled globally, or per-tab.
 
-- As a consequence, pWebArc now tracks browsing sessions and shows when a reqres belongs to an older session on its `Internal State` page.
+- As a consequence, pWebArc now tracks browsing sessions and shows when a reqres belongs to an older session on its [`Internal State` page](#state-in-extension-ui-only).
 
 - Implemented two new archiving methods.
   pWebArc can now archive `collected` reqres by
@@ -1514,9 +1514,9 @@ Generally:
   - archiving separate dumps to your own private archiving server (the old one, the previous default, inherited on extension update),
   - archiving separate dumps to your browser's local storage (the new default on a new clean install).
 
-- As a consequence, pWebArc now has a new `Saved in Local Storage` page for displaying the latter.
+- As a consequence, pWebArc now has a new [`Saved in Local Storage` page](#saved-in-extension-ui-only) for displaying the latter.
 
-- Implemented display and filtering for `queued` and `failed` reqres on the `Internal State` page.
+- Implemented display and filtering for `queued` and `failed` reqres on the [`Internal State` page](#state-in-extension-ui-only).
 
 - Implemented tracking of per-state size totals for reqres in most states after `finished`.
 
@@ -1658,7 +1658,7 @@ Generally:
 
 - All SVG icons were edited to not reference any fonts, since those are not guaranteed to be available on a user's system.
 
-- Improved behaviour of new tabs created by clicking buttons on the `Internal State` page.
+- Improved behaviour of new tabs created by clicking buttons on the [`Internal State` page](#state-in-extension-ui-only).
 
 - Greatly improved documentation.
 
@@ -1758,7 +1758,7 @@ Generally:
 
 - Added a bunch of new keyboard shortcuts.
 
-  Also, keyboard shortcuts now work properly in narrowed `Internal State` pages.
+  Also, keyboard shortcuts now work properly in narrowed [`Internal State` page](#state-in-extension-ui-only)s.
 
 - Implemented stat persistence between restarts.
 
