@@ -457,15 +457,11 @@ In practice, though, your will probably want to [install the `hoardy-web` tool a
 
 Or, alternatively, you might want to use the [`hoardy-web-sas` simple archiving server](./simple_server/) instead.
 
-Technically speaking, archiving methods other than `Submit dumps via 'HTTP'` [are all unsafe, since you can lose some or all of your archived data if your disk ever gets out of space, or if you accidentally uninstall the `Hoardy-Web` extension, or mis-click a button in your browser's UI](./extension/page/help.org#faq-unsafe).
-
 ## ... or, if you are unable or unwilling to do that
 
-Alternatively, you can use the combination of archiving by saving of data to browser's local storage (the default) followed by [semi-manual export into `WRR` bundles](./extension/page/help.org#re-archival).
+Alternatively, you can use the combination of archiving by saving of data to browser's local storage (the default) followed by [re-archival into `WRR` bundles](./extension/page/help.org#re-archival).
 
 Or, alternatively, you can switch to `Export dumps via 'saveAs'` mode by default and simply accept the resulting slightly more annoying UI ([on Firefox, it can be fixed with a small `about:config` change](./extension/page/help.org#faq-firefox-saveas)) and [slight unsafety](./extension/page/help.org#faq-unsafe).
-
-Which is most useful when using `Hoardy-Web` under Tor Browser or similar.
 
 # Alternatively, on a system with [Nix package manager](https://nixos.org/nix/)
 
