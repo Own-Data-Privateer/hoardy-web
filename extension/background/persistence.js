@@ -644,6 +644,8 @@ async function forEachInStorage(storeName, func, limit) {
         } catch (err) {
             if (!(err instanceof StopIteration))
                 throw err;
+
+            storeStatsLS = undefined;
         }
     });
 
@@ -667,6 +669,8 @@ async function forEachInStorage(storeName, func, limit) {
         } catch (err) {
             if (!(err instanceof StopIteration))
                 throw err;
+
+            storeStatsIDB = undefined;
         }
     });
 
