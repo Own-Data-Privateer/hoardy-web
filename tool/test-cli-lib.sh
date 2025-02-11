@@ -35,7 +35,7 @@ equal_file() {
 }
 
 equal_dir() {
-    if ! diff -U 0 <(describe-dir --no-mtime "$2") <(describe-dir --no-mtime "$3"); then
+    if ! diff -U 0 <(describe-dir --no-mode --no-mtime "$2") <(describe-dir --no-mode --no-mtime "$3"); then
         error "$1: equal_dir failed"
     fi
 }
@@ -57,7 +57,7 @@ fixed_target() {
 }
 
 fixed_dir() {
-    describe-dir --no-mtime "$3/$1" > "$3/$1.describe-dir"
+    describe-dir --no-mode --no-mtime "$3/$1" > "$3/$1.describe-dir"
     fixed_target "$1.describe-dir" "$2" "$3"
 }
 

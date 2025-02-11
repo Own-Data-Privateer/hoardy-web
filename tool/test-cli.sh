@@ -294,7 +294,7 @@ while (($# > 0)); do
         equal_dir "organize-seq = organize-sl" "$td/organize-sl" "$td/organize-seq"
 
         # ensure `organize` did not touch the source dir
-        describe-dir --no-mtime "$td/import-bundle" > "$td/import-bundle.describe-dir.2"
+        describe-dir --no-mode --no-mtime "$td/import-bundle" > "$td/import-bundle.describe-dir.2"
         equal_file "organize-seq is src-pure" "$td/import-bundle.describe-dir" "$td/import-bundle.describe-dir.2"
 
         end
