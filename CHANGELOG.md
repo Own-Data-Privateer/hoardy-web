@@ -6,6 +6,223 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.21.0] - 2025-02-11: Re-archival, reworked internals, many small improvements
+
+### Added/Changed/Removed (1): Re-archival replaces re-queueing
+
+- Core + Popup UI + the [`Saved in Local Storage` page](#saved-in-extension-ui-only) + the [`Help` page](./extension/page/help.org):
+
+  - Implemented new re-archival machinery. `Hoardy-Web` now follows the following state diagram:
+
+    ```
+    (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
+       |                           |                              |             |
+       |                           v                              v             v
+       |                     (no_response)                   (incomplete)   (complete)
+       |                           |                              |             |
+       |                           \                              |             |
+       |\---> (canceled) ----\      \                             |             |
+       |                      \      \                            \             |
+       |\-> (incomplete_fc) ---\      \                            \            v
+       |                        >------>---------------------------->-----> (finished)
+       |\--> (complete_fc) ----/                                             /  |
+       |                      /                                             /   |
+       \----> (snapshot) ----/       /- (collected) <--------- (picked) <--/    |
+                                    /       ^                      |            |
+     (stashToLS?) <----------------/        |                      v            v
+          |                                 \- (in_limbo) <- (stashToLS?) <- (dropped)
+          v                                           |                         |
+      (queued) <---- (unarchived) <- (stashToLS?)     |                         |
+          |                               ^           \-----> (discarded) <-----/
+       /-\|          /---> {U} -----------/                        ^
+       ^  |          |      \                                      |
+       |  |          |       \--> (forgotten) ((-> (saved)))       |
+       |  |          |                                             |
+     {RE} |          v                  {{!saving && !submitting}} |
+          |\----> (saveAs) -> (exported) -------------------------/|
+          |                       /                                |
+          | {U} <-\    /---------/                                 |
+          |        v   v                        {{!saving}}        |
+          |\----> (srvIO) -> (submitted) -------------------------/|
+          |                     /                                  |
+          |                    /              {{delete}}           |
+          | {U} <-\     /-----/     /-----------------------------/|
+          |        \   /           /                               |
+          |        v   v          /       {{re-archive}}           |
+          |\---> (saveToLS) -> (saved) -------------------> {RE}   |
+          |                                                        |
+          \--------------------------------------------------------/
+    ```
+
+    That is, "re-queueing" mechanism was dropped, instead, reqres saved in local storage can now be sent through the archival pipeline multiple times, without touching the queue.
+    Also, the re-archival machinery now has a separate set of `config`urable archival methods.
+    And the reqres going through re-archival will be sent through a separate instance of the archival pipeline, in a way that will block `Hoardy-Web`'s main thread, while recording archival errors separately, reporting them at the end, and then forgetting about them (after all, everything is saved in local storage anyway).
+
+    This might not sound that impressive, but it is, because its both more convenient and has much better performance:
+
+    - as before, collection can still work in parallel with this;
+
+    - but normal archival now stops completely while re-archival is working, which locks local storage from modification, which allows re-archival machinery to be much more efficient than the re-queueing machinery was, re-archiving everything requested and applying all updates in a single pass over local storage, and using the smallest required number of disk writes;
+
+    - also, internally, the re-archival machinery is now a simple function, not a collection of distinct schedule-able tasks, which means it can easily be called explicitly, which allows common re-archival workflows to be bound to separate UI buttons and/or keyboard shortcuts,
+
+      which `Hoardy-Web` now does, making things much more convenient.
+
+    The latter feature solves a common complaint of the [`Saved in Local Storage` page](#saved-in-extension-ui-only) UI being hard to use.
+    From now on, its use is completely optional.
+    Popup UI now has two simple `Re-archive all` and `Re-archive adjunct` buttons that re-archive everything and reqres that were "not previously (re-)archived like this", respectively.
+
+    This can be useful in following use cases:
+
+    - You want to collect and accumulate lots of reqres before re-archiving them by the means of `Export via 'saveAs'` to make the UI less annoying and compress the resulting `WRR bundle`s better.
+
+    - You run `Hoardy-Web` under a Fenix-based mobile browser or under Tor Browser, where the use of re-archival is quite common and needing to manually re-queue stuff all the time was really annoying.
+
+    All of this can be done with a single button-press and using a smallest required number of disk writes now.
+
+- Core + Default config:
+
+  - Set the default `config.exportAsMaxSize` to `64 MiB` again and increased the limit to `512 MiB` both on Chromium and on Firefox.
+
+    Bigger values are better for `WRR bundle` compression ratios, and my tests had shown that this actually works fine even on Firefox, even though Mozilla's docs claim it would not, so.
+
+### Changed (2): Internals
+
+- Core:
+
+  - Performed a huge internal reworking, splitting everything into a bunch of logically consistent mostly-independent modules, making many functions mostly side-effect pure, etc.
+
+  - Reworked broadcast machinery quite a bit.
+
+    It's significantly faster now, and internal messages no longer get broadcasted to internal pages that do not request them.
+
+    This improved performance when running with many open browser tabs containing internal pages by quite a bit.
+
+  - Simplified internal command handling quite a bit.
+
+    So, the external API is going to be implemented soon-ish.
+
+    This also, essentially, auto-generates implementations of many internal actions.
+
+- Core + `manifest.json`:
+
+  - Added a bunch more useful, but unbound by default, keyboard shortcuts.
+
+    Since their actual internal implementations are now free.
+
+### Added/Changed (3): Capture and logging
+
+- Core + Capture:
+
+  - Renamed `fake` reqres/`WRR` flag to `request_buggy`, because the old name was not at all descriptive.
+
+  - The `webRequest::capture::RESPONSE::BROKEN` and the old `webRequest::pWebArc::RESPONSE::BROKEN` errors were remade into a new `response_buggy` reqres/`WRR` flag.
+
+    The migration is automatic.
+
+  - Renamed `sent` reqres/`WRR` flag to `submitted`, since it does not guarantee that the request was actually sent, only that it was submitted to the networking pipeline.
+
+    After all, such a request can then be answered from cache, for instance.
+
+  - The logs will display all of these flags now.
+
+  - Also, the `final networking state` in the logs in prepended with a "\$" symbol, to make it distinguishable from flags.
+
+  - Added `config` options and popup UI for controlling `problematic` marking and `pick`ing of reqres with these flags.
+
+  - From now on `config.markProblematicPartialRequest` and `config.markProblematicBuggy` will only get applied to request that were actually `submitted` and not `from_cache`, since `!submitted || from_cache` implies it was not actually sent.
+
+  - On Chromium, `request_buggy` reqres will no longer get `origin_url` `WRR` field set from `Referer`.
+
+    This adheres to the "capture as raw as possible" philosophy better.
+
+- Documentation:
+
+  - Documented all these flags in [`doc/data-on-disk.md`](./doc/data-on-disk.md), which now comes bundled with the extension too.
+
+### Added/Changed (4): UI
+
+- Core + Toolbar button + Icons:
+
+  - Added `unsnapshottable` and `unreplayable` icons.
+
+    From now on, they are used for displaying the states of the corresponding per-tab config options.
+
+  - Added `vertical bar` and `dot` icons.
+
+    They are now used for separating per-tab and per-tab-children toolbar icon animation frames, when they differ.
+
+    This makes things much less confusing.
+
+- Core + Default config:
+
+  - Increased the default `config.animateIcon` value a bit, to make those icons easier to visually parse.
+
+- Popup UI:
+
+  - Renamed `Run` tab/tag to `RT`, `Class` to `CLS`, moved `UI` tab/tag to right after `CLS` and put spacers at better points.
+
+    Personally, I misclick less with this layout.
+
+  - Moved all `snapshottable` and `replayable` toggles to the end of their sections.
+
+  - When viewed from the [`Help` page](./extension/page/help.org), per-tab options are now available and settable again.
+
+    This makes no technical sense, but this is less UI-surprising.
+
+  - On Fenix, improved the layout slightly.
+
+- Core + Popup UI:
+
+  - Split `config.debugging` into a bunch of more fine-grained configuration options.
+
+### Changed (5): Documentation
+
+- Documentation:
+
+  - Improved the [`Help` page](./extension/page/help.org).
+
+  - Improved keyboard shortcut descriptions.
+
+  - Improved popup UI help strings.
+
+### Fixed
+
+- Core:
+
+  - Fixed a bunch of small persistence-related internal bugs.
+
+    As a result, `config` and persistent stats (aka `globals`) won't no longer get written to disk when unchanged.
+
+  - Fixed `globals` describing reqres saved in local storage from getting out of sync with reality.
+
+    The inconsistent states will fix themselves when you re-archive everything, or if you open the [`Saved in Local Storage` page](#saved-in-extension-ui-only), disable the view limit, and let it churn through everything once.
+
+    Or you can just ignore it, it's not like this matters much, and it will fix itself as soon as you do something useful with it.
+
+  - On Fenix, fixed the extension's `config` auto-fixing sometimes actually producing broken archival settings.
+
+    Which were easy to manually fix, but still.
+
+- Core + Popup UI:
+
+  - Canceled actions will no longer appear in the `Running actions` list.
+
+    They were never actually run, just appeared there for a bit for technical reasons.
+    It no longer works that way.
+
+  - Running actions will no longer appear in the `Scheduled actions` list.
+
+    Internally, this is how it works still, but the UI will filter them out now, to make it less surprising.
+
+- The [`Internal State` page](#state-in-extension-ui-only):
+
+  - Fixed CSS not getting applied to some elements of the "Queued" section.
+
+- All internal pages:
+
+  - Limited CSS animation durations, so that an unattended browser would not eat all the CPU.
+
 ## [extension-v1.20.0] - 2025-01-24: Annoyance and bug fixes
 
 ### Added
@@ -2226,6 +2443,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.21.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.20.0...extension-v1.21.0
 [extension-v1.20.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.19.0...extension-v1.20.0
 [tool-v0.23.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.22.0...tool-v0.23.0
 [tool-v0.22.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.21.0...tool-v0.22.0
