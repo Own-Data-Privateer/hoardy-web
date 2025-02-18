@@ -10,31 +10,31 @@ Sanity check and test \`hoardy-web\` command-line interface.
 
 ## Examples
 
-- Run tests on each of given WRR bundles:
+- Run fixed-output tests on each of given WRR bundles:
 
   \`\`\`
   $0 ~/Downloads/Hoardy-Web-export-*.wrrb
   \`\`\`
 
-- Run tests on all WRR files in a given directory:
+- Run fixed-output tests on all WRR files in a given directory:
 
   \`\`\`
   $0 ~/hoardy-web/latest/archiveofourown.org
   \`\`\`
 
-- Run tests on a random subset of WRR files in a given directory:
+- Run fixed-output tests on a random subset of WRR files in a given directory:
 
   \`\`\`
   $0 --subset 100 ~/hoardy-web/raw
   \`\`\`
 
-- Run tests on each of given WRR bundles, except run long tests on a small subset of each:
+- Run fixed-output tests on each of given WRR bundles, except run long tests on a small subset of each:
 
   \`\`\`
   $0 --short 16 ~/Downloads/Hoardy-Web-export-*.wrrb
   \`\`\`
 
-- Make \`--stdin0\` input and test on it, as if it was a WRR bundle:
+- Make an \`--stdin0\` input and test on it, as if it was a WRR bundle:
 
   \`\`\`
   hoardy-web find -z ~/hoardy-web/latest/archiveofourown.org ~/hoardy-web/latest/example.org > ./bunch.wrrtest
@@ -113,20 +113,20 @@ while (($# > 0)); do
     if [[ -z "$in_wine" ]]; then
         if [[ -f "$src" ]] && [[ "$src" =~ .*\.wrrb ]]; then
             # these can be made with `cat`ting a bunch of .wrr files together
-            echo "# Testing on bundle $src in $td ..."
+            echo "# Testing fixed-outputness on bundle $src in $td ..."
             stdin0="$td/input"
             find "$src" -type f -print0 > "$stdin0"
         elif [[ -f "$src" ]]; then
             # these can be made with `hoardy-web find -z`
-            echo "# Testing on stdin0 $src in $td ..."
+            echo "# Testing fixed-outputness on stdin0 $src in $td ..."
             stdin0="$src"
         elif [[ -d "$src" ]]; then
             stdin0="$td/input"
             if [[ -z "$subset" ]]; then
-                echo "# Testing on whole dir $src in $td ..."
+                echo "# Testing fixed-outputness on whole dir $src in $td ..."
                 find "$src" -type f -print0 | sort -z > "$stdin0"
             else
-                echo "# Testing on a random subset (n=$subset) of dir $src in $td ..."
+                echo "# Testing fixed-outputness on a random subset (n=$subset) of dir $src in $td ..."
                 find "$src" -type f -print0 | shuf -z | head -zn "$subset" > "$stdin0"
                 do_fixed_dir=
             fi
@@ -136,12 +136,12 @@ while (($# > 0)); do
         fi
     else
         if [[ -f "$src" ]] && [[ "$src" =~ .*\.wrrb ]]; then
-            echo "# Testing on bundle $src in $td ..."
+            echo "# Testing fixed-outputness on bundle $src in $td ..."
         elif [[ -f "$src" ]]; then
             error "testing on $src is not supported"
             continue
         elif [[ -d "$src" ]]; then
-            echo "# Testing on whole dir $src in $td ..."
+            echo "# Testing fixed-outputness on whole dir $src in $td ..."
             find "$src" -type f -print0 | repath_many > "$td/src"
             src="$td/src"
         else

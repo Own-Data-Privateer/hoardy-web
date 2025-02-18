@@ -3092,31 +3092,31 @@ Sanity check and test `hoardy-web` command-line interface.
 
 ## Examples
 
-- Run tests on each of given WRR bundles:
+- Run fixed-output tests on each of given WRR bundles:
 
   ```
   ./test-tool.sh ~/Downloads/Hoardy-Web-export-*.wrrb
   ```
 
-- Run tests on all WRR files in a given directory:
+- Run fixed-output tests on all WRR files in a given directory:
 
   ```
   ./test-tool.sh ~/hoardy-web/latest/archiveofourown.org
   ```
 
-- Run tests on a random subset of WRR files in a given directory:
+- Run fixed-output tests on a random subset of WRR files in a given directory:
 
   ```
   ./test-tool.sh --subset 100 ~/hoardy-web/raw
   ```
 
-- Run tests on each of given WRR bundles, except run long tests on a small subset of each:
+- Run fixed-output tests on each of given WRR bundles, except run long tests on a small subset of each:
 
   ```
   ./test-tool.sh --short 16 ~/Downloads/Hoardy-Web-export-*.wrrb
   ```
 
-- Make `--stdin0` input and test on it, as if it was a WRR bundle:
+- Make an `--stdin0` input and test on it, as if it was a WRR bundle:
 
   ```
   hoardy-web find -z ~/hoardy-web/latest/archiveofourown.org ~/hoardy-web/latest/example.org > ./bunch.wrrtest
