@@ -44,6 +44,6 @@ buildPythonApplication (rec {
     kisstdlib # for `describe-dir` binary
   ];
 
-  preBuild = "find . ; black --check . && mypy && pytest && pylint .";
+  preBuild = "find . ; ./sanity.sh --check";
   postFixup = "find $out";
 })
