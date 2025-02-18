@@ -56,7 +56,7 @@
 <li><a href="#how-to-handle-binary-data" id="toc-how-to-handle-binary-data">How to handle binary data</a></li>
 </ul></li>
 </ul></li>
-<li><a href="#development-.test-cli.sh---help---wine---all--subset-num---long--short-num-path-path-..." id="toc-development-.test-cli.sh---help---wine---all--subset-num---long--short-num-path-path-...">Development: <code>./test-cli.sh [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]</code></a>
+<li><a href="#development-.test-tool.sh---help---wine---all--subset-num---long--short-num-path-path-..." id="toc-development-.test-tool.sh---help---wine---all--subset-num---long--short-num-path-path-...">Development: <code>./test-tool.sh [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]</code></a>
 <ul>
 <li><a href="#examples-1" id="toc-examples-1">Examples</a></li>
 </ul></li>
@@ -3086,7 +3086,7 @@ hoardy-web stream --format=raw -ue response.body ../simple_server/pwebarc-dump/p
 hoardy-web get ../simple_server/pwebarc-dump/path/to/file.wrr | less
 ```
 
-# Development: `./test-cli.sh [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]`
+# Development: `./test-tool.sh [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]`
 
 Sanity check and test `hoardy-web` command-line interface.
 
@@ -3095,30 +3095,30 @@ Sanity check and test `hoardy-web` command-line interface.
 - Run tests on each of given WRR bundles:
 
   ```
-  ./test-cli.sh ~/Downloads/Hoardy-Web-export-*.wrrb
+  ./test-tool.sh ~/Downloads/Hoardy-Web-export-*.wrrb
   ```
 
 - Run tests on all WRR files in a given directory:
 
   ```
-  ./test-cli.sh ~/hoardy-web/latest/archiveofourown.org
+  ./test-tool.sh ~/hoardy-web/latest/archiveofourown.org
   ```
 
 - Run tests on a random subset of WRR files in a given directory:
 
   ```
-  ./test-cli.sh --subset 100 ~/hoardy-web/raw
+  ./test-tool.sh --subset 100 ~/hoardy-web/raw
   ```
 
 - Run tests on each of given WRR bundles, except run long tests on a small subset of each:
 
   ```
-  ./test-cli.sh --short 16 ~/Downloads/Hoardy-Web-export-*.wrrb
+  ./test-tool.sh --short 16 ~/Downloads/Hoardy-Web-export-*.wrrb
   ```
 
 - Make `--stdin0` input and test on it, as if it was a WRR bundle:
 
   ```
   hoardy-web find -z ~/hoardy-web/latest/archiveofourown.org ~/hoardy-web/latest/example.org > ./bunch.wrrtest
-  ./test-cli.sh ./bunch.wrrtest
+  ./test-tool.sh ./bunch.wrrtest
   ```
