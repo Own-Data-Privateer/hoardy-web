@@ -665,9 +665,7 @@ def parse_token(p: Parser) -> str:
     return p.lexeme(token_body_re)
 
 
-def parse_mime_type(  # pylint: disable=dangerous-default-value
-    p: Parser, ends: list[str] = []
-) -> str:
+def parse_mime_type(p: Parser, ends: list[str] = []) -> str:
     ends = [";"] + ends
     try:
         maintype = parse_token(p)
@@ -740,9 +738,7 @@ def parse_invalid_parameter(p: Parser, ends: list[str]) -> tuple[str, str]:
     return key.rstrip(), ""
 
 
-def parse_mime_parameters(  # pylint: disable=dangerous-default-value
-    p: Parser, ends: list[str] = []
-) -> Parameters:
+def parse_mime_parameters(p: Parser, ends: list[str] = []) -> Parameters:
     ends = [";"] + ends
     res = []
     while p.at_string(";"):

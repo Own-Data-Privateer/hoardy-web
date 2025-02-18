@@ -98,6 +98,7 @@ disable = [
     "raising-format-tuple",
 
     # annoying
+    "dangerous-default-value",
     "global-statement",
     "import-outside-toplevel",
     "invalid-name",

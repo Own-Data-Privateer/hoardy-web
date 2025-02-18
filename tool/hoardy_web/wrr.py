@@ -957,7 +957,7 @@ def rrexprs_wrr_some_loadf(
         yield from rrexprs_wrr_some_load(f, make_FileSource(path, in_stat))
 
 
-def trivial_Reqres(  # pylint: disable=dangerous-default-value
+def trivial_Reqres(
     url: ParsedURL,
     content_type: str = "text/html",
     qtime: Timestamp = Timestamp(0),
@@ -987,7 +987,7 @@ def trivial_Reqres(  # pylint: disable=dangerous-default-value
     )
 
 
-def fallback_Reqres(  # pylint: disable=dangerous-default-value
+def fallback_Reqres(
     url: ParsedURL,
     expected_mime: list[str],
     time: Timestamp = Timestamp(0),
@@ -1014,7 +1014,7 @@ def fallback_Reqres(  # pylint: disable=dangerous-default-value
     return trivial_Reqres(url, ct, time, time, time, headers=headers, data=data)
 
 
-def mk_trivial_ReqresExpr(  # pylint: disable=dangerous-default-value
+def mk_trivial_ReqresExpr(
     url: str,
     ct: str = "text/html",
     sniff: bool = False,
@@ -1025,7 +1025,7 @@ def mk_trivial_ReqresExpr(  # pylint: disable=dangerous-default-value
     return ReqresExpr(UnknownSource(), x)
 
 
-def mk_fallback_ReqresExpr(  # pylint: disable=dangerous-default-value
+def mk_fallback_ReqresExpr(
     url: str,
     cts: list[str] = ["text/html"],
     headers: Headers = [],

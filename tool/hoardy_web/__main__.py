@@ -3207,7 +3207,7 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         def map_opts(suffix: str, *opts: str) -> list[str]:
             return list(map(lambda opt: f"--{opt_prefix}{opt}{suffix}", opts))
 
-        def add_str_filter(  # pylint: disable=dangerous-default-value
+        def add_str_filter(
             opt: str,
             yes: bool,
             what: str,
@@ -3276,7 +3276,7 @@ def make_argparser(real: bool = True) -> ArgumentParser:
         add_url_filter("url", "net_url", True, abs_short_p=root_short)
         add_url_filter("not-url", "net_url", False)
 
-        def add_grep_filter(  # pylint: disable=dangerous-default-value
+        def add_grep_filter(
             opt: str,
             metavar: str,
             what: str,
