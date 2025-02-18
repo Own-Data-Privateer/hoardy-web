@@ -164,11 +164,11 @@ while (($# > 0)); do
     start "import bundle..."
 
     if [[ -z "$in_wine" ]]; then
-        no_stderr "import-bundle" "$td" import bundle --quiet --stdin0 --to "$td/import-bundle" < "$stdin0"
+        no_stderr import-bundle "$td" import bundle --quiet --stdin0 --to "$td/import-bundle" < "$stdin0"
     else
         ok_raw import bundle --quiet --to "$(repath "$td/import-bundle")" "$(repath "$src")"
     fi
-    [[ -n "$do_fixed_dir" ]] && fixed_dir "import-bundle" "$src" "$td"
+    [[ -n "$do_fixed_dir" ]] && fixed_dir import-bundle "$src" "$td"
 
     end
 
@@ -187,13 +187,13 @@ while (($# > 0)); do
     if [[ -z "$in_wine" ]]; then
         start "filter out \`.part\`s..."
 
-        ok_mixed "dotpart.1" "$td" stream --format=raw -ue url "$idir"
+        ok_mixed dotpart.1 "$td" stream --format=raw -ue url "$idir"
 
         while IFS= read -r -d $'\0' fname; do
             cp "$fname" "$fname.part"
         done < "$sinput0"
 
-        ok_mixed "dotpart.2" "$td" stream --errors skip --format=raw -ue url "$idir"
+        ok_mixed dotpart.2 "$td" stream --errors skip --format=raw -ue url "$idir"
 
         while IFS= read -r -d $'\0' fname; do
             rm "$fname.part"
@@ -205,39 +205,39 @@ while (($# > 0)); do
 
         start "find..."
 
-        fixed_output_selfsame "find-200-1024" "$src" "$td" "$idir" "$input0" \
+        fixed_output_selfsame find-200-1024 "$src" "$td" "$idir" "$input0" \
                               find --status-re .200C --and "response.body|len|> 1024"
 
-        fixed_output_selfsame "find-html-potter" "$src" "$td" "$idir" "$input0" \
+        fixed_output_selfsame find-html-potter "$src" "$td" "$idir" "$input0" \
                               find --response-mime text/html --grep-re '\bPotter\b'
 
         end
 
         start "pprint..."
 
-        no_stderr_selfsame "pprint" "$td" "$idir" "$input0" pprint
-        no_stderr_selfsame "pprint-u" "$td" "$idir" "$input0" pprint -u
+        no_stderr_selfsame pprint "$td" "$idir" "$input0" pprint
+        no_stderr_selfsame pprint-u "$td" "$idir" "$input0" pprint -u
 
         end
 
         start "stream..."
 
-        no_stderr_selfsame "stream" "$td" "$idir" "$input0" stream "${exprs[@]}"
-        no_stderr_selfsame "stream-u" "$td" "$idir" "$input0" stream -u "${exprs[@]}"
+        no_stderr_selfsame stream "$td" "$idir" "$input0" stream "${exprs[@]}"
+        no_stderr_selfsame stream-u "$td" "$idir" "$input0" stream -u "${exprs[@]}"
 
         end
 
         start "organize..."
 
-        no_stderr "organize-copy" "$td" \
+        no_stderr organize-copy "$td" \
                   organize --quiet --copy --to "$td/organize" "$idir"
         equal_dir "organize-copy == import-bundle" "$td/organize" "$idir"
 
-        no_stderr "organize-hardlink" "$td" \
+        no_stderr organize-hardlink "$td" \
                   organize --quiet --hardlink --to "$td/organize2" "$td/organize"
         equal_dir "organize-hardlink == organize-copy" "$td/organize2" "$idir"
 
-        no_stderr "organize-symlink" "$td" \
+        no_stderr organize-symlink "$td" \
                   organize --quiet --symlink --output hupq_msn \
                   --to "$td/organize3" "$td/organize"
 
@@ -260,12 +260,12 @@ while (($# > 0)); do
 
         start "organize --symlink --latest..."
 
-        fixed_output "organize-sl" "$src" "$td" \
+        fixed_output organize-sl "$src" "$td" \
                      organize --symlink --latest --output hupq \
                      --to "$td/organize-sl" \
                      "$idir"
 
-        fixed_output "organize-sls" "$src" "$td" \
+        fixed_output organize-sls "$src" "$td" \
                      organize --symlink --latest --output hupq \
                      --paths-sorted --walk-sorted \
                      --to "$td/organize-sls" \
@@ -277,17 +277,17 @@ while (($# > 0)); do
         lines=$(cat "$input0" | tr '\0' '\n' | wc -l)
 
         cat "$input0" | head -zn $((lines/3 + 1)) | \
-            fixed_output "organize-seq1" "$src" "$td" \
+            fixed_output organize-seq1 "$src" "$td" \
                          organize --symlink --latest --output hupq \
                          --to "$td/organize-seq" --stdin0
 
         cat "$input0" | head -zn $((lines*2/3 + 1)) | \
-            fixed_output "organize-seq2" "$src" "$td" \
+            fixed_output organize-seq2 "$src" "$td" \
                          organize --symlink --latest --output hupq \
                          --to "$td/organize-seq" --stdin0
 
         cat "$input0" | tail -zn $((lines*2/3 + 1)) | \
-            fixed_output "organize-seq3" "$src" "$td" \
+            fixed_output organize-seq3 "$src" "$td" \
                          organize --symlink --latest --output hupq \
                          --to "$td/organize-seq" --stdin0
 
@@ -306,16 +306,16 @@ while (($# > 0)); do
 
     mkdir -p "$td/serve"
     if [[ -z "$in_wine" ]]; then
-        python3 -m hoardy_web serve --host "127.1.1.1" --implicit --archive-to "$td/serve" &
+        python3 -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to "$td/serve" &
     else
-        wine python -m hoardy_web serve --host "127.1.1.1" --implicit --archive-to "$(repath "$td/serve")" &
+        wine python -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to "$(repath "$td/serve")" &
     fi
     tpid=$!
     sleep 3
 
     # just to be sure
     curl "http://127.1.1.1:3210/hoardy-web/server-info" > "$td/serve.info" 2> /dev/null
-    fixed_target "serve.info" "$src" "$td"
+    fixed_target serve.info "$src" "$td"
 
     # feed it some data
     while IFS= read -r -d $'\0' fname; do
@@ -349,29 +349,29 @@ while (($# > 0)); do
     if [[ -z "$in_wine" ]]; then
         start "mirror urls..."
 
-        fixed_output "mirror-urls" "$src" "$td" \
+        fixed_output mirror-urls "$src" "$td" \
             mirror --copy --to "$td/mirror-urls" --output hupq_n \
             "${uexprs[@]}" \
             "$idir"
-        [[ -n "$do_fixed_dir" ]] && fixed_dir "mirror-urls" "$src" "$td"
+        [[ -n "$do_fixed_dir" ]] && fixed_dir mirror-urls "$src" "$td"
 
         end
 
         start "mirror responses..."
 
-        fixed_output "mirror-responses" "$src" "$td" \
+        fixed_output mirror-responses "$src" "$td" \
            mirror --to "$td/mirror-responses" --output hupq_n \
            "$idir"
-        [[ -n "$do_fixed_dir" ]] && fixed_dir "mirror-responses" "$src" "$td"
+        [[ -n "$do_fixed_dir" ]] && fixed_dir mirror-responses "$src" "$td"
 
         end
 
         start "get..."
 
         while IFS= read -r -d $'\0' path; do
-            no_stderr "get-sniff-default" "$td"  get "${exprs[@]}" "$path"
-            no_stderr "get-sniff-force" "$td"    get --sniff-force "${exprs[@]}" "$path"
-            no_stderr "get-sniff-paranoid" "$td" get --sniff-paranoid "${exprs[@]}" "$path"
+            no_stderr get-sniff-default "$td"  get "${exprs[@]}" "$path"
+            no_stderr get-sniff-force "$td"    get --sniff-force "${exprs[@]}" "$path"
+            no_stderr get-sniff-paranoid "$td" get --sniff-paranoid "${exprs[@]}" "$path"
         done < "$sinput0"
 
         end
@@ -379,30 +379,30 @@ while (($# > 0)); do
         start "run..."
 
         while IFS= read -r -d $'\0' path; do
-            no_stderr "run-cat" "$td"  run cat "$path"
-            no_stderr "run-diff" "$td" run -n 2 -- diff "$path" "$path"
+            no_stderr run-cat "$td"  run cat "$path"
+            no_stderr run-diff "$td" run -n 2 -- diff "$path" "$path"
         done < "$sinput0"
 
         end
 
         start "stream --format=raw..."
 
-        no_stderr_selfsame "stream-raw" "$td"   "$idir" "$input0" stream --format=raw "${exprs[@]}"
-        no_stderr_selfsame "stream-raw-u" "$td" "$idir" "$input0" stream --format=raw -u "${exprs[@]}"
+        no_stderr_selfsame stream-raw "$td"   "$idir" "$input0" stream --format=raw "${exprs[@]}"
+        no_stderr_selfsame stream-raw-u "$td" "$idir" "$input0" stream --format=raw -u "${exprs[@]}"
 
         end
 
         start "stream --format=json..."
 
-        no_stderr_selfsame "stream-json" "$td"   "$idir" "$input0" stream --format=json "${exprs[@]}"
-        no_stderr_selfsame "stream-json-u" "$td" "$idir" "$input0" stream --format=json -u "${exprs[@]}"
+        no_stderr_selfsame stream-json "$td"   "$idir" "$input0" stream --format=json "${exprs[@]}"
+        no_stderr_selfsame stream-json-u "$td" "$idir" "$input0" stream --format=json -u "${exprs[@]}"
 
         end
 
         #start "stream --format=cbor..."
 
-        #no_stderr_selfsame "stream-cbor" "$td"   "$idir" "$input0" stream --format=cbor "${exprs[@]}"
-        #no_stderr_selfsame "stream-cbor-u" "$td" "$idir" "$input0" stream --format=cbor -u "${exprs[@]}"
+        #no_stderr_selfsame stream-cbor "$td"   "$idir" "$input0" stream --format=cbor "${exprs[@]}"
+        #no_stderr_selfsame stream-cbor-u "$td" "$idir" "$input0" stream --format=cbor -u "${exprs[@]}"
 
         #end
     fi
