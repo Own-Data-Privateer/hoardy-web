@@ -2092,17 +2092,18 @@ def cmd_mirror(cargs: _t.Any) -> None:
     committed: dict[int, PathType] = {}
     done: dict[int, PathType | None] = {}
 
-    def get_abs_out_path(rrexpr: ReqresExpr[_t.Any]) -> PathType:
+    def get_rel_out_path(rrexpr: ReqresExpr[_t.Any]) -> PathType:
         try:
             return committed[id(rrexpr)]
         except KeyError:
             rrexpr.values["num"] = 0
             def_out_path = output_format % rrexpr
             rrexpr.values["num"] = seen_counter.count(def_out_path)
-            rel_out_path = _os.path.join(destination, output_format % rrexpr)
-            committed[id(rrexpr)] = abs_out_path = _os.path.abspath(rel_out_path)
-            mem.consumption += 8 + len(abs_out_path)
-            return abs_out_path
+            committed[id(rrexpr)] = rel_out_path = _os.path.join(
+                destination, output_format % rrexpr
+            )
+            mem.consumption += 8 + len(rel_out_path)
+            return rel_out_path
 
     if cargs.default_input_filters:
         cargs.status_re += [default_input_status_re]
@@ -2217,8 +2218,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
     ) -> PathType:
         trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime))
         trrexpr.values["num"] = 0
-        rel_out_path: PathType = _os.path.join(destination, output_format % trrexpr)
-        return _os.path.abspath(rel_out_path)
+        return _os.path.join(destination, output_format % trrexpr)
 
     class Mutable:
         n: int = 0
@@ -2229,7 +2229,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
         stime: Timestamp,
         net_url: URLType,
         rrexpr: ReqresExpr[DeferredSourceType],
-        abs_out_path: PathType,
+        rel_out_path: PathType,
         enqueue: bool,
         new_queue: Queue,
         level: int,
@@ -2288,7 +2288,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
         try:
             done[id(rrexpr)] = None  # (breakCycles)
 
-            document_dir = _os.path.dirname(abs_out_path)
+            document_dir = _os.path.dirname(rel_out_path)
 
             def remap_url(
                 unet_url: URLType,
@@ -2334,7 +2334,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
                 if uobj is None:
                     # unavailable
-                    uabs_out_path = None
+                    urel_out_path = None
                 else:
                     ustime, urrexpr = uobj
                     urequest_id = get_request_id(unet_url, urrexpr)
@@ -2343,7 +2343,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                     if is_requisite:
                         # use content_destination path here
                         try:
-                            uabs_out_path = done[id(urrexpr)]
+                            urel_out_path = done[id(urrexpr)]
                         except KeyError:
                             # unqueue it
                             for q in (new_queue, queue):
@@ -2358,11 +2358,11 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
                             # render it immediately
                             # NB: (breakCycles) breaks dependency cycles that can make this loop infinitely
-                            uabs_out_path = render(ustime, unet_url, urrexpr, get_abs_out_path(urrexpr), enqueue, new_queue, level + 1)  # fmt: skip
+                            urel_out_path = render(ustime, unet_url, urrexpr, get_rel_out_path(urrexpr), enqueue, new_queue, level + 1)  # fmt: skip
                             urrexpr.unload()
                     elif id(urrexpr) in done:
                         # nothing to do
-                        uabs_out_path = get_abs_out_path(urrexpr)
+                        urel_out_path = get_rel_out_path(urrexpr)
                         # NB: will be unloaded already
                     elif (
                         upage_id in new_queue
@@ -2371,37 +2371,40 @@ def cmd_mirror(cargs: _t.Any) -> None:
                         or urequest_id in queue
                     ):
                         # nothing to do
-                        uabs_out_path = get_abs_out_path(urrexpr)
+                        urel_out_path = get_rel_out_path(urrexpr)
                         if mem.consumption > max_memory_mib:
                             urrexpr.unload()
                     elif enqueue:
-                        uabs_out_path = get_abs_out_path(urrexpr)
+                        urel_out_path = get_rel_out_path(urrexpr)
                         new_queue[upage_id] = uobj
                         report_queued(ustime, unet_url, upurl.pretty_net_url, urrexpr.source, level + 1)  # fmt: skip
                         if mem.consumption > max_memory_mib:
                             rrexpr.unload()
                     else:
                         # this will not be mirrored
-                        uabs_out_path = None
+                        urel_out_path = None
                         # NB: Not setting `committed[id(rrexpr)] = None` here
                         # because it might be a requisite for another
                         # page. In which case, when not running with
                         # `--remap-all`, this page will void this
                         # `unet_url` unnecessarily, yes.
 
-                if uabs_out_path is None:
+                if urel_out_path is None:
                     if fallbacks is not None:
-                        uabs_out_path = remap_url_fallback(stime, upurl, fallbacks)
+                        urel_out_path = remap_url_fallback(stime, upurl, fallbacks)
                     else:
                         return None
 
                 if relative:
-                    uabs_out_path = _os.path.relpath(uabs_out_path, document_dir)
-                return path_to_url(uabs_out_path) + upurl.ofm + upurl.fragment
+                    out_path = _os.path.relpath(urel_out_path, document_dir)
+                else:
+                    out_path = _os.path.abspath(urel_out_path)
+
+                return path_to_url(out_path) + upurl.ofm + upurl.fragment
 
             rrexpr.remap_url = cached_remap_url(net_url, remap_url, handle_warning=handle_warning)
 
-            old_data = read_file_maybe(abs_out_path)
+            old_data = read_file_maybe(rel_out_path)
 
             data: bytes
             if skip_existing and old_data is not None:
@@ -2424,9 +2427,9 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
             try:
                 if copying:
-                    real_out_path = abs_out_path
+                    real_out_path = rel_out_path
                     if old_data != data:
-                        atomic_write(data, abs_out_path, allow_updates)
+                        atomic_write(data, rel_out_path, allow_updates)
                 else:
                     rrexpr.values["content"] = data
                     rrexpr.values["content_sha256"] = sha256_raw = _hashlib.sha256(data).digest()
@@ -2449,11 +2452,11 @@ def cmd_mirror(cargs: _t.Any) -> None:
                         )
 
                     if old_data != data:
-                        action_op(real_out_path, abs_out_path, allow_updates)
+                        action_op(real_out_path, rel_out_path, allow_updates)
 
                     stdout.write_str_ln(ispace + gettext("content_dst %s") % (real_out_path,))
 
-                stdout.write_str_ln(ispace + gettext("dst %s") % (abs_out_path,))
+                stdout.write_str_ln(ispace + gettext("dst %s") % (rel_out_path,))
                 stdout.flush()
 
                 done[id(rrexpr)] = real_out_path
@@ -2469,11 +2472,11 @@ def cmd_mirror(cargs: _t.Any) -> None:
                 raise
         except Failure as exc:
             if cargs.errors == "ignore":
-                return abs_out_path
+                return rel_out_path
             exc.elaborate("while processing `%s`", source.show_source())
             if cargs.errors != "fail":
                 _logging.error("%s", exc.get_message(gettext))
-                return abs_out_path
+                return rel_out_path
             # raise CatastrophicFailure instead
             raise CatastrophicFailure(exc) from exc
         except Exception:
@@ -2491,7 +2494,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
             _qpid, qobj = queue.popitem(False)
             qstime, qrrexpr = qobj
-            render(qstime, qrrexpr.net_url, qrrexpr, get_abs_out_path(qrrexpr), enqueue, new_queue, 0)  # fmt: skip
+            render(qstime, qrrexpr.net_url, qrrexpr, get_rel_out_path(qrrexpr), enqueue, new_queue, 0)  # fmt: skip
             qrrexpr.unload()
 
         queue = new_queue
