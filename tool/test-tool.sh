@@ -109,17 +109,6 @@ while (($# > 0)); do
 
     set_temp
 
-    uexprs=( \
-        -e net_url \
-        -e url \
-        -e pretty_url \
-    )
-    exprs=( \
-        "${uexprs[@]}" \
-        -e "net_url|to_ascii|sha256|take_prefix 2|to_hex" \
-        -e "response.body|eb|to_utf8|sha256|to_hex" \
-    )
-
     do_fixed_dir=1
     if [[ -z "$in_wine" ]]; then
         if [[ -f "$src" ]] && [[ "$src" =~ .*\.wrrb ]]; then
@@ -160,6 +149,17 @@ while (($# > 0)); do
             continue
         fi
     fi
+
+    uexprs=( \
+        -e net_url \
+        -e url \
+        -e pretty_url \
+    )
+    exprs=( \
+        "${uexprs[@]}" \
+        -e "net_url|to_ascii|sha256|take_prefix 2|to_hex" \
+        -e "response.body|eb|to_utf8|sha256|to_hex" \
+    )
 
     start "import bundle..."
 
