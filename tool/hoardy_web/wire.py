@@ -29,6 +29,7 @@ import idna as _idna
 
 from kisstdlib.failure import *
 from kisstdlib.parsing import *
+from kisstdlib.string_ext import quoter, safe_char
 
 
 def scheck(v: _t.Any, what: str, value: _t.Any, expected: _t.Any) -> None:
@@ -40,38 +41,6 @@ def scheck(v: _t.Any, what: str, value: _t.Any, expected: _t.Any) -> None:
             repr(expected),
             repr(value),
         )
-
-
-### Escaping stuff
-
-_miniquoters: dict[str, dict[str, str]] = {}
-
-
-def miniquote(x: str, blacklist: str) -> str:
-    """Like `urllib.parse.quote`, with a blacklist instead of whitelist."""
-    miniquoter: dict[str, str]
-    try:
-        miniquoter = _miniquoters[blacklist]
-    except KeyError:
-        # build a dictionary from characters to their quotes
-        miniquoter = {}
-        for b in range(0, 32):
-            miniquoter[chr(b)] = f"%{b:02X}"
-        for c in "%" + blacklist:
-            miniquoter[c] = f"%{ord(c):02X}"
-        _miniquoters[blacklist] = miniquoter
-
-    return "".join([miniquoter.get(c, c) for c in x])
-
-
-def miniescape(x: str, blacklist: str) -> str:
-    res = []
-    for c in x:
-        if c in blacklist:
-            res.append("\\" + c)
-        else:
-            res.append(c)
-    return "".join(res)
 
 
 ### URL parsing
@@ -196,20 +165,25 @@ def unparse_query(
     return "&".join(l)
 
 
+quote_path = quoter("%", "", safe_char("", "/?")).escape
+quote_key = quoter("%", "", safe_char("", "/&=")).escape
+quote_value = quoter("%", "", safe_char("", "/&")).escape
+
+
 def pp_to_path(parts: list[str]) -> str:
     """Turn URL path components list into a minimally-quoted path."""
-    return "/".join([miniquote(e, "/?") for e in parts])
+    return "/".join([quote_path(e) for e in parts])
 
 
 def qsl_to_path(qsl: _t.Sequence[tuple[str, str | None]]) -> str:
     """Turn URL query components list into a minimally-quoted path."""
     l = []
     for k, v in qsl:
-        k = miniquote(k, "/&=")
+        k = quote_key(k)
         if v is None:
             l.append(k)
         else:
-            v = miniquote(v, "/&")
+            v = quote_value(v)
             l.append(k + "=" + v)
     return "&".join(l)
 
@@ -696,7 +670,16 @@ def parse_extended_attribute(p: Parser) -> str:
 
 
 qcontent_body_re = _re.compile(r'([^"\\]*)')
-qcontent_ends_str = '"\\'
+
+
+def qcontent_escape(x: str) -> str:
+    res = []
+    for c in x:
+        if c in '\\"':
+            res.append("\\" + c)
+        else:
+            res.append(c)
+    return "".join(res)
 
 
 def parse_value(p: Parser, ends: list[str]) -> str:
@@ -801,7 +784,7 @@ def unparse_data_url(mime_type: str, params: Parameters, data: bytes) -> str:
         if len(v) == 0:
             continue
         res.append('="')
-        res.append(miniescape(v, qcontent_ends_str))
+        res.append(qcontent_escape(v))
         res.append('"')
     res += [
         ";base64,",

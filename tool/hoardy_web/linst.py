@@ -34,6 +34,7 @@ import urllib.parse as _up
 
 from kisstdlib.failure import *
 from kisstdlib.base import compose_pipe
+from kisstdlib.string_ext import abbrev
 
 LinstEnv = _t.Any  # TODO: _t.Callable[[str], _t.Any]
 LinstFunc = _t.Callable[[_t.Any, LinstEnv], _t.Any]
@@ -181,15 +182,6 @@ def linst_getenv(name: str) -> LinstAtom:
     return [], args0
 
 
-# TODO this move somewhere else
-def abbrev_(v: _t.AnyStr, n: int) -> _t.AnyStr:
-    vlen = len(v)
-    if vlen > n:
-        nn = n // 2
-        v = v[:nn] + v[vlen - nn :]
-    return v
-
-
 def linst_re_match(arg: _t.Any) -> _t.Callable[..., LinstFunc]:
     rec = _re.compile(arg)
 
@@ -294,11 +286,11 @@ linst_atoms: dict[str, tuple[str, LinstAtom]] = {
     ),
     "abbrev": (
         "leave the current value as-is if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters",
-        linst_apply1(int, abbrev_),
+        linst_apply1(int, lambda v, arg: abbrev(v, arg, False, False)),
     ),
     "abbrev_each": (
         "`abbrev arg` each element in a value `list`",
-        linst_apply1(int, lambda v, arg: list(map(lambda e: abbrev_(e, arg), v))),
+        linst_apply1(int, lambda v, arg: list(map(lambda e: abbrev(e, arg, False, False), v))),
     ),
     "replace": (
         "replace all occurences of the first argument in the current value with the second argument, casts arguments to the same type as the current value",
