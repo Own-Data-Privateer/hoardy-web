@@ -26,7 +26,11 @@
 <ul>
 <li><a href="#update-your-mirror-incrementally" id="toc-update-your-mirror-incrementally">Update your mirror incrementally</a></li>
 <li><a href="#treat-missing-links-exactly-like-wget--mpk-does" id="toc-treat-missing-links-exactly-like-wget--mpk-does">Treat missing links exactly like <code>wget -mpk</code> does</a></li>
-<li><a href="#mirror-a-subset-of-archived-data" id="toc-mirror-a-subset-of-archived-data">Mirror a subset of archived data</a></li>
+<li><a href="#mirror-a-subset-of-archived-data" id="toc-mirror-a-subset-of-archived-data">Mirror a subset of archived data</a>
+<ul>
+<li><a href="#by-limiting-inputs-by-using-a-symlink-hierarchy" id="toc-by-limiting-inputs-by-using-a-symlink-hierarchy">… by limiting inputs by using a symlink hierarchy</a></li>
+<li><a href="#by-limiting-inputs-with-filters---root--and---depth" id="toc-by-limiting-inputs-with-filters---root--and---depth">… by limiting inputs with filters, <code>--root-*</code>, and <code>--depth</code></a></li>
+</ul></li>
 <li><a href="#prioritize-some-files-over-others" id="toc-prioritize-some-files-over-others">Prioritize some files over others</a></li>
 <li><a href="#control-which-versions-visits-get-mirrored" id="toc-control-which-versions-visits-get-mirrored">Control which versions (visits) get mirrored</a></li>
 <li><a href="#content-addressed-outputs-and-de-duplication" id="toc-content-addressed-outputs-and-de-duplication">Content-addressed outputs and de-duplication</a></li>
@@ -518,7 +522,7 @@ Obviously, using `--remap-open` or `--remap-semi` will make incremental updates 
 
 ### Mirror a subset of archived data
 
-#### .. by using a symlink hierarchy
+#### ... by limiting inputs by using a symlink hierarchy
 
 The simplest way to mirror a subset of your data is to run one of `hoardy-web organize --symlink --latest` commands described above, and then do something like this:
 
@@ -528,7 +532,7 @@ hoardy-web mirror --to ~/hoardy-web/mirror5 ~/hoardy-web/latest/archiveofourown.
 
 thus mirroring everything ever archived from <https://archiveofourown.org>.
 
-#### ... by input filters, `--root-*`, and `--depth`
+#### ... by limiting inputs with filters, `--root-*`, and `--depth`
 
 As an alternative to (or in combination with) keeping a symlink hierarchy of latest versions, you can limit the set of files `hoardy-web mirror` will consider for `mirror`ing by setting some input filters, e.g.:
 
