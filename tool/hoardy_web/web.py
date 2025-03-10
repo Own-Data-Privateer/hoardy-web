@@ -34,7 +34,7 @@ import html5lib.filters.optionaltags as _h5ot
 import tinycss2 as _tcss
 
 from kisstdlib.failure import *
-from kisstdlib.util import map_optional, compose_calls
+from kisstdlib.base import map_optional, compose_pipe
 
 from .wire import *
 from .mime import *
@@ -1143,7 +1143,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
     if not opts.optional_tags:
         stages.append(_h5ot.Filter)
 
-    pipe = compose_calls(stages)
+    pipe = compose_pipe(stages)
 
     return (
         lambda base_url, remap_url, headers, nodes: pipe(

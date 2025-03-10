@@ -18,6 +18,8 @@ s/^\(#\+\) /#\1 /
 s/^\(#\+\) \(hoardy-web[^[({]*\) [[({].*/\1 \2/
 '
 
+    echo
+
     ./test-tool.sh --help | sed '
 s/^# usage: \(.*\)$/# Development: `\1`/
 '

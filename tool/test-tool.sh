@@ -2,6 +2,8 @@
 
 #set -x
 
+. ../vendor/kisstdlib/devscript/test-cli-lib.sh
+
 usage() {
     cat << EOF
 # usage: $0 [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]
@@ -43,8 +45,10 @@ Sanity check and test \`hoardy-web\` command-line interface.
 EOF
 }
 
+export PYTHONPATH="$PWD:$PYTHONPATH"
+
 in_wine=
-raw() {
+self() {
     if [[ -z "$in_wine" ]]; then
         python3 -m hoardy_web "$@"
     else
@@ -52,40 +56,40 @@ raw() {
     fi
 }
 
-no_stderr_selfsame() {
-    local target="$1"
-    local dst="$2"
+ok_selfsame() {
+    local got="$1"
+    local input="$2"
+    local stdin0="$3"
+    shift 3
+
+    ok_stdio2 "$got.out" "$@" "$input"
+    ok_stdio2 "$got.stdin0.out" "$@" --stdin0 < "$stdin0"
+    equal_file "$got.out" "$got.stdin0.out"
+}
+
+fixed_stdio() {
+    local src="$1"
+    local got="$2"
+    shift 2
+
+    ok_stdio2 "$got.out" "$@"
+    sed -i "s%$tmpdir/%./%g" "$got.out"
+    fixed_file "$src" "$got.out"
+}
+
+fixed_stdio_selfsame() {
+    local src="$1"
+    local got="$2"
     local input="$3"
     local stdin0="$4"
     shift 4
 
-    ok_mixed "$target" "$dst" "$@" "$input"
-    ok_mixed "$target.stdin0" "$dst" "$@" --stdin0 < "$stdin0"
-    equal_file "$target: selfsame: $*" "$dst/$target.out" "$dst/$target.stdin0.out"
+    ok_selfsame "$got" "$input" "$stdin0" "$@"
+    sed -i "s%$tmpdir/%./%g" "$got.out"
+    fixed_file "$src" "$got.out"
 }
 
-fixed_output_selfsame() {
-    local target="$1"
-    local src="$2"
-    local dst="$3"
-    local input="$4"
-    local stdin0="$5"
-    shift 5
-
-    no_stderr_selfsame "$target" "$dst" "$input" "$stdin0" "$@"
-    sed -i "s%$dst/%./%g" "$dst/$target.out"
-    fixed_target "$target.out" "$src" "$dst"
-}
-
-repath() {
-    sed 's%/%\\%g; s%^%Z:%' <<< "$1"
-}
-
-repath_many() {
-    sed -z 's%/%\\%g; s%^%Z:%'
-}
-
-. ./test-cli-lib.sh
+[[ $# < 1 ]] && die "need at least one source"
 
 opts=1
 subset=
@@ -107,26 +111,26 @@ while (($# > 0)); do
     src=$1
     shift
 
-    set_temp
+    set_tmpdir
 
     do_fixed_dir=1
     if [[ -z "$in_wine" ]]; then
         if [[ -f "$src" ]] && [[ "$src" =~ .*\.wrrb ]]; then
             # these can be made with `cat`ting a bunch of .wrr files together
-            echo "# Testing fixed-outputness on bundle $src in $td ..."
-            stdin0="$td/input"
+            echo "# Testing fixed-outputness on bundle $src in $tmpdir ..."
+            stdin0="$tmpdir/input"
             find "$src" -type f -print0 > "$stdin0"
         elif [[ -f "$src" ]]; then
             # these can be made with `hoardy-web find -z`
-            echo "# Testing fixed-outputness on stdin0 $src in $td ..."
+            echo "# Testing fixed-outputness on stdin0 $src in $tmpdir ..."
             stdin0="$src"
         elif [[ -d "$src" ]]; then
-            stdin0="$td/input"
+            stdin0="$tmpdir/input"
             if [[ -z "$subset" ]]; then
-                echo "# Testing fixed-outputness on whole dir $src in $td ..."
+                echo "# Testing fixed-outputness on whole dir $src in $tmpdir ..."
                 find "$src" -type f -print0 | sort -z > "$stdin0"
             else
-                echo "# Testing fixed-outputness on a random subset (n=$subset) of dir $src in $td ..."
+                echo "# Testing fixed-outputness on a random subset (n=$subset) of dir $src in $tmpdir ..."
                 find "$src" -type f -print0 | shuf -z | head -zn "$subset" > "$stdin0"
                 do_fixed_dir=
             fi
@@ -136,14 +140,14 @@ while (($# > 0)); do
         fi
     else
         if [[ -f "$src" ]] && [[ "$src" =~ .*\.wrrb ]]; then
-            echo "# Testing fixed-outputness on bundle $src in $td ..."
+            echo "# Testing fixed-outputness on bundle $src in $tmpdir ..."
         elif [[ -f "$src" ]]; then
             error "testing on $src is not supported"
             continue
         elif [[ -d "$src" ]]; then
-            echo "# Testing fixed-outputness on whole dir $src in $td ..."
-            find "$src" -type f -print0 | repath_many > "$td/src"
-            src="$td/src"
+            echo "# Testing fixed-outputness on whole dir $src in $tmpdir ..."
+            find "$src" -type f -print0 | win32path0_many > "$tmpdir/src"
+            src="$tmpdir/src"
         else
             error "can't run tests on $src"
             continue
@@ -161,161 +165,160 @@ while (($# > 0)); do
         -e "response.body|eb|to_utf8|sha256|to_hex" \
     )
 
-    start "import bundle..."
+    cd "$tmpdir"
+
+    start "import bundle"
 
     if [[ -z "$in_wine" ]]; then
-        no_stderr import-bundle "$td" import bundle --quiet --stdin0 --to "$td/import-bundle" < "$stdin0"
+        ok_no_stderr self import bundle --quiet --stdin0 --to import-bundle < "$stdin0"
     else
-        ok_raw import bundle --quiet --to "$(repath "$td/import-bundle")" "$(repath "$src")"
+        ok self import bundle --quiet --to import-bundle "$(win32path "$src")"
     fi
-    [[ -n "$do_fixed_dir" ]] && fixed_dir import-bundle "$src" "$td"
+    [[ -n "$do_fixed_dir" ]] && fixed_dir "$src" import-bundle
 
     end
 
-    idir="$td/import-bundle"
+    idir=import-bundle
 
-    input0="$td/input0"
+    input0=input0
     find "$idir" -type f -print0 | sort -z > "$input0"
 
     if [[ -n "$short" ]]; then
-        sinput0="$td/sinput0"
+        sinput0=sinput0
         cat "$input0" | shuf -z | head -zn "$short" > "$sinput0"
     else
         sinput0="$input0"
     fi
 
     if [[ -z "$in_wine" ]]; then
-        start "filter out \`.part\`s..."
+        start "filter out \`.part\`s"
 
-        ok_mixed dotpart.1 "$td" stream --format=raw -ue url "$idir"
+        ok_stdio2 dotpart.1.out self stream --format=raw -ue url "$idir"
 
         while IFS= read -r -d $'\0' fname; do
             cp "$fname" "$fname.part"
         done < "$sinput0"
 
-        ok_mixed dotpart.2 "$td" stream --errors skip --format=raw -ue url "$idir"
+        ok_stdio2 dotpart.2.out self stream --errors skip --format=raw -ue url "$idir"
 
         while IFS= read -r -d $'\0' fname; do
             rm "$fname.part"
         done < "$sinput0"
 
-        equal_file "\`.part\`s are ignored" "$td/dotpart.1.out" "$td/dotpart.2.out"
+        equal_file dotpart.1.out dotpart.2.out
 
         end
 
-        start "find..."
+        start find
 
-        fixed_output_selfsame find-200-1024 "$src" "$td" "$idir" "$input0" \
-                              find --status-re .200C --and "response.body|len|> 1024"
+        fixed_stdio_selfsame "$src" find-200-1024 "$idir" "$input0" \
+                             self find --status-re .200C --and "response.body|len|> 1024"
 
-        fixed_output_selfsame find-html-potter "$src" "$td" "$idir" "$input0" \
-                              find --response-mime text/html --grep-re '\bPotter\b'
-
-        end
-
-        start "pprint..."
-
-        no_stderr_selfsame pprint "$td" "$idir" "$input0" pprint
-        no_stderr_selfsame pprint-u "$td" "$idir" "$input0" pprint -u
+        fixed_stdio_selfsame "$src" find-html-potter "$idir" "$input0" \
+                             self find --response-mime text/html --grep-re '\bPotter\b'
 
         end
 
-        start "stream..."
+        start pprint
 
-        no_stderr_selfsame stream "$td" "$idir" "$input0" stream "${exprs[@]}"
-        no_stderr_selfsame stream-u "$td" "$idir" "$input0" stream -u "${exprs[@]}"
+        ok_selfsame pprint "$idir" "$input0" self pprint
+        ok_selfsame pprint-u "$idir" "$input0" self pprint -u
 
         end
 
-        start "organize..."
+        start stream
 
-        no_stderr organize-copy "$td" \
-                  organize --quiet --copy --to "$td/organize" "$idir"
-        equal_dir "organize-copy == import-bundle" "$td/organize" "$idir"
+        ok_selfsame stream "$idir" "$input0" self stream "${exprs[@]}"
+        ok_selfsame stream-u "$idir" "$input0" self stream -u "${exprs[@]}"
 
-        no_stderr organize-hardlink "$td" \
-                  organize --quiet --hardlink --to "$td/organize2" "$td/organize"
-        equal_dir "organize-hardlink == organize-copy" "$td/organize2" "$idir"
+        end
 
-        no_stderr organize-symlink "$td" \
-                  organize --quiet --symlink --output hupq_msn \
-                  --to "$td/organize3" "$td/organize"
+        start organize
+
+        ok_no_stderr self organize --quiet --copy --to organize "$idir"
+        equal_dir organize "$idir"
+
+        ok_no_stderr self organize --quiet --hardlink --to organize2 organize
+        equal_dir organize2 "$idir"
+
+        ok_no_stderr self organize --quiet --symlink --output hupq_msn \
+                       --to organize3 organize
 
         {
-            ok_raw organize --copy --to "$td/organize" "$td/organize2"
-            ok_raw organize --hardlink --to "$td/organize" "$td/organize2"
-            ok_raw organize --copy --to "$td/organize2" "$td/organize"
-            ok_raw organize --hardlink --to "$td/organize2" "$td/organize"
+            ok self organize --copy --to organize organize2
+            ok self organize --hardlink --to organize organize2
+            ok self organize --copy --to organize2 organize
+            ok self organize --hardlink --to organize2 organize
 
-            ok_raw organize --hardlink --to "$td/organize" "$td/organize3"
-            ok_raw organize --symlink --output hupq_msn --to "$td/organize3" "$td/organize"
-        } &> "$td/reorganize-log"
+            ok self organize --hardlink --to organize organize3
+            ok self organize --symlink --output hupq_msn --to organize3 organize
+        } &> reorganize.log
 
-        if [[ -s "$td/reorganize-log" ]]; then
-            cat "$td/reorganize-log"
+        if [[ -s reorganize.log ]]; then
+            cat reorganize.log
             die "re-organize is not a noop"
         fi
 
         end
 
-        start "organize --symlink --latest..."
+        start "organize --symlink --latest"
 
-        fixed_output organize-sl "$src" "$td" \
-                     organize --symlink --latest --output hupq \
-                     --to "$td/organize-sl" \
-                     "$idir"
+        fixed_stdio "$src" organize-sl \
+                    self organize --symlink --latest --output hupq \
+                    --to organize-sl \
+                    "$idir"
 
-        fixed_output organize-sls "$src" "$td" \
-                     organize --symlink --latest --output hupq \
-                     --paths-sorted --walk-sorted \
-                     --to "$td/organize-sls" \
-                     "$idir"
+        fixed_stdio "$src" organize-sls \
+                    self organize --symlink --latest --output hupq \
+                    --paths-sorted --walk-sorted \
+                    --to organize-sls \
+                    "$idir"
 
         # TODO: this, currently broken
-        # equal_dir "organize-sls == organizes-sl" "$td/organize-sl" "$td/organize-sls"
+        # equal_dir organize-sl organize-sls
 
         lines=$(cat "$input0" | tr '\0' '\n' | wc -l)
 
         cat "$input0" | head -zn $((lines/3 + 1)) | \
-            fixed_output organize-seq1 "$src" "$td" \
-                         organize --symlink --latest --output hupq \
-                         --to "$td/organize-seq" --stdin0
+            fixed_stdio "$src" organize-seq1 \
+                        self organize --symlink --latest --output hupq \
+                        --to organize-seq --stdin0
 
         cat "$input0" | head -zn $((lines*2/3 + 1)) | \
-            fixed_output organize-seq2 "$src" "$td" \
-                         organize --symlink --latest --output hupq \
-                         --to "$td/organize-seq" --stdin0
+            fixed_stdio "$src" organize-seq2 \
+                        self organize --symlink --latest --output hupq \
+                        --to organize-seq --stdin0
 
         cat "$input0" | tail -zn $((lines*2/3 + 1)) | \
-            fixed_output organize-seq3 "$src" "$td" \
-                         organize --symlink --latest --output hupq \
-                         --to "$td/organize-seq" --stdin0
+            fixed_stdio "$src" organize-seq3 \
+                        self organize --symlink --latest --output hupq \
+                        --to organize-seq --stdin0
 
-        equal_dir "organize-seq = organize-sl" "$td/organize-sl" "$td/organize-seq"
+        equal_dir organize-sl organize-seq
 
         # ensure `organize` did not touch the source dir
-        describe-dir --no-mode --no-mtime "$td/import-bundle" > "$td/import-bundle.describe-dir.2"
-        equal_file "organize-seq is src-pure" "$td/import-bundle.describe-dir" "$td/import-bundle.describe-dir.2"
+        describe-forest import-bundle > import-bundle.describe-dir.2
+        equal_file import-bundle.describe-dir import-bundle.describe-dir.2
 
         end
     fi
 
-    start "serve archival..."
+    start "serve archival"
     # feed results of `import bundle` to `serve` via `curl`, then check
     # that the results are the same
 
-    mkdir -p "$td/serve"
+    mkdir -p serve
     if [[ -z "$in_wine" ]]; then
-        python3 -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to "$td/serve" &
+        python3 -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to serve &
     else
-        wine python -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to "$(repath "$td/serve")" &
+        wine python -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to serve &
     fi
-    tpid=$!
+    tmppid=$!
     sleep 3
 
     # just to be sure
-    curl "http://127.1.1.1:3210/hoardy-web/server-info" > "$td/serve.info" 2> /dev/null
-    fixed_target serve.info "$src" "$td"
+    curl "http://127.1.1.1:3210/hoardy-web/server-info" > serve.info 2> /dev/null
+    fixed_file "$src" serve.info
 
     # feed it some data
     while IFS= read -r -d $'\0' fname; do
@@ -323,23 +326,20 @@ while (($# > 0)); do
     done < "$sinput0"
 
     # kill immediately, which must work
-    kill "$tpid"
-    tpid=
+    kill "$tmppid"
+    tmppid=
 
     # ensure no .part files are left
-    find "$td/serve" -name '*.part' > "$td/serve.parts"
+    find serve -name '*.part' > serve.parts
 
-    if [[ -s "$td/serve.parts" ]]; then
-        cat "$td/serve.parts"
+    if [[ -s serve.parts ]]; then
+        cat serve.parts
         error "serve left some \`.part\` files"
     fi
 
     # check equality to import-bundle
-    tdlen=${#td}
     while IFS= read -r -d $'\0' fname; do
-        fname=${fname:$tdlen}
-        fname=${fname#/import-bundle/}
-        if ! diff "$td/import-bundle/$fname" "$td/serve/default/$fname"; then
+        if ! diff "$fname" "serve/default/${fname#import-bundle/}" > /dev/null ; then
             error "$fname is not the same"
         fi
     done < "$sinput0"
@@ -347,70 +347,68 @@ while (($# > 0)); do
     end
 
     if [[ -z "$in_wine" ]]; then
-        start "mirror urls..."
+        start "mirror urls"
 
-        fixed_output mirror-urls "$src" "$td" \
-            mirror --copy --to "$td/mirror-urls" --output hupq_n \
-            "${uexprs[@]}" \
-            "$idir"
-        [[ -n "$do_fixed_dir" ]] && fixed_dir mirror-urls "$src" "$td"
-
-        end
-
-        start "mirror responses..."
-
-        fixed_output mirror-responses "$src" "$td" \
-           mirror --to "$td/mirror-responses" --output hupq_n \
-           "$idir"
-        [[ -n "$do_fixed_dir" ]] && fixed_dir mirror-responses "$src" "$td"
+        fixed_stdio "$src" mirror-urls \
+                    self mirror --copy --to mirror-urls --output hupq_n \
+                    "${uexprs[@]}" \
+                    "$idir"
+        [[ -n "$do_fixed_dir" ]] && fixed_dir "$src" mirror-urls
 
         end
 
-        start "get..."
+        start "mirror responses"
+
+        fixed_stdio "$src" mirror-responses \
+                    self mirror --to mirror-responses --output hupq_n \
+                    "$idir"
+        [[ -n "$do_fixed_dir" ]] && fixed_dir "$src" mirror-responses
+
+        end
+
+        start get
 
         while IFS= read -r -d $'\0' path; do
-            no_stderr get-sniff-default "$td"  get "${exprs[@]}" "$path"
-            no_stderr get-sniff-force "$td"    get --sniff-force "${exprs[@]}" "$path"
-            no_stderr get-sniff-paranoid "$td" get --sniff-paranoid "${exprs[@]}" "$path"
+            ok_no_stderr self get "${exprs[@]}" "$path"
+            ok_no_stderr self get --sniff-force "${exprs[@]}" "$path"
+            ok_no_stderr self get --sniff-paranoid "${exprs[@]}" "$path"
         done < "$sinput0"
 
         end
 
-        start "run..."
+        start run
 
         while IFS= read -r -d $'\0' path; do
-            no_stderr run-cat "$td"  run cat "$path"
-            no_stderr run-diff "$td" run -n 2 -- diff "$path" "$path"
+            ok_no_stderr self run cat "$path"
+            ok_no_stderr self run -n 2 -- diff "$path" "$path"
         done < "$sinput0"
 
         end
 
-        start "stream --format=raw..."
+        start "stream --format=raw"
 
-        no_stderr_selfsame stream-raw "$td"   "$idir" "$input0" stream --format=raw "${exprs[@]}"
-        no_stderr_selfsame stream-raw-u "$td" "$idir" "$input0" stream --format=raw -u "${exprs[@]}"
-
-        end
-
-        start "stream --format=json..."
-
-        no_stderr_selfsame stream-json "$td"   "$idir" "$input0" stream --format=json "${exprs[@]}"
-        no_stderr_selfsame stream-json-u "$td" "$idir" "$input0" stream --format=json -u "${exprs[@]}"
+        ok_selfsame stream-raw   "$idir" "$input0" self stream --format=raw "${exprs[@]}"
+        ok_selfsame stream-raw-u "$idir" "$input0" self stream --format=raw -u "${exprs[@]}"
 
         end
 
-        #start "stream --format=cbor..."
+        start "stream --format=json"
 
-        #no_stderr_selfsame stream-cbor "$td"   "$idir" "$input0" stream --format=cbor "${exprs[@]}"
-        #no_stderr_selfsame stream-cbor-u "$td" "$idir" "$input0" stream --format=cbor -u "${exprs[@]}"
+        ok_selfsame stream-json    "$idir" "$input0" self stream --format=json "${exprs[@]}"
+        ok_selfsame stream-json-u  "$idir" "$input0" self stream --format=json -u "${exprs[@]}"
+
+        end
+
+        #start "stream --format=cbor"
+
+        #ok_selfsame stream-cbor    "$idir" "$input0" self stream --format=cbor "${exprs[@]}"
+        #ok_selfsame stream-cbor-u  "$idir" "$input0" self stream --format=cbor -u "${exprs[@]}"
 
         #end
     fi
 
-    rm -rf "$td"
+    cd /
+    rm -rf "$tmpdir"
 done
 
-echo "total: $errors errors"
-if ((errors > 0)); then
-    exit 1
-fi
+finish

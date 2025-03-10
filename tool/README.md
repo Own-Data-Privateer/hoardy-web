@@ -48,9 +48,11 @@
 <li><a href="#hoardy-web-stream" id="toc-hoardy-web-stream">hoardy-web stream</a></li>
 <li><a href="#hoardy-web-find" id="toc-hoardy-web-find">hoardy-web find</a></li>
 <li><a href="#hoardy-web-organize" id="toc-hoardy-web-organize">hoardy-web organize</a></li>
-<li><a href="#hoardy-web-import" id="toc-hoardy-web-import">hoardy-web import</a></li>
+<li><a href="#hoardy-web-import" id="toc-hoardy-web-import">hoardy-web import</a>
+<ul>
 <li><a href="#hoardy-web-import-wrrb" id="toc-hoardy-web-import-wrrb">hoardy-web import wrrb</a></li>
 <li><a href="#hoardy-web-import-mitmproxy" id="toc-hoardy-web-import-mitmproxy">hoardy-web import mitmproxy</a></li>
+</ul></li>
 <li><a href="#hoardy-web-mirror" id="toc-hoardy-web-mirror">hoardy-web mirror</a></li>
 <li><a href="#hoardy-web-serve" id="toc-hoardy-web-serve">hoardy-web serve</a></li>
 </ul></li>
@@ -846,7 +848,7 @@ Glossary: a `reqres` (`Reqres` when a type/class) is an instance of a structure 
   - `-h, --help`
   : show this help message and exit
   - `--markdown`
-  : show help messages formatted in Markdown
+  : show `--help` formatted in Markdown
 
 - subcommands:
   - `{pprint,print,inspect,get,run,spawn,stream,find,organize,import,mirror,serve}`
@@ -1048,6 +1050,10 @@ Glossary: a `reqres` (`Reqres` when a type/class) is an instance of a structure 
 Pretty-print given inputs to stdout.
 
 - options:
+  - `-h, --help`
+  : show this help message and exit
+  - `--markdown`
+  : show `--help` formatted in Markdown
   - `-q, --quiet`
   : don't print end-of-filtering warnings to stderr
   - `-u, --unabridged`
@@ -1113,6 +1119,12 @@ The end.
 - positional arguments:
   - `PATH`
   : input `WRR` file path
+
+- options:
+  - `-h, --help`
+  : show this help message and exit
+  - `--markdown`
+  : show `--help` formatted in Markdown
 
 - `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
@@ -1396,6 +1408,10 @@ Essentially, this is `{__prog__} get` into a temporary file for each given `PATH
   : input `WRR` file paths to be mapped into new temporary files
 
 - options:
+  - `-h, --help`
+  : show this help message and exit
+  - `--markdown`
+  : show `--help` formatted in Markdown
   - `-n NUM, --num-args NUM`
   : number of `PATH`s; default: `1`
 
@@ -1446,6 +1462,10 @@ The end.
 Esentially, this is a generalized `{__prog__} get`.
 
 - options:
+  - `-h, --help`
+  : show this help message and exit
+  - `--markdown`
+  : show `--help` formatted in Markdown
   - `-q, --quiet`
   : don't print end-of-filtering warnings to stderr
   - `-u, --unabridged`
@@ -1540,6 +1560,10 @@ Algorithm:
 The end.
 
 - options:
+  - `-h, --help`
+  : show this help message and exit
+  - `--markdown`
+  : show `--help` formatted in Markdown
   - `-q, --quiet`
   : don't print end-of-filtering warnings to stderr
 
@@ -1609,6 +1633,10 @@ Operations that could lead to accidental data loss are not permitted.
 E.g. `hoardy-web organize --move` will not overwrite any files, which is why the default `--output` contains `%(num)d`.
 
 - options:
+  - `-h, --help`
+  : show this help message and exit
+  - `--markdown`
+  : show `--help` formatted in Markdown
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
@@ -2219,6 +2247,12 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
 Use specified parser to parse data in each `INPUT` `PATH` into (a sequence of) reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
 In short, this is `hoardy-web organize --copy` for `INPUT` files that use different files formats.
 
+- options:
+  - `-h, --help`
+  : show this help message and exit
+  - `--markdown`
+  : show `--help` formatted in Markdown
+
 - file formats:
   - `{wrrb,bundle,mitmproxy,mitmdump}`
     - `wrrb (bundle)`
@@ -2226,11 +2260,15 @@ In short, this is `hoardy-web organize --copy` for `INPUT` files that use differ
     - `mitmproxy (mitmdump)`
     : convert `mitmproxy` stream dumps (files produced by `mitmdump`) into `WRR` files
 
-### hoardy-web import wrrb
+#### hoardy-web import wrrb
 
 Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence of `WRR` dumps) and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
 
 - options:
+  - `-h, --help`
+  : show this help message and exit
+  - `--markdown`
+  : show `--help` formatted in Markdown
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
@@ -2324,11 +2362,15 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   : permit overwrites to files under `OUTPUT_DESTINATION`;
     DANGEROUS! not recommended, importing to a new `OUTPUT_DESTINATION` with the default `--no-overwrite` and then `rsync`ing some of the files over to the old `OUTPUT_DESTINATION` is a safer way to do this
 
-### hoardy-web import mitmproxy
+#### hoardy-web import mitmproxy
 
 Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own parser) into a sequence of reqres and then generate and place their `WRR` dumps into separate `WRR` files under `OUTPUT_DESTINATION` with paths derived from their metadata.
 
 - options:
+  - `-h, --help`
+  : show this help message and exit
+  - `--markdown`
+  : show `--help` formatted in Markdown
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
@@ -2444,6 +2486,10 @@ The end.
 Essentially, this is a combination of `hoardy-web organize --copy` followed by in-place `hoardy-web get` which has the advanced URL remapping capabilities of `(*|/|&)(jumps|actions|reqs)` options available in its `scrub` function.
 
 - options:
+  - `-h, --help`
+  : show this help message and exit
+  - `--markdown`
+  : show `--help` formatted in Markdown
   - `--dry-run`
   : perform a trial run without actually performing any changes
   - `-q, --quiet`
@@ -2817,6 +2863,10 @@ Algorithm:
 The end.
 
 - options:
+  - `-h, --help`
+  : show this help message and exit
+  - `--markdown`
+  : show `--help` formatted in Markdown
   - `-q, --quiet`
   : don't don't print end-of-filtering warnings, don't print optional informational messages, and don't log HTTP requests to stderr
 

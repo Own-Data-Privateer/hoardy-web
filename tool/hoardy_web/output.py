@@ -25,8 +25,8 @@ import cbor2 as _cbor2
 
 from kisstdlib.failure import *
 from kisstdlib.io import *
+from kisstdlib.io.stdio import stdout as _stdout
 from kisstdlib.pyrepr import *
-from kisstdlib.io.stdio import *
 
 from .wrr import *
 
@@ -374,8 +374,8 @@ class RawStreamEncoder(StreamEncoder):
             encoders[str] = _t.cast(_t.Any, self.encode_raw_abridged)
         self.encoder = TIOEncoder(
             _io.BytesIO(),
-            self.terminator,
-            stdout.encoding,
+            encoding=_stdout.encoding,
+            eol=self.terminator,
             encoders=encoders,
             default=self.encode_raw,
         )

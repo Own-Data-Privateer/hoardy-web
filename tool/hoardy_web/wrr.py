@@ -29,15 +29,13 @@ import time as _time
 import typing as _t
 import urllib.parse as _up
 
-from decimal import Decimal
-
 import cbor2 as _cbor2
 
+from kisstdlib.base import Decimal, getattr_rec
 from kisstdlib.compression import *
 from kisstdlib.failure import *
+from kisstdlib.io.stdio import stdout as _stdout
 from kisstdlib.time import *
-from kisstdlib.util import getattr_rec
-import kisstdlib.io.stdio as _kstdio
 
 from .tracking import *
 from .linst import *
@@ -564,7 +562,7 @@ def linst_scrub() -> LinstAtom:
 
         scrubbers = make_scrubbers(scrub_opts)
 
-        def envfunc(rrexpr: _t.Any, v: _t.Any) -> _t.Any:  # pylint: disable=unused-argument
+        def envfunc(v: _t.Any, rrexpr: _t.Any) -> _t.Any:  # pylint: disable=unused-argument
             rrexpr = check_rrexpr("scrub", rrexpr)
 
             reqres: Reqres = rrexpr.reqres
@@ -1148,9 +1146,9 @@ def check_scrub(opts: str, url: str, ct: str, headers: Headers, data: str, eres:
         )
         x = ReqresExpr(UnknownSource(), t)
 
-        stdout = _kstdio.stdout
         res = x[f"response.body|eb|scrub response {opts}"].decode("utf-8")
         if res != eres:
+            stdout = _stdout
             stdout.write_ln("input:")
             stdout.write_ln("==== START ====")
             stdout.write_ln(data)

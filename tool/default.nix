@@ -1,9 +1,9 @@
 { pkgs ? import <nixpkgs> {}
 , lib ? pkgs.lib
-, kisstdlib ? import ../vendor/kisstdlib { inherit pkgs; }
+, developer ? false
+, kisstdlib ? import ../vendor/kisstdlib { inherit pkgs developer; }
 , cbor2 ? import ../vendor/cbor2 { inherit pkgs; }
 , source ? import ../source.nix { inherit pkgs; }
-, developer ? false
 , mitmproxySupport ? true
 }:
 
@@ -41,7 +41,7 @@ buildPythonApplication (rec {
     build twine pip mypy pytest black pylint
     pkgs.pandoc
 
-    kisstdlib # for `describe-dir` binary
+    kisstdlib # for `describe-forest` binary
   ];
 
   preBuild = "find . ; ./sanity.sh --check";

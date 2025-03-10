@@ -33,10 +33,10 @@ import typing as _t
 import urllib.parse as _up
 
 from kisstdlib.failure import *
-from kisstdlib.util import compose_env_calls
+from kisstdlib.base import compose_pipe
 
 LinstEnv = _t.Any  # TODO: _t.Callable[[str], _t.Any]
-LinstFunc = _t.Callable[[LinstEnv, _t.Any], _t.Any]
+LinstFunc = _t.Callable[[_t.Any, LinstEnv], _t.Any]
 LinstAtom = tuple[list[type], _t.Callable[..., LinstFunc]]
 
 
@@ -91,12 +91,7 @@ def _linst_compile(expr: str, lookup: _t.Callable[[str], LinstAtom]) -> LinstFun
     if len(pipe) == 0:
         raise LinstCompileError("empty pipe")
 
-    if len(pipe) == 1:
-        res = pipe[0]
-    else:
-        res = compose_env_calls(pipe)
-
-    _compile_cache[expr] = res
+    _compile_cache[expr] = res = compose_pipe(pipe)
     return res
 
 
@@ -138,7 +133,7 @@ def linst_cast_val(v: _t.Any, arg: _t.Any) -> _t.Any:
 
 def linst_const(data: _t.Any) -> LinstAtom:
     def args0() -> _t.Callable[..., LinstFunc]:
-        def envfunc(_env: LinstEnv, v: _t.Any) -> _t.Any:
+        def envfunc(v: _t.Any, _env: LinstEnv) -> _t.Any:
             return v if v is not None else data
 
         return envfunc
@@ -148,7 +143,7 @@ def linst_const(data: _t.Any) -> LinstAtom:
 
 def linst_apply0(func: _t.Any) -> LinstAtom:
     def args0() -> _t.Callable[..., LinstFunc]:
-        def envfunc(_env: LinstEnv, v: _t.Any) -> _t.Any:
+        def envfunc(v: _t.Any, _env: LinstEnv) -> _t.Any:
             return func(v)
 
         return envfunc
@@ -158,7 +153,7 @@ def linst_apply0(func: _t.Any) -> LinstAtom:
 
 def linst_apply1(typ: _t.Any, func: _t.Any) -> LinstAtom:
     def args1(arg: _t.Any) -> _t.Callable[..., LinstFunc]:
-        def envfunc(_env: LinstEnv, v: _t.Any) -> _t.Any:
+        def envfunc(v: _t.Any, _env: LinstEnv) -> _t.Any:
             return func(v, arg)
 
         return envfunc
@@ -168,7 +163,7 @@ def linst_apply1(typ: _t.Any, func: _t.Any) -> LinstAtom:
 
 def linst_apply2(typ1: _t.Any, typ2: _t.Any, func: _t.Any) -> LinstAtom:
     def args2(arg1: _t.Any, arg2: _t.Any) -> _t.Callable[..., LinstFunc]:
-        def envfunc(_env: LinstEnv, v: _t.Any) -> _t.Any:
+        def envfunc(v: _t.Any, _env: LinstEnv) -> _t.Any:
             return func(v, arg1, arg2)
 
         return envfunc
@@ -178,7 +173,7 @@ def linst_apply2(typ1: _t.Any, typ2: _t.Any, func: _t.Any) -> LinstAtom:
 
 def linst_getenv(name: str) -> LinstAtom:
     def args0() -> _t.Callable[..., LinstFunc]:
-        def envfunc(env: LinstEnv, v: _t.Any) -> _t.Any:
+        def envfunc(v: _t.Any, env: LinstEnv) -> _t.Any:
             return v if v is not None else env.get_value(name)  # TODO: env(name)
 
         return envfunc
@@ -187,7 +182,7 @@ def linst_getenv(name: str) -> LinstAtom:
 
 
 # TODO this move somewhere else
-def abbrev(v: _t.AnyStr, n: int) -> _t.AnyStr:
+def abbrev_(v: _t.AnyStr, n: int) -> _t.AnyStr:
     vlen = len(v)
     if vlen > n:
         nn = n // 2
@@ -198,7 +193,7 @@ def abbrev(v: _t.AnyStr, n: int) -> _t.AnyStr:
 def linst_re_match(arg: _t.Any) -> _t.Callable[..., LinstFunc]:
     rec = _re.compile(arg)
 
-    def envfunc(_env: LinstEnv, v: _t.Any) -> _t.Any:
+    def envfunc(v: _t.Any, _env: LinstEnv) -> _t.Any:
         m = rec.match(v)
         if m:
             return True
@@ -299,11 +294,11 @@ linst_atoms: dict[str, tuple[str, LinstAtom]] = {
     ),
     "abbrev": (
         "leave the current value as-is if if its length is less or equal than `arg` characters, otherwise take first `arg/2` followed by last `arg/2` characters",
-        linst_apply1(int, abbrev),
+        linst_apply1(int, abbrev_),
     ),
     "abbrev_each": (
         "`abbrev arg` each element in a value `list`",
-        linst_apply1(int, lambda v, arg: list(map(lambda e: abbrev(e, arg), v))),
+        linst_apply1(int, lambda v, arg: list(map(lambda e: abbrev_(e, arg), v))),
     ),
     "replace": (
         "replace all occurences of the first argument in the current value with the second argument, casts arguments to the same type as the current value",
@@ -362,7 +357,7 @@ class LinstEvaluator:
         return self.get_value(name)
 
     def eval_func(self, func: LinstFunc, v: _t.Any = None) -> _t.Any:
-        return func(self, v)  # TODO: func(self.get_value, v)
+        return func(v, self)  # TODO: func(v, self.get_value)
 
     def eval_expr(self, expr: str) -> _t.Any:
         try:
@@ -371,7 +366,7 @@ class LinstEvaluator:
             pass
 
         func = linst_compile(expr, self.lookup)
-        return func(self, None)  # TODO: func(self.get_value, None)
+        return func(None, self)  # TODO: func(None, self.get_value)
 
     def __getitem__(self, expr: str) -> _t.Any:
         # this is used in `format_string % self` expressions

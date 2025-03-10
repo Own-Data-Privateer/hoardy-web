@@ -25,6 +25,7 @@
 
     ${pkgs.git}/bin/git clone $src source
     ${pkgs.git}/bin/git clone $src/vendor/pako source/vendor/pako
+    ${pkgs.git}/bin/git clone $src/vendor/kisstdlib source/vendor/kisstdlib
     cp -a $src/extension/private source/extension || true
     patchShebangs source
     find source | grep -vF '/.git/'

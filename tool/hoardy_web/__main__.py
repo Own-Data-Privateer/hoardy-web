@@ -19,7 +19,6 @@
 
 import collections as _c
 import dataclasses as _dc
-import decimal as _dec
 import errno as _errno
 import hashlib as _hashlib
 import io as _io
@@ -36,61 +35,19 @@ import tempfile as _tempfile
 import typing as _t
 import urllib.parse as _up
 
-from gettext import gettext, ngettext
+from gettext import gettext
 
-from kisstdlib import argparse
-from kisstdlib.failure import *
+from kisstdlib import *
+from kisstdlib import argparse_ext as argparse
 from kisstdlib.fs import *
 from kisstdlib.io import *
-from kisstdlib.io.stdio import *
-from kisstdlib.logging import *
 from kisstdlib.sorted import SortedList, SortedIndex, nearer_to_than
-from kisstdlib.util import str_Exception
 
 from .filter import *
 from .wrr import *
 from .output import *
 
 __prog__ = "hoardy-web"
-
-
-def issue(pattern: str, *args: _t.Any) -> None:
-    message = pattern % args
-    if stderr.isatty():
-        stderr.write_str_ln("\033[31m" + message + "\033[0m")
-    else:
-        stderr.write_str_ln(message)
-    stderr.flush()
-
-
-def error(pattern: str, *args: _t.Any) -> None:
-    issue(gettext("error") + ": " + pattern, *args)
-
-
-def die(code: int, pattern: str, *args: _t.Any) -> _t.NoReturn:
-    error(pattern, *args)
-    _sys.exit(code)
-
-
-interrupt_msg = "\n" + gettext("Gently finishing up... Press ^C again to forcefully interrupt.")
-want_stop = False
-should_raise = True
-
-
-def sig_handler(sig: int, _frame: _t.Any) -> None:
-    global want_stop
-    global should_raise
-    want_stop = True
-    if should_raise:
-        raise KeyboardInterrupt()
-    if sig == _signal.SIGINT:
-        issue(interrupt_msg)
-    should_raise = True
-
-
-def handle_signals() -> None:
-    _signal.signal(_signal.SIGINT, sig_handler)
-    _signal.signal(_signal.SIGTERM, sig_handler)
 
 
 def pred_linst(expr: str, func: LinstFunc, rrexpr: ReqresExpr[_t.Any]) -> bool:
@@ -262,8 +219,8 @@ def elaborate_paths(paths: list[str | bytes]) -> None:
 def handle_paths(cargs: _t.Any) -> None:
     if cargs.stdin0:
         paths = stdin.read_all_bytes().split(b"\0")
-        last = paths.pop()
-        if last != b"":
+        end = paths.pop()
+        if end != b"":
             raise Failure("`--stdin0` input format error")
         cargs.paths += paths
 
@@ -294,7 +251,7 @@ def load_map_orderly(
             return
         seen_paths.add(abs_dir_or_file_path)
 
-    for path, _ in walk_orderly(
+    for path, _, _ in iter_subtree(
         dir_or_file_path,
         include_files=with_extension_not_in([".part", b".part"]),
         include_directories=False,
@@ -302,8 +259,7 @@ def load_map_orderly(
         follow_symlinks=follow_symlinks,
         handle_error=None if errors == "fail" else _logging.error,
     ):
-        if want_stop:
-            raise KeyboardInterrupt()
+        raise_first_delayed_signal()
 
         abs_path = _os.path.abspath(path)
         try:
@@ -345,16 +301,13 @@ def map_wrr_paths(
 ) -> None:
     def emit_many(rrexprs: _t.Iterator[ReqresExpr[_t.Any]]) -> None:
         for rrexpr in rrexprs:
-            if want_stop:
-                raise KeyboardInterrupt()
+            raise_first_delayed_signal()
 
             rrexpr.sniff = cargs.sniff
             if not filters_allow(rrexpr):
                 continue
             emit_func(rrexpr)
 
-    global should_raise
-    should_raise = False
     for exp_path in paths:
         load_map_orderly(
             loadf_func, emit_many, exp_path, order=cargs.walk_fs, errors=cargs.errors, **kwargs
@@ -371,7 +324,7 @@ def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.An
     try:
         from .mitmproxy import rrexprs_mitmproxy_loadf
     except ImportError as exc:
-        import_failed.append(("mitmproxy", str_Exception(exc)))
+        import_failed.append(("mitmproxy", get_traceback(exc)))
     else:
         have_mitmproxy = True
 
@@ -383,7 +336,7 @@ def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.An
             "while processing `%s`: failed to parse with `%s` parser: %s",
             path,
             parser,
-            str_Exception(exc),
+            get_traceback(exc),
         )
 
     def rrexprs_load(path: _t.AnyStr) -> _t.Iterator[ReqresExpr[_t.Any]]:
@@ -568,7 +521,7 @@ def cmd_stream(cargs: _t.Any) -> None:
         values: list[_t.Any] = []
         for expr, func in cargs.exprs:
             try:
-                values.append(func(rrexpr, None))
+                values.append(rrexpr.eval_func(func))
             except CatastrophicFailure as exc:
                 raise exc.elaborate("while evaluating `%s`", expr)
         stream.emit(rrexpr.source.show_source(), cargs.exprs, values)
@@ -1789,8 +1742,7 @@ def make_deferred_emit(
         return permitted, intent.source, (intent if intent.source is not old_rrexpr else None)
 
     def emit(new_rrexpr: ReqresExpr[DeferredSourceType]) -> None:
-        if want_stop:
-            raise KeyboardInterrupt()
+        raise_first_delayed_signal()
 
         new_rrexpr.values["num"] = 0
         def_out_path = output_format % new_rrexpr
@@ -2073,14 +2025,16 @@ def path_to_url(x: str) -> str:
 definitive_response_codes = frozenset([200, 204, 300, 404, 410])
 redirect_response_codes = frozenset([301, 302, 303, 307, 308])
 
+IndexedReqres = tuple[Timestamp, ReqresExpr[_t.Any]]
 
-def complete_response(_stime: Timestamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
-    response = rrexpr.reqres.response
+
+def complete_response(indexed: IndexedReqres) -> bool:
+    response = indexed[1].reqres.response
     return response is not None and response.complete
 
 
-def normal_document(stime: Timestamp, rrexpr: ReqresExpr[_t.Any]) -> bool:
-    return complete_response(stime, rrexpr) and rrexpr.reqres.request.method in ["GET", "DOM"]
+def normal_document(indexed: IndexedReqres) -> bool:
+    return complete_response(indexed) and indexed[1].reqres.request.method in ["GET", "DOM"]
 
 
 def cmd_mirror(cargs: _t.Any) -> None:
@@ -2163,10 +2117,11 @@ def cmd_mirror(cargs: _t.Any) -> None:
     max_depth: int = cargs.depth
     max_memory_mib = cargs.max_memory * 1024 * 1024
 
-    index_ideal = nearest if singletons else None
-    index: SortedIndex[URLType, Timestamp, ReqresExpr[_t.Any]] = SortedIndex()
+    index: SortedIndex[URLType, Timestamp, IndexedReqres] = SortedIndex(
+        key_key=identity, value_key=fst, ideal=nearest if singletons else None
+    )
 
-    Queue = _c.OrderedDict[RequestOrPageIDType, tuple[Timestamp, ReqresExpr[_t.Any]]]
+    Queue = _c.OrderedDict[RequestOrPageIDType, IndexedReqres]
     queue: Queue = _c.OrderedDict()
 
     if stdout.isatty():
@@ -2213,7 +2168,8 @@ def cmd_mirror(cargs: _t.Any) -> None:
         def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
             stime = rrexpr.stime
             net_url = rrexpr.net_url
-            if not index.insert(net_url, stime, rrexpr, index_ideal):
+            indexed = (stime, rrexpr)
+            if not index.insert(net_url, indexed):
                 return
 
             unqueued = True
@@ -2226,7 +2182,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                     if qobj is not None:
                         qstime, _qrrexpr = qobj
                         if nearer_to_than(nearest, stime, qstime):
-                            queue[pid] = (stime, rrexpr)
+                            queue[pid] = indexed
                             report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1, qstime)  # fmt: skip
                         unqueued = False
 
@@ -2234,7 +2190,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                 unqueued = False
                 pid = request_id if nearest is not None else page_id
                 #     ^ not `--all`                          ^ otherwise
-                queue[pid] = (stime, rrexpr)
+                queue[pid] = indexed
                 report_queued(stime, net_url, rrexpr.pretty_net_url, rrexpr.source, 1)  # fmt: skip
 
             if unqueued or mem.consumption > max_memory_mib:
@@ -2327,7 +2283,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
         def handle_warning(msg: str, *args: _t.Any) -> None:
             ispace = " " * (2 * (level + 1))
-            issue(ispace + gettext(msg), *args)
+            printf_err(ispace + gettext(msg), *args, color=1)
 
         try:
             done[id(rrexpr)] = None  # (breakCycles)
@@ -2340,14 +2296,13 @@ def cmd_mirror(cargs: _t.Any) -> None:
                 link_type: LinkType,
                 fallbacks: list[str] | None,
             ) -> URLType | None:
-                if want_stop:
-                    raise KeyboardInterrupt()
+                raise_first_delayed_signal()
 
                 is_requisite = link_type == LinkType.REQ
                 ustime = stime if nearest is None or is_requisite else nearest
                 upredicate = normal_document if link_type != LinkType.ACTION else complete_response
 
-                uobj: tuple[Timestamp, ReqresExpr[_t.Any]] | None = None
+                uobj: IndexedReqres | None = None
                 again = True
                 while again:
                     again = False
@@ -2526,15 +2481,13 @@ def cmd_mirror(cargs: _t.Any) -> None:
             raise
 
     while len(queue) > 0:
-        if want_stop:
-            raise KeyboardInterrupt()
+        raise_first_delayed_signal()
 
         new_queue: Queue = _c.OrderedDict()
         enqueue = Mutable.depth < max_depth
 
         while len(queue) > 0:
-            if want_stop:
-                raise KeyboardInterrupt()
+            raise_first_delayed_signal()
 
             _qpid, qobj = queue.popitem(False)
             qstime, qrrexpr = qobj
@@ -2563,6 +2516,15 @@ def cmd_serve(cargs: _t.Any) -> None:
 
     PSpec = _t.ParamSpec("PSpec")
 
+    def with_no_signals(
+        func: _t.Callable[PSpec, BottleReturnType]
+    ) -> _t.Callable[PSpec, BottleReturnType]:
+        def decorated(*args: PSpec.args, **kwargs: PSpec.kwargs) -> BottleReturnType:
+            with no_signals():
+                return func(*args, **kwargs)
+
+        return decorated
+
     def with_plain_error(
         func: _t.Callable[PSpec, BottleReturnType]
     ) -> _t.Callable[PSpec, BottleReturnType]:
@@ -2572,13 +2534,13 @@ def cmd_serve(cargs: _t.Any) -> None:
                 return func(*args, **kwargs)
             except CatastrophicFailure as exc:
                 if not quiet:
-                    stderr.write_str_ln(str_Exception(exc))
+                    stderr.write_str_ln(get_traceback(exc))
                     stderr.flush()
                 bottle.response.status = 400
                 return exc.get_message(gettext)
             except Exception as exc:
                 if not quiet:
-                    stderr.write_str_ln(str_Exception(exc))
+                    stderr.write_str_ln(get_traceback(exc))
                     stderr.flush()
                 bottle.response.status = 500
                 return gettext("uncaught error: %s") % (str(exc),)
@@ -2587,7 +2549,7 @@ def cmd_serve(cargs: _t.Any) -> None:
 
     time_format = "%Y-%m-%d_%H:%M:%S"
     precision = 0
-    precision_delta = _dec.Decimal(10) ** -precision
+    precision_delta = Decimal(10) ** -precision
 
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
     destination = map_optional(
@@ -2598,7 +2560,7 @@ def cmd_serve(cargs: _t.Any) -> None:
     ignore_buckets = cargs.ignore_buckets
     default_bucket = cargs.default_bucket
 
-    compress = cargs.compress
+    compression = cargs.compression
     terminator = cargs.terminator
 
     do_replay = cargs.replay is not False
@@ -2621,13 +2583,17 @@ def cmd_serve(cargs: _t.Any) -> None:
 
     PathType: _t.TypeAlias = str
 
-    index_ideal = cargs.replay if cargs.replay is not False else anytime.end
-    index: SortedIndex[URLType, Timestamp, ReqresExpr[_t.Any]] = SortedIndex()
+    index: SortedIndex[URLType, Timestamp, IndexedReqres] = SortedIndex(
+        key_key=identity,
+        value_key=fst,
+        ideal=cargs.replay if cargs.replay is not False else anytime.end,
+    )
 
     def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
         stime = rrexpr.stime
         net_url = rrexpr.net_url
-        index.insert(net_url, stime, rrexpr, index_ideal)
+        indexed = (stime, rrexpr)
+        index.insert(net_url, indexed)
         rrexpr.unload()
 
     if do_replay:
@@ -2655,9 +2621,6 @@ def cmd_serve(cargs: _t.Any) -> None:
     if not quiet:
         filters_warn()
 
-    global should_raise
-    should_raise = True
-
     def url_info(net_url: str, pu: ParsedURL) -> tuple[str, str, str]:
         return pu.rhostname, pu.pretty_net_url, net_url
 
@@ -2673,7 +2636,7 @@ def cmd_serve(cargs: _t.Any) -> None:
                 continue
 
             visits = []
-            for when, _rrexpr in index.iter_from_to(net_url, start, end):
+            for when, _rrexpr in index.iter_range(net_url, start, end):
                 # if normal_document(t, v):
                 visits.append(when.format(time_format, precision=precision))
                 visits_total += 1
@@ -2688,22 +2651,24 @@ def cmd_serve(cargs: _t.Any) -> None:
     if destination is not None:
         server_info_dict["dump_wrr"] = "/pwebarc/dump"
     if do_replay:
-        server_info_dict["index_ideal"] = (
-            None if index_ideal is None else index_ideal.format("@", precision=9)
+        server_info_dict["index_ideal"] = map_optional(
+            lambda x: x.format("@", precision=9), index.ideal
         )
         server_info_dict["replay_oldest"] = "/web/-inf/{url}"
         server_info_dict["replay_latest"] = "/web/+inf/{url}"
-        if index_ideal is None:
+        if index.ideal is None:
             server_info_dict["replay_any"] = "/web/{timestamp}/{url}"
     server_info_json = _json.dumps(server_info_dict).encode("utf-8")
     del server_info_dict
 
     @app.route("/hoardy-web/server-info")  # type: ignore
+    @with_no_signals
     def server_info() -> bytes:
         return server_info_json
 
     @app.route("/pwebarc/dump", method="POST")  # type: ignore
     @with_plain_error
+    @with_no_signals
     def dump_wrr() -> BottleReturnType:
         if destination is None:
             bottle.response.status = 403
@@ -2750,7 +2715,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         cborf.seek(0)
         data = cborf.getvalue()  # type: ignore
         del cborf
-        if compress:
+        if compression:
             data = gzip_maybe(data)
 
         trrexpr = ReqresExpr(UnknownSource(), reqres)
@@ -2793,6 +2758,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         return b""
 
     @app.route("/<namespace:re:(web|redirect|unavailable|other)>/<selector>/<url_path:path>")  # type: ignore
+    @with_no_signals
     def from_archive(namespace: str, selector: str, url_path: str) -> BottleReturnType:
         if not do_replay:
             bottle.abort(403, "Replay is forbidden on this server")
@@ -2848,12 +2814,12 @@ def cmd_serve(cargs: _t.Any) -> None:
 
         net_url = pturl.net_url
 
-        uobj = index.get_nearest(net_url, ideal, normal_document)
+        uobj = index.get_nearest1(net_url, ideal, normal_document)
         if uobj is None:
             if len(query) == 0:
                 # When the query is empty, WSGI loses the trailing "?" even
                 # when it was given by the client, so we have to check
-                uobj = index.get_nearest(net_url + "?", ideal, normal_document)
+                uobj = index.get_nearest1(net_url + "?", ideal, normal_document)
             if uobj is None:
                 if "*" in turl:
                     url_like_re = _re.compile(translate(turl))
@@ -3027,7 +2993,8 @@ def cmd_serve(cargs: _t.Any) -> None:
         stderr.write_bytes(b"\033[0m")
     stderr.flush()
 
-    app.run(host=cargs.host, port=cargs.port, quiet=quiet, debug=cargs.debug_bottle)
+    with yes_signals():
+        app.run(host=cargs.host, port=cargs.port, quiet=quiet, debug=cargs.debug_bottle)
 
 
 def add_doc(fmt: argparse.BetterHelpFormatter) -> None:
@@ -3119,32 +3086,17 @@ def add_doc(fmt: argparse.BetterHelpFormatter) -> None:
     # fmt: on
 
 
-class ArgumentParser(argparse.BetterArgumentParser):
-    def error(self, message: str) -> _t.NoReturn:
-        self.print_usage(_sys.stderr)
-        die(2, "%s", message)
-
-
-def make_argparser(real: bool = True) -> ArgumentParser:
+def make_argparser(real: bool = True) -> argparse.BetterArgumentParser:
     _: _t.Callable[[str], str] = gettext
 
     # fmt: off
-    parser = ArgumentParser(
+    parser = argparse.BetterArgumentParser(
         prog=__prog__,
         description=_('Inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.')
         + "\n\n"
         + _("Glossary: a `reqres` (`Reqres` when a type/class) is an instance of a structure representing `HTTP` request+response pair with some additional metadata."),
         additional_sections=[add_doc],
-        allow_abbrev=False,
         add_version=True,
-        add_help=False,
-    )
-
-    parser.add_argument("-h", "--help", action="store_true",
-        help=_("show this help message and exit"),
-    )
-    parser.add_argument("--markdown", action="store_true",
-        help=_("show help messages formatted in Markdown"),
     )
 
     subparsers = parser.add_subparsers(title="subcommands")
@@ -3471,20 +3423,12 @@ def make_argparser(real: bool = True) -> ArgumentParser:
                 help=_(f"{whatval} without {name}ating them with anything, just concatenate them"),
             )
 
-        if short:
-            grp.add_argument("-l", f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const=b"\n",
-                help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf,
-            )
-            grp.add_argument("-z", f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const=b"\0",
-                help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"),
-            )
-        else:
-            grp.add_argument(f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const=b"\n",
-                help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf,
-            )
-            grp.add_argument(f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const=b"\0",
-                help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"),
-            )
+        grp.add_argument(*optlist(short, "-l"), f"--lf-{name}ated", dest=f"{name}ator", action="store_const", const=b"\n",
+            help=_(f"{whatval} {name}ated with `\\n` (LF) newline characters") + def_lf,
+        )
+        grp.add_argument(*optlist(short, "-z"), f"--zero-{name}ated", dest=f"{name}ator", action="store_const", const=b"\0",
+            help=_(f"{whatval} {name}ated with `\\0` (NUL) bytes"),
+        )
 
         if name == "termin":
             cmd.set_defaults(terminator=def_val)
@@ -3948,13 +3892,13 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
         if kind == "serve":
             agrp = cmd.add_argument_group("file output options")
             grp = agrp.add_mutually_exclusive_group()
-            grp.add_argument("--compress", dest="compress", action="store_const", const=True,
+            grp.add_argument("--compress", dest="compression", action="store_const", const=True,
                 help="compress new archivals before dumping them to disk; default",
             )
-            grp.add_argument("--no-compress", "--uncompressed", dest="compress", action="store_const", const=False,
+            grp.add_argument("--no-compress", "--uncompressed", dest="compression", action="store_const", const=False,
                 help="dump new archivals to disk without compression",
             )
-            cmd.set_defaults(compress=True)
+            cmd.set_defaults(compression=True)
 
         agrp = cmd.add_argument_group("file outputs")
 
@@ -4365,60 +4309,13 @@ The end.
 
 
 def main() -> None:
-    _: _t.Callable[[str], str] = gettext
-
-    parser = make_argparser()
-
-    try:
-        cargs = parser.parse_args(_sys.argv[1:])
-    except CatastrophicFailure as exc:
-        error("%s", exc.get_message(gettext))
-        _sys.exit(1)
-
-    if cargs.help:
-        if cargs.markdown:
-            parser = make_argparser(False)
-            parser.set_formatter_class(argparse.MarkdownBetterHelpFormatter)
-            print(parser.format_help(8192))
-        else:
-            print(parser.format_help())
-        _sys.exit(0)
-
-    _logging.basicConfig(level=_logging.WARNING, stream=stderr)
-    errorcnt = CounterHandler()
-    logger = _logging.getLogger()
-    logger.addHandler(errorcnt)
-    # logger.setLevel(_logging.DEBUG)
-
-    handle_signals()
-
-    try:
-        cargs.func(cargs)
-    except KeyboardInterrupt:
-        error("%s", _("Interrupted!"))
-        errorcnt.errors += 1
-    except CatastrophicFailure as exc:
-        error("%s", exc.get_message(gettext))
-        errorcnt.errors += 1
-    except Exception as exc:
-        stderr.write_str(str_Exception(exc))
-        errorcnt.errors += 1
-
-    stdout.flush()
-    stderr.flush()
-
-    if errorcnt.warnings > 0:
-        stderr.write_str_ln(
-            ngettext("There was %d warning!", "There were %d warnings!", errorcnt.warnings)
-            % (errorcnt.warnings,)
-        )
-    if errorcnt.errors > 0:
-        stderr.write_str_ln(
-            ngettext("There was %d error!", "There were %d errors!", errorcnt.errors)
-            % (errorcnt.errors,)
-        )
-        _sys.exit(1)
-    _sys.exit(0)
+    setup_result = setup_kisstdlib(__prog__, signals=["SIGTERM", "SIGINT", "SIGBREAK", "SIGUSR1"])
+    run_kisstdlib_main(
+        setup_result,
+        argparse.make_argparser_and_run,
+        make_argparser,
+        lambda cargs: cargs.func(cargs),
+    )
 
 
 if __name__ == "__main__":
