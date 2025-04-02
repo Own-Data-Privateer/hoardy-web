@@ -45,6 +45,7 @@ Sanity check and test \`hoardy-web\` command-line interface.
 EOF
 }
 
+ORIG_PWD=$PWD
 export PYTHONPATH="$PWD:$PYTHONPATH"
 
 in_wine=
@@ -108,7 +109,7 @@ while (($# > 0)); do
         esac
     fi
 
-    src=$1
+    src=$(readlink -f "$1")
     shift
 
     set_tmpdir
@@ -407,7 +408,7 @@ while (($# > 0)); do
         #end
     fi
 
-    cd /
+    cd "$ORIG_PWD"
     rm -rf "$tmpdir"
 done
 
