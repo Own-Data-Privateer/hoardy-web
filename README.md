@@ -2,10 +2,8 @@
 <details><summary>(Click me to see it.)</summary>
 <ul>
 <li><a href="#what-is-hoardy-web" id="toc-what-is-hoardy-web">What is <code>Hoardy-Web</code>?</a></li>
-<li><a href="#who-hoardy-web-is-for" id="toc-who-hoardy-web-is-for">Who <code>Hoardy-Web</code> is for?</a>
-<ul>
-<li><a href="#the-litmus-test" id="toc-the-litmus-test">The litmus test</a></li>
-</ul></li>
+<li><a href="#what-can-hoardy-web-do" id="toc-what-can-hoardy-web-do">What can <code>Hoardy-Web</code> do?</a></li>
+<li><a href="#who-hoardy-web-is-for" id="toc-who-hoardy-web-is-for">Who <code>Hoardy-Web</code> is for?</a></li>
 <li><a href="#walkthrough" id="toc-walkthrough">Walkthrough</a>
 <ul>
 <li><a href="#the-magic" id="toc-the-magic">The magic</a></li>
@@ -84,7 +82,7 @@ You can then view, replay, mirror, scrape, and/or index your archived data later
 
 `Hoardy-Web` was previously known as "Personal Private Passive Web Archive" aka "pwebarc".
 
-# Who `Hoardy-Web` is for?
+# What can `Hoardy-Web` do?
 
 - Do you happen to use your browser's open tabs as a "To Read Later" list?
 
@@ -115,12 +113,11 @@ You can then view, replay, mirror, scrape, and/or index your archived data later
 
 `Hoardy-Web` does this, and more, but mainly this.
 
-## The litmus test
+# Who `Hoardy-Web` is for?
 
 If you are running multiple browsers or browser profiles to isolate different browsing sessions from each other, and you now want to introduce some historic persistence into your setup, then `Hoardy-Web` is for you.
 
 If you are not isolating your browsing sessions already, however, then introducing `Hoardy-Web` into your setup, in the long run, will probably be a liability.
-In which case, `Hoardy-Web` is not for you, navigate away, please.
 If you let it, `Hoardy-Web` will happily capture and archive all your login credentials, in plain text.
 
 # Walkthrough
