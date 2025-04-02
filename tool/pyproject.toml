@@ -60,7 +60,7 @@ implicit_reexport = true
 explicit_package_bases = true
 files = [
     "*.py",
-    "*/**/*.py"
+    "hoardy_web/**/*.py"
 ]
 [[tool.mypy.overrides]]
 module = [
