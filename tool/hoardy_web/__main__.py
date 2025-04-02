@@ -3500,7 +3500,7 @@ def make_argparser(real: bool = True) -> argparse.BetterArgumentParser:
         grp.set_defaults(loader=None)
 
         agrp.add_argument("--stdin0", action="store_true",
-            help=_("read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments"),
+            help=_("read zero-terminated `PATH`s from stdin, these will be processed after all `PATH`s specified as command-line arguments"),
         )
 
         if kind == "mirror":

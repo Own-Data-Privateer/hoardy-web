@@ -1092,7 +1092,7 @@ Pretty-print given inputs to stdout.
   - `--load-mitmproxy`
   : load inputs using the `mitmproxy` dump loader
   - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  : read zero-terminated `PATH`s from stdin, these will be processed after all `PATH`s specified as command-line arguments
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
@@ -1510,7 +1510,7 @@ Esentially, this is a generalized `{__prog__} get`.
   - `--load-mitmproxy`
   : load inputs using the `mitmproxy` dump loader
   - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  : read zero-terminated `PATH`s from stdin, these will be processed after all `PATH`s specified as command-line arguments
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
@@ -1598,7 +1598,7 @@ The end.
   - `--load-mitmproxy`
   : load inputs using the `mitmproxy` dump loader
   - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  : read zero-terminated `PATH`s from stdin, these will be processed after all `PATH`s specified as command-line arguments
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
@@ -1697,7 +1697,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   - `--load-mitmproxy`
   : load inputs using the `mitmproxy` dump loader
   - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  : read zero-terminated `PATH`s from stdin, these will be processed after all `PATH`s specified as command-line arguments
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
@@ -2329,7 +2329,7 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   - `--load-mitmproxy`
   : load inputs using the `mitmproxy` dump loader
   - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  : read zero-terminated `PATH`s from stdin, these will be processed after all `PATH`s specified as command-line arguments
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
@@ -2431,7 +2431,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `--load-mitmproxy`
   : load inputs using the `mitmproxy` dump loader
   - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  : read zero-terminated `PATH`s from stdin, these will be processed after all `PATH`s specified as command-line arguments
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
@@ -2532,7 +2532,7 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
   - `--load-mitmproxy`
   : load inputs using the `mitmproxy` dump loader
   - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  : read zero-terminated `PATH`s from stdin, these will be processed after all `PATH`s specified as command-line arguments
   - `--boring PATH`
   : low-priority input `PATH`; boring `PATH`s will be processed after all `PATH`s specified as positional command-line arguments and those given via `--stdin0` and will not be queued as roots even when no `--root-*` options are specified
   - `PATH`
@@ -2907,7 +2907,7 @@ The end.
   - `--load-mitmproxy`
   : load inputs using the `mitmproxy` dump loader
   - `--stdin0`
-  : read zero-terminated `PATH`s from stdin, these will be processed after `PATH`s specified as command-line arguments
+  : read zero-terminated `PATH`s from stdin, these will be processed after all `PATH`s specified as command-line arguments
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
