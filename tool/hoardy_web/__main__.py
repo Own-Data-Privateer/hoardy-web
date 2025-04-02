@@ -219,8 +219,8 @@ def elaborate_paths(paths: list[str | bytes]) -> None:
 def handle_paths(cargs: _t.Any) -> None:
     if cargs.stdin0:
         paths = stdin.read_all_bytes().split(b"\0")
-        end = paths.pop()
-        if end != b"":
+        last_path = paths.pop()
+        if last_path != b"":
             raise Failure("`--stdin0` input format error")
         cargs.paths += paths
 
@@ -1486,7 +1486,7 @@ class DeferredOperation(_t.Generic[DeferredSourceType, _t.AnyStr]):
         self.updated = True
         return True
 
-    def run(self, dsync: DeferredSync[_t.AnyStr] | None = None) -> None:
+    def run(self, sync: DeferredSync[_t.AnyStr] | bool = True) -> None:
         """Write the `source` to `destination`."""
         raise NotImplementedError()
 
@@ -1505,12 +1505,12 @@ class DeferredFileWrite(
     def approx_size(self) -> int:
         return super().approx_size() + len(self.destination)
 
-    def run(self, dsync: DeferredSync[_t.AnyStr] | None = None) -> None:
+    def run(self, sync: DeferredSync[_t.AnyStr] | bool = True) -> None:
         data = self.source.get_bytes()
         if self.updated and file_data_equals(self.destination, data):
             # nothing to do
             return
-        atomic_write(data, self.destination, self.overwrite or self.allow_updates, dsync=dsync)
+        atomic_write(data, self.destination, self.overwrite or self.allow_updates, sync=sync)
 
 
 def make_deferred_emit(
@@ -1526,7 +1526,7 @@ def make_deferred_emit(
     moving: bool = False,
     symlinking: bool = False,
 ) -> tuple[_t.Callable[[ReqresExpr[DeferredSourceType]], None], _t.Callable[[], None]]:
-    terminator = cargs.terminator if cargs.dry_run is not None else None
+    terminator: bytes | None = cargs.terminator if cargs.dry_run is not None else None
 
     # for each `--output` value, how many times it was seen
     seen_counter: SeenCounter[_t.AnyStr] = SeenCounter()
@@ -1546,7 +1546,7 @@ def make_deferred_emit(
     # Deferred file system updates. This collects references to everything
     # that should be fsynced to disk before proceeding to make flush_updates
     # below both atomic and efficient.
-    dsync: DeferredSync[_t.AnyStr] = DeferredSync()
+    sync: DeferredSync[_t.AnyStr] = DeferredSync(True)
 
     max_memory_mib = cargs.max_memory * 1024 * 1024
 
@@ -1596,14 +1596,14 @@ def make_deferred_emit(
 
             try:
                 if not cargs.dry_run:
-                    intent.run(dsync)
+                    intent.run(sync)
             except Failure as exc:
                 if cargs.errors == "ignore":
                     return
                 exc.elaborate(
                     f"while {actioning} `%s` -> `%s`",
                     rrexpr.show_source(),
-                    fsdecode_maybe(abs_out_path),
+                    fsdecode(abs_out_path),
                 )
                 if cargs.errors != "fail":
                     _logging.error("%s", exc.get_message(gettext))
@@ -1654,10 +1654,10 @@ def make_deferred_emit(
             num_deferred -= 1
 
         # fsync everything
-        dsync.finish()
+        sync.flush()
 
         # report to stdout
-        if done_files is not None:
+        if terminator is not None and done_files is not None:
             for abs_out_path in done_files:
                 stdout.write(abs_out_path)
                 stdout.write_bytes(terminator)
@@ -1772,7 +1772,7 @@ def make_deferred_emit(
                     raise exc.elaborate(
                         f"while {actioning} `%s` -> `%s`",
                         new_rrexpr.show_source(),
-                        fsdecode_maybe(abs_out_path),
+                        fsdecode(abs_out_path),
                     )
 
                 if updated_rrexpr is not None:
@@ -1797,7 +1797,7 @@ def make_deferred_emit(
                     raise Failure("destination already exists" + variance_help).elaborate(
                         f"while {actioning} `%s` -> `%s`",
                         new_rrexpr.show_source(),
-                        fsdecode_maybe(abs_out_path),
+                        fsdecode(abs_out_path),
                     )
                 prev_rel_out_path = rel_out_path
                 continue
@@ -1895,7 +1895,7 @@ def make_organize_emit(
             self.updated = True
             return True
 
-        def run(self, dsync: DeferredSync[AnyStr2] | None = None) -> None:
+        def run(self, sync: DeferredSync[AnyStr2] | bool = True) -> None:
             rrexpr = self.source
             source = rrexpr.source
             if isinstance(source, FileSource) and source.path == self.destination:
@@ -1908,11 +1908,11 @@ def make_organize_emit(
                         source.path,
                         self.destination,
                         self.overwrite or self.allow_updates,
-                        dsync=dsync,
+                        sync=sync,
                     )
                 elif copying:
                     # fallback to DeferredFileWrite in this case
-                    super().run(dsync)  # type: ignore
+                    super().run(sync)  # type: ignore
                 else:
                     raise Failure(
                         f"can't {action} the source to the destination because the source is not stored as a separate WRR file; did you mean to run with `--copy` intead of `--{action}`?"
@@ -4312,7 +4312,8 @@ The end.
 
 
 def main() -> None:
-    setup_result = setup_kisstdlib(__prog__, signals=["SIGTERM", "SIGINT", "SIGBREAK", "SIGUSR1"])
+    setup_result = setup_kisstdlib(__prog__, do_setup_delay_signals=False)
+    setup_delay_signals(["SIGTERM", "SIGINT", "SIGBREAK", "SIGUSR1"])
     run_kisstdlib_main(
         setup_result,
         argparse.make_argparser_and_run,
