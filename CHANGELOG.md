@@ -6,6 +6,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.21.1] - 2025-04-03: Bugfixes
+
+### Fixed
+
+- A small crash fix for when some reqres become marked as errored on restart (which is a heisenbug I have not tracked down yet).
+
+### Changed
+
+- Split `config.debugConfig` ("Allow unsafe config values") out of `config.debugRuntime` ("Debug runtime") since the latter is ok to leave enabled while the former should be disabled most of the time.
+
 ## [extension-v1.21.0] - 2025-02-11: Re-archival, reworked internals, many small improvements
 
 ### Added/Changed/Removed (1): Re-archival replaces re-queueing
@@ -2443,6 +2453,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.21.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.21.0...extension-v1.21.1
 [extension-v1.21.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.20.0...extension-v1.21.0
 [extension-v1.20.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.19.0...extension-v1.20.0
 [tool-v0.23.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.22.0...tool-v0.23.0
