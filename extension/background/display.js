@@ -359,6 +359,11 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             color = Math.max(color, 1);
             chunks.push("ephemeral config");
         }
+        if (config.debugConfig) {
+            badge += "D";
+            color = Math.max(color, 1);
+            chunks.push("potentially unsafe config");
+        }
         if (config.debugCaptures || config.dumpCaptures) {
             badge += "D";
             color = Math.max(color, 1);

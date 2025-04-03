@@ -184,6 +184,7 @@ let configDefaults = {
     ephemeral: false, // stop the config from being saved to disk
     snapshotAny: false, // snapshot isBoringOrServerURL
 
+    debugConfig: false, // allow unsafe config
     debugRuntime: false, // log runtime events
     debugCaptures: false, // log capture events
     dumpCaptures: false, // log CBOR dumps
@@ -330,7 +331,7 @@ function fixConfig(config, oldConfig, serverConfig) {
             config.autoPopInLimboCollect = !config.autoPopInLimboDiscard;
     }
 
-    if (!config.debugRuntime && !isMobile && !config.spawnNewTabs) {
+    if (!config.debugConfig && !isMobile && !config.spawnNewTabs) {
         // unavailable
         config.spawnNewTabs = true;
 
@@ -345,7 +346,7 @@ function fixConfig(config, oldConfig, serverConfig) {
 
     if (reqresIDB === undefined)
         config.preferIndexedDB = false;
-    else if (!config.debugRuntime && useDebugger && !config.preferIndexedDB) {
+    else if (!config.debugConfig && useDebugger && !config.preferIndexedDB) {
         // can not be disabled on Chromium ATM, since serialization of
         // Uint8Array to `storage.local` won't work there
         config.preferIndexedDB = true;
@@ -360,7 +361,7 @@ function fixConfig(config, oldConfig, serverConfig) {
     }
 
     let noArchiveExportAs = isMobile && isFirefox;
-    if (!config.debugRuntime && noArchiveExportAs && (config.archiveExportAs || config.rearchiveExportAs)) {
+    if (!config.debugConfig && noArchiveExportAs && (config.archiveExportAs || config.rearchiveExportAs)) {
         // Firefox on Android crashes with this set see "Quirks and Bugs" in ../page/help.org
         config.archiveExportAs = false;
         config.rearchiveExportAs = false;

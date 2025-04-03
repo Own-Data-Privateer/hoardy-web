@@ -939,13 +939,13 @@ section {
 
     <ui id="config.ephemeral" type="boolean" class="prefer-off" data-help="Make all changes to settings in this popup ephemeral from this point on. Restarting the browser or reloading the extension will reset config to the last state when this setting was off.">Ephemeral settings</ui>
     <ui id="config.snapshotAny" type="boolean" class="prefer-off" data-help="Try capturing DOM snapshots for tabs and frames with all URLs, including `about:`, `data:`, `file:`, and extension pages. If you enable this, expect to see a lot of snapshot capture errors.">Capture snapshots of all URLs</ui>
+    <ui id="config.debugConfig" type="boolean" class="prefer-off" data-help="Disable config sanity checks, allowing you to set various config options into states unsupported by your current browser. Which will probably crash either `Hoardy-Web` or your browser. Toggling this option off will automatically fix your config again.">Allow unsafe config values</ui>
     <ui id="config.debugRuntime" type="boolean" data-help="Enable various computationally- and memory-cheap debugging options.
 
 Specifically:
 
 - Log all internal broadcasts and informational runtime messages into extension&#039;s debugging log (in Firefox: about:debugging; in Chromium: extension inspector).
 - Enable display of various debugging UI elements. E.g., the `Reload` button (the button with an awfully excited face emoji) will be shown regardless of new extension versions being available.
-- Disable config sanity checks, allowing you to set various config options into states unsupported by your current browser. Which will probably crash either `Hoardy-Web` or your browser.
 
 In all cases, toggling this option off will automatically fix your config. You can then toggle it on again and it should say fixed until you explicitly break it again.">Debug runtime</ui>
     <ui id="config.debugCaptures" type="boolean" class="prefer-off" data-help="Log captures and their progress into extension&#039;s debugging log. This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Debug capture (SLOW!)</ui>
