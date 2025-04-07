@@ -225,10 +225,15 @@ To provide indication of this, =Hoardy-Web= keeps track of such things and marks
 These flags influence some of the computations described below.
 
 - Disabling [[./popup.html#div-config.archivePartialRequest][this toggle]] will disable archiving of reqres with =partial request body= flag set.
-- Disabling [[./popup.html#div-config.archiveIncompleteResponse][this toggle]] will disable archiving of reqres with =incomplete response body= flag set.
 - Disabling [[./popup.html#div-config.archiveBuggy][this toggle]] will disable archiving of reqres with one of the =buggy * metadata= flags set.
 
-Disabling any of the above is not recommended, however, as archiving some data is usually better than archiving none.
+Disabling these toggles is not recommended, however, as these flags are usually caused by browser bugs and are thus unfixable, unless you run =Hoardy-Web= on a patched browser.
+Also, these issues usually don't prevent replay of captured reqres.
+Thus, in these cases, archiving some data is usually better than archiving none.
+
+- Disabling [[./popup.html#div-config.archiveIncompleteResponse][this toggle]] will disable archiving of reqres with =incomplete response body= flag set.
+
+In contrast, this toggle is disabled by default because response-incomplete reqres are usually useless and can be easily fixed by reloading a page in question.
 
 See [[../../doc/data-on-disk.md][=WRR= file format documentation]] on how these flags get actually recorded in the generated dumps.
 *** Problematic reqres
@@ -264,7 +269,7 @@ but NOT errors like
 - "the browser failed to render this data because this image file is broken",
 - and similar errors where the data was properly fetched.
 
-(In principle, =Hoardy-Web= could have been designed to never record the errors of the latter category in the first place, thus simplifying the above bit, but =Hoardy-Web= is designed to follow the philosophy or "collect everything as browser gives it, as raw as possible, do all the post-processing logic separately, allow for no logic at all, if the user asks for it".)
+(In principle, =Hoardy-Web= could have been designed to never record the errors of the latter category in the first place, thus simplifying the above bit, but =Hoardy-Web= is designed to follow the philosophy or "collect everything as browser gives it, as raw as possible".)
 
 The raw error strings reported by the browser for each reqres can be seen in the [[./popup.html#showState][history]]-[[./popup.html#showTabState][log]].
 
@@ -275,7 +280,7 @@ This way, even with notifications disabled, you could then still see the number 
 
 Note, however, is that the =problematic= flag is purely a UI thing, **it does not influence archival or any of the other step described below in any way**.
 *** Picked and Dropped reqres
-In contrast, to the above, each new =finished= reqres advances either to the =picked= or the =dropped= states, which does influence the actions =Hoardy-Web= performs in the next steps.
+Each new =finished= reqres advances either to the =picked= or the =dropped= states, which influences the actions =Hoardy-Web= performs in the next steps.
 
 Which of those two states gets selected is decided based on the [[./popup.html#pick-options][=Pick reqres for archival when they finish= options]].
 
@@ -403,13 +408,17 @@ When [[./popup.html#div-config.archive][=Archive 'collected' reqres= toggle]] is
 
   - stop processing this reqres;
 
-- otherwise, if [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is enabled, =Hoardy-Web= will
+- if [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is enabled, =Hoardy-Web= will
 
-  - try to save the =(loggable, dump)= tuple into browser's local storage (which is denoted by =saveToLS= state on the diagram above),
+  - try saving the =(loggable, dump)= tuple into browser's local storage (which is denoted by =saveToLS= state on the diagram above),
 
-  - if saving fails, it will move the reqres into the =unarchived= state instead, and stop processing this reqres;
+  - if saving fails, move the reqres into the =unarchived= state instead,
 
-- finally, if [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is disabled or if saving to local storage succeeds, =Hoardy-Web= will discard the reqres from memory.
+  - if saving succeeds, discard the reqres from memory,
+
+  - stop processing this reqres;
+
+- if [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage= option]] is disabled, =Hoardy-Web= will simply discard the reqres from memory, as if saving succeeded.
 
 In the cases of stashing and archiving to local storage, the =dump='s get compressed if [[./popup.html#div-config.gzipLSDumps][this option]] is enabled.
 
@@ -492,7 +501,7 @@ This feature uses the same archiving pipeline as above with three major differen
   You will have to manually press its [[./popup.html#rearchive-actions][popup UI action buttons]], a similar button on the [[./popup.html#showSaved][=Saved in Local Storage= page]], or [[#keyboard-shortcuts][keyboard shortcuts]].
 
 - Re-archival pipeline uses a separate data structure for recording reqres that end up in the =unarchived= state.
-  The =unarchived= reqres of re-archival pipeline do not retried, becoming =forgotten= instead.
+  The =unarchived= reqres of re-archival pipeline do not get retried, becoming =forgotten= instead.
 
   After all, they are already archived in browser's local storage, thus, if they fail to re-archive, =Hoardy-Web= can simply forget about them until they get re-loaded from local storage again.
 
@@ -502,7 +511,7 @@ This feature uses the same archiving pipeline as above with three major differen
 
 Re-archival can be useful, for instance, in following use cases:
 
-- You want to collect and accumulate lots of reqres before re-archiving them by the means of [[./popup.html#div-config.rearchiveExportAs][=Export via 'saveAs'=]] to make the UI less annoying and [[./popup.html#div-config.gzipExportAs][compress]] the resulting =WRR bundle='s better.
+- You want to collect and accumulate lots of reqres before re-archiving them by the means of [[./popup.html#div-config.rearchiveExportAs][=Export via 'saveAs'=]] to make the UI less annoying and to [[./popup.html#div-config.gzipExportAs][compress]] the resulting =WRR bundle='s better.
 
 - You run =Hoardy-Web= under a Fenix-based mobile browser, where [[./popup.html#div-config.archiveExportAs][Export via =saveAs=]] does not work, you are unable to run an [[./popup.html#div-config.submitHTTPURLBase][archiving server]] on the same device, because it's un-rooted mobile phone, and you don't want to submit your dumps over the Internet, because you are feeling paranoid.
 
@@ -524,20 +533,20 @@ If you want more control over what gets re-archived, you can also
 - make a subset of =saved= reqres using the filtering options there, and then
 - re-archive only those, by pressing the =Re-archive= button there.
 *** Deleting re-archived reqres
-Successfully re-archived reqres can be deleted automatically by setting [[./popup.html#div-local.rearchiveDelete][=... and delete everything afterwards=]] and a similar option on the [[./popup.html#showSaved][=Saved in Local Storage= page]].
+Successfully re-archived reqres can be deleted automatically by setting [[./popup.html#div-rearchive.andDelete][=... and delete everything afterwards=]] and a similar option on the [[./popup.html#showSaved][=Saved in Local Storage= page]].
 However, these options should be used with caution:
 
-- The behaviour of the [[./popup.html#rearchiveAdjunctSaved][=Re-archive adjunct= button]] with [[./popup.html#div-local.rearchiveDelete][that option]] enabled can be surprising if you sometimes use both available [[./popup.html#rearchive-methods][re-archival methods]] and sometimes only one of them.
+- The behaviour of the [[./popup.html#rearchiveAdjunctSaved][=Re-archive adjunct= button]] with [[./popup.html#div-rearchive.andDelete][that option]] enabled can be surprising if you sometimes use both available [[./popup.html#rearchive-methods][re-archival methods]] and sometimes only one of them.
   See its help string for more info.
 
-- Re-archiving by the means of [[./popup.html#div-config.rearchiveExportAs][=Export via 'saveAs'=]] with [[./popup.html#div-local.rearchiveDelete][that option]] enabled is [[#unsafe-saveas][unsafe because of browser API limitations]].
+- Re-archiving by the means of [[./popup.html#div-config.rearchiveExportAs][=Export via 'saveAs'=]] with [[./popup.html#div-rearchive.andDelete][that option]] enabled is [[#unsafe-saveas][unsafe because of browser API limitations]].
 
   If you want to do this safely, you should:
 
   - disable [[./popup.html#div-config.archive][=Archive 'collected' reqres= option]];
-  - re-archive with [[./popup.html#div-local.rearchiveDelete][deletion]] disabled, by using any one of [[./popup.html#rearchive-actions][the buttons]];
+  - re-archive with [[./popup.html#div-rearchive.andDelete][deletion]] disabled, by using any one of [[./popup.html#rearchive-actions][the buttons]];
   - confirm that all generated fake-Downloads were actually successfully saved to disk;
-  - enable [[./popup.html#div-local.rearchiveDelete][deletion]] without changing any other options;
+  - enable [[./popup.html#div-rearchive.andDelete][deletion]] without changing any other options;
   - press [[./popup.html#rearchiveAdjunctSaved][=Re-archive adjunct= button]].
 
   The last action should then produce an =Re-archived and deleted <N> reqres invoking 0 archiving actions.= notification.
@@ -547,7 +556,7 @@ However, these options should be used with caution:
 
   Keeping [[./popup.html#div-config.archive][=Archive 'collected' reqres= option]] enabled will not break anything in the internal machinery, but if another reqres gets captured and then sneakily =saved= a moment before you press the [[./popup.html#rearchiveAdjunctSaved][=Re-archive adjunct= button]] and the generated =WRR bundle= then [[#unsafe-saveas][silently fails to be saved to disk via =saveAs=]], then that sneaky reqres will still get deleted, and, thus, permanently lost.
 
-Also, note that the [[./popup.html#div-local.rearchiveDelete][deletion option]] and its equivalent on [[./popup.html#showSaved][=Saved in Local Storage= page]] are ephemeral and will be reset the next time you reopen the popup or that page.
+Also, note that the [[./popup.html#div-rearchive.andDelete][deletion option]] and its equivalent on [[./popup.html#showSaved][=Saved in Local Storage= page]] are ephemeral and will be reset the next time you reopen the popup or that page.
 ** (Optional) Step 5: Replay integration
 :PROPERTIES:
 :CUSTOM_ID: replay
@@ -573,7 +582,7 @@ Changing zoom level will change tab's viewport size, which, if the page uses res
 Essentially, this will notify the page's origin server that you are now interacting with that page.
 Some websites do this on purpose to track users that run with =JavaScript= disabled.
 
-Meanwhile, normally, when using the [[../../tool/][=hoardy-web= tool]], pages of static website mirrors generated by its =mirror= sub-command and =HTTP= replay pages generated by its =serve= sub-command remap all URLs of page requisites to point to local files and replay URLs.
+Meanwhile, normally, when using the [[../../tool/][=hoardy-web= tool]], =HTTP= replay pages generated by its =serve= sub-command and static website mirrors generated by its =mirror= sub-command remap all URLs of page requisites to point to local replay URLs and files.
 (Though, it is configurable.)
 But =HTML5= specification is quite large and gets updated all the time, interactions between remapped pages and some browser extensions can sometimes break things, and =hoardy-web= can have bugs in its remapping code.
 So, remapping of some of those URLs can fail sometimes.
@@ -581,7 +590,7 @@ So, remapping of some of those URLs can fail sometimes.
 Say that, after being informed by the previous two paragraphs, you now want to ensure that
 
 - your browser won't notify a page's origin server when you start interacting with it long after you loaded it, and
-- your browser won't try to access the Internet when you open one of =hoardy-web mirror='ed or =hoardy-web serve='d pages.
+- your browser won't try to access the Internet when you open one of the =hoardy-web serve='ed or =hoardy-web mirror='ed pages.
 
 In some cases you might even feel paranoid enough to want to prevent your browser from opening non-remapped jump-links (=a href=), even when you click them (by accident).
 
@@ -613,43 +622,30 @@ By default, "Work offline" mode is enabled for =file:= and replay URLs to stop a
 :END:
 
 When running =Hoardy-Web= under Tor Browser, you probably want to configure it all in such a way so that all of the machinery of =Hoardy-Web= is completely invisible to web pages running under your Tor Browser, to prevent fingerprinting.
-*** Mostly convenient, paranoid
-So, in the mostly convenient yet sufficiently paranoid setup, you would only ever use =Hoardy-Web= extension configured to [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'=]] (which is the default) and then export your dumps manually at the end of a browsing via [[#re-archival][re-archival]].
-*** Slightly simpler, but slightly unsafe
-You can also simply switch to using [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'=]] by default instead, disabling the other archiving methods.
 
+Thus, you can simply use =Hoardy-Web= extension configured to [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage=]], which is the default, and then [[./popup.html#div-config.rearchiveExportAs][export your dumps manually]] at the end of a browsing session via [[#re-archival][re-archival]], which would take a couple of clicks.
+
+Or, alternatively, you can switch to using [[./popup.html#div-config.archiveExportAs][=Export dumps via 'saveAs'=]] by default instead, disabling the other archiving methods.
 I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [[#unsafe-saveas][this is unsafe]].
 Also, by default, browser's UI will be slightly annoying, since =Hoardy-Web= will be generating new "Downloads" all the time, but that issue [[#faq-firefox-saveas][can be fixed with a small =about:config= change]].
-*** Most convenient, less paranoid
-In theory, running [[../../simple_server/][=hoardy-web-sas= simple archiving server script]] listening on a loopback IP address should prevent web pages from accessing it, since the browsers disallow cross-origin requests from non-localhost domains to localhost, thus making the normal [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'= mode]] setup quite viable.
-However, Tor Browser is configured to proxy everything via the TOR network by default, so you need to configure it to exclude the requests to =hoardy-web-sas= from being proxied.
+
+Using either of the above methods won't allow you to replay archived captured, though.
+*** Replay
+In theory, running [[../../tool/][=hoardy-web serve=]] listening on a loopback IP address should prevent web pages from accessing it, since the browsers disallow cross-origin requests from non-localhost domains to localhost, thus making the normal [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'= mode]] with [[./popup.html#div-config.replaySubmitHTTP][replay]] setup quite viable.
+However, Tor Browser is configured to proxy everything via the TOR network by default, so you need to configure it to exclude the requests to =hoardy-web serve= from being proxied.
 
 A slightly more paranoid than normal way to do this is as follows:
 
-- Run the server as =hoardy-web-sas --host 127.0.99.1= (or =./hoardy_web_sas.py --host 127.0.99.1=, or similar).
+- Run the server as =hoardy-web serve --host 127.0.99.1= or similar.
 - Point the [[./popup.html#div-config.submitHTTPURLBase][=Server URL= setting]] to the resulting URL (=http://127.0.99.1:3210/= or similar).
 - Switch to [[./popup.html#div-config.archiveSubmitHTTP][=Submit dumps via 'HTTP'=]] by default, disabling the other archiving methods.
 - Go to =about:config= in your Tor Browser and add =127.0.99.1= (or similar) to =network.proxy.no_proxies_on=.
 
 Why?
 When using Tor Browser, you probably don't want to use =127.0.0.1= and =127.0.1.1= as those are normal loopback IP addresses used by most things, and you probably don't want to allow any =JavaScript= code running in Tor Browser to (potentially, if there are any bugs) access to those.
-Yes, if there are any bugs in the cross-domain check code, with this setup =JavaScript= could discover you are using =Hoardy-Web= (and then, in the worst case, DOS your system by flooding your disk with garbage dumps), but it won't be able to touch the rest of your stuff listening on your other loopback addresses.
+Yes, if there are any bugs in the cross-domain check code, with this setup =JavaScript= could discover you are using =Hoardy-Web= (and then, in the worst case, access all of your archived captures and DOS your system by flooding your disk with garbage dumps), but it won't be able to touch the rest of your stuff listening on your other loopback addresses.
 
 So, while this setup is not super-secure if your Tor Browser allows web pages to run arbitrary =JavaScript= (in which case, let's be honest, no setup is secure), with =JavaScript= always disabled, to me, it looks like a completely reasonable thing to do.
-*** Best of both
-In theory, you can have the benefits of both invisibility of archival to local storage and convenience, guarantees, and error reporting of archival to an archiving server at the same time:
-
-- Run the server as =hoardy-web-sas --host 127.0.99.1= or similar.
-- Point the [[./popup.html#div-config.submitHTTPURLBase][=Server URL= setting]] there.
-- But switch to [[./popup.html#div-config.archiveSaveLS][=Save reqres into local storage=]] by default instead, disabling the other archiving methods.
-- Then, at the end of the session, after you closed all the tabs, set =network.proxy.no_proxies_on=, enable [[./popup.html#div-config.archiveSubmitHTTP][submission via =HTTP=]] while disabling [[./popup.html#div-config.archiveSaveLS][saving to local storage]].
-  [[#re-archival][Re-archive everything.]]
-  Your local storage should be empty now.
-- Unset =network.proxy.no_proxies_on= again and switch to [[./popup.html#div-config.archiveSaveLS][saving to local storage]] again.
-
-In practice, doing this manually all the time is prone to errors. Automating this away is on the [[../../CHANGELOG.md#todo][TODO list]].
-
-Then, you can improve on this setup even more by running both the Tor Browser and =hoardy-web-sas= in separate containers/VMs.
 * Shortcuts
 :PROPERTIES:
 :CUSTOM_ID: shortcuts
@@ -891,7 +887,7 @@ If you are reading this page outside of the extension's UI be sure to read the [
 
   Firefox interrupts the networking code and generates =NS_ERROR_NET_ON_*= error about the event, but it fails to supply the response metadata generated by the service/shared worker in that event.
 
-  =Hoardy-Web= then has to take guesses, and marks such reqres with =incomplete response metadata= flag.
+  =Hoardy-Web= then has to take guesses, and marks such reqres with =buggy response metadata= flag.
 ** Known issues that are consequences of issues of Firefox-based mobile browsers: Fenix aka Firefox for Android, Fennec, Mull, etc
 :PROPERTIES:
 :CUSTOM_ID: firefoxa-android-bugs
@@ -980,7 +976,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
 
   Most commonly, this happens for responses loaded from cache, but it can also happen for network fetches, apparently, at random.
 
-  In this case, =Hoardy-Web= will collect no request data and metadata, this marking such reqres with both =partial request body= and =incomplete request metadata=.
+  In this case, =Hoardy-Web= will collect no request data and metadata, this marking such reqres with both =partial request body= and =buggy request metadata=.
 * Frequently Asked Questions
 :PROPERTIES:
 :CUSTOM_ID: faq
@@ -1101,14 +1097,14 @@ You are either
 - trying to capture large or media files; [[#chromium-bug-no-large-files][as discussed there]], this has no workaround, run =Hoardy-Web= under Firefox instead.
 
 Also, [[#chromium-bug-autodetach][Chromium will occasionally detach its debugger at random]], it just happens.
-*** When running =Hoardy-Web= under Firefox, some of my captures fail with =webRequest::capture::RESPONSE::BROKEN=. What do I do?
+*** When running =Hoardy-Web= under Firefox, my captures get marked as =buggy= all the time. What do I do?
 :PROPERTIES:
 :CUSTOM_ID: faq-disable-sw
 :END:
 
-This is a rare error caused by a [[#firefox-bug-race][race condition between webpage's service/shared worker and browser's networking code]].
+This happens because of a [[#firefox-bug-race][race condition between webpage's service/shared worker and browser's networking code]].
 
-Usually, you can ignore this error, since loading another related page is likely to fulfill the same URL.
+Usually, you can ignore these =buggy= reqres, since loading another related page is likely to fulfill the same URL.
 
 However, if this happens a lot to you, or if it annoys you, you can go to =about:config=, toggle =dom.serviceWorkers.enabled= to =false=, and restart the browser.
 Alternatively, you can use =NoScript= or some such extension to disable =JavaScript=, and thus the offending service/shared workers, on the page in question.
@@ -1138,12 +1134,12 @@ Meanwhile, archival [[./popup.html#div-config.archiveSubmitHTTP][by submission v
   by using an archiving server, you can only loose your archived data if you go to its directory and delete some of it yourself, or if your disk dies, or if your file system gets corrupted;
   all of those problems are solved by regular backups.
 
-Archival [[./popup.html#div-config.archiveSaveLS][to browser's local storage]] was added because it was very easy to implement after [[./popup.html#div-config.stash][the]]-[[#stash][stash]] was added.
+Archival [[./popup.html#div-config.archiveSaveLS][to browser's local storage]] was added because it was very easy to implement after [[#stash][stashing]] was added.
 It is the default because it usually works fine, it properly reports errors, has the most consistent behaviour across all browsers, and does not require the user to install any Python code, which helps with on-boarding.
 
 In the ideal world, browsers would provide a better =saveAs= API which would have a less annoying UI for the user and would return out-of-disk-space errors to the extension, in which case [[./popup.html#div-config.archiveExportAs][exporting via =saveAs=]] would be the default.
 
-As it is now, the only way to be absolutely sure you data is properly forever-saved to disk when the extension reports it archived is to use [[./popup.html#div-config.archiveSubmitHTTP][submission via =HTTP=]].
+As it is now, the only way to be absolutely sure you data is properly forever-saved to disk when the extension reports it archived is to use [[./popup.html#div-config.archiveSubmitHTTP][submission via =HTTP=]] or [[#re-archival][re-archive]] carefully.
 *** When running =Hoardy-Web= under Firefox, enabling [[./popup.html#div-config.archiveExportAs][export via =saveAs=]] makes the browser's UI quite annoying. Can it be fixed?
 :PROPERTIES:
 :CUSTOM_ID: faq-firefox-saveas
