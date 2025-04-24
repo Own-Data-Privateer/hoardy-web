@@ -757,6 +757,8 @@ function initMenus() {
     });
 
     if (!useDebugger) {
+        browser.menus.update("replay-tab", { icons: mkIcons("replay") });
+        browser.menus.update("replay-window", { icons: mkIcons("replay") });
         browser.menus.update("open-not-tab", { icons: menuIcons[true] });
         browser.menus.update("open-not-window", { icons: menuIcons[true] });
 
