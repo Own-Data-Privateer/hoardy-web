@@ -695,7 +695,9 @@ So, while this setup is not super-secure if your Tor Browser allows web pages to
 
 =Hoardy-Web= provides context menu actions to:
 
-- open a link in a new tab with currently active tab's [[./popup.html#div-tabconfig.children.collecting][tracking in children tabs setting]] negated.
+- open a replay of a link in a new tab or window;
+
+- open a link in a new tab or window with currently active tab's [[./popup.html#div-tabconfig.children.collecting][tracking in children tabs setting]] negated.
   I.e.,
 
   - right-mouse clicking while pointing at a link and
@@ -706,10 +708,6 @@ So, while this setup is not super-secure if your Tor Browser allows web pages to
   - toggling [[./popup.html#div-tabconfig.children.collecting][this]],
   - middle-mouse clicking a link,
   - toggling [[./popup.html#div-tabconfig.children.collecting][this]] again.
-
-- do the same thing, but opening it in a new window;
-
-- open a replay of a link in a new tab.
 * Error messages and codes
 :PROPERTIES:
 :CUSTOM_ID: errors

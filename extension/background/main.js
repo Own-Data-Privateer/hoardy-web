@@ -733,18 +733,6 @@ function initMenus() {
         return;
 
     browser.menus.create({
-        id: "open-not-tab",
-        contexts: ["link"],
-        title: menuTitleTab[true],
-    });
-
-    browser.menus.create({
-        id: "open-not-window",
-        contexts: ["link"],
-        title: menuTitleWindow[true],
-    });
-
-    browser.menus.create({
         id: "replay-tab",
         contexts: ["link"],
         title: "Replay Link in New Tab",
@@ -754,6 +742,18 @@ function initMenus() {
         id: "replay-window",
         contexts: ["link"],
         title: "Replay Link in New Window",
+    });
+
+    browser.menus.create({
+        id: "open-not-tab",
+        contexts: ["link"],
+        title: menuTitleTab[true],
+    });
+
+    browser.menus.create({
+        id: "open-not-window",
+        contexts: ["link"],
+        title: menuTitleWindow[true],
     });
 
     if (!useDebugger) {
