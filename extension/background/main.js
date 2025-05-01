@@ -912,11 +912,6 @@ async function main() {
 
     await loadStashed();
 
-    console.log(`MAIN: Initialized Hoardy-Web with source of '${sourceDesc}'.`);
-    console.log("MAIN: runtime options are", { useSVGIcons, useBlocking, useDebugger });
-    console.log("MAIN: config is", config);
-    console.log("MAIN: globals are", globals);
-
     // Init capture.
 
     let filterAllN = { url: [{}] };
@@ -940,6 +935,10 @@ async function main() {
 
     // Finishing up.
 
+    console.log(`MAIN: Initialized Hoardy-Web with source of '${sourceDesc}'.`);
+    console.log("MAIN: runtime options are", { useSVGIcons, useBlocking, useDebugger });
+    console.log("MAIN: config is", config);
+    console.log("MAIN: globals are", globals);
     console.log("MAIN: Ready to Hoard the Web!");
 
     if (lastSeenVersion != manifest.version) {
