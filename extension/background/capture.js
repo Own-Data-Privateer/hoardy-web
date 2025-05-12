@@ -114,7 +114,7 @@ let debugReqresFinishingUp = [];
 // completely finished reqres
 let reqresAlmostDone = [];
 
-let workaroundFirstRequest = true;
+let firstNetworkRequest = true;
 
 // Logging
 
@@ -769,6 +769,7 @@ function handleBeforeRequest(e) {
     }
 
     let options = getOriginConfig(e.tabId, fromExtension);
+    let noDebuggerYet = false;
     let workOffline = config.workOffline || options.workOffline;
 
     // ignore this request if archiving is disabled
@@ -780,46 +781,41 @@ function handleBeforeRequest(e) {
 
     logEvent("BeforeRequest", e, undefined);
 
-    // Should we generate and then immediately cancel this reqres?
-    let reject = false;
-
-    // On Chromium, cancel all requests from a tab that is not yet debugged,
-    // start debugging, and then reload the tab.
-    if (useDebugger && e.tabId !== -1
-        && !tabsDebugging.has(e.tabId)
-        && (url.startsWith("http://") || url.startsWith("https://"))) {
-        if (config.debugRuntime)
-            console.warn("CAPTURE: canceling and restarting request to", url, "as tab", e.tabId, "is not managed yet");
-        if (e.type == "main_frame") {
-            // attach debugger and reload the main frame
-            attachDebuggerAndReloadTab(e.tabId).catch(logError);
-            // not using
-            //   resetAttachDebuggerAndNavigateTab(e.tabId, url).catch(logError);
-            // or
-            //   resetAttachDebuggerAndReloadTab(e.tabId).catch(logError);
-            // bacause they reset the referrer
-            return { cancel: true };
-        } else
-            // cancel it, but generate a reqres for it, so that it would be
-            // logged
-            reject = true;
-    }
-
-    // On Firefox, cancel the very first navigation request, redirect the tab
-    // to `about:blank`, and then reload the tab with the original URL to
-    // work-around a Firefox bug where it will fail to run `onstop` for the
-    // `filterResponseData` of the very first request, thus breaking it.
-    if (!useDebugger && workaroundFirstRequest && !workOffline) {
-        workaroundFirstRequest = false;
-        if (config.workaroundFirefoxFirstRequest
-            && e.tabId !== -1
-            && initiator === undefined
-            && e.type == "main_frame"
+    if (useDebugger) {
+        // On Chromium, cancel all requests from a tab that is not yet debugged,
+        // start debugging, and then reload the tab.
+        if (!workOffline && e.tabId !== -1 && !tabsDebugging.has(e.tabId)
             && (url.startsWith("http://") || url.startsWith("https://"))) {
             if (config.debugRuntime)
-                console.warn("CAPTURE: canceling and restarting request to", url, "to workaround a bug in Firefox");
-            resetAndNavigateTab(e.tabId, url).catch(logError);
-            return { cancel: true };
+                console.warn("CAPTURE: canceling and restarting request to", url, "as tab", e.tabId, "is not managed yet");
+            if (e.type == "main_frame") {
+                // attach debugger and reload the main frame
+                attachDebuggerAndReloadTab(e.tabId).catch(logError);
+                // not using
+                //   resetAttachDebuggerAndNavigateTab(e.tabId, url).catch(logError);
+                // or
+                //   resetAttachDebuggerAndReloadTab(e.tabId).catch(logError);
+                // bacause they reset the referrer
+                return { cancel: true };
+            } else
+                // cancel it, but generate a reqres for it, so that it would be
+                // logged
+                noDebuggerYet = true;
+        }
+    } else {
+        // On Firefox, cancel the very first navigation request, redirect the tab
+        // to `about:blank`, and then reload the tab with the original URL to
+        // work-around a Firefox bug where it will fail to run `onstop` for the
+        // `filterResponseData` of the very first request, thus breaking it.
+        if (!workOffline && firstNetworkRequest
+            && (url.startsWith("http://") || url.startsWith("https://"))) {
+            firstNetworkRequest = false;
+            if (config.workaroundFirefoxFirstRequest && e.tabId !== -1 && initiator === undefined && e.type == "main_frame") {
+                if (config.debugRuntime)
+                    console.warn("CAPTURE: canceling and restarting request to", url, "to workaround a bug in Firefox");
+                resetAndNavigateTab(e.tabId, url).catch(logError);
+                return { cancel: true };
+            }
         }
     }
 
@@ -881,11 +877,11 @@ function handleBeforeRequest(e) {
         }
     }
 
-    if (reject || workOffline) {
-        if (reject)
-            reqres.errors.push("webRequest::capture::CANCELED::NO_DEBUGGER")
-        if (workOffline)
-            reqres.errors.push("webRequest::capture::CANCELED::BY_WORK_OFFLINE")
+    if (noDebuggerYet)
+        reqres.errors.push("webRequest::capture::CANCELED::NO_DEBUGGER")
+    if (workOffline)
+        reqres.errors.push("webRequest::capture::CANCELED::BY_WORK_OFFLINE")
+    if (noDebuggerYet || workOffline) {
         reqresAlmostDone.push(reqres);
         scheduleEndgame(tabId);
         return { cancel: true };
