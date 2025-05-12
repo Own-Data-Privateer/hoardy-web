@@ -457,10 +457,15 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         // to simplify the logic below
         updatedTabId = null;
 
-    let iconSlots = ["wicon", "icon", "sicon", "ricon"];
+    let iconSlots = ["aicon", "wicon", "icon", "sicon", "ricon"];
 
     function addIconsAndChunks(prev, icons, chunks, cfg, child) {
         let now = {};
+
+        if (cfg.autoReplay) {
+            now.aicon = "replay";
+            chunks.push("auto-replay");
+        }
 
         if (config.workOffline || cfg.workOffline) {
             now.wicon = "work_offline";

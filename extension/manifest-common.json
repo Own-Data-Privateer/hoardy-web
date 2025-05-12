@@ -40,6 +40,12 @@
         "rearchiveAdjunctSaved": {
             "description": "Re-archive adjunct: Re-archive a new batch of reqres using the configured re-archival methods"
         },
+        "toggleTabConfigAutoReplay": {
+            "description": "Toggle Tab's Auto-Replay: For the currently active tab, toggle `Auto-replay` setting and reset the related option for the tab's new children"
+        },
+        "toggleTabConfigChildrenAutoReplay": {
+            "description": "Toggle Children's Auto-Replay: For currently active tab's new children, toggle `Set 'Auto-Replay'` setting"
+        },
         "toggleTabConfigWorkOffline": {
             "description": "Toggle Tab's Work Offline: For the currently active tab, toggle `Work Offline` setting (then, if impure, set `Track new requests` setting to the opposite value) and reset the related option for the tab's new children"
         },

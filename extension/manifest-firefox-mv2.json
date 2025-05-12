@@ -56,6 +56,16 @@
                 "default": "Alt+Shift+I"
             }
         },
+        "toggleTabConfigAutoReplay": {
+            "suggested_key": {
+                "default": "Alt+R"
+            }
+        },
+        "toggleTabConfigChildrenAutoReplay": {
+            "suggested_key": {
+                "default": "Alt+Shift+R"
+            }
+        },
         "toggleTabConfigWorkOffline": {
             "suggested_key": {
                 "default": "Alt+O"

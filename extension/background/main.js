@@ -209,7 +209,7 @@ function checkReplay() {
 }
 
 function latestReplayOf(url) {
-    if (!serverConfig.canReplay)
+    if (!serverConfig.canReplay || config.replaySubmitHTTP === false)
         throw Error("replay is not available");
 
     let replayURL = serverConfig.info.replay_latest.replace("{url}", url);

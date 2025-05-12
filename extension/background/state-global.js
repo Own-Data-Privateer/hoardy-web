@@ -149,6 +149,7 @@ let configDefaults = {
     collecting: true,
 
     root: {
+        autoReplay: false,
         workOffline: false,
         collecting: true,
         problematicNotify: true,
@@ -161,6 +162,7 @@ let configDefaults = {
     },
 
     extension: {
+        autoReplay: false,
         workOffline: false,
         collecting: false,
         problematicNotify: true,
@@ -171,6 +173,7 @@ let configDefaults = {
     },
 
     background: {
+        autoReplay: false,
         workOffline: false,
         collecting: true,
         problematicNotify: true,

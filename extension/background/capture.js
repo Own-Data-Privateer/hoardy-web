@@ -769,6 +769,17 @@ function handleBeforeRequest(e) {
     }
 
     let options = getOriginConfig(e.tabId, fromExtension);
+
+    if (options.autoReplay && e.type == "main_frame") {
+        if (config.debugRuntime)
+            console.warn("CAPTURE: attempting to auto-replay", url, "in tab", e.tabId);
+        try {
+            return { redirectUrl: latestReplayOf(url) };
+        } catch (err) {
+            logError(err);
+        }
+    }
+
     let noDebuggerYet = false;
     let workOffline = config.workOffline || options.workOffline;
 
