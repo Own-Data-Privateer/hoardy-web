@@ -92,9 +92,11 @@ let configDefaults = {
     rearchiveSubmitHTTP: false,
     replaySubmitHTTP: null,
     submitHTTPURLBase: "http://127.0.0.1:3210/",
+    submitHTTPParanoid: true,
 
     // saving to local storage
     archiveSaveLS: true,
+    saveLSParanoid: true,
 
     // archiving notifications
     archiveDoneNotify: true,

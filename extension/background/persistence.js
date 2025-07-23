@@ -341,7 +341,7 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
     serverURL.search = "profile=" + encodeURIComponent(loggable.bucket || config.root.bucket);
     let storeID = serverURL.href;
 
-    if (recordOneAssumedBroken(unarchivedAccumulator, storeID, "this archiving server appears to be defunct", archivable, dumpSize))
+    if (config.submitHTTPParanoid && recordOneAssumedBroken(unarchivedAccumulator, storeID, "this archiving server appears to be defunct", archivable, dumpSize))
         return false;
 
     if (config.debugPersisence)
@@ -745,7 +745,7 @@ async function saveOne(archivable, elide, unarchivedAccumulator) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
-    if (recordOneAssumedBroken(unarchivedAccumulator, "localStorage", "this archiving method appears to be defunct", archivable, dumpSize))
+    if (config.saveLSParanoid && recordOneAssumedBroken(unarchivedAccumulator, "localStorage", "this archiving method appears to be defunct", archivable, dumpSize))
         return false;
 
     let res;

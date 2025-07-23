@@ -865,6 +865,7 @@ section {
     </section>
     <ui id="config.gzipExportAs" type="boolean" class="prefer-on" data-help="Try compressing each `exportAs` output using GZip (with compression level 9) and use the compressed version as the output if its size is smaller than the size of non-compressed version, use the non-compressed version otherwise. Essentially, with this enabled, `Hoardy-Web` will do what `hoardy-web-sas` archiving server does, except slower, since this is done in JavaScript.">GZip outputs</ui>
     <!-- exportAsOptions -->
+    <div><span>(Error handling is impossible.)</span></div>
     </div>
     </section>
 
@@ -873,6 +874,7 @@ section {
     <div class="isubdots ui">
     <ui id="config.submitHTTPURLBase" type="string" data-help="URL of the archiving server we are submitting to.">Server URL</ui>
     <div><span>(Compression is done server-side.)</span></div>
+    <ui id="config.submitHTTPParanoid" type="boolean" class="prefer-on" data-help="When the archiving server returns an error, mark all the other yet to be archived reqres as failed. When disabled, only the failing reqres will be marked as failed and the archiving will continue as normal. I.e., disabling this disables `this archiving server appears to be defunct` reqres failures. Enabled by default because the server returning errors usually means the file system is out of space, so this behaviour is safer and could save a lot of network bandwidth if the archiving server is non-local.">Paranoid error handling</ui>
     </div>
     </section>
 
@@ -883,6 +885,7 @@ section {
 
     <ui id="config.preferIndexedDB" type="boolean" data-help="Prefer `IndexedDB` API to `storage.local` API for stashing and saving new reqres, if both are available. `IndexedDB` API is more efficient w.r.t. RAM consumption, `storage.local` API is faster at actually reading and writing data from/to disk. On Firefox, this option can not be enabled if `IndexedDB` API is unavailable, which will be the case if you enable `Always use private browsing mode` browser setting, unless you use a very recent non-ESR version of Firefox. Enabling private browsing mode on older Firefox versions will also make all the data stored in `IndexedDB` suddenly unavailable, see the `Help` page for instructions how to fix such a situation. On Chromium, at the moment, this option can not be disabled, since `storage.local` API there can not store `Uint8Array`s. Which is why this option is enabled by default on Chromium and disabled by default on Firefox.">Prefer <code>IndexedDB</code> API</ui>
     <ui id="config.gzipLSDumps" type="boolean" class="prefer-on" data-help="Before writing each new dump to local storage, try compressing it with GZip and use the compressed version if its size is smaller than the size of non-compressed version. This applies universally, to both stashing and saving to local storage using any available API. Enabled by default since this saves a lot of disk space when archiving to local storage is enabled (see `Save reqres into local storage` option above). You might want to disable this if you run `Hoardy-Web` on a system with a slow CPU or if you sometimes temporarily stash (see `Stash 'collected' reqres into local storage` option above and `Stash 'in_limbo' reqres` options below) but almost never archive data to local storage. Since, in the latter case, GZipping everything twice would be a waste of CPU cycles (once when stashing, and then the second time when exporting and/or on the archiving server side).">GZip dumps</ui>
+    <ui id="config.saveLSParanoid" type="boolean" class="prefer-on" data-help="When writing to local storage produces an error, mark all the other yet to be archived reqres as failed. When disabled, only the failing reqres will be marked as failed and the archiving will continue as normal. I.e., disabling this disables `this archiving method appears to be defunct` reqres failures. Enabled by default because write operation returning errors usually means the file system is out of space, so this behaviour is safer.">Paranoid error handling</ui>
 
     <!-- lsOptions -->
     </div>
