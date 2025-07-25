@@ -10,11 +10,11 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Added
 
-- Core + Popup UI + Shortcuts:
+- Core + Toolbar button + Icons + Popup UI + Shortcuts:
 
-  - Implemented `Auto-Replay` mode, its per-tab options, and shortcuts.
+  - Implemented `Auto-Replay` mode, its per-tab options, shortcuts, and toolbar display.
 
-    Enabling it makes `Hoardy-Web` start automatically redirecting all navigations in the corresponding tab to their replay URLs.
+    Enabling that mode makes `Hoardy-Web` start automatically redirecting all navigations in the corresponding tab to their replay URLs.
 
     This is most useful if you want to open a replay of a bookmarked URL skipping the annoying part where you have to add the replay URL prefix to the original URL manually.
 
