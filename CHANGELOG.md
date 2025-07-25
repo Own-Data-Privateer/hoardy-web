@@ -6,6 +6,40 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.22.0] - 2025-07-25: `Auto-Replay` mode and other annoyance fixes
+
+### Added
+
+- Core + Popup UI + Shortcuts:
+
+  - Implemented `Auto-Replay` mode, its per-tab options, and shortcuts.
+
+    Enabling it makes `Hoardy-Web` start automatically redirecting all navigations in the corresponding tab to their replay URLs.
+
+    This is most useful if you want to open a replay of a bookmarked URL skipping the annoying part where you have to add the replay URL prefix to the original URL manually.
+
+    I.e., in most cases, you won't need to bookmark replay URLs anymore.
+    With `Auto-Replay` enabled, bookmarks of the original URLs will work now just as well.
+
+- Core + Popup UI:
+
+  - Added "Paranoid error handling" options for HTTP and local storage archival methods (on the "P&R" tab, `config.submitHTTPParanoid` and `config.saveLSParanoid` settings).
+
+    Disabling these disables "... appears to be defunct" archiving failures, making `Hoardy-Web` attempt archiving each and every reqres separately.
+    This is only useful in situations when something else is buggy, like [#20](https://github.com/Own-Data-Privateer/hoardy-web/issues/20).
+
+### Changed
+
+- Context menu:
+
+  - Improved ordering of elements.
+
+  - Added icons for "Replay link ..." actions.
+
+- Documentation:
+
+  - Improved the [`Help` page](./extension/page/help.org), aligning it with reality.
+
 ## [extension-v1.21.1] - 2025-04-03: Bugfixes
 
 ### Fixed
@@ -2453,6 +2487,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.22.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.21.1...extension-v1.22.0
 [extension-v1.21.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.21.0...extension-v1.21.1
 [extension-v1.21.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.20.0...extension-v1.21.0
 [extension-v1.20.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.19.0...extension-v1.20.0
