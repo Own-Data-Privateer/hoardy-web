@@ -179,6 +179,9 @@ That is, you can use `Hoardy-Web` to implement the following browser workflow:
 - You can now quit your browser, crash your OS, let your PC loose power, and then get back all those tabs exactly as you left them off, even if the Internet is currently down.
   Simply restore your last browsing session.
 
+Alternatively, you can use `Hoardy-Web`'s `Auto-Replay` mode, which replays everything by default instead.
+I.e., you can enable `Auto-Replay` mode globally or in a single tab, open a normal Internet URL or a normal bookmark there, and see a replay of a previous visit to that URL instead of it getting fetched from the Internet.
+
 **This is simply a superior way to live.**
 
 ## Well, alright, this is kinda nice, but I. Need. More! POWER!

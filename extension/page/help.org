@@ -564,7 +564,26 @@ Also, note that the [[./popup.html#div-rearchive.andDelete][deletion option]] an
 
 When your [[./popup.html#div-config.submitHTTPURLBase][archiving server]] supports it and [[./popup.html#div-config.replaySubmitHTTP][this option]] is not disabled, =Hoardy-Web= enables its integration with replay over =HTTP=.
 
-At the moment, this includes [[./popup.html#replayAll][two]] [[./popup.html#replayTabBack][buttons]] which re-navigate all tabs or the currently active tab (respectively) to their replay pages as well as keyboard shortcuts and context menu actions [[#shortcuts][described below]].
+Pressing
+
+- [[./popup.html#replayAll][this button]] re-navigates each open tab for which [[./popup.html#div-tabconfig.replayable][this setting]] is enabled to its replay page;
+
+- [[./popup.html#replayTabBack][this buttons]] re-navigates the currently active tab regardless of any settings.
+
+Alternatively, =Hoardy-Web= implements =Auto-Replay= mode, in which all navigations are automatically redirected to their replays URLs instead:
+
+- [[./popup.html#div-tabconfig.autoReplay][this toggle]] enables =Auto-Replay= mode in the currently active tab;
+
+- [[./popup.html#div-tabconfig.children.autoReplay][this toggle]] enables it for the currently active tab's new children, thus making all link middle-clicks open replay pages;
+
+- there is also a [[./popup.html#div-config.root.autoReplay][toggle]] for controlling the default value of the above two options in newly spawned root tabs.
+
+=Auto-Replay= attempts will be silently skipped if the archiving server does not support it or when [[./popup.html#div-config.replaySubmitHTTP][this option]] is disabled.
+
+Currently =Auto-Replay= mode only works for top-level navigation requests and performs redirects regardless of your [[./popup.html#div-config.submitHTTPURLBase][archiving server]] having an archive of the URL in question.
+(This will be improved in the future.)
+
+There are also keyboard shortcuts and context menu actions for most of the above [[#shortcuts][described below]].
 * Workflows
 :PROPERTIES:
 :CUSTOM_ID: workflows
@@ -668,6 +687,8 @@ So, while this setup is not super-secure if your Tor Browser allows web pages to
 - open the [[./popup.html#showTabState][=Internal State and Logs= page]] narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
 - open the =Internal State and Logs= page narrowed to the currently active tab's data, scrolled to the end of the log, {{{shortcut(showTabLog)}}};
 - simulate [[./popup.html#rearchiveAdjunctSaved][=Re-archive adjunct= button]] press with [[./popup.html#div-local.rearchiveDelete][deletion]] disabled, {{{shortcut(rearchiveAdjunctSaved)}}};
+- toggle [[./popup.html#div-tabconfig.autoReplay][=Auto-Replay= mode in the currently active tab]] and its children, {{{shortcut(toggleTabConfigAutoReplay)}}};
+- toggle [[./popup.html#div-tabconfig.children.autoReplay][=Auto-Replay= mode in the currently active tab's new children]], {{{shortcut(toggleTabConfigChildrenAutoReplay)}}};
 - toggle [[./popup.html#div-tabconfig.workOffline][work offline mode in the currently active tab]] (the action depends on [[./popup.html#div-config.workOfflineImpure][impure toggling]]) {{{shortcut(toggleTabConfigWorkOffline)}}};
 - toggle [[./popup.html#div-tabconfig.children.workOffline][work offline mode in the currently active tab's new children]] (the action depends on [[./popup.html#div-config.workOfflineImpure][impure toggling]]) {{{shortcut(toggleTabConfigChildrenWorkOffline)}}};
 - toggle [[./popup.html#div-tabconfig.collecting][tracking of newly spawned =HTTP= requests in the currently active tab]] {{{shortcut(toggleTabConfigTracking)}}};
