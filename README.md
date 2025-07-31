@@ -42,6 +42,7 @@
 <li><a href="#worldbrain-memex" id="toc-worldbrain-memex">WorldBrain Memex</a></li>
 <li><a href="#pywb" id="toc-pywb">pywb</a></li>
 <li><a href="#heritrix" id="toc-heritrix">heritrix</a></li>
+<li><a href="#zeno" id="toc-zeno">Zeno</a></li>
 <li><a href="#archivebox" id="toc-archivebox">ArchiveBox</a></li>
 <li><a href="#reminiscence" id="toc-reminiscence">reminiscence</a></li>
 <li><a href="#wget--mpk-and-curl" id="toc-wget--mpk-and-curl"><code>wget -mpk</code> and <code>curl</code></a></li>
@@ -859,6 +860,7 @@ Cons:
 ## [heritrix](https://github.com/internetarchive/heritrix3)
 
 The crawler behind the [Wayback Machine](https://web.archive.org/).
+Maintained by the [Internet Archive](https://archive.org).
 It's a self-hosted web app into which you can feed the URLs for them to be archived, so to make it archive all of your web browsing:
 
 A tool similar to [`hoardy-web serve`](./tool/).
@@ -876,6 +878,13 @@ Cons:
 - to make it archive all of your web browsing like `Hoardy-Web` does, you'll need to write a separate browser plugin to redirect all links you click to your local instance's `/save/` `REST` API URLs (which is not hard, but I'm unaware if any such add-on exists);
 - and you won't be able to archive your `HTTP` `POST` requests with it;
 - as with other similar tools, an `HTTP` server of a web page that is being archived can tell it is being crawled.
+
+## [Zeno](https://github.com/internetarchive/Zeno)
+
+An alternative to `heritrix` --- by some of the same developers --- but written in Go.
+Also maintained by the [Internet Archive](https://archive.org).
+
+Similar pros and cons to the above, but compared to `heritrix` it's much smaller and less RAM-hungry, and much easier to setup.
 
 ## [ArchiveBox](https://github.com/ArchiveBox/ArchiveBox)
 
