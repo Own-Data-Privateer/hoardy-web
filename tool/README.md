@@ -175,7 +175,7 @@ This is very reminiscent of the [Wayback Machine](https://web.archive.org/) by d
 
 You can also use your archived data to generate a local offline static website mirror that can be opened in a web browser without accessing the Internet, similar to what `wget -mpk` does.
 
-The invocation is slightly different depending on if the data was exported via `saveAs` by the [`Hoardy-Web` extension](../extension/) itself, saved via the [`hoardy-web-sas` simple archiving server](../simple_server/), or via `hoardy-web serve --archive-to` (see below):
+The precise invocation is slightly dependent on whether the archives were exported via `saveAs` by the [`Hoardy-Web` extension](../extension/) itself, saved via the [`hoardy-web-sas` simple archiving server](../simple_server/), or via `hoardy-web serve --archive-to` (see below):
 
 ```bash
 # for "Export via `saveAs`"
@@ -185,7 +185,7 @@ hoardy-web mirror --to ~/hoardy-web/mirror1 ~/Downloads/Hoardy-Web-export-*
 hoardy-web mirror --to ~/hoardy-web/mirror1 ../simple_server/pwebarc-dump ~/hoardy-web/raw
 ```
 
-You can then, e.g. `rsync`/copy `~/hoardy-web/mirror1` to your e-book reader/phone before hopping on a plane or going on a deep-sea dive, and still be able to read all those pages.
+You can then, e.g. `rsync`/`syncthing`/`adb push`/copy `~/hoardy-web/mirror1` to your phone/e-book reader before hopping on a plane or going on a deep-sea dive, and still be able to read all those pages.
 
 The default settings should work for most simple websites, but a [section below](#mirror) contains more info and more usage examples.
 
