@@ -85,46 +85,65 @@ You can then view, replay, mirror, scrape, and/or index your archived data later
 
 # What can `Hoardy-Web` do?
 
+- Did you ever try to systematically re-visit web pages you visited before?
+  **The amount of link rot on the web is rather distressing**, to quote [Wikipedia](https://en.wikipedia.org/wiki/Link_rot):
+
+  > A 2003 study found that on the Web, about one link out of every 200 broke each week, suggesting a half-life of 138 weeks.
+  > This rate was largely confirmed by a 2016–2017 study of links in Yahoo! Directory (which had stopped updating in 2014 after 21 years of development) that found the half-life of the directory's links to be two years.
+
+  That is, on average, if you bookmark a 100 random web pages today, only 3 of them will still be available 10 years later.
+
+  A very relevant [article by Gwern Branwen](https://gwern.net/archiving) cites more distressing statistics on the topic, ending that section with:
+
+  > [...] it's always the apocalypse somewhere for someone [...] none of that will survive on its own, [it] will be lost and forgotten, and if you don't preserve it, probably no one else will either.
+
+  "It's fine, [Wayback Machine](https://web.archive.org/) will save most of those pages!" I hear you say.
+
+  Wayback Machine is awesome, but.
+
+  Firstly, it will probably not have all of your bookmarks.
+  Personally, I discovered that when I want to refer back to a now dead web page I did not previously archive --- which, as will be discussed below, means that most of those pages are 9 years or older --- then, with about 80% probability, Wayback Machine does not have that web page archived either.
+
+  Secondly, **Wayback Machine and similar archiving services are unable to archive pages hidden behind CAPTCHAs, authentications, paywalls, `HTTP POST`s, etc.**
+
+  Thirdly, both Wayback Machine and other archiving services **archive only a small subset of the web they can reach and frequently remove previously archived pages on request.**
+
+  In fact, there are companies you can hire to help you systematically clean out any compromising materials from all existing archiving services.
+  Some countries now even have "privacy laws" that make it much cheaper to do.
+  A polite request here, a DMCA take-down notice there, a letter from a lawyer another time, ...
+
+  Fourthly, dependence on Wayback Machine makes the [Internet Archive](https://archive.org) a single point of failure.
+
+  And finally, Wayback Machine in particular is also pretty inefficient in how it archives things ([Save Page Now](https://web.archive.org/save/) is a distributed system without a shared page cache) and is frequently overloaded.
+  This makes systematic archival of web pages into there without a use of dedicated personal web crawler rather painful.
+
+  Wouldn't it be nice if there was a tool that would allow you to **automatically and efficiently capture everything your browser fetches from the Internet while you surf the Web, put it all into your own private archive nobody else could censor, and allow you to easily search, mirror, replay, and share captured versions of previously visited web pages later**?
+
 - Do you happen to use your browser's open tabs as a "To Read Later" list?
 
-  Isn't it kind of annoying you have to re-fetch web pages in old tabs after your browser unloads them, you restart it, or you reboot your PC?
+  Isn't it kind of annoying that your browser has to re-fetch things from the Internet again each time you return to a browser tab that was previously unloaded from memory, or after a browser restart, or after a PC reboot?
 
-  Wouldn't it be nice if there was a tool that would allow you to **view your old tabs, instantly, even if your browser unloaded them, without re-loading anything from the Internet, re-loading previously captured states from disk instead**, making things both more convenient (since you can now read those old tabs on a plane, or at sea) and more private (since the origin web servers will not learn about you returning to an old tab).
-
-- Have you ever wanted to re-visit a web page you visited awhile ago, but then discovered that that page no longer exists, and [Wayback Machine](https://web.archive.org/) did not save any visits to it, or it only has versions that do not contain the information you need?
-
-  **How many web pages you visited today you could potentially need to re-visit in the future, in their current versions?**
-
-  **What proportion of them won't ever be archived by the [Wayback Machine](https://web.archive.org/) or any similar archiving service (because those pages are hidden behind CAPTCHAs, authentications, paywalls, `HTTP POST`s, etc)**, is not versioned by the origin website (e.g. Wikipedia), is not archived by Wayback Machine currently, or only have outdated versions there?
-  (The latter you can count by substituting those `<URL>`s into `https://web.archive.org/web/2/<URL>` and trying the result out.)
-
-  **Now, what, do you think, is the probability that the origin website and/or Wayback Machine would remove any of those pages in the future?**
-  (I.e., are those pages potentially politically or commercially sensitive?
-  Would somebody benefit if they were removed?
-  Pages like that vanish both from Wikipedia --- where pages can be deleted with their edit history --- and from Wayback Machine --- where host owners can simply request their websites to be deleted from history --- all the time.)
-
-  Now multiply all those values.
-  **That's, on average, how many useful pages you unrecoverably lost today.**
-
-  Wouldn't it be nice if there was a tool that would allow you to **automatically and efficiently archive everything your browser fetches from the network while you surf the web, allowing you to search and replay captured versions of previously visited web pages later**.
+  Wouldn't it be nice if there was a tool that would allow you to **view your old tabs, instantly, even if your browser unloaded them, without re-loading anything from the Internet**, by re-loading previously captured states from disk instead, thus making things both more convenient (since you can now read those old tabs on a plane, or at sea) and more private (since the origin web servers will not learn about you returning to an old tab)?
 
 - Do you frequently find yourself making custom website data scrapers, for accessibility and/or data extraction reasons?
 
-  Wouldn't it be nice if you could simply **visit those websites with your web browser, record all `HTTP` requests and responses performed in the process, and then, possibly years later, reuse those captures as inputs to your data scraping pipelines**.
+  Wouldn't it be nice if you could simply **visit those websites with your web browser, record all `HTTP` requests and responses performed in the process, and then, possibly years later, reuse those captures as inputs to your data scraping pipelines**?
 
 `Hoardy-Web` does this, and more, but mainly this.
 
 # Who `Hoardy-Web` is for?
 
-If you are running multiple browsers or browser profiles to isolate different browsing sessions from each other, and you now want to introduce some historic persistence into your setup, then `Hoardy-Web` is for you.
+If you are running multiple browsers or browser profiles to isolate different browsing sessions from each other, and you now want to introduce some historic persistence and automatic archival into your setup, then `Hoardy-Web` is for you.
 
 If you are not isolating your browsing sessions already, however, then introducing `Hoardy-Web` into your setup, in the long run, will probably be a liability.
 If you let it, `Hoardy-Web` will happily capture and archive all your login credentials, in plain text.
+[There are ways to work around this](#setup), so you if must, you can use `Hoardy-Web` even then, but it will require special care and self-training to do safely.
 
 # Walkthrough
 
-If you are reading this on GitHub, be aware that this repository is a [mirror of a repository on the author's web site](https://oxij.org/software/hoardy-web/).
-In author's humble opinion, the rendering of the documentation pages there is superior to what can be seen on GitHub (its implemented via [`pandoc`](https://pandoc.org/) there).
+(If you are reading this on GitHub, be aware that this repository is a [mirror of a repository on the author's web site](https://oxij.org/software/hoardy-web/).
+In author's humble opinion, the rendering of the documentation pages there is superior to what can be seen on GitHub, its implemented via [`pandoc`](https://pandoc.org/) there.
+This difference is especially relevant for this section.)
 
 With `Hoardy-Web`, technically speaking, capture, archival, and replay are all independent.
 This allows `Hoardy-Web` to be used in rather complex setups.
@@ -145,22 +164,26 @@ Then, I pressed the "Replay" button to switch to a replay page generated by `hoa
 
 ![Screenshot of Firefox's viewport with a replay of the page from the previous screenshot.](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.19.0-replay.png)
 
-... and closed the browser.
-
 (Also, when not doing this for illustrative purposes, in practice, the above series of actions usually takes less than a second, via keyboard shortcuts, which `Hoardy-Web` has in abundance.
 Note how the tooltip on the above screenshot shows which shortcut that action is currently bound to.)
 
 ## The magic
 
-**Then, later, I reopened my browser, restored the last session, and that tab was restored back with zero requests to the Internet.**
+**Then, I closed the browser, reopened it, restored the last session, and that tab was restored back with zero requests to the Internet.**
 
-Now note that `Hoardy-Web` also has a button (the one with the "eject" symbol on the "Globally" line) which re-navigates all open tabs that do not yet point to replay pages --- excluding those for which `Include in global replays` per-tab setting is disabled --- to their replays.
+Now, note that `Hoardy-Web` has
+
+- a button (the one with the "eject" symbol on the "Globally" line) which re-navigates all open tabs that do not yet point to replay pages --- excluding those for which `Include in global replays` per-tab setting is disabled --- to their replays;
+
+- `Auto-Replay` mode toggle (not on screenshots) which automatically redirects all network requests to their replays instead.
 
 That is, you can use `Hoardy-Web` to implement the following browser workflow:
 
-- You re-navigate most of your tabs to their replays and allow the browser to unload them as it pleases.
+- You re-navigate most of your tabs to their replays or you enable `Auto-Replay` mode in those tabs.
 
-- You refer back to those tabs at future times, like usual, but now, with `Hoardy-Web`, you no longer need to worry about those tabs being unloaded and later reloaded while you experience
+- You allow your browser to unload those tabs as it pleases.
+
+- You refer back to those tabs later, like usual, but now, with `Hoardy-Web`, you no longer need to worry about those tabs being unloaded and later reloaded while you experience
 
   - intermittent Internet connection issues, like when on a plane or at sea;
 
@@ -170,18 +193,16 @@ That is, you can use `Hoardy-Web` to implement the following browser workflow:
 
   - all those web servers learning that you use your browser's tabs as a "To Read Later" list and you just selected that old tab to start reading.
 
-  After all, with `Hoardy-Web`, re-loading an old replayed tab won't load anything from the Internet.
+  After all, with `Hoardy-Web`, re-loading a manually or automatically replayed tab won't load anything from the Internet.
 
-- If you feel like you have too many open tabs, you can simply bookmark and close some of them, re-open them later, and get the exact version of the page you bookmarked.
+- If you feel like you have too many open tabs, you can simply bookmark and close some of them, and then re-open them again later, without loading anything from the Internet.
 
-  You don't even need to use your browser's own bookmark machinery for this.
-  Put those URLs into your [org-mode](https://orgmode.org/) files or some such and return to them later as you please.
+  If you re-navigate a page to its replay and bookmark the resulting URL, you'll even get the exact version of the page when you open that bookmark.
+
+  If you instead bookmark the original URL and then open that bookmark with `Auto-Replay` mode enabled, you'll see the last archived version by default.
 
 - You can now quit your browser, crash your OS, let your PC loose power, and then get back all those tabs exactly as you left them off, even if the Internet is currently down.
   Simply restore your last browsing session.
-
-Alternatively, you can use `Hoardy-Web`'s `Auto-Replay` mode, which replays everything by default instead.
-I.e., you can enable `Auto-Replay` mode globally or in a single tab, open a normal Internet URL or a normal bookmark there, and see a replay of a previous visit to that URL instead of it getting fetched from the Internet.
 
 **This is simply a superior way to live.**
 
@@ -205,7 +226,9 @@ For instance:
 
   - Or, can you can sync that `~/hoardy-web/mirror-ao3` directory to your phone with `adb push`, [syncthing](https://syncthing.net/), or some such, and then read/listen them with a e-book reading app there.
 
-    (There is a ton of website-specific alternatives to this --- like, for example, specifically `archiveofourown.org` provides `EPUB` downloads for its fiction pages, which might be more convenient in some cases --- but a combination of `hoardy-web` with `syncthing` (or some such) will work for all and any websites, and can be completely automated.)
+    There is a ton of website-specific alternatives to this.
+    Like, for example, specifically `archiveofourown.org` provides `EPUB` downloads for its fiction pages, which might be more convenient in some cases.
+    But a combination of `hoardy-web` with `syncthing`, or some such, will work for all websites and can be easily automated.
 
   - Or, you can feed those files to [recoll](https://www.lesbonscomptes.com/recoll/index.html) or some such to get full-text search.
 
@@ -213,7 +236,7 @@ For instance:
 
   - view archived `HTML` documents via `pandoc` piped into `less` in [your favorite tty emulator](https://st.suckless.org/),
 
-  - listen their contents with a TTS engine via `spd-say`,
+  - listen to their contents with a TTS engine via `spd-say`,
 
   - open files stored inside those dumps via `xdg-open` (so, e.g., you can view images stored inside without first running `hoardy-web mirror`),
 
@@ -295,7 +318,7 @@ Therefore, it can
 all the while
 
 - being invisible to websites you are browsing;
-- downloading everything only once, **not** once with your browser and then the second time with a separate tool like [ArchiveBox](https://github.com/ArchiveBox/ArchiveBox) (which will download everything the second time) or an extension like [SingleFile](https://github.com/gildas-lormeau/SingleFile) (which will re-download invalidated cached data when you ask it to save a page);
+- downloading everything only once, **not** once with your browser and then a second time with a separate tool like [ArchiveBox](https://github.com/ArchiveBox/ArchiveBox) (which will re-download everything) or an extension like [SingleFile](https://github.com/gildas-lormeau/SingleFile) (which will re-download invalidated cached data when you ask it to save a page);
 - freeing you from worries of forgetting to archive something because you forgot to press a button somewhere.
 
 See the ["Quirks and Bugs" section of extension's `Help` page](./extension/page/help.org#bugs) for known issues.
@@ -402,7 +425,7 @@ For more info see the [list of comparisons to alternatives](#alternatives).
 
 # Does the author eat what he cooks?
 
-Yes, as of December 2024, I archive all of my web traffic using `Hoardy-Web`, without any interruptions, since October 2023.
+Yes, I archive all of my web traffic using `Hoardy-Web`, without any interruptions, from October 2023 to the date of the latest commit in this repository.
 Before that my preferred tool was [mitmproxy](https://github.com/mitmproxy/mitmproxy).
 
 After adding each new feature to the [`hoardy-web` tool](./tool/), as a rule, I feed at least the last 5 years of my web browsing into it (at the moment, most of it converted from other formats to `.wrr`, obviously) to see if everything works as expected.
@@ -692,9 +715,9 @@ Pros:
 
 Cons:
 
-- it is rather painful to setup, requiring you to install a custom SSL root certificate; and
-- websites using certificate pinning will stop working; and
-- some websites detect when you use it and fingerprint you for it or force you to solve CAPTCHAs; and
+- it is rather painful to setup, requiring you to install a custom SSL root certificate;
+- websites using certificate pinning will stop working;
+- some websites detect when you use it and fingerprint you for it or force you to solve CAPTCHAs;
 - `mitmproxy` dump files are flat streams of `HTTP` requests and responses that use custom frequently changing between versions data format, so you'll have to re-parse them repeatedly using `mitmproxy`'s own parsers to get to the requests you want;
 - and then you'll still need some more tools to use those archives for Wayback Machine-like replay and generation of website mirrors.
 
@@ -705,8 +728,8 @@ Though, the latter issue can be solved via [this project's `hoardy-web` tool](./
 Cons:
 
 - to do what `Hoardy-Web` does, you will have to manually enable it for each browser tab;
-- opening a link in a new tab will fail to archive the first page as you will not have Network Monitor open there yet; and then
-- you will have to check all your tabs for new data all the time and do \~5 clicks per tab to save it; and then
+- opening a link in a new tab will fail to archive the first page as you will not have Network Monitor open there yet;
+- you will have to check all your tabs for new data all the time and do \~5 clicks per tab to save it;
 - [`HAR`](./doc/data-on-disk.md)s are `JSON`, meaning all that binary data gets encoded indirectly, thus making resulting `HAR` archives very inefficient for long-term storage, as they take a lot of disk space, even when compressed;
 - and then you'll still need something like this suite to inspect the generated archives;
 - and then you'll still need some more tools to use those archives for Wayback Machine-like replay and generation of website mirrors.
@@ -722,13 +745,12 @@ Pros:
 
 Cons:
 
-- it is really painful to setup; and then
-- you are very likely to screw it up, loose/mismatch encryption keys, and make your captured data unusable; and even if you don't,
-- it takes a lot of effort to recover `HTTP` data from the [`PCAP`](./doc/data-on-disk.md) dumps; and
-- `PCAP` dumps are IP packet-level, thus also inefficient for this use case; and
-- `PCAP` dumps of SSL traffic can not be compressed much, thus storing the raw captures will take a lot of disk space.
-- and then you'll still need something like this suite to inspect the generated archives;
-- and then you'll still need some more tools to use those archives for Wayback Machine-like replay and generation of website mirrors.
+- it is really painful to setup;
+- you are very likely to screw it up, loose/mismatch encryption keys, and make your captured data unusable;
+- it takes a lot of effort to recover `HTTP` data from the [`PCAP`](./doc/data-on-disk.md) dumps, since they are IP packet-level;
+- `PCAP` dumps of SSL traffic can not be compressed much, thus storing the raw captures will take a lot of disk space;
+- you'll still need something like this suite to inspect the generated archives;
+- you'll still need some more tools to use those archives for Wayback Machine-like replay and generation of website mirrors.
 
 And `hoardy-web` tool can't help you with the latter, at the moment.
 
@@ -751,7 +773,7 @@ Cons:
 - they produce and consume archives in `WARC` format, which is rather limited in what it can capture (compared to `WRR`, `HAR`, `PCAP`, and `mitmproxy`);
 - they are Chromium-only;
 - to make `archiveweb.page` archive all of your web browsing like `Hoardy-Web` does:
-  - you will have to manually enable `archiveweb.page` for each browser tab; and then
+  - you will have to manually enable `archiveweb.page` for each browser tab;
   - opening a link in a new tab will fail to archive the first page, as the archival is per-tab;
 - it has no equivalent to [`problematic`](./extension/page/help.org#problematic) reqres status of `Hoardy-Web`, which is super useful for ensuring your captures are actually good, and not broken in some non-obvious ways because of networking or intermittent server errors;
 - `archiveweb.page` also requires constant manual effort to export the data out.
@@ -903,7 +925,7 @@ Cons:
 - to make it archive all of your web browsing like `Hoardy-Web` does,
   - [it requires you](https://github.com/ArchiveBox/ArchiveBox/issues/577) to setup `mitmproxy` with [archivebox-proxy](https://codeberg.org/brunoschroeder/archivebox-proxy) plugin;
   - alternatively, you can run [archivefox](https://github.com/layderv/archivefox) add-on and explicitly archive pages one-by-one via a button there;
-- in both cases, to archive a URL, ArchiveBox will have to download it by itself in parallel with your browser, thus making you download everything twice, which is hacky and inefficient; and
+- in both cases, to archive a URL, ArchiveBox will have to download it by itself in parallel with your browser, thus making you download everything twice, which is hacky and inefficient;
 - websites can easily see, fingerprint, and then ban you for doing that;
 - and you won't be able to archive your `HTTP POST` requests with it.
 
@@ -1007,7 +1029,7 @@ It's pretty cool, but rather memory hungry and slow.
 
 ## [syncthing](https://syncthing.net/)
 
-A very nice file synchronization system, quite useful for backing up your `WRR` files, or anything else.
+A very nice file synchronization system, quite useful for mirroring `hoardy-web mirror` outputs between devices, or backing up `WRR` files themselves, or automating away other similar things.
 
 ## [Perkeep](https://perkeep.org/)
 
