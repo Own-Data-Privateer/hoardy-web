@@ -1,5 +1,6 @@
 #+MACRO: shortcut @@html:<span data-macro-shortcut="$1">currently bound to <code>manifest.commands.$1</code></span>@@
 #+MACRO: reportit [[https://github.com/Own-Data-Privateer/hoardy-web/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]]
+#+OPTIONS: H:5
 
 #+BEGIN_EXPORT html
 <div class="less">
