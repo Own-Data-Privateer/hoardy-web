@@ -1,7 +1,8 @@
-{ pkgs ? import <nixpkgs> {}
-, lib ? pkgs.lib
-, source ? import ../source.nix { inherit pkgs; }
-, developer ? false
+{
+  pkgs ? import <nixpkgs> { },
+  lib ? pkgs.lib,
+  source ? import ../source.nix { inherit pkgs; },
+  developer ? false,
 }:
 
 with pkgs;
@@ -13,7 +14,14 @@ stdenv.mkDerivation rec {
   inherit (source) src unpackPhase;
   sourceRoot = "${src.name}/extension";
 
-  nativeBuildInputs = [ git jq pandoc zip imagemagick vim.xxd ];
+  nativeBuildInputs = [
+    git
+    jq
+    pandoc
+    zip
+    imagemagick
+    vim.xxd
+  ];
 
   buildPhase = ''
     ./build.sh clean firefox-mv2 chromium-mv2

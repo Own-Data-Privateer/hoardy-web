@@ -1,5 +1,6 @@
-{ pkgs ? import <nixpkgs> {}
-, developer ? false
+{
+  pkgs ? import <nixpkgs> { },
+  developer ? false,
 }:
 
 let
