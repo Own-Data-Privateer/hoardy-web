@@ -2,6 +2,8 @@
 
 This directory contains a bunch of example scripts built on top of =hoardy-web=.
 
+# Note, you can update all =RESULTS= sections below all at once by running `M-x org-babel-execute-buffer`.
+
 * [[./hoardy-web-xdg-open]]
 
 #+BEGIN_SRC shell :results output :exports both
