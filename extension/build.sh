@@ -130,8 +130,12 @@ for target in "$@"; do
 
     echo "  Building page/help..."
 
-    cat page/help.org | sed -E '0,/^#\+TOC: headlines /I d' | \
-        pandoc --wrap=none -f org -t html --template=page/toc.only.template \
+    {
+        echo '#+MACRO: config2 $2'
+        echo '#+MACRO: tabconfig2 $2'
+        echo
+        cat page/help.org | sed -E '0,/^#\+TOC: headlines /I d'
+    } | pandoc --wrap=none -f org -t html --template=page/toc.only.template \
                -M pagetitle=TOC --toc > dist/help.toc
 
     {
