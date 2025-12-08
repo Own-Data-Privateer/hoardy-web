@@ -1,0 +1,6 @@
+<h1>Table of Contents</h1>
+$if(show-toc)$$else$<details><summary>(Click me to see it.)</summary>$endif$
+<nav id="toc" role="doc-toc">
+$table-of-contents$
+</nav>
+$if(show-toc)$$else$</details>$endif$

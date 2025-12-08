@@ -119,7 +119,7 @@ for target in "$@"; do
 
         local destfile="$DEST/$path".html
         mkdir -p "$(dirname "$destfile")"
-        pandoc -f "$format" -t html --wrap=none "$template" \
+        pandoc --wrap=none -f "$format" -t html "$template" \
                -M pagetitle="$path" "${pandocArgs[@]}" "$@" > "$destfile"
     }
 
@@ -130,8 +130,19 @@ for target in "$@"; do
 
     echo "  Building page/help..."
 
-    cat page/help.org \
-        | sed '
+    cat page/help.org | sed -E '0,/^#\+TOC: headlines /I d' | \
+        pandoc --wrap=none -f org -t html --template=page/toc.only.template \
+               -M pagetitle=TOC --toc > dist/help.toc
+
+    {
+        cat page/help.org | sed -E '/^#\+TOC: headlines /I,$ d'
+        echo
+        echo "#+BEGIN_EXPORT html"
+        cat dist/help.toc
+        echo "#+END_EXPORT"
+        echo
+        cat page/help.org | sed -E '0,/^#\+TOC: headlines /I d'
+    } | sed '
 s%\.\./\.\./doc/data-on-disk\.md%./data-on-disk.html%g
 s%\.\./\.\./CHANGELOG\.md%./changelog.html%g
 
@@ -142,10 +153,7 @@ t end
 s%\[\[\.\./\.\.\/\([^]]*\)\]\[\([^]]*\)\]\]%[[https://oxij.org/software/hoardy-web/tree/master/\1][\2]] (also on [[https://github.com/Own-Data-Privateer/hoardy-web/tree/master/\1][GitHub]])%g
 : end
 ' \
-        | runPandoc org page/help --toc
-
-    # hackity hack, because pandoc does not support ":UNNUMBERED: notoc" property
-    sed -i '/id="toc-top"/ d' "$DEST/page/help.html"
+        | runPandoc org page/help
 
     echo "  Building page/changelog..."
 

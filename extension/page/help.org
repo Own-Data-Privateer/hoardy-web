@@ -11,29 +11,36 @@
 :UNNUMBERED: notoc
 :END:
 
-It is highly recommended you view this page by clicking the =Help= button in the extension's own UI.
-Doing that will make this page interactive: the settings popup will be displayed on the right on this page and hovering over or clicking on any links pointing to =popup.html= will highlight those elements in the popup.
+If you are reading this on GitHub, it's recommended you switch to the [[https://oxij.org/software/hoardy-web/tree/master/extension/page/help.org][version hosted on the author's web site]] instead.
+This pages is written in =org-mode= markup language and its uses a lot of its advanced features, which GitHub does not implement, so this page is almost unreadable on GitHub.
 
-It will also have a "Table of Contents" section there.
+Moreover, if you already have =Hoardy-Web= extension installed, then, instead of reading this document on GitHub or from author's web site, it is highly recommended you refer to this document by clicking the "Help" button in the extension's own popup UI.
+Doing that will make this document interactive: the settings popup will be displayed on the right on this page and hovering over or clicking references to configuration options on this page will be highlighting them in the settings popup.
+It will also have a nicely formatted "Table of Contents" section there.
+See [[../../doc/gallery.md][screenshots]] if you want to get an idea of how it will look.
 
-See [[../../doc/gallery.md][screenshots]] if you want to see how it will look.
-
-You can still read this page outside of the extension's UI, but be prepared for all links pointing to =popup.html= to be useless.
-Also, the [[https://oxij.org/software/hoardy-web/tree/master/extension/page/help.org][version hosted on the author's web site]] is superior to what GitHub's web UI renders (this pages is written in =org-mode= markup language, converting it to GitHub Markdown will make things much harder, since it uses a lot of advanced markup features of =org-mode= to simplify things, and GitHub does not render =org-mode= files very well at the moment).
 #+BEGIN_EXPORT html
 </div>
 #+END_EXPORT
-* What is this?
-This page is the primary documentation of the =Hoardy-Web= browser extension (add-on), it
+* Introduction
+*This page documents the =Hoardy-Web= browser extension (add-on).*
+(For =hoardy-web serve= replay server's documentation, see [[../../tool/][there]].
+For documentation of other parts of this project, see [[../../][there]].)
+Most notably, this page
 
-- describes [[#start][what the extension does under the hood to capture, archive, and replay your web traffic]], while explaining its most important configuration options, invokable actions, their effects, and available integrations with related tools;
+- answers various [[#faq][frequently asked questions]],
+- describes [[#start][what the extension does under the hood]] to capture, archive, and replay your web traffic;
+- all the while explaining its most important configuration options, invokable actions, their effects, and available integrations with related tools;
 - discusses some [[#workflows][additional workflows]] =Hoardy-Web= implements support for;
 - lists all available [[#keyboard-shortcuts][keyboard]] and [[#context-menu-shortcuts][context menu]] shortcuts;
 - explains all [[#errors][error messages and codes]] the extension can produce;
-- lists all known [[#bugs][extension's own issues and relevant web brower bugs]];
-- and answers various [[#faq][frequently asked questions]].
+- lists all known [[#bugs][extension's own issues and relevant web brower bugs]].
 
-For more information see [[../../][project's documentation]].
+In =Hoardy-Web=, you can check the description of each status line, button, or configuration option by hovering over it or by pressing the nearby =?= button.
+However, many of those descriptions might make little sense without you first learning the general operation principles of =Hoardy-Web=.
+This document is designed to explain that.
+
+#+TOC: headlines 5
 * Conventions
 :PROPERTIES:
 :CUSTOM_ID: conventions
@@ -1167,4 +1174,12 @@ As it is now, the only way to be absolutely sure you data is properly forever-sa
 
 Yes, go to =about:config= and toggle =browser.download.alwaysOpenPanel= to =false=.
 ** This page does not answer my question. What do I do?
-If the whole content of this page (not just this section, did you try searching for stuff with =Control+F=? there's a lot of info here) does not explain your problem, {{{reportit()}}}.
+Did you try searching for stuff with =Control+F= on this page?
+This document contains quite a bit of information.
+
+If you question is about =hoardy-web serve= replay server, see [[../../tool/][there]].
+If you question is about other parts of this project, see [[../../][there]].
+If the those pages do not mention your problem, {{{reportit()}}}.
+
+Usually, the simplest way to search for things is to simply =git clone= the [[../../][whole thing]] and then search there with =grep= or more advanced tools.
+This applies not only to this project, but in general.
