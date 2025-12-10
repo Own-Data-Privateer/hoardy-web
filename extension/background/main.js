@@ -834,7 +834,7 @@ async function main() {
     if (reqresIDB === undefined && (globals.stashedIDB.number > 0 || globals.savedIDB.number > 0)) {
         browser.notifications.create("error-noIndexedDB", {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `Failed to open/create a database via \`IndexedDB\` API, all data persistence will be done via \`storage.local\` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears \`Hoardy-Web\` previously used \`IndexedDB\` for archiving and/or stashing reqres.\n\nSee the "Help" page for more info and instructions on how to fix this.`),
+            message: escapeNotification(config, `Failed to open Hoardy-Web's database using \`IndexedDB\` API, but it appears that \`IndexedDB\` was previously used for archiving/stashing reqres.\n\n \`IndexedDB\` API appears to be unusable at the moment, so all data persistence operations will now be done via \`storage.local\` API instead. This is not bad per se, but it appears that Hoardy-Web previously used \`IndexedDB\` API for archiving and/or stashing reqres, which means that all that old data is now (temporarily) unavailable. The most likely cause of this error is you tweaking your browser's configuration options.\n\nSee the "Help" page for more info and instructions on how to fix this.`),
             iconUrl: iconURL("error", 128),
             type: "basic",
         }).catch(logError);
