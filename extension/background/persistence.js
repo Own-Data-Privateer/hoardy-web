@@ -323,16 +323,17 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
     if (isArchivedVia(loggable, archivedViaSubmitHTTP))
         return null;
 
-    function broken(storeID, reason, recoverable) {
-        logHandledError(reason);
+    function broken(storeID, reason, recoverable, quiet) {
+        if (!quiet)
+            logHandledError(reason);
         recordOneUnarchived(unarchivedAccumulator, storeID, reason, recoverable, archivable);
     }
 
     if (!serverConfig.alive) {
-        broken(config.submitHTTPURLBase, "this archiving server is unavailable", true);
+        broken(config.submitHTTPURLBase, "this archiving server is unavailable", true, true);
         return false;
     } else if (!serverConfig.canDump) {
-        broken(config.submitHTTPURLBase, "this archiving server does not support archiving", false);
+        broken(config.submitHTTPURLBase, "this archiving server does not support archiving", false, true);
         return false;
     }
 
