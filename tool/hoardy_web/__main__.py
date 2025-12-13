@@ -2737,7 +2737,7 @@ def cmd_serve(cargs: _t.Any) -> None:
             except FileExistsError:
                 pass
             except OSError as exc:
-                raise Failure("failed to write data to `%s`: %s", exc.filename, str(exc)) from exc
+                raise Failure("failed to write data to `%s`: %s", abs_out_path, str(exc)) from exc
             else:
                 break
 
