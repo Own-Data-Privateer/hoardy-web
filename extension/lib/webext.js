@@ -28,6 +28,15 @@
 
 "use strict";
 
+async function getTab(tabId) {
+    let tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    for (let tab of tabs) {
+        if (tab.id === tabId)
+            return tab;
+    }
+    return null;
+}
+
 async function getActiveTab() {
     let tabs = await browser.tabs.query({ active: true, currentWindow: true });
     for (let tab of tabs) {
