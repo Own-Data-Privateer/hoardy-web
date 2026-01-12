@@ -487,8 +487,8 @@ async function saveGlobals(force) {
     if (config.debugRuntime)
         console.log("saving globals", savedGlobals);
     await browser.storage.local.set({ globals: savedGlobals }).catch(logError);
-    await browser.storage.local.remove("persistentStats").catch(() => {});
-    await browser.storage.local.remove("globalStats").catch(() => {});
+    await browser.storage.local.remove("persistentStats").catch(noop);
+    await browser.storage.local.remove("globalStats").catch(noop);
 }
 
 function scheduleSaveGlobals(timeout, force) {

@@ -26,6 +26,10 @@
 
 "use strict";
 
+function noop() {}
+
+async function asyncNoop() {}
+
 function sleep(timeout) {
     return new Promise((resolve, reject) => setTimeout(resolve, timeout));
 }

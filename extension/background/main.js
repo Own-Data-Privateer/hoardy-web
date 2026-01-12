@@ -853,7 +853,7 @@ async function main() {
     let sessionTabs = {};
     if (oldSession !== undefined) {
         // to prevent it from being loaded again
-        await browser.storage.local.remove("session").catch(() => {});
+        await browser.storage.local.remove("session").catch(noop);
 
         sessionId = oldSession.id;
         console.log(`MAIN: Loading old session ${oldSession.id}`);
