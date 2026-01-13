@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // add default handlers
-    await subscribeToExtensionSimple(pageName, catchAll(processUpdate));
+    await subscribeToExtensionSimple(pageName, processUpdate);
 
     {
         let config = await browser.runtime.sendMessage(["getConfig"]);

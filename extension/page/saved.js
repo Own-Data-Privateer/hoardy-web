@@ -91,10 +91,10 @@ async function stateMain() {
         browser.runtime.sendMessage(["deleteSaved", savedFilters]).catch(logError);
     });
 
-    await subscribeToExtension("saved", catchAll(processUpdate), catchAll(async (willReset) => {
+    await subscribeToExtension("saved", processUpdate, async (willReset) => {
         await updateConfig();
         await updateSavedFilters();
-    }), () => false, setPageLoading, setPageSettling);
+    }, () => false, setPageLoading, setPageSettling);
 
     await browser.runtime.sendMessage(["setSavedFilters", savedFilters]);
 

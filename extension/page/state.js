@@ -142,7 +142,7 @@ async function stateMain() {
     }
 
     await subscribeToExtension("state" + (tabId !== null ? `#${tabId}` : ""),
-                               catchAll(processUpdate), catchAll(async (willReset) => {
+                               processUpdate, async (willReset) => {
         await updateConfig();
         let inFlightLog = await browser.runtime.sendMessage(["getInFlightLog"]);
         let problematicLog = await browser.runtime.sendMessage(["getProblematicLog"]);
@@ -162,7 +162,7 @@ async function stateMain() {
         resetLog(log);
         resetQueued(queuedLog);
         resetUnarchived(unarchivedLog);
-    }), (event) => {
+    }, (event) => {
         let cmd = event[0];
         return cmd.startsWith("reset") || cmd.startsWith("new");
     }, setPageLoading, setPageSettling);

@@ -113,7 +113,7 @@ function subscribeToExtension(name, handleMessage, reinit, isUnsafe, markLoading
         queueSyncRunning = true;
         while (updateQueue.length > 0) {
             let update = updateQueue.shift();
-            await handleMessage(update);
+            await catchAll(handleMessage)(update);
         }
         queueSyncRunning = false;
     }
@@ -211,7 +211,7 @@ function subscribeToExtension(name, handleMessage, reinit, isUnsafe, markLoading
 
 function subscribeToExtensionSimple(name, handleMessage, extensionId, connectInfo) {
     if (handleMessage === undefined)
-        handleMessage = catchAll(webextRPCHandleMessageDefault);
+        handleMessage = webextRPCHandleMessageDefault;
     return subscribeToExtension(name, handleMessage, undefined, () => false, undefined, undefined, extensionId, connectInfo);
 }
 

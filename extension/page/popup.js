@@ -398,7 +398,7 @@ async function popupMain() {
         }
     }
 
-    await subscribeToExtension("popup", catchAll(processUpdate), catchAll(async (willReset) => {
+    await subscribeToExtension("popup", processUpdate, async (willReset) => {
         await updateConfig();
         await updateStats();
         if (willReset()) return;
@@ -406,7 +406,7 @@ async function popupMain() {
             await updateTabConfig();
             await updateTabStats();
         }
-    }), (event) => {
+    }, (event) => {
         let cmd = event[0];
         return cmd.startsWith("update") || cmd === "switchTab";
     }, setPageLoading, setPageSettling);
