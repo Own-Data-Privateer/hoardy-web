@@ -215,10 +215,10 @@ async function popupMain() {
     // Setup buttons.
 
     for (let tn of tagNames)
-      buttonToAction(`showTag-${tn}`, catchAll(() => {
+      buttonToAction(`showTag-${tn}`, () => {
           showTab(tn);
           broadcastToHelp("popupResized");
-      }));
+      });
 
     let versionButton = document.getElementById("version");
     versionButton.value = "v" + manifest.version;
@@ -231,21 +231,21 @@ async function popupMain() {
     // search function, which is very useful there.
 
     let reloadSelfButton = document.getElementById("reloadSelf");
-    buttonToAction("showState",    catchAll(() => replaceWith(false, showState, null, "top")));
-    buttonToAction("showTabState", catchAll(() => replaceWith(false, showState, tabId, "top")));
-    buttonToAction("showSaved",    catchAll(() => replaceWith(false, showSaved, "top")));
-    buttonToAction("resetPersistentStats", catchAll(() => {
+    buttonToAction("showState",    () => replaceWith(false, showState, null, "top"));
+    buttonToAction("showTabState", () => replaceWith(false, showState, tabId, "top"));
+    buttonToAction("showSaved",    () => replaceWith(false, showSaved, "top"));
+    buttonToAction("resetPersistentStats", () => {
         if (!window.confirm("Really?"))
             return;
 
         browser.runtime.sendMessage(["resetPersistentStats"]).catch(logError);
-    }));
-    buttonToAction("resetConfig", catchAll(() => {
+    });
+    buttonToAction("resetConfig", () => {
         if (!window.confirm("Really?"))
             return;
 
         browser.runtime.sendMessage(["resetConfig"]).catch(logError);
-    }));
+    });
 
     buttonToMessage("rearchiveAllSaved", () => ["rearchiveSaved", null, true, rearchive.andDelete, rearchive.andRewrite]);
     buttonToMessage("rearchiveAdjunctSaved", () => ["rearchiveSaved", null, false, rearchive.andDelete, rearchive.andRewrite]);

@@ -84,12 +84,12 @@ async function stateMain() {
     }
 
     buttonToMessage("rearchiveSaved", () => ["rearchiveSaved", savedFilters, true, rearchive.andDelete, rearchive.andRewrite]);
-    buttonToAction("deleteSaved", catchAll(() => {
+    buttonToAction("deleteSaved", () => {
         if (!window.confirm("Really?"))
             return;
 
         browser.runtime.sendMessage(["deleteSaved", savedFilters]).catch(logError);
-    }));
+    });
 
     await subscribeToExtension("saved", catchAll(processUpdate), catchAll(async (willReset) => {
         await updateConfig();

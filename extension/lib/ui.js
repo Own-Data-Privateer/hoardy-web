@@ -148,7 +148,7 @@ function buttonToAction(id, action) {
     let el = document.getElementById(id);
     if (el === null)
         throw new Error(`failed to attach an action to button id "${id}"`);
-    el.onclick = action;
+    el.onclick = catchAll(action);
     return el;
 }
 
