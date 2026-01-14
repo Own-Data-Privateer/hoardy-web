@@ -103,7 +103,7 @@ async function stateMain() {
 
     await browser.runtime.sendMessage(["setSavedFilters", savedFilters]);
 
-    setPageLoaded();
+    setPageDone();
 
     // force re-scroll
     viewHashNode();

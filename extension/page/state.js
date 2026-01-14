@@ -168,7 +168,7 @@ async function stateMain() {
         resetUnarchived(unarchivedLog);
     }, asyncNoop, processUpdate);
 
-    setPageLoaded();
+    setPageDone();
 
     // force re-scroll
     viewHashNode();

@@ -127,38 +127,50 @@ function broadcastToSaved(...args) {
     return broadcastToName(true, "saved", ...args);
 }
 
+let scheduledUI = new Map();
+
+function setPageState(state) {
+    document.getElementById("body").style.display = state === "done" ? "block" : "none";
+    document.getElementById("body_loading").style.display = state === "loading" ? "block" : "none";
+    document.getElementById("body_error").style.display = state === "error" ? "block" : "none";
+}
+
 function setPageLoading() {
-    document.getElementById("body_loading").innerHTML = "<p>Loading...</p>";
+    resetSingletonTimeout(scheduledUI, "setPage", 300, () => {
+        document.getElementById("body_loading").innerHTML = "<p>Loading...</p>";
+        setPageState("loading");
+    }, 100, true);
 }
 
 function setPageSettling() {
-    document.getElementById("body_loading").innerHTML = "<p>Waiting for the core to settle...</p>";
-}
-
-function setPageLoaded() {
-    document.getElementById("body_loading").style.display = "none";
-    document.getElementById("body").style.display = "block";
+    resetSingletonTimeout(scheduledUI, "setPage", 300, () => {
+        document.getElementById("body_loading").innerHTML = "<p>Waiting for the core to settle...</p>";
+        setPageState("loading");
+    }, 100, true);
 }
 
 function setPageError(error) {
     logError(error);
 
-    document.getElementById("body_loading").style.display = "none";
+    resetSingletonTimeout(scheduledUI, "setPage", 0, () => {
+        document.getElementById("body_error").innerHTML = `
+          <h1>Exception</h1>
+          <pre id="body_exception"></pre>
+          <h2>To see more details</h2>
+          <ul>
+            <li>On Firefox-based browser: go to <code>about:debugging#/runtime/this-firefox</code>, click &quot;Inspect&quot; button on &quot;Hoardy-Web&quot;, select &quot;Console&quot;</li>
+            <li>On Chromium-based browser: go to <code>chrome://extensions/</code>, click &quot;Inspect views&quot; link on &quot;Hoardy-Web&quot;, select &quot;Console&quot;</li>
+          </ul>
+        `;
+        document.getElementById("body_exception").innerText = errorMessageOf(error);
+        setPageState("error");
+    }, 0, true);
+}
 
-    let be = document.getElementById("body_error");
-    be.innerHTML = `
-      <h1>This page failed to initialize</h1>
-      <div id="body_exception"><h2>Exception</h2></div>
-      <h2>To see more details</h2>
-      <ul>
-        <li>On Firefox-based browser: go to <code>about:debugging#/runtime/this-firefox</code>, click &quot;Inspect&quot; button on &quot;Hoardy-Web&quot;, select &quot;Console&quot;</li>
-        <li>On Chromium-based browser: go to <code>chrome://extensions/</code>, click &quot;Inspect views&quot; link on &quot;Hoardy-Web&quot;, select &quot;Console&quot;</li>
-      </ul>
-    `;
-    let p = document.createElement("pre");
-    p.innerText = errorMessageOf(error);
-    document.getElementById("body_exception").appendChild(p);
-    be.style.display = "block";
+function setPageDone() {
+    resetSingletonTimeout(scheduledUI, "setPage", 0, () => {
+        setPageState("done");
+    }, 0, true);
 }
 
 function setRootClasses(config) {

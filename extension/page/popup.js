@@ -413,7 +413,7 @@ async function popupMain() {
         }
     }, asyncNoop, processUpdate);
 
-    setPageLoaded();
+    setPageDone();
 
     // highlight current target
     // NB: not using showAll and hideAll here, so that unhighlight will not shrink the UI

@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="reqres-ui.css?v=$version$">
   </head>
   <body>
-    <div id="body_loading"></div>
+    <div id="body_loading" style="display: none"></div>
     <div id="body_error" style="display: none"></div>
     <div id="body" style="display: none">
     <span id="top"></span>
@@ -41,6 +41,7 @@
 
     <script src="../lib/compat.js"></script>
     <script src="../lib/base.js"></script>
+    <script src="../lib/schedule-timeout.js"></script>
     <script src="../lib/ui.js"></script>
     <script src="../lib/webext.js"></script>
     <script src="../lib/webext-rpc-client.js"></script>
