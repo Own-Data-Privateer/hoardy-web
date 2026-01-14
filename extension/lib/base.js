@@ -63,18 +63,21 @@ function logHandledError(err) {
 }
 
 // turn all uncaught exceptions into console.error
-function catchAll(func) {
+function catchAll(func, def) {
     return (...args) => {
         let res;
         try {
             res = func(...args);
         } catch (err) {
             logError(err);
-            return;
+            return def;
         }
 
         if (res instanceof Promise)
-            return new Promise((resolve, reject) => res.catch(logError).then(resolve));
+            return new Promise((resolve, reject) => res.catch((err) => {
+                logError(err);
+                return def;
+            }).then(resolve));
         else
             return res;
     };
