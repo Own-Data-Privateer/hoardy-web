@@ -96,7 +96,7 @@ async function stateMain() {
 
     setPageSettling();
 
-    await subscribeToExtension("saved", async (isInvalid) => {
+    await subscribeToExtension("saved", 3, async (isInvalid) => {
         await updateConfig();
         await updateSavedFilters();
     }, asyncNoop, processUpdate);

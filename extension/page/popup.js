@@ -403,7 +403,7 @@ async function popupMain() {
 
     setPageSettling();
 
-    await subscribeToExtension("popup", async (isInvalid) => {
+    await subscribeToExtension("popup", 3, async (isInvalid) => {
         await updateConfig();
         await updateStats();
         if (isInvalid()) return;

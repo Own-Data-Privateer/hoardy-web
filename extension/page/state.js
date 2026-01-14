@@ -146,7 +146,7 @@ async function stateMain() {
 
     setPageSettling();
 
-    await subscribeToExtension("state" + (tabId !== null ? `#${tabId}` : ""), async (isInvalid) => {
+    await subscribeToExtension("state" + (tabId !== null ? `#${tabId}` : ""), 3, async (isInvalid) => {
         await updateConfig();
         let inFlightLog = await browser.runtime.sendMessage(["getInFlightLog"]);
         let problematicLog = await browser.runtime.sendMessage(["getProblematicLog"]);

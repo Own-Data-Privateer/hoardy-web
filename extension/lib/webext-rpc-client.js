@@ -70,36 +70,56 @@ function webextRPCHandleMessageDefault(request, showAllFunc, hideAllFunc) {
 // this goes here to prevent GC freeing this
 let webextRPCPortToExtension;
 
-// Open port to extension asynchronously, running async init and uninit
-// functions properly in the correct order. Reconnect, if the connection
-// closes unexpectedly.
-async function connectToExtension(name, init, uninit, extensionId, connectInfo) {
-    function retry() {
-        setTimeout(catchAll(
-            () => connectToExtension(name, init, uninit, extensionId, connectInfo)
-        ), 1000)
-    }
+// Open a port to `extensionId` and `init`. If the connection closes unexpectedly: `uninit`,
+// reconnect, and re-`init`.
+//
+// This function is weird in that it can call its continuations (arguments of `then` and `catch`)
+// multiple times when reconnecting.
+//
+// `init` and `uninit` must be `async` functions.
+function connectToExtension(name, retries, init, uninit, extensionId, connectInfo) {
+    return new Promise((resolve, reject) => {
+        let ready = false;
+        let failed = false;
 
-    let doUninit = false;
-    let ready = false;
+        function doRetry(err, retriesLeft, resolve, reject) {
+            setTimeout(catchAll(() => {
+                if (retriesLeft <= 0)
+                    reject(err);
+                else
+                    connectToExtension(name, retriesLeft, init, uninit, extensionId, connectInfo).then(resolve, reject)
+            }), 1000)
+        }
 
-    webextRPCPortToExtension = browser.runtime.connect(extensionId, assignRec({name}, connectInfo));
-    webextRPCPortToExtension.onDisconnect.addListener(async () => {
-        if (ready) {
-            await uninit();
-            retry();
-        } else
-            doUninit = true;
+        webextRPCPortToExtension = browser.runtime.connect(extensionId, assignRec({name}, connectInfo));
+        webextRPCPortToExtension.onDisconnect.addListener(() => {
+            if (ready) {
+                // if disconnected after "done" below, NB: not decrementing `retries` here
+                ready = false;
+                uninit().then(() => doRetry(webextRPCPortToExtension.error, retries, resolve, reject), reject);
+            } else
+                // if the above `connect` failed
+                failed = true;
+        });
+
+        if (failed)
+            // if the above `connect` failed immediately
+            doRetry(webextRPCPortToExtension.error, retries - 1, resolve, reject);
+        else
+            init().then(() => {
+                if (failed)
+                    // if disconnected in the meantime
+                    uninit().then(() => doRetry(webextRPCPortToExtension.error, retries - 1, resolve, reject), reject);
+                else {
+                    // done
+                    ready = true;
+                    resolve();
+                }
+            }, (err) => {
+                // if `init` failed to complete
+                doRetry(err, retries - 1, resolve, reject);
+            });
     });
-
-    if (doUninit)
-        return;
-    await init();
-    if (doUninit) {
-        await uninit();
-        retry();
-    } else
-        ready = true;
 }
 
 // Similar `connectToExtension`, but also start handling new port messages with `handleMessage`. All
@@ -119,7 +139,7 @@ async function connectToExtension(name, init, uninit, extensionId, connectInfo) 
 // `handleMessage`s should invalidate.
 //
 // `init`, `uninit`, and `handleMessage` can be simple or `async` functions.
-function subscribeToExtension(name, init, uninit, handleMessage, dontPauseBetween, extensionId, connectInfo) {
+function subscribeToExtension(name, retries, init, uninit, handleMessage, dontPauseBetween, extensionId, connectInfo) {
     // A flag denoting if there were any state-invalidating updates while `init` was running
     // asynchronously.
     let invalid = false;
@@ -164,7 +184,7 @@ function subscribeToExtension(name, init, uninit, handleMessage, dontPauseBetwee
         doQueueSync();
     }
 
-    return connectToExtension(name, async () => {
+    return connectToExtension(name, retries, async () => {
         webextRPCPortToExtension.onMessage.addListener(handleMessageSync);
 
         while (true) {
@@ -200,10 +220,10 @@ function subscribeToExtension(name, init, uninit, handleMessage, dontPauseBetwee
     }, extensionId, connectInfo);
 }
 
-function subscribeToExtensionSimple(name, handleMessage, dontPauseBetween, extensionId, connectInfo) {
+function subscribeToExtensionSimple(name, retries, handleMessage, dontPauseBetween, extensionId, connectInfo) {
     if (handleMessage === undefined)
         handleMessage = webextRPCHandleMessageDefault;
-    return subscribeToExtension(name, asyncNoop, asyncNoop, handleMessage, dontPauseBetween, extensionId, connectInfo);
+    return subscribeToExtension(name, retries, asyncNoop, asyncNoop, handleMessage, dontPauseBetween, extensionId, connectInfo);
 }
 
 function sendMessageWithLazyArgs(lazy, args, ...prefix) {
