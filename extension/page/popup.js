@@ -78,6 +78,8 @@ function present(obj) {
 }
 
 async function popupMain() {
+    setPageLoading();
+
     implySetConditionalOff(dbody, "on-firefox", useDebugger);
     implySetConditionalOff(dbody, "on-chromium", !useDebugger);
     implySetConditionalOff(dbody, "on-desktop", isMobile);
@@ -376,42 +378,41 @@ async function popupMain() {
         switch (what) {
         case "updateConfig":
             await updateConfig(arg1);
-            break;
+            return true;
         case "updateStats":
             await updateStats(arg1);
-            break;
+            return true;
         case "updateTabConfig":
             if (tabbing && arg1 === tabId)
                 await updateTabConfig(arg2);
-            break;
+            return true;
         case "updateTabStats":
             if (tabbing && arg1 === tabId)
                 await updateTabStats(arg2);
-            break;
+            return true;
         case "switchTab":
             // the tab was switched
             if (arg1 === windowId)
                 tabId = arg2;
-            break;
+            return true;
         default:
-            await webextRPCHandleMessageDefault(update, () => showTab("all"));
+            let res = await webextRPCHandleMessageDefault(update, () => showTab("all"));
+            return res;
         }
     }
 
-    await subscribeToExtension("popup", processUpdate, async (willReset) => {
+    setPageSettling();
+
+    await subscribeToExtension("popup", async (isInvalid) => {
         await updateConfig();
         await updateStats();
-        if (willReset()) return;
+        if (isInvalid()) return;
         if (tabbing) {
             await updateTabConfig();
             await updateTabStats();
         }
-    }, (event) => {
-        let cmd = event[0];
-        return cmd.startsWith("update") || cmd === "switchTab";
-    }, setPageLoading, setPageSettling);
+    }, asyncNoop, processUpdate);
 
-    // show UI
     setPageLoaded();
 
     // highlight current target

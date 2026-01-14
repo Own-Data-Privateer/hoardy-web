@@ -60,6 +60,8 @@ function resetUnarchived(log_data) {
 }
 
 async function stateMain() {
+    setPageLoading();
+
     await commonMain();
 
     buttonToMessage("forgetHistory",        () => ["forgetHistory", tabId, rrfilters.log]);
@@ -101,60 +103,62 @@ async function stateMain() {
         switch(what) {
         case "updateConfig":
             await updateConfig(data);
-            break;
+            return;
         case "resetInFlight":
             resetInFlight(data);
-            break;
+            return true;
         case "resetProblematicLog":
             resetProblematic(data);
-            break;
+            return true;
         case "resetInLimboLog":
             resetInLimbo(data);
-            break;
+            return true;
         case "resetLog":
             resetLog(data);
-            break;
+            return true;
         case "resetQueued":
             resetQueued(data);
-            break;
+            return true;
         case "resetUnarchived":
             resetUnarchived(data);
-            break;
+            return true;
         // incrementally add new rows
         case "newInFlight":
             appendToLog(document.getElementById("data_in_flight"), data);
-            break;
+            return true;
         case "newProblematic":
             appendToLog(document.getElementById("data_problematic"), data, (loggable) => isAcceptedBy(rrfilters.problematic, loggable));
-            break;
+            return true;
         case "newLimbo":
             appendToLog(document.getElementById("data_in_limbo"), data, (loggable) => isAcceptedBy(rrfilters.in_limbo, loggable));
-            break;
+            return true;
         case "newLog":
             appendToLog(document.getElementById("data_log"), data, (loggable) => isAcceptedBy(rrfilters.log, loggable));
-            break;
+            return true;
         case "newQueued":
             appendToLog(document.getElementById("data_queued"), data, (loggable) => isAcceptedBy(rrfilters.queued, loggable));
-            break;
+            return true;
         default:
-            await webextRPCHandleMessageDefault(update);
+            let res = await webextRPCHandleMessageDefault(update);
+            return res;
         }
     }
 
-    await subscribeToExtension("state" + (tabId !== null ? `#${tabId}` : ""),
-                               processUpdate, async (willReset) => {
+    setPageSettling();
+
+    await subscribeToExtension("state" + (tabId !== null ? `#${tabId}` : ""), async (isInvalid) => {
         await updateConfig();
         let inFlightLog = await browser.runtime.sendMessage(["getInFlightLog"]);
         let problematicLog = await browser.runtime.sendMessage(["getProblematicLog"]);
-        if (willReset()) return;
+        if (isInvalid()) return;
         let inLimboLog = await browser.runtime.sendMessage(["getInLimboLog"]);
-        if (willReset()) return;
+        if (isInvalid()) return;
         let log = await browser.runtime.sendMessage(["getLog"]);
-        if (willReset()) return;
+        if (isInvalid()) return;
         let queuedLog = await browser.runtime.sendMessage(["getQueuedLog"]);
-        if (willReset()) return;
+        if (isInvalid()) return;
         let unarchivedLog = await browser.runtime.sendMessage(["getUnarchivedLog"]);
-        if (willReset()) return;
+        if (isInvalid()) return;
 
         resetInFlight(inFlightLog);
         resetProblematic(problematicLog);
@@ -162,12 +166,8 @@ async function stateMain() {
         resetLog(log);
         resetQueued(queuedLog);
         resetUnarchived(unarchivedLog);
-    }, (event) => {
-        let cmd = event[0];
-        return cmd.startsWith("reset") || cmd.startsWith("new");
-    }, setPageLoading, setPageSettling);
+    }, asyncNoop, processUpdate);
 
-    // show UI
     setPageLoaded();
 
     // force re-scroll

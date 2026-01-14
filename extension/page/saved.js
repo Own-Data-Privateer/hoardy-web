@@ -29,6 +29,8 @@ let tabId = null;
 let dbody = document.body;
 
 async function stateMain() {
+    setPageLoading();
+
     await commonMain();
 
     let config;
@@ -71,15 +73,16 @@ async function stateMain() {
         switch(what) {
         case "updateConfig":
             await updateConfig(data);
-            break;
+            return;
         case "setSavedFilters":
             await updateSavedFilters(data);
-            break;
+            return;
         case "resetSaved":
             resetDataNode("data", data);
-            break;
+            return;
         default:
-            await webextRPCHandleMessageDefault(update);
+            let res = await webextRPCHandleMessageDefault(update);
+            return res;
         }
     }
 
@@ -91,14 +94,15 @@ async function stateMain() {
         browser.runtime.sendMessage(["deleteSaved", savedFilters]).catch(logError);
     });
 
-    await subscribeToExtension("saved", processUpdate, async (willReset) => {
+    setPageSettling();
+
+    await subscribeToExtension("saved", async (isInvalid) => {
         await updateConfig();
         await updateSavedFilters();
-    }, () => false, setPageLoading, setPageSettling);
+    }, asyncNoop, processUpdate);
 
     await browser.runtime.sendMessage(["setSavedFilters", savedFilters]);
 
-    // show UI
     setPageLoaded();
 
     // force re-scroll

@@ -102,9 +102,36 @@ async function connectToExtension(name, init, uninit, extensionId, connectInfo) 
         ready = true;
 }
 
-function subscribeToExtension(name, handleMessage, reinit, isUnsafe, markLoading, markSettling, extensionId, connectInfo) {
-    // onMessage will not wait for an Promises. Thus, multiple updates could
-    // race, so we have to run them synchronously here.
+// Similar `connectToExtension`, but also start handling new port messages with `handleMessage`. All
+// of the weirdness of `connectToExtension`, which see, applies here too.
+//
+// If port messages arrive while an async `init` is running, `handleMessage` can be made to return
+// `true` on some of them, which would then force this function to re-run `init` from the beginning
+// again after it finishes. Meanwhile, this function runs `init` with an `isInvalid` argument which
+// is a function which can be called to see if any of the asynchronously handled `handleMessage`
+// returned `true` yet. Finally, `init` itself can return `true`, which would force this function to
+// continue without re-running it even if some `handleMessage`s returned `true`.
+//
+// In other words, an `init` implementation can stop prematurely by checking `isInvalid` and signal
+// that it's state is valid regardless of any `handleMessage`s by returning `true`.
+//
+// All these features are useful if your `init` works on generating a consistent state that some
+// `handleMessage`s should invalidate.
+//
+// `init`, `uninit`, and `handleMessage` can be simple or `async` functions.
+function subscribeToExtension(name, init, uninit, handleMessage, dontPauseBetween, extensionId, connectInfo) {
+    // A flag denoting if there were any state-invalidating updates while `init` was running
+    // asynchronously.
+    let invalid = false;
+
+    function isInvalid() {
+        return invalid;
+    }
+
+    // NB: `onMessage` will not `await` for a `Promise`. Thus, multiple updates could race, so we
+    // have to run them synchronously here.
+    //
+    // Thus, an update queue and its async-to-sync machinery follows.
     let updateQueue = [];
     let running = false;
     let queueSyncRunning = false;
@@ -113,106 +140,70 @@ function subscribeToExtension(name, handleMessage, reinit, isUnsafe, markLoading
         queueSyncRunning = true;
         while (updateQueue.length > 0) {
             let update = updateQueue.shift();
-            await catchAll(handleMessage)(update);
+            let res;
+            try {
+                res = catchAll(handleMessage)(update);
+                if (res instanceof Promise)
+                    res = await res;
+                invalid = invalid || res === true;
+            } catch (err) {
+                invalid = true;
+                logError(err);
+            }
         }
         queueSyncRunning = false;
     }
 
-    function handleMessageSync(event) {
+    function handleMessageSync(update) {
         if (!running)
             return;
 
-        updateQueue.push(event);
+        updateQueue.push(update);
         if (queueSyncRunning)
             return;
         doQueueSync();
     }
 
     return connectToExtension(name, async () => {
-        if (reinit === undefined) {
-            // the boring use case, no inconsistencies possible here
-            running = true;
-            webextRPCPortToExtension.onMessage.addListener(handleMessageSync);
-            return;
-        }
-
-        // by default, all async events mark the internal state to be
-        // inconsistent
-        if (isUnsafe === undefined)
-            isUnsafe = () => true;
-
-        // a flag which remembers if there were any updates while
-        // reinit was running asynchronously
-        let shouldReset = false;
-        function willReset() {
-            return shouldReset;
-        }
-        function handleMessageSmartly(event) {
-            shouldReset = shouldReset || isUnsafe(event);
-            // apparently, this event can be processed synchronously
-            handleMessageSync(event);
-        }
-
-        // delay `markLoading` a bit so that it would not be called if
-        // the rest of this happens fast enough
-        let markLoadingTID;
-        function clearLoading() {
-            if (markLoadingTID !== undefined) {
-                clearTimeout(markLoadingTID);
-                markLoadingTID = undefined;
-            }
-        }
-
-        webextRPCPortToExtension.onMessage.addListener(handleMessageSmartly);
-
-        try {
-            if (markLoading !== undefined)
-                markLoadingTID = setTimeout(markLoading, 300);
-
-            while (true) {
-                // reset and start processing updates
-                updateQueue = [];
-                shouldReset = false;
-                running = true;
-
-                // run reinit
-                let done = await reinit(willReset);
-
-                // if it run ok and there were no consistency-breaking messages,
-                // stop here
-                if (done || !shouldReset)
-                    break;
-
-                // if there were consistency-breaking messages, async reinit
-                // could have resulted in an inconsistent state, retry in 1s
-                console.warn("received some breaking async state updates while doing async page init, the result is probably inconsistent, retrying");
-
-                // stop processing updates
-                running = false;
-
-                if (markSettling !== undefined) {
-                    clearLoading();
-                    markSettling();
-                }
-
-                await sleep(1000);
-            }
-        } finally {
-            // cleanup
-            clearLoading();
-            webextRPCPortToExtension.onMessage.removeListener(handleMessageSmartly);
-        }
-
         webextRPCPortToExtension.onMessage.addListener(handleMessageSync);
+
+        while (true) {
+            // start processing updates
+            running = true;
+            // reset
+            invalid = false;
+
+            // run init
+            let res = init(isInvalid);
+            if (res instanceof Promise)
+                res = await res;
+
+            // if `init` forces us to continue or there were no state-breaking messages, stop here
+            if (res === true || !invalid)
+                break;
+
+            console.warn("received some breaking `handleMessage`s while doing async page `init`, retrying");
+
+            if (!dontPauseBetween) {
+                running = false;
+                updateQueue = [];
+            }
+
+            // retry in 1s
+            await sleep(1000);
+        }
     }, async () => {
         webextRPCPortToExtension.onMessage.removeListener(handleMessageSync);
+        let res = uninit();
+        if (res instanceof Promise)
+            await res;
     }, extensionId, connectInfo);
 }
 
-function subscribeToExtensionSimple(name, handleMessage, extensionId, connectInfo) {
+function subscribeToExtensionSimple(name, handleMessage, dontPauseBetween, extensionId, connectInfo) {
     if (handleMessage === undefined)
         handleMessage = webextRPCHandleMessageDefault;
-    return subscribeToExtension(name, handleMessage, undefined, () => false, undefined, undefined, extensionId, connectInfo);
+    return subscribeToExtension(name, asyncNoop, asyncNoop, handleMessage, dontPauseBetween, extensionId, connectInfo);
 }
 
 function sendMessageWithLazyArgs(lazy, args, ...prefix) {
