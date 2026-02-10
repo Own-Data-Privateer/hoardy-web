@@ -9,7 +9,7 @@ with pkgs;
 
 stdenv.mkDerivation rec {
   pname = "hoardy-web-extension";
-  version = "1.22.0";
+  version = builtins.readFile ./VERSION;
 
   inherit (source) src unpackPhase;
   sourceRoot = "${src.name}/extension";

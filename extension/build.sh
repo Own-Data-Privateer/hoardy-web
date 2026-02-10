@@ -8,7 +8,7 @@ if [[ "$1" == clean ]]; then
     timestamp=$(git log --format='%ci' HEAD~1..HEAD)
 fi
 
-VERSION=$(jq -r .version ./manifest-common.json)
+VERSION=$(cat VERSION)
 iconTheme=privateer
 
 for target in "$@"; do
@@ -202,6 +202,10 @@ s%@\(\S\+\) on GitHub%[\\@\1 on GitHub](https://github.com/\1)%g
 
     install -C -t "$DEST" ../LICENSE.txt
 
+    echo "  Building manifest.json..."
+
+    echo "{ \"version\": \"$VERSION\" }" > dist/manifest-version.json
+
     if [[ "$target" =~ chromium-* ]]; then
         (
             cd "dist"
@@ -218,12 +222,10 @@ s%@\(\S\+\) on GitHub%[\\@\1 on GitHub](https://github.com/\1)%g
         )
     fi
 
-    echo "  Building manifest.json..."
-
     if [[ "$target" =~ firefox-* ]]; then
-        jq -s --indent 4 '.[0] * .[1]' manifest-common.json "manifest-$target.json" > "$DEST"/manifest.json
+        jq -s --indent 4 '.[0] * .[1] * .[2]' manifest-common.json dist/manifest-version.json "manifest-$target.json" > "$DEST"/manifest.json
     elif [[ "$target" =~ chromium-* ]]; then
-        jq -s --indent 4 '.[0] * .[1] * .[2]' manifest-common.json "dist/manifest-chromium-key.json" "manifest-$target.json" > "$DEST"/manifest.json
+        jq -s --indent 4 '.[0] * .[1] * .[2] * .[3]' manifest-common.json dist/manifest-version.json dist/manifest-chromium-key.json "manifest-$target.json" > "$DEST"/manifest.json
     fi
 
     if [[ -n "$timestamp" ]]; then
