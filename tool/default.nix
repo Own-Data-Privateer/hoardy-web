@@ -17,7 +17,7 @@ with pkgs.python3Packages;
 buildPythonApplication (
   rec {
     pname = "hoardy-web";
-    version = "0.23.0";
+    version = builtins.readFile ./VERSION;
     format = "pyproject";
 
     inherit (source) src unpackPhase;
