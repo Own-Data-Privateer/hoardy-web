@@ -1,9 +1,11 @@
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+[tool.setuptools]
+dynamic = {version = {file = "VERSION"}}
 [project]
 name = "hoardy-web-sas"
-version = "1.9.0"
+dynamic = ["version"]
 authors = [{ name = "Jan Malakhovski", email = "oxij@oxij.org" }]
 description = "A simple archiving server for the `Hoardy-Web` Web Extension browser add-on."
 readme = "README.md"
