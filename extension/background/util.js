@@ -175,6 +175,8 @@ function setPageDone() {
 
 function setRootClasses(config) {
     let dark = config.colors;
+    if (dark === null && window.matchMedia("(prefers-color-scheme: dark)").matches)
+        dark = true;
 
     let dnow = new Date();
     let dm = dnow.getMonth() + 1; // JavaScript is ridiculous
@@ -194,14 +196,8 @@ function setRootClasses(config) {
 
     if (halloween || winter)
         dark = true;
-    else if (dark === null) {
-        let dquery = window.matchMedia("(prefers-color-scheme: dark)");
-        if (dquery.matches)
-            dark = true;
-    }
 
     let droot = getRootNode(document);
-    setConditionalClass(droot, "dark", dark);
     setConditionalClass(droot, "light", !dark);
     setConditionalClass(droot, "colorblind", config.colorblind);
 

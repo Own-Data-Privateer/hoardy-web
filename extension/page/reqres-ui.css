@@ -1,5 +1,13 @@
 @layer defaults {
 :root {
+    --log-in-flight: #606020;
+    --log-picked: #446044;
+    --log-dropped: #604444;
+    --log-collected: #004000;
+    --log-discarded: #400000;
+}
+
+.light {
     --log-in-flight: #ffffaa;
     --log-picked: #eeffee;
     --log-dropped: #ffeeee;
@@ -8,21 +16,13 @@
 }
 
 .colorblind {
-    --log-picked: #eeeeff;
-    --log-collected: #aaaaff;
-}
-
-.dark {
-    --log-in-flight: #606020;
-    --log-picked: #446044;
-    --log-dropped: #604444;
-    --log-collected: #004000;
-    --log-discarded: #400000;
-}
-
-.dark.colorblind {
     --log-picked: #444460;
     --log-collected: #000040;
+}
+
+.light.colorblind {
+    --log-picked: #eeeeff;
+    --log-collected: #aaaaff;
 }
 
 div.ui.omega input[type="number"]:disabled {

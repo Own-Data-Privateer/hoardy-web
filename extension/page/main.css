@@ -2,54 +2,52 @@
 
 @layer defaults {
 :root {
-    /* to prevent light-to-dark storbbing */
-    background-color: #000;
-    color: #000;
+    background-color: #0c0b12;
+    color: #fff;
 
-    /* defaults */
-    --a-external: #d80000;
+    --a-external: #f80000;
     --a-internal: #008800;
-    --a-local: #a86800;
+    --a-local: #ffaa00;
+    --active-tag-background: #333333;
+    --active-tag-color: var(--text-color);
+    --active-tag-underline: #d0f0d0;
     --attention-background-1: #e02020;
-    --attention-background-2: #ffffff;
+    --attention-background-2: #000000;
     --attention-border-color: var(--attention-background-1);
     --attention-color: var(--text-color);
-    --button-background: #f0f0f0;
+    --button-background: #101010;
     --button-border-color: var(--input-border-color);
     --button-color: var(--text-color);
-    --code-background: #00ff0010;
-    --code-border-color: #f8f80020;
+    --code-background: #00ff0020;
+    --code-border-color: #f8f80030;
     --code-text-color: var(--text-color);
-    --help-btn-background: #aaaaaa;
-    --help-btn-border-color : #bbbbbb;
-    --help-btn-checked-background: #666666;
-    --help-btn-checked-border-color : #888888;
-    --help-btn-checked-color: #ffffff;
-    --help-btn-color: #fafafa;
-    --help-tip-background: #fffffa;
+    --help-btn-background: #333333;
+    --help-btn-border-color : #666666;
+    --help-btn-checked-background: #aaaaaa;
+    --help-btn-checked-border-color : #bbbbbb;
+    --help-btn-checked-color: #060606;
+    --help-btn-color: #aaaaaa;
+    --help-tip-background: #000005;
     --help-tip-border-color: #aaaaaa;
     --help-tip-text: var(--text-color);
-    --tag-background: inherit;
-    --tag-color: var(--text-color);
-    --active-tag-background: #d0d0d0;
-    --active-tag-color: var(--text-color);
-    --active-tag-underline: #a0f0a0;
-    --hover-background: #d0d0d0;
-    --hover-border-color: #808080;
+    --hover-background: #505050;
+    --hover-border-color: #e0e0e0;
     --hover-color: var(--text-color);
     --input-background: var(--text-background);
     --input-border-color: var(--separator-color);
     --input-color: var(--text-color);
-    --outline-color: #aaaaaa;
-    --separator-color: #000000;
+    --outline-color: #666666;
+    --separator-color: #ffffff;
+    --tag-background: inherit;
+    --tag-color: var(--text-color);
     --target-background-1: #ffaa00;
     --target-background-2: #ffaa0040;
     --target-color: var(--text-color);
     --text-background: inherit;
     --text-color: inherit;
-    --text-inactive-background: #cfcfcf;
-    --text-inactive-color: #afafaf;
-    --text-shadow-color: #000000;
+    --text-inactive-background: #303030;
+    --text-inactive-color: #505050;
+    --text-shadow-color: #ffffff;
     --toggle-background-bad: #fb3230;
     --toggle-background-good: #02bb50;
     --toggle-background: #f8f850;
@@ -60,7 +58,7 @@
     --toggle-dot-border-color: #000000;
     --untoggle-background-bad: #f89494;
     --untoggle-background-good: #94f894;
-    --untoggle-background: #dfdfdf;
+    --untoggle-background: #515138;
     --untoggle-border-color-bad: #a88f8f;
     --untoggle-border-color-good: #8fa88f;
     --untoggle-border-color: #8f8f8f;
@@ -71,48 +69,43 @@
 .light {
     background-color: #ffffff;
     color: #000000;
+
+    --a-external: #d80000;
+    --a-local: #a86800;
+    --active-tag-background: #d0d0d0;
+    --active-tag-underline: #a0f0a0;
+    --attention-background-2: #ffffff;
+    --button-background: #f0f0f0;
+    --code-background: #00ff0010;
+    --code-border-color: #f8f80020;
+    --help-btn-background: #aaaaaa;
+    --help-btn-border-color : #bbbbbb;
+    --help-btn-checked-background: #666666;
+    --help-btn-checked-border-color : #888888;
+    --help-btn-checked-color: #ffffff;
+    --help-btn-color: #fafafa;
+    --help-tip-background: #fffffa;
+    --hover-background: #d0d0d0;
+    --hover-border-color: #808080;
+    --outline-color: #aaaaaa;
+    --separator-color: #000000;
+    --text-inactive-background: #cfcfcf;
+    --text-inactive-color: #afafaf;
+    --text-shadow-color: #000000;
+    --untoggle-background: #dfdfdf;
 }
 
 .colorblind {
     --a-internal: #000088;
-    --code-background: #0000ff10;
+    --code-background: #0000ff20;
     --toggle-background-good: #0250bb;
     --toggle-border-color-good: #053e94;
     --untoggle-background-good: #9494f855;
     --untoggle-border-color-good: #cfcfd8;
 }
 
-.dark {
-    background-color: #0c0b12;
-    color: #fff;
-
-    --a-external: #f80000;
-    --a-local: #ffaa00;
-    --attention-background-2: #000000;
-    --button-background: #101010;
-    --code-background: #00ff0020;
-    --code-border-color: #f8f80030;
-    --help-btn-background: #333333;
-    --help-btn-border-color : #666666;
-    --help-btn-checked-background: #aaaaaa;
-    --help-btn-checked-border-color : #bbbbbb;
-    --help-btn-checked-color: #060606;
-    --help-btn-color: #aaaaaa;
-    --help-tip-background: #000005;
-    --active-tag-background: #333333;
-    --active-tag-underline: #d0f0d0;
-    --hover-background: #505050;
-    --hover-border-color: #e0e0e0;
-    --outline-color: #666666;
-    --separator-color: #ffffff;
-    --text-inactive-background: #303030;
-    --text-inactive-color: #505050;
-    --text-shadow-color: #ffffff;
-    --untoggle-background: #515138;
-}
-
-.dark.colorblind {
-    --code-background: #0000ff20;
+.light.colorblind {
+    --code-background: #0000ff10;
 }
 
 #body {
