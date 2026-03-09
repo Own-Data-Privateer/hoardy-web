@@ -75,6 +75,8 @@ function fixTabConfig(url, cfg, oldCfg) {
 
     if (url !== undefined) {
         // force some settings based on tab's URL
+        if ((cfg.autoReplay || cfg.children.autoReplay) && config.autoReplayOffInReplay && isServerURL(url))
+            cfg.autoReplay = cfg.children.autoReplay = false;
         if ((!cfg.workOffline || !cfg.children.workOffline) && (
                config.workOfflineFile && url.startsWith("file:") ||
                config.workOfflineData && url.startsWith("data:")) ||

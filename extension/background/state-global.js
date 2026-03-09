@@ -149,6 +149,7 @@ let configDefaults = {
     workOfflineFile: true,
     workOfflineData: false,
     workOfflineReplay: true,
+    autoReplayOffInReplay: true,
 
     root: {
         autoReplay: false,
