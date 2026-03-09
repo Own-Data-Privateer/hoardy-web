@@ -255,18 +255,43 @@ function handleUpdateAvailable(details) {
         scheduleUpdateDisplay(true);
 }
 
-function handleBeforeNavigate(e) {
+// Handle extension-defined redirects, like "Auto-replay mode".
+function autoRedirect(tabcfg, url) {
+    if (tabcfg.autoReplay && !isBoringOrServerURL(url)) {
+        try {
+            return latestReplayOf(url);
+        } catch (err) {
+            logError(err);
+        }
+    }
+    return null;
+}
+
+async function handleBeforeNavigate(e) {
     if (e.frameId !== 0)
-        // ignore sub-frames
+        // ignore sub-frames, redirects to those shall be handled by handleBeforeRequest instead,
+        // since sub-frames are not addressible via navigateTabTo
         return;
 
     let tabId = e.tabId;
-    if (tabId === -1)
-        // ignore background tabs
-        return;
-
+    let url = e.url;
     let tabcfg = getOriginConfig(tabId);
-    if (resetTabConfigWorkOffline(tabcfg, e.url))
+
+    if (config.debugRuntime)
+        console.log("BROWSER: tab navigation", tabId, url);
+
+    // NB: handleBeforeRequest has a similar piece of code at (autoRedirectAgain). Whichever gets
+    // called first depends on the browser, and even then is a lottery sometimes, so we repeat that
+    // code here too.
+    let redirectUrl = autoRedirect(tabcfg, url);
+    if (redirectUrl !== null) {
+        if (config.debugRuntime)
+            console.warn("MAIN: redirecting tab", tabId, "from", url, "to", redirectUrl);
+        await navigateTabTo(tabId, redirectUrl);
+        return;
+    }
+
+    if (resetTabConfigWorkOffline(tabcfg, url))
         setTabConfig(tabId, tabcfg);
 }
 

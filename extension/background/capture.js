@@ -768,23 +768,27 @@ function handleBeforeRequest(e) {
             fromExtension = true;
     }
 
-    let options = getOriginConfig(e.tabId, fromExtension);
+    let tabId = e.tabId;
+    let tabcfg = getOriginConfig(tabId, fromExtension);
 
-    if (options.autoReplay && e.type == "main_frame") {
+    // See (autoRedirectAgain) in handleBeforeNavigate.
+    if (e.type == "main_frame") {
         if (config.debugRuntime)
-            console.warn("CAPTURE: attempting to auto-replay", url, "in tab", e.tabId);
-        try {
-            return { redirectUrl: latestReplayOf(url) };
-        } catch (err) {
-            logError(err);
+            console.log("CAPTURE: tab navigation", tabId, url);
+
+        let redirectUrl = autoRedirect(tabcfg, url);
+        if (redirectUrl !== null) {
+            if (config.debugRuntime)
+                console.warn("CAPTURE: redirecting tab", tabId, "from", url, "to", redirectUrl);
+            return { redirectUrl };
         }
     }
 
     let noDebuggerYet = false;
-    let workOffline = config.workOffline || options.workOffline;
+    let workOffline = config.workOffline || tabcfg.workOffline;
 
     // ignore this request if archiving is disabled
-    if (!config.collecting || !options.collecting) {
+    if (!config.collecting || !tabcfg.collecting) {
         if (workOffline)
             return { cancel: true };
         return;
@@ -795,17 +799,17 @@ function handleBeforeRequest(e) {
     if (useDebugger) {
         // On Chromium, cancel all requests from a tab that is not yet debugged,
         // start debugging, and then reload the tab.
-        if (!workOffline && e.tabId !== -1 && !tabsDebugging.has(e.tabId)
+        if (!workOffline && tabId !== -1 && !tabsDebugging.has(tabId)
             && (url.startsWith("http://") || url.startsWith("https://"))) {
             if (config.debugRuntime)
-                console.warn("CAPTURE: canceling and restarting request to", url, "as tab", e.tabId, "is not managed yet");
+                console.warn("CAPTURE: canceling and restarting request to", url, "as tab", tabId, "is not managed yet");
             if (e.type == "main_frame") {
                 // attach debugger and reload the main frame
-                attachDebuggerAndReloadTab(e.tabId).catch(logError);
+                attachDebuggerAndReloadTab(tabId).catch(logError);
                 // not using
-                //   resetAttachDebuggerAndNavigateTab(e.tabId, url).catch(logError);
+                //   resetAttachDebuggerAndNavigateTab(tabId, url).catch(logError);
                 // or
-                //   resetAttachDebuggerAndReloadTab(e.tabId).catch(logError);
+                //   resetAttachDebuggerAndReloadTab(tabId).catch(logError);
                 // bacause they reset the referrer
                 return { cancel: true };
             } else
@@ -821,16 +825,15 @@ function handleBeforeRequest(e) {
         if (!workOffline && firstNetworkRequest
             && (url.startsWith("http://") || url.startsWith("https://"))) {
             firstNetworkRequest = false;
-            if (config.workaroundFirefoxFirstRequest && e.tabId !== -1 && initiator === undefined && e.type == "main_frame") {
+            if (config.workaroundFirefoxFirstRequest && tabId !== -1 && initiator === undefined && e.type == "main_frame") {
                 if (config.debugRuntime)
                     console.warn("CAPTURE: canceling and restarting request to", url, "to workaround a bug in Firefox");
-                resetAndNavigateTab(e.tabId, url).catch(logError);
+                resetAndNavigateTab(tabId, url).catch(logError);
                 return { cancel: true };
             }
         }
     }
 
-    let tabId = e.tabId;
     let requestId = e.requestId;
     let reqres = {
         sessionId,
