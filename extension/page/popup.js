@@ -277,7 +277,7 @@ async function popupMain() {
         setConditionalClass(helpButton, "attention", !config.seenHelp);
 
         implySetConditionalOff(dbody, "on-seasonal", !config.seasonal);
-        implySetConditionalOff(dbody, "on-collecting", !config.collecting);
+        implySetConditionalOff(dbody, "on-collecting", !(config.collecting && (!config.workOffline || config.collectingWorkOffline)));
         implySetConditionalOff(dbody, "on-stash", !config.stash);
         implySetConditionalOff(dbody, "on-archive", !config.archive);
         implySetConditionalClass(dbody, "on-unsafe-archive", "hidden", !(config.archive && config.archiveExportAs && !config.archiveSubmitHTTP && !config.archiveSaveLS));

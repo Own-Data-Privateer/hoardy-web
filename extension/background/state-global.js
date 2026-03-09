@@ -51,12 +51,6 @@ let configDefaults = {
     hintNotify: true,
     invisibleUINotify: true,
 
-    // work offline settings
-    workOfflineImpure: false,
-    workOfflineFile: true,
-    workOfflineReplay: true,
-    workOfflineData: false,
-
     // Firefox workarounds
     workaroundFirefoxFirstRequest: true,
 
@@ -149,6 +143,12 @@ let configDefaults = {
     workOffline: false,
     // are we collecting new data?
     collecting: true,
+    // are we also collecting work offline requests?
+    collectingWorkOffline: false,
+    // work offline settings
+    workOfflineFile: true,
+    workOfflineData: false,
+    workOfflineReplay: true,
 
     root: {
         autoReplay: false,

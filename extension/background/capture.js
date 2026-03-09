@@ -47,8 +47,10 @@ async function syncDebuggersState(tabs) {
 
         let attached = tabsDebugging.has(tab.id);
         let tabcfg = getOriginConfig(tab.id);
+        let workOffline = config.workOffline || tabcfg.workOffline;
         let wantAttached = hasInFlight
             || config.collecting && tabcfg.collecting
+               && (!workOffline || config.collectingWorkOffline)
                && (url == "about:blank" || url.startsWith("http://") || url.startsWith("https://"));
 
         if (!attached && wantAttached) {
@@ -787,10 +789,12 @@ function handleBeforeRequest(e) {
     }
 
     let noDebuggerYet = false;
-    let workOffline = config.workOffline || tabcfg.workOffline;
 
     // ignore this request if archiving is disabled
-    if (!config.collecting || !tabcfg.collecting) {
+    let workOffline = config.workOffline || tabcfg.workOffline;
+    let collecting = config.collecting && tabcfg.collecting
+        && (!workOffline || config.collectingWorkOffline);
+    if (!collecting) {
         if (workOffline)
             return { cancel: true };
         return;
@@ -1106,7 +1110,9 @@ function logDebugEvent(rtype, nonExtra, e, dreqres) {
 
 function handleDebugRequestWillBeSent(nonExtra, e) {
     // don't do anything if we are globally disabled
-    if (!config.collecting) return;
+    let collecting = config.collecting && (!config.workOffline || config.collectingWorkOffline);
+    if (!collecting)
+        return;
 
     popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
@@ -1306,11 +1312,11 @@ function handleDebugDetach(debuggee, reason) {
         tabsDebugging.delete(tabId);
         // Unfortunately, this means all in-flight reqres of this tab are broken now
         let updatedTabId = stopInFlight(tabId, "capture::EMIT_FORCED::BY_DETACHED_DEBUGGER");
-        if (config.collecting && reason !== "target_closed")
-            // In Chrome, it's pretty easy to click the notification or press
-            // Escape while doing Control+F and detach the debugger, so let's
-            // reattach it immediately
-            setTimeout(() => attachDebugger(tabId).catch(logErrorExceptWhenStartsWith("No tab with given id")), 1);
+        // In Chrome, it's pretty easy to click the notification or press Escape while doing
+        // Control+F and detach the debugger, so let's reattach it immediately in that case
+        if (reason !== "target_closed")
+            // setting url to "about:blank" for simplicity
+            setTimeout(() => syncDebuggersState([{id: tabId, url: "about:blank"}]).catch(logErrorExceptWhenStartsWith("No tab with given id")), 1);
         scheduleEndgame(updatedTabId);
     }
 }

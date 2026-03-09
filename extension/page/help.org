@@ -659,10 +659,7 @@ Unlike the =File > Work Offline= option of Firefox, enabling any of these toggle
 
 - does not break =hoardy-web serve= replay URLs;
 - does not break any requests that are already in-flight;
-- does not prevent generation of new =canceled= reqres when a corresponding =Track new requests= toggle is also enabled, and they can be seen in the {{{button2(showState,history)}}}-{{{button2(showTabState,log)}}}.
-
-In the latter case, those newly generated =canceled= reqres will also be marked as =problematic= if {{{config2(markProblematicWithImportantErrors,that)}}} option is enabled.
-So, for convenience, there is also a {{{config2(workOfflineImpure,toggle)}}} that controls whether toggling =Work offline= options (from the popup or with [[#keyboard-shortcuts][keyboard shortcuts]]) should also automatically set the corresponding =Track new requests= option to the opposite value.
+- does not prevent generation/capture of new =canceled= reqres when a corresponding =Track new requests= toggles {{{config2(collecting,(glob))}}}, {{{perSource(collecting)}}} are enabled and {{{config2(collectingWorkOffline,this toggle)}}} is set;
 
   this makes it possible to inspect the resulting =canceled= reqres in the log {{{logPage}}};
 
@@ -724,8 +721,8 @@ So, while this setup is not super-secure if your Tor Browser allows web pages to
 - simulate {{{button2(rearchiveAdjunctSaved,=Re-archive adjunct= button)}}} press with {{{div2(local.rearchiveDelete,deletion)}}} disabled, {{{shortcut(rearchiveAdjunctSaved)}}};
 - toggle {{{tabconfig2(autoReplay,=Auto-Replay= mode in the currently active tab)}}} and its children, {{{shortcut(toggleTabConfigAutoReplay)}}};
 - toggle {{{tabconfig2(children.autoReplay,=Auto-Replay= mode in the currently active tab's new children)}}}, {{{shortcut(toggleTabConfigChildrenAutoReplay)}}};
-- toggle {{{tabconfig2(workOffline,=Work Offline= mode in the currently active tab)}}} and its children (the action depends on {{{config2(workOfflineImpure,impure toggling)}}}), {{{shortcut(toggleTabConfigWorkOffline)}}};
-- toggle {{{tabconfig2(children.workOffline,=Work Offline= mode in the currently active tab's new children)}}} (the action depends on {{{config2(workOfflineImpure,impure toggling)}}}), {{{shortcut(toggleTabConfigChildrenWorkOffline)}}};
+- toggle {{{tabconfig2(workOffline,=Work Offline= mode in the currently active tab)}}} and its children, {{{shortcut(toggleTabConfigWorkOffline)}}};
+- toggle {{{tabconfig2(children.workOffline,=Work Offline= mode in the currently active tab's new children)}}}, {{{shortcut(toggleTabConfigChildrenWorkOffline)}}};
 - toggle {{{tabconfig2(collecting,tracking of newly spawned =HTTP= requests in the currently active tab)}}}, {{{shortcut(toggleTabConfigTracking)}}};
 - toggle {{{tabconfig2(children.collecting,tracking of newly spawned =HTTP= requests currently active tab's children)}}}, {{{shortcut(toggleTabConfigChildrenTracking)}}};
 - {{{button2(unmarkAllProblematic,unmark all problematic reqres)}}}, {{{shortcut(unmarkAllProblematic)}}};

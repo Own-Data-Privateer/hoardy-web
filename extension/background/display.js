@@ -335,7 +335,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             badge += "O";
             chunks.push("work offline");
         }
-        if (!config.collecting) {
+        if (!(config.collecting && (!config.workOffline || config.collectingWorkOffline))) {
             badge += "I";
             chunks.push("ignore new requests");
         }
@@ -467,12 +467,13 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             chunks.push("auto-replay");
         }
 
-        if (config.workOffline || cfg.workOffline) {
+        let workOffline = config.workOffline || cfg.workOffline;
+        if (workOffline) {
             now.wicon = "work_offline";
             chunks.push("work offline");
         }
 
-        if (!config.collecting || !cfg.collecting) {
+        if (!(config.collecting && cfg.collecting && (!workOffline || config.collectingWorkOffline))) {
             now.icon = "off";
             chunks.push("ignore new requests");
         } else if (cfg.limbo && cfg.negLimbo) {
