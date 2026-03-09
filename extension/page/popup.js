@@ -308,20 +308,6 @@ async function popupMain() {
             config = nconfig;
 
         setUI(document, "config", config, (newconfig, path) => {
-            switch (path) {
-            case "config.workOffline":
-                inheritTabConfigWorkOffline(newconfig, newconfig);
-                break;
-            case "config.root.workOffline":
-                inheritTabConfigWorkOffline(newconfig, newconfig.root);
-                break;
-            case "config.background.workOffline":
-                inheritTabConfigWorkOffline(newconfig, newconfig.background);
-                break;
-            case "config.extension.workOffline":
-                inheritTabConfigWorkOffline(newconfig, newconfig.extension);
-                break;
-            }
             browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
         });
 
@@ -344,21 +330,6 @@ async function popupMain() {
             tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
 
         setUI(document, "tabconfig", tabconfig, (newtabconfig, path) => {
-            switch (path) {
-            case "tabconfig.workOffline":
-                inheritTabConfigWorkOffline(config, newtabconfig, newtabconfig.children);
-                break;
-            case "tabconfig.children.workOffline":
-                inheritTabConfigWorkOffline(config, newtabconfig.children);
-                break;
-            default:
-                if (!path.startsWith("tabconfig.children.")) {
-                    let field = path.substr(10);
-                    if (newtabconfig[field] === undefined)
-                        throw Error(`no such field ${field}`);
-                    newtabconfig.children[field] = newtabconfig[field];
-                }
-            }
             browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]).catch(logError);
         });
     }

@@ -780,6 +780,8 @@ function handleBeforeRequest(e) {
         if (redirectUrl !== null) {
             if (config.debugRuntime)
                 console.warn("CAPTURE: redirecting tab", tabId, "from", url, "to", redirectUrl);
+            // `noBroadcast = true` because it will update soon
+            setTabConfig(tabId, redirectUrl, tabcfg, tabcfg, true);
             return { redirectUrl };
         }
     }

@@ -66,17 +66,43 @@ function getOriginConfig(tabId, fromExtension) {
         return cacheSingleton(tabConfig, tabId, () => prefillChildren(config.root));
 }
 
-function setTabConfigInternal(tabId, tabcfg) {
-    if (tabcfg.children !== undefined && !tabcfg.children.bucket)
-        tabcfg.children.bucket = getFirstOk(tabcfg.bucket, config.root.bucket, configDefaults.root.bucket);
-    if (!tabcfg.bucket)
-        tabcfg.bucket = getFirstOk(config.root.bucket, configDefaults.root.bucket);
+function fixTabConfig(url, cfg, oldCfg) {
+    // do some fixups
+    if (!cfg.bucket)
+        cfg.bucket = getFirstOk(config.root.bucket, configDefaults.root.bucket);
+    if (!cfg.children.bucket)
+        cfg.children.bucket = cfg.bucket;
 
-    tabConfig.set(tabId, tabcfg);
+    if (url !== undefined) {
+        // force some settings based on tab's URL
+        if ((!cfg.workOffline || !cfg.children.workOffline) && (
+               config.workOfflineFile && url.startsWith("file:") ||
+               config.workOfflineData && url.startsWith("data:")) ||
+               config.workOfflineReplay && isServerURL(url)
+           )
+            cfg.workOffline = cfg.children.workOffline = true;
+    }
+
+    // the most common case
+    if (cfg === oldCfg)
+        return;
+
+    // propagate any changes to `.children`
+    for (let field of Object.keys(cfg)) {
+        if (field === "children")
+            continue;
+
+        if (cfg[field] !== oldCfg[field])
+            cfg.children[field] = cfg[field];
+    }
 }
 
-function setTabConfig(tabId, tabcfg) {
-    setTabConfigInternal(tabId, tabcfg);
+function setTabConfig(tabId, tabUrl, tabcfg, oldTabcfg, dontBroadcast) {
+    fixTabConfig(tabUrl, tabcfg, oldTabcfg);
+    tabConfig.set(tabId, tabcfg);
+
+    if (dontBroadcast)
+        return;
 
     broadcastToPopup("updateTabConfig", tabId, tabcfg);
 
@@ -182,17 +208,4 @@ function processRemoveTab(tabId) {
     scheduleCleanupAfterTab(tabId);
 
     scheduleEndgame(updatedTabId);
-}
-
-function resetTabConfigWorkOffline(tabcfg, url) {
-    if (config.workOfflineFile && url.startsWith("file:")
-        || config.workOfflineReplay && isServerURL(url)
-        || config.workOfflineData && url.startsWith("data:")) {
-        if (!tabcfg.workOffline) {
-            tabcfg.workOffline = true;
-            inheritTabConfigWorkOffline(config, tabcfg, tabcfg.children);
-            return true;
-        }
-    }
-    return false;
 }

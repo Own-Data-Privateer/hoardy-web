@@ -287,12 +287,12 @@ async function handleBeforeNavigate(e) {
     if (redirectUrl !== null) {
         if (config.debugRuntime)
             console.warn("MAIN: redirecting tab", tabId, "from", url, "to", redirectUrl);
+        // `noBroadcast = true` because it will update soon
+        setTabConfig(tabId, redirectUrl, tabcfg, tabcfg, true);
         await navigateTabTo(tabId, redirectUrl);
         return;
-    }
-
-    if (resetTabConfigWorkOffline(tabcfg, url))
-        setTabConfig(tabId, tabcfg);
+    } else
+        setTabConfig(tabId, url, tabcfg, tabcfg);
 }
 
 function chromiumResetRootTab(tabId, tabcfg) {
@@ -478,28 +478,26 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         return true;
 
     if (command.startsWith("toggleTabConfig")) {
-        let tabcfg = getOriginConfig(tabId);
-        let field, cfg, cfgChildren;
+        let oldTabcfg = getOriginConfig(tabId);
+        let tabcfg = assignRec({}, oldTabcfg);
+
+        let field, cfg;
         if (command.startsWith("toggleTabConfigChildren")) {
             field = command.substr(23);
             cfg = tabcfg.children;
         } else {
             field = command.substr(15);
             cfg = tabcfg;
-            cfgChildren = tabcfg.children;
         }
         field = field.substr(0, 1).toLowerCase() + field.substr(1);
         if (field === "tracking") // TODO: remove
             field = "collecting";
+
         if (cfg[field] === undefined)
             throw Error(`no such field ${field}`);
         cfg[field] = !cfg[field];
-        if (field === "workOffline")
-            inheritTabConfigWorkOffline(config, cfg, cfgChildren);
-        else if (cfgChildren !== undefined)
-            cfgChildren[field] = cfg[field];
 
-        setTabConfig(tabId, tabcfg);
+        setTabConfig(tabId, undefined, tabcfg, oldTabcfg);
 
         return true;
     }
@@ -561,7 +559,8 @@ function evalRPCRequest(request) {
     case "getTabConfig":
         return getOriginConfig(arg1);
     case "setTabConfig":
-        setTabConfig(arg1, arg2);
+        let oldTabcfg = getOriginConfig(arg1);
+        setTabConfig(arg1, undefined, arg2, oldTabcfg);
         return null;
 
     case "getStats":
@@ -920,16 +919,11 @@ async function main() {
         if (oldTab !== undefined && oldTab.url === tabUrl)
             // reuse old config
             tabcfg = updateFromRec(tabcfg, oldTab.tabcfg);
+        setTabConfig(tabId, undefined, tabcfg, tabcfg, true);
 
         // on Chromium, reset their URLs, maybe
         if (useDebugger && tabUrl === "chrome://newtab/")
             chromiumResetRootTab(tabId, tabcfg);
-        // reset workOffline toggles
-        else if (tabUrl !== undefined)
-            resetTabConfigWorkOffline(tabcfg, tabUrl);
-
-        // save it
-        setTabConfigInternal(tabId, tabcfg);
     }
 
     // Load stashed reqres.
