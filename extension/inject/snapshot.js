@@ -23,9 +23,9 @@
 
 (() => {
     let now = Date.now();
-    let errors = [];
     let result = null;
     let ct = document.contentType;
+    let errors = [];
 
     if (document instanceof HTMLDocument && ct === "text/html"
        || document instanceof XMLDocument && ct === "image/svg+xml") {
@@ -40,9 +40,11 @@
                 gotDocType = true;
 
                 cres.push("<!DOCTYPE html>");
-            } else if (c instanceof HTMLHtmlElement)
+            } else if (c instanceof Comment) {
+                cres.push(`<!-- ${c.nodeValue.trim()} -->`);
+            } else if (c instanceof HTMLHtmlElement) {
                 cres.push(c.outerHTML);
-            else if (c instanceof SVGSVGElement) {
+            } else if (c instanceof SVGSVGElement) {
                 if (gotDocType)
                     errors.push("multiple doctypes");
                 gotDocType = true;
