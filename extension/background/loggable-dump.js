@@ -133,6 +133,7 @@ function popInLimbo(collect, num, tabId, rrfilter) {
     // this is written as a separate loop to make it mostly atomic w.r.t. reqresLimbo
 
     let minusSize = 0;
+    let someProblematic = false;
     let newlyQueued = [];
     let newlyLogged = [];
     let newlyStashed = [];
@@ -140,6 +141,7 @@ function popInLimbo(collect, num, tabId, rrfilter) {
 
     for (let archivable of popped) {
         let [loggable, dump] = archivable;
+        someProblematic = someProblematic || loggable.problematic;
         try {
             let dumpSize = loggable.dumpSize;
             minusSize += dumpSize;
@@ -163,8 +165,8 @@ function popInLimbo(collect, num, tabId, rrfilter) {
     truncateLog();
     wantSaveGlobals = true;
 
-    // reset problematic, since reqres statuses have changed
-    broadcastToStateWhen(popped.some((r) => r.problematic === true), tabId, "resetProblematicLog", getProblematicLog);
+    // since reqres statuses have changed
+    broadcastToStateWhen(someProblematic, tabId, "resetProblematicLog", getProblematicLog);
     // since (popped.length > 0)
     broadcastToState(tabId, "resetInLimboLog", getInLimboLog);
     broadcastToStateWhen(newlyQueued.length > 0, tabId, "newQueued", newlyQueued);
