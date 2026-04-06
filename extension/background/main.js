@@ -814,6 +814,8 @@ async function main() {
 
         upgradeConfig(oldConfig);
         config = updateFromRec(config, oldConfig);
+        // just in case
+        config.ephemeral = false;
     }
     savedConfig = assignRec({}, config);
 
@@ -827,19 +829,28 @@ async function main() {
     savedGlobals = assignRec({}, globals);
 
     let lastSeenVersion = config.lastSeenVersion;
-    config.ephemeral = false;
-    if (config.seenChangelog && lastSeenVersion != manifest.version) {
-        // reset `config.seenChangelog` when major version changes
-        let vOld = lastSeenVersion.split(".");
-        let vNew = manifest.version.split(".").slice(0, 2);
-        config.seenChangelog = equalRec(vOld, vNew);
-    }
     config.lastSeenVersion = manifest.version;
 
+    if (lastSeenVersion != manifest.version) {
+        if(config.seenChangelog) {
+            // reset `config.seenChangelog` when major version changes
+            let vOld = lastSeenVersion.split(".");
+            let vNew = manifest.version.split(".").slice(0, 2);
+            config.seenChangelog = equalRec(vOld, vNew);
+        }
+
+        browser.notifications.create("info-updated", {
+            title: "Hoardy-Web: INFO",
+            message: escapeNotification(config, `\`Hoardy-Web\` updated \`${lastSeenVersion}\` -> \`${manifest.version}\``),
+            iconUrl: iconURL("main", 128),
+            type: "basic",
+        }).catch(logError);
+    }
+
+    // for debugging
     if (false) {
-        // for debugging
         config.ephemeral = true;
-        updateAvailable = true;
+        config.debugRuntime = true;
     }
 
     // Init IndexedDB.
@@ -895,17 +906,9 @@ async function main() {
         }
     }
 
-    // Get all currently open tabs
-    let tabs = await browser.tabs.query({});
-    // ... and start listening for updates.
-    browser.tabs.onCreated.addListener(catchAll(handleTabCreated));
-    browser.tabs.onRemoved.addListener(catchAll(handleTabRemoved));
-    browser.tabs.onReplaced.addListener(catchAll(handleTabReplaced));
-    browser.tabs.onActivated.addListener(catchAll(handleTabActivated));
-    browser.tabs.onUpdated.addListener(catchAll(handleTabUpdated));
-
     // Init configs and states of currently open tabs, possibly reusing old session data.
 
+    let tabs = await browser.tabs.query({});
     for (let tab of tabs) {
         let tabId = tab.id;
         let tabUrl = getTabURL(tab);
@@ -926,11 +929,6 @@ async function main() {
             chromiumResetRootTab(tabId, tabcfg);
     }
 
-    // Load stashed reqres.
-    // This might take a while, new tabs will get processed in the meantime.
-
-    await loadStashed();
-
     // Init capture.
 
     let filterAllN = { url: [{}] };
@@ -940,19 +938,36 @@ async function main() {
     if (useDebugger)
         await initDebugCapture(tabs);
 
-    if (browser.commands !== undefined)
-        browser.commands.onCommand.addListener(catchAll(handleShortcut));
-
-    // Init UI handling.
-
-    initMenus();
-    browser.notifications.onClicked.addListener(catchAll(handleNotificationClicked));
-
     // Init RPC.
 
     initWebextRPC(handleInternalMessage);
 
-    // Finishing up.
+    // Init UI events.
+
+    initMenus();
+    browser.notifications.onClicked.addListener(catchAll(handleNotificationClicked));
+    if (browser.commands !== undefined)
+        browser.commands.onCommand.addListener(catchAll(handleShortcut));
+
+    browser.tabs.onCreated.addListener(catchAll(handleTabCreated));
+    browser.tabs.onRemoved.addListener(catchAll(handleTabRemoved));
+    browser.tabs.onReplaced.addListener(catchAll(handleTabReplaced));
+    browser.tabs.onActivated.addListener(catchAll(handleTabActivated));
+    browser.tabs.onUpdated.addListener(catchAll(handleTabUpdated));
+
+    // Schedule server check and stashed reqres loading.
+    //
+    // NB: this reuses `scheduleHidden, "endgame"` task singleton so that all `scheduleEndgame`
+    // internals would block until this thing finishes.
+    resetSingletonTimeout(scheduledHidden, "endgame", 100, async () => {
+        await loadStashed();
+        scheduleEndgame(null, 0);
+    });
+
+    // Schedule displayed state update.
+    scheduleUpdateDisplay(true, null, true);
+
+    // Init done.
 
     console.log(`MAIN: Initialized Hoardy-Web with source of '${sourceDesc}'.`);
     console.log("MAIN: runtime options are", { useSVGIcons, useBlocking, useDebugger });
@@ -960,14 +975,7 @@ async function main() {
     console.log("MAIN: globals are", globals);
     console.log("MAIN: Ready to Hoard the Web!");
 
-    if (lastSeenVersion != manifest.version) {
-        browser.notifications.create("info-updated", {
-            title: "Hoardy-Web: INFO",
-            message: escapeNotification(config, `\`Hoardy-Web\` updated \`${lastSeenVersion}\` -> \`${manifest.version}\``),
-            iconUrl: iconURL("main", 128),
-            type: "basic",
-        }).catch(logError);
-    }
+    // Generate some reminder notifications.
 
     if (config.autoPopInLimboDiscard || config.discardAll) {
         let what = [];
@@ -982,15 +990,6 @@ async function main() {
             type: "basic",
         }).catch(logError);
     }
-
-    scheduleGlobalNotifications(1000);
-
-    resetSingletonTimeout(scheduledHidden, "endgame", 100, async () => {
-        // a bit of a hack to only run this instead of the whole `scheduleEndgame(null)`
-        await checkServer();
-    });
-
-    scheduleUpdateDisplay(true, null, true);
 }
 
 main();
