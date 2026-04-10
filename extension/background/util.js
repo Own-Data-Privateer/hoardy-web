@@ -27,8 +27,6 @@
 
 "use strict";
 
-class StopIteration extends Error {}
-
 function pushFirstTo(archivables, res) {
     for (let [v, _x] of archivables) {
         res.push(v);

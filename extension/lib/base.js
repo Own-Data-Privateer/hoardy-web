@@ -30,6 +30,8 @@ function noop() {}
 
 async function asyncNoop() {}
 
+class StopIteration extends Error {}
+
 function sleep(timeout) {
     return new Promise((resolve, reject) => setTimeout(resolve, timeout));
 }
