@@ -90,43 +90,53 @@ async function lslotGetSlot(get, prefix, slot) {
     return resobj;
 }
 
-async function lslotForEach(get, meta, func) {
-    let next = meta.next;
-    let end = next + 100;
-
+async function lslotForEach(get, meta, func, limit) {
     let first = meta.first;
-    let cur = Math.max(0, first - 100);
+    let next = meta.next;
+    let cur = Math.max(0, first - 128);
+    let end = next + 128;
+    limit = Math.max(128, limit);
+    let num = 0;
+    let count = 0;
     let isFirst = true;
 
-    while (cur < end) {
-        let el = await get(cur);
-        if (el !== undefined) {
-            if (isFirst) {
-                first = cur;
-                isFirst = false;
-            }
-            next = cur + 1;
-            end = cur + 100;
+    try {
+        while (cur < end) {
+            let el = await get(cur);
+            if (el !== undefined) {
+                num += 1;
+                if (isFirst) {
+                    first = cur;
+                    isFirst = false;
+                }
+                next = cur + 1;
+                end = cur + 128;
 
-            try {
                 let res = func(el, cur);
                 if (res instanceof Promise)
                     await res;
-            } catch(err) {
-                // widen the range if an error happens
-                if (first < meta.first)
-                    meta.first = first;
-                if (next > meta.next)
-                    meta.next = next;
-                throw err;
+            }
+            cur += 1;
+            count += 1;
+            if (limit !== undefined && count > limit) {
+                if (isFirst)
+                    first = next = cur;
+                throw new StopIteration();
             }
         }
-        cur += 1;
+    } catch(err) {
+        // update the range
+        meta.first = first;
+        meta.next = Math.max(meta.next, next);
+        throw err;
     }
 
-    // widen or narrow the range if everything is ok
-    meta.first = first;
-    meta.next = next;
+    // if literally everything was scanned
+    if (num !== 0) {
+        meta.first = first;
+        meta.next = next;
+    } else
+        meta.first = meta.next = 0;
 }
 
 class LSlotObjectStore {
@@ -187,7 +197,7 @@ class LSlotObjectStore {
         this.transaction.delete(sid);
     }
 
-    async forEach(func) {
+    async forEach(func, limit) {
         let [metaid, meta] = await this.getMeta();
         let firstBefore = meta.first;
         let nextBefore = meta.next;
@@ -196,9 +206,9 @@ class LSlotObjectStore {
         let name = this.name;
 
         try {
-            await lslotForEach((slot) => lslotGetSlot((id) => transaction.get(id), name, slot), meta, func);
+            await lslotForEach((slot) => lslotGetSlot((id) => transaction.get(id), name, slot), meta, func, limit);
         } finally {
-            if (firstBefore !== meta.first || nextBefore !== meta.next)
+            if (meta.first !== firstBefore || meta.next !== nextBefore)
                 // record the update meta range
                 this.transaction.put(metaid, meta);
         }
