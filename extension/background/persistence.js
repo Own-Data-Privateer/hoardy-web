@@ -840,6 +840,44 @@ async function loadSaved(rrfilter, wantStop) {
     return res;
 }
 
+async function fsckDumps() {
+    if (globals.stashedLS.number + globals.stashedIDB.number + globals.savedLS.number + globals.savedIDB.number !== 0)
+        return;
+
+    // TODO: load those dumps into errored reqres or some such.
+    //
+    // For now, this exists mostly so that `forEach` in `lslot.js` could update its metadata, thus
+    // reducing the future search space for these things.
+
+    await lslotTransaction(browser.storage.local, "readonly", ["dump"], async (transaction, store) => {
+        try {
+            await store.forEach(async (dump, key) => {
+                console.error("DUMP:", key, dump);
+                return true;
+            }, 4096);
+        } catch (err) {
+            if (!(err instanceof StopIteration))
+                throw err;
+        }
+    });
+
+    if (reqresIDB === undefined)
+        return;
+
+    await idbTransaction(reqresIDB, "readonly", ["dump"], async (transaction, store) => {
+        let allKeys = await store.getAllKeys();
+        try {
+            for (let key of allKeys) {
+                let dump = await store.get(key);
+                console.error("DUMP:", key, dump);
+            }
+        } catch (err) {
+            if (!(err instanceof StopIteration))
+                throw err;
+        }
+    });
+}
+
 // The main thing.
 
 function syncDeleteAllErrored() {

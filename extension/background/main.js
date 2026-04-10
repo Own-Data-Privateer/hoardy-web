@@ -961,6 +961,7 @@ async function main() {
     // internals would block until this thing finishes.
     resetSingletonTimeout(scheduledHidden, "endgame", 100, async () => {
         await loadStashed();
+        await fsckDumps();
         scheduleEndgame(null, 0);
     });
 
