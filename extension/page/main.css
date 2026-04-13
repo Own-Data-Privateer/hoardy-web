@@ -48,6 +48,23 @@
     --text-inactive-background: #303030;
     --text-inactive-color: #505050;
     --text-shadow-color: #ffffff;
+
+    --netoggle-background-bad: var(--toggle-background-bad);
+    --netoggle-background-good: var(--toggle-background-good);
+    --netoggle-background: var(--toggle-background);
+    --netoggle-border-color-bad: var(--toggle-border-color-bad);
+    --netoggle-border-color-good: var(--toggle-border-color-good);
+    --netoggle-border-color: var(--toggle-border-color);
+    --netoggle-dot-background: var(--toggle-dot-background);
+    --netoggle-dot-border-color: var(--toggle-dot-border-color);
+    --notoggle-background-bad: #f89494;
+    --notoggle-background-good: #94f894;
+    --notoggle-background: #515138;
+    --notoggle-border-color-bad: #a88f8f;
+    --notoggle-border-color-good: #8fa88f;
+    --notoggle-border-color: #8f8f8f;
+    --notoggle-dot-background: #ffffff;
+    --notoggle-dot-border-color: #000000;
     --toggle-background-bad: #fb3230;
     --toggle-background-good: #02bb50;
     --toggle-background: #f8f850;
@@ -56,14 +73,6 @@
     --toggle-border-color: #f49405;
     --toggle-dot-background: #ffffff;
     --toggle-dot-border-color: #000000;
-    --untoggle-background-bad: #f89494;
-    --untoggle-background-good: #94f894;
-    --untoggle-background: #515138;
-    --untoggle-border-color-bad: #a88f8f;
-    --untoggle-border-color-good: #8fa88f;
-    --untoggle-border-color: #8f8f8f;
-    --untoggle-dot-background: #ffffff;
-    --untoggle-dot-border-color: #000000;
 }
 
 .light {
@@ -92,7 +101,7 @@
     --text-inactive-background: #cfcfcf;
     --text-inactive-color: #afafaf;
     --text-shadow-color: #000000;
-    --untoggle-background: #dfdfdf;
+    --notoggle-background: #dfdfdf;
 }
 
 .colorblind {
@@ -100,8 +109,8 @@
     --code-background: #0000ff20;
     --toggle-background-good: #0250bb;
     --toggle-border-color-good: #053e94;
-    --untoggle-background-good: #9494f855;
-    --untoggle-border-color-good: #cfcfd8;
+    --notoggle-background-good: #9494f855;
+    --notoggle-border-color-good: #cfcfd8;
 }
 
 .light.colorblind {
@@ -205,9 +214,9 @@ a {
 
 .ui input[type="checkbox"].toggle {
     appearance: none;
-    background: var(--untoggle-background);
+    background: var(--notoggle-background);
     border-radius: 8px;
-    border: 1px solid var(--untoggle-border-color);
+    border: 1px solid var(--notoggle-border-color);
     box-sizing: border-box;
     height: 16px;
     margin: 0;
@@ -220,68 +229,89 @@ a {
     border-color: var(--toggle-border-color);
 }
 
-.ui .prefer-off input[type="checkbox"].toggle {
-    --toggle-background: var(--toggle-background-bad);
-    --toggle-border-color: var(--toggle-border-color-bad);
-    --untoggle-background: var(--untoggle-background-good);
-    --untoggle-border-color: var(--untoggle-border-color-good);
-}
-
-.ui .prefer-on input[type="checkbox"].toggle {
-    --toggle-background: var(--toggle-background-good);
-    --toggle-border-color: var(--toggle-border-color-good);
-    --untoggle-background: var(--untoggle-background-bad);
-    --untoggle-border-color: var(--untoggle-border-color-bad);
-}
-
 .ui input[type="checkbox"].toggle::before {
-    background: var(--untoggle-dot-background);
+    background: var(--notoggle-dot-background);
+    outline: 1px solid var(--notoggle-dot-border-color);
+
     border-radius: 50%;
     content: "";
     display: block;
     font: 12px sans-serif;
     height: 12px;
-    outline: 1px solid var(--untoggle-dot-border-color);
+    width: 12px;
+
     transform: translate(1px, calc(50% - 5px));
     transition: transform 500ms;
-    width: 12px;
 }
 
 .ui input[type="checkbox"].toggle:checked::before {
     background: var(--toggle-dot-background);
     outline: 1px solid var(--toggle-dot-border-color);
-    transform: translate(11px, calc(50% - 5px));
-}
 
-.ui label:hover input[type="checkbox"].toggle::before {
-    --toggle-dot-background: var(--hover-background);
-    --untoggle-dot-background: var(--hover-background);
+    transform: translate(11px, calc(50% - 5px));
 }
 
 .ui .tristate input[type="checkbox"].toggle {
     width: 32px;
 }
 
-.ui .tristate input[type="checkbox"].toggle.false {
-    background: var(--toggle-background-bad);
-    border-color: var(--toggle-border-color-bad);
-}
-
-.ui .tristate input[type="checkbox"].toggle:checked {
-    background: var(--toggle-background-good);
-    border-color: var(--toggle-border-color-good);
-}
-
 .ui .tristate input[type="checkbox"].toggle::before {
     transform: translate(9px, calc(50% - 5px));
 }
 
+.ui .tristate input[type="checkbox"].toggle:checked::before {
+    transform: translate(16px, calc(50% - 5px));
+}
+
+.ui .tristate input[type="checkbox"].toggle.false {
+    background: var(--netoggle-background);
+    border-color: var(--netoggle-border-color);
+}
+
 .ui .tristate input[type="checkbox"].toggle.false::before {
+    background: var(--netoggle-dot-background);
+    outline: 1px solid var(--netoggle-dot-border-color);
+
     transform: translate(1px, calc(50% - 5px));
 }
 
-.ui .tristate input[type="checkbox"].toggle:checked::before {
-    transform: translate(16px, calc(50% - 5px));
+.ui label:hover input[type="checkbox"].toggle::before,
+.ui .tristate label:hover input[type="checkbox"].toggle::before {
+    --netoggle-dot-background: var(--hover-background);
+    --notoggle-dot-background: var(--hover-background);
+    --toggle-dot-background: var(--hover-background);
+}
+
+.ui .prefer-off input[type="checkbox"].toggle {
+    --netoggle-background: var(--netoggle-background-good);
+    --netoggle-border-color: var(--netoggle-border-color-good);
+    --notoggle-background: var(--notoggle-background-good);
+    --notoggle-border-color: var(--notoggle-border-color-good);
+    --toggle-background: var(--toggle-background-bad);
+    --toggle-border-color: var(--toggle-border-color-bad);
+}
+
+.ui .tristate.prefer-off input[type="checkbox"].toggle {
+    --notoggle-background: var(--notoggle-background-bad);
+    --notoggle-border-color: var(--notoggle-border-color-bad);
+}
+
+.ui .prefer-on input[type="checkbox"].toggle {
+    --netoggle-background: var(--netoggle-background-bad);
+    --netoggle-border-color: var(--netoggle-border-color-bad);
+    --notoggle-background: var(--notoggle-background-bad);
+    --notoggle-border-color: var(--notoggle-border-color-bad);
+    --toggle-background: var(--toggle-background-good);
+    --toggle-border-color: var(--toggle-border-color-good);
+}
+
+.ui .tristate.prefer-nooff input[type="checkbox"].toggle {
+    --netoggle-background: var(--netoggle-background-bad);
+    --netoggle-border-color: var(--netoggle-border-color-bad);
+    --notoggle-background: var(--notoggle-background-good);
+    --notoggle-border-color: var(--notoggle-border-color-good);
+    --toggle-background: var(--toggle-background-good);
+    --toggle-border-color: var(--toggle-border-color-good);
 }
 
 .help-root {
@@ -459,6 +489,15 @@ input.attention {
     --input-border-color: var(--main);
     --input-color: var(--day);
     --text-color: var(--day);
+
+    --notoggle-background-bad: var(--bad);
+    --notoggle-background-good: var(--good);
+    --notoggle-background: var(--night);
+    --notoggle-border-color-bad: var(--bad-dark);
+    --notoggle-border-color-good: var(--good-dark);
+    --notoggle-border-color: var(--moonlight);
+    --notoggle-dot-background: var(--moonlight);
+    --notoggle-dot-border-color: var(--night);
     --toggle-background-bad: var(--bad-dark);
     --toggle-background-good:  var(--good-dark);
     --toggle-background: var(--day);
@@ -467,14 +506,6 @@ input.attention {
     --toggle-border-color:  var(--moonlight);
     --toggle-dot-background: var(--moonlight);
     --toggle-dot-border-color: var(--night);
-    --untoggle-background-bad: var(--bad);
-    --untoggle-background-good: var(--good);
-    --untoggle-background: var(--night);
-    --untoggle-border-color-bad: var(--bad-dark);
-    --untoggle-border-color-good: var(--good-dark);
-    --untoggle-border-color: var(--moonlight);
-    --untoggle-dot-background: var(--moonlight);
-    --untoggle-dot-border-color: var(--night);
 }
 
 .halloween {
@@ -547,10 +578,10 @@ input.attention {
 }
 
 .season label:hover input[type="checkbox"].toggle::before {
+    --notoggle-dot-background: #808080;
+    --notoggle-dot-border-color: var(--day);
     --toggle-dot-background: #808080;
-    --untoggle-dot-background: #808080;
     --toggle-dot-border-color: var(--day);
-    --untoggle-dot-border-color: var(--day);
 }
 
 .season input[type="checkbox"].toggle::before {
@@ -572,8 +603,8 @@ input.attention {
 }
 
 .season .ui .tristate input[type="checkbox"].toggle {
-    --untoggle-background: var(--text-inactive-background);
-    --untoggle-border-color: var(--text-inactive-color);
+    --notoggle-background: var(--text-inactive-background);
+    --notoggle-border-color: var(--text-inactive-color);
 }
 
 .season .ui .tristate input[type="checkbox"].toggle::before {
@@ -607,6 +638,14 @@ input.attention {
     --text-background: var(--text-inactive-background);
     --text-color: var(--text-inactive-color);
     --text-shadow-color: var(--text-inactive-background);
+
+    --notoggle-background-bad: var(--text-inactive-background);
+    --notoggle-background-good: var(--text-inactive-background);
+    --notoggle-background: var(--text-inactive-background);
+    --notoggle-border-color-bad: var(--text-inactive-color);
+    --notoggle-border-color-good: var(--text-inactive-color);
+    --notoggle-border-color: var(--text-inactive-color);
+    --notoggle-dot-background: var(--text-inactive-background);
     --toggle-background-bad: var(--text-inactive-background);
     --toggle-background-good: var(--text-inactive-background);
     --toggle-background: var(--text-inactive-background);
@@ -615,12 +654,5 @@ input.attention {
     --toggle-border-color: var(--text-inactive-color);
     --toggle-border-color: var(--text-inactive-color);
     --toggle-dot-background: var(--text-inactive-background);
-    --untoggle-background-bad: var(--text-inactive-background);
-    --untoggle-background-good: var(--text-inactive-background);
-    --untoggle-background: var(--text-inactive-background);
-    --untoggle-border-color-bad: var(--text-inactive-color);
-    --untoggle-border-color-good: var(--text-inactive-color);
-    --untoggle-border-color: var(--text-inactive-color);
-    --untoggle-dot-background: var(--text-inactive-background);
 }
 }
