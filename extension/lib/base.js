@@ -251,56 +251,75 @@ function equalRec(a, b, diff, prefix) {
     return false;
 }
 
-// recursively assign fields in target from fields in value
-// i.e. `assignRec({}, value)` would just copy `value`
-function assignRec(target, value) {
-    if (value === undefined)
-        return target;
+// recursively assign fields in target from fields in values, i.e. `assignRec({}, value)` would just
+// copy `value`
+function assignRec(target, ...values) {
+    for (let value of values) {
+        if (value === undefined)
+            continue;
 
-    if (value === null)
-        return value;
-
-    let typ = typeof value;
-    if (typ == "boolean" || typ == "number" || typ == "string" || value instanceof Array)
-        return value;
-
-    if (value instanceof Object) {
-        if (target === undefined)
-            target = {};
-        for (let [k, v] of Object.entries(value)) {
-            target[k] = assignRec(target[k], v);
+        if (value === null) {
+            target = value;
+            continue;
         }
-        return target;
-    } else {
-        console.error("assignRec", typ, target, value);
-        throw new Error("what?");
+
+        let typ = typeof value;
+        if (typ == "boolean" || typ == "number" || typ == "string" || value instanceof Array) {
+            target = value;
+            continue;
+        }
+
+        if (value instanceof Object) {
+            if (target === undefined)
+                target = {};
+            for (let [k, v] of Object.entries(value))
+                target[k] = assignRec(target[k], v);
+        } else {
+            console.error("assignRec", typ, target, value);
+            throw new Error("what?");
+        }
     }
+
+    return target;
 }
 
-// like `assignRec`, but only updates fields that already exist in target
-function updateFromRec(target, value) {
-    if (target === undefined || value === undefined)
+// like `assignRec`, but only updates fields that already exist in the `target` and checks that
+// their types match
+function updateFromRec(target, ...values) {
+    if (target === undefined)
         return target;
 
-    if (target === null || value === null)
-        return value;
+    for (let value of values) {
+        if (value === undefined)
+            continue;
 
-    let typ = typeof value;
-    if (typeof target !== typ)
-        return target;
-
-    if (typ == "boolean" || typ == "number" || typ == "string")
-        return value;
-
-    if (value instanceof Object) {
-        for (let k of Object.keys(target)) {
-            target[k] = updateFromRec(target[k], value[k]);
+        // treat `null` as a value of any type
+        if (target === null || value === null) {
+            target = value;
+            continue;
         }
-        return target;
-    } else {
-        console.error("updateFromRec", typ, target, value);
-        throw new Error("what?");
+
+        let typ = typeof value;
+        if (typeof target !== typ) {
+            console.error("updateFromRec", typ, target, value);
+            throw new Error("what?");
+        }
+
+        if (typ == "boolean" || typ == "number" || typ == "string") {
+            target = value;
+            continue;
+        }
+
+        if (value instanceof Object) {
+            for (let k of Object.keys(target))
+                target[k] = updateFromRec(target[k], value[k]);
+        } else {
+            console.error("updateFromRec", typ, target, value);
+            throw new Error("what?");
+        }
     }
+
+    return target;
 }
 
 function numberToPowerString(n, powers) {
