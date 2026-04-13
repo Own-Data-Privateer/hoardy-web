@@ -153,7 +153,7 @@ function popInLimbo(collect, num, tabId, rrfilter) {
                 info.inLimboTotal -= 1;
                 info.inLimboSize -= dumpSize;
             }
-            processNonLimbo(collect, info, archivable, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+            processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
         } catch (err) {
             logHandledError(err);
             markAsErrored(err, archivable);
@@ -162,6 +162,7 @@ function popInLimbo(collect, num, tabId, rrfilter) {
 
     reqresLimbo = unpopped;
     reqresLimboSize -= minusSize;
+
     truncateLog();
     wantSaveGlobals = true;
 
@@ -384,7 +385,7 @@ function renderReqres(encoder, reqres) {
     });
 }
 
-function processNonLimbo(collect, info, archivable, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
+function processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
     if (collect) {
@@ -640,7 +641,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
             newlyStashed.push(archivable);
         gotNewLimbo = true;
     } else
-        processNonLimbo(picked, info, archivable, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+        processNonLimbo(archivable, picked, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
 
     if (problematic) {
         reqresProblematic.push(archivable);
@@ -649,8 +650,6 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
         if (options.problematicNotify)
             gotNewProblematic = true;
     }
-
-    wantSaveGlobals = true;
 }
 
 async function processAlmostDone(updatedTabId) {
@@ -675,6 +674,7 @@ async function processAlmostDone(updatedTabId) {
     }
 
     truncateLog();
+    wantSaveGlobals = true;
 
     broadcastToState(updatedTabId, "resetInFlight", getInFlightLog);
 
