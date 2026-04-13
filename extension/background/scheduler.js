@@ -99,8 +99,7 @@ function syncCancelActions() {
 
 // ../page/saved.js implementation
 let wantBroadcastSaved = false;
-let savedFilters = assignRec({}, rrfilterDefaults);
-savedFilters.limit = 1024;
+let savedFilters = mkReqresFilter({limit: 1024});
 
 function setSavedFilters(rrfilter) {
     savedFilters = updateFromRec(savedFilters, rrfilter);

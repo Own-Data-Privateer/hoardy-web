@@ -52,21 +52,20 @@ function getQueuedLog() {
 
 // User-actions
 
-function isAcceptedLoggable(tabId, rrfilter, loggable) {
-    return (tabId === null || loggable.sessionId === sessionId && loggable.tabId === tabId)
-        && isAcceptedBy(rrfilter, loggable);
+function rrfilterNumTabId(rrfilter) {
+    return [
+        isDefined(rrfilter.limit) ? rrfilter.limit : null,
+        isDefined(rrfilter.tabId) ? rrfilter.tabId : null,
+    ];
 }
 
-function unmarkProblematic(num, tabId, rrfilter) {
+function unmarkProblematic(rrfilter) {
     if (reqresProblematic.length == 0)
-        return;
-    if (rrfilter === undefined)
-        rrfilter = null;
+        return 0;
 
-    let [popped, unpopped] = partitionN((archivable) => {
-        let [loggable, dump] = archivable;
-        return isAcceptedLoggable(tabId, rrfilter, loggable);
-    }, num, reqresProblematic);
+    rrfilter = mkReqresFilter(rrfilter);
+    let [num, tabId] = rrfilterNumTabId(rrfilter);
+    let [popped, unpopped] = partitionN((archivable) => isAcceptedBy(rrfilter, archivable[0]), num, reqresProblematic);
 
     if (popped.length === 0)
         return 0;
@@ -98,16 +97,13 @@ function unmarkProblematic(num, tabId, rrfilter) {
     return popped.length;
 }
 
-function rotateProblematic(num, tabId, rrfilter) {
+function rotateProblematic(rrfilter) {
     if (reqresProblematic.length == 0)
         return;
-    if (rrfilter === undefined)
-        rrfilter = null;
 
-    let [popped, unpopped] = partitionN((archivable) => {
-        let [loggable, dump] = archivable;
-        return isAcceptedLoggable(tabId, rrfilter, loggable);
-    }, num, reqresProblematic);
+    rrfilter = mkReqresFilter(rrfilter);
+    let [num, tabId] = rrfilterNumTabId(rrfilter);
+    let [popped, unpopped] = partitionN((archivable) => isAcceptedBy(rrfilter, archivable[0]), num, reqresProblematic);
 
     // append them to the end
     unpopped.push(...popped);
@@ -116,16 +112,13 @@ function rotateProblematic(num, tabId, rrfilter) {
     broadcastToState(tabId, "resetProblematicLog", getProblematicLog);
 }
 
-function popInLimbo(collect, num, tabId, rrfilter) {
+function popInLimbo(collect, rrfilter) {
     if (reqresLimbo.length == 0)
         return;
-    if (rrfilter === undefined)
-        rrfilter = null;
 
-    let [popped, unpopped] = partitionN((archivable) => {
-        let [loggable, dump] = archivable;
-        return isAcceptedLoggable(tabId, rrfilter, loggable);
-    }, num, reqresLimbo);
+    rrfilter = mkReqresFilter(rrfilter);
+    let [num, tabId] = rrfilterNumTabId(rrfilter);
+    let [popped, unpopped] = partitionN((archivable) => isAcceptedBy(rrfilter, archivable[0]), num, reqresLimbo);
 
     if (popped.length === 0)
         return 0;
@@ -181,16 +174,13 @@ function popInLimbo(collect, num, tabId, rrfilter) {
     return popped.length;
 }
 
-function rotateInLimbo(num, tabId, rrfilter) {
+function rotateInLimbo(rrfilter) {
     if (reqresLimbo.length == 0)
         return;
-    if (rrfilter === undefined)
-        rrfilter = null;
 
-    let [popped, unpopped] = partitionN((archivable) => {
-        let [loggable, dump] = archivable;
-        return isAcceptedLoggable(tabId, rrfilter, loggable);
-    }, num, reqresLimbo);
+    rrfilter = mkReqresFilter(rrfilter);
+    let [num, tabId] = rrfilterNumTabId(rrfilter);
+    let [popped, unpopped] = partitionN((archivable) => isAcceptedBy(rrfilter, archivable[0]), num, reqresLimbo);
 
     // append them to the end
     unpopped.push(...popped);
@@ -204,15 +194,13 @@ function truncateLog() {
         reqresLog.shift();
 }
 
-function forgetHistory(tabId, rrfilter) {
+function forgetHistory(rrfilter) {
     if (reqresLog.length == 0)
         return;
-    if (rrfilter === undefined)
-        rrfilter = null;
 
-    let [popped, unpopped] = partitionN((loggable) => {
-        return isAcceptedLoggable(tabId, rrfilter, loggable);
-    }, null, reqresLog);
+    rrfilter = mkReqresFilter(rrfilter);
+    let [num, tabId] = rrfilterNumTabId(rrfilter);
+    let [popped, unpopped] = partitionN((loggable) => isAcceptedBy(rrfilter, loggable), num, reqresLog);
 
     if (popped.length === 0)
         return;

@@ -314,8 +314,10 @@ function updateRearchiveVars(rearchive, path) {
 }
 
 // filter expression
-let rrfilterDefaults = {
+let reqresFilterDefaults = {
     limit: null,
+    sessionId: null,
+    tabId: null,
     picked: null,
     was_problematic: null,
     problematic: null,
@@ -328,26 +330,28 @@ let rrfilterDefaults = {
     in_ls: null,
 };
 
+function mkReqresFilter(attrs) {
+    return updateFromRec(assignRec({}, reqresFilterDefaults), attrs);
+}
+
 // loggable is accepted by the rrfilter
 function isAcceptedBy(rrfilter, loggable) {
-    if (rrfilter === null)
+    if (!isDefined(rrfilter) ||
+        (rrfilter.sessionId === null || loggable.sessionId === rrfilter.sessionId) &&
+        (rrfilter.tabId === null || loggable.tabId === rrfilter.tabId) &&
+        (rrfilter.picked === null || loggable.picked === rrfilter.picked) &&
+        (rrfilter.collected === null || loggable.collected === rrfilter.collected) &&
+        (rrfilter.problematic === null || loggable.problematic === rrfilter.problematic) &&
+        (rrfilter.was_problematic === null || loggable.was_problematic === rrfilter.was_problematic) &&
+        (rrfilter.in_limbo === null || loggable.in_limbo === rrfilter.in_limbo) &&
+        (rrfilter.was_in_limbo === null || loggable.was_in_limbo === rrfilter.was_in_limbo) &&
+        (rrfilter.no_errors === null || (rrfilter.no_errors ? (loggable.errors.length === 0) : (loggable.errors.length > 0))) &&
+        (rrfilter.did_exportAs === null || (rrfilter.did_exportAs ? (loggable.archived & archivedViaExportAs !== 0) : (loggable.archived & archivedViaExportAs === 0))) &&
+        (rrfilter.did_submitHTTP === null || (rrfilter.did_submitHTTP ? (loggable.archived & archivedViaSubmitHTTP !== 0) : (loggable.archived & archivedViaSubmitHTTP === 0))) &&
+        (rrfilter.in_ls === null || loggable.inLS === rrfilter.in_ls)
+    )
         return true;
-    if (rrfilter === undefined
-        || (rrfilter.picked !== null && loggable.picked !== rrfilter.picked)
-        || (rrfilter.was_problematic !== null && loggable.was_problematic !== rrfilter.was_problematic)
-        || (rrfilter.problematic !== null && loggable.problematic !== rrfilter.problematic)
-        || (rrfilter.was_in_limbo !== null && loggable.was_in_limbo !== rrfilter.was_in_limbo)
-        || (rrfilter.in_limbo !== null && loggable.in_limbo !== rrfilter.in_limbo)
-        || (rrfilter.collected !== null && loggable.collected !== rrfilter.collected)
-        || (rrfilter.no_errors === false && loggable.errors.length === 0)
-        || (rrfilter.no_errors === true && loggable.errors.length > 0)
-        || (rrfilter.did_exportAs === false && (loggable.archived & archivedViaExportAs) !== 0)
-        || (rrfilter.did_exportAs === true && (loggable.archived & archivedViaExportAs) === 0)
-        || (rrfilter.did_submitHTTP === false && (loggable.archived & archivedViaSubmitHTTP) !== 0)
-        || (rrfilter.did_submitHTTP === true && (loggable.archived & archivedViaSubmitHTTP) === 0)
-        || (rrfilter.in_ls !== null && loggable.inLS !== rrfilter.in_ls))
-        return false;
-    return true;
+    return false;
 }
 
 function escapeNotification(config, what) {

@@ -821,7 +821,7 @@ async function loadSaved(rrfilter, wantStop) {
         if (wantStop !== undefined && wantStop())
             throw new StopIteration();
         deserializeLoggable(loggable);
-        if (!isAcceptedLoggable(null, rrfilter, loggable))
+        if (!isAcceptedBy(rrfilter, loggable))
             return false;
         res.push(loggable);
         return true;

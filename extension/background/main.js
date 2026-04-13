@@ -34,16 +34,16 @@ function cleanupAfterTab(tabId) {
     if (config.autoUnmarkProblematic) {
         if (config.debugRuntime)
             console.log("MAIN: cleaning up reqresProblematic after tab", tabId);
-        unprob = unmarkProblematic(null, tabId);
+        unprob = unmarkProblematic({limit: null, tabId});
     }
 
     if (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) {
         if (config.debugRuntime)
             console.log("MAIN: cleaning up reqresLimbo after tab", tabId);
         if (config.autoPopInLimboCollect)
-            unlimbo = popInLimbo(true, null, tabId);
+            unlimbo = popInLimbo(true, {tabId});
         else if (config.autoPopInLimboDiscard)
-            unlimbo = popInLimbo(false, null, tabId);
+            unlimbo = popInLimbo(false, {tabId});
     }
 
     if (config.autoNotify && (unprob > 0 || unlimbo > 0)) {
@@ -383,7 +383,7 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         showState(null, "tail", activeTabId);
         break;
     case "forgetAllHistory":
-        forgetHistory(null);
+        forgetHistory({});
         break;
 
     case "showTabState":
@@ -393,7 +393,7 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         showState(tabId, "tail", activeTabId);
         break;
     case "forgetAllTabHistory":
-        forgetHistory(tabId);
+        forgetHistory({tabId});
         break;
 
     case "deleteAllErrored":
@@ -434,24 +434,24 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         break;
 
     case "unmarkAllProblematic":
-        unmarkProblematic(null, null);
+        unmarkProblematic({limit: null});
         break;
     case "unmarkAllTabProblematic":
-        unmarkProblematic(null, tabId);
+        unmarkProblematic({limit: null, tabId});
         break;
 
     case "collectAllInLimbo":
-        popInLimbo(true, null, null);
+        popInLimbo(true, {});
         break;
     case "collectAllTabInLimbo":
-        popInLimbo(true, null, tabId);
+        popInLimbo(true, {tabId});
         break;
 
     case "discardAllInLimbo":
-        popInLimbo(false, null, null);
+        popInLimbo(false, {});
         break;
     case "discardAllTabInLimbo":
-        popInLimbo(false, null, tabId);
+        popInLimbo(false, {tabId});
         break;
 
     case "snapshotAll":
@@ -575,7 +575,7 @@ function evalRPCRequest(request) {
     case "getLog":
         return reqresLog;
     case "forgetHistory":
-        forgetHistory(arg1, arg2);
+        forgetHistory(arg1);
         return null;
 
     case "exportAs":
@@ -609,19 +609,19 @@ function evalRPCRequest(request) {
     case "getProblematicLog":
         return getProblematicLog();
     case "unmarkProblematic":
-        unmarkProblematic(arg1, arg2, arg3);
+        unmarkProblematic(arg1);
         return null;
     case "rotateProblematic":
-        rotateProblematic(arg1, arg2, arg3);
+        rotateProblematic(arg1);
         return null;
 
     case "getInLimboLog":
         return getInLimboLog();
     case "popInLimbo":
-        popInLimbo(arg1, arg2, arg3, arg4);
+        popInLimbo(arg1, arg2);
         return null;
     case "rotateInLimbo":
-        rotateInLimbo(arg1, arg2, arg3);
+        rotateInLimbo(arg1);
         return null;
 
     case "getQueuedLog":

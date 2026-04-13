@@ -23,17 +23,17 @@
 
 "use strict";
 
-let rrfilters = {
-    problematic: assignRec({}, rrfilterDefaults),
-    in_limbo: assignRec({}, rrfilterDefaults),
-    log: assignRec({}, rrfilterDefaults),
-    queued: assignRec({}, rrfilterDefaults),
-    unarchived: assignRec({}, rrfilterDefaults),
-};
-
 let tabId = getMapURLParam(statePageURL, "tab", document.location, toNumber, null, null);
 if (tabId !== null)
     document.title = `Hoardy-Web: tab ${tabId}: Internal State`;
+
+let rrfilters = {
+    problematic: mkReqresFilter({tabId}),
+    in_limbo: mkReqresFilter({tabId}),
+    log: mkReqresFilter({tabId}),
+    queued: mkReqresFilter({tabId}),
+    unarchived: mkReqresFilter({tabId}),
+};
 
 function resetInFlight(log_data) {
     resetDataNode("data_in_flight", log_data);
@@ -64,15 +64,15 @@ async function stateMain() {
 
     await commonMain();
 
-    buttonToMessage("forgetHistory",        () => ["forgetHistory", tabId, rrfilters.log]);
-    buttonToMessage("rotateOneProblematic", () => ["rotateProblematic", 1, tabId, rrfilters.problematic]);
-    buttonToMessage("unmarkOneProblematic", () => ["unmarkProblematic", 1, tabId, rrfilters.problematic]);
-    buttonToMessage("unmarkAllProblematic", () => ["unmarkProblematic", null, tabId, rrfilters.problematic]);
-    buttonToMessage("rotateOneInLimbo",     () => ["rotateInLimbo", 1, tabId, rrfilters.in_limbo]);
-    buttonToMessage("discardOneInLimbo",    () => ["popInLimbo", false, 1, tabId, rrfilters.in_limbo]);
-    buttonToMessage("discardAllInLimbo",    () => ["popInLimbo", false, null, tabId, rrfilters.in_limbo]);
-    buttonToMessage("collectOneInLimbo",    () => ["popInLimbo", true, 1, tabId, rrfilters.in_limbo]);
-    buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, null, tabId, rrfilters.in_limbo]);
+    buttonToMessage("forgetHistory",        () => ["forgetHistory", rrfilters.log]);
+    buttonToMessage("rotateOneProblematic", () => ["rotateProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
+    buttonToMessage("unmarkOneProblematic", () => ["unmarkProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
+    buttonToMessage("unmarkAllProblematic", () => ["unmarkProblematic", rrfilters.problematic]);
+    buttonToMessage("rotateOneInLimbo",     () => ["rotateInLimbo", assignRec({}, rrfilters.in_limbo, {limit: 1})]);
+    buttonToMessage("discardOneInLimbo",    () => ["popInLimbo", false, assignRec({}, rrfilters.in_limbo, {limit: 1})]);
+    buttonToMessage("discardAllInLimbo",    () => ["popInLimbo", false, rrfilters.in_limbo]);
+    buttonToMessage("collectOneInLimbo",    () => ["popInLimbo", true, assignRec({}, rrfilters.in_limbo, {limit: 1})]);
+    buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, rrfilters.in_limbo]);
     buttonToMessage("stopAllInFlight",      () => ["stopInFlight", tabId]);
 
     buttonToMessage("retryAllUnarchived");
