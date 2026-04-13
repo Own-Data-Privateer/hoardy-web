@@ -30,6 +30,10 @@ function noop() {}
 
 async function asyncNoop() {}
 
+function isDefined(x) {
+    return x !== undefined && x !== null;
+}
+
 class StopIteration extends Error {}
 
 function sleep(timeout) {
@@ -392,7 +396,7 @@ function normalizedURL(url) {
 }
 
 function isDefinedURL(url) {
-    return url !== undefined && url !== null && url !== "";
+    return isDefined(url) && url !== "";
 }
 
 function isLocalURL(url) {

@@ -825,7 +825,7 @@ async function loadSaved(rrfilter, wantStop) {
             return false;
         res.push(loggable);
         return true;
-    }, rrfilter !== undefined && rrfilter !== null ? rrfilter.limit : null);
+    }, isDefinedURL(rrfilter) && isDefined(rrfilter.limit) ? rrfilter.limit : null);
 
     // recover from wrong counts
     if (newSavedLS !== undefined && !equalRec(globals.savedLS, newSavedLS)) {
