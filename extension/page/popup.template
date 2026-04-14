@@ -473,7 +473,7 @@ section {
     <ui id="tabconfig.collecting" type="boolean" class="prefer-on" tabindex=2 data-shortcut="toggleTabConfigTracking" data-help="Track new requests originating from this tab.">Track new requests</ui>
     </section>
     <section class="on-problematicNotify">
-    <ui id="tabconfig.problematicNotify" type="boolean" tabindex=2 data-help="Include `problematic` reqres originating from this tab in `Generate notifications about > ... new 'problematic' reqres` notifications. This only has an effect if the latter option is enabled.">Notify about <code>problematic</code> reqres</ui>
+    <ui id="tabconfig.problematicNotify" type="boolean" tabindex=2 data-help="Include `problematic` reqres originating from this tab in `Generate notifications about > ... 'problematic' reqres` notifications. This only has an effect if the latter option is enabled.">Notify about <code>problematic</code> reqres</ui>
     </section>
     <ui id="tabconfig.limbo" type="boolean" tabindex=2 data-shortcut="toggleTabConfigLimbo" data-help="For this tab, put newly `finished` reqres tab that satisfy `Pick reqres for archival when they finish` settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
     <ui id="tabconfig.negLimbo" type="boolean" class="prefer-off tag-this" data-help="For this tab, put newly `finished` reqres that do NOT satisfy `Pick reqres for archival when they finish` settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
@@ -515,22 +515,6 @@ section {
     </div>
     </section>
 
-    <section id="div-closed-tab-options" class="tag-bg">
-    <h2>Closed tabs</h2>
-    <div class="idots ui">
-    <!-- closedTabOptions -->
-
-    <ui id="config.autoUnmarkProblematic" type="boolean" data-help="For a recently closed tab, automatically forget about `problematic` reqres.">Auto-unmark <code>problematic</code> reqres</ui>
-    <ui id="config.autoPopInLimboCollect" type="boolean" data-help="For a recently closed tab, automatically collect `in_limbo` reqres.">Auto-collect <code>in_limbo</code> reqres</ui>
-    <ui id="config.autoPopInLimboDiscard" type="boolean" class="prefer-off" data-help="For a recently closed tab, automatically discard `in_limbo` reqres.">Auto-discard <code>in_limbo</code> reqres</ui>
-    <section class="on-auto">
-    <ui id="config.autoTimeout" type="number" class="c" data-help="Perform automatic actions after this many seconds after the target tab is closed.">... after {}s</ui>
-    </section>
-
-    <!-- closedTabOptions -->
-    </div>
-    </section>
-
     <section id="div-background-options" class="tag-bg">
     <h2>Background requests</h2>
     <div class="idots ui">
@@ -541,7 +525,7 @@ section {
     <ui id="config.background.collecting" type="boolean" class="prefer-on" data-help="Track new requests originating from browser&#039;s background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this as browsers do link pre-fetching in background, and disabling this will miss that data.">Track new requests</ui>
     </section>
     <section class="on-problematicNotify">
-    <ui id="config.background.problematicNotify" type="boolean" data-help="Include `problematic` reqres originating from browser&#039;s background tasks (excluding those originating from extensions) in `Generate notifications about > ... new 'problematic' reqres` notifications. This only has an effect if the latter option is enabled.">Notify about <code>problematic</code> reqres</ui>
+    <ui id="config.background.problematicNotify" type="boolean" data-help="Include `problematic` reqres originating from browser&#039;s background tasks (excluding those originating from extensions) in `Generate notifications about > ... 'problematic' reqres` notifications. This only has an effect if the latter option is enabled.">Notify about <code>problematic</code> reqres</ui>
     </section>
     <ui id="config.background.limbo" type="boolean" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that satisfy `Pick reqres for archival when they finish` settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
     <ui id="config.background.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that do NOT satisfy `Pick reqres for archival when they finish` settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
@@ -564,7 +548,7 @@ section {
     <ui id="config.extension.collecting" type="boolean" data-help="Track new requests originating from browser extensions.">Track new requests</ui>
     </section>
     <section class="on-problematicNotify">
-    <ui id="config.extension.problematicNotify" type="boolean" data-help="Include `problematic` reqres originating from browser&#039;s extensions/add-ons in `Generate notifications about > ... new 'problematic' reqres` notifications. This only has an effect if the latter option is enabled.">Notify about <code>problematic</code> reqres</ui>
+    <ui id="config.extension.problematicNotify" type="boolean" data-help="Include `problematic` reqres originating from browser&#039;s extensions/add-ons in `Generate notifications about > ... 'problematic' reqres` notifications. This only has an effect if the latter option is enabled.">Notify about <code>problematic</code> reqres</ui>
     </section>
     <ui id="config.extension.limbo" type="boolean" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that satisfy `Pick reqres for archival when they finish` settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
     <ui id="config.extension.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that do NOT satisfy `Pick reqres for archival when they finish` settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
@@ -574,6 +558,21 @@ section {
     <ui id="config.extension.bucket" type="string" data-help="Use this bucket when archiving reqres originating from browser extensions.">Bucket</ui>
 
     <!-- extensionOptions -->
+    </div>
+    </section>
+
+    <section id="div-closed-tab-options" class="tag-bg">
+    <h2>Closed tabs</h2>
+    <div class="idots ui">
+    <!-- closedTabOptions -->
+
+    <ui id="config.autoPopInLimboCollect" type="boolean" data-help="For a recently closed tab, automatically collect `in_limbo` reqres.">Auto-collect <code>in_limbo</code> reqres</ui>
+    <ui id="config.autoPopInLimboDiscard" type="boolean" class="prefer-off" data-help="For a recently closed tab, automatically discard `in_limbo` reqres.">Auto-discard <code>in_limbo</code> reqres</ui>
+    <section class="on-auto">
+    <ui id="config.autoTimeout" type="number" class="c" data-help="Perform automatic actions after this many seconds after the target tab is closed.">... after {}s</ui>
+    </section>
+
+    <!-- closedTabOptions -->
     </div>
     </section>
 
@@ -599,6 +598,17 @@ section {
     <ui id="config.markProblematicDroppedWithErrors" type="boolean" class="c" data-help="Mark a newly `finished` reqres as `problematic` when `Hoardy-Web` encountered (non-trivial) errors while collecting it and `Pick reqres for archival when they finish` settings did NOT pick it for archival. Disabled by default because with this enabled all reqres blocked by ad-blocking extension like `uBlock Origin` will be marked as `problematic`.">... {} with reqres errors and get <code>dropped</code></ui>
 
     <!-- problematicOptions -->
+    </div>
+    </section>
+
+    <section id="div-unproblematic-options" class="tag-class">
+    <h3>Auto-unmark <code>problematic</code> reqres</h3>
+    <div class="isubdots ui">
+    <!-- unproblematicOptions -->
+
+    <ui id="config.autoUnmarkProblematic" type="boolean" class="c" data-help="When a tab is closed, automatically unmark all of its `problematic` reqres. Disabled by default.">... {} when its tab closes</ui>
+
+    <!-- unproblematicOptions -->
     </div>
     </section>
 
@@ -660,7 +670,7 @@ section {
     <section class="on-mobile">
     <ui id="config.invisibleUINotify" type="boolean" class="c" data-help="Generate notifications about actions that are quirky on mobile browsers. This only has an effect if `Hoardy-Web` runs on a mobile browser like Fenix/Fennec/Mull/etc.">... {} mobile UI quirks</ui>
     </section>
-    <ui id="config.problematicNotify" type="boolean" class="c" data-help="Complain when a new `problematic` reqres appears.">... {} new <code>problematic</code> reqres</ui>
+    <ui id="config.problematicNotify" type="tristate" class="prefer-nooff c" data-help="Generate notifications when new `problematic` reqres appear and/or disappear. This option is a tristate of: off, only generate notifications for new `problematic` reqres, also generate notifications when `problematic` reqres get automatically unmarked. The middle state is the default.">... {} <code>problematic</code> reqres</ui>
     <section class="on-problematicNotify">
     <div class="ishiftdots">
     <ui id="config.problematicNotifyNumber" type="number" class="c" data-help="Show no more than this many latest METHOD + URL lines in the generated `problematic` reqres notification.">... but no more than {} lines</ui>

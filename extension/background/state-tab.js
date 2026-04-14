@@ -171,62 +171,64 @@ function cleanupTabs() {
 
 // Closed tab auto-cleanup.
 
-function cleanupAfterTab(tabId) {
-    let unprob = 0;
-    let unlimbo = 0;
+function cleanupProblematicAfterTab(tabId) {
+    if (config.debugRuntime)
+        console.log("MAIN: cleaning up reqresProblematic after tab", tabId);
 
-    if (config.autoUnmarkProblematic) {
-        if (config.debugRuntime)
-            console.log("MAIN: cleaning up reqresProblematic after tab", tabId);
-        unprob = unmarkProblematic({limit: null, tabId});
-    }
+    let unprob = unmarkProblematic({limit: null, tabId});
 
-    if (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) {
-        if (config.debugRuntime)
-            console.log("MAIN: cleaning up reqresLimbo after tab", tabId);
-        if (config.autoPopInLimboCollect)
-            unlimbo = popInLimbo(true, {tabId});
-        else if (config.autoPopInLimboDiscard)
-            unlimbo = popInLimbo(false, {tabId});
-    }
-
-    if (config.autoNotify && (unprob > 0 || unlimbo > 0)) {
-        let message;
-        let what = config.autoPopInLimboCollect ? "collected" : "discarded";
-        let icon = "problematic";
-        if (unprob > 0 && unlimbo > 0)
-            message = `Auto-unmarked ${unprob} problematic and auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
-        else if (unprob > 0)
-            message = `Auto-unmarked ${unprob} problematic reqres from tab #${tabId}.`;
-        else {
-            message = `Auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
-            icon = "limbo";
-        }
-
-        browser.notifications.create(`cleaned-${tabId}`, {
+    if (config.problematicNotify === true && unprob > 0)
+        browser.notifications.create(`cleanedProblematic-${tabId}`, {
             title: "Hoardy-Web: AUTO",
-            message,
-            iconUrl: iconURL(icon, 128),
+            message: `Auto-unmarked ${unprob} problematic reqres from tab #${tabId}.`,
+            iconUrl: iconURL("problematic", 128),
             type: "basic",
         }).catch(logError);
-    }
 
     cleanupTabs();
 }
 
-function scheduleCleanupAfterTab(tabId) {
-    if (!config.autoUnmarkProblematic && !config.autoPopInLimboCollect && !config.autoPopInLimboDiscard)
-        // nothing to do
-        return;
+function cleanupLimboAfterTab(tabId) {
+    if (config.debugRuntime)
+        console.log("MAIN: cleaning up reqresLimbo after tab", tabId);
 
+    let what;
+    let unlimbo = 0;
+    if (config.autoPopInLimboCollect) {
+        what = "collected";
+        unlimbo = popInLimbo(true, {tabId});
+    } else if (config.autoPopInLimboDiscard) {
+        what = "discarded";
+        unlimbo = popInLimbo(false, {tabId});
+    }
+
+    if (config.autoNotify && unlimbo > 0)
+        browser.notifications.create(`cleanedLimbo-${tabId}`, {
+            title: "Hoardy-Web: AUTO",
+            message: `Auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`,
+            iconUrl: iconURL("limbo", 128),
+            type: "basic",
+        }).catch(logError);
+
+    cleanupTabs();
+}
+
+function cleanupAfterTab(tabId) {
+    let updatedTabId;
     let tabstats = getTabStats(tabId);
-    if (config.autoUnmarkProblematic && tabstats.problematic > 0
-        || (config.autoPopInLimboCollect || config.autoPopInLimboDiscard)
-           && tabstats.in_limbo > 0)
+
+    if (config.autoUnmarkProblematic && tabstats.problematic > 0) {
+        cleanupProblematicAfterTab(tabId);
+        updatedTabId = tabId;
+    }
+
+    if ((config.autoPopInLimboCollect || config.autoPopInLimboDiscard) && tabstats.in_limbo > 0)
         scheduleAction(scheduledDelayed, `cleanup-tab#${tabId}`, config.autoTimeout * 1000, () => {
-            cleanupAfterTab(tabId);
+            cleanupLimboAfterTab(tabId);
             return tabId;
         });
+
+    return updatedTabId;
 }
 
 // Tracking open tabs and generating their configs.
@@ -266,8 +268,7 @@ function processRemoveTab(tabId) {
     openTabs.delete(tabId);
 
     let updatedTabId = stopInFlight(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
-
-    scheduleCleanupAfterTab(tabId);
+    updatedTabId = mergeUpdatedTabIds(updatedTabId, cleanupAfterTab(tabId));
 
     scheduleEndgame(updatedTabId);
 }

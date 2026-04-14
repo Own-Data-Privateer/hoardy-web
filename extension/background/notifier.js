@@ -190,7 +190,7 @@ async function doGlobalNotify() {
     if (gotNewProblematic && reqresProblematic.length > 0) {
         gotNewProblematic = false;
 
-        if (config.problematicNotify) {
+        if (config.problematicNotify !== false) {
             // generate a new one
             //
             // make a log of no more than `problematicNotifyNumber`
@@ -223,7 +223,7 @@ async function doGlobalNotify() {
                 latestDesc.reverse();
                 await browser.notifications.create("warning-problematic", {
                     title: "Hoardy-Web: WARNING",
-                    message: escapeNotification(config, `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate notifications about > ... new 'problematic' reqres")),
+                    message: escapeNotification(config, `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate notifications about > ... 'problematic' reqres")),
                     iconUrl: iconURL("problematic", 128),
                     type: "basic",
                 });

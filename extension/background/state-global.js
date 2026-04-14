@@ -97,7 +97,7 @@ let configDefaults = {
     archiveFailedNotify: true,
     archiveStuckNotify: true,
 
-    // problematic options
+    // problematic marking options
     markProblematicPartialRequest: false,
     markProblematicBuggy: true,
     markProblematicCanceled: false,
@@ -109,8 +109,12 @@ let configDefaults = {
     markProblematicWithImportantErrors: true,
     markProblematicPickedWithErrors: true,
     markProblematicDroppedWithErrors: false,
+
+    // problematic unmarking options
+    autoUnmarkProblematic: false,
+
     // problematic notifications
-    problematicNotify: true,
+    problematicNotify: null,
     problematicNotifyNumber: 3,
 
     // picking options
@@ -132,11 +136,10 @@ let configDefaults = {
     limboNotify: true,
 
     // automatic actions
-    autoUnmarkProblematic: false,
     autoPopInLimboCollect: false,
     autoPopInLimboDiscard: false,
     // automatic actions notifications
-    autoTimeout: 1,
+    autoTimeout: 0,
     autoNotify: true,
 
     // are in work offline mode?
@@ -260,6 +263,8 @@ function upgradeConfig(config) {
         config.seenHelp = false;
         break;
     case 6:
+        // its semantics changed
+        config.problematicNotify = config.autoNotify ? true : null;
         break;
     default:
         console.warn(`Bad old config version ${config.version}, reusing values as-is without updates`);
