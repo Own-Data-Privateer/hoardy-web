@@ -27,6 +27,7 @@
 
 // problematic archivables
 let reqresProblematic = [];
+let reqresUnproblematic = [];
 // archivables in limbo, waiting to be either dropped or queued
 let reqresLimbo = [];
 let reqresLimboSize = 0;
@@ -59,7 +60,7 @@ function rrfilterNumTabId(rrfilter) {
     ];
 }
 
-function unmarkProblematic(rrfilter) {
+function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
     if (reqresProblematic.length == 0)
         return 0;
 
@@ -86,6 +87,11 @@ function unmarkProblematic(rrfilter) {
     }
 
     reqresProblematic = unpopped;
+    if (newlyUnproblematic !== undefined)
+        newlyUnproblematic.push(...popped);
+
+    if (dontBroadcast)
+        return popped.length;
 
     // reset all the logs, since some statuses may have changed
     broadcastToState(tabId, "resetProblematicLog", getProblematicLog);
@@ -95,6 +101,22 @@ function unmarkProblematic(rrfilter) {
     scheduleEndgame(tabId, 0);
 
     return popped.length;
+}
+
+function unmarkProblematicSimilarTo(loggable, newlyUnproblematic, dontBroadcast) {
+    // TODO: more methods
+    if (!config.autoUnmarkProblematicSimilar || loggable.method !== "GET")
+        return 0;
+
+    return unmarkProblematic({
+        sessionId: loggable.sessionId,
+        tabId: config.autoUnmarkProblematicSimilarAcrossTabs ? null : loggable.tabId,
+        method: loggable.method,
+        url: loggable.url,
+        // if `loggable` is `in_limbo`, then it should only evict other reqres `in_limbo` since this
+        // `loggable` can still be discarded later
+        in_limbo: (config.autoUnmarkProblematicSimilarAcrossLimbo || !loggable.in_limbo) ? null : true,
+    }, newlyUnproblematic, dontBroadcast);
 }
 
 function rotateProblematic(rrfilter) {
@@ -127,6 +149,7 @@ function popInLimbo(collect, rrfilter) {
 
     let minusSize = 0;
     let someProblematic = false;
+    let newlyUnproblematic = [];
     let newlyQueued = [];
     let newlyLogged = [];
     let newlyStashed = [];
@@ -146,7 +169,7 @@ function popInLimbo(collect, rrfilter) {
                 info.inLimboTotal -= 1;
                 info.inLimboSize -= dumpSize;
             }
-            processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+            processNonLimbo(archivable, collect, info, newlyUnproblematic, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
         } catch (err) {
             logHandledError(err);
             markAsErrored(err, archivable);
@@ -159,8 +182,13 @@ function popInLimbo(collect, rrfilter) {
     truncateLog();
     wantSaveGlobals = true;
 
-    // since reqres statuses have changed
-    broadcastToStateWhen(someProblematic, tabId, "resetProblematicLog", getProblematicLog);
+    if (newlyUnproblematic.length > 0) {
+        // TODO mergeUpdatedTabIds?
+        broadcastToState(null, "resetProblematicLog", getProblematicLog);
+        reqresUnproblematic.push(...newlyUnproblematic);
+    } else
+        // since reqres statuses have changed
+        broadcastToStateWhen(someProblematic, tabId, "resetProblematicLog", getProblematicLog);
     // since (popped.length > 0)
     broadcastToState(tabId, "resetInLimboLog", getInLimboLog);
     broadcastToStateWhen(newlyQueued.length > 0, tabId, "newQueued", newlyQueued);
@@ -373,7 +401,7 @@ function renderReqres(encoder, reqres) {
     });
 }
 
-function processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
+function processNonLimbo(archivable, collect, info, newlyUnproblematic, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
     if (collect) {
@@ -391,6 +419,8 @@ function processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, ne
         if (!config.archive && config.stash)
             // stuck queue, stash it
             newlyStashed.push(archivable);
+
+        unmarkProblematicSimilarTo(loggable, newlyUnproblematic, true);
     } else {
         loggable.collected = false;
         globals.discardedTotal += 1;
@@ -407,7 +437,7 @@ function processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, ne
     newlyLogged.push(loggable);
 }
 
-async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
+async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
     if (reqres.tabId === undefined)
         // just in case
         reqres.tabId = -1;
@@ -628,8 +658,10 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
         if (config.stash && options.stashLimbo)
             newlyStashed.push(archivable);
         gotNewLimbo = true;
+
+        unmarkProblematicSimilarTo(loggable, newlyUnproblematic, true);
     } else
-        processNonLimbo(archivable, picked, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+        processNonLimbo(archivable, picked, info, newlyUnproblematic, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
 
     if (problematic) {
         reqresProblematic.push(archivable);
@@ -642,6 +674,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newl
 
 async function processAlmostDone(updatedTabId) {
     let newlyProblematic = [];
+    let newlyUnproblematic = [];
     let newlyLimboed = [];
     let newlyQueued = [];
     let newlyLogged = [];
@@ -651,7 +684,7 @@ async function processAlmostDone(updatedTabId) {
     while (reqresAlmostDone.length > 0) {
         let reqres = reqresAlmostDone.shift();
         try {
-            await processOneAlmostDone(reqres, newlyProblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+            await processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
         } catch (err) {
             logHandledError(err);
             markAsErrored(err, [reqres, null]);
@@ -666,13 +699,20 @@ async function processAlmostDone(updatedTabId) {
 
     broadcastToState(updatedTabId, "resetInFlight", getInFlightLog);
 
-    broadcastToStateWhen(newlyProblematic.length > 0, updatedTabId, "newProblematic", newlyProblematic);
+    if (newlyUnproblematic.length > 0) {
+        // TODO mergeUpdatedTabIds?
+        broadcastToState(null, "resetProblematicLog", getProblematicLog);
+        reqresUnproblematic.push(...newlyUnproblematic);
+    } else
+        broadcastToStateWhen(newlyProblematic.length > 0, updatedTabId, "newProblematic", newlyProblematic);
     broadcastToStateWhen(newlyLimboed.length > 0, updatedTabId, "newLimbo", newlyLimboed);
     broadcastToStateWhen(newlyQueued.length > 0, updatedTabId, "newQueued", newlyQueued);
     broadcastToStateWhen(newlyLogged.length > 0, updatedTabId, "newLog", newlyLogged);
 
     runSynchronouslyWhen(newlyStashed.length > 0, "stash", stashMany, newlyStashed);
     runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", unstashMany, newlyUnstashed);
+
+    // scheduleEndgame by the caller
 
     return updatedTabId;
 }

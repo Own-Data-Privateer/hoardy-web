@@ -112,6 +112,9 @@ let configDefaults = {
 
     // problematic unmarking options
     autoUnmarkProblematic: false,
+    autoUnmarkProblematicSimilar: true,
+    autoUnmarkProblematicSimilarAcrossTabs: true,
+    autoUnmarkProblematicSimilarAcrossLimbo: false,
 
     // problematic notifications
     problematicNotify: null,

@@ -328,6 +328,8 @@ let reqresFilterDefaults = {
     did_exportAs: null,
     did_submitHTTP: null,
     in_ls: null,
+    method: null,
+    url: null,
 };
 
 function mkReqresFilter(attrs) {
@@ -348,7 +350,9 @@ function isAcceptedBy(rrfilter, loggable) {
         (rrfilter.no_errors === null || (rrfilter.no_errors ? (loggable.errors.length === 0) : (loggable.errors.length > 0))) &&
         (rrfilter.did_exportAs === null || (rrfilter.did_exportAs ? (loggable.archived & archivedViaExportAs !== 0) : (loggable.archived & archivedViaExportAs === 0))) &&
         (rrfilter.did_submitHTTP === null || (rrfilter.did_submitHTTP ? (loggable.archived & archivedViaSubmitHTTP !== 0) : (loggable.archived & archivedViaSubmitHTTP === 0))) &&
-        (rrfilter.in_ls === null || loggable.inLS === rrfilter.in_ls)
+        (rrfilter.in_ls === null || loggable.inLS === rrfilter.in_ls) &&
+        (rrfilter.method === null || loggable.method === rrfilter.method) &&
+        (rrfilter.url === null || loggable.url === rrfilter.url)
     )
         return true;
     return false;

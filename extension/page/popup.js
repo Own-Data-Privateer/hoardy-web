@@ -292,6 +292,7 @@ async function popupMain() {
                                                       || config.replaySubmitHTTP));
         implySetConditionalOff(dbody, "on-LS", !(config.stash || config.archive && config.archiveSaveLS));
         implySetConditionalOff(dbody, "on-auto", !config.autoPopInLimboCollect && !config.autoPopInLimboDiscard);
+        implySetConditionalOff(dbody, "on-autoUnmarkProblematicSimilar", !config.autoUnmarkProblematicSimilar);
         implySetConditionalOff(dbody, "on-problematicNotify", config.problematicNotify === false);
         implySetConditionalOff(dbody, "on-limboNotify", !config.limboNotify);
     }

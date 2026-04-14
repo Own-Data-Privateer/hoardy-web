@@ -60,6 +60,41 @@ function formatFailures(why, list, recoverable) {
     return parts.join("\n");
 }
 
+// make a log of no more than `problematicNotifyNumber`
+// elements, merging those referencing the same URL
+function formatProblematic(list) {
+    let latestMap = new Map();
+    for (let i = list.length - 1; i >= 0; --i) {
+        let loggable = list[i][0];
+        let tabcfg = getOriginConfig(loggable.tabId, loggable.fromExtension);
+        if (!tabcfg.problematicNotify)
+            continue;
+
+        let desc = (loggable.method ? loggable.method : "?") + " " + loggable.url;
+        let l = latestMap.get(desc);
+        if (l === undefined) {
+            if (latestMap.size < config.problematicNotifyNumber)
+                latestMap.set(desc, 1);
+            else
+                break;
+        } else
+            latestMap.set(desc, l + 1);
+    }
+
+    if (latestMap.size === 0)
+        return [];
+
+    let latestDesc = [];
+    for (let [k, v] of latestMap.entries()) {
+        if (k.length < 80)
+            latestDesc.push(`${v}x ${k}`);
+        else
+            latestDesc.push(`${v}x ${k.substr(0, 80)}\u2026`);
+    }
+    latestDesc.reverse();
+    return latestDesc;
+}
+
 async function notifyAboutUnarchived(id, why, rrUnarchived) {
     for (let [storeID, byReasonMap] of rrUnarchived) {
         let where;
@@ -83,6 +118,9 @@ async function doGlobalNotify() {
     let rrErrored = Array.from(reqresErroredIssueAcc[1].entries());
     let rrUnstashed = Array.from(reqresUnstashedIssueAcc[1].entries());
     let rrUnarchived = Array.from(reqresUnarchivedIssueAcc[1].entries());
+    let rrUnproblematic = reqresUnproblematic;
+    // continue collecting the new ones
+    reqresUnproblematic = [];
 
     if (gotNewErrored && rrErrored.length > 0) {
         gotNewErrored = false;
@@ -187,47 +225,28 @@ async function doGlobalNotify() {
         // clear stale
         await browser.notifications.clear("warning-fatLimbo");
 
+    if (config.problematicNotify === true && rrUnproblematic.length > 0) {
+        let latest = formatProblematic(rrUnproblematic);
+        await browser.notifications.create("", {
+            title: "Hoardy-Web: AUTO",
+            message: escapeNotification(config, `Auto-unmarked ${rrUnproblematic.length} problematic reqres:\n` + latest.join("\n") + annoyingNotification(config, "Generate notifications about > ... 'problematic' reqres")),
+            iconUrl: iconURL("idle", 128),
+            type: "basic",
+        });
+    }
+
     if (gotNewProblematic && reqresProblematic.length > 0) {
         gotNewProblematic = false;
 
         if (config.problematicNotify !== false) {
             // generate a new one
-            //
-            // make a log of no more than `problematicNotifyNumber`
-            // elements, merging those referencing the same URL
-            let latest = new Map();
-            for (let i = reqresProblematic.length - 1; i >= 0; --i) {
-                let loggable = reqresProblematic[i][0];
-                let tabcfg = getOriginConfig(loggable.tabId, loggable.fromExtension);
-                if (!tabcfg.problematicNotify)
-                    continue;
-
-                let desc = (loggable.method ? loggable.method : "?") + " " + loggable.url;
-                let l = latest.get(desc);
-                if (l === undefined) {
-                    if (latest.size < config.problematicNotifyNumber)
-                        latest.set(desc, 1);
-                    else
-                        break;
-                } else
-                    latest.set(desc, l + 1);
-            }
-            if (latest.size > 0) {
-                let latestDesc = [];
-                for (let [k, v] of latest.entries()) {
-                    if (k.length < 80)
-                        latestDesc.push(`${v}x ${k}`);
-                    else
-                        latestDesc.push(`${v}x ${k.substr(0, 80)}\u2026`);
-                }
-                latestDesc.reverse();
-                await browser.notifications.create("warning-problematic", {
-                    title: "Hoardy-Web: WARNING",
-                    message: escapeNotification(config, `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latestDesc.join("\n") + annoyingNotification(config, "Generate notifications about > ... 'problematic' reqres")),
-                    iconUrl: iconURL("problematic", 128),
-                    type: "basic",
-                });
-            }
+            let latest = formatProblematic(reqresProblematic);
+            await browser.notifications.create("warning-problematic", {
+                title: "Hoardy-Web: WARNING",
+                message: escapeNotification(config, `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latest.join("\n") + annoyingNotification(config, "Generate notifications about > ... 'problematic' reqres")),
+                iconUrl: iconURL("problematic", 128),
+                type: "basic",
+            });
         }
     } else if (reqresProblematic.length === 0)
         // clear stale
