@@ -724,6 +724,10 @@ async function stashAll(alsoLimbo) {
     await stashMany(reqresUnarchivedIssueAcc[0]);
 }
 
+function syncStashAll(...args) {
+    runSynchronously("stash", stashAll, ...args);
+}
+
 async function unstashOne(archivable) {
     try {
         await syncWithStorage(archivable, 0, false);
@@ -889,10 +893,6 @@ function syncDeleteAllErrored() {
 
 function syncRetryAllUnstashed() {
     runSynchronouslyWhen(reqresUnstashedIssueAcc[0].size > 0, "retryAllUnstashed", retryAllUnstashed);
-}
-
-function syncStashAll(alsoLimbo) {
-    runSynchronously("stash", stashAll, alsoLimbo);
 }
 
 function loadAndBroadcastSaved(rrfilter) {

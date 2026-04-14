@@ -25,66 +25,6 @@
 
 "use strict";
 
-// Closed tab auto-cleanup.
-
-function cleanupAfterTab(tabId) {
-    let unprob = 0;
-    let unlimbo = 0;
-
-    if (config.autoUnmarkProblematic) {
-        if (config.debugRuntime)
-            console.log("MAIN: cleaning up reqresProblematic after tab", tabId);
-        unprob = unmarkProblematic({limit: null, tabId});
-    }
-
-    if (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) {
-        if (config.debugRuntime)
-            console.log("MAIN: cleaning up reqresLimbo after tab", tabId);
-        if (config.autoPopInLimboCollect)
-            unlimbo = popInLimbo(true, {tabId});
-        else if (config.autoPopInLimboDiscard)
-            unlimbo = popInLimbo(false, {tabId});
-    }
-
-    if (config.autoNotify && (unprob > 0 || unlimbo > 0)) {
-        let message;
-        let what = config.autoPopInLimboCollect ? "collected" : "discarded";
-        let icon = "problematic";
-        if (unprob > 0 && unlimbo > 0)
-            message = `Auto-unmarked ${unprob} problematic and auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
-        else if (unprob > 0)
-            message = `Auto-unmarked ${unprob} problematic reqres from tab #${tabId}.`;
-        else {
-            message = `Auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`;
-            icon = "limbo";
-        }
-
-        browser.notifications.create(`cleaned-${tabId}`, {
-            title: "Hoardy-Web: AUTO",
-            message,
-            iconUrl: iconURL(icon, 128),
-            type: "basic",
-        }).catch(logError);
-    }
-
-    cleanupTabs();
-}
-
-function scheduleCleanupAfterTab(tabId) {
-    if (!config.autoUnmarkProblematic && !config.autoPopInLimboCollect && !config.autoPopInLimboDiscard)
-        // nothing to do
-        return;
-
-    let tabstats = getTabStats(tabId);
-    if (config.autoUnmarkProblematic && tabstats.problematic > 0
-        || (config.autoPopInLimboCollect || config.autoPopInLimboDiscard)
-           && tabstats.in_limbo > 0)
-        scheduleAction(scheduledDelayed, `cleanup-tab#${tabId}`, config.autoTimeout * 1000, () => {
-            cleanupAfterTab(tabId);
-            return tabId;
-        });
-}
-
 // Archiving/replay via an archiving server.
 
 async function checkServer() {
@@ -382,15 +322,15 @@ function evalSimpleRequest(command, tabId, activeTabId) {
     case "showLog":
         showState(null, "tail", activeTabId);
         break;
-    case "forgetAllHistory":
-        forgetHistory({});
-        break;
-
     case "showTabState":
         showState(tabId, "top", activeTabId);
         break;
     case "showTabLog":
         showState(tabId, "tail", activeTabId);
+        break;
+
+    case "forgetAllHistory":
+        forgetHistory({});
         break;
     case "forgetAllTabHistory":
         forgetHistory({tabId});
@@ -574,6 +514,7 @@ function evalRPCRequest(request) {
 
     case "getLog":
         return reqresLog;
+
     case "forgetHistory":
         forgetHistory(arg1);
         return null;
