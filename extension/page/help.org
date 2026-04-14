@@ -277,7 +277,7 @@ So, to provide such an indicator, =Hoardy-Web= keeps track of reqres that fail t
 *In other words, the =problematic= flag is purely a UI indicator, it does not influence archival or any of the other step described below in any way.*
 
 What gets marked as =problematic= is controlled by {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= options)}}}.
-When {{{config2(problematicNotify,this option)}}} is enabled, new notifications will be produced each time a new =problematic= reqres appears.
+When {{{config2(problematicNotify,this option)}}} is not disabled, new notifications will be produced each time a new =problematic= reqres appears.
 The latter behaviour can be disabled per-source using relevant options {{{perSource(problematicNotify)}}}.
 
 By default, =HTTP= requests that failed to get a response, those that have incomplete response bodies (i.e. =incomplete= or =incomplete_fc=), and those for which the browser reported /potentially problematic errors/ but then =Hoardy-Web= =picked= them anyway, will be marked as =problematic=.
@@ -298,6 +298,12 @@ but NOT errors like
 (In principle, =Hoardy-Web= could have been designed to never record the errors of the latter category in the first place, thus simplifying the above bit, but =Hoardy-Web= is designed to follow the philosophy or "collect everything as browser gives it, as raw as possible".)
 
 The raw error strings reported by the browser for each reqres can be seen in the log {{{logPage}}}.
+
+In some situations, e.g., when you re-load a tab, some of the =problematic= flags on some of the old reqres might become irrelevant.
+Checking their relevance and then unmarking those reqres manually is annoying.
+Which is why =Hoardy-Web= provides {{{div2(unproblematic-options,some options)}}} that automatically unmark old =problematic= reqres in various situations.
+When {{{config2(problematicNotify,this option)}}} is set to its right-most state, new notifications will be produced each time an old =problematic= reqres gets automatically unmarked.
+The latter behaviour can be disabled per-source using relevant options {{{perSource(problematicNotify)}}}, similarly to the above.
 
 If you don't care about the =problematic= flag in a select tab and those notifications annoy you, you should disable {{{tabconfig2(problematicNotify,this option)}}}.
 If they annoy you in general, you can disable {{{config2(problematicNotify,global one)}}} instead.
