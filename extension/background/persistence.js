@@ -540,15 +540,13 @@ async function syncWithStorage(archivable, state, elide) {
     let wantInLS = !config.preferIndexedDB || reqresIDB === undefined;
 
     // Do we even have anything to do?
-    if (state === 0 && dumpId === undefined && stashId === undefined && saveId === undefined)
-        return null;
-    else if ((dumpId !== undefined || dump === null)
-             && (
-              (state === 1 && stashId !== undefined && saveId === undefined)
-           || (state === 2 && stashId === undefined && saveId !== undefined)
-             )
-             && inLS === wantInLS
-             && !dirty)
+    if (
+        (state === 0 && dumpId === undefined && stashId === undefined && saveId === undefined) ||
+        (
+            (state === 1 && stashId !== undefined && saveId === undefined) ||
+            (state === 2 && stashId === undefined && saveId !== undefined)
+        ) && (dumpId !== undefined || dump === null) && inLS === wantInLS && !dirty
+    )
         return null;
 
     function scrub(what) {
@@ -573,7 +571,7 @@ async function syncWithStorage(archivable, state, elide) {
         clean.version = 1;
 
         if (inLS === undefined || inLS === wantInLS)
-            // first write ever, or overwrite to the same store
+            // first write ever or overwrite to the same store
             await writeToStorage(selectTSS(wantInLS), state, clean, dump, dumpSize, dumpId, stashId, saveId);
         else {
             // we are moving the data from one store to the other
@@ -782,23 +780,21 @@ function loadOneStashed(loggable) {
         gotNewProblematic = true;
     }
 
-    if (loggable.in_limbo || loggable.collected) {
-        if (dumpId === undefined)
-            throw new Error("dumpId is not specified");
+    if (dumpId === undefined)
+        throw new Error("missing dumpId");
 
-        if (loggable.in_limbo) {
-            reqresLimbo.push(archivable);
-            reqresLimboSize += dumpSize;
-            if (loggable.sessionId === sessionId) {
-                info.inLimboTotal += 1;
-                info.inLimboSize += dumpSize;
-            }
-            gotNewLimbo = true;
-        } else if (loggable.collected) {
-            reqresQueue.push(archivable);
-            reqresQueueSize += dumpSize;
-            gotNewQueued = true;
+    if (loggable.in_limbo) {
+        reqresLimbo.push(archivable);
+        reqresLimboSize += dumpSize;
+        if (loggable.sessionId === sessionId) {
+            info.inLimboTotal += 1;
+            info.inLimboSize += dumpSize;
         }
+        gotNewLimbo = true;
+    } else if (loggable.collected) {
+        reqresQueue.push(archivable);
+        reqresQueueSize += dumpSize;
+        gotNewQueued = true;
     } else
         throw new Error("unknown reqres state");
 
