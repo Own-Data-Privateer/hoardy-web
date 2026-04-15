@@ -78,7 +78,7 @@ Not just the URLs, but also the contents and the requisite resources (images, me
 Not just the last 3 months, but from the beginning of time you start using it.
 
 Practically speaking, you [install `Hoardy-Web`'s extension/add-on into your web browser](#quickstart) and just browse the web normally while it passively, in background, captures and archives `HTTP` requests and responses your web browser does in the process.
-The extension has a lot configuration options to help you tweak what should or should not be archived, provides indicators that can help you fully capture each page you do want to archive (it can notify you when some parts of a page failed to load in various ways), and has a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless you explicitly configure it to do otherwise to, e.g., minimize writes to disk instead).
+The extension has a lot configuration options to help you tweak what should or should not be archived, provides indicators that can help you fully capture each page you do want to archive (it can notify you when some parts of a page failed to load), and has a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless you explicitly configure it to do otherwise to, e.g., minimize writes to disk instead).
 
 You can then view, replay, mirror, scrape, and/or index your archived data later by [using `Hoardy-Web`'s own tool set](./tool/), by plugging these tools into others, and/or by parsing and processing its [outputs](./doc/data-on-disk.md) with your own tools.
 
@@ -86,39 +86,53 @@ You can then view, replay, mirror, scrape, and/or index your archived data later
 
 # What can `Hoardy-Web` do?
 
-- Did you ever try to systematically re-visit web pages you visited before?
-  **The amount of link rot on the web is rather distressing**, to quote [Wikipedia](https://en.wikipedia.org/wiki/Link_rot):
+- **On the Internet, things vanish completely all the time and change for the worse without older better versions being preserved sometime.
+  `Hoardy-Web` can solve most of the issues that result from this fact, at least personally for you and your group of friends.**
+
+  To quote [Wikipedia](https://en.wikipedia.org/wiki/Link_rot):
 
   > A 2003 study found that on the Web, about one link out of every 200 broke each week, suggesting a half-life of 138 weeks.
   > This rate was largely confirmed by a 2016–2017 study of links in Yahoo! Directory (which had stopped updating in 2014 after 21 years of development) that found the half-life of the directory's links to be two years.
 
-  That is, on average, if you bookmark a 100 random web pages today, only 3 of them will still be available 10 years later.
+  **That is, on average, if you bookmark a 100 random web pages today, only 3 of them will still be available 10 years later.**
 
   A very relevant [article by Gwern Branwen](https://gwern.net/archiving) cites more distressing statistics on the topic, ending that section with:
 
   > [...] it's always the apocalypse somewhere for someone [...] none of that will survive on its own, [it] will be lost and forgotten, and if you don't preserve it, probably no one else will either.
 
-  "It's fine, [Wayback Machine](https://web.archive.org/) will save most of those pages!" I hear you say.
+  "It's fine! [Wayback Machine](https://web.archive.org/) will save most of those pages!" I hear you say.
+  Well, Wayback Machine and similar archiving services are awesome, sure, but:
 
-  Wayback Machine is awesome, but.
+  - **Such services probably won't save all of your bookmarks automatically.**
 
-  **Firstly, it will probably not have all of your bookmarks.**
-  Personally, I discovered that when I want to refer back to a now dead web page I did not previously archive --- which, as will be discussed below, means that most of those pages are 9 years or older --- then, with about 80% probability, Wayback Machine does not have that web page archived either.
+    Personally, I discovered that when I want to refer back to a now dead web page I did not previously archive --- which, as will be discussed below, means that most of those pages are 9 years or older --- then, with about 80% probability, Wayback Machine does not have that web page archived either.
 
-  **Secondly, Wayback Machine and similar archiving services are unable to archive pages hidden behind CAPTCHAs, authentications, paywalls, `HTTP POST`s, etc.**
+  - **Such services probably won't save all of your bookmarks even if you ask them to, because they frequently remove pages from their archives on domain owner's request or by court order.**
 
-  **Thirdly, both Wayback Machine and other archiving services archive only a small subset of the web they can reach and frequently remove previously archived pages on request.**
+    Some domain owners sometimes remove old versions of their content from Wayback Machine to force you to buy the same or worse thing in a new package later.
 
-  In fact, there are companies you can hire to help you systematically clean out any compromising materials from all existing archiving services.
-  Some countries now even have "privacy laws" that make it much cheaper to do.
-  A polite request here, a DMCA take-down notice there, a letter from a lawyer another time, ...
+    There are also companies you can hire to help you systematically clean out any compromising materials about yourself from all existing archiving services.
+    Some countries now even have [easily abusable "privacy laws"](https://en.wikipedia.org/wiki/Right_to_be_forgotten) that make it much cheaper to do.
 
-  **Fourthly, dependence on Wayback Machine makes the [Internet Archive](https://archive.org) a single point of failure.**
+    Meanwhile, archiving services that don't follow these rules [get harrassed by law-enforcement agencies](https://en.wikipedia.org/wiki/Archive.today#History).
 
-  And finally, Wayback Machine in particular is also pretty inefficient in how it archives things ([Save Page Now](https://web.archive.org/save/) is a distributed system without a shared page cache) and is frequently overloaded.
-  This makes systematic archival of web pages into there without a use of dedicated personal web crawler rather painful.
+    So, a polite request here, a DMCA take-down notice there, a letter from a lawyer another time, ... and nothing really interesting actually says archived there in the long term.
 
-  Wouldn't it be nice if there was a tool that would allow you to **automatically and efficiently capture everything your browser fetches from the Internet while you surf the Web, put it all into your own private archive nobody else could censor, and allow you to easily search, mirror, replay, and share captured versions of previously visited web pages later**?
+  - **Most such services archive only a small subset of the web they can reach and are unable to archive pages hidden behind CAPTCHAs, authentications, paywalls, `HTTP POST`s, etc.**
+
+    There are some services that can do some of these things by allowing their users to save `HTML DOM` snapshots into them.
+    But this is a pretty rare feature and such services are, technically, "pirating" those pages.
+    Thus, law enforcement have easy excuses to [harass such services](https://en.wikipedia.org/wiki/Archive.today#History).
+
+    **Meanwhile, doing this personally for personal use is completely legal.**
+
+  - **Wayback Machine in particular is pretty inefficient in how it archives pages ([Save Page Now](https://web.archive.org/save/) is a distributed system without a shared page cache) and is frequently overloaded.**
+
+    This makes systematic archival of web pages into there without a use of dedicated personal web crawler rather painful.
+
+  - **Dependence on Wayback Machine makes the [Internet Archive](https://archive.org) a single point of failure.**
+
+  So, wouldn't it be nice if there was a tool that would allow you to **automatically and efficiently capture everything your browser fetches from the Internet while you surf the Web, put it all into your own private archive nobody else could censor, and allow you to easily search, mirror, replay, and share captured versions of previously visited web pages later**?
 
 - Do you happen to use your browser's open tabs as a "To Read Later" list?
 
@@ -165,7 +179,7 @@ Then, I pressed the "Replay" button to switch to a replay page generated by `hoa
 
 ![Screenshot of Firefox's viewport with a replay of the page from the previous screenshot.](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.19.0-replay.png)
 
-(Also, when not doing this for illustrative purposes, in practice, the above series of actions usually takes less than a second, via keyboard shortcuts, which `Hoardy-Web` has in abundance.
+(Also, when not doing this for illustrative purposes, in practice, the above series of actions usually takes less than a second via keyboard shortcuts, which `Hoardy-Web` has in abundance.
 Note how the tooltip on the above screenshot shows which shortcut that action is currently bound to.)
 
 ## Replay
