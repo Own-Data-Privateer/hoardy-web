@@ -222,11 +222,18 @@ function cleanupAfterTab(tabId) {
         updatedTabId = tabId;
     }
 
-    if ((config.autoPopInLimboCollect || config.autoPopInLimboDiscard) && tabstats.in_limbo > 0)
-        scheduleAction(scheduledDelayed, `cleanup-tab#${tabId}`, config.autoTimeout * 1000, () => {
+    if ((config.autoPopInLimboCollect || config.autoPopInLimboDiscard) && tabstats.in_limbo > 0) {
+        if (config.autoTimeout === 0) {
             cleanupLimboAfterTab(tabId);
-            return tabId;
-        });
+            updatedTabId = tabId;
+        } else {
+            let name = `cleanup-tab#${tabId}`;
+            resetSingletonTimeout(scheduledDelayed, name, config.autoTimeout * 1000, () => {
+                runSynchronously(name, cleanupLimboAfterTab, tabId);
+                scheduleEndgame(tabId);
+            });
+        }
+    }
 
     return updatedTabId;
 }

@@ -137,6 +137,10 @@ function retryAllUnarchived(unrecoverable) {
     broadcastToState(null, "resetUnarchived", getUnarchivedLog);
 }
 
+function syncRetryAllUnarchived(...args) {
+    runSynchronously("retryAllUnarchived", retryAllUnarchived, ...args);
+}
+
 function scheduleRetryAllUnarchived(timeout) {
     if (config.archive && reqresUnarchivedIssueAcc[0].size > 0
         // and at least one error is recoverable

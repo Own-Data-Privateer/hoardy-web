@@ -98,9 +98,11 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
     broadcastToState(tabId, "resetInLimboLog", getInLimboLog);
     broadcastToState(tabId, "resetLog", reqresLog);
 
-    scheduleEndgame(tabId, 0);
-
     return popped.length;
+}
+
+function syncUnmarkProblematic(...args) {
+    runSynchronously("unmarkProblematic", unmarkProblematic, ...args);
 }
 
 function unmarkProblematicSimilarTo(loggable, newlyUnproblematic, dontBroadcast) {
@@ -132,6 +134,10 @@ function rotateProblematic(rrfilter) {
     reqresProblematic = unpopped;
 
     broadcastToState(tabId, "resetProblematicLog", getProblematicLog);
+}
+
+function syncRotateProblematic(...args) {
+    runSynchronously("rotateProblematic", rotateProblematic, ...args);
 }
 
 function popInLimbo(collect, rrfilter) {
@@ -197,9 +203,11 @@ function popInLimbo(collect, rrfilter) {
     runSynchronouslyWhen(newlyStashed.length > 0, "stash", stashMany, newlyStashed);
     runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", unstashMany, newlyUnstashed);
 
-    scheduleEndgame(tabId, 0);
-
     return popped.length;
+}
+
+function syncPopInLimbo(...args) {
+    runSynchronously("popInLimbo", popInLimbo, ...args);
 }
 
 function rotateInLimbo(rrfilter) {
@@ -215,6 +223,10 @@ function rotateInLimbo(rrfilter) {
     reqresLimbo = unpopped;
 
     broadcastToState(tabId, "resetInLimboLog", getInLimboLog);
+}
+
+function syncRotateInLimbo(...args) {
+    runSynchronously("rotateInLimbo", rotateInLimbo, ...args);
 }
 
 function truncateLog() {
@@ -234,8 +246,12 @@ function forgetHistory(rrfilter) {
         return;
 
     reqresLog = unpopped;
+
     broadcastToState(tabId, "resetLog", reqresLog);
-    scheduleUpdateDisplay(true, tabId);
+}
+
+function syncForgetHistory(...args) {
+    runSynchronously("forgetHistory", forgetHistory, ...args);
 }
 
 // (Re-)creation of loggable reqres.

@@ -330,10 +330,12 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         break;
 
     case "forgetAllHistory":
-        forgetHistory({});
+        syncForgetHistory({});
+        scheduleEndgame(null);
         break;
     case "forgetAllTabHistory":
-        forgetHistory({tabId});
+        syncForgetHistory({tabId});
+        scheduleEndgame(tabId);
         break;
 
     case "deleteAllErrored":
@@ -349,7 +351,7 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         scheduleEndgame(null);
         break;
     case "retryAllUnarchived":
-        retryAllUnarchived(true);
+        syncRetryAllUnarchived(true);
         scheduleEndgame(null);
         break;
 
@@ -374,24 +376,30 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         break;
 
     case "unmarkAllProblematic":
-        unmarkProblematic({limit: null});
+        syncUnmarkProblematic({limit: null});
+        scheduleEndgame(null);
         break;
     case "unmarkAllTabProblematic":
-        unmarkProblematic({limit: null, tabId});
+        syncUnmarkProblematic({limit: null, tabId});
+        scheduleEndgame(tabId);
         break;
 
     case "collectAllInLimbo":
-        popInLimbo(true, {});
+        syncPopInLimbo(true, {});
+        scheduleEndgame(null);
         break;
     case "collectAllTabInLimbo":
-        popInLimbo(true, {tabId});
+        syncPopInLimbo(true, {tabId});
+        scheduleEndgame(tabId);
         break;
 
     case "discardAllInLimbo":
-        popInLimbo(false, {});
+        syncPopInLimbo(false, {});
+        scheduleEndgame(null);
         break;
     case "discardAllTabInLimbo":
-        popInLimbo(false, {tabId});
+        syncPopInLimbo(false, {tabId});
+        scheduleEndgame(tabId);
         break;
 
     case "snapshotAll":
@@ -466,7 +474,7 @@ function evalRPCRequest(request) {
             && (config.archive !== oldConfig.archive
                 || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
                 || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)) {
-            retryAllUnarchived(true);
+            syncRetryAllUnarchived(true);
             wantArchiveDoneNotify = true;
         }
 
@@ -516,7 +524,8 @@ function evalRPCRequest(request) {
         return reqresLog;
 
     case "forgetHistory":
-        forgetHistory(arg1);
+        syncForgetHistory(arg1);
+        scheduleEndgame(null);
         return null;
 
     case "exportAs":
@@ -550,19 +559,23 @@ function evalRPCRequest(request) {
     case "getProblematicLog":
         return getProblematicLog();
     case "unmarkProblematic":
-        unmarkProblematic(arg1);
+        syncUnmarkProblematic(arg1);
+        scheduleEndgame(null);
         return null;
     case "rotateProblematic":
-        rotateProblematic(arg1);
+        syncRotateProblematic(arg1);
+        scheduleEndgame();
         return null;
 
     case "getInLimboLog":
         return getInLimboLog();
     case "popInLimbo":
-        popInLimbo(arg1, arg2);
+        syncPopInLimbo(arg1, arg2);
+        scheduleEndgame(null);
         return null;
     case "rotateInLimbo":
-        rotateInLimbo(arg1);
+        syncRotateInLimbo(arg1);
+        scheduleEndgame(null);
         return null;
 
     case "getQueuedLog":
