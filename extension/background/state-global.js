@@ -24,7 +24,7 @@
 "use strict";
 
 // default config
-let configVersion = 6;
+let configVersion = 7;
 
 let configDefaults = {
     version: configVersion,
@@ -268,6 +268,8 @@ function upgradeConfig(config) {
     case 6:
         // its semantics changed
         config.problematicNotify = config.autoNotify ? true : null;
+        break;
+    case 7:
         break;
     default:
         console.warn(`Bad old config version ${config.version}, reusing values as-is without updates`);
