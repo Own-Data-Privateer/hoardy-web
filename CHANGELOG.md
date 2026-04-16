@@ -34,6 +34,8 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 - Core + Capture + Replay + Popup UI:
 
+  - `Notify about 'problematic' reqres` is now a tristate of "off", "notify about new `problematic` reqres", "do that and notify about newly unmarked `problematic` reqres too", the middle value is the default still.
+
   - Renamed `Closed tabs > Auto-unmark 'problematic' reqres` option to `Auto-unmark 'problematic' reqres ... when its tab closes`, moved it to the aforementioned popup UI section.
 
     Reworked this option to act immediately instead of using the value of `Closed tabs > Auto-collect/discard 'in_limbo' reqres ... after 'N's`.
