@@ -6,6 +6,94 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.23.0] - 2026-04-16: Annoyance and bug fixes
+
+### Added
+
+- Core + Replay + Popup UI:
+
+  - Implemented a new `Disable 'Auto-Replay' in replayed tabs` config option and its popup UI, which is now also enabled by default.
+
+    Enabling this option make `Hoardy-Web` start untoggling `Auto-replay` mode automatically when a tab navigates to a replay page.
+
+    This makes working with replays much less annoying.
+
+- Core + Capture + Popup UI:
+
+  - Implemented some generic machinery for auto-unmarking of `problematic` reqres.
+
+  - Added a bunch of new config options in the vein of the old `Closed tabs > Auto-unmark 'problematic' reqres` option and created a new popup UI section for them.
+
+    Most notably, a new `Auto-unmark 'problematic' reqres ... when a new 'GET' reqres replaces it` option, which is now also enabled by default, does what is says on the tin.
+
+    In other words, from now on, when you reload a partially loaded page and some of the URLs that were previously `problematic` get fetched properly, those old `problematic` reqres will now be unmarked automatically.
+
+    However, note that the interaction of these options with the limbo machinery is inherently complex and possibly counter-intuitive, see their help strings for more info.
+
+### Changed
+
+- Core + Capture + Replay + Popup UI:
+
+  - Renamed `Closed tabs > Auto-unmark 'problematic' reqres` option to `Auto-unmark 'problematic' reqres ... when its tab closes`, moved it to the aforementioned popup UI section.
+
+    Reworked this option to act immediately instead of using the value of `Closed tabs > Auto-collect/discard 'in_limbo' reqres ... after 'N's`.
+
+    Also reworked it to look at `Notify about 'problematic' reqres` option for notification generation.
+
+  - The default value of `Auto-collect/discard 'in_limbo' reqres ... after 'N's` option is now set to `0`.
+
+  - Replaced `Toggle 'Work offline' options impurely` config option with a new `Track new requests ... including when 'Work offline' is set` option, which is now disabled by default.
+
+    The behaviour of the latter option is declarative and its implementation requires no weird automatic option flipping anymore.
+
+- Core:
+
+  - Loading of the stashed reqres at startup is now asynchronous.
+
+    Thus, most of the time, the extension can start capturing new reqres almost immediately.
+
+  - Improved some error messages.
+
+  - Improved logging to browser console.
+
+  - Simplified and generalized a bunch of internal machinery.
+
+- Popup UI + [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Improved styling of tristate toggles.
+
+- Documentation:
+
+  - Improved and simplified the internals of the [`Help` page](./extension/page/help.org).
+
+### Fixed
+
+- Core + Capture:
+
+  - Fixed `DOM` snapshot failing to capture for pages with top-level `HTML`/`XML` comments.
+
+  - Improved robustness of `Auto-Replay` mode, making it work for background requests too, hopefully.
+
+- Core:
+
+  - Fixed loading of data saved into `storage.local` becoming slower and slower with more and more extension usage in some use cases.
+
+    The complete fix for this is very computationally expensive, so the current implementation is fixing the issue incrementally, bit by bit, each time you (re-)load the extension, until the most optimal state is reached.
+
+- Core + Toolbar button + Popup UI + [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Fixed error messages in the popup UI being unreadable when the extension fails to initialize very early.
+
+  - Fixed popup UI getting into an inconsistent (and ugly) state when opening it from a new tab while the extension is still initializing.
+
+  - Fixed extension's toolbar button's icon becoming inconsistent in the same situation.
+
+  - Fixed collecting or discarding from limbo not updating the `problematic` reqres list properly.
+
+- Documentation:
+
+  - Fixed some typos.
+
 ## [extension-v1.22.0] - 2025-07-25: `Auto-Replay` mode and other annoyance fixes
 
 ### Added
@@ -2487,6 +2575,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.23.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.22.0...extension-v1.23.0
 [extension-v1.22.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.21.1...extension-v1.22.0
 [extension-v1.21.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.21.0...extension-v1.21.1
 [extension-v1.21.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.20.0...extension-v1.21.0
