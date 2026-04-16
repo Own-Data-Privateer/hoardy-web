@@ -64,6 +64,11 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
   - Improved styling of tristate toggles.
 
+- Popup UI:
+
+  - Reordered sections/tabs a little bit.
+  - Moved some options around inside those sections.
+
 - Documentation:
 
   - Improved and simplified the internals of the [`Help` page](./extension/page/help.org).
