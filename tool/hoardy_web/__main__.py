@@ -1696,7 +1696,7 @@ def make_deferred_emit(
             try:
                 out_lstat = _os.lstat(abs_out_path)
             except FileNotFoundError:
-                # target does not exists
+                # target does not exist
                 return True, new_rrexpr, defer(new_rrexpr, abs_out_path, False, allow_updates)
             except OSError as exc:
                 handle_ENAMETOOLONG(exc, abs_out_path)
