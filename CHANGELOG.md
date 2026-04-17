@@ -14,19 +14,19 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
   - Implemented a new `Disable 'Auto-Replay' in replayed tabs` config option and its popup UI, which is now also enabled by default.
 
-    Enabling this option make `Hoardy-Web` start untoggling `Auto-replay` mode automatically when a tab navigates to a replay page.
+    Enabling this option makes `Hoardy-Web` start untoggling `Auto-replay` mode automatically when a tab navigates to a replay page.
 
     This makes working with replays much less annoying.
 
 - Core + Capture + Popup UI:
 
-  - Implemented some generic machinery for auto-unmarking of `problematic` reqres.
+  - Implemented some generic machinery for auto-unmarking of `problematic` reqres, added a bunch of new config options in the vein of the old `Closed tabs > Auto-unmark 'problematic' reqres` option, and created a new popup UI section for them.
 
-  - Added a bunch of new config options in the vein of the old `Closed tabs > Auto-unmark 'problematic' reqres` option and created a new popup UI section for them.
+    Most notably, a new `Auto-unmark 'problematic' reqres ... when a new 'GET' reqres replaces it` option does what is says on the tin.
 
-    Most notably, a new `Auto-unmark 'problematic' reqres ... when a new 'GET' reqres replaces it` option, which is now also enabled by default, does what is says on the tin.
+    It is also enabled by default now.
 
-    In other words, from now on, when you reload a partially loaded page and some of the URLs that were previously `problematic` get fetched properly, those old `problematic` reqres will now be unmarked automatically.
+    In other words, from now on, when you reload a partially loaded page and some of the URLs that were previously `problematic` get fetched properly, those old `problematic` reqres will be unmarked automatically.
 
     However, note that the interaction of these options with the limbo machinery is inherently complex and possibly counter-intuitive, see their help strings for more info.
 
@@ -77,7 +77,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 - Core + Capture:
 
-  - Fixed `DOM` snapshot failing to capture for pages with top-level `HTML`/`XML` comments.
+  - Fixed `DOM` snapshots failing for pages with top-level `HTML`/`XML` comments.
 
   - Improved robustness of `Auto-Replay` mode, making it work for background requests too, hopefully.
 
