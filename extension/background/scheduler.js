@@ -82,6 +82,7 @@ function runSynchronouslyWhen(condition, name, func, ...args) {
 function syncRunActions() {
     runSynchronously("runAll", async () => {
         //await runAllSingletonTimeouts(scheduledCancelable);
+        await runAllSingletonTimeouts(scheduledRetry);
         await runAllSingletonTimeouts(scheduledDelayed);
         await runAllSingletonTimeouts(scheduledSaveState);
     });
@@ -90,8 +91,10 @@ function syncRunActions() {
 function syncCancelActions() {
     runSynchronously("cancelAll", async () => {
         await cancelAllSingletonTimeouts(scheduledCancelable);
-        await cancelAllSingletonTimeouts(scheduledDelayed);
         await cancelAllSingletonTimeouts(scheduledRetry);
+        await cancelAllSingletonTimeouts(scheduledDelayed);
+        // `scheduledSaveState` mustn't ever be cancelled, so we run them instead
+        await runAllSingletonTimeouts(scheduledSaveState);
     });
 }
 
