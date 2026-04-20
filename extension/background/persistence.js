@@ -61,7 +61,7 @@ function markAsErrored(err, archivable) {
 
 function recordOneUnarchived(accumulator, storeID, reason, recoverable, archivable) {
     let m = cacheSingleton(accumulator[1], storeID, () => new Map());
-    pushToIssueAcc([accumulator[0], m], reason, recoverable, archivable);
+    pushToIssueAcc([accumulator[0], m, accumulator[2]], reason, recoverable, archivable);
 }
 
 function recordManyUnarchived(accumulator, storeID, reason, recoverable, archivables) {
@@ -83,7 +83,7 @@ function recordOneAssumedBroken(accumulator, storeID, reason, archivable, dumpSi
         return false;
     // we had recent errors there, fail this reqres immediately
     let recoverable = recent[1].recoverable;
-    pushToIssueAcc([accumulator[0], byReasonMap], reason, recoverable, archivable);
+    pushToIssueAcc([accumulator[0], byReasonMap, accumulator[2]], reason, recoverable, archivable);
     return true;
 }
 
