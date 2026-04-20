@@ -169,19 +169,23 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
 
             if (wantSaveGlobals) {
                 wantSaveGlobals = false;
-                // is this change un important?
-                let boring = (
-                    !wantReloadSelf
-                    && (haveInFlight || (
-                        savedGlobals.collectedTotal === globals.collectedTotal
-                        && savedGlobals.submittedHTTPTotal === globals.submittedHTTPTotal
-                        && savedGlobals.exportedAsTotal === globals.exportedAsTotal))
-                    && savedGlobals.stashedLS.number === globals.stashedLS.number
-                    && savedGlobals.stashedIDB.number === globals.stashedIDB.number
-                    && savedGlobals.savedLS.number === globals.savedLS.number
-                    && savedGlobals.savedIDB.number === globals.savedIDB.number
-                );
-                scheduleSaveGlobals(boring ? 90000 : (wantReloadSelf ? 0 : 1000));
+
+                // save immediately if we want to reload or we just wrote to local storage
+                let timeout = (
+                    wantReloadSelf ||
+                    savedGlobals.stashedLS.number !== globals.stashedLS.number ||
+                    savedGlobals.stashedIDB.number !== globals.stashedIDB.number ||
+                    savedGlobals.savedLS.number !== globals.savedLS.number ||
+                    savedGlobals.savedIDB.number !== globals.savedIDB.number
+                ) ? 0 : 1000;
+                // delay for longer if there's probably going to be more updates soon or this update is not that important
+                if (haveInFlight || (
+                    savedGlobals.collectedTotal === globals.collectedTotal &&
+                    savedGlobals.submittedHTTPTotal === globals.submittedHTTPTotal &&
+                    savedGlobals.exportedAsTotal === globals.exportedAsTotal
+                ))
+                    timeout *= 10;
+                scheduleSaveGlobals(timeout);
             }
 
             if (wantBucketSaveAs) {
