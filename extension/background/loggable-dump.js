@@ -175,7 +175,8 @@ function popInLimbo(collect, rrfilter) {
                 info.inLimboTotal -= 1;
                 info.inLimboSize -= dumpSize;
             }
-            processNonLimbo(archivable, collect, info, newlyUnproblematic, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+            processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+            unmarkProblematicSimilarTo(loggable, newlyUnproblematic, true);
         } catch (err) {
             logHandledError(err);
             markAsErrored(err, archivable);
@@ -417,7 +418,7 @@ function renderReqres(encoder, reqres) {
     });
 }
 
-function processNonLimbo(archivable, collect, info, newlyUnproblematic, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
+function processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
     if (collect) {
@@ -435,8 +436,6 @@ function processNonLimbo(archivable, collect, info, newlyUnproblematic, newlyQue
         if (!config.archive && config.stash)
             // stuck queue, stash it
             newlyStashed.push(archivable);
-
-        unmarkProblematicSimilarTo(loggable, newlyUnproblematic, true);
     } else {
         loggable.collected = false;
         globals.discardedTotal += 1;
@@ -674,10 +673,10 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
         if (config.stash && options.stashLimbo)
             newlyStashed.push(archivable);
         gotNewLimbo = true;
-
-        unmarkProblematicSimilarTo(loggable, newlyUnproblematic, true);
     } else
-        processNonLimbo(archivable, picked, info, newlyUnproblematic, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+        processNonLimbo(archivable, picked, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+
+    unmarkProblematicSimilarTo(loggable, newlyUnproblematic, true);
 
     if (problematic) {
         reqresProblematic.push(archivable);
