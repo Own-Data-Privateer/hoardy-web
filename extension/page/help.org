@@ -269,12 +269,13 @@ Apparently, you are expected to actually look at the page with your eyes, notice
 Obviously, this can be quite inconvenient when you want to be sure that the whole page with all of its resources was archived.
 Especially when parts of a dynamically loaded page might simply silently fail to be rendered by associated =JavaScript= because some of the =HTTP= requests that =JavaScript= did in background failed, or, on a static web page, layout and =CSS= might have made some of the incompletely loaded parts of the page invisible (by design or by accident).
 
-So, to provide such an indicator, =Hoardy-Web= keeps track of reqres that fail to load properly and marks them with a =problematic= flag (NOT a state) which influences
+So, to provide such an indicator, =Hoardy-Web= keeps track of reqres that fail to load properly and marks them with a =problematic= flag (*NOT a state*) which influences
 
 - toolbar button's icon, badge, and title, all of which depend on the numbers of currently =problematic= reqres;
-- the log page {{{logPage}}}, which shows =problematic= reqres in a separate section.
+- the log page {{{logPage}}}, which shows =problematic= reqres in a separate section;
+- and nothing else.
 
-*In other words, the =problematic= flag is purely a UI indicator, it does not influence archival or any of the other step described below in any way.*
+*In other words, the =problematic= flag is purely a UI indicator, it does not influence archival or any of the other steps described below in any way.*
 
 What gets marked as =problematic= is controlled by {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= options)}}}.
 When {{{config2(problematicNotify,this option)}}} is not disabled, new notifications will be produced each time a new =problematic= reqres appears.
@@ -295,21 +296,33 @@ but NOT errors like
 - "the browser failed to render this data because this image file is broken",
 - and similar errors where the data was properly fetched.
 
-(In principle, =Hoardy-Web= could have been designed to never record the errors of the latter category in the first place, thus simplifying the above bit, but =Hoardy-Web= is designed to follow the philosophy or "collect everything as browser gives it, as raw as possible".)
+(In principle, =Hoardy-Web= could have been designed to never record the errors of the latter category in the first place, thus simplifying the above bit, but =Hoardy-Web= is designed to follow the philosophy of "collect everything as browser gives it, as raw as possible".)
 
 The raw error strings reported by the browser for each reqres can be seen in the log {{{logPage}}}.
+**** Automatic unmarking of =problematic= reqres
+:PROPERTIES:
+:CUSTOM_ID: unproblematic
+:END:
 
-In some situations, e.g., when you re-load a tab, some of the =problematic= flags on some of the old reqres might become irrelevant.
-Checking their relevance and then unmarking those reqres manually is annoying.
-Which is why =Hoardy-Web= provides {{{div2(unproblematic-options,some options)}}} that automatically unmark old =problematic= reqres in various situations.
-When {{{config2(problematicNotify,this option)}}} is set to its right-most state, new notifications will be produced each time an old =problematic= reqres gets automatically unmarked.
-The latter behaviour can be disabled per-source using relevant options {{{perSource(problematicNotify)}}}, similarly to the above.
+In some situations some of the =problematic= flags on some of your reqres might become irrelevant as you fetch more data.
+For example, say, you loaded a tab, some of its images failed to load completely and got marked as =problematic=, so you re-load that tab again, and then all reqres that failed to be fetched the first time get fetched properly the second time.
+
+In theory, in such a situation, to be absolutely pedantic, you would then need to check that each of your =problematic= reqres actually got re-fetched and unmark those that did, in case the browser decided to skip fetching of some of them, which could happen with modern web lazy-loading features.
+Obviously, actually doing this manually each time would be incredibly annoying.
+
+Which is why =Hoardy-Web= provides a {{{div2(unproblematic-options,bunch of configuration options)}}} that automate unmarking of =problematic= reqres in various situations.
+
+Additionally, when {{{config2(problematicNotify,this option)}}} is set to its right-most state, new notifications will be produced each time an old =problematic= reqres gets automatically unmarked, unless a relevant per-source option {{{perSource(problematicNotify)}}} is unset.
+**** I don't care about any of this and notifications about =problematic= reqres annoy me!
+:PROPERTIES:
+:CUSTOM_ID: suppress-problematic
+:END:
 
 If you don't care about the =problematic= flag in a select tab and those notifications annoy you, you should disable {{{tabconfig2(problematicNotify,this option)}}}.
-If they annoy you in general, you can disable {{{config2(problematicNotify,global one)}}} instead.
+If they annoy you in general, you can disable the {{{config2(problematicNotify,global one)}}} instead.
+
 You should probably not, however, disable too many of the options under {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= settings)}}}.
 This way, even with notifications disabled, you could then still see the number of =problematic= reqres in extension's toolbar button's badge.
-
 *** Picked and Dropped reqres
 Each new =finished= reqres advances either to the =picked= or the =dropped= states, which influences the actions =Hoardy-Web= performs in the next steps.
 
@@ -333,7 +346,7 @@ Since those tuples can be reconstructed back into the original =reqres= structur
 Normally, =picked= reqres proceed to the =collected= state and get =queued= for archival while =dropped= reqres proceed to being =discarded= from memory.
 
 When {{{config2(archive,=Archive 'collected' reqres= toggle)}}} is enabled, those =queued= reqres proceed directly to the next step.
-*** "Limbo" mode
+*** Limbo mode
 :PROPERTIES:
 :CUSTOM_ID: limbo
 :END:
@@ -352,6 +365,10 @@ Similarly, a =dropped= reqres will be put into =in_limbo= when {{{tabconfig2(neg
 (These latter options mainly exists for debugging.)
 
 If {{{config2(limboNotify,this option)}}} is enabled and there are more than {{{config2(limboMaxNumber,this number)}}} reqres =in_limbo= or the total size of all dumps =in_limbo= is more than {{{config2(limboMaxSize,this size)}}} (in MiB), =Hoardy-Web= will complain to remind you to /collect/ or /discard/ some of them so that your browser does not waste too much memory (and so that you won't loose too much data if something crashes while {{{config2(stash,=Stash 'collected' reqres into local storage= option)}}} discussed below is disabled).
+
+Additionally, note that the default values of {{{div2(unproblematic-options,automatic unmarking of =problematic= reqres)}}} produce slightly imprecise results when combined with picking into limbo {{{perSource(limbo)}}}.
+Thus, if you are feeling pedantic, so you might want to disable {{{config(autoUnmarkProblematicSimilarAcrossLimbo,that option)}}}.
+Though, if you do that, the resulting behaviour =Hoardy-Web= will probably feel rather counter-intuitive, at least at first.
 *** Glossary
 - A /collected reqres/ ({{{bothstats(collected)}}}) is a reqres that was (either automatically or manually) sent to the =collected= state.
 
