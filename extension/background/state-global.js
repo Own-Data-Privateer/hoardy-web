@@ -114,7 +114,7 @@ let configDefaults = {
     autoUnmarkProblematic: false,
     autoUnmarkProblematicSimilar: true,
     autoUnmarkProblematicSimilarAcrossTabs: true,
-    autoUnmarkProblematicSimilarAcrossLimbo: false,
+    autoUnmarkProblematicSimilarAcrossLimbo: true,
 
     // problematic notifications
     problematicNotify: null,
