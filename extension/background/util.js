@@ -271,16 +271,15 @@ function isTrivialError(error) {
     return false;
 }
 
-// Merge a given old updatedTabId and a new tabId.
-// `null` here means `any`.
-function mergeUpdatedTabIds(updatedTabId, tabId) {
-    if (tabId === undefined)
-        return updatedTabId;
-    else if (updatedTabId === undefined)
-        return tabId;
-    else if (updatedTabId !== tabId)
-        return null;
-    return tabId;
+// Merge two `updatedTabId`s, `undefined` meanse "none", and `null` means `all`.
+function mergeUpdatedTabIds(a , b) {
+    if (a === b)
+        return a;
+    if (a === undefined)
+        return b;
+    if (b === undefined)
+        return a;
+    return null;
 }
 
 // archival status of a loggable
