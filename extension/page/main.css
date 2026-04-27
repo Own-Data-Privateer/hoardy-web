@@ -51,10 +51,10 @@
 
     --netoggle-background-bad: var(--toggle-background-bad);
     --netoggle-background-good: var(--toggle-background-good);
-    --netoggle-background: var(--toggle-background);
+    --netoggle-background: #f850f8;
     --netoggle-border-color-bad: var(--toggle-border-color-bad);
     --netoggle-border-color-good: var(--toggle-border-color-good);
-    --netoggle-border-color: var(--toggle-border-color);
+    --netoggle-border-color: #f40594;
     --netoggle-dot-background: var(--toggle-dot-background);
     --netoggle-dot-border-color: var(--toggle-dot-border-color);
     --notoggle-background-bad: #f89494;
@@ -107,10 +107,10 @@
 .colorblind {
     --a-internal: #000088;
     --code-background: #0000ff20;
-    --toggle-background-good: #0250bb;
-    --toggle-border-color-good: #053e94;
     --notoggle-background-good: #9494f855;
     --notoggle-border-color-good: #cfcfd8;
+    --toggle-background-good: #0250bb;
+    --toggle-border-color-good: #053e94;
 }
 
 .light.colorblind {
