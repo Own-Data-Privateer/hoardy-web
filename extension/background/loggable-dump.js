@@ -421,8 +421,9 @@ function renderReqres(encoder, reqres) {
 function processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
+
+    loggable.collected = collect;
     if (collect) {
-        loggable.collected = true;
         reqresQueue.push(archivable);
         reqresQueueSize += dumpSize;
         newlyQueued.push(loggable);
@@ -437,7 +438,6 @@ function processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, ne
             // stuck queue, stash it
             newlyStashed.push(archivable);
     } else {
-        loggable.collected = false;
         globals.discardedTotal += 1;
         globals.discardedSize += dumpSize;
         info.discardedTotal += 1;

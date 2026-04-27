@@ -30,14 +30,9 @@ function switchToDataTabId(dataTabId) {
     return browser.tabs.update(dataTabId, { active: true }).catch(logError);
 }
 
-async function showStateOfDataTabId(dataTabId) {
-    let tabId = dataTabId;
-
-    let tab = await getActiveTab();
-    if (tab !== null)
-        tabId = tab.id;
-
-    showState(dataTabId, "top", tabId);
+function showStateOfDataTabId(dataTabId) {
+    let openerTabId = thisTabId !== null ? thisTabId : dataTabId;
+    showState(dataTabId, "top", openerTabId);
 }
 
 // caches of `switchToDataTabId` and `showStateOfDataTabId` bound to a
@@ -194,10 +189,7 @@ async function commonMain() {
 
     thisSessionId = await browser.runtime.sendMessage(["getSessionId"]);
     let thisTab = await getActiveTab();
-    if (thisTab !== null)
-        thisTabId = thisTab.id;
-    else
-        thisTabId = null;
+    thisTabId = thisTab !== null ? thisTab.id : null;
 
     // generate UI
     let body = document.body;

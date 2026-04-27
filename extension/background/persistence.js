@@ -898,8 +898,8 @@ function syncRetryAllUnstashed() {
 function loadAndBroadcastSaved(rrfilter) {
     return async (wantStop) => {
         try {
-            let log = await loadSaved(rrfilter, wantStop);
-            broadcastToSaved("resetSaved", log);
+            let loggables = await loadSaved(rrfilter, wantStop);
+            broadcastToSaved("resetSaved", loggables);
         } catch (err) {
             if (!(err instanceof StopIteration))
                 throw err;
@@ -1108,8 +1108,8 @@ function syncDeleteSaved(rrfilter) {
         broadcastToSaved("resetSaved", [null]); // invalidate UI
         wantBroadcastSaved = true;
 
-        let log = await loadSaved(rrfilter);
-        for (let loggable of log) {
+        let loggables = await loadSaved(rrfilter);
+        for (let loggable of loggables) {
             let archivable = [loggable, null];
 
             try {

@@ -89,9 +89,9 @@ function catchAll(func, def) {
     };
 }
 
-function evalFunctionsAway(list) {
+function evalFunctionsAway(iterable) {
     let res = [];
-    for (let e of list) {
+    for (let e of iterable) {
         if (typeof e !== "function")
             res.push(e);
         else
@@ -158,12 +158,12 @@ function dateToString(epoch) {
     return str.replace("T", " ");
 }
 
-// partition a list via a predicate, but stop after num elements
-function partitionN(predicate, num, list) {
+// partition an iterable via a predicate, but stop after num elements
+function partitionN(predicate, num, iterable) {
     let total = 0;
     let first = [];
     let second = [];
-    for (let e of list) {
+    for (let e of iterable) {
         if ((num === null || total < num)
             && (predicate === undefined || predicate(e))) {
             total += 1;

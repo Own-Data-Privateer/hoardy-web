@@ -121,7 +121,7 @@ async function spawnOrActivateTab(url, createProperties, currentWindow) {
     return [res, true];
 }
 
-async function showInternalPageAtNode(url, id, tabId, spawn, scrollIntoViewOptions) {
+async function showInternalPageAtNode(url, id, openerTabId, spawn, scrollIntoViewOptions) {
     let rurl = url + (id ? "#" + id : "");
     if (spawn === false) {
         window.location = rurl;
@@ -129,9 +129,9 @@ async function showInternalPageAtNode(url, id, tabId, spawn, scrollIntoViewOptio
     } else {
         let tab, spawned;
         try {
-            [tab, spawned] = await spawnOrActivateTab(rurl, { openerTabId: tabId });
+            [tab, spawned] = await spawnOrActivateTab(rurl, { openerTabId });
         } catch (e) {
-            // in case tabId points to a dead tab
+            // in case openerTabId points to a dead tab
             [tab, spawned] = await spawnOrActivateTab(rurl);
         }
         if (!spawned && id !== undefined)
