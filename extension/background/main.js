@@ -338,8 +338,8 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         scheduleEndgame(tabId);
         break;
 
-    case "deleteAllErrored":
-        syncDeleteAllErrored();
+    case "deleteAllBuggedOut":
+        syncDeleteAllBuggedOut();
         scheduleEndgame(null);
     case "retryAllFailed":
         syncRetryAllUnstashed();

@@ -256,7 +256,7 @@ async function popupMain() {
         "reloadSelf", "cancelReloadSelf",
         "runActions", "cancelActions",
         "forgetAllLog", "forgetAllTabLog",
-        "deleteAllErrored",
+        "deleteAllBuggedOut",
         "retryAllFailed", "retryAllUnstashed", "retryAllUnarchived",
         "exportAsAll", "stashAll",
         "stopAllInFlight", "stopAllTabInFlight",

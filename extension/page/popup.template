@@ -906,28 +906,28 @@ Specifically:
     <!-- half debuggingOptions -->
     </div>
 
-    <section id="div-errored">
-    <!-- errored -->
-    <h3>Internal errors</h3>
+    <section id="div-buggedOut">
+    <!-- buggedOut -->
+    <h3>Bugged out</h3>
     <div class="isubdots ui">
 
     <div class="stats">
-      <div id="div-stats.errored" data-help="At the moment, the number of reqres for which `Hoardy-Web` produced internal errors. Basically, the number of reqres that hit bugs in `Hoardy-Web`.">
-        <span>Errored</span>
+      <div id="div-stats.buggedOut" data-help="At the moment, the number of reqres for which the internals of `Hoardy-Web` produced errors instead of completing the action they were supposed to complete. Basically, the number of reqres that hit bugs in `Hoardy-Web`.">
+        <span>Bugged out</span>
         <span>
         </span>
         <span>
-          <span id="stats.errored">0</span>
-          (<span id="stats.errored_size">0</span>)
+          <span id="stats.buggedOut">0</span>
+          (<span id="stats.buggedOut_size">0</span>)
         </span>
       </div>
     </div>
 
     <center>
-      <input type="button" id="deleteAllErrored" data-help="Delete all errored reqres from memory and local storage." value="Delete errored!" />
+      <input type="button" id="deleteAllBuggedOut" data-help="Delete all reqres for which `Hoardy-Web` bugged out from memory and local storage." value="Delete buggedOut!" />
     </center>
 
-    <!-- errored -->
+    <!-- buggedOut -->
     </div>
     </section>
 

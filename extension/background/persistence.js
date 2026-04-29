@@ -27,12 +27,12 @@
 
 // archivables that failed to be processed in some way
 // `Map` indexed by error message
-function newReqresErroredIssueAcc() {
+function newReqresBuggedOutIssueAcc() {
     return newIssueAcc((recoverable) => {
-        gotNewErrored = true;
+        gotNewBuggedOut = true;
     });
 }
-let reqresErroredIssueAcc = newReqresErroredIssueAcc();
+let reqresBuggedOutIssueAcc = newReqresBuggedOutIssueAcc();
 
 // archivables that failed to by stashed to browser's local storage
 // `Map` indexed by error message
@@ -55,8 +55,8 @@ function newReqresUnarchivedIssueAcc() {
 }
 let reqresUnarchivedIssueAcc = newReqresUnarchivedIssueAcc();
 
-function markAsErrored(err, archivable) {
-    pushToIssueAcc(reqresErroredIssueAcc, errorMessageOf(err), false, archivable);
+function markAsBuggedOut(err, archivable) {
+    pushToIssueAcc(reqresBuggedOutIssueAcc, errorMessageOf(err), false, archivable);
 }
 
 function recordOneUnarchived(accumulator, storeID, reason, recoverable, archivable) {
@@ -630,7 +630,7 @@ async function forEachInStorage(storeName, func, limit) {
                 throw err;
 
             logHandledError(err);
-            markAsErrored(err, [loggable, null]);
+            markAsBuggedOut(err, [loggable, null]);
             return false;
         }
     }
@@ -693,7 +693,7 @@ async function stashOne(archivable, unstashedAccumulator) {
         updateLoggable(loggable);
     } catch (err) {
         logHandledError(err);
-        markAsErrored(err, archivable);
+        markAsBuggedOut(err, archivable);
     }
 
     try {
@@ -735,7 +735,7 @@ async function unstashOne(archivable) {
         await syncWithStorage(archivable, 0, false);
     } catch (err) {
         logHandledError(err);
-        markAsErrored(err, archivable);
+        markAsBuggedOut(err, archivable);
     }
 }
 
@@ -848,7 +848,7 @@ async function fsckDumps() {
     if (globals.stashedLS.number + globals.stashedIDB.number + globals.savedLS.number + globals.savedIDB.number !== 0)
         return;
 
-    // TODO: load those dumps into errored reqres or some such.
+    // TODO: load those dumps into buggedOut reqres or some such.
     //
     // For now, this exists mostly so that `forEach` in `lslot.js` could update its metadata, thus
     // reducing the future search space for these things.
@@ -884,10 +884,10 @@ async function fsckDumps() {
 
 // The main thing.
 
-function syncDeleteAllErrored() {
-    runSynchronouslyWhen(reqresErroredIssueAcc[0].size > 0, "deleteAllErrored", async () => {
-        await unstashMany(reqresErroredIssueAcc[0]);
-        reqresErroredIssueAcc = newReqresErroredIssueAcc();
+function syncDeleteAllBuggedOut() {
+    runSynchronouslyWhen(reqresBuggedOutIssueAcc[0].size > 0, "deleteAllBuggedOut", async () => {
+        await unstashMany(reqresBuggedOutIssueAcc[0]);
+        reqresBuggedOutIssueAcc = newReqresBuggedOutIssueAcc();
     });
 }
 
@@ -962,7 +962,7 @@ async function processArchiving(updatedTabId) {
                 await syncWithStorage(archivable, 0, false);
         } catch (err) {
             logHandledError(err);
-            markAsErrored(err, archivable);
+            markAsBuggedOut(err, archivable);
             // try stashing without recording failures
             await syncWithStorage(archivable, 1, true).catch(logError);
         }
@@ -1068,7 +1068,7 @@ async function processRearchiving(rrfilter, reset, andDelete, andRewrite) {
                 partialNumber += 1;
         } catch(err) {
             logError(err);
-            markAsErrored(err, archivable);
+            markAsBuggedOut(err, archivable);
         }
     }
 
@@ -1116,7 +1116,7 @@ function syncDeleteSaved(rrfilter) {
                 await syncWithStorage(archivable, 0, false);
             } catch(err) {
                 logError(err);
-                markAsErrored(err, archivable);
+                markAsBuggedOut(err, archivable);
                 continue;
             }
         }

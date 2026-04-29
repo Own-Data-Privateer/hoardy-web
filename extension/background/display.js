@@ -129,7 +129,7 @@ function pushNotRunning(m, actions) {
 function getStats() {
     let [bundledAs, bundledAsSize] = sumIssueAccByReasonStats(reqresBundledAs.values());
 
-    let [errored, erroredSize] = sumIssueAccByReasonStats(reqresErroredIssueAcc[1].values());
+    let [buggedOut, buggedOutSize] = sumIssueAccByReasonStats(reqresBuggedOutIssueAcc[1].values());
 
     let [stashFailed, stashFailedSize] = sumIssueAccByReasonStats(reqresUnstashedIssueAcc[1].values());
 
@@ -187,8 +187,8 @@ function getStats() {
         unarchived_size: archiveFailedSize,
         failed: stashFailed + archiveFailed,
         failed_size: stashFailedSize + archiveFailedSize,
-        errored,
-        errored_size: erroredSize,
+        buggedOut,
+        buggedOut_size: buggedOutSize,
         issues: in_flight
             + finishing_up
             + reqresProblematic.length
@@ -196,7 +196,7 @@ function getStats() {
             + reqresQueue.length
             + stashFailed
             + archiveFailed
-            + errored,
+            + buggedOut,
     };
 }
 
@@ -287,10 +287,10 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         if (stats.issues > 0)
             badge += stats.issues.toString();
 
-        if (stats.errored > 0) {
+        if (stats.buggedOut > 0) {
             badge += "!";
             color = Math.max(color, 2);
-            chunks.push(`internal errors on ${stats.errored} reqres`);
+            chunks.push(`bugged out on ${stats.buggedOut} reqres`);
         }
         if (stats.unstashed > 0) {
             badge += "F";
@@ -390,7 +390,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             || udBadge !== badge || udColor !== color || udGTitle !== gtitle
             || udStats === null
             // because these global stats influence the tab's icon
-            || stats.errored !== udStats.errored
+            || stats.buggedOut !== udStats.buggedOut
             || stats.failed !== udStats.failed
             || stats.queued != udStats.queued
             || stats.bundledAs !== udStats.bundledAs;
@@ -545,7 +545,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         // compute toolbar button state
         let icons = [];
 
-        if (stats.errored > 0)
+        if (stats.buggedOut > 0)
             icons.push("error");
         if (stats.failed > 0)
             icons.push("failed");

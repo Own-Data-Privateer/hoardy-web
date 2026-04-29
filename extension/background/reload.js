@@ -30,14 +30,14 @@ async function performReloadSelf() {
         return;
 
     let notGood
-        = reqresErroredIssueAcc[0].size
+        = reqresBuggedOutIssueAcc[0].size
         + reqresUnstashedIssueAcc[0].size;
         //+ reqresUnarchivedIssueAcc[0].size // these will be caught below
 
     if (notGood !== 0) {
         browser.notifications.create("error-noReload", {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `\`Hoardy-Web\` can NOT be reloaded while some \`unstashed\` and/or \`errored\` reqres are present.`),
+            message: escapeNotification(config, `\`Hoardy-Web\` can NOT be reloaded while some \`unstashed\` and/or \`buggedOut\` reqres are present.`),
             iconUrl: iconURL("error", 128),
             type: "basic",
         }).catch(logError);

@@ -136,7 +136,7 @@ function getUsedTabs() {
         usedTabs.add(v.tabId);
     for (let [v, _x] of reqresQueue)
         usedTabs.add(v.tabId);
-    for (let v of reqresErroredIssueAcc[0])
+    for (let v of reqresBuggedOutIssueAcc[0])
         usedTabs.add(v[0].tabId);
     for (let v of reqresUnstashedIssueAcc[0])
         usedTabs.add(v[0].tabId);

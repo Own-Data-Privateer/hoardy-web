@@ -38,8 +38,8 @@ let gotNewLimbo = false;
 let gotNewLimboLastNotification = 0;
 // do we have new problematic reqres?
 let gotNewProblematic = false;
-// do we have new buggy reqres?
-let gotNewErrored = false;
+// do we have new buggedOut reqres?
+let gotNewBuggedOut = false;
 
 function formatFailures(why, list, recoverable) {
     let parts = [];
@@ -115,25 +115,25 @@ async function notifyAboutUnarchived(id, why, rrUnarchived) {
 
 async function doGlobalNotify() {
     // record the current state, because the rest of this chunk is async
-    let rrErrored = Array.from(reqresErroredIssueAcc[1].entries());
+    let rrBuggedOut = Array.from(reqresBuggedOutIssueAcc[1].entries());
     let rrUnstashed = Array.from(reqresUnstashedIssueAcc[1].entries());
     let rrUnarchived = Array.from(reqresUnarchivedIssueAcc[1].entries());
     let rrUnproblematic = reqresUnproblematic;
     // continue collecting the new ones
     reqresUnproblematic = [];
 
-    if (gotNewErrored && rrErrored.length > 0) {
-        gotNewErrored = false;
+    if (gotNewBuggedOut && rrBuggedOut.length > 0) {
+        gotNewBuggedOut = false;
 
-        await browser.notifications.create("error-errored", {
+        await browser.notifications.create("error-buggedOut", {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `Some internal errors:\n${formatFailures("Failed to process", rrErrored)}`),
+            message: escapeNotification(config, `Bugged out:\n${formatFailures("Failed to process", rrBuggedOut)}`),
             iconUrl: iconURL("error", 128),
             type: "basic",
         });
-    } else if (rrErrored.length === 0)
+    } else if (rrBuggedOut.length === 0)
         // clear stale
-        await browser.notifications.clear("error-errored");
+        await browser.notifications.clear("error-buggedOut");
 
     if (gotNewQueued && reqresQueue.length > 0) {
         gotNewQueued = false;

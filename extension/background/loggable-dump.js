@@ -82,7 +82,7 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
             info.problematicTotal -= 1;
         } catch (err) {
             logHandledError(err);
-            markAsErrored(err, archivable);
+            markAsBuggedOut(err, archivable);
         }
     }
 
@@ -179,7 +179,7 @@ function popInLimbo(collect, rrfilter) {
             unmarkProblematicSimilarTo(loggable, newlyUnproblematic, true);
         } catch (err) {
             logHandledError(err);
-            markAsErrored(err, archivable);
+            markAsBuggedOut(err, archivable);
         }
     }
 
@@ -702,7 +702,7 @@ async function processAlmostDone(updatedTabId) {
             await processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
         } catch (err) {
             logHandledError(err);
-            markAsErrored(err, [reqres, null]);
+            markAsBuggedOut(err, [reqres, null]);
         }
         let tabId = reqres.tabId;
         updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
