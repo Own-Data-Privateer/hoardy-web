@@ -64,7 +64,7 @@ async function stateMain() {
 
     await commonMain();
 
-    buttonToMessage("forgetHistory",        () => ["forgetHistory", rrfilters.log]);
+    buttonToMessage("forgetLog",            () => ["forgetLog", rrfilters.log]);
     buttonToMessage("rotateOneProblematic", () => ["rotateProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
     buttonToMessage("unmarkOneProblematic", () => ["unmarkProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
     buttonToMessage("unmarkAllProblematic", () => ["unmarkProblematic", rrfilters.problematic]);

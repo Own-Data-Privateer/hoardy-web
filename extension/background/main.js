@@ -329,12 +329,12 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         showState(tabId, "tail", activeTabId);
         break;
 
-    case "forgetAllHistory":
-        syncForgetHistory({});
+    case "forgetAllLog":
+        syncForgetLog({});
         scheduleEndgame(null);
         break;
-    case "forgetAllTabHistory":
-        syncForgetHistory({tabId});
+    case "forgetAllTabLog":
+        syncForgetLog({tabId});
         scheduleEndgame(tabId);
         break;
 
@@ -523,8 +523,8 @@ function evalRPCRequest(request) {
     case "getLog":
         return reqresLog;
 
-    case "forgetHistory":
-        syncForgetHistory(arg1);
+    case "forgetLog":
+        syncForgetLog(arg1);
         scheduleEndgame(null);
         return null;
 

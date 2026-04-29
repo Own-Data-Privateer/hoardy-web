@@ -262,7 +262,7 @@ section {
       <span class="right tag-common tag-main">
         <input type="button" id="snapshotAll" data-shortcut="snapshotAll" data-help="Take DOM snapshots of all frames of all open tabs for which `Include in global snapshots` setting is enabled." value="Snapshot" />
         <input type="button" id="replayAll" class="on-replay" data-shortcut="replayAll" data-help="Re-navigate all open tabs for which `Include in global replays` setting is enabled to their replays." value="Replay" />
-        <input type="button" id="forgetAllHistory" data-help="Forget recent history." value="Forget" />
+        <input type="button" id="forgetAllLog" data-help="Forget recent history." value="Forget" />
         <input type="button" id="showState" data-shortcut="showState" data-help="Show the internal state and reqres history logs." value="State" />
       </span>
     </h2>
@@ -391,7 +391,7 @@ section {
         <input type="button" id="snapshotTab" data-shortcut="snapshotTab" data-help="Take DOM snapshots of all frames of this tab, regardless of `Include in global snapshots` setting." value="Snapshot" />
         <input type="button" id="replayTabBack" class="on-replay" data-shortcut="replayTabBack" data-help="Re-navigate this tab to its replay, regardless of `Include in global replays` setting." value="Replay" />
         <!-- input type="button" id="replayTabForward" class="on-replay" data-shortcut="replayTabForward" data-help="" value="Replay Forward" / -->
-        <input type="button" id="forgetAllTabHistory" data-help="For reqres of this tab, forget recent history." value="Forget" />
+        <input type="button" id="forgetAllTabLog" data-help="For reqres of this tab, forget recent history." value="Forget" />
         <input type="button" id="showTabState" tabindex=2 data-shortcut="showTabState" data-help="For reqres of this tab, show the internal state and reqres history logs." value="State" />
       </span>
     </h2>

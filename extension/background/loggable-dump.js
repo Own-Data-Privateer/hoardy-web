@@ -235,7 +235,7 @@ function truncateLog() {
         reqresLog.shift();
 }
 
-function forgetHistory(rrfilter) {
+function forgetLog(rrfilter) {
     if (reqresLog.length == 0)
         return;
 
@@ -251,8 +251,8 @@ function forgetHistory(rrfilter) {
     broadcastToState(tabId, "resetLog", reqresLog);
 }
 
-function syncForgetHistory(...args) {
-    runSynchronously("forgetHistory", forgetHistory, ...args);
+function syncForgetLog(...args) {
+    runSynchronously("forgetLog", forgetLog, ...args);
 }
 
 // (Re-)creation of loggable reqres.
