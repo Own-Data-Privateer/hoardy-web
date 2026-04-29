@@ -730,7 +730,7 @@ function syncStashAll(...args) {
     runSynchronously("stash", stashAll, ...args);
 }
 
-async function unstashOne(archivable) {
+async function deleteOne(archivable) {
     try {
         await syncWithStorage(archivable, 0, false);
     } catch (err) {
@@ -739,9 +739,9 @@ async function unstashOne(archivable) {
     }
 }
 
-async function unstashMany(archivables) {
+async function deleteMany(archivables) {
     for (let archivable of archivables)
-        unstashOne(archivable);
+        deleteOne(archivable);
 }
 
 
@@ -886,7 +886,7 @@ async function fsckDumps() {
 
 function syncDeleteAllBuggedOut() {
     runSynchronouslyWhen(reqresBuggedOutIssueAcc[0].size > 0, "deleteAllBuggedOut", async () => {
-        await unstashMany(reqresBuggedOutIssueAcc[0]);
+        await deleteMany(reqresBuggedOutIssueAcc[0]);
         reqresBuggedOutIssueAcc = newReqresBuggedOutIssueAcc();
     });
 }
@@ -915,7 +915,7 @@ async function processArchiving(updatedTabId) {
         reqresQueueSize -= dumpSize;
 
         if (config.discardAll) {
-            await unstashOne(archivable);
+            await deleteOne(archivable);
             continue;
         }
 

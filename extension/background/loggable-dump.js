@@ -202,7 +202,7 @@ function popInLimbo(collect, rrfilter) {
     broadcastToStateWhen(newlyLogged.length > 0, tabId, "newLog", newlyLogged);
 
     runSynchronouslyWhen(newlyStashed.length > 0, "stash", stashMany, newlyStashed);
-    runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", unstashMany, newlyUnstashed);
+    runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", deleteMany, newlyUnstashed);
 
     return popped.length;
 }
@@ -725,7 +725,7 @@ async function processAlmostDone(updatedTabId) {
     broadcastToStateWhen(newlyLogged.length > 0, updatedTabId, "newLog", newlyLogged);
 
     runSynchronouslyWhen(newlyStashed.length > 0, "stash", stashMany, newlyStashed);
-    runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", unstashMany, newlyUnstashed);
+    runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", deleteMany, newlyUnstashed);
 
     // scheduleEndgame by the caller
 
