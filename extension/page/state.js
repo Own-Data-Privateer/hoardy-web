@@ -23,16 +23,16 @@
 
 "use strict";
 
-let tabId = getMapURLParam(statePageURL, "tab", document.location, toNumber, null, null);
-if (tabId !== null)
-    document.title = `Hoardy-Web: tab ${tabId}: Internal State`;
+narrowSessionId = getMapURLParam(statePageURL, "session", document.location, toNumber, null, null);
+narrowTabId = getMapURLParam(statePageURL, "tab", document.location, toNumber, null, null);
 
+let defRRFilter = {sessionId: narrowSessionId, tabId: narrowTabId};
 let rrfilters = {
-    problematic: mkReqresFilter({tabId}),
-    in_limbo: mkReqresFilter({tabId}),
-    log: mkReqresFilter({tabId}),
-    queued: mkReqresFilter({tabId}),
-    unarchived: mkReqresFilter({tabId}),
+    problematic: mkReqresFilter(defRRFilter),
+    in_limbo: mkReqresFilter(defRRFilter),
+    log: mkReqresFilter(defRRFilter),
+    queued: mkReqresFilter(defRRFilter),
+    unarchived: mkReqresFilter(defRRFilter),
 };
 
 function resetInFlight(log_data) {
@@ -64,6 +64,9 @@ async function stateMain() {
 
     await commonMain();
 
+    if (narrowTabId !== null)
+        document.title = `Hoardy-Web: tab ${narrowTabId}${narrowSessionId === null || thisSessionId === narrowSessionId ? "" : " of " + narrowSessionId.toString()}: Internal State`;
+
     buttonToMessage("forgetLog",            () => ["forgetLog", rrfilters.log]);
     buttonToMessage("rotateOneProblematic", () => ["rotateProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
     buttonToMessage("unmarkOneProblematic", () => ["unmarkProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
@@ -73,7 +76,7 @@ async function stateMain() {
     buttonToMessage("discardAllInLimbo",    () => ["popInLimbo", false, rrfilters.in_limbo]);
     buttonToMessage("collectOneInLimbo",    () => ["popInLimbo", true, assignRec({}, rrfilters.in_limbo, {limit: 1})]);
     buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, rrfilters.in_limbo]);
-    buttonToMessage("stopAllInFlight",      () => ["stopInFlight", tabId]);
+    buttonToMessage("stopAllInFlight",      () => ["stopInFlight", narrowTabId]);
 
     buttonToMessage("retryAllUnarchived");
 
@@ -146,7 +149,7 @@ async function stateMain() {
 
     setPageSettling();
 
-    await subscribeToExtension("state" + (tabId !== null ? `#${tabId}` : ""), 3, async (isInvalid) => {
+    await subscribeToExtension("state" + (narrowTabId !== null ? `#${narrowTabId}` : ""), 3, async (isInvalid) => {
         await updateConfig();
         let inFlightLog = await browser.runtime.sendMessage(["getInFlightLog"]);
         let problematicLog = await browser.runtime.sendMessage(["getProblematicLog"]);

@@ -85,11 +85,14 @@ async function popupMain() {
     implySetConditionalOff(dbody, "on-desktop", isMobile);
     implySetConditionalOff(dbody, "on-mobile", !isMobile);
 
-    let hash = document.location.hash.substr(1);
-    let tabId;
-    let windowId;
-    let tabbing = true;
+    // should this view be narrowed?
+    let narrow = true;
+    // this view should be narrowed to
+    let narrowSessionId = await browser.runtime.sendMessage(["getSessionId"]);
+    let narrowWindowId;
+    let narrowTabId;
 
+    let hash = document.location.hash.substr(1);
     if (hash)
         document.getElementById("tags").style.display = "none";
 
@@ -98,18 +101,18 @@ async function popupMain() {
         document.getElementById("this-tab-children-options").style.display = "none";
         document.body.style.border = "none";
         document.body.style.color = "inherit"; // to work-around Firefox default CSS
-        tabbing = false;
+        narrow = false;
     } else {
         let tab = await getActiveTab();
         if (tab !== null) {
-            windowId = tab.windowId;
-            tabId = getStateTabIdOrTabId(tab);
+            narrowWindowId = tab.windowId;
+            narrowTabId = getStateTabIdOrTabId(tab);
         } else {
             // This happens when the user opens the "Help" page from the
-            // settings menu on Fenix. Disabling `tabbing` will make the page
+            // settings menu on Fenix. Disabling `narrow` will make the page
             // useless, so we fake these values instead.
-            windowId = 0;
-            tabId = 0;
+            narrowWindowId = 0;
+            narrowTabId = 0;
         }
     }
 
@@ -184,7 +187,7 @@ async function popupMain() {
     async function replaceWith(isHelp, open, ...args) {
         if (isMobile) {
             let spawn = config.spawnNewTabs;
-            await open(...args, tabId, spawn);
+            await open(...args, narrowTabId, spawn);
             if (spawn && config.invisibleUINotify)
                 // Firefox on Android does not switch to new tabs opened from the settings
                 browser.notifications.create("pageSpawnedAway", {
@@ -202,7 +205,7 @@ async function popupMain() {
                     type: "basic",
                 }).catch(logError);
         } else {
-            await open(...args, tabId);
+            await open(...args, narrowTabId);
             window.close();
         }
     }
@@ -233,8 +236,8 @@ async function popupMain() {
     // search function, which is very useful there.
 
     let reloadSelfButton = document.getElementById("reloadSelf");
-    buttonToAction("showState",    () => replaceWith(false, showState, null, "top"));
-    buttonToAction("showTabState", () => replaceWith(false, showState, tabId, "top"));
+    buttonToAction("showState",    () => replaceWith(false, showState, null, null, "top"));
+    buttonToAction("showTabState", () => replaceWith(false, showState, narrowSessionId, narrowTabId, "top"));
     buttonToAction("showSaved",    () => replaceWith(false, showSaved, "top"));
     buttonToAction("resetPersistentStats", () => {
         if (!window.confirm("Really?"))
@@ -267,7 +270,7 @@ async function popupMain() {
         "replayAll", "replayTabBack", // "replayTabForward"
     ];
     for (let id of shortcutButtons) {
-        buttonToMessage(id, () => [id, tabId]);
+        buttonToMessage(id, () => [id, narrowTabId]);
     }
 
     function updateUI() {
@@ -328,16 +331,16 @@ async function popupMain() {
 
     async function updateTabConfig(tabconfig) {
         if (tabconfig === undefined)
-            tabconfig = await browser.runtime.sendMessage(["getTabConfig", tabId]);
+            tabconfig = await browser.runtime.sendMessage(["getTabConfig", narrowTabId]);
 
         setUI(document, "tabconfig", tabconfig, (newtabconfig, path) => {
-            browser.runtime.sendMessage(["setTabConfig", tabId, newtabconfig]).catch(logError);
+            browser.runtime.sendMessage(["setTabConfig", narrowTabId, newtabconfig]).catch(logError);
         });
     }
 
     async function updateTabStats(tabstats) {
         if (tabstats === undefined)
-            tabstats = await browser.runtime.sendMessage(["getTabStats", tabId]);
+            tabstats = await browser.runtime.sendMessage(["getTabStats", narrowTabId]);
 
         setUI(document, "tabstats", present(tabstats));
     }
@@ -355,17 +358,17 @@ async function popupMain() {
             await updateStats(arg1);
             return true;
         case "updateTabConfig":
-            if (tabbing && arg1 === tabId)
+            if (narrow && arg1 === narrowTabId)
                 await updateTabConfig(arg2);
             return true;
         case "updateTabStats":
-            if (tabbing && arg1 === tabId)
+            if (narrow && arg1 === narrowTabId)
                 await updateTabStats(arg2);
             return true;
         case "switchTab":
             // the tab was switched
-            if (arg1 === windowId)
-                tabId = arg2;
+            if (arg1 === narrowWindowId)
+                narrowTabId = arg2;
             return true;
         default:
             let res = await webextRPCHandleMessageDefault(update, () => showTab("all"));
@@ -379,7 +382,7 @@ async function popupMain() {
         await updateConfig();
         await updateStats();
         if (isInvalid()) return;
-        if (tabbing) {
+        if (narrow) {
             await updateTabConfig();
             await updateTabStats();
         }

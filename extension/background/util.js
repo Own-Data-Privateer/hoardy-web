@@ -85,8 +85,12 @@ function showHelp(...args) {
     return showInternalPageAtNode(helpPageURL, ...args);
 }
 
-function showState(tabId, ...args) {
-    return showInternalPageAtNode(statePageURL + (tabId !== null ? `?tab=${tabId}` : ""), ...args);
+function showState(sessionId, tabId, ...args) {
+    let q = sessionId !== null || tabId !== null ? "?" : "";
+    let a = sessionId !== null && tabId !== null ? "&" : "";
+    let s = sessionId !== null ? `session=${sessionId}` : "";
+    let t = tabId !== null ? `tab=${tabId}` : "";
+    return showInternalPageAtNode(statePageURL + q + s + a + t, ...args);
 }
 
 function showSaved(...args) {

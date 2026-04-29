@@ -23,19 +23,24 @@
 
 "use strict";
 
+// current values, to be filled in `commonMain`
 let thisSessionId;
 let thisTabId;
 
-function switchToDataTabId(dataTabId) {
-    return browser.tabs.update(dataTabId, { active: true }).catch(logError);
+// this view should be narrowed to, to be filled in a derived page
+let narrowSessionId;
+let narrowTabId;
+
+function switchToReqresTabId(reqresTabId) {
+    return browser.tabs.update(reqresTabId, { active: true }).catch(logError);
 }
 
-function showStateOfDataTabId(dataTabId) {
-    let openerTabId = thisTabId !== null ? thisTabId : dataTabId;
-    showState(dataTabId, "top", openerTabId);
+function showStateOfReqresTabId(reqresSessionId, reqresTabId) {
+    let openerTabId = thisTabId !== null ? thisTabId : reqresTabId;
+    showState(reqresSessionId, reqresTabId, "top", openerTabId);
 }
 
-// caches of `switchToDataTabId` and `showStateOfDataTabId` bound to a
+// caches of `switchToReqresTabId` and `showStateOfReqresTabId` bound to a
 // given argument, for efficiency
 let switchFuncMap = new Map();
 let showStateFuncMap = new Map();
@@ -93,28 +98,41 @@ function appendLoggable(el, loggable) {
         return mn(tr, "td", data);
     }
 
-    function mbtn(node, data, func) {
+    function mbtn(node, value, title, func) {
         let btn = document.createElement("input");
         btn.type = "button";
-        btn.value = data;
+        btn.value = value;
+        btn.title = title;
         btn.onclick = func;
         node.appendChild(btn);
         return btn;
     }
 
-    let dataSessionId = loggable.sessionId;
-    let dataTabId = loggable.tabId;
-    let name = loggable.fromExtension ? "ext" : (dataTabId === -1 ? "bg" : `tab #${loggable.tabId}`);
+    let reqresSessionId = loggable.sessionId;
+    let reqresTabId = loggable.tabId;
+    let name = loggable.fromExtension ? "ext" : (reqresTabId === -1 ? "bg" : `tab #${loggable.tabId}`);
     let td = document.createElement("td");
     let div = document.createElement("div");
-    if (dataSessionId === thisSessionId)
-        mbtn(div, name,
-             cacheSingleton(switchFuncMap, dataTabId, () => switchToDataTabId.bind(undefined, dataTabId)));
-    else
-        mn(div, "span", `${name} of ${dataSessionId.toString().substr(-3)}`);
-    if (tabId === null)
-        mbtn(div, "IS",
-             cacheSingleton(showStateFuncMap, dataTabId, () => showStateOfDataTabId.bind(undefined, dataTabId)));
+    if (reqresSessionId === thisSessionId) {
+        mbtn(div, name, "Switch to this tab.",
+             cacheSingleton(switchFuncMap, reqresTabId, () => switchToReqresTabId.bind(undefined, reqresTabId)));
+        if (narrowTabId === null)
+            mbtn(div, "T", "Narrow this page to this tab's data.",
+                 cacheSingleton(showStateFuncMap, reqresTabId,
+                                () => showStateOfReqresTabId.bind(undefined, reqresSessionId, reqresTabId)));
+    } else {
+        mn(div, "span", `${name} of *${reqresSessionId.toString().substr(-3)}`);
+        if (narrowSessionId === null)
+            mbtn(div, "S", "Narrow this page to this session's data.",
+                 cacheSingleton(showStateFuncMap,
+                                reqresSessionId.toString() + ".",
+                                () => showStateOfReqresTabId.bind(undefined, reqresSessionId, null)));
+        else if (narrowTabId === null)
+            mbtn(div, "ST", "Narrow this page to this session and tab's data.",
+                 cacheSingleton(showStateFuncMap,
+                                reqresSessionId.toString() + "." + reqresTabId.toString(),
+                                () => showStateOfReqresTabId.bind(undefined, reqresSessionId, reqresTabId)));
+    }
     td.appendChild(div);
     tr.appendChild(td);
 
@@ -172,7 +190,7 @@ function resetDataNode(id, log_data, predicate) {
 }
 
 const headerHTML = `
-<th><span data-help="Source of this reqres: &quot;ext&quot; for reqres produced by extensions, &quot;bg&quot; for reqres produced by background tasks, &quot;tab #N&quot; for reqres produced by the tab with id \`N\`, optionally followed by &quot;of S&quot; where \`S\` is the last three digits of \`.sessionId\`. For tabs of the current session the label is a button which switches currently active tab to the tab in question. If the current page is not narrowed to a tab, then a button labled &quot;IS&quot; follows. That button opens this page narrowed to the tab in question.">Src</span></th>
+<th><span data-help="Source of this reqres: &quot;ext&quot; for reqres produced by extensions, &quot;bg&quot; for reqres produced by background tasks, &quot;tab #N&quot; for reqres produced by the tab with id \`N\`, optionally followed by &quot;of *S&quot; where \`S\` is the last three digits of \`.sessionId\`. For tabs of the current session the label is a button which switches currently active tab to the tab in question. If the current page is not narrowed to a session and the reqres in question belongs to an older session, then a button labled &quot;S&quot; follows. That button opens another state page narrowed to the session in question. Otherwise, if the current page is not narrowed to a tab, a button labled &quot;T&quot; or &quot;ST&quot; follows. That buton open another state page narrowed to the tab (and session) in question.">Src</span></th>
 <th><span data-help="The \`.status\` this reqres will have in \`hoardy\`: &quot;I&quot; or &quot;C&quot; character (for &quot;Incomplete&quot; and &quot;Complete&quot; respectively) representing the value of \`.request.complete\` flag followed by either &quot;N&quot; (for &quot;No response&quot;) or an HTTP status code (integer, e.g. &quot;200&quot;), followed by &quot;I&quot; or &quot;C&quot; representing the value of \`.response.complete\` flag.">WRR</span></th>
 <th><span data-help="The current reqres \`state\` followed by quot;$&quot; symbol prepended to the \`final networking state\`, followed by &quot;partial&quot; when this reqres has partial request body (not \`.request.complete\`), followed by &quot;incomplete&quot; when it has incomplete response body (not \`.response.compete\`), followed by &quot;buggy&quot; when it has buggy metadata, followed &quot;redirected&quot; when it is a redirect, followed by either &quot;in_limbo&quot; or &quot;was_in_limbo&quot; if it is or was in limbo, followed by either &quot;problematic!&quot; or &quot;was_problematic&quot; if it is or was marked as \`problematic\`. See the \`Help\` page for more info.">pWA</span></th>
 <th><span data-help="Timestamp of when the first byte of HTTP request headers was sent.">Request at</span></th>

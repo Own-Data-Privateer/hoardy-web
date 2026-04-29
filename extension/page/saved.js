@@ -23,9 +23,6 @@
 
 "use strict";
 
-// TODO: remove this
-let tabId = null;
-
 let dbody = document.body;
 
 async function stateMain() {
