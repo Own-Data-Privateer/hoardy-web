@@ -275,7 +275,7 @@ function isIncompleteError(error) {
 
 function isImportantError(error) {
     if (
-        error.startsWith("webRequest::capture::") ||
+        error.startsWith("webRequest::capture::") && error !== "webRequest::capture::CANCELED::BY_WORK_OFFLINE" ||
         error.startsWith("debugger::capture::")
     )
         return true;

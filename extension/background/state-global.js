@@ -150,7 +150,7 @@ let configDefaults = {
     // are we collecting new data?
     collecting: true,
     // are we also collecting work offline requests?
-    collectingWorkOffline: false,
+    collectingWorkOffline: true,
     // work offline settings
     workOfflineFile: true,
     workOfflineData: false,
@@ -270,6 +270,8 @@ function upgradeConfig(config) {
         config.problematicNotify = config.autoNotify ? true : null;
         break;
     case 7:
+        // its semantics changed
+        config.collectingWorkOffline = true;
         break;
     default:
         console.warn(`Bad old config version ${config.version}, reusing values as-is without updates`);
