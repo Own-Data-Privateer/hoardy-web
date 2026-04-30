@@ -53,7 +53,7 @@
 
     <h1 id="log" class="ui">Recent history log
       <span class="right">
-        <input type="button" id="forgetLog" data-help="Forget about all the requests below except for those marked as &quot;problematic&quot;. Except, if the &quot;Problematic&quot; tristate filter below is set, then those will be forgotten about too." value="Forget all" />
+        <input type="button" id="forgetLog" data-help="Forget about all the requests below except for those that are still marked as &quot;problematic&quot;." value="Forget all" />
       </span>
     </h1>
     <div class="controls ui">

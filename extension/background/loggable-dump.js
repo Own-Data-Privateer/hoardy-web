@@ -241,7 +241,7 @@ function forgetLog(rrfilter) {
 
     rrfilter = mkReqresFilter(rrfilter);
     let [num, tabId] = rrfilterNumTabId(rrfilter);
-    let [popped, unpopped] = partitionN((loggable) => isAcceptedBy(rrfilter, loggable), num, reqresLog);
+    let [popped, unpopped] = partitionN((loggable) => !loggable.problematic && isAcceptedBy(rrfilter, loggable), num, reqresLog);
 
     if (popped.length === 0)
         return;
