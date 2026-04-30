@@ -17,7 +17,7 @@
         <input type="button" id="stopAllInFlight" data-help="Stop tracking progress of all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup." value="Stop tracking all" />
       </span>
     </h1>
-    <table><tbody id="data_in_flight"></tbody></table>
+    <table><tbody id="data-inFlight"></tbody></table>
 
     <h1 id="problematic" class="ui">Problematic
       <span class="right">
@@ -32,7 +32,7 @@
       <ui id="rrfilters.problematic.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
       <input type="button" id="rotateOneProblematic" data-help="Move the first reqres below to the end." value="Rotate the first one" />
     </div>
-    <table><tbody id="data_problematic"></tbody></table>
+    <table><tbody id="data-problematic"></tbody></table>
 
     <h1 id="in_limbo" class="ui">In limbo
       <span class="right">
@@ -41,15 +41,15 @@
       </span>
     </h1>
     <div class="controls ui">
-      <ui id="rrfilters.in_limbo.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
-      <ui id="rrfilters.in_limbo.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
-      <ui id="rrfilters.in_limbo.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
-      <ui id="rrfilters.in_limbo.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+      <ui id="rrfilters.inLimbo.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+      <ui id="rrfilters.inLimbo.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+      <ui id="rrfilters.inLimbo.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.inLimbo.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
       <input type="button" id="rotateOneInLimbo" data-help="Move the first reqres below to the end." value="Rotate the first one" />
       <input type="button" id="collectOneInLimbo" data-help="Collect the first reqres below." value="Collect the first one" />
       <input type="button" id="collectAllInLimbo" data-help="Collect all reqres below." value="Collect all" />
     </div>
-    <table><tbody id="data_in_limbo"></tbody></table>
+    <table><tbody id="data-inLimbo"></tbody></table>
 
     <h1 id="log" class="ui">Recent history log
       <span class="right">
@@ -64,7 +64,7 @@
       <ui id="rrfilters.log.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
       <ui id="rrfilters.log.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
     </div>
-    <table><tbody id="data_log"></tbody></table>
+    <table><tbody id="data-log"></tbody></table>
     <!-- This anchor goes here, because we usually want to see the tail of the log. -->
     <span id="tail"></span>
 
@@ -76,7 +76,7 @@
       <ui id="rrfilters.queued.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
       <ui id="rrfilters.queued.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
     </div>
-    <table><tbody id="data_queued"></tbody></table>
+    <table><tbody id="data-queued"></tbody></table>
 
     <h1 id="unarchived" class="ui">Failed to archive
       <span class="right">
@@ -90,7 +90,7 @@
       <ui id="rrfilters.unarchived.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
       <ui id="rrfilters.unarchived.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
     </div>
-    <table><tbody id="data_unarchived"></tbody></table>
+    <table><tbody id="data-unarchived"></tbody></table>
     </div>
 
     <script src="../lib/compat.js"></script>

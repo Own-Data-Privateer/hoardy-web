@@ -45,7 +45,7 @@ function showStateOfReqresTabId(reqresSessionId, reqresTabId) {
 let switchFuncMap = new Map();
 let showStateFuncMap = new Map();
 
-function appendLoggable(el, loggable) {
+function appendLoggable(node, loggable) {
     let tr = document.createElement("tr");
 
     let sparts = [loggable.status];
@@ -150,7 +150,7 @@ function appendLoggable(el, loggable) {
     mtr(loggable.reason).className = "long";
     mtr(byteLengthToString(loggable.dumpSize) + ": " + byteLengthToString(loggable.requestSize) + " + " + byteLengthToString(loggable.responseSize));
 
-    el.appendChild(tr);
+    node.appendChild(tr);
 
     if (loggable.errors.length > 0) {
         let etr = document.createElement("tr");
@@ -166,27 +166,52 @@ function appendLoggable(el, loggable) {
         etd.innerHTML = escapeHTML(loggable.errors.join("\n")).replaceAll("\n", "<br>");
         etr.appendChild(etd);
 
-        el.appendChild(etr);
+        node.appendChild(etr);
     }
 }
 
-function appendToLog(el, log_data, predicate) {
+function appendToLog(node, log_data, predicate) {
     for (let loggable of log_data) {
         if (loggable === null) {
             let tr = document.createElement("tr");
             tr.innerHTML = `<td colspan=9><span class="flex"><span class="center">...</span></span></td>`;
-            el.appendChild(tr);
+            node.appendChild(tr);
         } else if (predicate === undefined || predicate(loggable))
-            appendLoggable(el, loggable);
+            appendLoggable(node, loggable);
     }
 }
 
-function resetDataNode(id, log_data, predicate) {
+function resetDataNode(node, log_data, predicate) {
     let newtbody = document.createElement("tbody");
-    newtbody.id = id;
+    newtbody.id = node.id;
     appendToLog(newtbody, log_data, predicate);
-    let tbody = document.getElementById(id);
-    tbody.parentElement.replaceChild(newtbody, tbody);
+    node.parentElement.replaceChild(newtbody, node);
+}
+
+// Make pair of `resetFunc, appendFunc`
+function mkDataNodeUpdater(id, getReqresFilter) {
+    return [
+        (log_data) => {
+            let rrfilter = getReqresFilter();
+            resetDataNode(document.getElementById(id), log_data, (loggable) => isAcceptedBy(rrfilter, loggable));
+        },
+        (log_data) => {
+            let rrfilter = getReqresFilter();
+            appendToLog(document.getElementById(id), log_data, (loggable) => isAcceptedBy(rrfilter, loggable));
+        },
+    ];
+}
+
+// Generate a record of said functions for every key of given `rrfilter`
+function mkDataNodeUpdaters(rrfilters) {
+    let res = {};
+    for (let k of Object.keys(rrfilters)) {
+        let ck = capitalize(k);
+        let [reset, append] = mkDataNodeUpdater("data-" + k, () => rrfilters[k]);
+        res["reset" + ck] = reset;
+        res["append" + ck] = append;
+    }
+    return res;
 }
 
 const headerHTML = `

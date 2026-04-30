@@ -87,7 +87,7 @@ function recordOneAssumedBroken(accumulator, storeID, reason, archivable, dumpSi
     return true;
 }
 
-function getUnarchivedLog() {
+function getUnarchived() {
     return pushFirstTo(reqresUnarchivedIssueAcc[0], []);
 }
 
@@ -133,8 +133,8 @@ function retryAllUnarchived(unrecoverable) {
     }
     reqresUnarchivedIssueAcc = newReqresUnarchivedIssueAcc();
 
-    broadcastToState(null, "resetQueued", getQueuedLog);
-    broadcastToState(null, "resetUnarchived", getUnarchivedLog);
+    broadcastToState(null, "resetQueued", getQueued);
+    broadcastToState(null, "resetUnarchived", getUnarchived);
 }
 
 function syncRetryAllUnarchived(...args) {
@@ -974,8 +974,8 @@ async function processArchiving(updatedTabId) {
         scheduleUpdateDisplay(true, tabId, false, getGoodEpisodic(reqresQueue.length));
     }
 
-    broadcastToState(null, "resetQueued", getQueuedLog);
-    broadcastToState(null, "resetUnarchived", getUnarchivedLog);
+    broadcastToState(null, "resetQueued", getQueued);
+    broadcastToState(null, "resetUnarchived", getUnarchived);
 
     return updatedTabId;
 }

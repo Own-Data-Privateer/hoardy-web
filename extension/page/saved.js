@@ -53,6 +53,7 @@ async function stateMain() {
     }
 
     let savedFilters;
+    let [resetSaved, appendSaved] = mkDataNodeUpdater("data", () => savedFilters);
 
     async function updateSavedFilters(nsavedFilters) {
         if (nsavedFilters === undefined)
@@ -75,7 +76,11 @@ async function stateMain() {
             await updateSavedFilters(data);
             return;
         case "resetSaved":
-            resetDataNode("data", data);
+            resetSaved(data);
+            return;
+        // TODO: implement in background
+        case "appendSaved":
+            appendSaved(data);
             return;
         default:
             let res = await webextRPCHandleMessageDefault(update);

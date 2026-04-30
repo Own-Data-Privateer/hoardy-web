@@ -553,11 +553,11 @@ function evalRPCRequest(request) {
         syncStopInFlight(arg1);
         return null;
 
-    case "getInFlightLog":
-        return getInFlightLog();
+    case "getInFlight":
+        return getInFlight();
 
-    case "getProblematicLog":
-        return getProblematicLog();
+    case "getProblematic":
+        return getProblematic();
     case "unmarkProblematic":
         syncUnmarkProblematic(arg1);
         scheduleEndgame(null);
@@ -567,8 +567,8 @@ function evalRPCRequest(request) {
         scheduleEndgame();
         return null;
 
-    case "getInLimboLog":
-        return getInLimboLog();
+    case "getInLimbo":
+        return getInLimbo();
     case "popInLimbo":
         syncPopInLimbo(arg1, arg2);
         scheduleEndgame(null);
@@ -578,11 +578,11 @@ function evalRPCRequest(request) {
         scheduleEndgame(null);
         return null;
 
-    case "getQueuedLog":
-        return getQueuedLog();
+    case "getQueued":
+        return getQueued();
 
-    case "getUnarchivedLog":
-        return getUnarchivedLog();
+    case "getUnarchived":
+        return getUnarchived();
 
     case "snapshot":
         snapshot(arg1);

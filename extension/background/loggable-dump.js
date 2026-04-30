@@ -39,15 +39,15 @@ let reqresQueueSize = 0;
 
 // Logging
 
-function getProblematicLog() {
+function getProblematic() {
     return pushFirstTo(reqresProblematic, []);
 }
 
-function getInLimboLog() {
+function getInLimbo() {
     return pushFirstTo(reqresLimbo, []);
 }
 
-function getQueuedLog() {
+function getQueued() {
     return pushFirstTo(reqresQueue, []);
 }
 
@@ -94,8 +94,8 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
         return popped.length;
 
     // reset all the logs, since some statuses may have changed
-    broadcastToState(tabId, "resetProblematicLog", getProblematicLog);
-    broadcastToState(tabId, "resetInLimboLog", getInLimboLog);
+    broadcastToState(tabId, "resetProblematic", getProblematic);
+    broadcastToState(tabId, "resetInLimbo", getInLimbo);
     broadcastToState(tabId, "resetLog", reqresLog);
 
     return popped.length;
@@ -133,7 +133,7 @@ function rotateProblematic(rrfilter) {
     unpopped.push(...popped);
     reqresProblematic = unpopped;
 
-    broadcastToState(tabId, "resetProblematicLog", getProblematicLog);
+    broadcastToState(tabId, "resetProblematic", getProblematic);
 }
 
 function syncRotateProblematic(...args) {
@@ -191,15 +191,15 @@ function popInLimbo(collect, rrfilter) {
 
     if (newlyUnproblematic.length > 0) {
         // TODO mergeUpdatedTabIds?
-        broadcastToState(null, "resetProblematicLog", getProblematicLog);
+        broadcastToState(null, "resetProblematic", getProblematic);
         reqresUnproblematic.push(...newlyUnproblematic);
     } else
         // since reqres statuses have changed
-        broadcastToStateWhen(someProblematic, tabId, "resetProblematicLog", getProblematicLog);
+        broadcastToStateWhen(someProblematic, tabId, "resetProblematic", getProblematic);
     // since (popped.length > 0)
-    broadcastToState(tabId, "resetInLimboLog", getInLimboLog);
-    broadcastToStateWhen(newlyQueued.length > 0, tabId, "newQueued", newlyQueued);
-    broadcastToStateWhen(newlyLogged.length > 0, tabId, "newLog", newlyLogged);
+    broadcastToState(tabId, "resetInLimbo", getInLimbo);
+    broadcastToStateWhen(newlyQueued.length > 0, tabId, "appendQueued", newlyQueued);
+    broadcastToStateWhen(newlyLogged.length > 0, tabId, "appendLog", newlyLogged);
 
     runSynchronouslyWhen(newlyStashed.length > 0, "stash", stashMany, newlyStashed);
     runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", deleteMany, newlyUnstashed);
@@ -223,7 +223,7 @@ function rotateInLimbo(rrfilter) {
     unpopped.push(...popped);
     reqresLimbo = unpopped;
 
-    broadcastToState(tabId, "resetInLimboLog", getInLimboLog);
+    broadcastToState(tabId, "resetInLimbo", getInLimbo);
 }
 
 function syncRotateInLimbo(...args) {
@@ -712,17 +712,17 @@ async function processAlmostDone(updatedTabId) {
     truncateLog();
     wantSaveGlobals = true;
 
-    broadcastToState(updatedTabId, "resetInFlight", getInFlightLog);
+    broadcastToState(updatedTabId, "resetInFlight", getInFlight);
 
     if (newlyUnproblematic.length > 0) {
         // TODO mergeUpdatedTabIds?
-        broadcastToState(null, "resetProblematicLog", getProblematicLog);
+        broadcastToState(null, "resetProblematic", getProblematic);
         reqresUnproblematic.push(...newlyUnproblematic);
     } else
-        broadcastToStateWhen(newlyProblematic.length > 0, updatedTabId, "newProblematic", newlyProblematic);
-    broadcastToStateWhen(newlyLimboed.length > 0, updatedTabId, "newLimbo", newlyLimboed);
-    broadcastToStateWhen(newlyQueued.length > 0, updatedTabId, "newQueued", newlyQueued);
-    broadcastToStateWhen(newlyLogged.length > 0, updatedTabId, "newLog", newlyLogged);
+        broadcastToStateWhen(newlyProblematic.length > 0, updatedTabId, "appendProblematic", newlyProblematic);
+    broadcastToStateWhen(newlyLimboed.length > 0, updatedTabId, "appendInLimbo", newlyLimboed);
+    broadcastToStateWhen(newlyQueued.length > 0, updatedTabId, "appendQueued", newlyQueued);
+    broadcastToStateWhen(newlyLogged.length > 0, updatedTabId, "appendLog", newlyLogged);
 
     runSynchronouslyWhen(newlyStashed.length > 0, "stash", stashMany, newlyStashed);
     runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", deleteMany, newlyUnstashed);

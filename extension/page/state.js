@@ -28,36 +28,14 @@ narrowTabId = getMapURLParam(statePageURL, "tab", document.location, toNumber, n
 
 let defRRFilter = {sessionId: narrowSessionId, tabId: narrowTabId};
 let rrfilters = {
+    inFlight: mkReqresFilter(defRRFilter),
     problematic: mkReqresFilter(defRRFilter),
-    in_limbo: mkReqresFilter(defRRFilter),
+    inLimbo: mkReqresFilter(defRRFilter),
     log: mkReqresFilter(defRRFilter),
     queued: mkReqresFilter(defRRFilter),
     unarchived: mkReqresFilter(defRRFilter),
 };
-
-function resetInFlight(log_data) {
-    resetDataNode("data_in_flight", log_data);
-}
-
-function resetProblematic(log_data) {
-    resetDataNode("data_problematic", log_data, (loggable) => isAcceptedBy(rrfilters.problematic, loggable));
-}
-
-function resetInLimbo(log_data) {
-    resetDataNode("data_in_limbo", log_data, (loggable) => isAcceptedBy(rrfilters.in_limbo, loggable));
-}
-
-function resetLog(log_data) {
-    resetDataNode("data_log", log_data, (loggable) => isAcceptedBy(rrfilters.log, loggable));
-}
-
-function resetQueued(log_data) {
-    resetDataNode("data_queued", log_data, (loggable) => isAcceptedBy(rrfilters.queued, loggable));
-}
-
-function resetUnarchived(log_data) {
-    resetDataNode("data_unarchived", log_data, (loggable) => isAcceptedBy(rrfilters.unarchived, loggable));
-}
+let dataNodeUpdaters = mkDataNodeUpdaters(rrfilters);
 
 async function stateMain() {
     setPageLoading();
@@ -71,28 +49,22 @@ async function stateMain() {
     buttonToMessage("rotateOneProblematic", () => ["rotateProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
     buttonToMessage("unmarkOneProblematic", () => ["unmarkProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
     buttonToMessage("unmarkAllProblematic", () => ["unmarkProblematic", rrfilters.problematic]);
-    buttonToMessage("rotateOneInLimbo",     () => ["rotateInLimbo", assignRec({}, rrfilters.in_limbo, {limit: 1})]);
-    buttonToMessage("discardOneInLimbo",    () => ["popInLimbo", false, assignRec({}, rrfilters.in_limbo, {limit: 1})]);
-    buttonToMessage("discardAllInLimbo",    () => ["popInLimbo", false, rrfilters.in_limbo]);
-    buttonToMessage("collectOneInLimbo",    () => ["popInLimbo", true, assignRec({}, rrfilters.in_limbo, {limit: 1})]);
-    buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, rrfilters.in_limbo]);
+    buttonToMessage("rotateOneInLimbo",     () => ["rotateInLimbo", assignRec({}, rrfilters.inLimbo, {limit: 1})]);
+    buttonToMessage("discardOneInLimbo",    () => ["popInLimbo", false, assignRec({}, rrfilters.inLimbo, {limit: 1})]);
+    buttonToMessage("discardAllInLimbo",    () => ["popInLimbo", false, rrfilters.inLimbo]);
+    buttonToMessage("collectOneInLimbo",    () => ["popInLimbo", true, assignRec({}, rrfilters.inLimbo, {limit: 1})]);
+    buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, rrfilters.inLimbo]);
     buttonToMessage("stopAllInFlight",      () => ["stopInFlight", narrowTabId]);
 
     buttonToMessage("retryAllUnarchived");
 
     setUI(document, "rrfilters", rrfilters, (value, path) => {
-        if (path.startsWith("rrfilters.problematic."))
-            browser.runtime.sendMessage(["getProblematicLog"]).then(resetProblematic).catch(logError);
-        else if (path.startsWith("rrfilters.in_limbo."))
-            browser.runtime.sendMessage(["getInLimboLog"]).then(resetInLimbo).catch(logError);
-        else if (path.startsWith("rrfilters.log."))
-            browser.runtime.sendMessage(["getLog"]).then(resetLog).catch(logError);
-        else if (path.startsWith("rrfilters.queued."))
-            browser.runtime.sendMessage(["getQueuedLog"]).then(resetQueued).catch(logError);
-        else if (path.startsWith("rrfilters.unarchived."))
-            browser.runtime.sendMessage(["getUnarchivedLog"]).then(resetUnarchived).catch(logError);
+        let cid = capitalize(path.split(".")[1]);
+        let resetFunc = dataNodeUpdaters["reset" + cid];
+        if (resetFunc !== undefined)
+            browser.runtime.sendMessage(["get" + cid]).then(resetFunc).catch(logError);
         else
-            console.warn("unknown rrfilters update", path, value);
+            console.warn("unknown update", path, value);
     });
 
     async function updateConfig(config) {
@@ -103,44 +75,15 @@ async function stateMain() {
 
     async function processUpdate(update) {
         let [what, data] = update;
+
+        let updateFunc = dataNodeUpdaters[what];
+        if (updateFunc !== undefined)
+            return updateFunc(data);
+
         switch(what) {
         case "updateConfig":
             await updateConfig(data);
             return;
-        case "resetInFlight":
-            resetInFlight(data);
-            return true;
-        case "resetProblematicLog":
-            resetProblematic(data);
-            return true;
-        case "resetInLimboLog":
-            resetInLimbo(data);
-            return true;
-        case "resetLog":
-            resetLog(data);
-            return true;
-        case "resetQueued":
-            resetQueued(data);
-            return true;
-        case "resetUnarchived":
-            resetUnarchived(data);
-            return true;
-        // incrementally add new rows
-        case "newInFlight":
-            appendToLog(document.getElementById("data_in_flight"), data);
-            return true;
-        case "newProblematic":
-            appendToLog(document.getElementById("data_problematic"), data, (loggable) => isAcceptedBy(rrfilters.problematic, loggable));
-            return true;
-        case "newLimbo":
-            appendToLog(document.getElementById("data_in_limbo"), data, (loggable) => isAcceptedBy(rrfilters.in_limbo, loggable));
-            return true;
-        case "newLog":
-            appendToLog(document.getElementById("data_log"), data, (loggable) => isAcceptedBy(rrfilters.log, loggable));
-            return true;
-        case "newQueued":
-            appendToLog(document.getElementById("data_queued"), data, (loggable) => isAcceptedBy(rrfilters.queued, loggable));
-            return true;
         default:
             let res = await webextRPCHandleMessageDefault(update);
             return res;
@@ -151,24 +94,14 @@ async function stateMain() {
 
     await subscribeToExtension("state" + (narrowTabId !== null ? `#${narrowTabId}` : ""), 3, async (isInvalid) => {
         await updateConfig();
-        let inFlightLog = await browser.runtime.sendMessage(["getInFlightLog"]);
-        let problematicLog = await browser.runtime.sendMessage(["getProblematicLog"]);
-        if (isInvalid()) return;
-        let inLimboLog = await browser.runtime.sendMessage(["getInLimboLog"]);
-        if (isInvalid()) return;
-        let log = await browser.runtime.sendMessage(["getLog"]);
-        if (isInvalid()) return;
-        let queuedLog = await browser.runtime.sendMessage(["getQueuedLog"]);
-        if (isInvalid()) return;
-        let unarchivedLog = await browser.runtime.sendMessage(["getUnarchivedLog"]);
-        if (isInvalid()) return;
+        let res = {};
+        for (let id of Object.keys(rrfilters)) {
+            res[id] = await browser.runtime.sendMessage(["get" + capitalize(id)]);
+            if (isInvalid()) return;
+        }
 
-        resetInFlight(inFlightLog);
-        resetProblematic(problematicLog);
-        resetInLimbo(inLimboLog);
-        resetLog(log);
-        resetQueued(queuedLog);
-        resetUnarchived(unarchivedLog);
+        for (let id of Object.keys(rrfilters))
+            dataNodeUpdaters["reset" + capitalize(id)](res[id]);
     }, asyncNoop, processUpdate);
 
     setPageDone();

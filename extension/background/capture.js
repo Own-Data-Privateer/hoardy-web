@@ -120,7 +120,7 @@ let firstNetworkRequest = true;
 
 // Logging
 
-function getInFlightLog() {
+function getInFlight() {
     let res = [];
     for (let [k, v] of debugReqresInFlight.entries()) {
         // `.url` can be unset, see (veryEarly) in `emitDebugRequest`.
@@ -627,7 +627,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     // `handleDebugRequestWillBeSent(false, ...)` but before
     // `handleDebugRequestWillBeSent(true, ...)`.
     //
-    // Also see (veryEarly) in `getInFlightLog`.
+    // Also see (veryEarly) in `getInFlight`.
     //
     // Second case: ignore data, file, end extension URLs.
     if (dreqres.url === undefined || isBoringOrServerURL(dreqres.url)) {
@@ -961,7 +961,7 @@ function handleBeforeRequest(e) {
     }
 
     reqresInFlight.set(requestId, reqres);
-    broadcastToState(tabId, "newInFlight", () => [makeLoggable(reqres)]);
+    broadcastToState(tabId, "appendInFlight", () => [makeLoggable(reqres)]);
     scheduleUpdateDisplay(true, tabId);
 }
 
@@ -1182,7 +1182,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         if (isDefinedURL(e.documentURL))
             dreqres.documentUrl = e.documentURL;
         dreqres.requestHeadersDebug = e.request.headers;
-        broadcastToStateWhen(!isBoringOrServerURL(dreqres.url), tabId, "newInFlight", () => [makeLoggable(dreqres)]);
+        broadcastToStateWhen(!isBoringOrServerURL(dreqres.url), tabId, "appendInFlight", () => [makeLoggable(dreqres)]);
     } else {
         if (dreqres.requestTimeStamp === undefined)
             dreqres.requestTimeStamp = Date.now();
