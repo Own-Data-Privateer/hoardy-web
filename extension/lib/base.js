@@ -323,6 +323,9 @@ function updateFromRec(target, ...values) {
 }
 
 function numberToPowerString(n, powers) {
+    if (!isDefined(n))
+        return "?";
+
     function mk(pow, psuf) {
         let v = n / pow;
         let vs = v.toString();
