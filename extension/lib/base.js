@@ -147,6 +147,14 @@ function getFirstOk(...args) {
             return a;
 }
 
+function capitalize(x) {
+    return x.substr(0, 1).toUpperCase() + x.substr(1);
+}
+
+function uncapitalize(x) {
+    return x.substr(0, 1).toLowerCase() + x.substr(1);
+}
+
 // convert milliseconds since UNIX epoch to "YYYY-mm-DD HH:MM:SS"
 function dateToString(epoch) {
     if (epoch === undefined || typeof epoch !== "number")

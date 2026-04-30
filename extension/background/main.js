@@ -437,7 +437,7 @@ function evalSimpleRequest(command, tabId, activeTabId) {
             field = command.substr(15);
             cfg = tabcfg;
         }
-        field = field.substr(0, 1).toLowerCase() + field.substr(1);
+        field = uncapitalize(field);
         if (field === "tracking") // TODO: remove
             field = "collecting";
 
