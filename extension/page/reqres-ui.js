@@ -148,6 +148,7 @@ function appendLoggable(el, loggable) {
 
     mtr(dateToString(loggable.responseTimeStamp));
     mtr(loggable.reason).className = "long";
+    mtr(byteLengthToString(loggable.dumpSize) + ": " + byteLengthToString(loggable.requestSize) + " + " + byteLengthToString(loggable.responseSize));
 
     el.appendChild(tr);
 
@@ -224,6 +225,9 @@ See the \`Help\` page for more info.
 <th><span data-help="Request URL, followed by &quot; -> &quot; and a redirect URL when this reqres is a redirect.">URL</span></th>
 <th><span data-help="Timestamp of when the first byte of HTTP response headers was received.">Response at</span></th>
 <th><span data-help="HTTP protocol response reason, if any. Note that the HTTP response code is displayed as a part of the &quot;Info&quot; field.">R</span></th>
+<th><span data-help="The (uncompressed) size of the whole WRR dump followed by the (uncompressed) sizes of \`request.body\` and \`response.body\`.
+
+At the moment, the values in this column don't auto-update even when they should. Reload the whole page manually if you want to track changes.">Sizes</span></th>
 `;
 
 async function commonMain() {
