@@ -156,6 +156,7 @@ function shallowCopyOfReqres(reqres) {
         originUrl: reqres.originUrl,
         errors: Array.from(reqres.errors),
 
+        requestSize: reqres.requestSize,
         requestTimeStamp: reqres.requestTimeStamp,
         requestComplete: reqres.requestComplete,
         requestBuggy: reqres.requestBuggy,
@@ -168,6 +169,7 @@ function shallowCopyOfReqres(reqres) {
         statusCode: reqres.statusCode,
         reason: reqres.reason,
         fromCache: reqres.fromCache,
+        responseSize: reqres.responseSize,
         responseComplete: reqres.responseComplete,
         responseBuggy: reqres.responseBuggy,
 
@@ -186,6 +188,7 @@ function completedCopyOfReqres(reqres) {
     res.responseHeaders = reqres.responseHeaders;
     // set responseBody to an empty buffer
     res.responseBody = new ChunkedBuffer();
+    res.responseSize = 0;
     // and mark as complete, as the name implies
     res.responseComplete = true;
     // alno note that we ignore the filter here
@@ -260,9 +263,12 @@ function forceFinishingUpDebug(predicate, updatedTabId) {
         // emitDebugRequest, which finishes it up to become a valid `reqres`.
         dreqres.requestBuggy = true;
         dreqres.requestBody = new ChunkedBuffer();
+        dreqres.requestSize = 0;
         dreqres.requestComplete = dreqres.fromCache;
-        if (dreqres.responseBody === undefined)
+        if (dreqres.responseBody === undefined) {
             dreqres.responseBody = new ChunkedBuffer();
+            dreqres.responseSize = 0;
+        }
         // dreqres.responseComplete is set by emitDebugRequest
 
         reqresAlmostDone.push(dreqres);
@@ -391,8 +397,10 @@ function mergeInDebugReqres(reqres, dreqres) {
         // and then, again, normally
     }
 
-    if (dreqres.responseBody !== undefined)
+    if (dreqres.responseBody !== undefined) {
         reqres.responseBody = dreqres.responseBody;
+        reqres.responseSize = dreqres.responseSize;
+    }
     reqres.responseComplete = dreqres.responseComplete;
 }
 
@@ -536,7 +544,9 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
                 );
             }
             let enc = new TextEncoder("utf-8", { fatal: true });
-            reqres.requestBody.push(enc.encode(bodyParts.join("&")));
+            let data = enc.encode(bodyParts.join("&"));
+            reqres.requestBody.push(data);
+            reqres.requestSize += data.byteLength;
         } else if (parts[0] == "multipart/form-data") {
             let boundary;
             for (let i = 1; i < parts.length; ++i) {
@@ -555,10 +565,12 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
                 for (const [name, value] of Object.entries(reqres.formData)) {
                     let data = enc.encode("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + encodeURIComponent(name) + "\"\r\n\r\n" + value.join("") + "\r\n")
                     reqres.requestBody.push(data);
+                    reqres.requestSize += data.byteLength;
                 }
 
                 let epilog = enc.encode("--" + boundary + "--\r\n");
                 reqres.requestBody.push(epilog);
+                reqres.requestSize += epilog.byteLength;
             } else
                 console.warn("CAPTURE: can't recover requestBody from formData, unknown Content-Type format", contentType);
         } else
@@ -657,6 +669,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
                 dreqres.responseBody = unBase64(res.body);
             else
                 dreqres.responseBody = res.body;
+            dreqres.responseSize = dreqres.responseBody.byteLength;
             dreqres.responseComplete = error === undefined;
         }, (err) => {
             if (typeof err === "string") {
@@ -855,6 +868,7 @@ function handleBeforeRequest(e) {
         requestTimeStamp: e.timeStamp,
         requestHeaders: [],
         requestBody: new ChunkedBuffer(),
+        requestSize: 0,
         requestComplete: true,
 
         submitted: false,
@@ -862,6 +876,7 @@ function handleBeforeRequest(e) {
 
         responseHeaders : [],
         responseBody: new ChunkedBuffer(),
+        responseSize: 0,
         responseComplete: false,
         fromCache: false,
     };
@@ -888,7 +903,9 @@ function handleBeforeRequest(e) {
                     complete = false;
                     continue;
                 }
-                reqres.requestBody.push(new Uint8Array(el));
+                let data = new Uint8Array(el);
+                reqres.requestBody.push(data);
+                reqres.requestSize += data.byteLength;
             }
             reqres.requestComplete = complete;
         } else if (e.requestBody.formData !== undefined) {
@@ -917,7 +934,9 @@ function handleBeforeRequest(e) {
         filter.ondata = (event) => {
             if (config.debugCaptures)
                 console.info("CAPTURE: filterResponseData", requestId, "chunk", event.data);
-            reqres.responseBody.push(new Uint8Array(event.data));
+            let data = new Uint8Array(event.data);
+            reqres.responseBody.push(data);
+            reqres.responseSize += data.byteLength;
             filter.write(event.data);
         };
         filter.onstop = (event) => {
