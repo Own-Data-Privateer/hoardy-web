@@ -35,7 +35,7 @@
       <ui id="rrfilters.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
       <ui id="rrfilters.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
       <ui id="rrfilters.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.with_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">With errors</ui>
       <ui id="rrfilters.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
     </div>
     <table>

@@ -36,7 +36,7 @@
     <div class="controls ui">
       <ui id="rrfilters.problematic.in_limbo" type="tristate" data-help="Tristate filter for the &quot;in_limbo&quot; flag.">In limbo</ui>
       <ui id="rrfilters.problematic.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.problematic.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.problematic.with_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">With errors</ui>
       <ui id="rrfilters.problematic.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
       <input type="button" id="rotateOneProblematic" data-help="Move the first reqres below to the end." value="Rotate the first one" />
     </div>
@@ -55,7 +55,7 @@
     <div class="controls ui">
       <ui id="rrfilters.inLimbo.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
       <ui id="rrfilters.inLimbo.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
-      <ui id="rrfilters.inLimbo.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.inLimbo.with_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">With errors</ui>
       <ui id="rrfilters.inLimbo.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
       <input type="button" id="rotateOneInLimbo" data-help="Move the first reqres below to the end." value="Rotate the first one" />
       <input type="button" id="collectOneInLimbo" data-help="Collect the first reqres below." value="Collect the first one" />
@@ -77,7 +77,7 @@
       <ui id="rrfilters.log.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
       <ui id="rrfilters.log.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
       <ui id="rrfilters.log.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.log.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.log.with_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">With errors</ui>
       <ui id="rrfilters.log.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
     </div>
     <table><tbody id="data-log"></tbody></table>
@@ -94,7 +94,7 @@
       <ui id="rrfilters.queued.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
       <ui id="rrfilters.queued.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
       <ui id="rrfilters.queued.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.queued.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.queued.with_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">With errors</ui>
       <ui id="rrfilters.queued.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
     </div>
     <table><tbody id="data-queued"></tbody></table>
@@ -112,7 +112,7 @@
       <ui id="rrfilters.unarchived.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
       <ui id="rrfilters.unarchived.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
       <ui id="rrfilters.unarchived.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.unarchived.no_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">Without errors</ui>
+      <ui id="rrfilters.unarchived.with_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">With errors</ui>
       <ui id="rrfilters.unarchived.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
     </div>
     <table><tbody id="data-unarchived"></tbody></table>

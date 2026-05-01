@@ -343,7 +343,7 @@ let reqresFilterDefaults = {
     was_in_limbo: null,
     in_limbo: null,
     collected: null,
-    no_errors: null,
+    with_errors: null,
     did_exportAs: null,
     did_submitHTTP: null,
     in_ls: null,
@@ -390,7 +390,7 @@ function isAcceptedBy(rrfilter, loggable) {
         (rrfilter.was_problematic === null || loggable.was_problematic === rrfilter.was_problematic) &&
         (rrfilter.in_limbo === null || loggable.in_limbo === rrfilter.in_limbo) &&
         (rrfilter.was_in_limbo === null || loggable.was_in_limbo === rrfilter.was_in_limbo) &&
-        (rrfilter.no_errors === null || (rrfilter.no_errors ? (loggable.errors.length === 0) : (loggable.errors.length > 0))) &&
+        (rrfilter.with_errors === null || (rrfilter.with_errors ? (loggable.errors.length > 0) : (loggable.errors.length === 0))) &&
         (rrfilter.did_exportAs === null || (rrfilter.did_exportAs ? (loggable.archived & archivedViaExportAs !== 0) : (loggable.archived & archivedViaExportAs === 0))) &&
         (rrfilter.did_submitHTTP === null || (rrfilter.did_submitHTTP ? (loggable.archived & archivedViaSubmitHTTP !== 0) : (loggable.archived & archivedViaSubmitHTTP === 0))) &&
         (rrfilter.in_ls === null || loggable.inLS === rrfilter.in_ls) &&
