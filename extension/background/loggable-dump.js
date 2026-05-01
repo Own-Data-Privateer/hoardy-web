@@ -60,13 +60,17 @@ function rrfilterNumTabId(rrfilter) {
     ];
 }
 
+function partitionArchivables(rrfilter, iterable) {
+    let [num, tabId] = rrfilterNumTabId(rrfilter);
+    let [popped, unpopped] = partitionN((archivable) => isAcceptedBy(rrfilter, archivable[0]), num, iterable);
+    return [tabId, popped, unpopped];
+}
+
 function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
     if (reqresProblematic.length == 0)
         return 0;
 
-    rrfilter = mkReqresFilter(rrfilter);
-    let [num, tabId] = rrfilterNumTabId(rrfilter);
-    let [popped, unpopped] = partitionN((archivable) => isAcceptedBy(rrfilter, archivable[0]), num, reqresProblematic);
+    let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresProblematic);
 
     if (popped.length === 0)
         return 0;
@@ -125,9 +129,7 @@ function rotateProblematic(rrfilter) {
     if (reqresProblematic.length == 0)
         return;
 
-    rrfilter = mkReqresFilter(rrfilter);
-    let [num, tabId] = rrfilterNumTabId(rrfilter);
-    let [popped, unpopped] = partitionN((archivable) => isAcceptedBy(rrfilter, archivable[0]), num, reqresProblematic);
+    let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresProblematic);
 
     // append them to the end
     unpopped.push(...popped);
@@ -144,9 +146,7 @@ function popInLimbo(collect, rrfilter) {
     if (reqresLimbo.length == 0)
         return;
 
-    rrfilter = mkReqresFilter(rrfilter);
-    let [num, tabId] = rrfilterNumTabId(rrfilter);
-    let [popped, unpopped] = partitionN((archivable) => isAcceptedBy(rrfilter, archivable[0]), num, reqresLimbo);
+    let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresLimbo);
 
     if (popped.length === 0)
         return 0;
@@ -215,9 +215,7 @@ function rotateInLimbo(rrfilter) {
     if (reqresLimbo.length == 0)
         return;
 
-    rrfilter = mkReqresFilter(rrfilter);
-    let [num, tabId] = rrfilterNumTabId(rrfilter);
-    let [popped, unpopped] = partitionN((archivable) => isAcceptedBy(rrfilter, archivable[0]), num, reqresLimbo);
+    let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresLimbo);
 
     // append them to the end
     unpopped.push(...popped);
