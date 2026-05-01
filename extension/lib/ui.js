@@ -197,6 +197,7 @@ function setUI(node, prefix, value, update) {
         // - true -> true,
         // - false -> null,
         // - false + .false class -> false
+        let cvalue = value;
         el.checked = value === true;
         if (value === false)
             el.classList.add("false");
@@ -211,10 +212,16 @@ function setUI(node, prefix, value, update) {
                     el.classList.remove("false");
                 } else if (!nvalue)
                     el.classList.add("false");
+
+                if (nvalue === cvalue)
+                    return;
+
+                cvalue = nvalue;
                 update(nvalue, prefix);
             };
     } else if ((typ === "number" || typ === "string") && el.tagName === "INPUT"
                && (el.type === "number" || el.type === "text" || el.type === "button")) {
+        let cvalue = value;
         el.value  = value;
         if (update !== undefined && el.type != "button")
             el.onchange = () => {
@@ -223,21 +230,33 @@ function setUI(node, prefix, value, update) {
                     nvalue = Number(nvalue).valueOf();
                 else if (typ === "string")
                     nvalue = String(nvalue).valueOf();
+
+                if (nvalue === cvalue)
+                    return;
+
+                cvalue = nvalue;
                 update(nvalue, prefix);
             };
     } else if (typ === "omega" && el.tagName === "INPUT" && el.type === "number") {
+        let cvalue = value;
         let checkbox = node.getElementById(prefix + "-omega");
         checkbox.checked = value !== null;
         el.disabled = value === null;
         if (update !== undefined) {
             let onchange = () => {
                 let isNull = !checkbox.checked;
+                let nvalue = isNull ? null : Number(el.value).valueOf();
                 if (isNull)
                     div.classList.add("null");
                 else
                     div.classList.remove("null");
                 el.disabled = isNull;
-                update(isNull ? null : Number(el.value).valueOf(), prefix);
+
+                if (nvalue === cvalue)
+                    return;
+
+                cvalue = nvalue;
+                update(nvalue, prefix);
             };
             checkbox.onchange = onchange;
             el.onchange = onchange;
