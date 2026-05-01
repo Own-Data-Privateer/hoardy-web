@@ -129,8 +129,6 @@ function broadcastToSaved(...args) {
     return broadcastToName(true, "saved", ...args);
 }
 
-let scheduledUI = new Map();
-
 function setPageState(state) {
     document.getElementById("body").style.display = state === "done" ? "block" : "none";
     document.getElementById("body_loading").style.display = state === "loading" ? "block" : "none";

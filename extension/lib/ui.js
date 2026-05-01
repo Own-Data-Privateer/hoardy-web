@@ -23,7 +23,7 @@
 /*
  * Utility functions for HTML UI making.
  *
- * Depends on `./base.js`.
+ * Depends on `./base.js` and `./schedule-timeout.js`.
  */
 
 "use strict";
@@ -152,6 +152,8 @@ function buttonToAction(id, action) {
     return el;
 }
 
+let scheduledUI = new Map();
+
 // set values of DOM elements from a given object
 function setUI(node, prefix, value, update) {
     let typ = typeof value;
@@ -223,8 +225,8 @@ function setUI(node, prefix, value, update) {
                && (el.type === "number" || el.type === "text" || el.type === "button")) {
         let cvalue = value;
         el.value  = value;
-        if (update !== undefined && el.type != "button")
-            el.onchange = () => {
+        if (update !== undefined && el.type != "button") {
+            let onchange = () => {
                 let nvalue = el.value;
                 if (typ === "number")
                     nvalue = Number(nvalue).valueOf();
@@ -237,6 +239,14 @@ function setUI(node, prefix, value, update) {
                 cvalue = nvalue;
                 update(nvalue, prefix);
             };
+            el.onchange = onchange;
+
+            let timeout = Number(div.getAttribute("timeout")).valueOf();
+            el.onkeyup = (event) => {
+                if (timeout !== 0 || event.key === "Enter")
+                    resetSingletonTimeout(scheduledUI, `update-${prefix}`, 0, () => onchange());
+            }
+        }
     } else if (typ === "omega" && el.tagName === "INPUT" && el.type === "number") {
         let cvalue = value;
         let checkbox = node.getElementById(prefix + "-omega");
@@ -260,6 +270,12 @@ function setUI(node, prefix, value, update) {
             };
             checkbox.onchange = onchange;
             el.onchange = onchange;
+
+            let timeout = Number(div.getAttribute("timeout")).valueOf();
+            el.onkeyup = (event) => {
+                if (timeout !== 0 || event.key === "Enter")
+                    resetSingletonTimeout(scheduledUI, `update-${prefix}`, 0, () => onchange());
+            }
         }
     } else
         el.innerText = value;
