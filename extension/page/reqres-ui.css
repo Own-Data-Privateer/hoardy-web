@@ -35,26 +35,31 @@ h1 {
     display: flex;
 }
 
-div.controls,
+h1 .controls {
+    font-size: 16px;
+    margin-left: 15px;
+}
+
+.controls,
 .right {
     display: flex;
 }
 
 h1 code,
-div.controls code,
+.controls code,
 .right code {
     margin: auto 0.5ch;
 }
 
-div.controls {
+.controls {
     margin-top: 10px;
 }
 
-div.controls > span {
+.controls > span {
     margin-right: 10px;
 }
 
-div.controls .ui.number label input {
+.controls .ui.number label input {
     width: 8em;
 }
 

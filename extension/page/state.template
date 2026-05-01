@@ -13,6 +13,10 @@
     <div id="body" style="display: none">
     <span id="top"></span>
     <h1 id="in_flight" class="ui">In flight
+      <span class="controls">
+        <ui id="rrfilters.inFlight.url_algo" type="tristate" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+        <ui id="rrfilters.inFlight.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+      </span>
       <span class="right">
         <input type="button" id="stopAllInFlight" data-help="Stop tracking progress of all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup." value="Stop tracking all" />
       </span>
@@ -20,6 +24,10 @@
     <table><tbody id="data-inFlight"></tbody></table>
 
     <h1 id="problematic" class="ui">Problematic
+      <span class="controls">
+        <ui id="rrfilters.problematic.url_algo" type="tristate" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+        <ui id="rrfilters.problematic.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+      </span>
       <span class="right">
         <input type="button" id="unmarkOneProblematic" data-help="Unset `problematic` flag from the first reqres below." value="Unmark the first one" />
         <input type="button" id="unmarkAllProblematic" data-help="Unset `problematic` flag from all reqres below." value="Unmark all" />
@@ -35,6 +43,10 @@
     <table><tbody id="data-problematic"></tbody></table>
 
     <h1 id="in_limbo" class="ui">In limbo
+      <span class="controls">
+        <ui id="rrfilters.inLimbo.url_algo" type="tristate" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+        <ui id="rrfilters.inLimbo.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+      </span>
       <span class="right">
         <input type="button" id="discardOneInLimbo" data-help="Discard the first reqres below." value="Discard the first one" />
         <input type="button" id="discardAllInLimbo" data-help="Discard all reqres below." value="Discard all" />
@@ -52,6 +64,10 @@
     <table><tbody id="data-inLimbo"></tbody></table>
 
     <h1 id="log" class="ui">Recent history log
+      <span class="controls">
+        <ui id="rrfilters.log.url_algo" type="tristate" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+        <ui id="rrfilters.log.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+      </span>
       <span class="right">
         <input type="button" id="forgetLog" data-help="Forget about all the requests below except for those that are still marked as &quot;problematic&quot;." value="Forget all" />
       </span>
@@ -68,7 +84,12 @@
     <!-- This anchor goes here, because we usually want to see the tail of the log. -->
     <span id="tail"></span>
 
-    <h1 id="queued">Queued</h1>
+    <h1 id="queued" class="ui">Queued
+      <span class="controls">
+        <ui id="rrfilters.queued.url_algo" type="tristate" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+        <ui id="rrfilters.queued.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+      </span>
+    </h1>
     <div class="controls ui">
       <ui id="rrfilters.queued.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
       <ui id="rrfilters.queued.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
@@ -79,6 +100,10 @@
     <table><tbody id="data-queued"></tbody></table>
 
     <h1 id="unarchived" class="ui">Failed to archive
+      <span class="controls">
+        <ui id="rrfilters.unarchived.url_algo" type="tristate" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+        <ui id="rrfilters.unarchived.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+      </span>
       <span class="right">
         <input type="button" id="retryAllUnarchived" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake." value="Retry all" />
       </span>

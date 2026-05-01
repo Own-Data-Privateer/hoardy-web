@@ -14,6 +14,10 @@
     <span id="top"></span>
 
     <h1 class="ui">Saved
+      <span class="controls">
+        <ui id="rrfilters.url_algo" type="tristate" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+        <ui id="rrfilters.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+      </span>
       <span class="right">
         <input type="button" id="rearchiveSaved" class="on-rearchive" data-help="Re-archive reqres currently displayed below with all currently enabled re-archival methods (configured in the settings)." value="Re-archive" />
         <ui id="rearchive.andDelete" type="boolean" class="on-rearchive" style="font-size: 50%" data-help="After re-archival succeeds, delete them from browser&#039;s local storage.">... and delete</ui>
