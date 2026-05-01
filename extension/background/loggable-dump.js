@@ -61,6 +61,7 @@ function rrfilterNumTabId(rrfilter) {
 }
 
 function partitionArchivables(rrfilter, iterable) {
+    rrfilter = buildReqresFilter(rrfilter);
     let [num, tabId] = rrfilterNumTabId(rrfilter);
     let [popped, unpopped] = partitionN((archivable) => isAcceptedBy(rrfilter, archivable[0]), num, iterable);
     return [tabId, popped, unpopped];
@@ -237,7 +238,7 @@ function forgetLog(rrfilter) {
     if (reqresLog.length == 0)
         return;
 
-    rrfilter = mkReqresFilter(rrfilter);
+    rrfilter = buildReqresFilter(rrfilter);
     let [num, tabId] = rrfilterNumTabId(rrfilter);
     let [popped, unpopped] = partitionN((loggable) => !loggable.problematic && isAcceptedBy(rrfilter, loggable), num, reqresLog);
 

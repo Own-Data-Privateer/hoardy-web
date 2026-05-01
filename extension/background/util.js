@@ -348,16 +348,40 @@ let reqresFilterDefaults = {
     did_submitHTTP: null,
     in_ls: null,
     method: null,
-    url: null,
+    url_algo: null,
+    url: "",
 };
 
 function mkReqresFilter(attrs) {
     return updateFromRec(assignRec({}, reqresFilterDefaults), attrs);
 }
 
+function buildReqresFilter(attrs) {
+    let res = mkReqresFilter(attrs);
+
+    // .url_matches tests if the URL is accepted by rrfilter
+    let algo = res.url_algo;
+    let arg = res.url;
+    if (algo === null && arg.length === 0)
+        res.url_matches = (url) => true;
+    else if (algo === false)
+        res.url_matches = (url) => url === arg;
+    else if (algo === null)
+        res.url_matches = (url) => url.includes(arg);
+    else if (algo === true) {
+        let re = new RegExp(arg);
+        res.url_matches = (url) => re.test(url);
+    }
+
+    if (res.url_matches === undefined)
+        throw new TypeError("rrfilter.url");
+
+    return res;
+}
+
 // loggable is accepted by the rrfilter
 function isAcceptedBy(rrfilter, loggable) {
-    if (!isDefined(rrfilter) ||
+    if (
         (rrfilter.sessionId === null || loggable.sessionId === rrfilter.sessionId) &&
         (rrfilter.tabId === null || loggable.tabId === rrfilter.tabId) &&
         (rrfilter.picked === null || loggable.picked === rrfilter.picked) &&
@@ -371,7 +395,7 @@ function isAcceptedBy(rrfilter, loggable) {
         (rrfilter.did_submitHTTP === null || (rrfilter.did_submitHTTP ? (loggable.archived & archivedViaSubmitHTTP !== 0) : (loggable.archived & archivedViaSubmitHTTP === 0))) &&
         (rrfilter.in_ls === null || loggable.inLS === rrfilter.in_ls) &&
         (rrfilter.method === null || loggable.method === rrfilter.method) &&
-        (rrfilter.url === null || loggable.url === rrfilter.url)
+        rrfilter.url_matches(loggable.url)
     )
         return true;
     return false;

@@ -820,6 +820,8 @@ async function loadStashed() {
 }
 
 async function loadSaved(rrfilter, wantStop) {
+    rrfilter = buildReqresFilter(rrfilter);
+
     let res = [];
     let [newSavedLS, newSavedIDB] = await forEachInStorage("save", (loggable) => {
         if (wantStop !== undefined && wantStop())

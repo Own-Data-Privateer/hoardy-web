@@ -192,11 +192,11 @@ function resetDataNode(node, log_data, predicate) {
 function mkDataNodeUpdater(id, getReqresFilter) {
     return [
         (log_data) => {
-            let rrfilter = getReqresFilter();
+            let rrfilter = buildReqresFilter(getReqresFilter());
             resetDataNode(document.getElementById(id), log_data, (loggable) => isAcceptedBy(rrfilter, loggable));
         },
         (log_data) => {
-            let rrfilter = getReqresFilter();
+            let rrfilter = buildReqresFilter(getReqresFilter());
             appendToLog(document.getElementById(id), log_data, (loggable) => isAcceptedBy(rrfilter, loggable));
         },
     ];
