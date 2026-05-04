@@ -273,9 +273,6 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
 }
 
 async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
-    if (bundleBuckets === undefined)
-        bundleBuckets = reqresBundledAs;
-
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
@@ -318,9 +315,6 @@ async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
 // Archival via submission to an HTTP archiving server.
 
 async function submitHTTPOne(archivable, unarchivedAccumulator) {
-    if (unarchivedAccumulator === undefined)
-        unarchivedAccumulator = reqresUnarchivedIssueAcc;
-
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
@@ -685,9 +679,6 @@ async function forEachInStorage(storeName, func, limit) {
 
 // Saving
 async function stashOne(archivable, unstashedAccumulator) {
-    if (unstashedAccumulator === undefined)
-        unstashedAccumulator = reqresUnstashedIssueAcc;
-
     try {
         let [loggable, dump] = archivable;
         updateLoggable(loggable);
@@ -707,6 +698,9 @@ async function stashOne(archivable, unstashedAccumulator) {
 }
 
 async function stashMany(archivables, unstashedAccumulator) {
+    if (unstashedAccumulator === undefined)
+        unstashedAccumulator = reqresUnstashedIssueAcc;
+
     for (let archivable of archivables)
         await stashOne(archivable, unstashedAccumulator);
 }
@@ -746,9 +740,6 @@ async function deleteMany(archivables) {
 
 
 async function saveOne(archivable, elide, unarchivedAccumulator) {
-    if (unarchivedAccumulator === undefined)
-        unarchivedAccumulator = reqresUnarchivedIssueAcc;
-
     let res;
 
     try {
