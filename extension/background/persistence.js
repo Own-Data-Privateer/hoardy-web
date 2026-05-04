@@ -749,14 +749,15 @@ async function saveOne(archivable, elide, unarchivedAccumulator) {
     if (unarchivedAccumulator === undefined)
         unarchivedAccumulator = reqresUnarchivedIssueAcc;
 
-    let [loggable, dump] = archivable;
-    let dumpSize = loggable.dumpSize;
-
-    if (config.saveLSParanoid && recordOneAssumedBroken(unarchivedAccumulator, "localStorage", "this archiving method appears to be defunct", archivable, dumpSize))
-        return false;
-
     let res;
+
     try {
+        let [loggable, dump] = archivable;
+        let dumpSize = loggable.dumpSize;
+
+        if (config.saveLSParanoid && recordOneAssumedBroken(unarchivedAccumulator, "localStorage", "this archiving method appears to be defunct", archivable, dumpSize))
+            return false;
+
         res = await syncWithStorage(archivable, 2, elide);
     } catch (err) {
         logHandledError(err);
