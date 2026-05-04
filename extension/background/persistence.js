@@ -266,8 +266,8 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
     //   -> ... -> scheduleEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
     //   and does recordManyUnarchived -> evalSynchronousClosures -> stashMany
     //
-    // Which will only work if that `syncWithStorage` does not elide the
-    // dump from memory, which it does not, see (notEliding).
+    // Which will only work if all `syncWithStorage` uses above do not elide the dump from memory,
+    // which it does not in (notEliding).
 
     // NB: needs scheduleUpdateDisplay after
 }
@@ -279,7 +279,7 @@ async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
-    if (isArchivedVia(loggable, archivedViaExportAs))
+    if (loggable.archived & archivedViaExportAs)
         return null;
 
     // load the dump
@@ -288,7 +288,7 @@ async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
     let bucket = loggable.bucket;
     let maxSize = config.exportAsBundle ? config.exportAsMaxSize * MEGABYTE : 0;
 
-    // export if this dump will not fit
+    // export if this dump won't fit
     let res1 = bucketSaveAs(bucket, maxSize - dumpSize, bundleBuckets, unarchivedAccumulator);
     if (res1 === false)
         return false;
@@ -307,7 +307,7 @@ async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
     loggable.archived |= archivedViaExportAs;
     loggable.dirty = true;
 
-    // try exporting again
+    // try exporting again with this dump added
     let res2 = bucketSaveAs(bucket, maxSize, bundleBuckets, unarchivedAccumulator);
     if (res2 === false)
         return false;
@@ -324,7 +324,7 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
-    if (isArchivedVia(loggable, archivedViaSubmitHTTP))
+    if (loggable.archived & archivedViaSubmitHTTP)
         return null;
 
     function broken(storeID, reason, recoverable, quiet) {
@@ -819,7 +819,7 @@ async function loadStashed() {
     }
 }
 
-async function loadSaved(rrfilter, wantStop) {
+async function loadSaved(rrfilter, wantStop, mapFunc) {
     rrfilter = buildReqresFilter(rrfilter);
 
     let res = [];
@@ -829,7 +829,10 @@ async function loadSaved(rrfilter, wantStop) {
         deserializeLoggable(loggable);
         if (!isAcceptedBy(rrfilter, loggable))
             return false;
-        res.push(loggable);
+        if (mapFunc === undefined)
+            res.push(loggable);
+        else
+            res.push(mapFunc(loggable));
         return true;
     }, isDefinedURL(rrfilter) && isDefined(rrfilter.limit) ? rrfilter.limit : null);
 
@@ -909,71 +912,150 @@ function loadAndBroadcastSaved(rrfilter) {
     };
 }
 
-async function processArchiving(updatedTabId) {
-    while (config.archive && reqresQueue.length > 0) {
-        let archivable = reqresQueue.shift();
-        let [loggable, dump] = archivable;
-        let dumpSize = loggable.dumpSize;
-        reqresQueueSize -= dumpSize;
+// archive an archivable
+async function archive(archivables, wantArchived, reset, andRewrite, andDelete, handleErrors, bundleBuckets, unarchivedAccumulator, unstashedAccumulator) {
+    let changedNum = 0;
+    let exportedNum = 0;
+    let submittedNum = 0;
+    let savedNum = 0;
+    let deletedNum = 0;
 
-        if (config.discardAll) {
-            await deleteOne(archivable);
-            continue;
-        }
-
+    for (let archivable of archivables) {
         try {
-            updateLoggable(loggable);
+            let [loggable, dump] = archivable;
+
+            if (loggable.archived === undefined)
+                loggable.archived = 0;
+
+            let oldDirty = loggable.dirty;
+            let oldArchived = loggable.archived;
+
+            if (reset)
+                // force re-archivals
+                loggable.archived &= ~wantArchived;
 
             let allOK = true;
+            let changed = false;
 
             // NB: below, `res === null` means "no action was taken"
 
-            if (config.archiveExportAs) {
-                let res = await exportAsOne(archivable);
+            if (wantArchived & archivedViaExportAs) {
+                let res = await exportAsOne(archivable, bundleBuckets, unarchivedAccumulator);
                 allOK &&= res !== false;
-                if (res === true)
-                    wantBucketSaveAs = true;
+                if (res === true) {
+                    changed = true;
+                    exportedNum += 1;
+                }
             }
 
-            if (config.archiveSubmitHTTP) {
-                let res = await submitHTTPOne(archivable);
+            if (wantArchived & archivedViaSubmitHTTP) {
+                let res = await submitHTTPOne(archivable, unarchivedAccumulator);
                 allOK &&= res !== false;
+                if (res === true) {
+                    changed = true;
+                    submittedNum += 1;
+                }
             }
 
-            // other archival methods go here
+            // NB: other archival methods shall go here
 
-            if (!allOK)
-                // it's in reqresUnarchivedIssueAcc now
-                // try stashing it without recording failures
-                await syncWithStorage(archivable, 1, true).catch(logError);
-            else if (config.archiveSaveLS) {
-                let res = await saveOne(archivable, true);
-                if (res !== false)
-                    // Prevent future calls to `retryAllUnstashed` from un-saving this
-                    // archivable, which can happen with, e.g., the following sequence of
-                    // events:
-                    //   finished -> in_limbo -> stashMany -> out of disk space ->
-                    //   the user fixes it -> popInLimbo ->
-                    //   queued -> saveOne -> syncRetryAllUnstashed
-                    reqresUnstashedIssueAcc[0].delete(archivable);
-                if (res === true)
+            if (andRewrite)
+                // force a rewrite to local storage
+                loggable.dirty = true;
+            else if (!oldDirty && loggable.archived === oldArchived)
+                // elide away noops
+                loggable.dirty = false;
+
+            if (allOK) {
+                if (andRewrite || wantArchived & archivedIntoLS) {
+                    let res = await saveOne(archivable, true, unarchivedAccumulator);
+                    allOK &&= res !== false;
+                    if (res === true) {
+                        changed = true;
+                        savedNum += 1;
+                    }
+                } else if (andDelete) {
+                    // NB: (notEliding) so that a failing `bucketSaveAs` called from
+                    // `scheduleBucketSaveAs` wouldn't end up with archivables without their dumps
+                    let res = await syncWithStorage(archivable, 0, false);
+                    allOK &&= res !== false;
+                    if (res === true) {
+                        changed = true;
+                        deletedNum += 1;
+                    }
+                }
+
+                if (allOK) {
                     wantBroadcastSaved = true;
+                    if (unstashedAccumulator !== undefined)
+                        // Prevent future calls to `retryAllUnstashed` from un-saving this
+                        // archivable, which can happen with, e.g., the following sequence of
+                        // events:
+                        //   finished -> in_limbo -> stashMany -> out of disk space ->
+                        //   the user fixes it -> popInLimbo ->
+                        //   queued -> saveOne -> syncRetryAllUnstashed
+                        unstashedAccumulator[0].delete(archivable);
+                }
             }
-            else
-                // (notEliding)
-                await syncWithStorage(archivable, 0, false);
+
+            if (!allOK && handleErrors) {
+                // it's in unarchivedAccumulator now, try stashing it without recording failures
+                let res = await syncWithStorage(archivable, 1, true).catch(logError);
+                if (res === true)
+                    changed = true;
+            }
+
+            if (changed)
+                changedNum += 1;
+        } catch(err) {
+            logError(err);
+            if (handleErrors) {
+                markAsBuggedOut(err, archivable);
+                // try stashing without recording failures
+                await syncWithStorage(archivable, 1, true).catch(logError);
+            }
+        }
+    }
+
+    return [changedNum, exportedNum, submittedNum, savedNum, deletedNum];
+}
+
+async function processArchiving(updatedTabId) {
+    while (config.archive && reqresQueue.length > 0) {
+        let archivable = reqresQueue.shift();
+
+        try {
+            let [loggable, dump] = archivable;
+            let dumpSize = loggable.dumpSize;
+            reqresQueueSize -= dumpSize;
+
+            let wantArchived = (
+                (config.archiveExportAs ? archivedViaExportAs : 0) |
+                (config.archiveSubmitHTTP ? archivedViaSubmitHTTP : 0) |
+                (config.archiveSaveLS ? archivedIntoLS : 0)
+            );
+
+            if (config.discardAll) {
+                await deleteOne(archivable);
+                continue;
+            }
+
+            updateLoggable(loggable);
+
+            let [changedNum, exportedNum, submittedNum, savedNum, deletedNum] = await archive([archivable], wantArchived, false, false, true, true, reqresBundledAs, reqresUnarchivedIssueAcc, reqresUnstashedIssueAcc);
+
+            if (exportedNum > 0)
+                wantBucketSaveAs = true;
+            if (exportedNum > 0 || submittedNum > 0 || savedNum > 0)
+                gotNewArchivedOrNot = true;
+
+            let tabId = loggable.tabId;
+            updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
+            scheduleUpdateDisplay(true, tabId, false, getGoodEpisodic(reqresQueue.length));
         } catch (err) {
             logHandledError(err);
             markAsBuggedOut(err, archivable);
-            // try stashing without recording failures
-            await syncWithStorage(archivable, 1, true).catch(logError);
         }
-
-        gotNewArchivedOrNot = true;
-
-        let tabId = loggable.tabId;
-        updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
-        scheduleUpdateDisplay(true, tabId, false, getGoodEpisodic(reqresQueue.length));
     }
 
     broadcastToState(null, "resetQueued", getQueued);
@@ -982,10 +1064,10 @@ async function processArchiving(updatedTabId) {
     return updatedTabId;
 }
 
-// the number of times `processRearchiving` was run
+// the number of times it was run
 let rearchiveNum = 0;
 
-async function processRearchiving(rrfilter, reset, andDelete, andRewrite) {
+async function processRearchiving(getArchivables, reset, andRewrite, andDelete) {
     rearchiveNum +=1;
     await browser.notifications.create(`running-rearchive-${rearchiveNum}`, {
         title: "Hoardy-Web: RUNNING",
@@ -994,115 +1076,54 @@ async function processRearchiving(rrfilter, reset, andDelete, andRewrite) {
         type: "basic",
     }).catch(logError);
 
-    broadcastToSaved("resetSaved", [null]); // invalidate UI
-    wantBroadcastSaved = true;
-
-    let unrearchivedAccumulator = newIssueAcc();
     let bundleBuckets = new Map();
+    let unrearchivedAccumulator = newIssueAcc();
+    let wantArchived = (
+        (config.rearchiveExportAs ? archivedViaExportAs : 0) |
+        (config.rearchiveSubmitHTTP ? archivedViaSubmitHTTP : 0) |
+        (andDelete ? 0 : archivedIntoLS)
+    );
 
-    let wantFlags = 0;
-    if (config.rearchiveExportAs)
-        wantFlags = archivedViaExportAs;
-    if (config.rearchiveSubmitHTTP)
-        wantFlags = wantFlags | archivedViaSubmitHTTP;
-
-    let unsetFlags = ~wantFlags;
-
-    let modNumber = 0;
-    let actNumber = 0;
-    let log = await loadSaved(rrfilter);
-    let totalNumber = log.length;
-    let partialNumber = 0;
-    for (let loggable of log) {
-        let archivable = [loggable, null];
-
-        try {
-            let oldFlags = loggable.archived;
-            if (reset)
-                loggable.archived &= unsetFlags;
-
-            let allOK = true;
-            let acted = false;
-
-            if (config.rearchiveExportAs) {
-                let res = await exportAsOne(archivable, bundleBuckets, unrearchivedAccumulator);
-                allOK &&= res !== false;
-                if (res === true) {
-                    acted = true;
-                    actNumber += 1;
-                }
-            }
-
-            if (config.rearchiveSubmitHTTP) {
-                let res = await submitHTTPOne(archivable, unrearchivedAccumulator);
-                allOK &&= res !== false;
-                if (res === true) {
-                    acted = true;
-                    actNumber += 1;
-                }
-            }
-
-            if (andRewrite)
-                // force a re-write
-                loggable.dirty = true;
-            else if (loggable.archived === oldFlags)
-                // optimize a bit, elide away noops
-                loggable.dirty = false;
-
-            if (allOK && andDelete) {
-                let res = await syncWithStorage(archivable, 0, false);
-                allOK &&= res !== false;
-                if (res === true) {
-                    acted = true;
-                    modNumber += 1;
-                }
-            } else {
-                let res = await saveOne(archivable, false, unrearchivedAccumulator);
-                allOK &&= res !== false;
-                if (res === true) {
-                    acted = true;
-                    modNumber += 1;
-                }
-            }
-
-            if (acted)
-                // at least one action was taken
-                partialNumber += 1;
-        } catch(err) {
-            logError(err);
-            markAsBuggedOut(err, archivable);
-        }
-    }
+    let archivables = await getArchivables();
+    let [changedNum, exportedNum, submittedNum, savedNum, deletedNum] = await archive(archivables, wantArchived, reset, andRewrite, andDelete, false, bundleBuckets, unrearchivedAccumulator);
+    archivables = undefined; // allow to GC immediately
 
     for (let bucket of Array.from(bundleBuckets.keys()))
         bucketSaveAs(bucket, 0, bundleBuckets, unrearchivedAccumulator);
 
-    // allow to GC immediately
-    log = undefined;
-
+    // TODO: do this properly, this is slow
     // re-load everything again to update `globals`
-    if (modNumber > 0 && andDelete)
+    if (deletedNum > 0)
         await loadSaved();
 
     await browser.notifications.clear(`running-rearchive-${rearchiveNum}`).catch(logError);
 
-    let unarchivedNumber = unrearchivedAccumulator[0].size;
-    let allOK = unarchivedNumber === 0;
-
+    let allOK = unrearchivedAccumulator[0].size === 0;
     if (!allOK)
         await notifyAboutUnarchived("unrearchived", "Failed to re-archive", unrearchivedAccumulator[1].entries()).catch(logError);
 
-    await browser.notifications.create(`ok-rearchived-${rearchiveNum}`, {
-        title: `Hoardy-Web: ${allOK ? "OK" : (partialNumber > 0 ? "Some OK" : "NOOP")}`,
-        message: escapeNotification(config, `${allOK ? "Re-archived" + (andDelete ? " and deleted" : ""): "Partially re-archived"} ${partialNumber} reqres invoking ${actNumber} archiving actions and ${modNumber} local storage modifications.`),
-        iconUrl: iconURL(allOK ? "idle" : "archiving", 128),
+    let actions;
+    if (exportedNum > 0 || submittedNum > 0 || savedNum > 0)
+        actions = `${exportedNum} exports via \`saveAs\`, ${submittedNum} submissions via \`HTTP\`, ${savedNum} saves to`;
+    else
+        actions = "0 archiving actions";
+
+    await browser.notifications.create("", {
+        title: `Hoardy-Web: ${allOK ? "OK" : (changedNum > 0 ? "Some OK" : "FAIL")}`,
+        message: escapeNotification(config, `${allOK ? "Re-archived" + (andDelete ? " and deleted" : ""): "Partially re-archived"} ${changedNum} reqres invoking ${actions} and ${deletedNum} deletions from local storage.`),
+        iconUrl: iconURL(allOK ? "idle" : "error", 128),
         type: "basic",
     }).catch(logError);
 }
 
-function syncRearchiveSaved(rrfilter, reset, andDelete, andRewrite) {
-    runSynchronouslyWhen(config.rearchiveExportAs || config.rearchiveSubmitHTTP || andRewrite, "rearchiveSaved",
-                         () => processRearchiving(rrfilter, reset, andDelete, andRewrite));
+function syncRearchiveSaved(rrfilter, reset, andRewrite, andDelete) {
+    runSynchronouslyWhen(config.rearchiveExportAs || config.rearchiveSubmitHTTP || andRewrite, "rearchiveSaved", async () => {
+        // invalidate UI
+        broadcastToSaved("resetSaved", [null]);
+        wantBroadcastSaved = true;
+
+        await processRearchiving(() => loadSaved(rrfilter, undefined, (v) => [v, null]), reset, andRewrite, andDelete);
+    });
 }
 
 function syncDeleteSaved(rrfilter) {

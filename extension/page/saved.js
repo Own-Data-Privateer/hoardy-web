@@ -88,7 +88,7 @@ async function stateMain() {
         }
     }
 
-    buttonToMessage("rearchiveSaved", () => ["rearchiveSaved", savedFilters, true, rearchive.andDelete, rearchive.andRewrite]);
+    buttonToMessage("rearchiveSaved", () => ["rearchiveSaved", savedFilters, true, rearchive.andRewrite, rearchive.andDelete]);
     buttonToAction("deleteSaved", () => {
         if (!window.confirm("Really?"))
             return;

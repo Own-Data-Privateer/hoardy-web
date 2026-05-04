@@ -599,7 +599,7 @@ However, these options should be used with caution:
   - enable {{{div2(rearchive.andDelete,deletion)}}} without changing any other options;
   - press {{{button2(rearchiveAdjunctSaved,=Re-archive adjunct= button)}}}.
 
-  The last action should then produce an =Re-archived and deleted <N> reqres invoking 0 archiving actions.= notification.
+  The last action should then produce an =Re-archived and deleted <N> reqres invoking 0 archiving actions and <N> deletions from local storage.= notification.
   I.e. it will just delete all of them, without actually performing any archivals.
 
   Or, alternatively, as a last step, you can open {{{button2(showSaved,=Saved in Local Storage= page)}}}, set =Exported via 'saveAs'= filter to =true= and then press =Delete=.

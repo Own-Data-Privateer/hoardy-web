@@ -252,8 +252,8 @@ async function popupMain() {
         browser.runtime.sendMessage(["resetConfig"]).catch(logError);
     });
 
-    buttonToMessage("rearchiveAllSaved", () => ["rearchiveSaved", {}, true, rearchive.andDelete, rearchive.andRewrite]);
-    buttonToMessage("rearchiveAdjunctSaved", () => ["rearchiveSaved", {}, false, rearchive.andDelete, rearchive.andRewrite]);
+    buttonToMessage("rearchiveAllSaved",     () => ["rearchiveSaved", {}, true, rearchive.andRewrite, rearchive.andDelete]);
+    buttonToMessage("rearchiveAdjunctSaved", () => ["rearchiveSaved", {}, false, rearchive.andRewrite, rearchive.andDelete]);
 
     let shortcutButtons = [
         "reloadSelf", "cancelReloadSelf",

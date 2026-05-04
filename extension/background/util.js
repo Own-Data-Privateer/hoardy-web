@@ -306,13 +306,9 @@ function mergeUpdatedTabIds(a , b) {
 
 const archivedViaExportAs = 1;
 const archivedViaSubmitHTTP = 2;
-
-function isArchivedVia(loggable, flag) {
-    if (loggable.archived === undefined)
-        loggable.archived = 0;
-
-    return (loggable.archived & flag) !== 0;
-}
+// NB: this one does not get written out to reqres, it's only used for `wantArchived` checks in
+// `archive` function
+const archivedIntoLS = 4;
 
 function newRearchiveVars() {
     return {
