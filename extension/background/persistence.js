@@ -1123,17 +1123,28 @@ function syncDeleteSaved(rrfilter) {
         broadcastToSaved("resetSaved", [null]); // invalidate UI
         wantBroadcastSaved = true;
 
+        let allOK = true;
+        let deletedNum = 0;
+
         let loggables = await loadSaved(rrfilter);
         for (let loggable of loggables) {
             let archivable = [loggable, null];
 
             try {
                 await syncWithStorage(archivable, 0, false);
+                deletedNum += 1;
             } catch(err) {
+                allOK = false;
                 logError(err);
                 markAsBuggedOut(err, archivable);
-                continue;
             }
         }
+
+        await browser.notifications.create("", {
+            title: `Hoardy-Web: ${allOK ? "OK" : (deletedNum > 0 ? "Some OK" : "FAIL")}`,
+            message: escapeNotification(config, `Deleted ${deletedNum} reqres from local storage.`),
+            iconUrl: iconURL(allOK ? "idle" : "error", 128),
+            type: "basic",
+        }).catch(logError);
     });
 }
