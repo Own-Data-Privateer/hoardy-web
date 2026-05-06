@@ -748,8 +748,8 @@ section {
     </div>
     </section>
 
-    <h3>Re-archival from local storage</h3>
     <section>
+    <h3>Re-archival from local storage</h3>
     <div class="isubdots">
     <!-- rearchiveOptions -->
 
@@ -758,31 +758,25 @@ section {
     <ui id="config.rearchiveSubmitHTTP" type="boolean" data-help="Re-archive reqres saved in browser&#039;s local storage by submitting their dumps via `HTTP` by `POST`ing them to the archiving server at the URL set in the `Server URL` option. See the similar option above for more info.">Submit dumps via <code>HTTP</code></ui>
     </div>
 
-    <h3>Quick re-archival</h3>
     <section>
-    <!-- rearchiveActions -->
-    <div class="on-rearchive">
+    <h3>Quick re-archival</h3>
 
-    <div class="flex on-unsafe-rearchive attention">
-    <p class="center">
-      <span data-help="This combination of options can be used safely, but the way to do it is not obvious. See the `Help` page for more info.">This might be UNSAFE!</span>
-    </p>
-    </div>
+    <ui id="rearchive.andRewrite" type="boolean" data-help="For each reqres saved in browser&#039;s local storage, after it gets re-archived with all of the above methods, successfully or not, forcefully re-write it into browser&#039;s local storage again. This is only useful for debugging and migration between local storage backends.">Re-write everything into local storage</ui>
+    <ui id="rearchive.andDelete" type="boolean" data-help="For each reqres saved in browser&#039;s local storage, after it gets successfully re-archived with all of the above methods, delete it from browser&#039;s local storage.">Delete everything from local storage</ui>
 
-    <center id="div-rearchive-actions" class="ui">
-      <input type="button" id="rearchiveAllSaved" data-help="Re-archive all reqres saved in browser&#039;s local storage using all of the enabled re-archival methods. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive all" />
-      <div class="on-carefully attention">
-        <p><span data-help="With current settings, pressing the following button will skip re-archival of reqres that were previously ARCHIVED OR RE-ARCHIVED using all of the enabled re-archival methods, pretend that it re-archived them again, and then DELETE ALL AND EVERY REQRES SAVED INTO BROWSER&#039;S LOCAL STORAGE. This might be exactly what you want to happen, but it might not. Use this feature wisely.">Use the following button with CAUTION!</span></p>
-      </div>
-      <input type="button" id="rearchiveAdjunctSaved" data-shortcut="rearchiveAdjunctSaved" data-help="Re-archive a new batch of reqres using the configured re-archival methods. That is, re-archive all reqres saved in browser&#039;s local storage, but for each enabled re-archival method, skip actual (re-)archival action for those reqres that were previously (re-)archived using the same method. (In other words, for all of the enabled re-archival methods and all saved reqres, only actually run (re-)archival actions on reqres they were not yet run on. Or, in set-theoretic terms, only run on the set that completes the set of &lt;method, reqres&gt; tuples for all enabled re-archival methods and all reqres saved in browser&#039;s local storage. I.e. process the adjunct set.) Then, if deletion is enabled, proceed like the previous button does." value="Re-archive adjunct" />
+    <center class="on-rearchive-carefully attention">
+      <p>
+        <span data-help="This combination of options might be unsafe to use since export via `saveAs` is unable to report most errors. Thus, for instance, if the generated dump file fails to be written to disk because the file system is out of space, that data will be lost. This combination can be used safely, but it requires some care. See the `Help` page for more info.">The following buttons might be UNSAFE!</span>
+      </p>
+      <p>
+        <span data-help="With current settings, pressing the `Re-archive new` button will skip re-archival of reqres that were previously ARCHIVED OR RE-ARCHIVED using all of the enabled re-archival methods, pretend that it re-archived them again, and then DELETE ALL AND EVERY REQRES SAVED INTO BROWSER&#039;S LOCAL STORAGE. This might be exactly what you want to happen, but it might not. Use this feature wisely.">Use <code>Re-archive new</code> button with CAUTION!</span>
+      </p>
     </center>
 
-    <ui id="rearchive.andDelete" type="boolean" data-help="After re-archival of a reqres with all of the above methods succeeds, delete it from browser&#039;s local storage.">... and delete everything afterwards</ui>
-
-    <!-- rearchiveActions -->
-    </div>
-
-    <ui id="rearchive.andRewrite" type="boolean" data-help="After re-archival of a reqres with all of the above methods, forcefully re-write them from/to browser&#039;s local storage. This is only useful for debugging and migration between local storage backends.">... and force a re-write</ui>
+    <center id="div-rearchive-actions" class="on-rearchive ui">
+      <input type="button" id="rearchiveAdjunctSaved" data-shortcut="rearchiveAdjunctSaved" data-help="Re-archive new reqres using the configured re-archival methods. That is, re-archive all reqres saved in browser&#039;s local storage, but for each enabled re-archival method, skip actual (re-)archival action for those reqres that were previously (re-)archived using the same method. In other words, for all of the enabled re-archival methods and all saved reqres, only actually run (re-)archival actions on reqres they were not yet run on. Or, in set-theoretic terms, only run on the set that completes the set of &lt;method, reqres&gt; tuples for all enabled re-archival methods and all reqres saved in browser&#039;s local storage. I.e. process the adjunct set. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive new" />
+      <input type="button" id="rearchiveAllSaved" data-help="Re-archive all reqres saved in browser&#039;s local storage using all of the enabled re-archival methods. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive all" />
+    </center>
 
     </section>
 

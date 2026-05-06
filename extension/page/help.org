@@ -586,7 +586,7 @@ If you want more control over what gets re-archived, you can also
 Successfully re-archived reqres can be deleted automatically by setting {{{div2(rearchive.andDelete,=... and delete everything afterwards=)}}} and a similar option on the {{{button2(showSaved,=Saved in Local Storage= page)}}}.
 However, these options should be used with caution:
 
-- The behaviour of the {{{button2(rearchiveAdjunctSaved,=Re-archive adjunct= button)}}} with {{{div2(rearchive.andDelete,that option)}}} enabled can be surprising if you sometimes use both available {{{div2(rearchive-methods,re-archival methods)}}} and sometimes only one of them.
+- The behaviour of the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} with {{{div2(rearchive.andDelete,that option)}}} enabled can be surprising if you sometimes use both available {{{div2(rearchive-methods,re-archival methods)}}} and sometimes only one of them.
   See its help string for more info.
 
 - Re-archiving by the means of {{{config2(rearchiveExportAs,=Export via 'saveAs'=)}}} with {{{div2(rearchive.andDelete,that option)}}} enabled is [[#unsafe-saveas][unsafe because of browser API limitations]].
@@ -597,14 +597,14 @@ However, these options should be used with caution:
   - re-archive with {{{div2(rearchive.andDelete,deletion)}}} disabled, by using any one of {{{div2(rearchive-actions,the buttons)}}};
   - confirm that all generated fake-Downloads were actually successfully saved to disk;
   - enable {{{div2(rearchive.andDelete,deletion)}}} without changing any other options;
-  - press {{{button2(rearchiveAdjunctSaved,=Re-archive adjunct= button)}}}.
+  - press {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}}.
 
   The last action should then produce an =Re-archived and deleted <N> reqres invoking 0 archiving actions and <N> deletions from local storage.= notification.
   I.e. it will just delete all of them, without actually performing any archivals.
 
   Or, alternatively, as a last step, you can open {{{button2(showSaved,=Saved in Local Storage= page)}}}, set =Exported via 'saveAs'= filter to =true= and then press =Delete=.
 
-  Keeping {{{config2(archive,=Archive 'collected' reqres= option)}}} enabled will not break anything in the internal machinery, but if another reqres gets captured and then sneakily =saved= a moment before you press the {{{button2(rearchiveAdjunctSaved,=Re-archive adjunct= button)}}} and the generated =WRR bundle= then [[#unsafe-saveas][silently fails to be saved to disk via =saveAs=]], then that sneaky reqres will still get deleted, and, thus, permanently lost.
+  Keeping {{{config2(archive,=Archive 'collected' reqres= option)}}} enabled will not break anything in the internal machinery, but if another reqres gets captured and then sneakily =saved= a moment before you press the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} and the generated =WRR bundle= then [[#unsafe-saveas][silently fails to be saved to disk via =saveAs=]], then that sneaky reqres will still get deleted, and, thus, permanently lost.
 
 Also, note that the {{{div2(rearchive.andDelete,deletion option)}}} and its equivalent on {{{button2(showSaved,=Saved in Local Storage= page)}}} are ephemeral and will be reset the next time you reopen the popup or that page.
 ** (Optional) Step 5: Replay integration
@@ -741,7 +741,7 @@ So, while this setup is not super-secure if your Tor Browser allows web pages to
 - open the =Internal State and Logs= page, scrolled to the end of the log, {{{shortcut(showLog)}}};
 - open the {{{button2(showTabState,=Internal State and Logs= page)}}} narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
 - open the =Internal State and Logs= page narrowed to the currently active tab's data, scrolled to the end of the log, {{{shortcut(showTabLog)}}};
-- simulate {{{button2(rearchiveAdjunctSaved,=Re-archive adjunct= button)}}} press with {{{div2(local.rearchiveDelete,deletion)}}} disabled, {{{shortcut(rearchiveAdjunctSaved)}}};
+- simulate {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} press with {{{div2(local.rearchiveDelete,deletion)}}} disabled, {{{shortcut(rearchiveAdjunctSaved)}}};
 - toggle {{{tabconfig2(autoReplay,=Auto-Replay= mode in the currently active tab)}}} and its children, {{{shortcut(toggleTabConfigAutoReplay)}}};
 - toggle {{{tabconfig2(children.autoReplay,=Auto-Replay= mode in the currently active tab's new children)}}}, {{{shortcut(toggleTabConfigChildrenAutoReplay)}}};
 - toggle {{{tabconfig2(workOffline,=Work Offline= mode in the currently active tab)}}} and its children, {{{shortcut(toggleTabConfigWorkOffline)}}};
@@ -842,7 +842,7 @@ So, while this setup is not super-secure if your Tor Browser allows web pages to
   - Disable {{{config2(preferIndexedDB,=Prefer 'IndexedDB' API= setting)}}}.
   - Disable all {{{div2(rearchive-methods,re-archival methods)}}}.
   - Enable {{{div2(rearchive.andRewrite,=... and force a re-write= option)}}},
-  - press {{{button2(rearchiveAdjunctSaved,=Re-archive adjunct= button)}}},
+  - press {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}},
   - and wait for re-archival to finish.
   - Now, you can re-enable the =Always use private browsing mode= browser setting and restart you browser again.
 

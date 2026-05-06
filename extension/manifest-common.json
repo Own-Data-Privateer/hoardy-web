@@ -37,7 +37,7 @@
             "description": "Show Tab's Log: For the currently active tab, open the log of recently collected and discarded reqres"
         },
         "rearchiveAdjunctSaved": {
-            "description": "Re-archive adjunct: Re-archive a new batch of reqres using the configured re-archival methods"
+            "description": "Re-archive new: Re-archive new reqres using the configured re-archival methods"
         },
         "toggleTabConfigAutoReplay": {
             "description": "Toggle Tab's Auto-Replay: For the currently active tab, toggle `Auto-replay` setting and reset the related option for the tab's new children"

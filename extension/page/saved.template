@@ -20,8 +20,8 @@
       </span>
       <span class="right">
         <input type="button" id="rearchiveSaved" class="on-rearchive" data-help="Re-archive reqres currently displayed below with all currently enabled re-archival methods (configured in the settings)." value="Re-archive" />
-        <ui id="rearchive.andDelete" type="boolean" class="on-rearchive" style="font-size: 50%" data-help="After re-archival succeeds, delete them from browser&#039;s local storage.">... and delete</ui>
         <ui id="rearchive.andRewrite" type="boolean" style="font-size: 50%" data-help="After re-archival, forcefully re-write them from/to browser&#039;s local storage. This is only useful for debugging and for migration between local storage backends.">... and re-write</ui>
+        <ui id="rearchive.andDelete" type="boolean" class="on-rearchive" style="font-size: 50%" data-help="After re-archival succeeds, delete them from browser&#039;s local storage.">... and delete</ui>
         <input type="button" id="deleteSaved" data-help-class="help-tip-right" data-help="Delete all reqres currently displayed below from local storage." value="Delete" />
       </span>
     </h1>
