@@ -124,26 +124,32 @@ function retryStoreUnarchived(accumulator, storeID, unrecoverable) {
         accumulator[1].delete(storeID);
 }
 
-function retryAllUnarchived(unrecoverable) {
+function retryUnarchived(unrecoverable, rrfilter) {
     wantCheckServer = true;
 
     if (reqresUnarchivedIssueAcc[0].size === 0)
         return;
 
-    for (let archivable of reqresUnarchivedIssueAcc[0]) {
+    let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresUnarchivedIssueAcc[0]);
+
+    if (popped.length === 0)
+        return;
+
+    for (let archivable of popped) {
         let [loggable, dump] = archivable;
         let dumpSize = loggable.dumpSize;
         reqresQueue.push(archivable);
         reqresQueueSize += dumpSize;
     }
-    reqresUnarchivedIssueAcc = newReqresUnarchivedIssueAcc();
+
+    deleteFromIssueAcc2(reqresUnarchivedIssueAcc, popped);
 
     broadcastToState(null, "resetQueued", getQueued);
     broadcastToState(null, "resetUnarchived", getUnarchived);
 }
 
-function syncRetryAllUnarchived(...args) {
-    runSynchronously("retryAllUnarchived", retryAllUnarchived, ...args);
+function syncRetryUnarchived(...args) {
+    runSynchronously("retryUnarchived", retryUnarchived, ...args);
 }
 
 function scheduleRetryAllUnarchived(timeout) {
@@ -153,7 +159,7 @@ function scheduleRetryAllUnarchived(timeout) {
                 .some((byReasonMap) => Array.from(byReasonMap.values())
                 .some((unarchived) => unarchived.recoverable)))
         scheduleActionEndgame(scheduledRetry, "retryAllUnarchived", timeout, () => {
-            retryAllUnarchived(false);
+            syncRetryUnarchived(false, {});
             return null;
         });
 }

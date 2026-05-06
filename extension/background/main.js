@@ -339,8 +339,8 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         break;
 
     case "retryAllFailed":
+        syncRetryUnarchived(true, {});
         syncRetryAllUnstashed();
-        retryAllUnarchived(true);
         scheduleEndgame(null);
         break;
     case "retryAllUnstashed":
@@ -348,7 +348,7 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         scheduleEndgame(null);
         break;
     case "retryAllUnarchived":
-        syncRetryAllUnarchived(true);
+        syncRetryUnarchived(true, {});
         scheduleEndgame(null);
         break;
 
@@ -471,7 +471,7 @@ function evalRPCRequest(request) {
             && (config.archive !== oldConfig.archive
                 || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
                 || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)) {
-            syncRetryAllUnarchived(true);
+            syncRetryUnarchived(true, {});
             wantArchiveDoneNotify = true;
         }
 
@@ -580,6 +580,10 @@ function evalRPCRequest(request) {
 
     case "getUnarchived":
         return getUnarchived();
+    case "retryUnarchived":
+        syncRetryUnarchived(arg1, arg2);
+        scheduleEndgame(null);
+        break;
 
     case "getBuggedOut":
         return getBuggedOut();
