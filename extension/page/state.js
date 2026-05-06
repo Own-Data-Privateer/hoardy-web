@@ -34,6 +34,7 @@ let rrfilters = {
     log: mkReqresFilter(defRRFilter),
     queued: mkReqresFilter(defRRFilter),
     unarchived: mkReqresFilter(defRRFilter),
+    buggedOut: mkReqresFilter(defRRFilter),
 };
 let dataNodeUpdaters = mkDataNodeUpdaters(rrfilters);
 
@@ -55,8 +56,9 @@ async function stateMain() {
     buttonToMessage("collectOneInLimbo",    () => ["popInLimbo", true, assignRec({}, rrfilters.inLimbo, {limit: 1})]);
     buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, rrfilters.inLimbo]);
     buttonToMessage("stopAllInFlight",      () => ["stopInFlight", narrowTabId]);
-
     buttonToMessage("retryAllUnarchived");
+    buttonToMessage("archiveBuggedOut",     () => ["archiveBuggedOut", rrfilters.buggedOut]);
+    buttonToMessage("deleteBuggedOut",      () => ["deleteBuggedOut", rrfilters.buggedOut]);
 
     setUI(document, "rrfilters", rrfilters, (value, path) => {
         let cid = capitalize(path.split(".")[1]);

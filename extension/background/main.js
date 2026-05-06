@@ -338,9 +338,6 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         scheduleEndgame(tabId);
         break;
 
-    case "deleteAllBuggedOut":
-        syncDeleteAllBuggedOut();
-        scheduleEndgame(null);
     case "retryAllFailed":
         syncRetryAllUnstashed();
         retryAllUnarchived(true);
@@ -583,6 +580,18 @@ function evalRPCRequest(request) {
 
     case "getUnarchived":
         return getUnarchived();
+
+    case "getBuggedOut":
+        return getBuggedOut();
+
+    case "archiveBuggedOut":
+        syncArchiveBuggedOut(arg1);
+        scheduleEndgame(null);
+        return null;
+    case "deleteBuggedOut":
+        syncDeleteBuggedOut(arg1);
+        scheduleEndgame(null);
+        return null;
 
     case "snapshot":
         snapshot(arg1);

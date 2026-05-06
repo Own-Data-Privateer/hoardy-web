@@ -34,6 +34,15 @@ function newReqresBuggedOutIssueAcc() {
 }
 let reqresBuggedOutIssueAcc = newReqresBuggedOutIssueAcc();
 
+function getBuggedOut() {
+    return pushFirstTo(reqresBuggedOutIssueAcc[0], []);
+}
+
+function markAsBuggedOut(err, archivable) {
+    pushToIssueAcc(reqresBuggedOutIssueAcc, errorMessageOf(err), false, archivable);
+    broadcastToState(null, "appendBuggedOut", [archivable[0]]);
+}
+
 // archivables that failed to by stashed to browser's local storage
 // `Map` indexed by error message
 function newReqresUnstashedIssueAcc() {
@@ -55,8 +64,8 @@ function newReqresUnarchivedIssueAcc() {
 }
 let reqresUnarchivedIssueAcc = newReqresUnarchivedIssueAcc();
 
-function markAsBuggedOut(err, archivable) {
-    pushToIssueAcc(reqresBuggedOutIssueAcc, errorMessageOf(err), false, archivable);
+function getUnarchived() {
+    return pushFirstTo(reqresUnarchivedIssueAcc[0], []);
 }
 
 function recordOneUnarchived(accumulator, storeID, reason, recoverable, archivable) {
@@ -85,10 +94,6 @@ function recordOneAssumedBroken(accumulator, storeID, reason, archivable, dumpSi
     let recoverable = recent[1].recoverable;
     pushToIssueAcc([accumulator[0], byReasonMap, accumulator[2]], reason, recoverable, archivable);
     return true;
-}
-
-function getUnarchived() {
-    return pushFirstTo(reqresUnarchivedIssueAcc[0], []);
 }
 
 // Re-queueing from reqresUnarchivedIssueAcc.
@@ -881,13 +886,6 @@ async function fsckDumps() {
 
 // The main thing.
 
-function syncDeleteAllBuggedOut() {
-    runSynchronouslyWhen(reqresBuggedOutIssueAcc[0].size > 0, "deleteAllBuggedOut", async () => {
-        await deleteMany(reqresBuggedOutIssueAcc[0]);
-        reqresBuggedOutIssueAcc = newReqresBuggedOutIssueAcc();
-    });
-}
-
 function syncRetryAllUnstashed() {
     runSynchronouslyWhen(reqresUnstashedIssueAcc[0].size > 0, "retryAllUnstashed", retryAllUnstashed);
 }
@@ -1146,5 +1144,42 @@ function syncDeleteSaved(rrfilter) {
             iconUrl: iconURL(allOK ? "idle" : "error", 128),
             type: "basic",
         }).catch(logError);
+    });
+}
+
+function syncArchiveBuggedOut(rrfilter, reset, andRewrite, andDelete) {
+    runSynchronouslyWhen(reqresBuggedOutIssueAcc[0].size > 0, "archiveBuggedOut", async () => {
+        let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresBuggedOutIssueAcc[0]);
+
+        if (popped.length === 0)
+            return;
+
+        deleteFromIssueAcc(reqresBuggedOutIssueAcc, popped);
+
+        let newlyQueued = [];
+        for (let archivable of popped) {
+            let [loggable, dump] = archivable;
+            let dumpSize = loggable.dumpSize;
+            reqresQueue.push(archivable);
+            reqresQueueSize += dumpSize;
+            newlyQueued.push(loggable);
+        }
+
+        broadcastToState(tabId, "appendQueued", newlyQueued);
+        broadcastToState(tabId, "resetBuggedOut", getBuggedOut);
+    });
+}
+
+function syncDeleteBuggedOut(rrfilter) {
+    runSynchronouslyWhen(reqresBuggedOutIssueAcc[0].size > 0, "deleteBuggedOut", async () => {
+        let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresBuggedOutIssueAcc[0]);
+
+        if (popped.length === 0)
+            return;
+
+        deleteFromIssueAcc(reqresBuggedOutIssueAcc, popped);
+        await deleteMany(popped);
+
+        broadcastToState(tabId, "resetBuggedOut", getBuggedOut);
     });
 }

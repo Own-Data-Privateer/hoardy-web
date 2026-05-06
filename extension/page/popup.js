@@ -156,6 +156,7 @@ async function popupMain() {
         discardAllTabInLimbo: "✖",
         unmarkAllTabProblematic: "🧹",
         stopAllTabInFlight: "⏹",
+        showBuggedOut: "📜",
     };
 
     // populate with the original values from the ./popup.html
@@ -239,6 +240,7 @@ async function popupMain() {
     buttonToAction("showState",    () => replaceWith(false, showState, null, null, "top"));
     buttonToAction("showTabState", () => replaceWith(false, showState, narrowSessionId, narrowTabId, "top"));
     buttonToAction("showSaved",    () => replaceWith(false, showSaved, "top"));
+    buttonToAction("showBuggedOut",() => replaceWith(false, showState, null, null, "buggedOut"));
     buttonToAction("resetPersistentStats", () => {
         if (!window.confirm("Really?"))
             return;
@@ -268,7 +270,6 @@ async function popupMain() {
         "reloadSelf", "cancelReloadSelf",
         "runActions", "cancelActions",
         "forgetAllLog", "forgetAllTabLog",
-        "deleteAllBuggedOut",
         "retryAllFailed", "retryAllUnstashed", "retryAllUnarchived",
         "exportAsAll", "stashAll",
         "stopAllInFlight", "stopAllTabInFlight",
