@@ -582,31 +582,55 @@ If you want more control over what gets re-archived, you can also
 - open the {{{button2(showSaved,=Saved in Local Storage= page)}}},
 - make a subset of =saved= reqres using the filtering options there, and then
 - re-archive only those, by pressing the =Re-archive= button there.
-*** Deleting re-archived reqres
-Successfully re-archived reqres can be deleted automatically by setting {{{div2(rearchive.andDelete,=... and delete everything afterwards=)}}} and a similar option on the {{{button2(showSaved,=Saved in Local Storage= page)}}}.
-However, these options should be used with caution:
+*** Deletion of successfully externally archived reqres
+In use cases
+- where, for safety, you archive both externally and into local storage at the same time, or
+- where, because of your [[#tor-browser][browser setup]], your archive into local storage and then periodically export your saved data via re-archival,
+you can easily delete your previously successfully archived or re-archived reqres from your local storage by
+- pressing one {{{div2(rearchive-actions,re-archival action buttons)}}} while {{{div2(rearchive.andDelete,deletion)}}} is set,
+- using a similar button and option on {{{button2(showSaved,=Saved in Local Storage= page)}}}, or
+- pressing the {{{button2(deleteRearchived,=Delete old= button)}}}.
 
-- The behaviour of the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} with {{{div2(rearchive.andDelete,that option)}}} enabled can be surprising if you sometimes use both available {{{div2(rearchive-methods,re-archival methods)}}} and sometimes only one of them.
-  See its help string for more info.
+However, the former two methods should be used with caution:
 
-- Re-archiving by the means of {{{config2(rearchiveExportAs,=Export via 'saveAs'=)}}} with {{{div2(rearchive.andDelete,that option)}}} enabled is [[#unsafe-saveas][unsafe because of browser API limitations]].
+- The behaviour of the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} with {{{div2(rearchive.andDelete,deletion)}}} enabled can be surprising if you sometimes use both available {{{div2(rearchive-methods,re-archival methods)}}} and sometimes only one of them.
 
-  If you want to do this safely, you should:
+  For example, if you had both re-archival methods enabled and some reqres failed to be archived with one of them, but then, later, you disable that method and run {{{button2(rearchiveAdjunctSaved,=Re-archive new=)}}} with {{{div2(rearchive.andDelete,deletion)}}} enabled again, those previously failed to re-archive reqres will be deleted too.
+
+  In other words, unlike with normal archival, re-archival failures don't get recorded anywhere.
+
+- Re-archiving by the means of {{{div2(rearchive-actions,re-archival action buttons)}}} (or their {{{button2(showSaved,=Saved in Local Storage= page)}}} equivalent) when both {{{config2(rearchiveExportAs,=Export via 'saveAs'=)}}} and {{{div2(rearchive.andDelete,deletion)}}} (or its {{{button2(showSaved,=Saved in Local Storage= page)}}} equivalent) are enabled is [[#unsafe-saveas][unsafe because of browser API limitations]].
+
+  The essence of issue is that if a new reqres gets captured and then saved into local storage via the normal {{{config2(archive,=Archive 'collected' reqres=)}}} machinery right at the moment you press the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} and the generated =WRR bundle= then [[#unsafe-saveas][silently fails to be saved to disk via =saveAs=]], then that sneaky reqres will still get deleted, and, thus, permanently lost.
+
+  Thus, if you want to do this safely, you should:
+
+  - {{{div2(rearchive-actions,re-archive)}}} with {{{div2(rearchive.andDelete,deletion)}}} disabled;
+  - confirm that all generated fake-Downloads were actually successfully saved to disk;
+  - then immediately press the {{{button2(deleteRearchived,=Delete old= button)}}} without touching any {{{div2(rearchive-methods,re-archival method toggles)}}}.
+
+  You can press those buttons one after the other immediately, the latter action will get queued for later execution until the former finishes, so they won't interfere with each other.
+
+  Alternatively, you can also do this:
 
   - disable {{{config2(archive,=Archive 'collected' reqres= option)}}};
-  - re-archive with {{{div2(rearchive.andDelete,deletion)}}} disabled, by using any one of {{{div2(rearchive-actions,the buttons)}}};
+  - {{{div2(rearchive-actions,re-archive)}}} with {{{div2(rearchive.andDelete,deletion)}}} disabled;
   - confirm that all generated fake-Downloads were actually successfully saved to disk;
   - enable {{{div2(rearchive.andDelete,deletion)}}} without changing any other options;
-  - press {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}}.
+  - press {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}},
+  - re-enable {{{config2(archive,archival)}}}.
 
-  The last action should then produce an =Re-archived and deleted <N> reqres invoking 0 archiving actions and <N> deletions from local storage.= notification.
+  The last button press should then produce an =Re-archived and deleted <N> reqres invoking 0 archiving actions and <N> deletions from local storage.= notification.
   I.e. it will just delete all of them, without actually performing any archivals.
 
   Or, alternatively, as a last step, you can open {{{button2(showSaved,=Saved in Local Storage= page)}}}, set =Exported via 'saveAs'= filter to =true= and then press =Delete=.
 
-  Keeping {{{config2(archive,=Archive 'collected' reqres= option)}}} enabled will not break anything in the internal machinery, but if another reqres gets captured and then sneakily =saved= a moment before you press the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} and the generated =WRR bundle= then [[#unsafe-saveas][silently fails to be saved to disk via =saveAs=]], then that sneaky reqres will still get deleted, and, thus, permanently lost.
+In short, {{{div2(rearchive-actions,re-archival actions)}}} with {{{div2(rearchive.andDelete,deletion)}}} set should be used with lots of care.
+This is why the {{{div2(rearchive.andRewrite,rewrite)}}} and {{{div2(rearchive.andDelete,deletion)}}} options and their equivalents on {{{button2(showSaved,=Saved in Local Storage= page)}}} are ephemeral and will be reset the next time you reopen the popup or that page.
 
-Also, note that the {{{div2(rearchive.andDelete,deletion option)}}} and its equivalent on {{{button2(showSaved,=Saved in Local Storage= page)}}} are ephemeral and will be reset the next time you reopen the popup or that page.
+However, note that re-archival by {{{config2(rearchiveSubmitHTTP,sumbission via =HTTP=)}}} with {{{div2(rearchive.andDelete,deletion)}}} enabled is safe to use.
+On-the-fly deletion is much more efficient compared to re-archival step followed by a {{{button2(deleteRearchived,separate deletion step)}}} because updated reqres' archival flags need not be written back into local storage.
+Thus, since {{{config2(rearchiveSubmitHTTP,sumbission via =HTTP=)}}} does report its errors properly, successfully re-archived reqres can be immediately and safely deleted from local storage in that case, which would save you a lot of time and disk writes if you are re-archiving a lot of stuff all at once.
 ** (Optional) Step 5: Replay integration
 :PROPERTIES:
 :CUSTOM_ID: replay
@@ -697,7 +721,7 @@ By default, "Work offline" mode is enabled for =file:= and replay URLs to stop a
 
 When running =Hoardy-Web= under Tor Browser, you probably want to configure it all in such a way so that all of the machinery of =Hoardy-Web= is completely invisible to web pages running under your Tor Browser, to prevent fingerprinting.
 
-Thus, you can simply use =Hoardy-Web= extension configured to {{{config2(archiveSaveLS,=Save reqres into local storage=)}}}, which is the default, and then {{{config2(rearchiveExportAs,export your dumps manually)}}} at the end of a browsing session via [[#re-archival][re-archival]], which would take a couple of clicks.
+Thus, you can simply use =Hoardy-Web= extension configured to {{{config2(archiveSaveLS,=Save reqres into local storage=)}}}, which is the default, and then {{{config2(rearchiveExportAs,export your dumps manually)}}} at the end of a browsing session via {{{div2(rearchive-actions,re-archival actions)}}}, which would take a couple of clicks, as [[#re-archival][discussed above]].
 
 Or, alternatively, you can switch to using {{{config2(archiveExportAs,=Export dumps via 'saveAs'=)}}} by default instead, disabling the other archiving methods.
 I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [[#unsafe-saveas][this is unsafe]].
