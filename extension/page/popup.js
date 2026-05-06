@@ -254,6 +254,15 @@ async function popupMain() {
 
     buttonToMessage("rearchiveAllSaved",     () => ["rearchiveSaved", {}, true, rearchive.andRewrite, rearchive.andDelete]);
     buttonToMessage("rearchiveAdjunctSaved", () => ["rearchiveSaved", {}, false, rearchive.andRewrite, rearchive.andDelete]);
+    buttonToAction("deleteRearchived", () => {
+        if (!window.confirm("Really?"))
+            return;
+
+        browser.runtime.sendMessage(["deleteSaved", {
+            did_exportAs: config.rearchiveExportAs || null,
+            did_submitHTTP: config.rearchiveSubmitHTTP || null,
+        }]).catch(logError);
+    });
 
     let shortcutButtons = [
         "reloadSelf", "cancelReloadSelf",

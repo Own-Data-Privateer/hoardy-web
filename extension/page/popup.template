@@ -781,6 +781,15 @@ section {
 
     </section>
 
+    <section>
+    <h3>Quick deletion</h3>
+
+    <center id="div-rearchive-deletion" class="on-rearchive ui">
+      <input type="button" id="deleteRearchived" data-help="Delete all reqres saved into local storage that were archived or re-archived using all of the above re-archival methods. This button does essentially the same things `Re-archive new` button above does when `Delete everything from local storage` option is enabled, except no new re-archivals will happen. See the `Help` page for more info." value="Delete (re)-archived" />
+    </center>
+
+    </section>
+
     <!-- rearchiveOptions -->
     </div>
     </section>
