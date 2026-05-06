@@ -283,7 +283,7 @@ async function popupMain() {
         implySetConditionalOff(dbody, "on-collecting", !(config.collecting && (!config.workOffline || config.collectingWorkOffline)));
         implySetConditionalOff(dbody, "on-stash", !config.stash);
         implySetConditionalOff(dbody, "on-archive", !config.archive);
-        implySetConditionalClass(dbody, "on-unsafe-archive", "hidden", !(config.archive && config.archiveExportAs && !config.archiveSubmitHTTP && !config.archiveSaveLS));
+        implySetConditionalClass(dbody, "on-archive-unsafe", "hidden", !(config.archive && config.archiveExportAs && !config.archiveSubmitHTTP && !config.archiveSaveLS));
         implySetConditionalOff(dbody, "on-rearchive", !(config.rearchiveExportAs || config.rearchiveSubmitHTTP || rearchive.andRewrite));
         implySetConditionalClass(dbody, "on-rearchive-carefully", "hidden", !((config.rearchiveExportAs || config.rearchiveSubmitHTTP) && rearchive.andDelete));
         implySetConditionalClass(dbody, "on-rearchive-unsafe", "hidden", !(config.rearchiveExportAs && !config.rearchiveSubmitHTTP && rearchive.andDelete));

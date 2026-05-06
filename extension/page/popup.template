@@ -734,18 +734,19 @@ section {
     <div class="isubdots">
     <!-- archiveOptions -->
 
-    <div class="flex on-unsafe-archive attention">
-    <p class="center">
-      <span data-help="This combination of options is unsafe! Export via `saveAs` is unable to report most errors. Thus, for instance, if the generated dump file fails to be written to disk because the file system is out of space, that data will be lost. See the `Help` page for more info.">THIS IS UNSAFE!</span>
-    </p>
-    </div>
-
     <ui id="config.archiveExportAs" type="boolean" data-help="Archive `collected` reqres by generating in-browser fake-Downloads with their dumps. If the value of the `Bundle up to MiB` option below is larger than zero, `Hoardy-Web` will export dumps in per-`bucket` bundles. I.e., while processing the archiving queue, it will continue to concatenate dumps belonging to the same `bucket` while the sum of their sizes is smaller than the value of that option and only then export the result. The values of `bucket` can be controlled by the `Bucket` settings below. See the `Help` page for more info.">Export dumps via <code>saveAs</code></ui>
     <ui id="config.archiveSubmitHTTP" type="boolean" data-help="Archive `collected` reqres by submitting their dumps via `HTTP` by `POST`ing them to the archiving server at the URL set in the `Server URL` option. See the `Help` page for more info.">Submit dumps via <code>HTTP</code></ui>
     <ui id="config.archiveSaveLS" type="boolean" data-help="Archive `collected` reqres by saving them into browser&#039;s local storage. See the `Help` page for more info.">Save reqres into local storage</ui>
 
     <!-- archiveOptions -->
     </div>
+
+    <center class="on-archive-unsafe attention">
+      <p>
+        <span data-help="Export via `saveAs` is unable to report most errors. Thus, for instance, if the generated dump file fails to be written to disk because the file system is out of space, that data will be lost. See the `Help` page for more info.">THIS IS UNSAFE!</span>
+      </p>
+    </center>
+
     </section>
 
     <section>
