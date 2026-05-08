@@ -74,7 +74,7 @@ function broadcastToMatching(lazy, predicate, ...args) {
     }
 
     if (DEBUG_WEBEXT_RPC)
-        console.debug("WEBEXT_RPC: broadcasted", args, "to", number, "recipients");
+        console.debug("WEBEXT_RPC: broadcasted", res, "to", number, "recipients");
 
     return [lazy, res];
 }
