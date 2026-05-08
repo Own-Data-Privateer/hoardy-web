@@ -274,7 +274,9 @@ function processNewTab(tabId, openerTabId) {
 function processRemoveTab(tabId) {
     openTabs.delete(tabId);
 
-    let updatedTabId = stopInFlight(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
+    let updatedTabId;
+    if (useDebugger)
+        updatedTabId = stopInFlight(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
     updatedTabId = mergeUpdatedTabIds(updatedTabId, cleanupAfterTab(tabId));
 
     scheduleEndgame(updatedTabId);
