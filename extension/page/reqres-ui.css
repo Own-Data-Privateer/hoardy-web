@@ -71,12 +71,6 @@ h1 code,
     max-width: 40em;
 }
 
-/* right-most help-tip sticks to the edge */
-.right *:nth-last-child(1) .help-tip,
-.right .help-tip-right .help-tip {
-    right: 0;
-}
-
 table, th, td {
     border: 1px solid black;
 }
@@ -103,4 +97,11 @@ td.long {
 .dropped { background: var(--log-dropped); }
 .collected { background: var(--log-collected); }
 .discarded { background: var(--log-discarded); }
+
+/* right-most help-tip sticks to the edge */
+.right *:nth-last-child(1) .help-tip,
+.right .help-tip-right .help-tip,
+table tr th:nth-last-child(1) .help-tip {
+    right: 0;
+}
 }
