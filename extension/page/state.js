@@ -109,7 +109,7 @@ async function stateMain() {
     setPageDone();
 
     // force re-scroll
-    viewHashNode();
+    viewHashNode((id) => id === "tail" ? scrollEndIntoView : undefined);
 }
 
 document.addEventListener("DOMContentLoaded", () => stateMain().catch(setPageError), setPageError);

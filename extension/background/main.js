@@ -320,13 +320,13 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         showState(null, null, "top", activeTabId);
         break;
     case "showLog":
-        showState(null, null, "tail", activeTabId);
+        showState(null, null, "tail", activeTabId, true, scrollEndIntoView);
         break;
     case "showTabState":
         showState(sessionId, tabId, "top", activeTabId);
         break;
     case "showTabLog":
-        showState(sessionId, tabId, "tail", activeTabId);
+        showState(sessionId, tabId, "tail", activeTabId, true, scrollEndIntoView);
         break;
 
     case "forgetAllLog":
