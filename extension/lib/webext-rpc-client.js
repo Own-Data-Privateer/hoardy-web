@@ -53,13 +53,13 @@ function webextRPCHandleMessageDefault(request, showAllFunc, hideAllFunc) {
             hideAllFunc();
         return;
     case "viewNode":
-        viewNode(data1, data2 ? data2 : {}, showAllFunc, hideAllFunc);
+        viewNode(data1, data2 || {}, showAllFunc, hideAllFunc);
         return;
     case "highlightNode":
         highlightNode(data1);
         return;
     case "focusNode":
-        focusNode(data1, data2 ? data2 : {}, showAllFunc, hideAllFunc);
+        focusNode(data1, data2 || {}, showAllFunc, hideAllFunc);
         return;
     default:
         console.error("WEBEXT_RPC: unknown request", request);
