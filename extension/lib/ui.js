@@ -97,17 +97,17 @@ function focusNode(id, scrollIntoViewOptions, showAllFunc, hideAllFunc) {
     viewHTMLNode(el, scrollIntoViewOptions, showAllFunc, hideAllFunc);
 }
 
-function viewHashNode(scrollIntoViewOptions, showAllFunc, hideAllFunc) {
-    let hash = document.location.hash.substr(1);
-    let el = hash ? document.getElementById(hash) : null;
+function viewHashNode(scrollIntoViewOptionsFunc, showAllFunc, hideAllFunc) {
+    let id = document.location.hash.substr(1);
+    let el = id ? document.getElementById(id) : null;
     // no-smooth scrolling by default here
-    viewHTMLNode(el, scrollIntoViewOptions, showAllFunc, hideAllFunc);
+    viewHTMLNode(el, scrollIntoViewOptionsFunc !== undefined ? scrollIntoViewOptionsFunc(id) : undefined, showAllFunc, hideAllFunc);
 }
 
-function focusHashNode(scrollIntoViewOptions, showAllFunc, hideAllFunc) {
-    let hash = document.location.hash.substr(1);
+function focusHashNode(scrollIntoViewOptionsFunc, showAllFunc, hideAllFunc) {
+    let id = document.location.hash.substr(1);
     // no-smooth scrolling by default here
-    focusNode(hash, scrollIntoViewOptions, showAllFunc, hideAllFunc);
+    focusNode(id, scrollIntoViewOptionsFunc !== undefined ? scrollIntoViewOptionsFunc(id) : undefined, showAllFunc, hideAllFunc);
 }
 
 // setup history navigation
