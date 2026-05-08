@@ -50,14 +50,15 @@ function implySetConditionalOff(node, className, condition) {
     return implySetConditionalClass(node, className, "off", condition);
 }
 
-let defaultScrollIntoViewOptionsStart = { behavior: "smooth", block: "start" };
-let defaultScrollIntoViewOptionsCenter = { behavior: "smooth", block: "center" };
+let scrollStartIntoView = { behavior: "smooth", block: "start" };
+let scrollCenterIntoView = { behavior: "smooth", block: "center" };
+let scrollEndIntoView = { behavior: "smooth", block: "end" };
 
 function viewHTMLNode(el, scrollIntoViewOptions, showAllFunc, hideAllFunc) {
     if (el !== null) {
         if (showAllFunc !== undefined)
             showAllFunc();
-        let defopts = el.tagName.startsWith("H") ? defaultScrollIntoViewOptionsStart : defaultScrollIntoViewOptionsCenter;
+        let defopts = el.tagName.startsWith("H") ? scrollStartIntoView : scrollCenterIntoView;
         // give the page a chance to redraw, in case the code just before this call changed styles
         setTimeout(() => {
             // and then scroll
