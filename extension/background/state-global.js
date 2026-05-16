@@ -24,7 +24,7 @@
 "use strict";
 
 // default config
-let configVersion = 7;
+let configVersion = 8;
 
 let configDefaults = {
     version: configVersion,
@@ -272,6 +272,8 @@ function upgradeConfig(config) {
     case 7:
         // its semantics changed
         config.collectingWorkOffline = true;
+        break;
+    case 8:
         break;
     default:
         console.warn(`Bad old config version ${config.version}, reusing values as-is without updates`);

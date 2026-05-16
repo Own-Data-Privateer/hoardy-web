@@ -6,6 +6,179 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.24.0] - 2026-05-16: Semantics and UI improvements, annoyance and bug fixes
+
+### Changed: Automatic unmarking of `problematic` reqres
+
+- Core + Capture + [`Internal State` pages](#state-in-extension-ui-only) + Popup UI:
+
+  - The machinery behind `Auto-unmark 'problematic' reqres` option, when that option is enabled, now gets applied regardless of reqres collection status.
+
+    In other words, automatic unmarking machinery now gets applied to `dropped` and/or `discarded` reqres too.
+
+    In other words, from now on, with that option enabled, you will never have more than one `problematic` `GET` reqres for each URL.
+
+    This makes the extension measurably slower in some use cases, but it greatly reduces the clutter on the [`Internal State` pages](#state-in-extension-ui-only), so I think this is an okay trade-off.
+
+  - Enabled `Auto-unmark 'problematic' reqres ... when a new 'GET' reqres replaces it ... regardless of its 'in_limbo' state` configuration option by default, for simplicity.
+
+    Because the previous default behaviour was confusing even to me, sometimes.
+
+    Though, note that its value will not be flipped if you are updating from `extension-v1.23.0`, so you might want to flip it manually.
+
+### Changed/Added: Bugged out reqres
+
+- `*`:
+
+  - Renamed "errored reqres" -> "bugged out reqres" to distinguish them from "reqres errors" and "buggy reqres".
+
+    Names are hard.
+
+- Core + [`Internal State` pages](#state-in-extension-ui-only) + Popup UI:
+
+  - Added a new section to internal state pages that displays bugged out reqres.
+  - Moved the `Bugged out` (`Errored`) status line back to where it was before `extension-v1.23.0`.
+  - Moved the `Delete` action for those from the Popup UI to the state page.
+  - Implemented a bunch of new possible actions for them and bound them to newly added buttons there.
+
+### Changed/Added: Re-archival
+
+- Core + Popup UI:
+
+  - Renamed `Re-archive adjunct` button -\> `Re-archive new`.
+
+  - Reorganized the re-archival section a bit.
+
+  - Added a new `Delete (re-)archived` button into the re-archival section.
+
+    I.e., when re-archiving, you can now press `Re-archive new` followed by `Delete (re-)archived` instead of fiddling with on-the-fly deletion options.
+    This is simpler and safer in some use cases, but less efficient in others.
+
+    See the [`Help` page](./extension/page/help.org) for more info.
+
+- Core + Notifications:
+
+  - Re-archival actions now generate better notifications, listing the exact counts all possible actions they take.
+
+  - From now on, deletion of reqres saved in local storage, via the `Delete (re-)archived` popup UI button or a similar button on the [`Saved in Local Storage` page](#saved-in-extension-ui-only) generates notifications on completion too.
+
+### Fixed/Changed/Added: Old session handling
+
+- Core + [`Internal State` pages](#state-in-extension-ui-only) + Popup UI + Shortcuts:
+
+  - The state pages now take `sessionId`s of old stashed reqres into account and Popup UI buttons and shortcuts respect those:
+
+    - The global state page is still unnarrowed by default and will display all stashed reqres as usual, but it can now be narrowed to any previous session, if desired.
+
+    - By contrast, per-tab state pages get narrowed to the current session now.
+
+### Changed/Added: Reqres-related UI, URL filtering, and size tracking
+
+- Popup UI + [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Improved styling of tooltips a bit.
+
+  - Improved styling of tristate toggles, again.
+
+  - All text and number input fields now generate updates on `Enter` keypresses.
+
+    I.e., you no longer need to move the focus elsewhere to make your changes apply.
+
+- [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Reworked `Without errors` tristate filter into `With errors`.
+
+    I.e., it's meaning is now reversed.
+
+  - Changed formatting of entries to be denser.
+
+- Core + Capture + [`Internal State` pages](#state-in-extension-ui-only):
+
+  - All sections of the internal state pages can now be filtered by URL, in a bunch of different ways: by the exact URL, by a sub-string, and via a regular expression.
+
+  - From now on, all the action buttons there respect selected filters.
+    Most notably, this now includes the `Retry all` button of the "Failed to archive" section too.
+
+    I.e., it's now possible to retry archivals only for a filtered subset of reqres.
+
+  - The core now tracks and internal state page entries display reqres dump, request, and response sizes.
+
+    Though, at the moment, for in-flight reqres those values won't be updating automatically, only if you manually refresh the page.
+
+    Though, obviously, when a reqres stops being in-flight, the displayed values will always be up to date.
+
+### Changed: Work offline handling
+
+- Core + Capture:
+
+  - The `webRequest::capture::CANCELED::BY_WORK_OFFLINE` reqres error is no longer treated as "important".
+
+    In other words, the extension now treats its own `Work offline` mode equivalently to ad-blocking extensions like `uBlock Origin` and similar.
+    This behaviour is both more consistent semantically and more pleasant UI-wise.
+
+    This way you can now enable `Work offline` in a tab, scroll it around, switch from that tab and back to it, and watch that page's `JavaScript` try and fail to send tracking requests about those events, without those `canceled` reqres becoming marked as `problematic`.
+
+  - Enabled `Track new requests ... including when 'Work offline' is set` option, both by default and if you are updating from `extension-v1.23.0`.
+
+    Because after the above change, effectively speaking, its semantic has changed.
+
+### Fixed
+
+- Core + Popup UI:
+
+  - Improved semantics of the actions behind the buttons that run and cancel all currently scheduled actions.
+
+    The resulting extension state shouldn't ever be confusing now.
+
+- Core + [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Still `problematic` reqres no longer get dropped from the logs when you run the `Forget all` action, as help strings of those buttons claim.
+
+    This behavior is slightly annoying, but this way is safer and does not loose `problematic` reqres when the extension restarts/updates.
+
+- Core + Shortcuts:
+
+  - Pressing the `Show Log` shortcut now scrolls the state page in a way that shows the tail of the log properly.
+
+- Core:
+
+  - Fixed notifications about unarchived reqres not being generated in some cases.
+
+  - Improved timeout computation logic of the `saveGlobals` internal action to minimize writes to disk in situations where such minimization is possible.
+
+  - On Firefox, closing a tab no longer stops its in-flight reqres.
+
+    This is how the extension did things in its early versions before Chromium support landed properly.
+
+    This way is superior because it allows you to properly capture requests that some websites make from their `window.onclose` handler.
+    (The browser will abort such requests milliseconds later, but their request parts have a fair chance to get sent anyway.
+    Many nefarious websites use this feature to track you surreptitiously because such requests are impossible to observe via browser's Network Monitor.)
+
+    On the other hand, this way spawned downloads don't immediately become `canceled` reqres, turning into proper `in_flight` reqres which end up being `incomplete` instead.
+    (Because Firefox does not supply bodies of spawned downloads to the extension.)
+
+  - Moved handlers of most UI-actions into the main thread while making the archiving process interrupt itself when new handlers get queued.
+
+    This appears to have solved all the archiving-related heisenbugs for me.
+
+### Changed: Misc
+
+- Popup UI:
+
+  - Improved names of some configuration options and their help strings.
+
+- Documentation:
+
+  - Modified the [`Help` page](./extension/page/help.org) to reflect all of the above changes.
+
+  - Improved the top-level [`README.md`](./README.md).
+
+  - Expanded the previous `CHANGELOG` entry a bit.
+
+- `manifest.json`:
+
+  - On Firefox, added `browser_specific_settings.gecko.data_collection_permissions` field, which tells AMO that this extension does no third-party data collection.
+
 ## [extension-v1.23.0] - 2026-04-16: Annoyance and bug fixes
 
 ### Added
@@ -2582,6 +2755,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.24.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.23.0...extension-v1.24.0
 [extension-v1.23.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.22.0...extension-v1.23.0
 [extension-v1.22.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.21.1...extension-v1.22.0
 [extension-v1.21.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.21.0...extension-v1.21.1
@@ -2659,13 +2833,20 @@ All planned features are complete now.
 ## `Hoardy-Web` extension
 
 - Core+UI:
+  - Merge `Pick into limbo` and `Drop into limbo` option into one.
+    I.e., remove all archival-related decision making from the machinery that puts reqres into limbo.
+
+    `Collect/discard all in limbo` and buttons should then become `Continue processing all in limbo`.
+
+    This behaviour would be both simpler to more useful for some use cases.
+
+    It will also allow us to simplify the behaviour of `Auto-unmark 'problematic' reqres ... when a new 'GET' reqres replaces it ... regardless of its 'in_limbo' state` option or just remove it altogether.
   - Improve integration with `hoardy-web serve`.
   - (~25% done) Reorganize tracking- and problematic-related options into config profiles, allow them to override each over.
   - Implement per-host profiles.
 - UI:
   - Improve `Internal State` and `Saved into Local Storage` UIs.
   - Add option persistence to `Internal State` and `Saved into Local Storage` UIs.
-  - Add URL matching to `Internal State` and `Saved into Local Storage` UIs.
 - Core+UI:
   - Add a popup UI section for `Closed tabs`, so that you could easily collect/discard `in_limbo` reqres from such tabs.
   - Track navigations and allow to use them as boundaries between batches of reqres saved in limbo mode.
