@@ -95,16 +95,26 @@ You can then view, replay, mirror, scrape, and/or index your archived data later
 > "Everything will have a RESTful API\!" they said. \
 > "Semantic Web will allow arbitrarily complex queries spanning multiple data sources\!" they said.
 
-**Unfortunately, things did not work out this way.**
-Useful information vanishes from the Internet, the Web, and the [Wayback Machine](https://web.archive.org/) all the time.
-A lot of useful stuff never got RESTful APIs, those RESTful APIs that exist are frequently buggy, you'll probably have to scrape data from `HTML`s anyway.
-"RDF Model and Syntax Specification" was published in 1999, 25+ years later, almost no progress there, the most commonly used subset of RDF does what indexing systems in 1970s did, but less efficiently and with a worse UI.
+**Unfortunately, things did not work out this way:**
+
+- Useful information vanishes from the Internet, the Web, and web archiving services (like the [Wayback Machine](https://web.archive.org/)) all the time.
+
+  So, if you want to ensure that some piece of data useful personally to you persists into the future, you'll probably have to archive it personally.
+
+- A lot of useful web services never got RESTful APIs.
+  Those RESTful APIs that exist are frequently buggy.
+
+  So, if you want to extract some interesting data from some such services, you'll probably have to scrape it from relevant `HTML`s anyway.
+
+- "RDF Model and Syntax Specification" was published in 1999, 25+ years later, almost no progress there, the most commonly used subset of RDF does what indexing systems in 1970s did, but less efficiently and with a worse UI.
+
+  So, if you want to run some interesting queries over multiple data sources, you'll probably have to process those scraped `HTML`s in interesting ways yourself.
 
 Meanwhile, `Hoardy-Web` does its best to make "If you archive it first" variants of the above statements to be true:
 
 > "If you archive it first, it will stay with you forever\! (Assuming you do backups properly.)" \
 > "If you archive it first, you can add RESTful (or any other types of) APIs to anything you already have\!" \
-> "If you archive it first, you can have arbitrarily complex queries spanning multiple data sources\!"
+> "If you archive it first, you can run arbitrarily complex queries spanning multiple data sources\!"
 
 ## In long
 
@@ -116,15 +126,15 @@ Meanwhile, `Hoardy-Web` does its best to make "If you archive it first" variants
 
 - Do you ever refer back to web pages you visited before?
 
-  Say, you wake up remembering something interesting you saw a long time ago.
-  Knowing you won't find it in your normal browsing history, which only contains the URLs and the titles of the pages you visited in the last 3 months, you try looking it up on Google.
-  You fail.
-  Eventually, you remember the website you seen it at, or maybe you re-discovered the link in question in an old message to/from a friend, or maybe a tool like [recoll](https://www.lesbonscomptes.com/recoll/index.html) or [Promnesia](https://github.com/karlicoss/promnesia) helped you.
-  You open the link… and discover it offline/gone/a parked domain.
-  Not a problem\! Have no fear\!
-  You go to [Wayback Machine](https://web.archive.org/) and look it up there… and discover they only archived an ancient version of it and the thing you wanted is missing there.
+  - Say, you wake up remembering something interesting you saw a long time ago.
+    Knowing you won't find it in your normal browsing history, which only contains the URLs and the titles of the pages you visited in the last 3 months, you try looking it up on Google.
+    You fail.
+    Eventually, you remember the website you seen it at, or maybe you re-discovered the link in question in an old message to/from a friend, or maybe a tool like [recoll](https://www.lesbonscomptes.com/recoll/index.html) or [Promnesia](https://github.com/karlicoss/promnesia) helped you.
+    You open the link… and discover it offline/gone/a parked domain.
+    Not a problem\! Have no fear\!
+    You go to [Wayback Machine](https://web.archive.org/) and look it up there… and discover they only archived an ancient version of it and the thing you wanted is missing there.
 
-  Or, say, you remember you read a cool fanfiction on [AO3](https://archiveofourown.org/) years ago, you even wrote down the URL, you go back to it wanting to experience it again… and discover the author made it private... or rewrote it, and the new version is worse in your opinion, and Wayback Machine saved only the very first chapter of the original.
+  - Or, say, you remember you read a cool fanfiction on [AO3](https://archiveofourown.org/) years ago, you even wrote down the URL, you go back to it wanting to experience it again… and discover the author made it private... or rewrote it, and the new version is worse in your opinion, and Wayback Machine saved only the very first chapter of the original.
 
   **Unfortunately, on the Internet, things vanish completely all the time and change for the worse without older better versions being preserved sometime.**
 
@@ -147,7 +157,7 @@ Meanwhile, `Hoardy-Web` does its best to make "If you archive it first" variants
 
   - **Such services probably won't save all of your bookmarks even if you ask them to, because they frequently remove pages from their archives on request or by court order.**
 
-    There are firms that provide a service of systematically cleaning out any compromising materials about a person or a company from all web archives.
+    There are firms that provide services of systematically cleaning out any compromising materials about a person or a company from all web archives.
     Many countries have [easily abusable "privacy laws"](https://en.wikipedia.org/wiki/Right_to_be_forgotten) that make it easy to do.
 
     Additionally, sometimes copyright holders request removal of old content from web archives to force you to buy the same or a worse ([enshittified](https://en.wikipedia.org/wiki/Enshittification) or just more commercially palatable) version of it in a new package later.
@@ -190,7 +200,7 @@ Meanwhile, `Hoardy-Web` does its best to make "If you archive it first" variants
 
   - Or, say, there's a web page/app you use (like a banking app), but it lacks some features you want, and in your browser's Network Monitor you can see it uses `JSON RPC` or some such to fetch its data, and you want those `JSON`s for yourself (e.g., to compute statistics and supplement the app output with them), but the app in question has no public API and scraping it with a script is non-trivial (e.g., the site does complicated `JavaScript`+multifactor-based auth, tries to detect you are actually using a browser, and bans you immediately if not).
 
-    Or, maybe, you want to parse those behind-auth pages with a script, save the results to a database, and then do interesting things with them (e.g., track price changes, manually classify, annotate, and merge pages representing the same product by different sellers, do complex queries, like sorting by price/unit or price/weight, limit results by geographical locations extracted from text labels, etc).
+  - Or, maybe, you want to parse those behind-auth pages with a script, save the results to a database, and then do interesting things with them (e.g., track price changes, manually classify, annotate, and merge pages representing the same product by different sellers, do complex queries, like sorting by price/unit or price/weight, limit results by geographical locations extracted from text labels, etc).
 
   - Or, say, you want to fetch a bunch of pages belonging to two recommendation lists on AO3 or [GoodReads](https://www.goodreads.com/), get all outgoing links for each fetched page, union sets for the pages belonging to the same recommendation list, and then intersect the results of the two lists to get a shorter list of things you might want to read with higher probability.
 
