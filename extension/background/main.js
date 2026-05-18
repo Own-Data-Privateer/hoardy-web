@@ -111,13 +111,15 @@ async function checkServer() {
         await browser.notifications.clear("warning-server");
 }
 
-function checkReplay() {
+function checkReplay(replayType) {
+    if (replayType === undefined)
+        replayType = "Replay";
     const ifFixed = `\n\nIf you fixed it and the error persists, press the "Retry" button the "Queued/Failed" line in the popup.`;
 
     if (config.replaySubmitHTTP === false) {
         browser.notifications.create(`error-replay`, {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `Replay is forbidden by the "Replay from the archiving server" option.\n\nEnable it to allow this feature.`),
+            message: escapeNotification(config, `${replayType} is forbidden by the "Replay from the archiving server" option.\n\nEnable it to allow this feature.`),
             iconUrl: iconURL("error", 128),
             type: "basic",
         }).catch(logError);
@@ -126,7 +128,7 @@ function checkReplay() {
     } else if (!serverConfig.alive) {
         browser.notifications.create(`error-replay`, {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `Replay is impossible because the archiving server at \`${serverConfig.baseURL}\` is unavailable.` + ifFixed),
+            message: escapeNotification(config, `${replayType} is impossible because the archiving server at \`${serverConfig.baseURL}\` is unavailable.` + ifFixed),
             iconUrl: iconURL("error", 128),
             type: "basic",
         }).catch(logError);
@@ -135,7 +137,7 @@ function checkReplay() {
     } else if (!serverConfig.canReplay) {
         browser.notifications.create(`error-replay`, {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `The archiving server at \`${serverConfig.baseURL}\` does not support replay.\n\nSwitch your archiving server to \`hoardy-web serve\` for this feature to work.` + ifFixed),
+            message: escapeNotification(config, `${replayType} is impossible because the archiving server at \`${serverConfig.baseURL}\` does not support replay.\n\nSwitch your archiving server to \`hoardy-web serve\` for this feature to work.` + ifFixed),
             iconUrl: iconURL("error", 128),
             type: "basic",
         }).catch(logError);
@@ -149,7 +151,7 @@ function checkReplay() {
 }
 
 function latestReplayOf(url) {
-    if (!serverConfig.canReplay || config.replaySubmitHTTP === false)
+    if (config.replaySubmitHTTP === false || !serverConfig.alive || !serverConfig.canReplay)
         throw Error("replay is not available");
 
     let replayURL = serverConfig.info.replay_latest.replace("{url}", url);
@@ -195,44 +197,9 @@ function handleUpdateAvailable(details) {
         scheduleUpdateDisplay(true);
 }
 
-// Handle extension-defined redirects, like "Auto-replay mode".
-function autoRedirect(tabcfg, url) {
-    if (tabcfg.autoReplay && !isBoringOrServerURL(url)) {
-        try {
-            return latestReplayOf(url);
-        } catch (err) {
-            logError(err);
-        }
-    }
-    return null;
-}
-
 async function handleBeforeNavigate(e) {
-    if (e.frameId !== 0)
-        // ignore sub-frames, redirects to those shall be handled by handleBeforeRequest instead,
-        // since sub-frames are not addressible via navigateTabTo
-        return;
-
-    let tabId = e.tabId;
-    let url = e.url;
-    let tabcfg = getOriginConfig(tabId);
-
     if (config.debugRuntime)
-        console.log("BROWSER: tab navigation", tabId, url);
-
-    // NB: handleBeforeRequest has a similar piece of code at (autoRedirectAgain). Whichever gets
-    // called first depends on the browser, and even then is a lottery sometimes, so we repeat that
-    // code here too.
-    let redirectUrl = autoRedirect(tabcfg, url);
-    if (redirectUrl !== null) {
-        if (config.debugRuntime)
-            console.warn("MAIN: redirecting tab", tabId, "from", url, "to", redirectUrl);
-        // `noBroadcast = true` because it will update soon
-        setTabConfig(tabId, redirectUrl, tabcfg, tabcfg, true);
-        await navigateTabTo(tabId, redirectUrl);
-        return;
-    } else
-        setTabConfig(tabId, url, tabcfg, tabcfg);
+        console.log("BROWSER: tab navigation", e.tabId, e.url);
 }
 
 function chromiumResetRootTab(tabId, tabcfg) {

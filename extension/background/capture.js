@@ -756,13 +756,17 @@ function logEvent(rtype, e, reqres) {
 
 function handleBeforeRequest(e) {
     let url = e.url;
+    let isBoringOrServer = isBoringOrServerURL(url);
+    let isMainFrame = e.type === "main_frame";
 
     // Ignore data, file, and extension URLs as wel as all request to the
     // archiving/replay server.
     //
     // NB: `file:` URLs only happen on Chromium, Firefox does not emit any
     // `webRequest` events for those.
-    if (isBoringOrServerURL(url))
+    //
+    // `isMainFrame` case is handled via (stillBoring) below
+    if (isBoringOrServer && !isMainFrame)
         return;
 
     let initiator;
@@ -786,19 +790,35 @@ function handleBeforeRequest(e) {
     let tabId = e.tabId;
     let tabcfg = getOriginConfig(tabId, fromExtension);
 
-    // See (autoRedirectAgain) in handleBeforeNavigate.
-    if (e.type == "main_frame") {
+    if (isMainFrame) {
         if (config.debugRuntime)
             console.log("CAPTURE: tab navigation", tabId, url);
 
-        let redirectUrl = autoRedirect(tabcfg, url);
-        if (redirectUrl !== null) {
-            if (config.debugRuntime)
-                console.warn("CAPTURE: redirecting tab", tabId, "from", url, "to", redirectUrl);
-            // `noBroadcast = true` because it will update soon
-            setTabConfig(tabId, redirectUrl, tabcfg, tabcfg, true);
-            return { redirectUrl };
+        // handle "Auto-replay mode" toggle
+        if (tabcfg.autoReplay && !isBoringOrServer) {
+            if (checkReplay("Auto-replay")) {
+                let redirectUrl = latestReplayOf(url);
+
+                if (config.debugRuntime)
+                    console.warn("CAPTURE: redirecting tab", tabId, "from", url, "to", redirectUrl);
+
+                // configure this tab based on its URL,
+                // `noBroadcast = true` because it will update soon
+                setTabConfig(tabId, redirectUrl, tabcfg, tabcfg, true);
+
+                // do the redirect
+                return { redirectUrl };
+            } else
+                // cancel it as if `workOffline` was enabled
+                return { cancel: true };
         }
+
+        // configure this tab based on its URL
+        setTabConfig(tabId, url, tabcfg, tabcfg);
+
+        if (isBoringOrServer)
+            // (stillBoring)
+            return;
     }
 
     let noDebuggerYet = false;
@@ -822,7 +842,7 @@ function handleBeforeRequest(e) {
             && (url.startsWith("http://") || url.startsWith("https://"))) {
             if (config.debugRuntime)
                 console.warn("CAPTURE: canceling and restarting request to", url, "as tab", tabId, "is not managed yet");
-            if (e.type == "main_frame") {
+            if (isMainFrame) {
                 // attach debugger and reload the main frame
                 attachDebuggerAndReloadTab(tabId).catch(logError);
                 // not using
@@ -844,7 +864,7 @@ function handleBeforeRequest(e) {
         if (!workOffline && firstNetworkRequest
             && (url.startsWith("http://") || url.startsWith("https://"))) {
             firstNetworkRequest = false;
-            if (config.workaroundFirefoxFirstRequest && tabId !== -1 && initiator === undefined && e.type == "main_frame") {
+            if (config.workaroundFirefoxFirstRequest && tabId !== -1 && initiator === undefined && isMainFrame) {
                 if (config.debugRuntime)
                     console.warn("CAPTURE: canceling and restarting request to", url, "to workaround a bug in Firefox");
                 resetAndNavigateTab(tabId, url).catch(logError);

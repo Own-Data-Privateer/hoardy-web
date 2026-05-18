@@ -1112,9 +1112,9 @@ This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough 
 *** =Hoardy-Web= asks for a lot of permissions, what does it use all those permissions for?
 
 - =<all_urls>= permission is used so that =Hoardy-Web= could capture all URLs.
-- =webRequest= and =webRequestBlocking= permissions are used to track and capture =HTTP= requests and responses; on Chromium the latter also requires the =debugger= permission, which =Hoardy-Web= also asks for there.
 - =tabs= permission is used for tracking per-tab state and stats, making =Hoardy-Web='s toolbar icon show per-tab state, {{{button2(snapshotAll,taking =DOM= snapshot of all tabs)}}}, buttons switching to a related tab in the log {{{logPage}}}, etc.
-- =webNavigation= permission is used to apply {{{div2(special-tab-options,=Tabs with special URLs= options)}}} when a tab navigates to a different URL, see [[#work-offline][above]] for more info.
+- =webRequest=, =webRequestBlocking=, and (on Chromium) =debugger= permissions are used to track and capture =HTTP= requests and responses as well as to apply {{{div2(special-tab-options,=Tabs with special URLs= options)}}} and other URL-dependent settings when a tab navigates to a different URL.
+- =webNavigation= permission is only used for internal logging at the moment.
 - =storage= permission is used to save extension config and stats.
 - =unlimitedStorage= permission is used for {{{div2(persistence-options,stashing and archival of captured data to browser's local storage)}}}.
 - =menus= (=contextMenus= on Chromium) permission is used to add [[#context-menu-shortcuts][context-menu shortcut actions for links]].
