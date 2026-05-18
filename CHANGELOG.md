@@ -6,6 +6,20 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.24.1] - 2026-05-18: Bug fixes
+
+### Fixed
+
+- On Firefox, fixed `Auto-replay` mode sometimes making Firefox fetch to-be-replayed pages from the Internet as their replays were being fetched from the archiving server.
+
+  It was a race condition in the code.
+
+- From now on, when the archiving server does not support replays, `Auto-replay` mode will generate error notifications and cancel to-be-replayed requests instead of silently switching to fetching data from the Internet.
+
+- Fixed config migrations sometimes resetting some config values to their defaults when migrating through multiple extension versions at once.
+
+  Only `Generate notificaitons about ... 'problematic' reqres` and `Track new requests ... including when 'Work offline' is set` were ever affected, so you might want to ensure that those are set to the values you actually want.
+
 ## [extension-v1.24.0] - 2026-05-16: Semantics and UI improvements, annoyance and bug fixes
 
 ### Changed: Automatic unmarking of `problematic` reqres
@@ -2755,6 +2769,7 @@ All planned features are complete now.
 
 - Initial public release.
 
+[extension-v1.24.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.24.0...extension-v1.24.1
 [extension-v1.24.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.23.0...extension-v1.24.0
 [extension-v1.23.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.22.0...extension-v1.23.0
 [extension-v1.22.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.21.1...extension-v1.22.0
