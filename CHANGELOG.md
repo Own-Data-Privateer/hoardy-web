@@ -308,7 +308,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
   - Improved the [`Help` page](./extension/page/help.org), aligning it with reality.
 
-## [extension-v1.21.1] - 2025-04-03: Bugfixes
+## [extension-v1.21.1] - 2025-04-03: Bug fixes
 
 ### Fixed
 
@@ -657,7 +657,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 - Fixed version detection, i.e. `--version` option works again.
 
-## [tool-v0.21.0] - 2024-12-29: Bugfixes, incremental improvements
+## [tool-v0.21.0] - 2024-12-29: Bug fixes, incremental improvements
 
 ### Fixed
 
@@ -2113,7 +2113,7 @@ Generally:
 
 ### Fixed
 
-- Various small bugfixes.
+- Various small bug fixes.
 
 ## [tool-v0.13.0] - 2024-08-05
 
@@ -2158,7 +2158,7 @@ Generally:
 
 ### Fixed
 
-- Various small bugfixes.
+- Various small bug fixes.
 
 ## [extension-v1.11.0] - 2024-06-27
 
@@ -2252,15 +2252,15 @@ Generally:
 
 ### Fixed
 
-- Various small bugfixes.
+- Various small bug fixes.
 
 ## [extension-v1.9.0] - 2024-06-07
 
 ### Fixed
 
-- A whole ton of bugfixes.
+- A whole ton of bug fixes.
 
-  So many bugfixes that pWebArc on Chromium now actually works almost as well as on Firefox.
+  So many bug fixes that pWebArc on Chromium now actually works almost as well as on Firefox.
 
   All leftover issues on Chromium I'm aware of are consequences of Chromium's debugging API limitations and, as far as I can see, are unsolvable without actually patching Chromium (which is unlikely to be accepted upstream, given that patching them will make ad-blocking easier).
 
@@ -2368,7 +2368,7 @@ Generally:
 
 ### Fixed
 
-- A tiny bugfix.
+- A tiny bug fix.
 
 ## [extension-v1.8.0] - 2024-05-20
 
@@ -2437,7 +2437,7 @@ Generally:
 
 ### Fixed
 
-- Various small bugfixes.
+- Various small bug fixes.
 
 ## [tool-v0.11.2] - 2024-05-20
 
@@ -2523,7 +2523,7 @@ Generally:
 
 ### Fixed
 
-- Various small bugfixes.
+- Various small bug fixes.
 
 ## [tool-v0.9.0] - 2024-03-22
 
@@ -2555,13 +2555,13 @@ Generally:
 
 ### Fixed
 
-- Bugfix #1:
+- Bug fix #1:
 
   `tool-v0.8` might have skipped some of the updates when `import`ing and forgot to do some actions when doing `organize`, which was not the case for `tool-v0.6`.
 
   These bugs should have not been triggered ever (and with the default `--output` they are impossible to trigger) but to be absolutely sure you can re-run `import mitmproxy` and `organize` with the same arguments you used before.
 
-- Bugfix #2:
+- Bug fix #2:
 
   `organize --output` `num`bering is deterministic again, like it was in `tool-v0.6`.
 
@@ -2668,7 +2668,7 @@ Paths produced by `wrrarms organize` are expected to change:
 
 ### Fixed
 
-- Various small bugfixes.
+- Various small bug fixes.
 
 ## [extension-v1.4] - 2023-09-25
 
@@ -2701,7 +2701,7 @@ Paths produced by `wrrarms organize` are expected to change:
 
 ### Fixed
 
-- Various small bugfixes.
+- Various small bug fixes.
 
 ## [extension-v1.1] - 2023-08-28
 
@@ -2712,7 +2712,7 @@ Paths produced by `wrrarms organize` are expected to change:
 
 ### Fixed
 
-- Various small bugfixes.
+- Various small bug fixes.
 
 ## [dumb_server-v1.1] - 2023-08-28
 
@@ -2741,7 +2741,7 @@ All planned features are complete now.
 
 ### Fixed
 
-- Various small bugfixes.
+- Various small bug fixes.
 
 ## [extension-v0.1] - 2023-08-20
 
