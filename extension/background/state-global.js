@@ -264,16 +264,15 @@ function upgradeConfig(config) {
         }
         // because it got updated lots
         config.seenHelp = false;
-        break;
     case 6:
         // its semantics changed
         config.problematicNotify = config.autoNotify ? true : null;
-        break;
     case 7:
         // its semantics changed
         config.collectingWorkOffline = true;
-        break;
     case 8:
+
+    // epilog, do NOT move or copy-paste this `break` into the above
         break;
     default:
         console.warn(`Bad old config version ${config.version}, reusing values as-is without updates`);
