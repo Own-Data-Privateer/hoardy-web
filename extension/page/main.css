@@ -2,9 +2,6 @@
 
 @layer defaults {
 :root {
-    background-color: #0c0b12;
-    color: #fff;
-
     --a-external: #f80000;
     --a-internal: #008800;
     --a-local: #ffaa00;
@@ -38,13 +35,13 @@
     --input-color: var(--text-color);
     --outline-color: #666666;
     --separator-color: #ffffff;
-    --tag-background: inherit;
+    --tag-background: var(--text-background);
     --tag-color: var(--text-color);
     --target-background-1: #ffaa00;
     --target-background-2: #ffaa0040;
     --target-color: var(--text-color);
-    --text-background: inherit;
-    --text-color: inherit;
+    --text-background: #0c0b12;
+    --text-color: #ffffff;
     --text-inactive-background: #303030;
     --text-inactive-color: #505050;
     --text-shadow-color: #ffffff;
@@ -76,9 +73,6 @@
 }
 
 .light {
-    background-color: #ffffff;
-    color: #000000;
-
     --a-external: #d80000;
     --a-local: #a86800;
     --active-tag-background: #d0d0d0;
@@ -98,9 +92,12 @@
     --hover-border-color: #808080;
     --outline-color: #aaaaaa;
     --separator-color: #000000;
+    --text-background: #ffffff;
+    --text-color: #000000;
     --text-inactive-background: #cfcfcf;
     --text-inactive-color: #afafaf;
     --text-shadow-color: #000000;
+
     --notoggle-background: #dfdfdf;
 }
 
@@ -117,8 +114,16 @@
     --code-background: #0000ff10;
 }
 
-#body {
+body, #body_loading, #body_error, #body {
     font: 16px sans-serif;
+    background-color: var(--text-background);
+    color: var(--text-color);
+}
+
+h1, h2, h3, h4,
+p, span, label,
+pre, code, li, a {
+    color: var(--text-color);
 }
 
 .flex {
@@ -140,12 +145,6 @@
 
 .right {
     margin-left: auto;
-}
-
-h1, h2, h3, h4,
-p, span, label,
-pre, code, a {
-    color: var(--text-color);
 }
 
 a, code {

@@ -12,9 +12,10 @@ body {
     border: 3px solid var(--outline-color);
     box-sizing: border-box;
     margin: 0;
-    max-width: 455px; /* NB: keep in sync with values in ./help.template */
-    min-width: 410px;
     padding: 0;
+
+    /* NB: keep it smaller than the `--popup` value in ./help.template */
+    min-width: 410px;
 }
 
 #body {

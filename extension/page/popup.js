@@ -80,40 +80,20 @@ function present(obj) {
 async function popupMain() {
     setPageLoading();
 
-    implySetConditionalOff(dbody, "on-firefox", useDebugger);
-    implySetConditionalOff(dbody, "on-chromium", !useDebugger);
-    implySetConditionalOff(dbody, "on-desktop", isMobile);
-    implySetConditionalOff(dbody, "on-mobile", !isMobile);
+    let hash = document.location.hash.substr(1);
 
     // should this view be narrowed?
-    let narrow = true;
+    let narrow = false;
     // this view should be narrowed to
     let narrowSessionId = await browser.runtime.sendMessage(["getSessionId"]);
-    let narrowWindowId;
-    let narrowTabId;
+    let narrowWindowId = 0;
+    let narrowTabId = 0;
 
-    let hash = document.location.hash.substr(1);
-    if (hash)
-        document.getElementById("tags").style.display = "none";
-
-    if (hash === "options") {
-        document.getElementById("this-tab-options").style.display = "none";
-        document.getElementById("this-tab-children-options").style.display = "none";
-        document.body.style.border = "none";
-        document.body.style.color = "inherit"; // to work-around Firefox default CSS
-        narrow = false;
-    } else {
-        let tab = await getActiveTab();
-        if (tab !== null) {
-            narrowWindowId = tab.windowId;
-            narrowTabId = getStateTabIdOrTabId(tab);
-        } else {
-            // This happens when the user opens the "Help" page from the
-            // settings menu on Fenix. Disabling `narrow` will make the page
-            // useless, so we fake these values instead.
-            narrowWindowId = 0;
-            narrowTabId = 0;
-        }
+    let tab = await getActiveTab();
+    if (tab !== null) {
+        narrow = true;
+        narrowWindowId = tab.windowId;
+        narrowTabId = getStateTabIdOrTabId(tab);
     }
 
     // generate UI
@@ -355,9 +335,6 @@ async function popupMain() {
         setUI(document, "tabstats", present(tabstats));
     }
 
-    // set default UI state
-    showTab(hash ? "all" : "common");
-
     async function processUpdate(update) {
         let [what, arg1, arg2] = update;
         switch (what) {
@@ -398,6 +375,25 @@ async function popupMain() {
         }
     }, asyncNoop, processUpdate);
 
+    // set default UI state
+    implySetConditionalOff(dbody, "on-firefox", useDebugger);
+    implySetConditionalOff(dbody, "on-chromium", !useDebugger);
+    implySetConditionalOff(dbody, "on-desktop", isMobile);
+    implySetConditionalOff(dbody, "on-mobile", !isMobile);
+
+    if (hash) {
+        showTab("all");
+        document.getElementById("tags").style.display = "none";
+        if (hash === "options") {
+            // options/settings UI variant
+            document.getElementById("div-this-tab-options").style.display = "none";
+            document.getElementById("div-this-tab-children-options").style.display = "none";
+            dbody.style.border = "none";
+        }
+    } else
+        showTab("common");
+
+    // finish
     setPageDone();
 
     // highlight current target
