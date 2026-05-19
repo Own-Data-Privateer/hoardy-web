@@ -612,8 +612,15 @@ function handleNotificationClicked(notificationId) {
     if (config.debugRuntime)
         console.log("BROWSER: NOTIFICATION: clicked", notificationId);
 
-    if (notificationId.startsWith("error-"))
-        showHelp("error-notifications");
+    switch (notificationId) {
+    case "info-updated":
+        evalRPCRequest(["setConfig", { seenChangelog: true }]);
+        showChangelog("");
+        return;
+    default:
+        if (notificationId.startsWith("error-"))
+            showHelp("error-notifications");
+    }
 }
 
 let menuTitleTab = {
