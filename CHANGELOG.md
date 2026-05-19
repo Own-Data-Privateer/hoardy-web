@@ -10,21 +10,23 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Fixed
 
-- On Firefox, fixed `Auto-replay` mode sometimes making Firefox fetch to-be-replayed pages from the Internet as their replays were being fetched from the archiving server.
+- Core, Replay:
 
-  It was a race condition in the code.
+  - On Firefox, fixed `Auto-replay` mode sometimes making Firefox fetch to-be-replayed pages from the Internet as their replays were being fetched from the archiving server.
 
-- From now on, when the archiving server does not support replays, `Auto-replay` mode will generate error notifications and cancel to-be-replayed requests instead of silently switching to fetching data from the Internet.
+    It was a race condition in the code.
 
-- Fixed config migrations sometimes resetting some config values to their defaults when migrating through multiple extension versions at once.
+  - From now on, when the archiving server does not support replays, `Auto-replay` mode will generate error notifications and cancel to-be-replayed requests instead of silently switching to fetching data from the Internet.
 
-  Only `Generate notificaitons about ... 'problematic' reqres` and `Track new requests ... including when 'Work offline' is set` were ever affected, so you might want to ensure that those are set to the values you actually want.
+  - Fixed config migrations sometimes resetting some config values to their defaults when migrating through multiple extension versions at once.
+
+    Only `Generate notificaitons about ... 'problematic' reqres` and `Track new requests ... including when 'Work offline' is set` were ever affected, so you might want to ensure that those are set to the values you actually want.
 
 ## [extension-v1.24.0] - 2026-05-16: Semantics and UI improvements, annoyance and bug fixes
 
 ### Changed: Automatic unmarking of `problematic` reqres
 
-- Core + Capture + [`Internal State` pages](#state-in-extension-ui-only) + Popup UI:
+- Core, Capture, [`Internal State` pages](#state-in-extension-ui-only), Popup UI:
 
   - The machinery behind `Auto-unmark 'problematic' reqres` option, when that option is enabled, now gets applied regardless of reqres collection status.
 
@@ -48,7 +50,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
     Names are hard.
 
-- Core + [`Internal State` pages](#state-in-extension-ui-only) + Popup UI:
+- Core, [`Internal State` pages](#state-in-extension-ui-only), Popup UI:
 
   - Added a new section to internal state pages that displays bugged out reqres.
   - Moved the `Bugged out` (`Errored`) status line back to where it was before `extension-v1.23.0`.
@@ -57,7 +59,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Changed/Added: Re-archival
 
-- Core + Popup UI:
+- Core, Popup UI:
 
   - Renamed `Re-archive adjunct` button -\> `Re-archive new`.
 
@@ -70,15 +72,15 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
     See the [`Help` page](./extension/page/help.org) for more info.
 
-- Core + Notifications:
+- Core, Notifications:
 
-  - Re-archival actions now generate better notifications, listing the exact counts all possible actions they take.
+  - Re-archival actions now generate better notifications, listing the exact counts of all the actions they take.
 
   - From now on, deletion of reqres saved in local storage, via the `Delete (re-)archived` popup UI button or a similar button on the [`Saved in Local Storage` page](#saved-in-extension-ui-only) generates notifications on completion too.
 
 ### Fixed/Changed/Added: Old session handling
 
-- Core + [`Internal State` pages](#state-in-extension-ui-only) + Popup UI + Shortcuts:
+- Core, [`Internal State` pages](#state-in-extension-ui-only), Popup UI, Shortcuts:
 
   - The state pages now take `sessionId`s of old stashed reqres into account and Popup UI buttons and shortcuts respect those:
 
@@ -88,7 +90,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Changed/Added: Reqres-related UI, URL filtering, and size tracking
 
-- Popup UI + [`Internal State` pages](#state-in-extension-ui-only):
+- Popup UI, [`Internal State` pages](#state-in-extension-ui-only):
 
   - Improved styling of tooltips a bit.
 
@@ -106,7 +108,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
   - Changed formatting of entries to be denser.
 
-- Core + Capture + [`Internal State` pages](#state-in-extension-ui-only):
+- Core, Capture, [`Internal State` pages](#state-in-extension-ui-only):
 
   - All sections of the internal state pages can now be filtered by URL, in a bunch of different ways: by the exact URL, by a sub-string, and via a regular expression.
 
@@ -123,7 +125,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Changed: Work offline handling
 
-- Core + Capture:
+- Core, Capture:
 
   - The `webRequest::capture::CANCELED::BY_WORK_OFFLINE` reqres error is no longer treated as "important".
 
@@ -138,21 +140,21 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Fixed
 
-- Core + Popup UI:
+- Core, Popup UI:
 
   - Improved semantics of the actions behind the buttons that run and cancel all currently scheduled actions.
 
     The resulting extension state shouldn't ever be confusing now.
 
-- Core + [`Internal State` pages](#state-in-extension-ui-only):
+- Core, [`Internal State` pages](#state-in-extension-ui-only):
 
   - Still `problematic` reqres no longer get dropped from the logs when you run the `Forget all` action, as help strings of those buttons claim.
 
     This behavior is slightly annoying, but this way is safer and does not loose `problematic` reqres when the extension restarts/updates.
 
-- Core + Shortcuts:
+- Core, Shortcuts:
 
-  - Pressing the `Show Log` shortcut now scrolls the state page in a way that shows the tail of the log properly.
+  - `Show Log` shortcuts will now scroll their corresponding [`Internal State` pages](#state-in-extension-ui-only) in a way that puts tails of the logs there at the bottom of their page frames, thus maximizing the number of log entries shown by default.
 
 - Core:
 
@@ -197,7 +199,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Added
 
-- Core + Replay + Popup UI:
+- Core, Replay, Popup UI:
 
   - Implemented a new `Disable 'Auto-Replay' in replayed tabs` config option and its popup UI, which is now also enabled by default.
 
@@ -205,7 +207,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
     This makes working with replays much less annoying.
 
-- Core + Capture + Popup UI:
+- Core, Capture, Popup UI:
 
   - Implemented some generic machinery for auto-unmarking of `problematic` reqres, added a bunch of new config options in the vein of the old `Closed tabs > Auto-unmark 'problematic' reqres` option, and created a new popup UI section for them.
 
@@ -219,7 +221,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Changed
 
-- Core + Capture + Replay + Popup UI:
+- Core, Capture, Replay, Popup UI:
 
   - `Notify about 'problematic' reqres` is now a tristate of "off", "notify about new `problematic` reqres", "do that and notify about newly unmarked `problematic` reqres too", the middle value is the default still.
 
@@ -247,7 +249,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
   - Simplified and generalized a bunch of internal machinery.
 
-- Popup UI + [`Internal State` pages](#state-in-extension-ui-only):
+- Popup UI, [`Internal State` pages](#state-in-extension-ui-only):
 
   - Improved styling of tristate toggles.
 
@@ -262,7 +264,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Fixed
 
-- Core + Capture:
+- Core, Capture:
 
   - Fixed `DOM` snapshots failing for pages with top-level `HTML`/`XML` comments.
 
@@ -274,7 +276,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
     The complete fix for this is very computationally expensive, so the current implementation is fixing the issue incrementally, bit by bit, each time you (re-)load the extension, until the most optimal state is reached.
 
-- Core + Toolbar button + Popup UI + [`Internal State` pages](#state-in-extension-ui-only):
+- Core, Toolbar button, Popup UI, [`Internal State` pages](#state-in-extension-ui-only):
 
   - Fixed error messages in the popup UI being unreadable when the extension fails to initialize very early.
 
@@ -292,7 +294,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Added
 
-- Core + Toolbar button + Icons + Popup UI + Shortcuts:
+- Core, Toolbar button, Icons, Popup UI, Shortcuts:
 
   - Implemented `Auto-Replay` mode, its per-tab options, shortcuts, and toolbar display.
 
@@ -303,7 +305,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
     I.e., in most cases, you won't need to bookmark replay URLs anymore.
     With `Auto-Replay` enabled, bookmarks of the original URLs will work now just as well.
 
-- Core + Popup UI:
+- Core, Popup UI:
 
   - Added "Paranoid error handling" options for HTTP and local storage archival methods (on the "P&R" tab, `config.submitHTTPParanoid` and `config.saveLSParanoid` settings).
 
@@ -326,22 +328,26 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Fixed
 
-- A small crash fix for when some reqres become marked as errored on restart (which is a heisenbug I have not tracked down yet).
+- Core:
+
+  - A small crash fix for when some reqres become marked as errored on restart (which is a heisenbug I have not tracked down yet).
 
 ### Changed
 
-- Split `config.debugConfig` ("Allow unsafe config values") out of `config.debugRuntime` ("Debug runtime") since the latter is ok to leave enabled while the former should be disabled most of the time.
+- Core, Popup UI:
+
+  - Split `config.debugConfig` ("Allow unsafe config values") out of `config.debugRuntime` ("Debug runtime") since the latter is ok to leave enabled while the former should be disabled most of the time.
 
 ## [extension-v1.21.0] - 2025-02-11: Re-archival, reworked internals, many small improvements
 
-### Added/Changed/Removed (1): Re-archival replaces re-queueing
+### Added/Changed/Removed: Re-archival replaces re-queueing
 
-- Core + Popup UI + the [`Saved in Local Storage` page](#saved-in-extension-ui-only) + the [`Help` page](./extension/page/help.org):
+- Core, Popup UI, [`Saved in Local Storage` page](#saved-in-extension-ui-only), [`Help` page](./extension/page/help.org):
 
   - Implemented new re-archival machinery. `Hoardy-Web` now follows the following state diagram:
 
     ```
-    (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
+    (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body received)
        |                           |                              |             |
        |                           v                              v             v
        |                     (no_response)                   (incomplete)   (complete)
@@ -390,7 +396,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
     - but normal archival now stops completely while re-archival is working, which locks local storage from modification, which allows re-archival machinery to be much more efficient than the re-queueing machinery was, re-archiving everything requested and applying all updates in a single pass over local storage, and using the smallest required number of disk writes;
 
-    - also, internally, the re-archival machinery is now a simple function, not a collection of distinct schedule-able tasks, which means it can easily be called explicitly, which allows common re-archival workflows to be bound to separate UI buttons and/or keyboard shortcuts,
+    - also, internally, the re-archival machinery is now a simple function, not a collection of distinct schedule-able tasks, which means it can easily be called explicitly, which allows common re-archival workflows to be bound to separate UI buttons and/or keyboard shortcuts;
 
       which `Hoardy-Web` now does, making things much more convenient.
 
@@ -406,13 +412,13 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
     All of this can be done with a single button-press and using a smallest required number of disk writes now.
 
-- Core + Default config:
+- Core, Default config:
 
   - Set the default `config.exportAsMaxSize` to `64 MiB` again and increased the limit to `512 MiB` both on Chromium and on Firefox.
 
     Bigger values are better for `WRR bundle` compression ratios, and my tests had shown that this actually works fine even on Firefox, even though Mozilla's docs claim it would not, so.
 
-### Changed (2): Internals
+### Changed: Internals
 
 - Core:
 
@@ -430,15 +436,15 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
     This also, essentially, auto-generates implementations of many internal actions.
 
-- Core + `manifest.json`:
+- Core, `manifest.json`:
 
   - Added a bunch more useful, but unbound by default, keyboard shortcuts.
 
     Since their actual internal implementations are now free.
 
-### Added/Changed (3): Capture and logging
+### Added/Changed: Capture and logging
 
-- Core + Capture:
+- Core, Capture:
 
   - Renamed `fake` reqres/`WRR` flag to `request_buggy`, because the old name was not at all descriptive.
 
@@ -466,9 +472,9 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
   - Documented all these flags in [`doc/data-on-disk.md`](./doc/data-on-disk.md), which now comes bundled with the extension too.
 
-### Added/Changed (4): UI
+### Added/Changed: UI
 
-- Core + Toolbar button + Icons:
+- Core, Toolbar button, Icons:
 
   - Added `unsnapshottable` and `unreplayable` icons.
 
@@ -480,7 +486,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
     This makes things much less confusing.
 
-- Core + Default config:
+- Core, Default config:
 
   - Increased the default `config.animateIcon` value a bit, to make those icons easier to visually parse.
 
@@ -498,11 +504,11 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
   - On Fenix, improved the layout slightly.
 
-- Core + Popup UI:
+- Core, Popup UI:
 
   - Split `config.debugging` into a bunch of more fine-grained configuration options.
 
-### Changed (5): Documentation
+### Changed: Documentation
 
 - Documentation:
 
@@ -530,7 +536,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
     Which were easy to manually fix, but still.
 
-- Core + Popup UI:
+- Core, Popup UI:
 
   - Canceled actions will no longer appear in the `Running actions` list.
 
@@ -541,7 +547,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
     Internally, this is how it works still, but the UI will filter them out now, to make it less surprising.
 
-- The [`Internal State` page](#state-in-extension-ui-only):
+- [`Internal State` pages](#state-in-extension-ui-only):
 
   - Fixed CSS not getting applied to some elements of the "Queued" section.
 
@@ -553,7 +559,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Added
 
-- Core + Popup UI:
+- Core, Popup UI:
 
   - Implemented `config.limboNotifyInterval` option and its popup UI.
 
@@ -577,7 +583,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
   (Thanks to @douglasg14b on GitHub for pointing out three out of five of the above.)
 
-- The [`Help` page](./extension/page/help.org):
+- [`Help` page](./extension/page/help.org):
 
   - Added "Table of Contents" section.
 
@@ -620,7 +626,9 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
   - From now on, in most cases, newly created `.part` files should be automatically deleted if `hoardy-web` encounters an FS error.
   - Improved error messages.
 
-- Improved documentation.
+- Documentation:
+
+  - Improved documentation.
 
 ### Added
 
@@ -645,7 +653,9 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
   - From now on, when archiving/dumping, by default, it will both return errors to the client and also print them to `stderr`.
     The latter can be disabled by `--quiet`.
 
-- Improved documentation.
+- Documentation:
+
+  - Improved documentation.
 
 ### Fixed
 
@@ -662,14 +672,21 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Changed
 
-- Formatted code using `black`.
-- Fixed minor issues found by `pylint`.
-- Improved metadata.
-- Improved documentation.
+- `*`:
+
+  - Formatted code using `black`.
+  - Fixed minor issues found by `pylint`.
+
+- Documentation, Metadata:
+
+  - Improved documentation.
+  - Improved metadata.
 
 ### Fixed
 
-- Fixed version detection, i.e. `--version` option works again.
+- `*`:
+
+  - Fixed version detection, i.e. `--version` option works again.
 
 ## [tool-v0.21.0] - 2024-12-29: Bug fixes, incremental improvements
 
@@ -747,11 +764,13 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
     This allows for more interesting uses.
 
-- Improved documentation.
+- Documentation:
+
+  - Improved documentation.
 
 ## [extension-v1.19.0] - 2024-12-21: Reworked popup UI, better replay integration
 
-### Changed (1)
+### Changed: UI
 
 - Popup UI:
 
@@ -763,7 +782,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 ### Added
 
-- Core + Popup UI + Shortcuts:
+- Core, Popup UI, Shortcuts:
 
   - Added `Replay from the archiving server` configuration option.
 
@@ -773,7 +792,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
   - Added popup UI button and keyboard shortcut both of which re-navigate all tabs for which `Include in global replays` is set to their replays.
 
-  - Added popup UI button, keyboard shortcut, and context menu item all of which re-navigate a currently active tab to its replay.
+  - Added popup UI button, keyboard shortcut, and context menu item all of which re-navigate currently active tab to its replay.
 
   - Added `Force 'Work offline' in replayed tabs` configuration option which does the same thing the similar options for `file:` and `data:` URL does, but for tabs that point to replay URLs.
     Enabled by default.
@@ -783,21 +802,23 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
   - Added `Escape notification messages` configuration option to help support more notification daemons.
     Disabled by default.
 
-### Changed (2)
+### Changed: Misc
 
-- The [`Help` page](./extension/page/help.org):
+- [`Help` page](./extension/page/help.org):
 
   - Merged "Handling of failures" section into "Archival".
 
   - Reworded some awkward places.
 
-- Core + `manifest.json`:
+- Core, Shortcuts, `manifest.json`:
 
   - Improved server checking logic and error messages.
 
   - Improved keyboard shortcut descriptions.
 
-- Improved documentation.
+- Documentation:
+
+  - Improved documentation.
 
 ### Fixed
 
@@ -852,12 +873,14 @@ This release integrates the `extension` with `tool-v0.20.0`, which can now do bo
 
 ### Fixed: Incompatible changes
 
-- Improved URL normalization:
+- `*`:
 
-  - From now on, it will preserve "=" symbols in query strings even when parameter values are empty, like browsers do.
-  - URL path and query quoting and unquoting is now, hopefully, equivalent to what browsers do, too.
+  - Improved URL normalization:
 
-This changes the file names generated by `organize` with the default `--output` format a bit.
+    - From now on, it will preserve "=" symbols in query strings even when parameter values are empty, like browsers do.
+    - URL path and query quoting and unquoting is now, hopefully, equivalent to what browsers do, too.
+
+    This changes the file names generated by `organize` with the default `--output` format a bit.
 
 ### Added
 
@@ -887,8 +910,6 @@ This changes the file names generated by `organize` with the default `--output` 
 
     Archiving new reqres updates the index accordingly, as expected.
 
-  - Documented it all across the whole repository.
-
 - `mirror`:
 
   - Implemented rendering of non-`GET` reqres.
@@ -915,6 +936,10 @@ This changes the file names generated by `organize` with the default `--output` 
   - Added a bunch more parsed URL properties.
   - Added a bunch more similar reqres properties.
 
+- Documentation:
+
+  - Documented the above changes.
+
 ### Changed
 
 - `mirror`:
@@ -931,11 +956,15 @@ This changes the file names generated by `organize` with the default `--output` 
 
   - Renamed `--no-remap` option -\> `--raw-sbody`, the old name is kept as an alias.
 
-- Improved documentation and help strings.
+- Documentation:
 
-  Most notably, the input filtering options are shown only once now.
+  - Improved documentation and help strings.
 
-- `pyproject.toml` now explicitly specifies optional `mitmproxy` file format support.
+    Most notably, the input filtering options are shown only once now.
+
+- Metadata:
+
+   - `pyproject.toml` now explicitly specifies optional `mitmproxy` file format support.
 
 ### Fixed
 
@@ -947,23 +976,29 @@ This changes the file names generated by `organize` with the default `--output` 
 
 ### Added
 
-- Added `-t`, `--to`, and `--archive-to` aliases for `--root`.
+- `*`:
 
-- Added `/hoardy-web/server-info` endpoint for future integration with the `extension`.
+  - Added `-t`, `--to`, and `--archive-to` aliases for `--root`.
+
+  - Added `/hoardy-web/server-info` endpoint for future integration with the `extension`.
 
 ### Changed
 
-- From now on, "/" and most other non-word symbols (except "_", "-", and space) in bucket names are forbidden and will be removed.
+- `*`:
 
-  This will simplify some future things.
+  - From now on, "/" and most other non-word symbols (except "_", "-", and space) in bucket names are forbidden and will be removed.
 
-- From now on, when several buckets are specified via several `profile` query parameters, the last one will be used.
+    This will simplify some future things.
 
-- Renamed `--uncompressed` -\> `--no-compress`, the old name is kept as an alias.
+  - From now on, when several buckets are specified via several `profile` query parameters, the last one will be used.
 
-- Slightly improved performance.
+  - Renamed `--uncompressed` -\> `--no-compress`, the old name is kept as an alias.
 
-- Started typechecking with `mypy`.
+  - Slightly improved performance.
+
+- Build:
+
+  - Started typechecking with `mypy`.
 
 ## [tool-v0.19.0] - 2024-12-07: Powerful filtering, new mirroring modes
 
@@ -1039,9 +1074,13 @@ This changes the file names generated by `organize` with the default `--output` 
 
   - Implemented `--relative` and `--absolute` options, which control if URLs should be remapped to relative or absolute `file:` URLs, respectively.
 
-- Documented all the new things.
+- Documentation:
 
-- Added a bunch of new `test-cli.sh` tests.
+  - Documented all the new things.
+
+- Build:
+
+  - Added a bunch of new `test-cli.sh` tests.
 
 ### Changed
 
@@ -1063,18 +1102,26 @@ This changes the file names generated by `organize` with the default `--output` 
 
   - Improved output log format.
 
-- Improved file loading performance a bit.
+- `*`:
 
-- Improved documentation.
+  - Improved file loading performance a bit.
+
+- Documentation:
+
+  - Improved documentation.
 
 ### Fixed
+
+- `*`:
+
+  - Fixed a couple of silly filtering-related bugs.
+
+- Build:
 
   - Added a bunch of new tests for `organize`, which cover the `organize --symlink --latest` bug of `tool-v0.18.0`.
     Won't happen again.
 
-  - Fixed a couple of silly filtering-related bugs.
-
-## [tool-v0.18.1] - 2024-11-30: Hotfixes
+## [tool-v0.18.1] - 2024-11-30: Hot bug fixes
 
 ### Fixed
 
@@ -1149,7 +1196,9 @@ This changes the file names generated by `organize` with the default `--output` 
 
   - Also, in general, the outputs of `scrub` with `+verbose` set are much prettier now.
 
-- Improved documentation.
+- Documentation:
+
+  - Improved documentation.
 
 ## [tool-v0.17.0] - 2024-11-09: Incremental improvements
 
@@ -1217,7 +1266,7 @@ This changes the file names generated by `organize` with the default `--output` 
 
 ### Changed
 
-- The [`Help` page](./extension/page/help.org):
+- [`Help` page](./extension/page/help.org):
 
   - Rewrote "Conventions" and "'Work offline' mode" sections of to be much more readable.
 
@@ -1261,7 +1310,7 @@ This changes the file names generated by `organize` with the default `--output` 
 
     The (much shorter now) "globally" part is at the front again because otherwise the badge being at the front there too without an explanation of its format is kind of confusing.
 
-- Core + All internal pages:
+- Core, All internal pages:
 
   - Improved internal async message handling infrastructure, making things slightly more efficient.
 
@@ -1285,7 +1334,7 @@ This changes the file names generated by `organize` with the default `--output` 
 
   - Fixed some small `CSS` nitpicks.
 
-- Popup UI + Documentation:
+- Popup UI, Documentation:
 
   - Realigned some help strings with reality.
 
@@ -1295,7 +1344,7 @@ This changes the file names generated by `organize` with the default `--output` 
 
 ### Added
 
-- The [`Help` page](./extension/page/help.org):
+- [`Help` page](./extension/page/help.org):
 
   - Documented what `webNavigation` permission is used for, improved the rest a bit.
 
@@ -1315,7 +1364,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
 ### Changed: Important UI
 
-- Core + Popup UI + Documentation:
+- Core, Popup UI, Documentation:
 
   - Renamed `failed` state and related `failed*` stats to `unarchived` state and `unarchived*` stats.
     Introduced a new `failed` stat that is now a sum of `unstashed` and `unarchived` stats.
@@ -1343,7 +1392,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
     - Setting `Bucket` of `This tab` to nothing will reset it to `Bucket` value of `New root tabs`.
     - Setting `Bucket` of `New root tabs` to nothing will reset it to `default`.
 
-- The [`Help` page](./extension/page/help.org):
+- [`Help` page](./extension/page/help.org):
 
   - The previous "Desktop" `JavaScript`-generated layout became `columns` `CSS` layout and `JS`-operation mode, while the "Mobile" `JavaScript`-generated layout became `linear` `CSS` layout and `JS`-operation mode.
     The page will now automatically switch between these two layouts and modes synchronously, depending on viewport width.
@@ -1365,7 +1414,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
   - All documentation pages now set viewport width to `device-width`, set content's `max-width` to `900px` and `width` to `100% - padding`, preventing horizontal scroll, when possible.
   - Improved the `CSS` styling in general.
 
-- Core + Popup UI + General UI:
+- Core, Popup UI, General UI:
 
   - Implemented a new popup UI tristate toggle named `Color scheme` which allows `Hoardy-Web`'s color-scheme to be different from the browser's default.
 
@@ -1379,7 +1428,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
 ### Changed: State display
 
-- Core + Toolbar button + Icons:
+- Core, Toolbar button, Icons:
 
   - Replaced toolbar button's icons representing Cartesian products of other icons with animations.
 
@@ -1416,24 +1465,24 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
 ### Added: State display
 
-- Core + Popup UI + Toolbar button:
+- Core, Popup UI, Toolbar button:
 
   - From now on, popup UI and toolbar button's badge and title will display information about currently running internal actions.
 
     (Implementing this took a surprising amount of effort in improvements to infrastructure code.)
 
-- Core + Toolbar button + Icons:
+- Core, Toolbar button, Icons:
 
   - Added a new `in_limbo` icon for "this tab has data in limbo" status.
     Unlike most other icons, this icon will never be used alone, it will always be an animation frame of something longer.
 
-- Core + Popup UI + Toolbar button:
+- Core, Popup UI, Toolbar button:
 
   - Implemented `Animate toolbar icon every` setting for controlling toolbar icon animation speed.
 
 ### Fixed: State display
 
-- Core + Toolbar button:
+- Core, Toolbar button:
 
   - Fixed a bunch of bugs that prevented updates to toolbar button's icon and badge in some cases.
 
@@ -1441,15 +1490,15 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
 ### Added: `Work offline` mode
 
-- Core + Popup UI + Toolbar button + Icons + Documentation:
+- Core, Popup UI, Toolbar button, Icons, Documentation:
 
   - Implemented `Work offline` mode, options, their popup UI, shortcuts, and icons.
 
-    This mode does the same thing as `File > Work Offline` checkbox of Firefox, except it supports per-tab/per-other-origin operation, not just the whole-browser one.
-    Also, enabling any these options will not break requests that are still in flight, and the requests they do cancel can be logged.
+    This mode does the same thing as `File > Work Offline` checkbox of Firefox, except it supports per-tab/per-source operation, not just the whole-browser one.
+    Also, enabling any of these options will not break requests that are still in flight, and the requests they do cancel can be logged.
 
     That is, enabling `Work offline` in a tab will start canceling all new requests that tab generates, and the resulting `canceled` reqres will get logged if `Track new requests` option is enabled in the same tab.
-    Similarly for background tasks and other origins.
+    Similarly for background tabs and other sources.
 
     This can be generally useful for debugging your own websites with dynamic responsive `CSS`, or if you just want to prevent a tab from accessing the network for some reason.
 
@@ -1459,13 +1508,15 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
     In fact, from now on, by default, `Hoardy-Web` will enable `Work offline` in all tabs pointing to `file:` URLs.
     This can be disabled in the settings.
 
-  - Documented it in more detain on the [`Help` page](./extension/page/help.org#work-offline).
-
   - Added a new `offline` toolbar icon to display the above state.
+
+- Documentation:
+
+  - Documented it all in more detail on the [`Help` page](./extension/page/help.org#work-offline).
 
 ### Added: Reloading with state preserved
 
-- Core + Popup UI + Documentation:
+- Core, Popup UI, Documentation:
 
   - Implemented `reloadSelf` action that reloads the add-on while preserving its state.
 
@@ -1478,30 +1529,32 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
   - Implemented `Auto-reload on updates` setting to automate away clicking of that button on updates.
     Though, it is currently disabled by default, because this feature is a bit experimental at the moment.
 
-  - Documented it a little bit on the [`Help` page](./extension/page/help.org#bugs).
-
   - That is, from now on, after the browser notifies the add-on that it ready to be updated, the popup UI will display a button allowing you to reload it, so that the browser could load the new version instead.
     Alternatively, you can now enable `Auto-reload on updates` and it would do that automatically.
 
+- Documentation:
+
+  - Documented it all a little bit on the [`Help` page](./extension/page/help.org#bugs).
+
 ### Added: Options
 
-- Core + Popup UI:
+- Core, Popup UI:
 
-  - Implemented `Export via 'saveAs' > Bundle dumps` option as separate toggle instead of forcing you into set the maximum size to `0` to get the same effect.
+  - Implemented `Export via 'saveAs' > Bundle dumps` option as separate toggle instead of forcing you to set the maximum size to `0` to get the same effect.
 
-  - Implemented `Include in global snapshots` per-tab/per-origin setting.
+  - Implemented `Include in global snapshots` per-tab/per-source setting.
 
     I.e., you can now exclude specific tabs from being included in all-tab `DOM`-snapshots even when `Track new requests` option is enabled.
 
-- Notifications + Popup UI:
+- Notifications, Popup UI:
 
-  - Implemented `Notify about 'problematic' reqres` per-tab/per-origin setting.
+  - Implemented `Notify about 'problematic' reqres` per-tab/per-source setting.
 
     I.e., you can now exclude specific tabs from generating notifications about `problematic` reqres even when `Generate notifications about > ... new 'problematic' reqres` option is enabled.
 
 ### Changed: Misc
 
-- Notifications + Documentation:
+- Notifications, Documentation:
 
   - From now on, clicking an error notification will open the [relevant section of the `Help` page](./extension/page/help.org#error-notifications) while doing nothing for other notifications.
 
@@ -1521,7 +1574,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
   - From now on, when you close a tab, all in-flight reqres in it will be emitted with `*::capture::EMIT_FORCED::BY_CLOSED_TAB` error set.
     Before, some of them sometimes finished with `webRequest::*_ABORT` errors instead.
 
-  - Refactored a lot of internal stuff, simplifying how many internal things are done.
+  - Refactored a lot of internal stuff, simplifying the ways in which many internal things are done.
 
 ### Added: Misc
 
@@ -1535,13 +1588,13 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
 ### Fixed: Misc
 
-- Core + Documentation:
+- Core, Documentation:
 
   - Fixed handling of interactions between page scrolling, node hilighting, and help tooltips.
 
     I.e., on the [`Help` page](./extension/page/help.org), highlighting an option in the popup UI by hovering over a link there, and then clicking on the help tooltip of the highlighted option will no longer make the UI look weird.
 
-- Core + Notifications:
+- Core, Notifications:
 
   - Fixed a small bug preventing no longer relevant notifications about `unarchived` reqres from being closed automatically.
 
@@ -1561,7 +1614,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
   - Added `--max-memory` option, allowing you to sacrifice arbitrary amounts of RAM to improve performance.
 
-- `*`:
+- Build:
 
   - Added unit tests for all internal parsers.
 
@@ -1581,13 +1634,15 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
   - Improved performance a bit.
 
-## [extension-v1.16.1] - 2024-10-15
+## [extension-v1.16.1] - 2024-10-15: Bug fixes
 
 ### Fixed
 
-- On Chromium, fixed request tracking being frequently broken since `extension-v1.15.0`.
+- Core, Capture:
 
-- Fixed reqres without responses but with networking errors having "Responded at" field set in the logs.
+  - On Chromium, fixed request tracking being frequently broken since `extension-v1.15.0`.
+
+  - Fixed reqres without responses but with networking errors having "Responded at" field set in the logs.
 
 ## [tool-v0.15.5] - 2024-10-07
 
@@ -1609,26 +1664,30 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
 ### Changed
 
-- File path parts starting with "." in `profile`s (i.e. buckets) given by clients are ignored now.
+- `*`:
 
-  This prevents escapes from the given `--root`.
+  - File path parts starting with "." in `profile`s (i.e. buckets) given by clients are ignored now.
 
-  The previous behaviour was not really a security issue, given that the server is not designed to be run with untrusted clients, and filenames are generated by it, not the clients.
-  But still.
+    This prevents escapes from the given `--root`.
 
-- Renamed command-line options:
+    The previous behaviour was not really a security issue, given that the server is not designed to be run with untrusted clients, and filenames are generated by it, not the clients.
+    But still.
 
-  - `--no-print-cbors` -\> `--no-print`
-  - `--default-profile` -\> `--default-bucket`
-  - `--ignore-profiles` -\> `--ignore-buckets`
+  - Renamed command-line options:
 
-  This is makes them use the same terminology the extension uses.
+    - `--no-print-cbors` -\> `--no-print`
+    - `--default-profile` -\> `--default-bucket`
+    - `--ignore-profiles` -\> `--ignore-buckets`
 
-  Old names are kept as aliases.
+    This is makes them use the same terminology the extension uses.
+
+    Old names are kept as aliases.
 
 ### Added
 
-- `version` endpoint, for extensibility.
+- `*`:
+
+  - `version` endpoint, for extensibility.
 
 ## [tool-v0.15.4] - 2024-10-02
 
@@ -1680,13 +1739,15 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
     This was broken since `v0.15.0`.
 
-- `scrub`, `import`:
+- `scrub`, `import`, Documentation:
 
   - Fixed some places where the documentation was misaligned with the code.
 
 ### Changed
 
-- Improved documentation.
+- Documentation:
+
+  - Improved documentation.
 
 ## [tool-v0.15.2] - 2024-09-21
 
@@ -1706,13 +1767,15 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
 ### Changed
 
-- Improved documentation.
+- Documentation:
+
+  - Improved documentation.
 
 ## [tool-v0.15.1] - 2024-09-18
 
 ### Added
 
-- `export mirror`
+- `export mirror`:
 
   - Added reporting for roots being queued at the very beginning.
 
@@ -1722,7 +1785,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
   - Added `--sniff-*` options to fix crashes introduced in `v0.15.0`.
 
-- `export mirror`
+- `export mirror`:
 
   - It will now remap URL fragments instead of dropping them.
   - It will now report the correct `depth` value in the UI.
@@ -1753,7 +1816,7 @@ But the current state is quite usable.
 
   - Added `--remap-semi` option, which does the same thing as `--remap-open` (which is equivalent to `wget --convert-links`), except it remaps unavailable action links and page requisites to void URLs, making the resulting generated pages self-contained and safe to open in a web browser without it trying to download something.
 
-    I.e. `--remap-semi` does what `wget --convert-links` should be doing, IMHO.
+    I.e., `--remap-semi` does what `wget --convert-links` should be doing, IMHO.
 
   - Added `--root-url-prefix` and `--root-url-re` options.
 
@@ -1763,7 +1826,9 @@ But the current state is quite usable.
 
     For `pprint` sub-command they replace `--naive` and `--paranoid` options.
 
-- `--expr`, `--output`: Added `pretty_net_url`, `pretty_net_nurl`, `raw_path_parts`, and `mq_raw_path` atoms.
+- `--expr`, `--output`:
+
+   - Added `pretty_net_url`, `pretty_net_nurl`, `raw_path_parts`, and `mq_raw_path` atoms.
 
 ### Changed
 
@@ -1806,16 +1871,21 @@ But the current state is quite usable.
 
     I.e. newly generated `HTML` pages can now be opened in a web browser while `export mirror` is still running, having not finished mirroring other things yet.
 
-- Improved content `MIME` type handling a bit, added `text/vtt` recognition.
+- `*`:
+
+  - Improved content `MIME` type handling a bit, added `text/vtt` recognition.
 
 - `--expr`, `--output`:
   - Renamed: `path_parts` -\> `npath_parts`, `mq_path` -\> `mq_npath`.
 
   - Changed semantics of `net_url` and `pretty_url` a bit.
+
     Both add trailing slashes after empty `raw_path`s now.
     Also, `pretty_url` does not normalize `raw_path` now, i.e. now it only re-quotes path parts, but does not interpret `.` and `..` path parts away.
 
-- Greatly improved documentation.
+- Documentation:
+
+  - Greatly improved documentation.
 
 ### Fixed
 
@@ -1829,330 +1899,414 @@ But the current state is quite usable.
 
   - Fixed a bug where `export mirror` with `--depth` and `--remap-(open|closed)` set would fail to remap unreachable URLs properly.
 
-- Fixed some places where the code was misaligned with the documentation.
+  - Fixed some places where the code was misaligned with the documentation.
+    Most importantly, `scrub` and `export mirror` are `--verbose` by default now, which documentation claimed they were, but they were not.
 
-  - Most importantly, `scrub` and `export mirror` use `-verbose` by default now, which documentation claimed they did, but they did not.
+- Documentation:
 
-- Fixed some typos.
+  - Fixed some typos.
 
 ## [extension-v1.16.0] - 2024-09-05
 
 ### Changed
 
-- Renamed `pWebArc` -> `Hoardy-Web`.
-- Renamed all `::pWebArc::` error codes into a more consistent naming scheme.
-- Improved documentation.
+- `*`:
+
+  - Renamed `pWebArc` -> `Hoardy-Web`.
+  - Renamed all `::pWebArc::` error codes into a more consistent naming scheme.
+
+- Documentation:
+
+  - Improved documentation.
 
 ## [tool-v0.14.1] - 2024-09-04
 
 ### Changed
 
-- Renamed `wrrarms` -> `hoardy-web`.
+- `*`:
+
+  - Renamed `wrrarms` -> `hoardy-web`.
 
 ## [simple_server-v1.6.1] - 2024-09-04
 
 ### Changed
 
-- Renamed `dumb-dump-server` -> `hoardy-web-sas`.
+- `*`:
+
+  - Renamed `dumb-dump-server` -> `hoardy-web-sas`.
 
 ## [extension-v1.15.1] - 2024-09-04
 
-### Fixed
+### Changed/Fixed:
 
-- Fixed some typos.
+- Core, Notifications:
 
-### Changed
+  - Improved notifications.
 
-- Improved notifications.
-- Improved documentation.
+- Popup UI, Popup UI:
+
+  - Fixed some typos.
+  - Improved documentation.
 
 ## [tool-v0.14.0] - 2024-09-04
 
 ### Added
 
-- Improved all the `script`s by adding usage descriptions and `--help` options to all of them.
+- `get`:
 
-- Added `--to` option to `wrrarms-pandoc` script.
-  It allows you to change the output format it will use.
+  - Implemented `--expr-fd` option, which allows you to extract multiple `--expr` values from the same input file to different output file descriptors in a single `wrrarms` call.
 
-- Added `wrrarms-spd-say` script, which can feed contents of an archived `HTML` document, extracted from `HTML` via `pandoc -t plain`, to `speech-dispatcher`'s `spd-say`, i.e. to your preferred TTS engine.
+- `./script`:
 
-- Added `--*-url` options to `wrrarms-w3m` and `wrrarms-pandoc` scripts.
-  They allow you to control how to print the document's URL in the output.
+  - Improved all the `script`s by adding usage descriptions and `--help` options to all of them.
 
-- `get`: implemented `--expr-fd` option, which allows you to extracts multiple `--expr` values from the same input file to different output file descriptors in a single `wrrarms` call.
+  - Added `--to` option to `wrrarms-pandoc` script.
+    It allows you to change the output format it will use.
 
-- Modified `wrrarms-w3m` and `wrrarms-pandoc` scripts to use `--expr-fd` option, making them ~2x faster.
+  - Added `wrrarms-spd-say` script, which can feed contents of an archived `HTML` document, extracted from `HTML` via `pandoc -t plain`, to `speech-dispatcher`'s `spd-say`, i.e. to your preferred TTS engine.
 
-- `export mirror`: implemented support for multiple `--expr` arguments.
+  - Added `--*-url` options to `wrrarms-w3m` and `wrrarms-pandoc` scripts.
+    They allow you to control how to print the document's URL in the output.
 
-- `import`: implemented `--override-dangerously` option.
+  - Modified `wrrarms-w3m` and `wrrarms-pandoc` scripts to use `--expr-fd` option, making them ~2x faster.
 
-- Added more `--output` formats.
+- `export mirror`:
+
+  - Implemented support for multiple `--expr` arguments.
+
+- `import`:
+
+  - Implemented `--override-dangerously` option.
+
+- `*`:
+
+  - Added more `--output` formats.
 
 ### Changed
 
-- Renamed all `--no-output` options to `--no-print`.
+- `*`:
 
-- Edited `--output` formats, making them more consistent with their expected usage:
+  - Renamed all `--no-output` options to `--no-print`.
 
-  - Edited the `default`, `short`, `surl_msn`, and `url_msn` `--output` formats, replacing a "." before the `num` field with a "\_".
-    Because these formats do not mention any file extensions.
+  - Edited `--output` formats, making them more consistent with their expected usage:
 
-  - Edited `surl_msn` and `url_msn` `--output` formats, replacing  and a "\_" before the `method` with "\_\_".
-    To make these `--output` formats useful in programmatic usage.
+    - Edited the `default`, `short`, `surl_msn`, and `url_msn` `--output` formats, replacing a "." before the `num` field with a "\_".
+      Because these formats do not mention any file extensions.
 
-  - Edited most other`--output` formats, replacing a "\_" before the `method` field with a "." and a "." before the non-standalone `num` with a "\_".
-    Since these `--output` formats do use file extensions, this turns the whole `wrrarms`-specific suffix into a sub-extension.
+    - Edited `surl_msn` and `url_msn` `--output` formats, replacing  and a "\_" before the `method` with "\_\_".
+      To make these `--output` formats useful in programmatic usage.
 
-- `wrrarms-pandoc` uses `plain` text `--to` output format by default now.
-  The previous default was `org`-mode.
+    - Edited most other `--output` formats, replacing a "\_" before the `method` field with a "." and a "." before the non-standalone `num` with a "\_".
+      Since these `--output` formats do use file extensions, this turns the whole `wrrarms`-specific suffix into a sub-extension.
 
-- Improved error messages.
+- `./script`:
 
-- Improved documentation.
+  - `wrrarms-pandoc` uses `plain` text `--to` output format by default now.
+    The previous default was `org`-mode.
+
+- `*`, Documentation:
+
+  - Improved error messages.
+
+  - Improved documentation.
 
 ### Fixed
 
-- `export mirror` now respects the given `--errors` option value not only while indexing inputs, but also while rendering and writing out outputs.
+- `export mirror`:
 
-- Resurrected `flat_n` `--output` format.
+  - It now respects the given `--errors` option value not only while indexing inputs, but also while rendering and writing out outputs.
+
+- `*`:
+
+  - Resurrected `--output flat_n` format.
 
 ## [extension-v1.15.0] - 2024-08-29
 
 ### Added
 
-- `pWebArc` is now officially supported on Fenix (Firefox for Android). It is quite usable there now, so go forth and test it.
+- Core, Capture, Popup UI, Notifications:
 
-- Chromium version now has a `update_url` set in the `manifest.json`, so if you use [`chromium-web-store`](https://github.com/NeverDecaf/chromium-web-store) or some such, it can be updated semi-automatically now, see the [extension's `README.md`](./extension/README.md) for more info.
+  - `pWebArc` is now officially supported on Fenix (Firefox for Android). It is quite usable there now, so go forth and test it.
 
-- Implemented `User Interface and Accessibility > Verbose` option.
+  - Chromium version now has a `update_url` set in the `manifest.json`, so if you use [`chromium-web-store`](https://github.com/NeverDecaf/chromium-web-store) or some such, it can be updated semi-automatically now, see the [extension's `README.md`](./extension/README.md) for more info.
 
-  From now on, by default, `pWebArc` will have its most common but annoying notifications mention they can be disabled and explain how.
+  - Implemented `User Interface and Accessibility > Verbose` option.
 
-  This is mostly for Fenix users, where these things are not obvious, but it could also be useful for new users elsewhere.
+    From now on, by default, `pWebArc` will have its most common but annoying notifications mention they can be disabled and explain how.
 
-- Implemented `User Interface and Accessibility > Spawn internal pages in new tabs` option which controls if internal pages should be spawned in new tabs or reuse the current window.
+    This is mostly for Fenix users, where these things are not obvious, but it could also be useful for new users elsewhere.
 
-  It can not be disabled on desktop browsers at the moment, but it is disabled by default on mobile browsers.
+  - Implemented `User Interface and Accessibility > Spawn internal pages in new tabs` option which controls if internal pages should be spawned in new tabs or reuse the current window.
 
-- Implemented a bunch of new notifications about automatic fixes applied to `config`.
+    It can not be disabled on desktop browsers at the moment, but it is disabled by default on mobile browsers.
 
-  I.e., it will now not just fix your `config` for you, but also complain if you try to set an invalid combinations of options.
+  - Implemented a bunch of new notifications about automatic fixes applied to `config`.
 
-- Implemented `Generate desktop notifications about ... > UI hints` option to allow you to disable the above notifications.
+    I.e., it will now not just fix your `config` for you, but also complain if you try to set an invalid combination of options.
+
+  - Implemented `Generate desktop notifications about ... > UI hints` option to allow you to disable the above notifications.
 
 ### Changed
 
-- `pWebArc` will CBOR-dump all reqres fields completely raw from now on.
+- Core, Capture:
 
-  `wrrarms` learned to handle this properly quite a while ago.
+  - `pWebArc` will CBOR-dump all reqres fields completely raw from now on.
 
-  This simplifies the parsing of the results and makes the implementation adhere to the stated technical philosophy more closely.
+    `wrrarms` learned to handle this properly quite a while ago.
 
-  The dumps will grow in size a tiny bit, but this is negligible, since they are compressed by default by all the archival methods now.
+    This simplifies the parsing of the results and makes the implementation adhere to the stated technical philosophy more closely.
 
-Moreover:
+    The dumps will grow in size a tiny bit, but this is negligible, since they are compressed by default by all the archival methods now.
 
-- A lot of UI improvements, mainly for Fenix.
-- From now on, per-tab `Stash 'in_limbo' reqres` option is being inherited by children tabs like the rest of similar options do.
-- Renamed `build.sh` `chromium` target to `chromium-mv2` in preparation for eventual `chromium-mv3` support.
-- Advanced minimum browser versions to Firefox v102, and Fenix v113.
-- Improved performance.
-- Improved documentation and installation instructions.
+  - Improved performance.
+
+- Popup UI, [`Internal State` pages](#state-in-extension-ui-only), [`Saved in Local Storage` page](#saved-in-extension-ui-only):
+
+  - A lot of UI improvements, mainly for Fenix.
+
+- Core, Popup UI:
+
+  - From now on, per-tab `Stash 'in_limbo' reqres` option is being inherited by children tabs like the rest of similar options do.
+
+- Build:
+
+  - Renamed `build.sh` `chromium` target to `chromium-mv2` in preparation for eventual `chromium-mv3` support.
+  - Advanced minimum browser versions to Firefox v102, and Fenix v113.
+
+- Documentation:
+
+  - Improved documentation and installation instructions.
 
 ### Fixed
 
-- Fixed wrong "In limbo" counts after the extension gets reloaded.
-- Fixed race conditions in `browserAction` updates.
-- Worked around `browserAction` title updates being flaky on Fenix.
-  I.e. you can stare at the `Extensions > pWebArc` line in the browser's UI now while the browser fetches some stuff and it will be properly interactively updated.
-- On Firefox, fixed the id of the extension leaking into `origin_url` field of the very first dump of each session when `Workarounds for Firefox bugs > Restart the very first request` is enabled (which is the default).
-- Fixed some typos.
+- Core, Popup UI:
+
+  - Fixed wrong "In limbo" counts after the extension gets reloaded.
+
+  - Fixed race conditions in `browserAction` updates.
+
+  - Worked around `browserAction` title updates being flaky on Fenix.
+
+    I.e., you can stare at the `Extensions > pWebArc` line in the browser's UI now while the browser fetches some stuff and it will be properly interactively updated.
+
+  - On Firefox, fixed the id of the extension leaking into `origin_url` field of the very first dump of each session when `Workarounds for Firefox bugs > Restart the very first request` is enabled (which is the default).
+
+- Documentation, Popup UI:
+
+  - Fixed some typos.
 
 ## [extension-v1.14.0] - 2024-08-25
 
 ### Added
 
-- pWebArc now runs under Fenix aka Firefox-for-Android-based browsers, including at least Fennec and Mull.
+- Core, Capture, Popup UI, UI:
 
-  Thought, `Export via 'saveAs'` archival method is broken there, because of a [bug in Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=1914360).
-  Other methods do work, though.
+  - pWebArc now runs under Fenix aka Firefox-for-Android-based browsers, including at least Fennec and Mull.
 
-  (Also, it is not marked as compatible with Firefox on Android on addons.mozilla.org at the moment, it probably will be in the next version.)
+    Thought, `Export via 'saveAs'` archival method is broken there, because of a [bug in Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=1914360).
+    Other methods do work, though.
 
-- The above change also added a settings page (aka `options_ui`).
+    (Also, it is not marked as compatible with Firefox on Android on addons.mozilla.org at the moment, it probably will be in the next version.)
 
-  At the moment, the settings page is simply an unrolled by default version of popup UI, with per-tabs settings removed.
+  - The above change also added a settings page (aka `options_ui`).
 
-  This is need because on mobile browsers the main screen of the browser is not a tab and there's no toolbar, so there's no popup UI button there, and so the extension UI becomes really confusing without a separate settings page.
+    At the moment, the settings page is simply an unrolled by default version of popup UI, with per-tabs settings removed.
+
+    This is needed because on mobile browsers the main screen of the browser is not a tab and there's no toolbar, so there's no popup UI button there, and so the extension UI becomes really confusing without a separate settings page.
 
 ### Changed
 
-- Split `in_flight` stat into a sum of two numbers.
+- Core, Popup UI, Toolbar button:
 
-  This makes things less confusing on Chromium, the [`Help` page](./extension/page/help.org) explains it in more detail.
+  - Split `in_flight` stat into a sum of two numbers.
 
-- Added toolbar button's badge as a prefix to its title, changed its format a bit.
+    This makes things less confusing on Chromium, the [`Help` page](./extension/page/help.org) explains it in more detail.
 
-  This is needed because Fenix-based browsers do not display the badge at all, so this change helps immensely there.
-  Meanwhile, on desktop browsers this does not hurt.
+  - Added toolbar button's badge as a prefix to its title, changed its format a bit.
 
-- Improved styling and dark mode contrast of the popup UI.
+    This is needed because Fenix-based browsers do not display the badge at all, so this change helps immensely there.
+    Meanwhile, on desktop browsers this does not hurt.
 
-- Improved documentation.
+  - Improved styling and dark mode contrast of the popup UI.
 
-  In particular, among other things, added a lot of new anchors to the [`Help` page](./extension/page/help.org), most internal links referencing some fact discussed in another section now point directly to the relevant paragraph instead of pointing to its section header.
+- Documentation:
+
+  - Improved documentation.
+
+    In particular, among other things, added a lot of new anchors to the [`Help` page](./extension/page/help.org), most internal links referencing some fact discussed in another section now point directly to the relevant paragraph instead of pointing to its section header.
 
 ### Fixed
 
-On Firefox:
+- Core, Capture:
 
-- Fixed capture of responses produced by service/shared workers.
+  - On Firefox, fixed capture of responses produced by service/shared workers.
 
-  Also, added a new error code for when it (very rarely) fails because of a race condition inherent in `webRequest` API and documented all of it on the [`Help` page](./extension/page/help.org).
+    Also, added a new error code for when it (very rarely) fails because of a race condition inherent in `webRequest` API and documented all of it on the [`Help` page](./extension/page/help.org).
 
-- Fixed `HTTP` protocol version detection, requests fetched via `HTTP/3` will now be marked as such.
+  - On Firefox, fixed `HTTP` protocol version detection, requests fetched via `HTTP/3` will now be marked as such.
 
-- Added yet another `webRequest` API error to a list of those that mark reqres response data as incomplete.
+  - On Firefox, added yet another `webRequest` API error to a list of those that mark reqres response data as incomplete.
 
-On Chromium:
+  - On Chromium, fixed more edge cases where reqres could get stuck in `in_flight` state indefinitely.
 
-- Fixed more edge cases where reqres could get stuck in `in_flight` state indefinitely.
+  - Fixed a bug where force-stopping all in-flight reqres in a single tab could also drop some of the others.
 
-Generally:
+- [`Help` page](./extension/page/help.org):
 
-- Fixed navigation with browser's `Back` and `Forward` buttons to work properly on the [`Help` page](./extension/page/help.org).
-
-- Fixed a bug where force-stopping all in-flight reqres in a single tab could also drop some of the others.
+  - Fixed navigation with browser's `Back` and `Forward` buttons to work properly.
 
 ## [extension-v1.13.1] - 2024-08-13
 
-### Fixed
+### Changed/Fixed
 
-- Fixed a lot of places where the documentation was misaligned with current reality.
+- Documentation:
 
-### Changed
+  - Improved documentation, especially the [`Help` page](./extension/page/help.org).
+  - Fixed a lot of places where the documentation was misaligned with current reality.
 
-- Improved documentation, especially the [`Help` page](./extension/page/help.org).
-- Tiny improvement in popup UI `HTML` layout.
-- Changed `config.history` default value.
+- Core, Popup UI
+
+  - Improved popup UI `HTML` layout a tiny little bit.
+
+  - Changed `config.history` default value.
 
 ## [extension-v1.13.0] - 2024-08-05
 
 ### Added
 
-- Implemented reqres persistence across restarts.
+- Core, [`Internal State` pages](#state-in-extension-ui-only), Popup UI:
 
-  pWebArc can now save and reload `collected` but not archived reqres (including those `in_limbo`) by stashing them into browser's local storage.
-  This is now enabled by default, but it can be disabled globally, or per-tab.
+  - Implemented reqres persistence across restarts.
 
-- As a consequence, pWebArc now tracks browsing sessions and shows when a reqres belongs to an older session on its [`Internal State` page](#state-in-extension-ui-only).
+    pWebArc can now save and reload `collected` but not archived reqres (including those `in_limbo`) by stashing them into browser's local storage.
+    This is now enabled by default, but it can be disabled globally, or per-tab.
 
-- Implemented two new archiving methods.
-  pWebArc can now archive `collected` reqres by
+  - As a consequence, pWebArc now tracks browsing sessions and shows when a reqres belongs to an older session on its [`Internal State` page](#state-in-extension-ui-only).
 
-  - generating fake-Downloads containing either separate dumps (one dump of an `HTTP` request+response per file) or bundles of them (many dumps in a single file, for convenience, to be later imported via `wrrarms import bundle`),
+  - Implemented two new archiving methods.
+    pWebArc can now archive `collected` reqres by
 
-  - archiving separate dumps to your own private archiving server (the old one, the previous default, inherited on extension update),
-  - archiving separate dumps to your browser's local storage (the new default on a new clean install).
+    - generating fake-Downloads containing either separate dumps (one dump of an `HTTP` request+response per file) or bundles of them (many dumps in a single file, for convenience, to be later imported via `wrrarms import bundle`),
 
-- As a consequence, pWebArc now has a new [`Saved in Local Storage` page](#saved-in-extension-ui-only) for displaying the latter.
+    - archiving separate dumps to your own private archiving server (the old one, the previous default, inherited on extension update),
+    - archiving separate dumps to your browser's local storage (the new default on a new clean install).
 
-- Implemented display and filtering for `queued` and `failed` reqres on the [`Internal State` page](#state-in-extension-ui-only).
+  - As a consequence, pWebArc now has a new [`Saved in Local Storage` page](#saved-in-extension-ui-only) for displaying the latter.
 
-- Implemented tracking of per-state size totals for reqres in most states after `finished`.
+  - Implemented display and filtering for `queued` and `failed` reqres on the [`Internal State` page](#state-in-extension-ui-only).
 
-- As a consequence, popup UI will now display those newly tracked sizes.
+  - Implemented tracking of per-state size totals for reqres in most states after `finished`.
 
-- Introduced the `errored` reqres state.
+  - As a consequence, popup UI will now display those newly tracked sizes.
 
-  With stashing to local storage enabled, pWebArc will now try its best not to loose any captured data even when its archiving code fails (bugs out) with an unexpected exception.
-  If it bugs out in the capture code, then all bets are off, unfortunately.
+  - Introduced the `errored` reqres state.
+
+    With stashing to local storage enabled, pWebArc will now try its best not to loose any captured data even when its archiving code fails (bugs out) with an unexpected exception.
+    If it bugs out in the capture code, then all bets are off, unfortunately.
 
 ### Changed
 
-- pWebArc will now track if an error is recoverable and will not retry actions with unrecoverable errors automatically by default.
+- Core, Capture:
 
-- pWebArc now follows the following state diagram:
+  - pWebArc will now track if an error is recoverable and will not retry actions with unrecoverable errors automatically by default.
 
-  ```
-  (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
-     |                           |                              |             |
-     |                           v                              v             v
-     |                     (no_response)                   (incomplete)   (complete)
-     |                           |                              |             |
-     |                           \                              |             |
-     |\---> (canceled) ----\      \                             |             |
-     |                      \      \                            \             |
-     |\-> (incomplete_fc) ---\      \                            \            v
-     |                        >------>---------------------------->-----> (finished)
-     |\--> (complete_fc) ----/                                             /  |
-     |                      /                                             /   |
-     \----> (snapshot) ----/       /- (collected) <--------- (picked) <--/    |
-                                  /        ^                     |            |
-                 (stashIO?) <----/         |                     v            v
-                     |                     \-- (in_limbo) <- (stashIO?) <- (dropped)
-                     v                              |                         |
-                  (queued) <------------------\     |                         |
-                  / |  ^ \                     \    \-----> (discarded) <-----/
-    (exported) <-/  |  |  \----------------\    \                ^
-        |           |  |                    \    \               |
-        |       /---/  \-----------------\   \    \              |
-        |       |                        |    \    \             |
-        |       v                        |     \    \            |
-        |\-> (srvIO) -> (stashIO?) -> (failed) |     \           |
-        |       |                        ^     /      \          |
-        |       v                        |    v        |         |
-        |   (submitted) --------------> (saveIO) --> (saved)     | {{!saving}}
-        |       \                                                |
-        \-------->-----------------------------------------------/
-  ```
+  - pWebArc now follows the following state diagram:
 
-- Renamed all `Profile` settings into `Bucket`, as this makes more sense.
+    ```
+    (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body received)
+       |                           |                              |             |
+       |                           v                              v             v
+       |                     (no_response)                   (incomplete)   (complete)
+       |                           |                              |             |
+       |                           \                              |             |
+       |\---> (canceled) ----\      \                             |             |
+       |                      \      \                            \             |
+       |\-> (incomplete_fc) ---\      \                            \            v
+       |                        >------>---------------------------->-----> (finished)
+       |\--> (complete_fc) ----/                                             /  |
+       |                      /                                             /   |
+       \----> (snapshot) ----/       /- (collected) <--------- (picked) <--/    |
+                                    /        ^                     |            |
+                   (stashIO?) <----/         |                     v            v
+                       |                     \-- (in_limbo) <- (stashIO?) <- (dropped)
+                       v                              |                         |
+                    (queued) <------------------\     |                         |
+                    / |  ^ \                     \    \-----> (discarded) <-----/
+      (exported) <-/  |  |  \----------------\    \                ^
+          |           |  |                    \    \               |
+          |       /---/  \-----------------\   \    \              |
+          |       |                        |    \    \             |
+          |       v                        |     \    \            |
+          |\-> (srvIO) -> (stashIO?) -> (failed) |     \           |
+          |       |                        ^     /      \          |
+          |       v                        |    v        |         |
+          |   (submitted) --------------> (saveIO) --> (saved)     | {{!saving}}
+          |       \                                                |
+          \-------->-----------------------------------------------/
+    ```
 
-- Improved popup UI layout.
+  - Renamed all `Profile` settings into `Bucket`, as this makes more sense.
 
-- Changed toolbar icon's badge format a bit.
+- Core, Popup UI:
 
-- Improved debugging options.
+  - Improved popup UI layout.
 
-- A huge internal refactoring to solve constant sub-task scheduling issues once and for all.
+  - Added more and improved existing debugging options.
 
-- Improved documentation.
+- Toolbar button:
+
+  - Changed toolbar icon's badge format a bit.
+
+- Documentation:
+
+  - Improved documentation.
 
 ### Removed
 
-- Removed `config.logDiscarded` option as it is no longer needed (pWebArc has proper log filtering now).
+- Core, Popup UI:
+
+  - Removed `config.logDiscarded` option as it is no longer needed (pWebArc has proper log filtering now).
 
 ### Fixed
 
-- Various small bug fixes.
+- Core, Capture:
+
+  - Performed a huge internal refactoring to solve constant sub-task scheduling issues once and for all.
+
+  - Various small bug fixes.
 
 ## [tool-v0.13.0] - 2024-08-05
 
 ### Added
 
-- Implemented `import bundle` sub-command which takes WRR-bundles (optionally gzipped concatenations of WRR-dumps) as inputs.
-  The next version of the extension will start (optionally) producing these.
+- `import bundle`:
+
+  - Implemented `import bundle` sub-command which takes WRR-bundles (optionally gzipped concatenations of WRR-dumps) as inputs.
+    The next version of the extension will start (optionally) producing these.
 
 ### Changed
 
-- Improved error handling and error messages.
+- `*`:
+
+  - Improved error handling and error messages.
 
 ### Fixed
 
-- A tiny fix for `pprint` output formatting.
+- `pprint`:
+
+  - Fixed output formatting a tiny little bit.
 
 ## [extension-v1.12.0] - 2024-07-03
 
 ### Changed
 
-- pWebArc will no longer automatically reload on updates, waiting for the browser to restart or for you to reload it explicitly instead.
+- Core:
 
-  This way you won't lose any data on extension updates.
+  - pWebArc will no longer automatically reload on updates, waiting for the browser to restart or for you to reload it explicitly instead.
 
-  Proper automatic reloads on updates will be implemented later, after pWebArc gets full persistence.
+    This way you won't lose any data on extension updates.
+
+    Proper automatic reloads on updates will be implemented later, after pWebArc gets full state persistence support.
 
 - Popup UI:
 
@@ -2166,608 +2320,834 @@ Generally:
 
   - Added `Scheduled ... actions` stat line, showing the names of actions that are scheduled.
 
-    It is hidden by default, because watching it closely while pWebArc is very busy can probably cause seizures in some people.
+    It is hidden by default, because watching it closely while pWebArc is very busy can probably cause seizures.
 
-- Improved documentation.
+- Documentation:
+
+  - Improved documentation.
 
 ### Fixed
 
-- Various small bug fixes.
+- Core, Capture:
+
+  - Various small bug fixes.
 
 ## [extension-v1.11.0] - 2024-06-27
 
 ### Added
 
-- Implemented DOM snapshots, their popup UI, keyboard shortcuts and documentation.
+- Core, Popup UI, Shortcuts:
 
-  - Popup UI now has buttons to snapshot a single tab (`snapshotTab`) and snapshot all open tabs (`snapshotAll`).
-  - `Ctrl+Alt+S` runs `snapshotTab` by default now.
+  - Implemented DOM snapshots, their popup UI, and keyboard shortcuts.
 
-- Added a bunch of new toolbar icons for various tab states.
+    - Popup UI now has buttons to snapshot a single tab (`snapshotTab`) and snapshot all open tabs (`snapshotAll`).
+    - `Ctrl+Alt+S` runs `snapshotTab` by default now.
 
-  In particular, `problematic` state as well as mixed-capture states (e.g., disabled in this tab, but enabled and with limbo mode in children tabs) now have their own special icons.
+- Core, Toolbar button:
+
+  - Added a bunch of new toolbar icons for various tab states.
+
+    In particular, `problematic` state as well as mixed-capture states (e.g., disabled in this tab, but enabled and with limbo mode in children tabs) now have their own special icons.
 
 ### Changed
 
-- Changed some default keyboard shortcuts:
+- Shortcuts:
 
-  - `Ctrl+Alt+A` and `Ctrl+Alt+C` run `collectAllInLimbo` and `collectAllTabInLimbo` respectively now;
-  - `Alt+Shift+D` and `Alt+Shift+W` run `discardAllInLimbo` and `discardAllTabInLimbo` now.
+  - Changed some default keyboard shortcuts:
+
+    - `Ctrl+Alt+A` and `Ctrl+Alt+C` run `collectAllInLimbo` and `collectAllTabInLimbo` respectively now.
+    - `Alt+Shift+D` and `Alt+Shift+W` run `discardAllInLimbo` and `discardAllTabInLimbo` now.
 
 - Popup UI:
 
   - Improved layout.
-  - Destructive actions will start asking for confirmations now.
+  - From now on, destructive actions will start asking for confirmations.
 
-- All SVG icons were edited to not reference any fonts, since those are not guaranteed to be available on a user's system.
+- Toolbar button, Notifications:
 
-- Improved behaviour of new tabs created by clicking buttons on the [`Internal State` page](#state-in-extension-ui-only).
+  - All SVG icons were edited to not reference any fonts, since those are not guaranteed to be available on a user's system.
 
-- Greatly improved documentation.
+- [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Improved behaviour of new tabs created by clicking the buttons there.
+
+- Documentation, [`Help` page](./extension/page/help.org):
+
+  - Documented the above changes.
+  - Greatly improved all the documentation.
 
 ## [extension-v1.10.0] - 2024-06-18
 
-### Added
+### Added/Changed: UI
 
-- Implemented dark mode theme.
-  The extension will switch to it automatically when the browser asks (which it will if you switch your browser's theme to a dark one).
+- Core, Popup UI, [`Internal State` pages](#state-in-extension-ui-only):
 
-- Implemented some new optional UI-related accessibility config options with toggles in popup UI:
+  - Added a dark mode theme.
 
-  - Colorblind mode: uses bluish colors instead of greenish where possible (which uses mostly the same colors pWebArc used before color-coding of UI toggles was introduced in `v1.9.0`, with slight variations for the new color-coding).
-  - Pure text labels: disables emojis in UI labels, makes screen readers happier.
+    The extension will switch to it automatically when the browser asks (which it will if you switch your browser's theme to a dark one).
 
-- Improved Internal State/Log UI:
+  - Implemented some new optional UI-related accessibility config options with toggles in popup UI:
+
+    - Colorblind mode: uses bluish colors instead of greenish where possible (which uses mostly the same colors pWebArc used before color-coding of UI toggles was introduced in `v1.9.0`, with slight variations for the new color-coding).
+    - Pure text labels: disables emojis in UI labels, makes screen readers happier.
+
+- Core, Popup UI, Notifications:
+
+  - Added more desktop notifications, added config options and popup UI toggles for them.
+
+- Core, [`Internal State` pages](#state-in-extension-ui-only):
 
   - Added a bunch of tristate toggles for filtering the logs.
-  - Added in-log buttons to open a narrowed page for reqres with an associated tab.
 
-- Added UI for internal scheduled/delayed actions/functions (e.g., saving of frequently changing stuff to persistent storage, automatic actions when a tab closes, canceling and reloading not-yet-debugged tabs on Chromium, etc):
+  - Added in-log buttons that open internal state pages narrowed to a tab associated with each log entry.
 
-  - If some functions are still waiting to be run, the badge will have `~` or `.` in it and change its color, depending on the importance of the stuff that is waiting to be run.
-  - Popup UI has a new stat line showing the number of such delayed actions and buttons to run or cancel them immediately.
+- Core, Popup UI:
 
-- Added config options and popup UI toggles for picking and marking as problematic reqres with various `HTTP` status codes.
+  - Added UI for internal scheduled/delayed actions/functions (e.g., saving of frequently changing stuff to persistent storage, automatic actions when a tab closes, canceling and reloading not-yet-debugged tabs on Chromium, etc):
 
-- Implemented new config options and popup UI toggles for browser-specific workarounds.
-  In particular, on Chromium you can now set the URL new root tabs will be reset to (still `about:blank` by default).
+    - If some functions are still waiting to be run, the badge will have `~` or `.` in it and change its color, depending on the importance of the stuff that is waiting to be run.
+    - Popup UI has a new stat line showing the number of such delayed actions and buttons to run or cancel them immediately.
 
-- Added more desktop notifications, added config options and popup UI toggles for them.
+- Popup UI:
 
-### Changed
+  - Popup UI, in its default rolled-up state, now exposes `Generate desktop notifications about > ... new problematic reqres` option and has custom `tabindex`es set, for convenience.
 
-- Improved keyboard shortcuts:
+### Added/Changed: Capture
 
-  - In popup UI, toggles and buttons with bound keyboard shortcuts will now get those shortcuts displayed in their tooltips.
-  - The ["Keyboard shortcuts" section of the `Help` page](./extension/page/help.org#keyboard-shortcuts) will now show currently active shortcuts (when viewed via the `Help` button from the extension UI).
-  - The changes to the code there mean all the shortcuts will be reset to their default keys, but it makes stuff much cleaner internally, so.
-  - Collecting all reqres from currently active tab's limbo is bound to `Alt+S` by default now (similarly to how `Ctrl+S` saves the page).
-  - Discarding all reqres from currently active tab's limbo is bound to `Alt+W` by default now (similarly to how `Ctrl+W` closes the tab).
-  - Unmarking all problematic reqres in the currently active tab is bound to `Alt+U` by default now.
+- Core, Capture, Popup UI:
+
+  - Added config options and popup UI toggles for picking and `problematic`-marking reqres with various `HTTP` status codes.
+
+  - Implemented new config options and popup UI toggles for browser-specific workarounds.
+    In particular, on Chromium you can now set the URL new root tabs will be reset to (still `about:blank` by default).
+
+  - `Mark reqres as 'problematic' when they finish > ... with reqres errors` config option became `> ... with reqres errors and get 'dropped'`, i.e. it is now disjoint with `> ... with reqres errors and get 'picked'`.
+
+- Core, Capture:
+
+  - Much of the code working with Chromium's debugger was rewritten.
+    Now it reports all the errors properly and no longer crashes when the debugger gets detached at inopportune time in the pipeline (which is quite common, unfortunately).
+
+### Added/Changed: Shortcuts
+
+- Core, Popup UI, Shortcuts, [`Help` page](./extension/page/help.org):
+
   - Added a few more shortcuts:
     - `Alt+Shift+U` by default unmarks all problematic reqres globally now.
     - `Alt+Shift+S` and `Alt+Shift+W` by default respectively collect and discard all reqres in limbo globally now.
 
-- Much of the code working with Chromium's debugger was rewritten.
-  Now it reports all the errors properly and no longer crashes when the debugger gets detached at inopportune time in the pipeline (which is quite common, unfortunately).
+  - In popup UI, toggles and buttons with bound keyboard shortcuts will now get those shortcuts displayed in their tooltips.
 
-- `Mark reqres as 'problematic' when they finish > ... with reqres errors` config option became `> ... with reqres errors and get 'dropped'`, i.e. it is now disjoint with `> ... with reqres errors and get 'picked'`.
+  - The ["Keyboard shortcuts" section of the `Help` page](./extension/page/help.org#keyboard-shortcuts) will now show currently active shortcuts (when viewed via the `Help` button from the extension UI).
 
-- Improved desktop notifications.
+  - The changes to the code there mean all the shortcuts will be reset to their default keys, but it makes stuff much cleaner internally, so.
 
-- Popup UI, in its default rolled-up state, now exposes `Generate desktop notifications about > ... new problematic reqres` option and has custom `tabindex`es set, for convenience.
+  - Collecting all reqres from currently active tab's limbo is bound to `Alt+S` by default now (similarly to how `Ctrl+S` saves the page).
 
-- Changed some config option defaults (your existing config will not get affected).
+  - Discarding all reqres from currently active tab's limbo is bound to `Alt+W` by default now (similarly to how `Ctrl+W` closes the tab).
 
-- Slightly improved performance in normal operation.
-  Greatly improved performance when archiving large batches of reqres at once, e.g. when collecting a lot of stuff from limbo.
+  - Unmarking all problematic reqres in the currently active tab is bound to `Alt+U` by default now.
 
-- Greatly improved documentation.
+### Changed: Misc
+
+- Core:
+
+  - Changed some config option defaults (your existing config will not get affected).
+
+  - Slightly improved performance in normal operation.
+
+  - Greatly improved performance when archiving large batches of reqres at once, e.g. when collecting a lot of stuff from limbo.
+
+- Notifications:
+
+  - Improved desktop notifications.
+
+- Documentation, [`Help` page](./extension/page/help.org):
+
+  - Greatly improved documentation.
 
 ### Fixed
 
-- Various small bug fixes.
+- Core, Capture:
+
+  - Various small bug fixes.
 
 ## [extension-v1.9.0] - 2024-06-07
 
 ### Fixed
 
-- A whole ton of bug fixes.
+- Core, Capture:
 
-  So many bug fixes that pWebArc on Chromium now actually works almost as well as on Firefox.
+  - Fixed a whole ton of issues.
 
-  All leftover issues on Chromium I'm aware of are consequences of Chromium's debugging API limitations and, as far as I can see, are unsolvable without actually patching Chromium (which is unlikely to be accepted upstream, given that patching them will make ad-blocking easier).
+    This release includes so many bug fixes that pWebArc on Chromium now actually works almost as well as on Firefox.
 
-  `archiveweb.page` project appears to suffer from the same issues.
+    All leftover issues on Chromium I'm aware of are consequences of Chromium's debugging API limitations and, as far as I can see, are unsolvable without actually patching Chromium (which is unlikely to be accepted upstream, given that patching them will make ad-blocking easier).
 
-  Meanwhile, pWebArc continues to work exceptionally well on Firefox-based browsers.
+    `archiveweb.page` project appears to suffer from the same issues.
+
+    Meanwhile, pWebArc continues to work exceptionally well on Firefox-based browsers.
 
 ### Added
 
-- Implemented "negative limbo mode".
+- Core, Capture, Popup UI:
 
-  It does the same thing as limbo mode does, but for reqres that were dropped instead of picked.
-  (Which is why there is an arrow from `dropped` to `in_limbo` on the diagram below.)
+  - Implemented "negative limbo mode".
 
-- Implemented optional automatic actions when a tab gets closed.
+    It does the same thing as limbo mode does, but for reqres that were dropped instead of picked.
+    (Which is why there is an arrow from `dropped` to `in_limbo` on the diagram below.)
 
-  E.g., you can ask pWebArc to automatically unmark that tab's `problematic` reqres and/or collect and archive everything belonging to that tab from `limbo`.
+  - Implemented optional automatic actions when a tab gets closed.
 
-- Implemented a bunch of new desktop notifications.
+    E.g., you can ask pWebArc to automatically unmark that tab's `problematic` reqres and/or collect and archive everything belonging to that tab from `limbo`.
 
-- Added a bunch of new configuration options.
+  - Implemented stat persistence between restarts.
 
-  This includes a bunch of them for controlling desktop notifications.
+    You can brag about your archiving prowess to your friends by sharing popup UI screenshots now.
 
-- Added a bunch of new keyboard shortcuts.
+- Core, Notifications:
 
-  Also, keyboard shortcuts now work properly in narrowed [`Internal State` page](#state-in-extension-ui-only)s.
+  - Implemented a bunch of new desktop notifications.
 
-- Implemented stat persistence between restarts.
+  - Added a bunch of new configuration options.
 
-  You can brag about your archiving prowess to your friends by sharing popup UI screenshots now.
+    This includes a bunch of them for controlling desktop notifications.
 
-- Added the `Changelog` page, which can be viewed by clicking the version number in the extension's popup.
+- Core, Shortcuts, [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Added a bunch of new keyboard shortcuts.
+
+    Also, keyboard shortcuts now work properly on narrowed [`Internal State` pages](#state-in-extension-ui-only).
+
+- Documentation:
+
+  - Added the `Changelog` page, which can be viewed by clicking the version number in the extension's popup.
 
 ### Changed
 
-- pWebArc now follows the following state diagram:
+- Core, Capture:
 
-  ```
-  (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
-     |                           |                              |             |
-     |                           v                              v             v
-     |                     (no_response)                   (incomplete)   (complete)
-     |                           |                              |             |
-     |                           \                              |             |
-     |\---> (canceled) -----\     \                             |             |
-     |                       \     \                            \             |
-     |                        \     \                            \            v
-     |\-> (incomplete_fc) ----->----->---------------------------->-----> (finished)
-     |                        /                                            /  |
-     |                       /                                      /-----/   |
-     \--> (complete_fc) ----/        /--------------- (picked) <---/          v
-                                     |                   |                (dropped)
-                                     v                   v                 /  |
-         (archived) <- (sIO) <- (collected) <------- (in_limbo) <---------/   |
-                         |           ^                   |                    |
-                         |           |                   |                    |
-                  /------/           \-----\             \--> (discarded) <---/
-                  |                        |
-                  \-> (failed to archive) -/
-  ```
+  - pWebArc now follows the following state diagram:
 
-  Terminology-wise, most notably, `picked` and `dropped` now mean what `collected` and `discarded` meant before.
+    ```
+    (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body received)
+       |                           |                              |             |
+       |                           v                              v             v
+       |                     (no_response)                   (incomplete)   (complete)
+       |                           |                              |             |
+       |                           \                              |             |
+       |\---> (canceled) -----\     \                             |             |
+       |                       \     \                            \             |
+       |                        \     \                            \            v
+       |\-> (incomplete_fc) ----->----->---------------------------->-----> (finished)
+       |                        /                                            /  |
+       |                       /                                      /-----/   |
+       \--> (complete_fc) ----/        /--------------- (picked) <---/          v
+                                       |                   |                (dropped)
+                                       v                   v                 /  |
+           (archived) <- (sIO) <- (collected) <------- (in_limbo) <---------/   |
+                           |           ^                   |                    |
+                           |           |                   |                    |
+                    /------/           \-----\             \--> (discarded) <---/
+                    |                        |
+                    \-> (failed to archive) -/
+    ```
 
-  See the [`Help` page](./extension/page/help.org) for more info.
+    Terminology-wise, most notably, `picked` and `dropped` now mean what `collected` and `discarded` meant before.
 
-- A lot of changes to make pWebArc consistently use the above terminology --- both in the source and in the documentation --- were performed for this release.
+    See the [`Help` page](./extension/page/help.org) for more info.
 
-- Improved visuals:
+- Core, Popup UI, [`Internal State` pages](#state-in-extension-ui-only), Documentation:
 
-  - Extension's toolbar button icon, badge, and title are much more informative and consistent in their behaviour now.
+  - Performed a lot of changes to make pWebArc consistently use the above terminology, both in the source and in the documentation.
+
+- Core, Popup UI, Toolbar button, [`Help` page](./extension/page/help.org), [`Internal State` pages](#state-in-extension-ui-only):
 
   - The version number button in the popup (which opens the `Changelog`) will now get highlighted on major updates.
 
   - Similarly, the `Help` button will now get highlighted when that page gets updated.
 
-  - The popup, the [`Help` page](./extension/page/help.org), the [`Internal State` aka the `Log` page](#state-in-extension-ui-only) all had their UI improved greatly.
-
   - All the toggles in the popup are now color-coded with their expected values, so if something looks red(-dish), you might want to check the help string in question just in case.
 
-- Improved documentation.
+  - Extension's toolbar button icon, badge, and title are much more informative and consistent in their behaviour now.
+
+  - The popup, the [`Help` page](./extension/page/help.org), and the [`Internal State` pages](#state-in-extension-ui-only) all had their UI improved greatly.
+
+- Documentation:
+
+  - Improved documentation.
 
 ## [tool-v0.12.0] - 2024-06-07
 
 ### Added
 
-- `export mirror`: implemented `--no-overwrites`, `--partial`, and `--overwrite-dangerously` options.
+- `export mirror`:
+
+  - Implemented `--no-overwrites`, `--partial`, and `--overwrite-dangerously` options.
 
 ### Changed
 
-- `export mirror`: Switched the default from `--overwrite-dangerously` (which is what `export mirror` did before even if there was no option for it) to `--no-overwrites`.
-  This makes the default semantics consistent with that of `organize`.
+- `export mirror`:
 
-- Changed format of reqres `.status` to `<"C" or "I" for request.complete><"N" for no response or <response.code><"C" or "I" for response.complete> otherwise>` (yes, this changes most `--output` formats of `organize`, again).
+  - Switched the default from `--overwrite-dangerously` (which is what `export mirror` did before even if there was no option for it) to `--no-overwrites`.
 
-  - Added `~=` expression atom which does `re.match` internally.
+    This makes the default semantics consistent with that of `organize`.
 
-  - Changed all documentation examples to do `~= .200C` instead of `== 200C` to reflect the above change.
+- `*`:
 
-- `organize`: renamed `--keep` -> `--no-overwrites` for consistency.
+  - Changed format of reqres `.status` to `<"C" or "I" for request.complete><"N" for no response or <response.code><"C" or "I" for response.complete> otherwise>` (yes, this changes most `--output` formats of `organize`, again).
 
-- Improved documentation.
+    - Added `~=` expression atom which does `re.match` internally.
+
+    - Changed all documentation examples to do `~= .200C` instead of `== 200C` to reflect the above change.
+
+- `organize`:
+
+  - Renamed `--keep` -> `--no-overwrites` for consistency.
+
+- Documentation:
+
+  - Improved documentation.
 
 ## [extension-v1.8.1] - 2024-05-22
 
 ### Fixed
 
-- A tiny bug fix.
+- Core, Capture:
+
+  - A tiny bug fix.
 
 ## [extension-v1.8.0] - 2024-05-20
 
-(Actually, this releases about half of the new changes in my local branches, so expect a new release soonish.)
+This release contains about half of the new changes in my local branches, so expect a new release soon-ish.
 
 ### Added
 
-- Implemented `problematic` reqres flag, its tracking, UI, and documentation.
+- Core, Capture, [`Internal State` pages](#state-in-extension-ui-only):
 
-  This flag gets set for `no_response` and `incomplete` reqres by default but, unlike `Archive reqres with` settings, it does not influence archival.
-  Instead pWebArc displays "archival failure" as its icon and its badge gets `!` at the end.
+  - Implemented `problematic` reqres flag, its tracking, UI, and documentation.
 
-  This is needed because, normally, browsers provide no indication when some parts of the page failed to load properly --- they expect you to actually look at the page with your eyes to notice something looking broken instead --- which is not a proper way to do this when you want to be sure that the whole page with all its resources was archived.
+    This flag gets set for `no_response` and `incomplete` reqres by default but, unlike `Archive reqres with` settings, it does not influence archival.
+    Instead pWebArc displays "archival failure" as its icon and its badge gets `!` at the end.
 
-- Implemented currently active tab's limbo mode indication via the icon.
+    This is needed because, normally, browsers provide no indication when some parts of the page failed to load properly --- they expect you to actually look at the page with your eyes to notice something looking broken instead --- which is not a proper way to do this when you want to be sure that the whole page with all its resources was archived.
 
-- Added a separate state for reqres that are completed from cache: `complete_fc`.
+  - Added a separate state for reqres that are completed from cache: `complete_fc`.
+
+- Core, Toolbar button:
+
+  - Implemented currently active tab's limbo mode indication via the icon.
 
 ### Changed
 
-- Renamed reqres states:
+- Core, Capture, [`Internal State` pages](#state-in-extension-ui-only):
 
-  - `noresponse` -\> `no_response`,
-  - `incomplete-fc` -\> `incomplete_fc`.
+  - Renamed reqres states:
 
-- pWebArc now follows the following state diagram:
+    - `noresponse` -\> `no_response`,
+    - `incomplete-fc` -\> `incomplete_fc`.
 
-  ```
-  (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
-     |                           |                              |             |
-     |                           v                              v             v
-     |                     (no_response)                   (incomplete)   (complete)
-     |                           |                              |             |
-     |                           \                              |             |
-     |\---> (canceled) -----\     \                             |             |
-     |                       \     \                            \             |
-     |                        \     \                            \            v
-     |\-> (incomplete_fc) ----->----->---------------------------->-----> (finished)
-     |                        /                                            /  |
-     |                       /                                      /-----/   |
-     \--> (complete_fc) ----/        /------------- (collected) <--/          v
-                                     |                   |                (discarded)
-                                     v                   v                 /  |
-         (archived) <- (sIO) <--- (queued) <-------- (in_limbo) <---------/   |
-                         |           ^                   |                    |
-                         |           |                   |                    |
-                  /------/           \-----\             \----> (freeed) <----/
-                  |                        |
-                  \-> (failed to archive) -/
-  ```
+  - pWebArc now follows the following state diagram:
 
-- Added more shortcuts, changed defaults for others:
+    ```
+    (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body received)
+       |                           |                              |             |
+       |                           v                              v             v
+       |                     (no_response)                   (incomplete)   (complete)
+       |                           |                              |             |
+       |                           \                              |             |
+       |\---> (canceled) -----\     \                             |             |
+       |                       \     \                            \             |
+       |                        \     \                            \            v
+       |\-> (incomplete_fc) ----->----->---------------------------->-----> (finished)
+       |                        /                                            /  |
+       |                       /                                      /-----/   |
+       \--> (complete_fc) ----/        /------------- (collected) <--/          v
+                                       |                   |                (discarded)
+                                       v                   v                 /  |
+           (archived) <- (sIO) <--- (queued) <-------- (in_limbo) <---------/   |
+                           |           ^                   |                    |
+                           |           |                   |                    |
+                    /------/           \-----\             \----> (freeed) <----/
+                    |                        |
+                    \-> (failed to archive) -/
+    ```
+
+  - Improved performance when using limbo mode.
+
+- Popup UI, [`Internal State` pages](#state-in-extension-ui-only):
+
+  - The internal state/log pages are much nicer now.
+
+  - But the popup UI in its default state might have become a bit too long...
+
+- Shortcuts:
 
   - Added `toggle-tabconfig-limbo`, `toggle-tabconfig-children-limbo`, and `show-tab-state` shortcuts,
 
   - Changed the default shortcut for `collect-all-tab-inlimbo` from `Alt+A` to `Alt+Shift+A` for uniformity.
 
-- Improved UI:
+- Documentation:
 
-  - The internal state/log page is much nicer now.
-  - But the popup UI in its default state might have become a bit too long...
-
-- Improved performance when using limbo mode.
-
-- Improved documentation.
+  - Improved documentation.
 
 ### Fixed
 
-- Various small bug fixes.
+- Core, Capture:
+
+  - Various small bug fixes.
 
 ## [tool-v0.11.2] - 2024-05-20
 
 ### Fixed
 
-- `organize`: now works on Windows.
+- `organize`:
+
+  - Now works on Windows.
 
 ## [extension-v1.7.0] - 2024-05-02
 
 ### Added
 
-- Implemented "limbo" reqres processing stage and toggles.
+- Core, Capture, Popup UI:
 
-  "Limbo" is an optional pre-archival-queue stage for finished reqres that are ready to be archived but, unlike non-limbo reqres, are not to be archived automatically.
+  - Implemented "limbo" reqres processing stage and toggles.
 
-  Which is useful in cases when you need to actually look at a page before deciding if you want to archive it.
+    "Limbo" is an optional pre-archival-queue stage for finished reqres that are ready to be archived but, unlike non-limbo reqres, are not to be archived automatically.
 
-  E.g., you enable limbo mode, reload the page, notice there were no updates to the interesting parts of the page, and so you discard all of the reqres newly generated by that tab via appropriate button in the add-on popup, or via the new keyboard shortcut.
+    Which is useful in cases when you need to actually look at a page before deciding if you want to archive it.
+
+    E.g., you enable limbo mode, reload the page, notice there were no updates to the interesting parts of the page, and so you discard all of the reqres newly captured from that tab via appropriate button in the add-on popup, or via the new keyboard shortcut.
 
 ### Changed
 
-- pWebArc now follows the following state diagram:
+- Core, Capture:
 
-  ```
-  (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
-     |                           |                              |             |
-     |                           v                              v             v
-     |                      (noresponse)                   (incomplete)   (complete)
-     |                           |                              |             |
-     |                           \                              |             |
-     |\---> (canceled) -----\     \                             |             |
-     |                       \     \                            \             |
-     |                        \     \                            \            v
-     \--> (incomplete-fc) ----->----->---------------------------->-----> (finished)
-                                                                           /  |
-                                                                    /-----/   |
-                                     /------------- (collected) <--/          v
-                                     |                   |                (discarded)
-                                     v                   v                 /  |
-         (archived) <- (sIO) <--- (queued) <-------- (in_limbo) <---------/   |
-                         |           ^                   |                    |
-                         |           |                   |                    |
-                  /------/           \-----\             \----> (freeed) <----/
-                  |                        |
-                  \-> (failed to archive) -/
-  ```
+  - pWebArc now follows the following state diagram:
 
-- The [`Log` page became the `Internal State` page](#state-in-extension-ui-only), now shows in-flight and in-limbo reqres.
-  It also allows narrowing to data belonging to a single tab now.
+    ```
+    (start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body received)
+       |                           |                              |             |
+       |                           v                              v             v
+       |                      (noresponse)                   (incomplete)   (complete)
+       |                           |                              |             |
+       |                           \                              |             |
+       |\---> (canceled) -----\     \                             |             |
+       |                       \     \                            \             |
+       |                        \     \                            \            v
+       \--> (incomplete-fc) ----->----->---------------------------->-----> (finished)
+                                                                             /  |
+                                                                      /-----/   |
+                                       /------------- (collected) <--/          v
+                                       |                   |                (discarded)
+                                       v                   v                 /  |
+           (archived) <- (sIO) <--- (queued) <-------- (in_limbo) <---------/   |
+                           |           ^                   |                    |
+                           |           |                   |                    |
+                    /------/           \-----\             \----> (freeed) <----/
+                    |                        |
+                    \-> (failed to archive) -/
+    ```
 
-- Improved UI.
+  - Improved performance.
 
-- Improved performance.
+- [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Reworked the `Log` page into a multitude of [`Internal State` pages](#state-in-extension-ui-only) that can now be narrowed to per-tab data.
+
+    In other words, from now on, there's still one global page that displays everything, as before, but now there are also a bunch of new per-tab pages too.
+
+    All of those pages also show in-flight and in-limbo reqres now too.
+
+- Popup UI:
+
+  - Improved UI.
 
 ## [tool-v0.11.1] - 2024-05-02
 
 ### Changed
 
-- Improved default batching parameters.
-- Improved documentation.
+- `*`:
+
+  - Improved default batching parameters.
+
+- Documentation:
+
+  - Improved documentation.
 
 ## [tool-v0.11.0] - 2024-04-03
 
 ### Added
 
-- Implemented `scrub` `--expr` atom for rewriting links/references and wiping inner evils out from `HTML`, `JavaScript`, and `CSS` values.
+- `*`:
 
-  `CSS` scrubbing is not finished yet, so all `CSS` gets censored out by default at the moment.
+  - Implemented `scrub` `--expr` atom for rewriting links/references and wiping inner evils out from `HTML`, `JavaScript`, and `CSS` values.
 
-  `HTML` processing uses `html5lib`, which is pretty nice (though, rather slow), but overall the complexity of this thing and the time it took to debug it into working is kind of unamusing.
+    `CSS` scrubbing is not finished yet, so all `CSS` gets censored out by default at the moment.
 
-- Implemented `export mirror` subcommand generating static website mirrors from previously archived WRR files, kind of similar to what `wget -mpk` does, but offline and the outputs are properly `scrub`bed.
+    `HTML` processing uses `html5lib`, which is pretty nice (though, rather slow), but overall the complexity of this thing and the time it took to debug it into working properly is kind of unamusing.
+
+- `export mirror`:
+
+  - Implemented a new subcommand for generating static website mirrors from previously archived WRR files.
+
+    This is similar to what `wget -mpk` does, but it works offline and the outputs can be `scrub`bed and transformed in various ways.
 
 ### Changed
 
-- A bunch of `--expr` atoms were renamed, a bunch more were added.
+- `*`:
 
-- A bunch of `--output` formats changed, most notably `flat` is now named `flat_ms`.
+  - A bunch of `--expr` atoms were renamed, a bunch more were added.
 
-- Improved performance.
+  - A bunch of `--output` formats changed, most notably `flat` is now named `flat_ms`.
 
-- Improved documentation.
+  - Improved performance.
+
+- Documentation:
+
+  - Improved documentation.
 
 ### Fixed
 
-- Various small bug fixes.
+- `*`:
+
+  - Various small bug fixes.
 
 ## [tool-v0.9.0] - 2024-03-22
 
 ### Changed
 
-- Updated `wrrarms` to build with newer `nixpkgs` and `cbor2` modules, the latter of which is now vendored, at least until upstream solves the custom encoders issue.
+- Build:
 
-- Made more improvements to `--output` option of `organize` and `import` with IDNA and component-wise quoting/unquoting of tool-v0.8:
+  - Updated `wrrarms` to build with newer `nixpkgs` and `cbor2` modules, the latter of which is now vendored, at least until upstream solves the custom encoders issue.
 
-  - Added `pretty_url`, `mq_path`, `mq_query`, `mq_nquery` to substitutions and made pre-defined `--output` formats use them.
+- `*`:
 
-    `mq_nquery`, and `pretty_url` do what `nquery` and `nquery_url` did before v0.8.0, but better.
+  - Made more improvements to `--output` option of `organize` and `import` with IDNA and component-wise quoting/unquoting of `tool-v0.8`:
 
-  - Dropped `shpq`, `hpq`, `shpq_msn`, and `hpq_msn` `--output` formats as they are now equivalent to their `hup` versions.
+    - Added `pretty_url`, `mq_path`, `mq_query`, `mq_nquery` to substitutions and made pre-defined `--output` formats use them.
 
-- `run`: `--expr` option now uses the same semantics as `get --expr`.
+      `mq_nquery`, and `pretty_url` do what `nquery` and `nquery_url` did before `tool-v0.8.0`, but better.
 
-- Tiny improvements to performance.
+    - Dropped `shpq`, `hpq`, `shpq_msn`, and `hpq_msn` `--output` formats as they are now equivalent to their `hup` versions.
+
+- `run`:
+
+  - `--expr` option now uses the same semantics as `get --expr`.
+
+- `*`:
+
+  - Improved performance a tiny little bit.
 
 ### Fixed
 
-- `pprint`: fixed `clock` line formatting a bit.
+- `pprint`:
+
+  - Fixed `clock` line formatting a bit.
 
 ## [tool-v0.8.1] - 2024-03-12
 
-### Added
-
-- Added `--output flat_n`.
-
 ### Fixed
 
-- Bug fix #1:
+- `import`, `organize`:
 
-  `tool-v0.8` might have skipped some of the updates when `import`ing and forgot to do some actions when doing `organize`, which was not the case for `tool-v0.6`.
+  - Fixed an issue which could have caused `import` to skip some inputs and `organize` to forget to perform some of its actions.
 
-  These bugs should have not been triggered ever (and with the default `--output` they are impossible to trigger) but to be absolutely sure you can re-run `import mitmproxy` and `organize` with the same arguments you used before.
+    These issue should have not been triggered ever (and with the default `--output` it is impossible to trigger) but to be absolutely sure you can simply re-run `import` and `organize` with the same arguments you've used before.
 
-- Bug fix #2:
+- `organize`:
 
-  `organize --output` `num`bering is deterministic again, like it was in `tool-v0.6`.
+  - Fixed `organize --output` `num`bering being non-deterministic.
+
+Both issues were introduced in `tool-v0.8`.
+
+### Added
+
+- `organize`:
+
+  - Added `--output flat_n`.
 
 ## [extension-v1.6.0] - 2024-03-08
 
 ### Changed
 
-- Replaced icons with a cuter set.
+- Toolbar button:
+
+  - Replaced icons with a cuter set.
 
 ## [tool-v0.8] - 2024-03-08
 
-### Added
-
-- Implemented import for `mitmproxy` dumps.
-
-### Changed
-
-- Improved `net_url` normalization and components handling, added support for IDNA hostnames.
-
-- Improved most `--output` formats, custom `--output` formats now require `format:` prefix to distinguish them from the built-in ones, like in `git`.
-
-- Renamed response status codes:
-
-  - `N` -\> `I` for "Incomplete"
-  - `NR` -\> `N` for "None"
-
-- Renamed
-
-  - `organize --action rename` -\> `organize --move` (as it can now atomically move files between file systems, see below),
-  - `--action hardlink` -\> `--hardlink`,
-  - `--action symlink` -\> `--symlink`,
-  - `--action symlink-update` -\> `--symlink --latest`.
-
-- Added `organize --copy`.
-
-- `organize` now performs changes atomically: it writes to newly created files first, `fsync` them, replaces old destination files, `fsync`s touched directories, reports changes to `stdout` (for consumption by subsequent commands' `--stdin0`), and only then (when doing `--move`) deletes source files.
-
-- Made many internal changes to simplify things in the future.
-
-Paths produced by `wrrarms organize` are expected to change:
+Note that with this release paths produced by `wrrarms organize` are expected to change compared to `tool-v0.6`:
 
 - with the default `--output` format you will only see changes to WRR files with international (IDNA) hostnames and those with the above response statuses;
 
 - names of files generated by most other `--output` formats will change quite a lot, since the path abbreviation algorithm is much smarter now.
 
+### Added
+
+- `import`:
+
+  - Implemented import for `mitmproxy` dumps.
+
+### Changed
+
+- `*`:
+
+  - Improved `net_url` normalization and components handling, added support for IDNA hostnames.
+
+  - Improved most `--output` formats, custom `--output` formats now require `format:` prefix to distinguish them from the built-in ones, like in `git`.
+
+  - Renamed response status codes:
+
+    - `N` -\> `I` for "Incomplete"
+    - `NR` -\> `N` for "None"
+
+- `organize`:
+
+  - Renamed
+
+    - `organize --action rename` -\> `organize --move` (as it can now atomically move files between file systems, see below),
+    - `--action hardlink` -\> `--hardlink`,
+    - `--action symlink` -\> `--symlink`,
+    - `--action symlink-update` -\> `--symlink --latest`.
+
+  - Implemented new `organize --copy`.
+
+  - `organize` now performs changes atomically: it writes to newly created files first, `fsync` them, replaces old destination files, `fsync`s touched directories, reports changes to `stdout` (for consumption by subsequent commands' `--stdin0`), and only then (when doing `--move`) deletes source files.
+
+- `*`:
+
+  - Made many internal changes to simplify things in the future.
+
 ## [dumb_server-v1.6.0] - 2024-02-19
 
 ### Added
 
-- Implemented `--uncompressed` option.
+- `*`:
+
+  - Implemented `--uncompressed` option.
 
 ### Changed
 
-- Renamed `--no-cbor` option to `--no-print-cbors`.
+- `*`:
+
+  - Renamed `--no-cbor` option to `--no-print-cbors`.
 
 ## [dumb_server-v1.5.5] - 2023-12-04
 
 ### Changed
 
-- Improved documentation.
+- Documentation:
+
+  - Improved documentation.
 
 ## [tool-v0.6] - 2023-12-04
 
 ### Added
 
-- `organize`: implemented `--quiet`, `--batch-number`, and `--lazy` options.
-- `organize`: implemented `--output flat` and improved other `--output` formats a bit.
-- `get` and `run` now allow multiple `--expr` arguments.
+- `organize`:
+
+  - Implemented `--quiet`, `--batch-number`, and `--lazy` options.
+  - Implemented `--output flat` and improved other `--output` formats a bit.
+
+- `get`, `run`:
+
+  - Both subcommands can now admit multiple `--expr` arguments.
 
 ### Changed
 
-- Improved performance.
-- Improved documentation.
+- `*`:
+
+  - Improved performance.
+
+- Documentation:
+
+  - Improved documentation.
 
 ## [tool-v0.5] - 2023-11-22
 
 ### Added
 
-- Initial public release.
+- `*`:
+
+  - Initial public release.
 
 ## [dumb_server-v1.5] - 2023-10-25
 
 ### Added
 
-- Added `--default-profile` option, changed semantics of `--ignore-profiles` a bit.
-- Added `--no-cbor` option.
-- Packaged as both Python and Nix package.
+- `*`:
+
+  - Added `--default-profile` option.
+  - Added `--no-cbor` option.
+
+- Build:
+
+  - Packaged as both Python and Nix package.
 
 ### Changed
 
-- Generated filenames for partial files now have `.part` extension.
-- Generated filenames now include PID to allow multiple process instances of this to dump to the same directory.
+- `*`:
+
+  - Changed semantics of `--ignore-profiles` a bit.
+
+  - Generated filenames for partial files now use `.part` extension.
+
+  - Generated filenames now include PID to allow multiple process instances of this program to dump to the same directory.
 
 ## [extension-v1.5] - 2023-10-22
 
 ### Added
 
-- Added keyboard shortcuts for toggling tab-related config settings.
+- Core, Shortcuts:
+
+  - Added keyboard shortcuts for toggling tab-related config settings.
 
 ### Changed
 
-- Improved UI.
-- Improved documentation.
+- Popup UI:
+
+  - Improved UI.
+
+- Documentation:
+
+  - Improved documentation.
 
 ### Fixed
 
-- Various small bug fixes.
+- Core, Capture:
+
+  - Various small bug fixes.
 
 ## [extension-v1.4] - 2023-09-25
 
 ### Added
 
-- Implemented context menu actions.
+- Core, Context menu:
+
+  - Implemented context menu actions.
 
 ### Changed
 
-- Improved UI.
-- Improved performance of dumping to CBOR.
-- Improved documentation.
+- Core, Capture:
+
+  - Improved performance of dumping to CBOR.
+
+- Popup UI:
+
+  - Improved UI.
+
+- Documentation:
+
+  - Improved documentation.
 
 ## [extension-v1.3.5] - 2023-09-13
 
 ### Changed
 
-- Improved `document_url` and `origin_url` handling.
-- Improved documentation.
+- Core, Capture:
+
+  - Improved `document_url` and `origin_url` handling.
+
+- Documentation:
+
+  - Improved documentation.
 
 ## [extension-v1.3] - 2023-09-04
 
 ### Added
 
-- Experimental Chromium support.
+- Core, Capture:
+
+  - Implemented experimental Chromium support.
 
 ### Changed
 
-- Improved UI.
+- Popup UI:
+
+  - Improved UI.
 
 ### Fixed
 
-- Various small bug fixes.
+- Core, Capture:
+
+  - Various small bug fixes.
 
 ## [extension-v1.1] - 2023-08-28
 
 ### Changed
 
-- Improved handling of `304 Not Modified` responses.
-- Improved UI and the [`Help` page](./extension/page/help.org).
+- Core, Capture:
+
+  - Improved handling of `304 Not Modified` responses.
+
+- Popup UI, [`Help` page](./extension/page/help.org):
+
+  - Improved the UI.
 
 ### Fixed
 
-- Various small bug fixes.
+- Core, Capture:
+
+  - Various small bug fixes.
 
 ## [dumb_server-v1.1] - 2023-08-28
 
 ### Added
 
-- Implemented `--ignore-profiles` option.
+- `*`:
+
+  - Implemented `--ignore-profiles` option.
 
 ## [dumb_server-v1.0] - 2023-08-25
 
+All planned features are complete now.
+
 ### Added
 
-- It now prints the its own server URL at the start, for convenience.
-- Implemented gzipping before dumping to disk.
-- The extension can now specify a per-dump `profile`, which is a suffix to be appended to the dumping directory.
-- Implemented optional printing of the head and the tail of the dumped data to the TTY.
+- `*`:
 
-All planned features are complete now.
+  - It now prints the its own server URL at the start, for convenience.
+
+  - Implemented gzipping before dumping to disk.
+
+  - The extension can now specify a per-dump `profile`, which is a suffix to be appended to the dumping directory.
+
+  - Implemented optional printing of the head and the tail of the dumped data to the TTY.
 
 ## [extension-v1.0] - 2023-08-25
 
 ### Changed
 
-- Improved popup UI.
-- Improved the [`Help` page](./extension/page/help.org): it's much more helpful now.
-- Improved the [`Log` page](#state-in-extension-ui-only): it's an interactive page that gets updated automatically now.
+- Core, Popup UI, [`Help` page](./extension/page/help.org), [`Log` page](#state-in-extension-ui-only):
+
+  - Improved popup UI.
+
+  - Improved the [`Help` page](./extension/page/help.org): it's much more helpful now.
+
+  - Improved the [`Log` page](#state-in-extension-ui-only): it's an interactive page that gets updated automatically now.
 
 ### Fixed
 
-- Various small bug fixes.
+- Core, Capture:
+
+  - Various small bug fixes.
 
 ## [extension-v0.1] - 2023-08-20
 
 ### Added
 
-- Initial public release.
+- `*`:
+
+  - Initial public release.
 
 ## [dumb_server-v0.1] - 2023-08-20
 
 ### Added
 
-- Initial public release.
+- `*`:
+
+  - Initial public release.
 
 [extension-v1.24.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.24.0...extension-v1.24.1
 [extension-v1.24.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.23.0...extension-v1.24.0
@@ -2847,7 +3227,7 @@ All planned features are complete now.
 
 ## `Hoardy-Web` extension
 
-- Core+UI:
+- Core, UI:
   - Merge `Pick into limbo` and `Drop into limbo` option into one.
     I.e., remove all archival-related decision making from the machinery that puts reqres into limbo.
 
@@ -2862,7 +3242,7 @@ All planned features are complete now.
 - UI:
   - Improve `Internal State` and `Saved into Local Storage` UIs.
   - Add option persistence to `Internal State` and `Saved into Local Storage` UIs.
-- Core+UI:
+- Core, UI:
   - Add a popup UI section for `Closed tabs`, so that you could easily collect/discard `in_limbo` reqres from such tabs.
   - Track navigations and allow to use them as boundaries between batches of reqres saved in limbo mode.
   - Implement automatic capture of `DOM` snapshots when a page changes.
