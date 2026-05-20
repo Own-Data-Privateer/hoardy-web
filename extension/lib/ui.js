@@ -356,7 +356,7 @@ function makeUI(node) {
         if (placeholder !== undefined)
             lbl.replaceChild(ne, placeholder);
         else if (tt !== "boolean")
-            lbl.appendChild(ne);
+            lbl.append(ne);
         else
             lbl.prepend(ne);
         return ne;
@@ -370,7 +370,7 @@ function makeUI(node) {
     } else
         place(0, typ, "");
 
-    res.appendChild(lbl);
+    res.append(lbl);
 
     node.parentElement.replaceChild(res, node);
 }
@@ -459,12 +459,11 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     if (node.tagName === "INPUT") {
         main = document.createElement("span");
         main.classList.add("help-main");
-        main.appendChild(node);
+        main.append(node);
     }
     main.setAttribute("title", help);
-    main.appendChild(helpMark);
-    root.appendChild(main);
-    root.appendChild(helpTip);
+    main.append(helpMark);
+    root.append(main, helpTip);
 }
 
 // Classify links under `node` based on their URLs. To get link highlights, run
