@@ -215,7 +215,7 @@ section {
         <span>Actions</span>
         <span>
           <input type="button" id="runActions" data-help="For scheduled actions that can be run immediately, run all of them." value="Run" />
-          <input type="button" id="cancelActions" data-help="For scheduled actions that can be canceled, cancel all of them." value="Cancel" />
+          <input type="button" id="cancelActions" data-help="For scheduled actions that can be canceled, cancel all of them. Then, immediately run those that can't be canceled." value="Cancel" />
         </span>
         <span>
           <span id="stats.running">0</span>
@@ -355,22 +355,22 @@ section {
     <div class="idots ui">
     <!-- rootTabOptions -->
 
-    <ui id="config.root.autoReplay" type="boolean" data-help="Enable `Auto-Replay` option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Set <code>Auto-Replay</code></ui>
-    <ui id="config.root.workOffline" type="boolean" class="prefer-off tag-main" data-help="Enable `Work offline` options in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Set <code>Work offline</code></ui>
+    <ui id="config.root.autoReplay" type="boolean" data-help="Enable `Auto-replay` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Set <code>Auto-replay</code></ui>
+    <ui id="config.root.workOffline" type="boolean" class="prefer-off tag-main" data-help="Enable `Work offline` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Set <code>Work offline</code></ui>
     <section class="on-collecting">
-    <ui id="config.root.collecting" type="boolean" class="prefer-on tag-main" data-help="Enable `Track new requests` option in new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Track new requests</code></ui>
+    <ui id="config.root.collecting" type="boolean" class="prefer-on tag-main" data-help="Enable `Track new requests` option in new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Track new requests</code></ui>
     </section>
     <section class="on-problematicNotify tag-main">
-    <ui id="config.root.problematicNotify" type="boolean" data-help="Enable `Notify about 'problematic' reqres` in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Notify about 'problematic' reqres</code></ui>
+    <ui id="config.root.problematicNotify" type="boolean" data-help="Enable `Notify about 'problematic' reqres` in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Notify about 'problematic' reqres</code></ui>
     </section>
-    <ui id="config.root.limbo" type="boolean" data-help="Enable `Pick into limbo` option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Pick into limbo</code></ui>
-    <ui id="config.root.negLimbo" type="boolean" class="prefer-off tag-main" data-help="Enable `Drop into limbo` option in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Drop into limbo</code></ui>
+    <ui id="config.root.limbo" type="boolean" data-help="Enable `Pick into limbo` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Pick into limbo</code></ui>
+    <ui id="config.root.negLimbo" type="boolean" class="prefer-off tag-main" data-help="Enable `Drop into limbo` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Drop into limbo</code></ui>
     <section class="on-stash tag-main">
-    <ui id="config.root.stashLimbo" type="boolean" data-help="Enable `Stash 'in_limbo' reqres` option in in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Stash 'in_limbo' reqres</code></ui>
+    <ui id="config.root.stashLimbo" type="boolean" data-help="Enable `Stash 'in_limbo' reqres` option in in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Stash 'in_limbo' reqres</code></ui>
     </section>
-    <ui id="config.root.bucket" type="string" data-help="Use this bucket when archiving reqres originating from new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Bucket</ui>
-    <ui id="config.root.snapshottable" type="boolean" class="prefer-on tag-main" data-help="Enable `Include in global snapshots` options in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Include in global snapshots</code></ui>
-    <ui id="config.root.replayable" type="boolean" class="prefer-on tag-main" data-help="Enable `Include in global replays` options in new tabs opened via browser&#039;s &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Include in global replays</code></ui>
+    <ui id="config.root.bucket" type="string" data-help="Use this bucket when archiving reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Bucket</ui>
+    <ui id="config.root.snapshottable" type="boolean" class="prefer-on tag-main" data-help="Enable `Include in global snapshots` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Include in global snapshots</code></ui>
+    <ui id="config.root.replayable" type="boolean" class="prefer-on tag-main" data-help="Enable `Include in global replays` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Include in global replays</code></ui>
 
     <!-- rootTabOptions -->
     </div>
@@ -382,7 +382,7 @@ section {
     <ui id="config.workOfflineFile" type="boolean" data-help="Automatically enable `This tab > Work offline` option in a tab when it navigates to a `file:` URL. This mainly exists to prevent pages produced by `hoardy-web mirror` from accessing the Internet. See the `Help` page for more info.">Force <code>Work offline</code> in <code>file:</code> tabs</ui>
     <ui id="config.workOfflineData" type="boolean" data-help="Automatically enable `This tab > Work offline` option in a tab when it navigates to a `data:` URL. See the `Help` page for more info.">Force <code>Work offline</code> in <code>data:</code> tabs</ui>
     <ui id="config.workOfflineReplay" type="boolean" data-help="Automatically enable `This tab > Work offline` option in a tab when it navigates to a replay URL. This mainly exists to prevent pages produced by `hoardy-web serve` from accessing the Internet. See the `Help` page for more info.">Force <code>Work offline</code> in replayed tabs</ui>
-    <ui id="config.autoReplayOffInReplay" type="boolean" data-help="Automatically disable `This tab > Auto-Replay` option in a tab when it navigates to a replay URL. See the `Help` page for more info.">Disable <code>Auto-Replay</code> in replayed tabs</ui>
+    <ui id="config.autoReplayOffInReplay" type="boolean" data-help="Automatically disable `This tab > Auto-replay` option in a tab when it navigates to a replay URL. See the `Help` page for more info.">Disable <code>Auto-replay</code> in replayed tabs</ui>
     </div>
     </section>
 
@@ -468,7 +468,7 @@ section {
     </div>
 
     <div id="div-this-tab-config" class="tag-common tag-this">
-    <ui id="tabconfig.autoReplay" type="boolean" tabindex=2 data-shortcut="toggleTabConfigAutoReplay" data-help="Automatically redirect requests to their replays, if the archiving server supports replay and `Replay from the archiving server` option is enabled. Very experimental and limited at the moment. See the `Help` page for more info.">Auto-Replay</ui>
+    <ui id="tabconfig.autoReplay" type="boolean" tabindex=2 data-shortcut="toggleTabConfigAutoReplay" data-help="Automatically redirect requests to their replays, if the archiving server supports replay and `Replay from the archiving server` option is enabled. Very experimental and limited at the moment. See the `Help` page for more info.">Auto-replay</ui>
     <ui id="tabconfig.workOffline" type="boolean" class="prefer-off" tabindex=2 data-shortcut="toggleTabConfigWorkOffline" data-help="Start canceling all new networking requests generated by this tab. Enabling this does essentially the same thing as &quot;Work offline&quot; setting of Firefox-based browsers, except for requests generated by this tab only. See the `Help` page for more info.">Work offline</ui>
     <section class="on-collecting">
     <ui id="tabconfig.collecting" type="boolean" class="prefer-on" tabindex=2 data-shortcut="toggleTabConfigTracking" data-help="Track new requests originating from this tab.">Track new requests</ui>
@@ -479,7 +479,7 @@ section {
     <ui id="tabconfig.limbo" type="boolean" tabindex=2 data-shortcut="toggleTabConfigLimbo" data-help="For this tab, put newly `finished` reqres tab that satisfy `Pick reqres for archival when they finish` settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
     <ui id="tabconfig.negLimbo" type="boolean" class="prefer-off tag-this" data-help="For this tab, put newly `finished` reqres that do NOT satisfy `Pick reqres for archival when they finish` settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
     <section class="on-stash tag-this">
-    <ui id="tabconfig.stashLimbo" type="boolean" data-help="For this tab, backup `in_limbo` reqres into browser&#039;s local storage. With this option enabled, `Hoardy-Web` will keep `in_limbo` reqres across browser restarts and extension reloads. This option does nothing if `Stash 'collected' reqres into local storage` is disabled. Enabled by default. See the `Help` page for more info.">Stash <code>in_limbo</code> reqres</ui>
+    <ui id="tabconfig.stashLimbo" type="boolean" data-help="For this tab, backup `in_limbo` reqres into browser's local storage. With this option enabled, `Hoardy-Web` will keep `in_limbo` reqres across browser restarts and extension reloads. This option does nothing if `Stash 'collected' reqres into local storage` is disabled. Enabled by default. See the `Help` page for more info.">Stash <code>in_limbo</code> reqres</ui>
     </section>
     <ui id="tabconfig.bucket" type="string" tabindex=2 data-help="Use this bucket when archiving reqres originating from this tab.">Bucket</ui>
     <ui id="tabconfig.snapshottable" type="boolean" class="prefer-on tag-this" data-help="Include this tab in a set of tabs that will be DOM-snapshotted by `Globally &gt; Snapshot` button.">Include in global snapshots</ui>
@@ -495,7 +495,7 @@ section {
     <div class="isubdots ui">
     <!-- thisTabChildrenOptions -->
 
-    <ui id="tabconfig.children.autoReplay" type="boolean" tabindex=3 data-shortcut="toggleTabConfigChildrenAutoReplay" data-help="Enable `Auto-Replay` option in new tabs spawned from this tab (via middle mouse click, context menu actions). See the `Help` page for more info.">Set <code>Auto-Replay</code></ui>
+    <ui id="tabconfig.children.autoReplay" type="boolean" tabindex=3 data-shortcut="toggleTabConfigChildrenAutoReplay" data-help="Enable `Auto-replay` option in new tabs spawned from this tab (via middle mouse click, context menu actions). See the `Help` page for more info.">Set <code>Auto-replay</code></ui>
     <ui id="tabconfig.children.workOffline" type="boolean" class="prefer-off" tabindex=3 data-help="Enable `Work offline` option in new tabs spawned from this tab (via middle mouse click, context menu actions). See the `Help` page for more info.">Set <code>Work offline</code></ui>
     <section class="on-collecting">
     <ui id="tabconfig.children.collecting" type="boolean" class="prefer-on" tabindex=3 data-shortcut="toggleTabConfigChildrenTracking" data-help="Enable `Track new requests` option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Set <code>Track new requests</code></ui>
@@ -521,19 +521,19 @@ section {
     <div class="idots ui">
     <!-- backgroundOptions -->
 
-    <ui id="config.background.workOffline" type="boolean" class="prefer-off" data-help="Start canceling all new networking requests originating from browser&#039;s background tasks (excluding those originating from extensions). Enabling this does essentially the same thing as &quot;Work offline&quot; setting of Firefox-based browsers, except for requests generated by backgrounds tasks only. See the `Help` page for more info.">Work offline</ui>
+    <ui id="config.background.workOffline" type="boolean" class="prefer-off" data-help="Start canceling all new networking requests originating from browser's background tasks (excluding those originating from extensions). Enabling this does essentially the same thing as &quot;Work offline&quot; setting of Firefox-based browsers, except for requests generated by backgrounds tasks only. See the `Help` page for more info.">Work offline</ui>
     <section class="on-collecting">
-    <ui id="config.background.collecting" type="boolean" class="prefer-on" data-help="Track new requests originating from browser&#039;s background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this as browsers do link pre-fetching in background, and disabling this will miss that data.">Track new requests</ui>
+    <ui id="config.background.collecting" type="boolean" class="prefer-on" data-help="Track new requests originating from browser's background tasks (excluding those originating from extensions). With the default browser config you probably should not disable this as browsers do link pre-fetching in background, and disabling this will miss that data.">Track new requests</ui>
     </section>
     <section class="on-problematicNotify">
-    <ui id="config.background.problematicNotify" type="boolean" data-help="Include `problematic` reqres originating from browser&#039;s background tasks (excluding those originating from extensions) in `Generate notifications about > ... 'problematic' reqres` notifications. This only has an effect if the latter option is enabled.">Notify about <code>problematic</code> reqres</ui>
+    <ui id="config.background.problematicNotify" type="boolean" data-help="Include `problematic` reqres originating from browser's background tasks (excluding those originating from extensions) in `Generate notifications about > ... 'problematic' reqres` notifications. This only has an effect if the latter option is enabled.">Notify about <code>problematic</code> reqres</ui>
     </section>
-    <ui id="config.background.limbo" type="boolean" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that satisfy `Pick reqres for archival when they finish` settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
-    <ui id="config.background.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), put newly `finished` reqres tab that do NOT satisfy `Pick reqres for archival when they finish` settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
+    <ui id="config.background.limbo" type="boolean" data-help="For reqres originating from browser's background tasks (excluding those originating from extensions), put newly `finished` reqres tab that satisfy `Pick reqres for archival when they finish` settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
+    <ui id="config.background.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser's background tasks (excluding those originating from extensions), put newly `finished` reqres tab that do NOT satisfy `Pick reqres for archival when they finish` settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
     <section class="on-stash">
-    <ui id="config.background.stashLimbo" type="boolean" data-help="For reqres originating from browser&#039;s background tasks (excluding those originating from extensions), backup `in_limbo` reqres into browser&#039;s local storage. This option does nothing if `Stash 'collected' reqres into local storage` is disabled. Enabled by default. See the `Help` page for more info.">Stash <code>in_limbo</code> reqres</ui>
+    <ui id="config.background.stashLimbo" type="boolean" data-help="For reqres originating from browser's background tasks (excluding those originating from extensions), backup `in_limbo` reqres into browser's local storage. This option does nothing if `Stash 'collected' reqres into local storage` is disabled. Enabled by default. See the `Help` page for more info.">Stash <code>in_limbo</code> reqres</ui>
     </section>
-    <ui id="config.background.bucket" type="string" data-help="Use this bucket when archiving reqres originating from browser&#039;s background tasks (excluding those originating from extensions).">Bucket</ui>
+    <ui id="config.background.bucket" type="string" data-help="Use this bucket when archiving reqres originating from browser's background tasks (excluding those originating from extensions).">Bucket</ui>
 
     <!-- backgroundOptions -->
     </div>
@@ -544,17 +544,17 @@ section {
     <div class="idots ui">
     <!-- extensionOptions -->
 
-    <ui id="config.extension.workOffline" type="boolean" class="prefer-off" data-help="Start canceling all new networking requests originating from browser&#039;s extensions/add-ons. Enabling this does essentially the same thing as &quot;Work offline&quot; setting of Firefox-based browsers, except for requests generated by extensions only. See the `Help` page for more info.">Work offline</ui>
+    <ui id="config.extension.workOffline" type="boolean" class="prefer-off" data-help="Start canceling all new networking requests originating from browser's extensions/add-ons. Enabling this does essentially the same thing as &quot;Work offline&quot; setting of Firefox-based browsers, except for requests generated by extensions only. See the `Help` page for more info.">Work offline</ui>
     <section class="on-collecting">
     <ui id="config.extension.collecting" type="boolean" data-help="Track new requests originating from browser extensions.">Track new requests</ui>
     </section>
     <section class="on-problematicNotify">
-    <ui id="config.extension.problematicNotify" type="boolean" data-help="Include `problematic` reqres originating from browser&#039;s extensions/add-ons in `Generate notifications about > ... 'problematic' reqres` notifications. This only has an effect if the latter option is enabled.">Notify about <code>problematic</code> reqres</ui>
+    <ui id="config.extension.problematicNotify" type="boolean" data-help="Include `problematic` reqres originating from browser's extensions/add-ons in `Generate notifications about > ... 'problematic' reqres` notifications. This only has an effect if the latter option is enabled.">Notify about <code>problematic</code> reqres</ui>
     </section>
-    <ui id="config.extension.limbo" type="boolean" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that satisfy `Pick reqres for archival when they finish` settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
-    <ui id="config.extension.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser&#039;s extensions/add-ons, put newly `finished` reqres tab that do NOT satisfy `Pick reqres for archival when they finish` settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
+    <ui id="config.extension.limbo" type="boolean" data-help="For reqres originating from browser's extensions/add-ons, put newly `finished` reqres tab that satisfy `Pick reqres for archival when they finish` settings into limbo until you collect them for archival or discard them manually.">Pick into limbo</ui>
+    <ui id="config.extension.negLimbo" type="boolean" class="prefer-off" data-help="For reqres originating from browser's extensions/add-ons, put newly `finished` reqres tab that do NOT satisfy `Pick reqres for archival when they finish` settings into limbo instead of discarding them immediately. Useful for debugging.">Drop into limbo</ui>
     <section class="on-stash">
-    <ui id="config.extension.stashLimbo" type="boolean" data-help="For reqres originating from browser&#039;s extensions/add-ons, backup `in_limbo` reqres into browser&#039;s local storage. This option does nothing if `Stash 'collected' reqres into local storage` is disabled. Enabled by default. See the `Help` page for more info.">Stash <code>in_limbo</code> reqres</ui>
+    <ui id="config.extension.stashLimbo" type="boolean" data-help="For reqres originating from browser's extensions/add-ons, backup `in_limbo` reqres into browser's local storage. This option does nothing if `Stash 'collected' reqres into local storage` is disabled. Enabled by default. See the `Help` page for more info.">Stash <code>in_limbo</code> reqres</ui>
     </section>
     <ui id="config.extension.bucket" type="string" data-help="Use this bucket when archiving reqres originating from browser extensions.">Bucket</ui>
 
@@ -586,12 +586,12 @@ section {
     <div class="isubdots ui">
     <!-- problematicOptions -->
 
-    <ui id="config.markProblematicPartialRequest" type="boolean" class="c" data-help="Mark a newly `finished` reqres as `problematic` when it was actually submitted to browser&#039;s fetching pipeline and its result was not retrieved from cache, but the resulting captured request body is incomplete. Enabled by default. See the &quot;Buggy reqres&quot; section of the `Help` page for details.">... {} fetched, with partial request body</ui>
-    <ui id="config.markProblematicBuggy" type="boolean" class="prefer-on c" data-help="Mark a newly `finished` reqres as `problematic` when it was actually submitted to browser&#039;s fetching pipeline and its result was not retrieved from cache, but the resulting captured request and/or response has buggy or incomplete metadata. See the &quot;Buggy reqres&quot; section of the `Help` page for details.">... {} fetched, with buggy metadata</ui>
+    <ui id="config.markProblematicPartialRequest" type="boolean" class="c" data-help="Mark a newly `finished` reqres as `problematic` when it was actually submitted to browser's fetching pipeline and its result was not retrieved from cache, but the resulting captured request body is incomplete. Enabled by default. See the &quot;Buggy reqres&quot; section of the `Help` page for details.">... {} fetched, with partial request body</ui>
+    <ui id="config.markProblematicBuggy" type="boolean" class="prefer-on c" data-help="Mark a newly `finished` reqres as `problematic` when it was actually submitted to browser's fetching pipeline and its result was not retrieved from cache, but the resulting captured request and/or response has buggy or incomplete metadata. See the &quot;Buggy reqres&quot; section of the `Help` page for details.">... {} fetched, with buggy metadata</ui>
     <ui id="config.markProblematicCanceled" type="boolean" class="prefer-off c" data-help="Mark a newly `finished` reqres as `problematic` when it was canceled before it was even sent (this usually means the `HTTP` request in question was blocked by another extension like `uBlock Origin`). Disabled by default.">... {} in <code>canceled</code> state</ui>
     <ui id="config.markProblematicNoResponse" type="boolean" class="prefer-on c" data-help="Mark a newly `finished` reqres as `problematic` when it got no response (i.e. the request in question was interrupted before request headers were received; this usually means a networking issue). Enabled by default.">... {} in <code>no_response</code> state</ui>
     <ui id="config.markProblematicIncomplete" type="boolean" class="prefer-on c" data-help="Mark a newly `finished` reqres as `problematic` when its response body is incomplete (e.g. response body was interrupted in the middle by a networking issue). Enabled by default.">... {} in <code>incomplete</code> state</ui>
-    <ui id="config.markProblematicIncompleteFC" type="boolean" class="prefer-off c" data-help="Mark a newly `finished` reqres as `problematic` when it was loaded from browser&#039;s cache but its response data was not given to the extension (this only happens on Firefox-based browsers). Disabled by default because this usually means that one of the previously `collected` reqres had this response data archived already, if had not, you can reload the page with browser&#039;s cache disabled via `Contrlol+F5`.">... {} in <code>incomplete_fc</code> state</ui>
+    <ui id="config.markProblematicIncompleteFC" type="boolean" class="prefer-off c" data-help="Mark a newly `finished` reqres as `problematic` when it was loaded from browser's cache but its response data was not given to the extension (this only happens on Firefox-based browsers). Disabled by default because this usually means that one of the previously `collected` reqres had this response data archived already, if had not, you can reload the page with browser's cache disabled via `Contrlol+F5`.">... {} in <code>incomplete_fc</code> state</ui>
     <ui id="config.markProblematicTransientCodes" type="boolean" class="prefer-on c" data-help="Mark a newly `finished` reqres as `problematic` when its `HTTP` response status code is a transient error. Enabled by default because this usually means that, to be properly archived, the page needs to be reloaded later.">... {} with transient server errors</ui>
     <ui id="config.markProblematicPermanentCodes" type="boolean" class="c" data-help="Mark a newly `finished` reqres as `problematic` when its `HTTP` response status code is a permanent error. Disabled by default because this usually means that reloading the page won&#039;t help.">... {} with permanent server errors</ui>
     <ui id="config.markProblematicWithImportantErrors" type="boolean" class="prefer-on c" data-help="Mark a newly `finished` reqres as `problematic` when it had important collection errors. Currently, only errors generated by `Hoardy-Web` when it fails to collect the data from the browser for various reasons are considered important. Enabled by default.">... {} with important reqres errors</ui>
@@ -657,7 +657,7 @@ section {
           (<span id="stats.unstashed_size">0</span>)
         </span>
       </div>
-      <div id="div-stats.stashed" data-help="At the moment, the number of reqres that are currently stashed in browser&#039;s local storage and thus will not be lost on reload (and the sum total of all sizes of their dumps).">
+      <div id="div-stats.stashed" data-help="At the moment, the number of reqres that are currently stashed in browser's local storage and thus will not be lost on reload (and the sum total of all sizes of their dumps).">
         <span>Stashed in LS</span>
         <span>
         </span>
@@ -670,7 +670,7 @@ section {
       <div id="div-stats.not_stashed" data-help="Reqres that were not stashed in local storage and exist only in RAM.">
         <span>... not; In RAM</span>
         <span>
-          <input type="button" id="stashAll" data-help="Stash all `queued`, `in_limbo`, and `unarchived` reqres into browser&#039;s local storage, regardless of `Stash 'collected' reqres into local storage` and `Stash 'in_limbo' reqres` options." value="Stash" />
+          <input type="button" id="stashAll" data-help="Stash all `queued`, `in_limbo`, and `unarchived` reqres into browser's local storage, regardless of `Stash 'collected' reqres into local storage` and `Stash 'in_limbo' reqres` options." value="Stash" />
         </span>
         <span>
         </span>
@@ -716,10 +716,10 @@ section {
           (<span id="stats.submittedHTTP_size">0</span>)
         </span>
       </div>
-      <div id="div-stats.saved" data-help="At the moment, the number of reqres that were archived into browser&#039;s local storage (and the sum total of all sizes of their dumps).">
+      <div id="div-stats.saved" data-help="At the moment, the number of reqres that were archived into browser's local storage (and the sum total of all sizes of their dumps).">
         <span>Saved in LS</span>
         <span>
-          <input type="button" id="showSaved" data-help="Show reqres currently saved in browser&#039;s local storage." value="Show" />
+          <input type="button" id="showSaved" data-help="Show reqres currently saved in browser's local storage." value="Show" />
         </span>
         <span>
           <span id="stats.saved">0</span>
@@ -728,16 +728,16 @@ section {
       </div>
     </div>
 
-    <ui id="config.stash" type="boolean" class="prefer-on" data-help="Automatically backup stuck `queued` and `unarchived` reqres into browser&#039;s local storage. With this option enabled `Hoardy-Web` will keep `collected` but not yet archived reqres across browser restarts and extension reloads. See also `Stash 'in_limbo' reqres` options below. See the `Help` page for more info.">Stash <code>collected</code> reqres into local storage</ui>
+    <ui id="config.stash" type="boolean" class="prefer-on" data-help="Automatically backup stuck `queued` and `unarchived` reqres into browser's local storage. With this option enabled `Hoardy-Web` will keep `collected` but not yet archived reqres across browser restarts and extension reloads. See also `Stash 'in_limbo' reqres` options below. See the `Help` page for more info.">Stash <code>collected</code> reqres into local storage</ui>
 
-    <ui id="config.archive" type="boolean" class="prefer-on" data-help="Automatically archive `queued` reqres into persistent storage using one or more of the following methods. Enabling more than one of the sub-options will archive the same reqres using all of the enabled methods. (If two identical copies of the same reqres ever reach `hoardy-web organize`, it will deduplicate them.) Disabling this option will keep `queued` reqres stuck in the archiving queue indefinitely. If `Stash 'collected' reqres into local storage` option above is enabled, restarting the browser or reloading the extension will not loose them, but they will still be taking up your browser&#039;s memory. Which is why you probably shouldn&#039;t disable this option, unless you want to disable this, atomically change some of the following sub-options or the `Bucket` settings below, and then enable this again.">Archive <code>collected</code> reqres</ui>
+    <ui id="config.archive" type="boolean" class="prefer-on" data-help="Automatically archive `queued` reqres into persistent storage using one or more of the following methods. Enabling more than one of the sub-options will archive the same reqres using all of the enabled methods. (If two identical copies of the same reqres ever reach `hoardy-web organize`, it will deduplicate them.) Disabling this option will keep `queued` reqres stuck in the archiving queue indefinitely. If `Stash 'collected' reqres into local storage` option above is enabled, restarting the browser or reloading the extension will not loose them, but they will still be taking up your browser's memory. Which is why you probably shouldn&#039;t disable this option, unless you want to disable this, atomically change some of the following sub-options or the `Bucket` settings below, and then enable this again.">Archive <code>collected</code> reqres</ui>
     <section id="div-archive-methods" class="on-archive">
     <div class="isubdots">
     <!-- archiveOptions -->
 
     <ui id="config.archiveExportAs" type="boolean" data-help="Archive `collected` reqres by generating in-browser fake-Downloads with their dumps. If the value of the `Bundle up to MiB` option below is larger than zero, `Hoardy-Web` will export dumps in per-`bucket` bundles. I.e., while processing the archiving queue, it will continue to concatenate dumps belonging to the same `bucket` while the sum of their sizes is smaller than the value of that option and only then export the result. The values of `bucket` can be controlled by the `Bucket` settings below. See the `Help` page for more info.">Export dumps via <code>saveAs</code></ui>
     <ui id="config.archiveSubmitHTTP" type="boolean" data-help="Archive `collected` reqres by submitting their dumps via `HTTP` by `POST`ing them to the archiving server at the URL set in the `Server URL` option. See the `Help` page for more info.">Submit dumps via <code>HTTP</code></ui>
-    <ui id="config.archiveSaveLS" type="boolean" data-help="Archive `collected` reqres by saving them into browser&#039;s local storage. See the `Help` page for more info.">Save reqres into local storage</ui>
+    <ui id="config.archiveSaveLS" type="boolean" data-help="Archive `collected` reqres by saving them into browser's local storage. See the `Help` page for more info.">Save reqres into local storage</ui>
 
     <!-- archiveOptions -->
     </div>
@@ -756,28 +756,28 @@ section {
     <!-- rearchiveOptions -->
 
     <div id="div-rearchive-methods">
-    <ui id="config.rearchiveExportAs" type="boolean" data-help="Re-archive reqres saved in browser&#039;s local storage by generating in-browser fake-Downloads with their dumps. See the similar option above for more info.">Export dumps via <code>saveAs</code></ui>
-    <ui id="config.rearchiveSubmitHTTP" type="boolean" data-help="Re-archive reqres saved in browser&#039;s local storage by submitting their dumps via `HTTP` by `POST`ing them to the archiving server at the URL set in the `Server URL` option. See the similar option above for more info.">Submit dumps via <code>HTTP</code></ui>
+    <ui id="config.rearchiveExportAs" type="boolean" data-help="Re-archive reqres saved in browser's local storage by generating in-browser fake-Downloads with their dumps. See the similar option above for more info.">Export dumps via <code>saveAs</code></ui>
+    <ui id="config.rearchiveSubmitHTTP" type="boolean" data-help="Re-archive reqres saved in browser's local storage by submitting their dumps via `HTTP` by `POST`ing them to the archiving server at the URL set in the `Server URL` option. See the similar option above for more info.">Submit dumps via <code>HTTP</code></ui>
     </div>
 
     <section>
     <h3>Quick re-archival</h3>
 
-    <ui id="rearchive.andRewrite" type="boolean" data-help="For each reqres saved in browser&#039;s local storage, after it gets re-archived with all of the above methods, successfully or not, forcefully re-write it into browser&#039;s local storage again. This is only useful for debugging and migration between local storage backends.">Re-write everything into local storage</ui>
-    <ui id="rearchive.andDelete" type="boolean" data-help="For each reqres saved in browser&#039;s local storage, after it gets successfully re-archived with all of the above methods, delete it from browser&#039;s local storage.">Delete everything from local storage</ui>
+    <ui id="rearchive.andRewrite" type="boolean" data-help="For each reqres saved in browser's local storage, after it gets re-archived with all of the above methods, successfully or not, forcefully re-write it into browser's local storage again. This is only useful for debugging and migration between local storage backends.">Re-write everything into local storage</ui>
+    <ui id="rearchive.andDelete" type="boolean" data-help="For each reqres saved in browser's local storage, after it gets successfully re-archived with all of the above methods, delete it from browser's local storage.">Delete everything from local storage</ui>
 
     <center class="on-rearchive-carefully attention">
       <p>
         <span data-help="This combination of options might be unsafe to use since export via `saveAs` is unable to report most errors. Thus, for instance, if the generated dump file fails to be written to disk because the file system is out of space, that data will be lost. This combination can be used safely, but it requires some care. See the `Help` page for more info.">The following buttons might be UNSAFE!</span>
       </p>
       <p>
-        <span data-help="With current settings, pressing the `Re-archive new` button will skip re-archival of reqres that were previously ARCHIVED OR RE-ARCHIVED using all of the enabled re-archival methods, pretend that it re-archived them again, and then DELETE ALL AND EVERY REQRES SAVED INTO BROWSER&#039;S LOCAL STORAGE. This might be exactly what you want to happen, but it might not. Use this feature wisely.">Use <code>Re-archive new</code> button with CAUTION!</span>
+        <span data-help="With current settings, pressing the `Re-archive new` button will skip re-archival of reqres that were previously ARCHIVED OR RE-ARCHIVED using all of the enabled re-archival methods, pretend that it re-archived them again, and then DELETE ALL AND EVERY REQRES SAVED INTO BROWSER'S LOCAL STORAGE. This might be exactly what you want to happen, but it might not. Use this feature wisely.">Use <code>Re-archive new</code> button with CAUTION!</span>
       </p>
     </center>
 
     <center id="div-rearchive-actions" class="on-rearchive ui">
-      <input type="button" id="rearchiveAdjunctSaved" data-shortcut="rearchiveAdjunctSaved" data-help="Re-archive new reqres using the configured re-archival methods. That is, re-archive all reqres saved in browser&#039;s local storage, but for each enabled re-archival method, skip actual (re-)archival action for those reqres that were previously (re-)archived using the same method. In other words, for all of the enabled re-archival methods and all saved reqres, only actually run (re-)archival actions on reqres they were not yet run on. Or, in set-theoretic terms, only run on the set that completes the set of &lt;method, reqres&gt; tuples for all enabled re-archival methods and all reqres saved in browser&#039;s local storage. I.e. process the adjunct set. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive new" />
-      <input type="button" id="rearchiveAllSaved" data-help="Re-archive all reqres saved in browser&#039;s local storage using all of the enabled re-archival methods. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive all" />
+      <input type="button" id="rearchiveAdjunctSaved" data-shortcut="rearchiveAdjunctSaved" data-help="Re-archive new reqres using the configured re-archival methods. That is, re-archive all reqres saved in browser's local storage, but for each enabled re-archival method, skip actual (re-)archival action for those reqres that were previously (re-)archived using the same method. In other words, for all of the enabled re-archival methods and all saved reqres, only actually run (re-)archival actions on reqres they were not yet run on. Or, in set-theoretic terms, only run on the set that completes the set of &lt;method, reqres&gt; tuples for all enabled re-archival methods and all reqres saved in browser's local storage. I.e. process the adjunct set. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive new" />
+      <input type="button" id="rearchiveAllSaved" data-help="Re-archive all reqres saved in browser's local storage using all of the enabled re-archival methods. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive all" />
     </center>
 
     </section>
@@ -817,7 +817,7 @@ section {
     <div class="isubdots ui">
     <!-- exportAsOptions -->
     <ui id="config.exportAsHumanReadable" type="boolean" data-help="Generate fake-Downloads with long human-readable filenames. Enabled by default. Disabling this will generate shorter filenames similar to those generated by `hoardy-web-sas` archiving server.">Generate human-readable filenames</ui>
-    <ui id="config.exportAsBundle" type="boolean" data-help="Export `queued` dumps not as single files, but as optionally compressed bundles (concatenations) of dumps. With this option enabled `Hoardy-Web` will delay export and continue to concatenate to-be-exported dumps until the resulting bundle stops matching the following conditions. Enabled by default. Disabling this while `GZip outputs` option below is enabled will worsen the resulting compression ratio. Also, disabling this will slow down your browser&#039;s UI and make it rather annoying, unless you `Pick into limbo` by default or use anti-annoyance fixes described on the `Help` page.">Bundle dumps</ui>
+    <ui id="config.exportAsBundle" type="boolean" data-help="Export `queued` dumps not as single files, but as optionally compressed bundles (concatenations) of dumps. With this option enabled `Hoardy-Web` will delay export and continue to concatenate to-be-exported dumps until the resulting bundle stops matching the following conditions. Enabled by default. Disabling this while `GZip outputs` option below is enabled will worsen the resulting compression ratio. Also, disabling this will slow down your browser's UI and make it rather annoying, unless you `Pick into limbo` by default or use anti-annoyance fixes described on the `Help` page.">Bundle dumps</ui>
     <section class="on-exportAsBundle">
     <div class="ishiftdots">
     <ui id="config.exportAsMaxSize" type="number" class="c" data-help="Continue concatenating `queued` dumps to the output bundle while the result is smaller than given size. Generated exported files can still be larger than this size when a single dump is larger than this size, in which case such dumps will be exported as separate files. Generated bundles can be smaller than this size when the other conditions here stop matching.">... up to {} MiB,</ui>
@@ -878,7 +878,7 @@ section {
     <h3>Workarounds for Chromium issues</h3>
     <div class="isubdots ui">
     <ui id="config.workaroundChromiumDebugTimeout" type="number" class="c" data-help="Wait this many seconds for Chromium to generate new debugging or webRequest events before giving up and forcefully finishing all unmatched in-flight reqres. See the &quot;Quirks and Bugs&quot; section of the `Help` page for details. Make this larger if your system is slow in general or if `Hoardy-Web` generates duplicated reqres for the same fetched URL.">Delay reqres for {} s</ui>
-    <ui id="config.workaroundChromiumResetRootTab" type="boolean" class="prefer-on" data-help="Reset new tabs opened via browser&#039;s &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item) to the URL below. You can disable this, but then `Hoardy-Web` will proceed trying to collect the first page the browser loads there, which will probably fail.">Reset new root tabs</ui>
+    <ui id="config.workaroundChromiumResetRootTab" type="boolean" class="prefer-on" data-help="Reset new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item) to the URL below. You can disable this, but then `Hoardy-Web` will proceed trying to collect the first page the browser loads there, which will probably fail.">Reset new root tabs</ui>
     <div class="isubdots">
     <ui id="config.workaroundChromiumResetRootTabURL" type="string" data-help="URL of the first page in a new tab. Setting this to `about:blank` is highly recommended.">... to URL</ui>
     </div>
@@ -946,7 +946,7 @@ Specifically:
     <div class="idots ui">
     <!-- uiOptions -->
 
-    <ui id="config.colors" type="tristate" data-help="Color scheme tristate: light mode, browser&#039;s default, dark mode.">Color scheme</ui>
+    <ui id="config.colors" type="tristate" data-help="Color scheme tristate: light mode, browser's default, dark mode.">Color scheme</ui>
     <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
     <ui id="config.seasonal" type="boolean" data-help="Allow `Hoardy-Web` to use seasonal themes. Disabling this will forbid the use of the following sub-options, including those that might be added here in future versions of `Hoardy-Web`. Enabled by default. You might want to disable this if you hate fun.">Allow seasonal theming</ui>
     <section class="on-seasonal">
@@ -992,7 +992,7 @@ Specifically:
     </section>
     <ui id="config.autoNotify" type="boolean" class="prefer-on c" data-help="Generate a notification when an automatic action was performed in background.">... {} automatic actions</ui>
     <ui id="config.archiveStuckNotify" type="boolean" class="prefer-on c" data-help="Complain when the archival queue is not empty but both `Archive 'collected' reqres` and `Stash 'collected' reqres into local storage` options are disabled.">... {} unstashed stuck archival queue</ui>
-    <ui id="config.archiveFailedNotify" type="boolean" class="prefer-on c" data-help="Complain when some reqres fail to be stashed or archived to persistent storage (browser&#039;s local storage, the archiving server, etc).">... {} archival errors</ui>
+    <ui id="config.archiveFailedNotify" type="boolean" class="prefer-on c" data-help="Complain when some reqres fail to be stashed or archived to persistent storage (browser's local storage, the archiving server, etc).">... {} archival errors</ui>
     <ui id="config.archiveDoneNotify" type="boolean" class="c" data-help="Generate an &quot;All OK&quot; notification when the archival queue becomes empty the very first time or after a previous archival failure. This exists mostly for on-boarding new users.">... {} newly empty archival queue</ui>
 
     <!-- notificationOptions -->
