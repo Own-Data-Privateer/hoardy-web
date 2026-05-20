@@ -88,6 +88,10 @@ table tr.errors td:nth-child(1) {
     border: none;
 }
 
+table tr.errors td * {
+    margin: 0;
+}
+
 td.long {
     line-break: anywhere;
 }

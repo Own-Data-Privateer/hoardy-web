@@ -153,6 +153,34 @@ function buttonToAction(id, action) {
     return el;
 }
 
+function createElements(arg, ...args) {
+    if (args.length === 0) {
+        if (arg instanceof Array) {
+            let res = [];
+            for (let e of arg)
+                res.push(...(createElements(...e)));
+            return res;
+        } else if (typeof arg === "string")
+            return [document.createTextNode(arg)];
+        return [arg];
+    }
+
+    if (typeof arg === "function")
+        return createElements(...args).map(arg);
+
+    let node = document.createElement(arg);
+    node.append(...(createElements(...args)));
+    return [node];
+}
+
+function appendElements(node, ...args) {
+    node.append(...(createElements(...args)));
+}
+
+function replaceElements(node, ...args) {
+    node.replaceChildren(...(createElements(...args)));
+}
+
 let scheduledUI = new Map();
 
 // set values of DOM elements from a given object

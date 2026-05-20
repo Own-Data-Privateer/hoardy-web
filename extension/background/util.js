@@ -137,14 +137,14 @@ function setPageState(state) {
 
 function setPageLoading() {
     resetSingletonTimeout(scheduledUI, "setPage", 300, () => {
-        document.getElementById("body_loading").innerHTML = "<p>Loading...</p>";
+        replaceElements(document.getElementById("body_loading"), "p", "Loading...");
         setPageState("loading");
     }, 100, true);
 }
 
 function setPageSettling() {
     resetSingletonTimeout(scheduledUI, "setPage", 300, () => {
-        document.getElementById("body_loading").innerHTML = "<p>Waiting for the core to settle...</p>";
+        replaceElements(document.getElementById("body_loading"), "p", "Waiting for the core to settle...");
         setPageState("loading");
     }, 100, true);
 }
@@ -153,16 +153,23 @@ function setPageError(error) {
     logError(error);
 
     resetSingletonTimeout(scheduledUI, "setPage", 0, () => {
-        document.getElementById("body_error").innerHTML = `
-          <h1>Exception</h1>
-          <pre id="body_exception"></pre>
-          <h2>To see more details</h2>
-          <ul>
-            <li>On Firefox-based browser: go to <code>about:debugging#/runtime/this-firefox</code>, click &quot;Inspect&quot; button on &quot;Hoardy-Web&quot;, select &quot;Console&quot;</li>
-            <li>On Chromium-based browser: go to <code>chrome://extensions/</code>, click &quot;Inspect views&quot; link on &quot;Hoardy-Web&quot;, select &quot;Console&quot;</li>
-          </ul>
-        `;
-        document.getElementById("body_exception").innerText = errorMessageOf(error);
+        replaceElements(document.getElementById("body_error"), [
+            ["h1", "Exception"],
+            ["pre", "code", errorMessageOf(error)],
+            ["h2", "To see more details"],
+            ["ul", [
+                ["li", [
+                    ["p", "On a Firefox-based browser, go to"],
+                    ["pre", "code", "about:debugging#/runtime/this-firefox"],
+                    ["p", "Then, click \"Inspect\" button on \"Hoardy-Web\", select \"Console\"."],
+                ]],
+                ["li", [
+                    ["p", "On a Chromium-based browser, go to"],
+                    ["pre", "code", "chrome://extensions/"],
+                    ["p", "Then, click \"Inspect views\" link on \"Hoardy-Web\", select \"Console\"."],
+                ]],
+            ]],
+        ]);
         setPageState("error");
     }, 0, true);
 }
