@@ -215,6 +215,21 @@ function setRootClasses(config) {
     return droot;
 }
 
+function mapShortcutName(func, name) {
+    let children;
+    if (name.startsWith("toggleTabConfigChildren")) {
+        name = name.substr(23);
+        children = true;
+    } else {
+        name = name.substr(15);
+        children = false;
+    }
+    name = uncapitalize(name);
+    if (name === "tracking") // TODO: remove
+        name = "collecting";
+    return func(name, children);
+}
+
 function isUnknownError(error) {
     if (!useDebugger) {
         // Firefox

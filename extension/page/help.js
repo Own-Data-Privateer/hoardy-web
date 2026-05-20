@@ -36,6 +36,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     setupHistoryPopState();
+
+    // no corresponding popup UI elements
+    let noPopup = new Set(["_execute_browser_action", "showLog", "showTabLog"]);
+
+    // generate shortcuts table
+    let haveShortcuts = false;
+    let shortcuts = await getShortcuts();
+    let tbody = document.getElementById("tbody-sk");
+    for (let [name, shortcut] of Object.entries(shortcuts)) {
+        haveShortcuts = true;
+
+        if (name.startsWith("toggleTabConfig"))
+            name = mapShortcutName((name, children) => "div-tabconfig." + (children ? "children." : "") + name, name);
+
+        let desc = shortcut.description || "Open extension's popup.";
+        let [sdesc, ldesc] = desc.split(": ");
+
+        let cur = shortcut.shortcut;
+        let def = "";
+        if (shortcut.suggested_key)
+            def = shortcut.suggested_key.default || "";
+
+        let tr = document.createElement("tr");
+        appendElements(tr, "td", cur ? cur : "unbound");
+        appendElements(tr, "td", cur === def ? "ditto" : (def ? def : "unbound"));
+        if (noPopup.has(name))
+            appendElements(tr, "td", desc);
+        else
+            appendElements(tr, "td", [
+                [(e) => {
+                    e.href = `./popup.html#${name}`;
+                    return e;
+                }, "a", sdesc],
+                [": " + ldesc],
+            ]);
+        tbody.append(tr);
+    }
+    if (!haveShortcuts)
+        appendElements(tbody, "tr", (e) => {
+            e.setAttribute("colspan", 3);
+            return e;
+        }, "td", "Your browser does not support keyboard shortcuts.");
+
     classifyDocumentLinks(document, [
         ["/page/help.html", "internal"],
         ["/page/popup.html", "popup"],
@@ -115,27 +158,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             = iframe.style["height"]
             = h2;
     }
-
-    // expand shortcut macros
-    let shortcuts = await getShortcuts();
-    macroShortcuts(body, shortcuts, (inner, shortcut) => {
-        let def;
-        if (shortcut.suggested_key)
-            def = shourtcut.suggested_key.default;
-        let current = shortcut.shortcut;
-
-        if (def) {
-            if (current) {
-                return (current === def)
-                    ? `currently bound to \`${current}\` (= default)`
-                    : `currently bound to \`${current}\` (default: \`${def}\`)`
-            } else
-                return `unbound at the moment (default: \`${def}\`)`;
-        } else if (current)
-            return `currently bound to \`${current}\` (default: unbound)`
-        else
-            return `unbound at the moment (= default)`;
-    });
 
     async function processUpdate(update) {
         let [what, data] = update;

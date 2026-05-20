@@ -93,6 +93,14 @@ a.popup {
     text-decoration: none;
     text-shadow: 0px 0px 2px var(--a-local);
 }
+
+#table {
+    width: 100%;
+}
+
+table, th, td {
+    border: 1px solid var(--outline-color);
+}
 }
 
 @layer overrides {

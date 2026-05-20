@@ -80,21 +80,6 @@ async function getShortcuts() {
     return res;
 }
 
-function macroShortcuts(node, shortcuts, mapShortcutFunc) {
-    for (let child of node.childNodes) {
-        if (child.nodeName === "#text" || child.nodeName === "#comment") continue;
-        macroShortcuts(child, shortcuts, mapShortcutFunc);
-    }
-
-    let sname = node.getAttribute("data-macro-shortcut");
-    if (sname === null)
-        return;
-    let sk = shortcuts[sname];
-    if (sk === undefined)
-        throw new Error(`unknown shortcut ${sname}`);
-    node.innerHTML = microMarkdownToHTML(mapShortcutFunc(node.innerText, sk));
-}
-
 // make a DOM node with a given id emit a `browser.runtime.sendMessage` with the same id
 function buttonToMessage(id, func) {
     if (func === undefined)

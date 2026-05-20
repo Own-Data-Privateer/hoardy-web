@@ -393,17 +393,7 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         let oldTabcfg = getOriginConfig(tabId);
         let tabcfg = assignRec({}, oldTabcfg);
 
-        let field, cfg;
-        if (command.startsWith("toggleTabConfigChildren")) {
-            field = command.substr(23);
-            cfg = tabcfg.children;
-        } else {
-            field = command.substr(15);
-            cfg = tabcfg;
-        }
-        field = uncapitalize(field);
-        if (field === "tracking") // TODO: remove
-            field = "collecting";
+        let [field, cfg] = mapShortcutName((field, children) => [field, children ? tabcfg.children : tabcfg], command);
 
         if (cfg[field] === undefined)
             throw Error(`no such field ${field}`);

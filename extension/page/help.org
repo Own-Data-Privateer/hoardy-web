@@ -9,7 +9,6 @@
 #+MACRO: perSource [[./popup.html#div-tabconfig.$1][(cur)]], [[./popup.html#div-tabconfig.children.$1][(chld)]], [[./popup.html#div-config.root.$1][(root)]], [[./popup.html#div-config.background.$1][(bg)]], [[./popup.html#div-config.extension.$1][(ext)]]
 #+MACRO: perSource0 [[./popup.html#div-tabconfig.children.$1][(chld)]], [[./popup.html#div-config.root.$1][(root)]], [[./popup.html#div-config.background.$1][(bg)]], [[./popup.html#div-config.extension.$1][(ext)]]
 #+MACRO: logPage [[./popup.html#showState][(glob)]], [[./popup.html#showTabState][(cur)]]
-#+MACRO: shortcut @@html:<span data-macro-shortcut="$1">currently bound to <code>manifest.commands.$1</code></span>@@
 #+MACRO: reportit [[https://github.com/Own-Data-Privateer/hoardy-web/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]]
 #+OPTIONS: H:5
 
@@ -43,7 +42,7 @@ Most notably, this page
 - describes [[#start][what the extension does under the hood]] to capture, archive, and replay your web traffic;
 - all the while explaining its most important configuration options, invokable actions, their effects, and available integrations with related tools;
 - discusses some [[#workflows][additional workflows]] =Hoardy-Web= implements support for;
-- lists all available [[#keyboard-shortcuts][keyboard]] and [[#context-menu-shortcuts][context menu]] shortcuts;
+- lists all available [[#shortcuts][keyboard shortcuts]] and [[#context-menu][context menu actions]];
 - explains all [[#errors][error messages and codes]] the extension can produce;
 - lists all known [[#bugs][extension's own issues and relevant web brower bugs]].
 
@@ -192,7 +191,7 @@ As shown on the above diagram, a new reqres, i.e. a new =HTTP= request and respo
 
 - =snapshot=: this reqres was produced by taking a =DOM= (Document Object Model) snapshot, i.e., by capturing a raw =HTML= or =XML= of the current state of the tab/frame, not by capturing a network request;
 
-  this can be done using {{{button2(snapshotAll,this)}}} or {{{button2(snapshotTab,that)}}} buttons, or similar [[#keyboard-shortcuts][keyboard shortcuts]];
+  this can be done using {{{button2(snapshotAll,this)}}} or {{{button2(snapshotTab,that)}}} buttons, or similar [[#shortcuts][keyboard shortcuts]];
 
 - =finished=: the terminal state of this step, no new events for this reqres will come from the browser.
 *** The states after the =finished= state
@@ -548,7 +547,7 @@ This feature uses the same archiving pipeline as above with three major differen
 
 - Unlike archival, re-archival is not automatic.
 
-  You will have to manually press its {{{div2(rearchive-actions,popup UI action buttons)}}}, a similar button on the {{{button2(showSaved,=Saved in Local Storage= page)}}}, or [[#keyboard-shortcuts][keyboard shortcuts]].
+  You will have to manually press its {{{div2(rearchive-actions,popup UI action buttons)}}}, a similar button on the {{{button2(showSaved,=Saved in Local Storage= page)}}}, or [[#shortcuts][keyboard shortcuts]].
 
 - Re-archival pipeline uses a separate data structure for recording reqres that end up in the =unarchived= state.
   The =unarchived= reqres of re-archival pipeline do not get retried, becoming =forgotten= instead.
@@ -657,7 +656,7 @@ Alternatively, =Hoardy-Web= implements =Auto-Replay= mode, in which all navigati
 Currently =Auto-Replay= mode only works for top-level navigation requests and performs redirects regardless of your {{{config2(submitHTTPURLBase,archiving server)}}} having an archive of the URL in question.
 (This will be improved in the future.)
 
-There are also keyboard shortcuts and context menu actions for most of the above [[#shortcuts][described below]].
+There are also [[#shortcuts][keyboard shortcuts]] and [[#context-menu][context menu actions]] for most of the above action.
 * Workflows
 :PROPERTIES:
 :CUSTOM_ID: workflows
@@ -744,56 +743,36 @@ When using Tor Browser, you probably don't want to use =127.0.0.1= and =127.0.1.
 Yes, if there are any bugs in the cross-domain check code, with this setup =JavaScript= could discover you are using =Hoardy-Web= (and then, in the worst case, access all of your archived captures and DOS your system by flooding your disk with garbage dumps), but it won't be able to touch the rest of your stuff listening on your other loopback addresses.
 
 So, while this setup is not super-secure if your Tor Browser allows web pages to run arbitrary =JavaScript= (in which case, let's be honest, no setup is secure), with =JavaScript= always disabled, to me, it looks like a completely reasonable thing to do.
-* Shortcuts
+* Keyboard shortcuts
 :PROPERTIES:
 :CUSTOM_ID: shortcuts
 :END:
 
-=Hoardy-Web= provides a bunch of keyboard and context menu shortcuts to allow using it in more efficient ways.
-
 - On Firefox-based browsers, you can see and edit all keyboard shortcuts via =Add-ons and themes= (=about:addons=) -> the gear icon -> =Manage Extension Shortcuts=.
 - On Chromium-based browsers, you can see and edit all keyboard shortcuts via the menu -> =Extensions= -> =Manage Extensions= (=chrome://extensions/=) -> =Keyboard shortcuts= (on the left).
-** Keyboard shortcuts
+
+On this browser, =Hoardy-Web= implement the following keyboard shortcuts:
+
+#+BEGIN_EXPORT html
+<table id="tbl-sk">
+  <thead>
+    <tr>
+      <th>Currently</th>
+      <th>Default</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody id="tbody-sk">
+  </tbody>
+</table>
+#+END_EXPORT
+
+* Context menu actions
 :PROPERTIES:
-:CUSTOM_ID: keyboard-shortcuts
+:CUSTOM_ID: context-menu
 :END:
 
-=Hoardy-Web= provides shortcuts to:
-
-- open the {{{button2(showState,=Internal State and Logs= page)}}}, {{{shortcut(showState)}}};
-
-- open the =Internal State and Logs= page, scrolled to the end of the log, {{{shortcut(showLog)}}};
-- open the {{{button2(showTabState,=Internal State and Logs= page)}}} narrowed to the currently active tab's data, {{{shortcut(showTabState)}}};
-- open the =Internal State and Logs= page narrowed to the currently active tab's data, scrolled to the end of the log, {{{shortcut(showTabLog)}}};
-- simulate {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} press with {{{div2(local.rearchiveDelete,deletion)}}} disabled, {{{shortcut(rearchiveAdjunctSaved)}}};
-- toggle {{{tabconfig2(autoReplay,=Auto-Replay= mode in the currently active tab)}}} and its children, {{{shortcut(toggleTabConfigAutoReplay)}}};
-- toggle {{{tabconfig2(children.autoReplay,=Auto-Replay= mode in the currently active tab's new children)}}}, {{{shortcut(toggleTabConfigChildrenAutoReplay)}}};
-- toggle {{{tabconfig2(workOffline,=Work Offline= mode in the currently active tab)}}} and its children, {{{shortcut(toggleTabConfigWorkOffline)}}};
-- toggle {{{tabconfig2(children.workOffline,=Work Offline= mode in the currently active tab's new children)}}}, {{{shortcut(toggleTabConfigChildrenWorkOffline)}}};
-- toggle {{{tabconfig2(collecting,tracking of newly spawned =HTTP= requests in the currently active tab)}}}, {{{shortcut(toggleTabConfigTracking)}}};
-- toggle {{{tabconfig2(children.collecting,tracking of newly spawned =HTTP= requests currently active tab's children)}}}, {{{shortcut(toggleTabConfigChildrenTracking)}}};
-- {{{button2(unmarkAllProblematic,unmark all problematic reqres)}}}, {{{shortcut(unmarkAllProblematic)}}};
-- {{{button2(unmarkAllTabProblematic,unmark all current tab's problematic reqres)}}}, {{{shortcut(unmarkAllTabProblematic)}}};
-- toggle {{{tabconfig2(limbo,=Limbo= mode in the currently active tab)}}} and its children, {{{shortcut(toggleTabConfigLimbo)}}};
-- toggle {{{tabconfig2(children.limbo,=Limbo= mode in currently active tab's children)}}}, {{{shortcut(toggleTabConfigChildrenLimbo)}}};
-- {{{button2(collectAllInLimbo,collect all reqres from limbo)}}}, {{{shortcut(collectAllInLimbo)}}};
-- {{{button2(collectAllTabInLimbo,collect all reqres from limbo for the currently active tab)}}}, {{{shortcut(collectAllTabInLimbo)}}};
-- {{{button2(discardAllInLimbo,discard all reqres from limbo)}}}, {{{shortcut(discardAllInLimbo)}}};
-- {{{button2(discardAllTabInLimbo,discard all reqres from limbo for the currently active tab)}}}, {{{shortcut(discardAllTabInLimbo)}}};
-- toggle {{{tabconfig2(snapshottable,inclusion in global snapshots of the currently active tab)}}} and its children, {{{shortcut(toggleTabConfigSnapshottable)}}};
-- toggle {{{tabconfig2(children.snapshottable,inclusion in global snapshots of the currently active tab's children)}}}, {{{shortcut(toggleTabConfigChildrenSnapshottable)}}};
-- {{{button2(snapshotAll,take =DOM= snapshot of all tabs)}}} for which {{{tabconfig2(snapshottable,=Include in global snapshots= setting)}}} is enabled, {{{shortcut(snapshotAll)}}};
-- {{{button2(snapshotTab,take =DOM= snapshot of the currently active tab)}}}, {{{shortcut(snapshotTab)}}}.
-- toggle {{{tabconfig2(replayable,inclusion in global replays of the currently active tab)}}} and its children, {{{shortcut(toggleTabConfigReplayable)}}};
-- toggle {{{tabconfig2(children.replayable,inclusion in global replays of the currently active tab's children)}}}, {{{shortcut(toggleTabConfigChildrenReplayable)}}};
-- {{{button2(replayAll,replay all tabs)}}} for which {{{tabconfig2(replayable,=Include in global replays= setting)}}} is enabled, {{{shortcut(replayAll)}}};
-- {{{button2(replayTabBack,replay the currently active tab)}}}, {{{shortcut(replayTabBack)}}}.
-** Context menu actions
-:PROPERTIES:
-:CUSTOM_ID: context-menu-shortcuts
-:END:
-
-=Hoardy-Web= provides context menu actions to:
+Moreover, =Hoardy-Web= provides context menu actions to:
 
 - open a replay of a link in a new tab or window;
 
@@ -1056,7 +1035,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
   There is no patch for Chromium to fix this, nor do I plan to make one (feel free to contribute one, though).
   @@html:</span>@@
 
-- Chromium fails to provide =openerTabId= to tabs created with =chrome.tabs.create= API so in the unlikely case of opening two or more new tabs/windows in rapid succession via =Hoardy-Web= context menu actions and not giving them time to initialize =Hoardy-Web= could end up mixing up settings between the newly created tabs/windows.
+- Chromium fails to provide =openerTabId= to tabs created with =chrome.tabs.create= API so in the unlikely case of opening two or more new tabs/windows in rapid succession via =Hoardy-Web= [[#context-menu][context menu actions]] and not giving them time to initialize =Hoardy-Web= could end up mixing up settings between the newly created tabs/windows.
   This bug is impossible to trigger unless your system is very slow or you are clicking things with automation tools like =AutoHotKey= or =xnee=.
 
 - To properly collect all the data about a reqres, =Hoardy-Web= has to use both the data generated by =webRequest= API and Chromium's own debugging API events, using only one of those is usually insufficient.
@@ -1117,7 +1096,7 @@ This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough 
 - =webNavigation= permission is only used for internal logging at the moment.
 - =storage= permission is used to save extension config and stats.
 - =unlimitedStorage= permission is used for {{{div2(persistence-options,stashing and archival of captured data to browser's local storage)}}}.
-- =menus= (=contextMenus= on Chromium) permission is used to add [[#context-menu-shortcuts][context-menu shortcut actions for links]].
+- =menus= (=contextMenus= on Chromium) permission is used to add [[#context-menu][context menu actions]].
 - =notifications= permission is used to {{{div2(notification-options,send notifications)}}}, which is mostly used for reporting various issues.
 ** Capture
 *** Can I use =Hoardy-Web= to capture web pages while my browser runs with =JavaScript= disabled?
@@ -1194,7 +1173,7 @@ You are either
   yes, this is really annoying, and this is a common problem for me, since I usually page-down using =Space= and press =Escape= a lot (usually to cancel selection, but sometimes also as a long-time Vim user trauma);
 
   the only solution to this I know of is to just not touch the keyboard at all, at least while things are still loading;
-  i.e. just click on stuff using the mouse/track-point/touch-pad/touchscreen/etc, wait for the =T= ("Tracking") to vanish from the extension's badge, and only then let your (grabby and impatient for exercise via keyboard shortcuts) fingers to touch the keyboard;
+  i.e. just click on stuff using the mouse/track-point/touch-pad/touchscreen/etc, wait for the =T= ("Tracking") to vanish from the extension's badge, and only then let your (grabby and impatient for exercise via [[#shortcuts][keyboard shortcuts]]) fingers to touch the keyboard;
 
   even then, Chromium will detach debuggers from time to time seemingly at random, but at least it will be rare enough that you won't need to reload much;
 
