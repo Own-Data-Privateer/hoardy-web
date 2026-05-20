@@ -399,9 +399,22 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     if (!noHide)
         node.addEventListener("click", hideHelp);
 
-    let help = node.getAttribute("data-help");
-    if (help === null) return;
-    let origHelp = help;
+    let origHelp;
+    let help = origHelp = node.getAttribute("data-help");
+
+    let shortcut;
+    if (shortcuts !== undefined) {
+        let sname = node.getAttribute("data-shortcut");
+        if (sname !== null)
+            shortcut = shortcuts[sname];
+    }
+
+    if (shortcut !== undefined)
+        help = mapShortcutFunc(help !== null ? help : shortcut.description, shortcut);
+
+    if (!isDefined(help))
+        return;
+
     node.removeAttribute("data-help");
 
     let classes = node.getAttribute("data-help-class");
@@ -411,17 +424,10 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
         classes = [];
     node.removeAttribute("data-help-class");
 
-    if (shortcuts !== undefined) {
-        let sname = node.getAttribute("data-shortcut");
-        if (sname !== null) {
-            let shortcut = shortcuts[sname];
-            help = mapShortcutFunc(help, shortcut, sname);
-        }
-    }
-
     let helpTip = document.createElement("div");
     helpTip.classList.add("help-tip");
-    helpTip.setAttribute("data-orig-help", origHelp);
+    if (origHelp !== null)
+        helpTip.setAttribute("data-orig-help", origHelp);
     helpTip.style.display = "none";
     helpTip.innerHTML = microMarkdownToHTML(help);
     helpTip.onclick = hideHelp;

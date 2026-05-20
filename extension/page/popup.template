@@ -261,10 +261,10 @@ section {
     <h2 class="ui">
       Globally
       <span class="right tag-common tag-main">
-        <input type="button" id="snapshotAll" data-shortcut="snapshotAll" data-help="Take DOM snapshots of all frames of all open tabs for which `Include in global snapshots` setting is enabled." value="Snapshot" />
-        <input type="button" id="replayAll" class="on-replay" data-shortcut="replayAll" data-help="Re-navigate all open tabs for which `Include in global replays` setting is enabled to their replays." value="Replay" />
+        <input type="button" id="snapshotAll" data-shortcut="snapshotAll" value="Snapshot" />
+        <input type="button" id="replayAll" class="on-replay" data-shortcut="replayAll" value="Replay" />
         <input type="button" id="forgetAllLog" data-help="Forget recent history." value="Forget" />
-        <input type="button" id="showState" data-shortcut="showState" data-help="Show the internal state and reqres history logs." value="State" />
+        <input type="button" id="showState" data-shortcut="showState" value="State" />
       </span>
     </h2>
     <div class="idots ui">
@@ -292,8 +292,8 @@ section {
       <div id="div-stats.in_limbo" class="tag-common tag-main" data-help="At the moment, the number of `finished` reqres that are in `in_limbo` state (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
-          <input type="button" id="collectAllInLimbo" data-shortcut="collectAllInLimbo" data-help="Collect all reqres in `in_limbo` state." value="Collect" />
-          <input type="button" id="discardAllInLimbo" data-shortcut="discardAllInLimbo" data-help="Discard all reqres in `in_limbo` state." value="Discard" />
+          <input type="button" id="collectAllInLimbo" data-shortcut="collectAllInLimbo" value="Collect" />
+          <input type="button" id="discardAllInLimbo" data-shortcut="discardAllInLimbo" value="Discard" />
         </span>
         <span>
           <span id="stats.in_limbo">0</span>
@@ -319,7 +319,7 @@ section {
       <div id="div-stats.problematic" class="tag-common tag-main tag-class" data-help="At the moment, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished`.">
         <span>Problematic</span>
         <span>
-          <input type="button" id="unmarkAllProblematic" data-shortcut="unmarkAllProblematic" data-help="Unmark all `problematic` reqres." value="Unmark" />
+          <input type="button" id="unmarkAllProblematic" data-shortcut="unmarkAllProblematic" value="Unmark" />
         </span>
         <span>
           <span id="stats.problematic">0</span>
@@ -389,11 +389,11 @@ section {
     <section id="div-this-tab-options" class="tag-common tag-this tag-class tag-pr">
     <h2 class="ui">This tab
       <span class="right tag-common tag-this">
-        <input type="button" id="snapshotTab" data-shortcut="snapshotTab" data-help="Take DOM snapshots of all frames of this tab, regardless of `Include in global snapshots` setting." value="Snapshot" />
-        <input type="button" id="replayTabBack" class="on-replay" data-shortcut="replayTabBack" data-help="Re-navigate this tab to its replay, regardless of `Include in global replays` setting." value="Replay" />
+        <input type="button" id="snapshotTab" data-shortcut="snapshotTab" value="Snapshot" />
+        <input type="button" id="replayTabBack" class="on-replay" data-shortcut="replayTabBack" value="Replay" />
         <!-- input type="button" id="replayTabForward" class="on-replay" data-shortcut="replayTabForward" data-help="" value="Replay Forward" / -->
         <input type="button" id="forgetAllTabLog" data-help="For reqres of this tab, forget recent history." value="Forget" />
-        <input type="button" id="showTabState" tabindex=2 data-shortcut="showTabState" data-help="For reqres of this tab, show the internal state and reqres history logs." value="State" />
+        <input type="button" id="showTabState" tabindex=2 data-shortcut="showTabState" value="State" />
       </span>
     </h2>
     <div class="idots ui">
@@ -421,8 +421,8 @@ section {
       <div id="div-tabstats.in_limbo" class="tag-common tag-this" data-help="For this tab, the number of `finished` reqres that are in `in_limbo` state (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
-          <input type="button" id="collectAllTabInLimbo" data-shortcut="collectAllTabInLimbo" data-help="For reqres of this tab, collect all reqres in `in_limbo` state." value="Collect" />
-          <input type="button" id="discardAllTabInLimbo" data-shortcut="discardAllTabInLimbo" data-help="For reqres of this tab, discard all reqres in `in_limbo` state." value="Discard" />
+          <input type="button" id="collectAllTabInLimbo" data-shortcut="collectAllTabInLimbo" value="Collect" />
+          <input type="button" id="discardAllTabInLimbo" data-shortcut="discardAllTabInLimbo" value="Discard" />
         </span>
         <span>
           <span id="tabstats.in_limbo">0</span>
@@ -448,7 +448,7 @@ section {
       <div id="div-tabstats.problematic" class="tag-common tag-this tag-class" data-help="For this tab, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished`.">
         <span>Problematic</span>
         <span>
-          <input type="button" id="unmarkAllTabProblematic" data-shortcut="unmarkAllTabProblematic" data-help="For reqres of this tab, unmark all `problematic` reqres." value="Unmark" />
+          <input type="button" id="unmarkAllTabProblematic" data-shortcut="unmarkAllTabProblematic" value="Unmark" />
         </span>
         <span>
           <span id="tabstats.problematic">0</span>

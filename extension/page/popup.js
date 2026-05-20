@@ -101,8 +101,10 @@ async function popupMain() {
     makeUI(body);
 
     let shortcuts = await getShortcuts();
-    addHelp(body, shortcuts
-            , (help, shortcut) => shortcut ? `(\`${shortcut}\`) ${help}` : `(unbound) ${help}`);
+    addHelp(body, shortcuts, (help, shortcut) => {
+        let sk = shortcut.shortcut ? `\`${shortcut.shortcut}\`` : "unbound";
+        return `(${sk}) ${help}`;
+    });
 
     // allow to un-highlight currently highlighted node
     dbody.addEventListener("click", (event) => {

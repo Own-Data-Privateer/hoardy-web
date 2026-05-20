@@ -71,13 +71,12 @@ async function getTabURLThenNavigateTabToBlank(tabId) {
 }
 
 async function getShortcuts() {
-    if (browser.commands === undefined)
-        return {};
-
-    let shortcuts = await browser.commands.getAll();
-    let res = {};
-    for (let s of shortcuts)
-        res[s.name] = s.shortcut;
+    let res = assignRec({}, manifest.commands);
+    if (browser.commands !== undefined) {
+        let shortcuts = await browser.commands.getAll();
+        for (let s of shortcuts)
+            res[s.name].shortcut = s.shortcut;
+    }
     return res;
 }
 
@@ -88,9 +87,12 @@ function macroShortcuts(node, shortcuts, mapShortcutFunc) {
     }
 
     let sname = node.getAttribute("data-macro-shortcut");
-    if (sname === null) return;
-    let shortcut = shortcuts[sname];
-    node.innerHTML = microMarkdownToHTML(mapShortcutFunc(node.innerText, shortcut, sname));
+    if (sname === null)
+        return;
+    let sk = shortcuts[sname];
+    if (sk === undefined)
+        throw new Error(`unknown shortcut ${sname}`);
+    node.innerHTML = microMarkdownToHTML(mapShortcutFunc(node.innerText, sk));
 }
 
 // make a DOM node with a given id emit a `browser.runtime.sendMessage` with the same id

@@ -118,20 +118,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // expand shortcut macros
     let shortcuts = await getShortcuts();
-    macroShortcuts(body, shortcuts, (inner, shortcut, sname) => {
-        let sk = manifest.commands[sname];
+    macroShortcuts(body, shortcuts, (inner, shortcut) => {
         let def;
-        if (sk.suggested_key && sk.suggested_key.default)
-            def = sk.suggested_key.default;
+        if (shortcut.suggested_key)
+            def = shourtcut.suggested_key.default;
+        let current = shortcut.shortcut;
+
         if (def) {
-            if (shortcut) {
-                return (shortcut === def)
-                    ? `currently bound to \`${shortcut}\` (= default)`
-                    : `currently bound to \`${shortcut}\` (default: \`${def}\`)`
+            if (current) {
+                return (current === def)
+                    ? `currently bound to \`${current}\` (= default)`
+                    : `currently bound to \`${current}\` (default: \`${def}\`)`
             } else
                 return `unbound at the moment (default: \`${def}\`)`;
-        } else if (shortcut)
-            return `currently bound to \`${shortcut}\` (default: unbound)`
+        } else if (current)
+            return `currently bound to \`${current}\` (default: unbound)`
         else
             return `unbound at the moment (= default)`;
     });

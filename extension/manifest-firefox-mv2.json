@@ -49,6 +49,21 @@
                 "default": "Alt+Shift+G"
             }
         },
+        "collectAllInLimbo": {
+            "suggested_key": {
+                "default": "Ctrl+Alt+A"
+            }
+        },
+        "discardAllInLimbo": {
+            "suggested_key": {
+                "default": "Alt+Shift+D"
+            }
+        },
+        "unmarkAllProblematic": {
+            "suggested_key": {
+                "default": "Alt+Shift+U"
+            }
+        },
         "showTabState": {
             "suggested_key": {
                 "default": "Alt+I"
@@ -57,6 +72,21 @@
         "showTabLog": {
             "suggested_key": {
                 "default": "Alt+Shift+I"
+            }
+        },
+        "snapshotTab": {
+            "suggested_key": {
+                "default": "Ctrl+Alt+S"
+            }
+        },
+        "collectAllTabInLimbo": {
+            "suggested_key": {
+                "default": "Ctrl+Alt+C"
+            }
+        },
+        "discardAllTabInLimbo": {
+            "suggested_key": {
+                "default": "Alt+Shift+W"
             }
         },
         "toggleTabConfigAutoReplay": {
@@ -87,36 +117,6 @@
         "toggleTabConfigChildrenLimbo": {
             "suggested_key": {
                 "default": "Alt+Shift+L"
-            }
-        },
-        "unmarkAllProblematic": {
-            "suggested_key": {
-                "default": "Alt+Shift+U"
-            }
-        },
-        "collectAllInLimbo": {
-            "suggested_key": {
-                "default": "Ctrl+Alt+A"
-            }
-        },
-        "collectAllTabInLimbo": {
-            "suggested_key": {
-                "default": "Ctrl+Alt+C"
-            }
-        },
-        "discardAllInLimbo": {
-            "suggested_key": {
-                "default": "Alt+Shift+D"
-            }
-        },
-        "discardAllTabInLimbo": {
-            "suggested_key": {
-                "default": "Alt+Shift+W"
-            }
-        },
-        "snapshotTab": {
-            "suggested_key": {
-                "default": "Ctrl+Alt+S"
             }
         }
     }
