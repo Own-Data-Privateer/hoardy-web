@@ -3,12 +3,14 @@
 #+MACRO: config2 [[./popup.html#div-config.$1][$2]]
 #+MACRO: tabconfig2 [[./popup.html#div-tabconfig.$1][$2]]
 #+MACRO: button2 [[./popup.html#$1][$2]]
-#+MACRO: stat [[./popup.html#div-stats.$1][(glob)]]
-#+MACRO: tabstat [[./popup.html#div-tabstats.$1][(cur)]]
-#+MACRO: bothstats [[./popup.html#div-stats.$1][(glob)]], [[./popup.html#div-tabstats.$1][(cur)]]
-#+MACRO: perSource [[./popup.html#div-tabconfig.$1][(cur)]], [[./popup.html#div-tabconfig.children.$1][(chld)]], [[./popup.html#div-config.root.$1][(root)]], [[./popup.html#div-config.background.$1][(bg)]], [[./popup.html#div-config.extension.$1][(ext)]]
-#+MACRO: perSource0 [[./popup.html#div-tabconfig.children.$1][(chld)]], [[./popup.html#div-config.root.$1][(root)]], [[./popup.html#div-config.background.$1][(bg)]], [[./popup.html#div-config.extension.$1][(ext)]]
-#+MACRO: logPage [[./popup.html#showState][(glob)]], [[./popup.html#showTabState][(cur)]]
+#+MACRO: stat ([[./popup.html#div-stats.$1][glob]])
+#+MACRO: tabstat ([[./popup.html#div-tabstats.$1][cur]])
+#+MACRO: bothstats ([[./popup.html#div-stats.$1][glob]], [[./popup.html#div-tabstats.$1][cur]])
+#+MACRO: globPerSource ([[./popup.html#div-config.$1][glob]], [[./popup.html#div-tabconfig.$1][cur]], [[./popup.html#div-tabconfig.children.$1][chld]], [[./popup.html#div-config.root.$1][root]], [[./popup.html#div-config.background.$1][bg]], [[./popup.html#div-config.extension.$1][ext]])
+#+MACRO: perSource ([[./popup.html#div-tabconfig.$1][cur]], [[./popup.html#div-tabconfig.children.$1][chld]], [[./popup.html#div-config.root.$1][root]], [[./popup.html#div-config.background.$1][bg]], [[./popup.html#div-config.extension.$1][ext]])
+#+MACRO: perSource0 ([[./popup.html#div-tabconfig.children.$1][chld]], [[./popup.html#div-config.root.$1][root]], [[./popup.html#div-config.background.$1][bg]], [[./popup.html#div-config.extension.$1][ext]])
+#+MACRO: logPage ([[./popup.html#showState][glob]], [[./popup.html#showTabState][cur]])
+#+MACRO: unmarkProblematic ([[./popup.html#unmarkAllProblematic][glob]], [[./popup.html#unmarkAllTabProblematic][cur]])
 #+MACRO: reportit [[https://github.com/Own-Data-Privateer/hoardy-web/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]]
 #+OPTIONS: H:5
 
@@ -22,35 +24,41 @@
 :END:
 
 If you are reading this on GitHub, it's recommended you switch to the [[https://oxij.org/software/hoardy-web/tree/master/extension/page/help.org][version hosted on the author's web site]] instead.
-This pages is written in =org-mode= markup language and its uses a lot of its advanced features, which GitHub does not implement, so this page is almost unreadable on GitHub.
+This pages is written in =org-mode= markup language and it uses a lot of its advanced features, which GitHub does not implement, so this page is almost unreadable on GitHub.
 
 Moreover, if you already have =Hoardy-Web= extension installed, then, instead of reading this document on GitHub or from author's web site, it is highly recommended you refer to this document by clicking the "Help" button in the extension's own popup UI.
-Doing that will make this document interactive: the settings popup will be displayed on the right on this page and hovering over or clicking references to configuration options on this page will be highlighting them in the settings popup.
+Doing that will make this document interactive: the settings popup will be displayed on the right on this page and hovering over or clicking references to configuration options on this page will highlight them in the settings popup.
 It will also have a nicely formatted "Table of Contents" section there.
 See [[../../doc/gallery.md][screenshots]] if you want to get an idea of how it will look.
 
 #+BEGIN_EXPORT html
 </div>
 #+END_EXPORT
-* Introduction
-*This page documents the =Hoardy-Web= browser extension (add-on).*
-(For =hoardy-web serve= replay server's documentation, see [[../../tool/][there]].
-For documentation of other parts of this project, see [[../../][there]].)
-Most notably, this page
-
-- answers various [[#faq][frequently asked questions]],
-- describes [[#start][what the extension does under the hood]] to capture, archive, and replay your web traffic;
-- all the while explaining its most important configuration options, invokable actions, their effects, and available integrations with related tools;
-- discusses some [[#workflows][additional workflows]] =Hoardy-Web= implements support for;
-- lists all available [[#shortcuts][keyboard shortcuts]] and [[#context-menu][context menu actions]];
-- explains all [[#errors][error messages and codes]] the extension can produce;
-- lists all known [[#bugs][extension's own issues and relevant web brower bugs]].
-
-In =Hoardy-Web=, you can check the description of each status line, button, or configuration option by hovering over it or by pressing the nearby =?= button.
-However, many of those descriptions might make little sense without you first learning the general operation principles of =Hoardy-Web=.
-This document is designed to explain that.
 
 #+TOC: headlines 5
+* Introduction
+The =Hoardy-Web= software project has many parts, all of which are documented separately.
+*This page documents the =Hoardy-Web= web browser extension (add-on) and nothing else.*
+For links to documentation for other parts of this project, see the [[#more][bottom of this page]].
+
+In this document, unless specified otherwise, "=Hoardy-Web=" refers to the =Hoardy-Web= extension, not the other parts of the =Hoardy-Web= software project.
+
+The main purpose of =Hoardy-Web= is to help you **passively**, in background, capture and archive =HTTP= requests and responses your web browser does as you browse the web.
+However, =Hoardy-Web= does a bit more than that, also implementing a bunch of features that you'll probably find useful in related workflows.
+
+In =Hoardy-Web= you can check the description of each status line, button, and/or configuration option by hovering over it or by pressing the nearby =?= button.
+However, many of those descriptions might make little sense without you first learning the general operation principles of =Hoardy-Web= and some of its quirks.
+This document is designed to explain that.
+Most notably, this document
+
+- describes [[#start][what the extension does under the hood]] to capture, archive, and replay your web traffic;
+- all the while explaining its most important configuration options, invokable actions, their effects, and available integrations with related tools;
+- discusses some [[#additional][additional features]] of =Hoardy-Web=,
+- lists all of =Hoardy-Web='s [[#shortcuts][keyboard shortcuts]] and [[#context-menu][context menu actions]];
+- talks through some [[#workflows][common workflows]] =Hoardy-Web= can support;
+- explains all [[#errors][error messages and codes]] the extension can produce;
+- lists all known [[#bugs][extension's own issues and relevant web browser bugs]];
+- answers various [[#faq][frequently asked questions]].
 * Conventions
 :PROPERTIES:
 :CUSTOM_ID: conventions
@@ -99,7 +107,7 @@ The above rules are also apply on all other internal pages of =Hoardy-Web=, e.g.
 Reqres change their internal states according to the following state diagram (which is explained below):
 
 #+BEGIN_SRC
-(start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body recived)
+(start) -> (request sent) -> (nIO) -> (headers received) -> (nIO) --> (body received)
    |                           |                              |             |
    |                           v                              v             v
    |                     (no_response)                   (incomplete)   (complete)
@@ -138,6 +146,10 @@ Reqres change their internal states according to the following state diagram (wh
       \--------------------------------------------------------/
 #+END_SRC
 ** Step 1: Tracking
+:PROPERTIES:
+:CUSTOM_ID: tracking
+:END:
+
 =Hoardy-Web= attaches to your browser's runtime and tracks progress of =HTTP= requests and their responses, capturing both their request and response headers and data at appropriate times in the browser's request and response processing pipeline.
 
 Whether =Hoardy-Web= will track a given request depends on the =Track new requests= toggles in the settings popup, e.g:
@@ -146,13 +158,13 @@ Whether =Hoardy-Web= will track a given request depends on the =Track new reques
 - {{{tabconfig2(collecting,this one (cur))}}} controls whether =Hoardy-Web= will track new requests originating from the currently active tab,
 - {{{tabconfig2(children.collecting,this one (chld))}}} controls whether it will track new requests originating from new tabs opened from the currently active tab (aka "children tabs", e.g. via middle mouse click, context menu, etc),
 - while {{{config2(root.collecting,this one (root))}}} controls whether it will track new requests originating from new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
-- and so forth for {{{config2(background.collecting,background requests (bg))}}} and {{{config2(extension.collecting,requests generated by extensions (ext))}}}).
+- and so forth for {{{config2(background.collecting,background requests (bg))}}} and {{{config2(extension.collecting,requests generated by extensions (ext))}}}.
 
-Press =?= symbols to see a tooltip explaining what each of them does.
+Press =?= symbols to see tooltips explaining what each of them does.
 
 Disabling any of these toggles does not stop tracking of already initiated requests, it only stops new requests controlled by that toggle from being tracked.
 *** The networking states of the State Diagram
-As shown on the above diagram, a new reqres, i.e. a new =HTTP= request and response pair, proceeds through the following networking states:
+As shown on the above diagram, a new reqres, i.e., a new =HTTP= request and response pair, proceeds through the following networking states:
 
 - =start=: the starting state;
 
@@ -162,7 +174,7 @@ As shown on the above diagram, a new reqres, i.e. a new =HTTP= request and respo
 
 - =canceled=: the request was canceled before it was sent because
   - you canceled it manually using the browser's =Stop= button;
-  - an ad-blocking extension like =uBlock Origin= blocked it;
+  - an ad-blocking extension like =uBlock Origin=, global work offline mode of Firefox-based browsers, or this extension's own more granular per-tab/per-source [[#work-offline][work offline mode]] blocked it;
   - the browser canceled it by itself, e.g. when redirecting an =http://= URL to an =https://= URL in =HTTPS=-only mode;
   - etc;
 
@@ -194,157 +206,119 @@ As shown on the above diagram, a new reqres, i.e. a new =HTTP= request and respo
   this can be done using {{{button2(snapshotAll,this)}}} or {{{button2(snapshotTab,that)}}} buttons, or similar [[#shortcuts][keyboard shortcuts]];
 
 - =finished=: the terminal state of this step, no new events for this reqres will come from the browser.
-*** The states after the =finished= state
-In principle, at reaching =finished= state the primary objective of =Hoardy-Web= with respect of that reqres is now complete, so it could be written to disk and forgotten about.
-
-Unfortunately for =Hoardy-Web=, browsers do not allow web apps and extensions to simply write files to user's file system, and all existing browser APIs that do allow for persistence to disk in some way all have different limitations.
-
-Also, it is quite useful to have more states after =finished= to improve the UI and allow for various conditional workflows.
-
-Which is why =Hoardy-Web= has more states after =finished= and more steps after this one.
 *** Glossary
-- An /in-flight reqres/ ({{{bothstats(in_flight)}}}) is a reqres that did not reach the =finished= state yet, in the log {{{logPage}}} such reqres will be shown to be in =in_flight= state.
+- An /in-flight reqres/ {{{bothstats(in_flight)}}} is a reqres that did not reach the =finished= state yet, in the logs {{{logPage}}} such reqres will be shown to be in =in_flight= state.
 
   These two stats are represented as sums of two numbers:
 
-  - the number of reqres that are still being tracked via =webRequest= or =debugger= API; and
+  - the number of reqres that are still being tracked via =webRequest= or =debugger= web browser API; and
   - the number of reqres that have finished being tracked and are now waiting for all their events to finish processing.
 
-  On Firefox, nothing should ever get stuck, if something seems to be stuck in =in_flight= state, it's probably still loading (or it is a bug in the browser, which does happen, very rarely).
+  On Firefox, nothing should ever get stuck, if something seems to be stuck in =in_flight= state, it's probably still loading (or it is a bug in this extension or the browser, both which do happen, rarely).
 
-  On Chromium, [[#chromium-bug-stuck][limitations of the Chromium's debugging interface mean a request can get stuck among the reqres represended by the first number above]].
+  On Chromium, [[#chromium-bug-stuck][limitations of the Chromium's debugging interface mean a request can get stuck among the reqres represented by the first number above]].
   If the first number is zero, however, then the second should also rapidly become zero, at most after {{{config2(workaroundChromiumDebugTimeout,two times this many seconds)}}}.
 
   If some reqres got stuck in one of the =in_flight= states, you can forcefully move them out of that state using {{{button2(stopAllInFlight,this)}}} or {{{button2(stopAllTabInFlight,that)}}} buttons.
 
 - A /finished reqres/ is a reqres that reached the =finished= state.
 
-- /Final networking state/ is the last state a reqres had before it =finished=: i.e. =complete=, =incomplete=, =canceled=, etc.
+- A /final networking state/ is the last state a reqres had before it =finished=: i.e. =complete=, =incomplete=, =canceled=, etc.
+** Overview of the following archiving-related steps
+:PROPERTIES:
+:CUSTOM_ID: overview
+:END:
+
+In principle, when a reqres reaches its =finished= state, the primary objective of =Hoardy-Web= with respect to that reqres is complete, so that reqres could be dumped to disk and forgotten about.
+
+Unfortunately for =Hoardy-Web=, browsers do not allow web apps and extensions to simply write files to user's file system, and all existing browser APIs that do allow for persistence to disk in some way all have different limitations.
+Also, it is quite useful to have more states after =finished= to improve the UI and allow for various conditional workflows.
+
+Which is why =Hoardy-Web= has quite a lot of states after the =finished= state in the above diagram.
+To give a simple overview of most of the following steps, generally speaking, after =Hoardy-Web= produces a =finished= reqres, it proceeds as follows:
+
+- It applies various classification rules to the reqres in question to decide whether that reqres should end up in =collected=, =discarded=, or =in_limbo= state.
+- It puts =in_limbo= reqres away until you manually indicate what you want it to do with it or some other event moves it out from =in_limbo= state automatically.
+- It creates a new log record for =collected= and =discarded= reqres so that you could later inspect that record even if the reqres in question got deleted from memory.
+- Then, it queues =collected= reqres for archival while simply deleting =discarded= reqres from memory.
+- Then, it starts processing that queue in background to actually archive said reqres using one or more supported archiving methods.
 ** Step 2: Classification
 :PROPERTIES:
 :CUSTOM_ID: classification
 :END:
 
-When a reqres reaches the =finished= state it gets classified using algorithms described below.
-The results of these computations influence which of the next reqres processing steps get taken for that reqres and what gets displayed to the user.
-*** Buggy reqres
+When a reqres reaches the =finished= state it gets classified by the computations described below.
+*** Partial, buggy, and incomplete reqres
 :PROPERTIES:
-:CUSTOM_ID: buggy
+:CUSTOM_ID: partial
 :END:
 
-Sometimes browser bugs prevent complete collection of (parts of) reqres data or metadata.
-Situations when this happens are discussed in detail [[#bugs][that section]].
-To provide indication of this, =Hoardy-Web= keeps track of such things and marks such reqres with flags (NOT states) signifying the reqres
+Sometimes networking issues and/or browser bugs prevent complete collection of (parts of) reqres data or metadata.
+To provide indication of this, =Hoardy-Web= keeps track of such things and marks such reqres with flags that indicate that the reqres in question has
 
-- having a =partial request body= ([[#firefox-bug-no-post][Firefox]], [[#chromium-bug-no-post][Chromium]]), which is denoted by =partial= flag on the log page {{{logPage}}};
+- a =partial request body=, which is denoted by =partial= flag in the logs {{{logPage}}};
 
-- having an =incomplete response body=, denoted by =incomplete= flag on the log page {{{logPage}}}, which also forces the reqres to stop in =incomplete= or =incomplete_fc= final networking state;
+  see the relevant browser bugs of [[#firefox-bug-no-post][Firefox]] and [[#chromium-bug-no-post][Chromium]];
 
-  usually, this is caused by banal networking issues like a connection getting interrupted before the whole body was fetched, but it can be caused by browser bugs, like [[#chromium-bug-autodetach][Chromium occasionally detaching its debugger at random]];
+- =buggy request metadata= or =buggy response metadata=, which is denoted by =buggy= flag in the logs {{{logPage}}};
 
-- having =buggy request metadata= or =buggy response metadata= ([[#firefox-bug-race][Firefox]], [[#chromium-bug-no-wre][Chromium]]), which is denoted by =buggy= flag on the log page {{{logPage}}}.
+  see the relevant browser bugs of [[#firefox-bug-race][Firefox]] and [[#chromium-bug-no-wre][Chromium]];
 
-These flags influence some of the computations described below.
+- an =incomplete response body=, denoted by =incomplete= flag in the logs {{{logPage}}};
 
-- Disabling {{{config2(archivePartialRequest,this toggle)}}} will disable archiving of reqres with =partial request body= flag set.
-- Disabling {{{config2(archiveBuggy,this toggle)}}} will disable archiving of reqres with one of the =buggy * metadata= flags set.
+  this flag actually gets set in the [[#tracking][tracking stage]], so its presence also forces the reqres in question to stop in =incomplete= or =incomplete_fc= final networking state discussed above;
 
-Disabling these toggles is not recommended, however, as these flags are usually caused by browser bugs and are thus unfixable, unless you run =Hoardy-Web= on a patched browser.
-Also, these issues usually don't prevent replay of captured reqres.
-Thus, in these cases, archiving some data is usually better than archiving none.
-
-- Disabling {{{config2(archiveIncompleteResponse,this toggle)}}} will disable archiving of reqres with =incomplete response body= flag set.
-
-In contrast, this toggle is disabled by default because response-incomplete reqres are usually useless and can be easily fixed by reloading a page in question.
-
-See [[../../doc/data-on-disk.md][=WRR= file format documentation]] on how these flags get actually recorded in the generated dumps.
+  usually, this condition is caused by networking issues like a connection getting interrupted before the whole body was fetched, but it can be caused by browser bugs, like [[#chromium-bug-autodetach][Chromium occasionally detaching its debugger at random]].
 *** Problematic reqres
-:PROPERTIES:
-:CUSTOM_ID: problematic
-:END:
-
-Conventional web browsers provide no explicit indication when a part of a web page fails to load properly.
-Apparently, you are expected to actually look at the page with your eyes, notice something looking broken, and reload it manually if so.
-Obviously, this can be quite inconvenient when you want to be sure that the whole page with all of its resources was archived.
-Especially when parts of a dynamically loaded page might simply silently fail to be rendered by associated =JavaScript= because some of the =HTTP= requests that =JavaScript= did in background failed, or, on a static web page, layout and =CSS= might have made some of the incompletely loaded parts of the page invisible (by design or by accident).
-
-So, to provide such an indicator, =Hoardy-Web= keeps track of reqres that fail to load properly and marks them with a =problematic= flag (*NOT a state*) which influences
-
-- toolbar button's icon, badge, and title, all of which depend on the numbers of currently =problematic= reqres;
-- the log page {{{logPage}}}, which shows =problematic= reqres in a separate section;
-- and nothing else.
-
-*In other words, the =problematic= flag is purely a UI indicator, it does not influence archival or any of the other steps described below in any way.*
-
-What gets marked as =problematic= is controlled by {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= options)}}}.
-When {{{config2(problematicNotify,this option)}}} is not disabled, new notifications will be produced each time a new =problematic= reqres appears.
-The latter behaviour can be disabled per-source using relevant options {{{perSource(problematicNotify)}}}.
-
-By default, =HTTP= requests that failed to get a response, those that have incomplete response bodies (i.e. =incomplete= or =incomplete_fc=), and those for which the browser reported /potentially problematic errors/ but then =Hoardy-Web= =picked= them anyway, will be marked as =problematic=.
-
-/Potentially problematic errors/ are errors like
-
-- "this request failed because of a networking issue",
-- "this request was aborted because the =JavaScript= function making it decided to cancel it when you moved your mouse cursor away from a video thumbnail it was needed for",
-- and similar things that probably imply some part of the page was left unfetched,
-
-but NOT errors like
-
-- "fetching of this request was aborted because the server redirected it to a URL blocked by =uBlock Origin=",
-- "the browser decided against rendering of this data",
-- "the browser failed to render this data because this image file is broken",
-- and similar errors where the data was properly fetched.
-
-(In principle, =Hoardy-Web= could have been designed to never record the errors of the latter category in the first place, thus simplifying the above bit, but =Hoardy-Web= is designed to follow the philosophy of "collect everything as browser gives it, as raw as possible".)
-
-The raw error strings reported by the browser for each reqres can be seen in the log {{{logPage}}}.
-**** Automatic unmarking of =problematic= reqres
-:PROPERTIES:
-:CUSTOM_ID: unproblematic
-:END:
-
-In some situations some of the =problematic= flags on some of your reqres might become irrelevant as you fetch more data.
-For example, say, you loaded a tab, some of its images failed to load completely and got marked as =problematic=, so you re-load that tab again, and then all reqres that failed to be fetched the first time get fetched properly the second time.
-
-In theory, in such a situation, to be absolutely pedantic, you would then need to check that each of your =problematic= reqres actually got re-fetched and unmark those that did, in case the browser decided to skip fetching of some of them, which could happen with modern web lazy-loading features.
-Obviously, actually doing this manually each time would be incredibly annoying.
-
-Which is why =Hoardy-Web= provides a {{{div2(unproblematic-options,bunch of configuration options)}}} that automate unmarking of =problematic= reqres in various situations.
-
-Additionally, when {{{config2(problematicNotify,this option)}}} is set to its right-most state, new notifications will be produced each time an old =problematic= reqres gets automatically unmarked, unless a relevant per-source option {{{perSource(problematicNotify)}}} is unset.
-**** I don't care about any of this and notifications about =problematic= reqres annoy me!
-:PROPERTIES:
-:CUSTOM_ID: suppress-problematic
-:END:
-
-If you don't care about the =problematic= flag in a select tab and those notifications annoy you, you should disable {{{tabconfig2(problematicNotify,this option)}}}.
-If they annoy you in general, you can disable the {{{config2(problematicNotify,global one)}}} instead.
-
-You should probably not, however, disable too many of the options under {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= settings)}}}.
-This way, even with notifications disabled, you could then still see the number of =problematic= reqres in extension's toolbar button's badge.
+A reqres can also be classified as =problematic=.
+This feature [[#problematic][shall be discussed in a much later section]] since the =problematic= flag is completely orthogonal to the current archiving-related discussion.
 *** Picked and Dropped reqres
-Each new =finished= reqres advances either to the =picked= or the =dropped= states, which influences the actions =Hoardy-Web= performs in the next steps.
+Each new =finished= reqres advances either to the =picked= or the =dropped= state.
+Which of those two states gets selected is decided based on reqres' [[#tracking][final networking state]], its [[#partial][partial, buggy, and incomplete flags]] discussed above, and the {{{div2(pick-options,=Pick reqres for archival when they finish= options)}}}:
 
-Which of those two states gets selected is decided based on the {{{div2(pick-options,=Pick reqres for archival when they finish= options)}}}.
+- By default, all =complete= and =complete_fc= reqres get =picked=, regardless of their =HTTP= response status codes or any other errors reported by the browser.
 
-By default, all =complete= and =complete_fc= reqres get =picked=, regardless of their =HTTP= response status codes, while the rest get =dropped=.
+  After all, it appears that the data of those reqres was properly fetched, so they should be archived.
+
+- Similarly, {{{config2(archivePartialRequest,reqres with =partial request body= flag set)}}} and {{{config2(archiveBuggy,reqres with one of the =buggy * metadata= flags set)}}} are also =picked= by default.
+
+  It is recommended you keep those toggles enabled as relevant flags are usually caused by browser bugs and are thus unfixable unless you run =Hoardy-Web= on a customly patched browser.
+  Also, these issues usually don't prevent replay of captured reqres.
+  Thus, in these cases, archiving some data is usually better than archiving none.
+
+- In contrast, picking of {{{config2(archiveCanceled,reqres in =canceled= state)}}}, {{{config2(archiveNoResponse,reqres in =no_response= state)}}}, and {{{config2(archiveIncompleteResponse,reqres with =incomplete response body= flag set)}}} is disabled by default because response-incomplete reqres are usually useless and can be easily fixed by reloading a page in question.
 *** Glossary
-- A /problematic reqres/ ({{{bothstats(problematic)}}}) is a /finished reqres/ that satisfies the conditions set by {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= settings)}}}.
+- A /problematic reqres/ {{{bothstats(problematic)}}} is a /finished reqres/ that satisfies the conditions set by {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= settings)}}}, as [[#problematic][shall be discussed later]].
 
-- A /picked reqres/ ({{{bothstats(picked)}}}) is a /finished reqres/ that satisfied the conditions controlled by {{{div2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
+- A /picked reqres/ {{{bothstats(picked)}}} is a /finished reqres/ that satisfied the conditions controlled by {{{div2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
 
-- A /dropped reqres/ ({{{bothstats(dropped)}}}) is a /finished reqres/ that did /NOT/ satisfy the conditions controlled by {{{div2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
-** Step 3: Collection, Discarding, and Limbo
-On exit from the =finished= state each reqres gets split into
+- A /dropped reqres/ {{{bothstats(dropped)}}} is a /finished reqres/ that did *not* satisfy the conditions controlled by {{{div2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
+** Step 3: Collection, Discarding, Logging, and Limbo
+:PROPERTIES:
+:CUSTOM_ID: main
+:END:
 
-- a =loggable=, which is a hollow =reqres= structure without any request or response data, i.e. it only keeps the metadata used by the log {{{logPage}}}, and
+On exit from the =finished= state and the classification performed there, each reqres gets split into
+
+- a =loggable=, which is a hollow =reqres= structure without any request or response data, and
 - a =dump=, which is a [[../../doc/data-on-disk.md][=WRR=-formatted dump]] of the original =reqres= structure.
 
-Since those tuples can be reconstructed back into the original =reqres= structures, the following will continue to refer to them as if nothing changed when the fact they are now being internally represented by those tuples is not relevant.
+(Since those tuples can be reconstructed back into the original =reqres=, the following will continue to refer to them as if nothing has changed when the fact they are now being internally represented by those tuples is not relevant.)
 
-Normally, =picked= reqres proceed to the =collected= state and get =queued= for archival while =dropped= reqres proceed to being =discarded= from memory.
+On entering =collected= or =discarded= state, =loggable= metadata of each reqres is copied into the recent reqres log {{{logPage}}} and is kept there until the size of the log reaches {{{config2(history,this many elements)}}}, at which point the older elements of the log start being elided automatically.
 
-When {{{config2(archive,=Archive 'collected' reqres= toggle)}}} is enabled, those =queued= reqres proceed directly to the next step.
+You can also ask =Hoardy-Web= to forget all history manually by pressing {{{button2(forgetAllLog,this button)}}}, or to forget history of reqres generated by the currently active tab by pressing {{{button2(forgetAllTabLog,that button)}}} instead, or do the same by using similar buttons in the logs {{{logPage}}}.
+Using the latter allows for more granular control via the reqres filtering options available there.
+
+However, note that [[#problematic][currently =problematic= reqres]] will not get automatically elided from the log, nor forgotten by using the above buttons, see there for more info.
+*** Normal mode
+:PROPERTIES:
+:CUSTOM_ID: no-limbo
+:END:
+
+In other words, normally:
+- =picked= reqres proceed to the =collected= state, get logged, and then get =queued= for archival;
+- =dropped= reqres proceed to being logged and =discarded= then from memory.
 *** Limbo mode
 :PROPERTIES:
 :CUSTOM_ID: limbo
@@ -355,42 +329,37 @@ The naive way to do it would be to load a page with {{{tabconfig2(collecting,cap
 
 Obviously, this is both annoying and will force you to fetch everything twice.
 
-Which is why =Hoardy-Web= implements "limbo mode".
-With one of the limbo mode options enabled, =Hoardy-Web= will instead capture everything as normal, but then, instead of sending the newly captured reqres to =collected= or =discarded= states immediately, it will put them into =in_limbo= state where they would linger until you /collect/ or /discard/ them manually by pressing the appropriate buttons on the corresponding stats lines ({{{bothstats(in_limbo)}}}), or until {{{div2(closed-tab-options,=Closed tabs= options)}}} make a decision semi-automatically for you.
+Which is why =Hoardy-Web= implements /limbo mode/.
+With one of the limbo mode options enabled, =Hoardy-Web= will instead capture everything as normal, but then, instead of sending the newly captured reqres to =collected= or =discarded= states immediately, it will put them into =in_limbo= state where they would linger until you /collect/ or /discard/ them manually by pressing the appropriate buttons on the corresponding stats lines {{{bothstats(in_limbo)}}} or until {{{div2(closed-tab-options,=Closed tabs= options)}}} make a decision semi-automatically for you.
 
 A =picked= reqres will be put into =in_limbo= when {{{tabconfig2(limbo,=Pick into limbo= setting (cur))}}} is enabled in the currently active tab or when one of the similar {{{perSource0(limbo)}}} options is enabled for other reqres sources.
 
 Similarly, a =dropped= reqres will be put into =in_limbo= when {{{tabconfig2(negLimbo,=Drop into limbo= setting)}}} is enabled in the currently active tab or when one of the similar {{{perSource0(negLimbo)}}} options is enabled for other reqres sources.
-(These latter options mainly exists for debugging.)
+(These options mainly exists for debugging.)
 
-If {{{config2(limboNotify,this option)}}} is enabled and there are more than {{{config2(limboMaxNumber,this number)}}} reqres =in_limbo= or the total size of all dumps =in_limbo= is more than {{{config2(limboMaxSize,this size)}}} (in MiB), =Hoardy-Web= will complain to remind you to /collect/ or /discard/ some of them so that your browser does not waste too much memory (and so that you won't loose too much data if something crashes while {{{config2(stash,=Stash 'collected' reqres into local storage= option)}}} discussed below is disabled).
-
-Additionally, note that the default values of {{{div2(unproblematic-options,automatic unmarking of =problematic= reqres)}}} produce slightly imprecise results when combined with picking into limbo {{{perSource(limbo)}}}.
-Thus, if you are feeling pedantic, so you might want to disable {{{config(autoUnmarkProblematicSimilarAcrossLimbo,that option)}}}.
-Though, if you do that, the resulting behaviour =Hoardy-Web= will probably feel rather counter-intuitive, at least at first.
+If {{{config2(limboNotify,this option)}}} is enabled and there are more than {{{config2(limboMaxNumber,this number)}}} reqres =in_limbo= or the total size of all dumps =in_limbo= is more than {{{config2(limboMaxSize,this size)}}} (in MiB), =Hoardy-Web= will complain to remind you to collect or discard some of them.
 *** Glossary
-- A /collected reqres/ ({{{bothstats(collected)}}}) is a reqres that was (either automatically or manually) sent to the =collected= state.
+- A /collected reqres/ {{{bothstats(collected)}}} is a reqres that was (either automatically or manually) sent to the =collected= state.
 
-- A /discarded reqres/ ({{{bothstats(discarded)}}}) is a reqres that was (either automatically or manually) sent to the =discarded= state.
+- A /discarded reqres/ {{{bothstats(discarded)}}} is a reqres that was (either automatically or manually) sent to the =discarded= state.
 
-- An /in-limbo reqres/ ({{{bothstats(in_limbo)}}}) is a reqres that is being held =in_limbo= until you manually /collect/ or /discard/ it.
+- An /in-limbo reqres/ {{{bothstats(in_limbo)}}} is a reqres that is being held =in_limbo= until you manually /collect/ or /discard/ it.
 
 - A /queued reqres/ ({{{stat2(queued,displayed)}}} on the {{{stat2(queued_failed,Queued/Failed)}}} line) is a =collected= reqres that is still =queued= for archival.
-** Step 3.5: Stashing
+** (Optional) Step 3.5: Stashing
 :PROPERTIES:
-:CUSTOM_ID: stash
+:CUSTOM_ID: stashing
 :END:
 
-The =stashed= reqres status is, essentially, a flag that says this reqres was temporarily backed up to browser's local storage.
-In other words, stashing exists to prevent loss of successfully captured but yet unarchived data in situations where
-
-- you quit or restart your browser,
+In most cases you would probably want to prevent loss of successfully captured but yet unarchived reqres when
+- you quit or restart your browser by accident,
 - your computer unexpectedly looses power,
-- =Hoardy-Web= gets reloaded (e.g., on updates) or crashes
-
+- =Hoardy-Web= crashes or gets reloaded/updated unexpectedly
 before you =collected= or =discarded= everything from =in_limbo= or =Hoardy-Web= has successfully archived everything from its archiving queue.
 
-In particular:
+This is why =Hoardy-Web= implements the optional =stashToLS?= states on the above diagram and a special =stashed= reqres status.
+The =stashed= status is, essentially, a flag that says this reqres was temporarily backed up into browser's local storage.
+This process can be controlled using the following options:
 
 - When {{{config2(archive,=Archive 'collected' reqres= option)}}} is disabled but {{{config2(stash,=Stash 'collected' reqres into local storage= option)}}} is enabled, instead of archiving newly =queued= reqres, =Hoardy-Web= will /stash/ their =(loggable, dump)= tuples into browser's local storage.
 
@@ -414,36 +383,32 @@ You can also forcefully stash all currently =queued=, =in_limbo=, and =unarchive
 It stashes everything immediately and unconditionally, ignoring all other stashing settings.
 When reloading the extension via the {{{div2(reloadSelf,=Reload= button)}}} or via {{{config2(autoReloadOnUpdates,=Auto-reload on updates= option)}}}, this action will be run automatically.
 *** Glossary
-- A /stuck queued reqres/ is a =queued= reqres that got stuck in the archival queue, e.g. because it got queued while {{{config2(archive,=Archive 'collected' reqres= option)}}} was disabled.
+- A /stuck queued reqres/ is a =queued= reqres that got stuck in the archival queue, e.g., because it got queued while {{{config2(archive,=Archive 'collected' reqres= option)}}} was disabled.
 
-- A /stashed reqres/ ({{{stat(stashed)}}}) is a reqres that was temporarily =stashed= (backed-up) into browser's local storage while it is still being kept in =Hoardy-Web='s memory.
+- A /stashed reqres/ {{{stat(stashed)}}} is a reqres that was temporarily =stashed= (backed-up) into browser's local storage while it is still being kept in =Hoardy-Web='s memory.
   I.e., the stash is a persistent on-disk backup for in-memory reqres.
 
-- A /failed to stash reqres/ ({{{stat(unstashed)}}}) is a reqres that is currently =unstashed=, i.e. a reqres that failed to be stashed into browser's local storage.
+- A /failed to stash reqres/ {{{stat(unstashed)}}} is a reqres that is currently =unstashed=, i.e., a reqres that failed to be stashed into browser's local storage.
   Note that reqres for which stashing was not even attempted are not included in this set.
   It is also a part of the sum of the "Failed" part of the {{{stat2(queued_failed,Queued/Failed)}}} line.
 
   You can retry stashing these by pressing {{{button2(retryAllUnstashed,this button)}}}.
-** Step 3.75: Logging
-On entering =collected= or =discarded= state, =loggable= metadata of each reqres is copied into the recent reqres log {{{logPage}}} and is kept there until the size of the log reaches {{{config2(history,this many elements)}}}, at which point the older elements of the log start being elided automatically.
-
-You can also ask =Hoardy-Web= to forget all history manually by pressing {{{button2(forgetAllLog,this button)}}}, or to forget history of reqres generated by the currently active tab by pressing {{{button2(forgetAllTabLog,that button)}}} instead, or do the same by using similar buttons on the log page {{{logPage}}}.
-Using the latter also allows the use of reqres filtering options available there for doing this, allowing you to selectively forget parts of history.
-
-Note, however, that =problematic= reqres will not get automatically elided from the log, nor forgotten by using the above buttons.
-To forget about them, you will have to first unset the =problematic= flag on the respective reqres via {{{button2(unmarkAllProblematic,this button)}}}, or {{{button2(unmarkAllTabProblematic,that button)}}}, or use similar buttons on the log page {{{logPage}}}.
 ** Step 4: Archival
+:PROPERTIES:
+:CUSTOM_ID: archival
+:END:
+
 When {{{config2(archive,=Archive 'collected' reqres= toggle)}}} is enabled, =Hoardy-Web= will pop =queued= reqres from the archival queue one by one and then perform one or more of the following (in order they are listed):
 
 - if {{{config2(archiveExportAs,=Export dumps via 'saveAs'= option)}}} is enabled but {{{config2(exportAsBundle,bundling)}}} is disabled, =Hoardy-Web= will simply
   - compress the =dump=, {{{config2(gzipExportAs,if enabled)}}}, and
-  - export the resulting [[../../doc/data-on-disk.md][=WRR file=]] via browser's =saveAs= mechanism (i.e. generate a fake-Download);
+  - export the resulting [[../../doc/data-on-disk.md][=WRR file=]] via browser's =saveAs= mechanism (i.e., generate a fake-Download);
 
 - if both {{{config2(archiveExportAs,=Export dumps via 'saveAs'= option)}}} and {{{config2(exportAsBundle,bundling)}}} are enabled, =Hoardy-Web= will
   - append the =dump=, as a byte string, to a (per-=bucket=, see below) [[../../doc/data-on-disk.md][=WRR bundle=]],
   - and then, if the =WRR bundle= gets larger than {{{config2(exportAsMaxSize,this)}}} or after a delay controlled by {{{config2(exportAsInFlightTimeout,that)}}} and {{{config2(exportAsTimeout,this)}}} options,
     - compress the result, {{{config2(gzipExportAs,if enabled)}}}, and
-    - export the resulting =WRR bundle= via browser's =saveAs= mechanism (i.e. generate a fake-Download);
+    - export the resulting =WRR bundle= via browser's =saveAs= mechanism (i.e., generate a fake-Download);
 
 - if {{{config2(archiveSubmitHTTP,=Submit dumps via 'HTTP'= option)}}} is enabled, =Hoardy-Web= will submit the =dump= to the archiving server at {{{config2(submitHTTPURLBase,=Server URL= setting)}}} by making an =HTTP POST= request with the =dump= as request body (which is denoted by =srvIO= state on the diagram above);
 
@@ -494,7 +459,7 @@ To implement this, for each reqres in the archival queue, =Hoardy-Web= takes a =
 - while {{{config2(root.bucket,this one (root))}}} will be used for new tabs opened via browser's "New Tab" browser action (i.e. the plus sign in the tab bar, =Control+T=, menu item, etc),
 - and so forth for {{{config2(background.bucket,background requests (bg))}}} and {{{config2(extension.bucket,requests generated by extensions (ext))}}}).
 
-Press =?= symbols to see a tooltip explaining what each of them does.
+Press =?= symbols to see tooltips explaining what each of them does.
 
 Evaluation of =bucket= is done just before each archival attempt, so if the queue is not yet empty, and you disable {{{config2(archive,=Archive 'collected' reqres=)}}}, edit some of the "Bucket" settings, and enable {{{config2(archive,it)}}} again, =Hoardy-Web= will start using the new setting immediately.
 
@@ -515,26 +480,25 @@ So, for example, if you want to share a subset of your captures, you can
 *** Handling of failures
 As noted above, if any of the {{{div2(archive-methods,archival methods)}}} fail, the reqres in question will be moved into the =unarchived= state.
 
-Submissions of reqres that =unarchived= because of networking issues will be retried automatically every 60 seconds.
+Submissions of reqres that are =unarchived= because of networking issues will be retried automatically every 60 seconds.
 Archivals of reqres rejected by the archiving server or those that failed to be saved to browser's local storage will not be retried automatically as those usually happen when there is no space left on the device you are archiving to.
 
 You can retry all archiving failures by pressing one of {{{button2(retryAllUnarchived,this)}}} or {{{button2(retryAllFailed,that)}}} buttons.
-You can also use them to nudge the archiving sub-process awake if some things got stuck in the queue by accident.
-E.g., after the extension got reloaded with a non-empty queue, or if you previously quit your browser before everything was archived.
+You can also use them to nudge the archiving sub-process awake if something archival-related appears to be stuck.
 
 If {{{config2(archiveFailedNotify,this option)}}} is enabled and a new reqres recently moved to the =unarchived= state, a new notification will be generated.
 If {{{config2(archiveDoneNotify,this option)}}} is enabled, a new notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
-- A /failed to archive reqres/ ({{{stat(unarchived)}}}) is a reqres that is currently =unarchived=, i.e. a reqres that failed to be archived by one of the enabled {{{div2(archive-methods,archival methods)}}}.
+- A /failed to archive reqres/ {{{stat(unarchived)}}} is a reqres that is currently in =unarchived= state, i.e., a reqres that failed to be archived by one of the enabled {{{div2(archive-methods,archival methods)}}}.
   It is also a part of the sum of the "Failed" part of the {{{stat2(queued_failed,Queued/Failed)}}} line.
 
   You can retry archiving these by pressing {{{button2(retryAllUnarchived,this button)}}}.
 
-- An /exported reqres/ ({{{stat(exportedAs)}}}) is a reqres that was successfully =exported= by generating a fake-Download containing its =dump=.
+- An /exported reqres/ {{{stat(exportedAs)}}} is a reqres that was successfully =exported= by generating a fake-Download containing its =dump=.
 
-- A /submitted reqres/ ({{{stat(submittedHTTP)}}}) is a reqres that was successfully =submitted= to the archiving server and thus was discarded from memory.
+- A /submitted reqres/ {{{stat(submittedHTTP)}}} is a reqres that was successfully =submitted= to the archiving server and thus was discarded from memory.
 
-- A /saved reqres/ ({{{stat(saved)}}}) is a reqres that was successfully =saved= by being archived into browser's local storage.
+- A /saved reqres/ {{{stat(saved)}}} is a reqres that was successfully =saved= by being archived into browser's local storage.
 
 - /An archived reqres/ is either /exported/, /submitted/, or /saved/ reqres.
 ** (Optional) Step 4.5: Re-archival
@@ -558,11 +522,11 @@ This feature uses the same archiving pipeline as above with three major differen
 
   The capture machinery and some UI updates will continue to work, but stashing, archival, and post-archival computations will not happen while re-archival is running.
 
-Re-archival can be useful, for instance, in following use cases:
+Re-archival can be most useful in following use cases:
 
 - You want to collect and accumulate lots of reqres before re-archiving them by the means of {{{config2(rearchiveExportAs,=Export via 'saveAs'=)}}} to make the UI less annoying and to {{{config2(gzipExportAs,compress)}}} the resulting =WRR bundle='s better.
 
-- You run =Hoardy-Web= under a Fenix-based mobile browser, where {{{config2(archiveExportAs,Export via =saveAs=)}}} does not work, you are unable to run an {{{config2(submitHTTPURLBase,archiving server)}}} on the same device, because it's an un-rooted mobile phone, and you don't want to submit your dumps over the Internet, because you are feeling paranoid.
+- You run =Hoardy-Web= under a Fenix-based mobile browser, where {{{config2(archiveExportAs,Export via =saveAs=)}}} does not work, you are unable to run an {{{config2(submitHTTPURLBase,archiving server)}}} on the same device, because it's an unrooted mobile phone, and you don't want to submit your dumps over the Internet, because you are feeling paranoid.
 
   By using this feature, you can delay re-archival to your archiving server until you get back to your home WiFi network, and re-archive everything all at once there.
 
@@ -581,16 +545,16 @@ If you want more control over what gets re-archived, you can also
 - open the {{{button2(showSaved,=Saved in Local Storage= page)}}},
 - make a subset of =saved= reqres using the filtering options there, and then
 - re-archive only those, by pressing the =Re-archive= button there.
-*** Deletion of successfully externally archived reqres
+*** Deletion of successfully (re-)archived reqres
 In use cases
 - where, for safety, you archive both externally and into local storage at the same time, or
-- where, because of your [[#tor-browser][browser setup]], your archive into local storage and then periodically export your saved data via re-archival,
+- where, because of your [[#tor-browser][browser setup]], your archive into local storage and then periodically export your saved data via re-archival
 you can easily delete your previously successfully archived or re-archived reqres from your local storage by
 - pressing one {{{div2(rearchive-actions,re-archival action buttons)}}} while {{{div2(rearchive.andDelete,deletion)}}} is set,
 - using a similar button and option on {{{button2(showSaved,=Saved in Local Storage= page)}}}, or
 - pressing the {{{button2(deleteRearchived,=Delete old= button)}}}.
 
-However, the former two methods should be used with caution:
+However, the first two options should be used with caution:
 
 - The behaviour of the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} with {{{div2(rearchive.andDelete,deletion)}}} enabled can be surprising if you sometimes use both available {{{div2(rearchive-methods,re-archival methods)}}} and sometimes only one of them.
 
@@ -600,15 +564,13 @@ However, the former two methods should be used with caution:
 
 - Re-archiving by the means of {{{div2(rearchive-actions,re-archival action buttons)}}} (or their {{{button2(showSaved,=Saved in Local Storage= page)}}} equivalent) when both {{{config2(rearchiveExportAs,=Export via 'saveAs'=)}}} and {{{div2(rearchive.andDelete,deletion)}}} (or its {{{button2(showSaved,=Saved in Local Storage= page)}}} equivalent) are enabled is [[#unsafe-saveas][unsafe because of browser API limitations]].
 
-  The essence of issue is that if a new reqres gets captured and then saved into local storage via the normal {{{config2(archive,=Archive 'collected' reqres=)}}} machinery right at the moment you press the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} and the generated =WRR bundle= then [[#unsafe-saveas][silently fails to be saved to disk via =saveAs=]], then that sneaky reqres will still get deleted, and, thus, permanently lost.
+  The essence of the issue there is that if a new reqres gets captured and then saved into local storage via the normal {{{config2(archive,=Archive 'collected' reqres=)}}} machinery right at the moment you press the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} and the generated =WRR bundle= then [[#unsafe-saveas][silently fails to be saved to disk via =saveAs=]], then that sneaky reqres will still get deleted, and, thus, permanently lost.
 
   Thus, if you want to do this safely, you should:
 
   - {{{div2(rearchive-actions,re-archive)}}} with {{{div2(rearchive.andDelete,deletion)}}} disabled;
   - confirm that all generated fake-Downloads were actually successfully saved to disk;
   - then immediately press the {{{button2(deleteRearchived,=Delete old= button)}}} without touching any {{{div2(rearchive-methods,re-archival method toggles)}}}.
-
-  You can press those buttons one after the other immediately, the latter action will get queued for later execution until the former finishes, so they won't interfere with each other.
 
   Alternatively, you can also do this:
 
@@ -622,15 +584,18 @@ However, the former two methods should be used with caution:
   The last button press should then produce an =Re-archived and deleted <N> reqres invoking 0 archiving actions and <N> deletions from local storage.= notification.
   I.e. it will just delete all of them, without actually performing any archivals.
 
-  Or, alternatively, as a last step, you can open {{{button2(showSaved,=Saved in Local Storage= page)}}}, set =Exported via 'saveAs'= filter to =true= and then press =Delete=.
+  Or, alternatively, as a last step, you can open {{{button2(showSaved,=Saved in Local Storage= page)}}}, set =Exported via 'saveAs'= filter to =true= and then press =Delete= button there.
 
 In short, {{{div2(rearchive-actions,re-archival actions)}}} with {{{div2(rearchive.andDelete,deletion)}}} set should be used with lots of care.
 This is why the {{{div2(rearchive.andRewrite,rewrite)}}} and {{{div2(rearchive.andDelete,deletion)}}} options and their equivalents on {{{button2(showSaved,=Saved in Local Storage= page)}}} are ephemeral and will be reset the next time you reopen the popup or that page.
 
-However, note that re-archival by {{{config2(rearchiveSubmitHTTP,sumbission via =HTTP=)}}} with {{{div2(rearchive.andDelete,deletion)}}} enabled is safe to use.
+Additionally, note that you can press {{{div2(rearchive-actions,re-archive)}}} and {{{button2(deleteRearchived,deletion)}}} buttons one after the other immediately, their actions will get queued for execution properly and won't interfere with each other.
+Thus, if you are re-archiving via {{{config2(rearchiveSubmitHTTP,submission via =HTTP=)}}} it's safe to mash them one after the other, you don't need to sit there and wait for one action to finish before pressing the other button, since submission over =HTTP= reports errors properly.
+
+However, note that re-archival by {{{config2(rearchiveSubmitHTTP,submission via =HTTP=)}}} with {{{div2(rearchive.andDelete,deletion)}}} enabled is safe to use too.
 On-the-fly deletion is much more efficient compared to re-archival step followed by a {{{button2(deleteRearchived,separate deletion step)}}} because updated reqres' archival flags need not be written back into local storage.
-Thus, since {{{config2(rearchiveSubmitHTTP,sumbission via =HTTP=)}}} does report its errors properly, successfully re-archived reqres can be immediately and safely deleted from local storage in that case, which would save you a lot of time and disk writes if you are re-archiving a lot of stuff all at once.
-** (Optional) Step 5: Replay integration
+Thus, since {{{config2(rearchiveSubmitHTTP,submission via =HTTP=)}}} does report its errors properly, successfully re-archived reqres can be immediately and safely deleted from local storage in that case, which would save you a lot of time and disk writes if you are re-archiving a lot of stuff all at once.
+** (Optional) Step 5: Replay
 :PROPERTIES:
 :CUSTOM_ID: replay
 :END:
@@ -643,106 +608,168 @@ Pressing
 
 - {{{button2(replayTabBack,this buttons)}}} re-navigates the currently active tab regardless of any settings.
 
-Alternatively, =Hoardy-Web= implements =Auto-Replay= mode, in which all navigations are automatically redirected to their replays URLs instead:
+Alternatively, =Hoardy-Web= implements /auto-replay mode/, in which all navigations are automatically redirected to their replays URLs instead:
 
-- {{{tabconfig2(autoReplay,this toggle)}}} enables =Auto-Replay= mode in the currently active tab;
+- {{{tabconfig2(autoReplay,this toggle)}}} enables auto-replay mode in the currently active tab;
 
 - {{{tabconfig2(children.autoReplay,this toggle)}}} enables it for the currently active tab's new children, thus making all link middle-clicks open replay pages;
 
 - there is also a {{{config2(root.autoReplay,toggle)}}} for controlling the default value of the above two options in newly spawned root tabs.
 
-=Auto-Replay= attempts will be silently skipped if the archiving server does not support it or when {{{config2(replaySubmitHTTP,this option)}}} is disabled.
+If the archiving server does not support replay or when {{{config2(replaySubmitHTTP,this option)}}} is disabled, auto-replay mode will cancel those requests and generate error notifications instead.
 
-Currently =Auto-Replay= mode only works for top-level navigation requests and performs redirects regardless of your {{{config2(submitHTTPURLBase,archiving server)}}} having an archive of the URL in question.
+Currently auto-replay mode only works for top-level navigation requests and performs redirects regardless of your {{{config2(submitHTTPURLBase,archiving server)}}} having an archive of the URL in question.
 (This will be improved in the future.)
-
-There are also [[#shortcuts][keyboard shortcuts]] and [[#context-menu][context menu actions]] for most of the above action.
-* Workflows
+* Additional features
 :PROPERTIES:
-:CUSTOM_ID: workflows
+:CUSTOM_ID: additional
 :END:
-** "Work offline" mode
+** Problematic reqres
+:PROPERTIES:
+:CUSTOM_ID: problematic
+:END:
+
+Conventional web browsers provide no explicit indication when a part of a web page fails to load properly.
+Apparently, you are expected to actually look at the page with your eyes, notice something looking broken, and reload it manually if so.
+
+Obviously, this can be quite inconvenient when you want to be sure that the whole page with all of its resources was archived.
+Especially when parts of a dynamically loaded page might simply silently fail to be rendered by associated =JavaScript= because some of the =HTTP= requests that =JavaScript= did in background failed, or, on a static web page, layout and =CSS= might have made some of the incompletely loaded parts of the page invisible (by design or by accident).
+
+So, to provide an explicit indicator for such situations, =Hoardy-Web= keeps track of reqres that fail to load properly and, in the [[#classification][classification step]], marks them with a =problematic= flag which influences
+
+- toolbar button's icon, badge, and title;
+
+  all of which depend on the numbers of currently =problematic= reqres;
+
+- the corresponding stat lines {{{bothstats(problematic)}}} in the popup;
+
+- the logs {{{logPage}}}, which shows =problematic= reqres in a separate section;
+
+  *additionally, note that =problematic= reqres can't be dropped from the logs until their =problematic= flags are unset;*
+
+  the ways in which this can be done (automatically or manually) shall be discussed below;
+
+- and nothing else.
+
+*In other words, the =problematic= flag is a UI indicator, it does not influence archival in any way.*
+
+What gets marked as =problematic= is controlled by {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= options)}}}.
+By default, =HTTP= requests that failed to get a response, those that were fetched with [[#partial][buggy metadata or have incomplete response bodies]], and those for which the browser reported /potentially problematic errors/ but then =Hoardy-Web= =picked= them anyway, will be marked as =problematic=.
+
+/Potentially problematic errors/ are errors like
+
+- "this request failed because of a networking issue",
+- "this request was aborted because the =JavaScript= function making it decided to cancel it when you moved your mouse cursor away from a video thumbnail it was needed for",
+- and similar things that probably imply some part of the page was left unfetched,
+
+but *not* errors like
+
+- "fetching of this request was aborted because the server redirected it to a URL blocked by =uBlock Origin=",
+- "the browser decided against rendering of this data",
+- "the browser failed to render this data because this image file is broken",
+- and similar errors where the request was canceled on purpose or the data was properly fetched.
+
+In principle, =Hoardy-Web= could have been designed to never record the errors of the latter category in the first place, thus simplifying the above bit, but =Hoardy-Web= is designed to follow the philosophy of "collect everything as browser gives it, as raw as possible".
+The raw error strings reported by the browser for each reqres can be seen in the logs {{{logPage}}}.
+
+When {{{config2(problematicNotify,that option)}}} is not disabled, new notifications will be produced each time a new =problematic= reqres appears.
+*** Automatic unmarking of =problematic= reqres
+:PROPERTIES:
+:CUSTOM_ID: unproblematic
+:END:
+
+In some situations some of the =problematic= flags on some of your reqres might become irrelevant as you fetch more data.
+
+For example, say, you load a tab, some of its images fail to load completely and get marked as =problematic=, so you re-load that tab again, and then all reqres that failed to be fetched the first time get fetched properly the second time.
+Do you still care that some of those old reqres failed to fetch properly the first time?
+Probably not.
+
+But to be absolutely pedantic in such a situation, you would actually need to carefully check that all of your old =problematic= reqres actually got re-fetched properly, just in case the browser decided to skip fetching of some of them, which could happen with modern =HTML= lazy-loading features, and only then stop caring about them.
+Obviously, actually doing this manually each time would be incredibly annoying.
+
+Which is why =Hoardy-Web= provides a {{{div2(unproblematic-options,bunch of configuration options)}}} that automatically unmark old =problematic= reqres in various situations.
+By default, those options are set in a way that produces least annoying and least surprising workflows, but you might want to tweak them if you need that process to be stricter.
+
+In particular, note that the default value of {{{config2(autoUnmarkProblematicSimilarAcrossLimbo,Auto-unmark =problematic= reqres ... regardless of its =in_limbo= state)}}} option produces slightly imprecise results when combined with picking into limbo {{{perSource(limbo)}}}.
+Thus, if you are feeling pedantic, you might want to disable that option.
+Though, if you do that, the resulting behaviour of =Hoardy-Web= will probably feel rather counter-intuitive, at least at first.
+
+When {{{config2(problematicNotify,that option)}}} is set to its right-most state, new notifications will be produced each time an old =problematic= reqres gets automatically unmarked.
+*** Manual handling of =problematic= reqres
+:PROPERTIES:
+:CUSTOM_ID: manual-problematic
+:END:
+
+In most use cases, =Hoardy-Web= is entirely capable of automatically maintaining a relevant set of still =problematic= reqres, helping you figure out what still needs to be fetched to completely archive a given web page properly.
+However, in some situations, you might also want to manually unmark some of your =problematic= reqres.
+To do that you can:
+- unmark all currently =problematic= reqres globally or in a select tab via popup buttons {{{unmarkProblematic}}} and/or [[#shortcuts][keyboard shortcuts]];
+- unmark =problematic= reqres by using similar buttons in the logs {{{logPage}}}, which allows for more granular control via the reqres filtering options available there.
+*** I don't care about any of this and notifications about =problematic= reqres annoy me!
+:PROPERTIES:
+:CUSTOM_ID: suppress-problematic
+:END:
+
+If you don't care about the =problematic= flag in a select tab and those notifications annoy you, you should disable {{{tabconfig2(problematicNotify,this per-source option)}}}.
+If such notification annoy you in general, you can disable the {{{config2(problematicNotify,global option)}}} instead.
+
+Note, however, that you probably shouldn't be disabling too many  {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= options)}}}.
+This way, even with notifications disabled, you would still be able see a correct number of =problematic= reqres in extension's toolbar button's badge, popup {{{bothstats(problematic)}}}, and the logs {{{logPage}}}.
+** Work offline mode
 :PROPERTIES:
 :CUSTOM_ID: work-offline
 :END:
 
 Sometimes, you might want to block a select tab from performing new =HTTP= requests.
 
-Say, for instance, you opened a URL in a new tab, then you forgot about that tab for a while, but then you returned to it again, and you now want to read that page.
-But then you discover that the font size is too small for you, and so you want to change that tab's zoom level.
-Changing zoom level will change tab's viewport size, which, if the page uses responsive =CSS=, will likely force your browser to generate new =HTTP= requests to fetch data used by previously inactive parts of the layout.
-Essentially, this will notify the page's origin server that you are now interacting with that page.
-Some websites do this on purpose to track users that run with =JavaScript= disabled.
-
-Meanwhile, normally, when using the [[../../tool/][=hoardy-web= tool]], =HTTP= replay pages generated by its =serve= sub-command and static website mirrors generated by its =mirror= sub-command remap all URLs of page requisites to point to local replay URLs and files.
+Normally, when you use the [[../../tool/][=hoardy-web= tool]] to replay old page visits, =HTTP= replay pages generated by its =serve= sub-command and static website mirrors generated by its =mirror= sub-command remap all URLs of page requisites to point to local replay URLs and files.
 (Though, it is configurable.)
-But =HTML5= specification is quite large and gets updated all the time, interactions between remapped pages and some browser extensions can sometimes break things, and =hoardy-web= can have bugs in its remapping code.
-So, remapping of some of those URLs can fail sometimes.
 
-Say that, after being informed by the previous two paragraphs, you now want to ensure that
+Unfortunately, =HTML5= specification is quite large, complex, and it gets updated all the time.
+Additionally, =hoardy-web= can have bugs in its remapping code.
+Moreover, interactions between remapped pages and some browser extensions can sometimes break things too.
+In other words, some of those replayed pages could end up referencing Internet resources when they should not.
 
-- your browser won't notify a page's origin server when you start interacting with it long after you loaded it, and
-- your browser won't try to access the Internet when you open one of the =hoardy-web serve='ed or =hoardy-web mirror='ed pages.
+In a similar vein, imagine a situation where, while looking at your logs {{{logPage}}}, you discover that a web page originating from a certain domain is making an awful lot of tracking =HTTP= requests:
+- say, for instance, you notice that a certain web page is generating tracking =HTTP= requests from its =JavaScript= event handlers, like when you switch to/from its tab, when you drag your mouse cursor around that page, and/or when you select text on that page;
+- or, maybe, you have =JavaScript= disabled on that page, but as you scroll it around you notice that it starts generating suspicious =HTTP= requests because that page uses lazily loaded single-pixel =HTML img= tags to track you scrolling it anyway;
+- or, maybe, you have both =JavaScript= and lazy loading disabled, but then you notice that the font size on that page is deliberately too small, so you have to tweak that tab's zoom level, which changes that tab's viewport size, which then makes your browser generate new tracking =HTTP= requests because that page uses its responsive =CSS= to track that;
+- or, maybe, you notice other ways =HTML= standards are being exploited to archive similar results.
 
-In some cases you might even feel paranoid enough to want to prevent your browser from opening non-remapped jump-links (=a href=), even when you click them (by accident).
+Now, say that, after considering the above, you discover that you dislike the idea of "TVs that watch you back" from Orwell's "1984" greatly, and you would rather ensure that
 
-Desktop versions of Firefox-based browsers have =File > Work Offline= option that can solve most of this, but it disables all new requests browser-wise, which is quite inconvenient and error-prone if you want to keep some of your tabs offline while not restricting others, and it will break replay over =HTTP= with =hoardy-web serve=.
+- your browser won't ever try to access the Internet when you open one of the =hoardy-web serve='ed or =hoardy-web mirror='ed pages; and
+- your browser won't ever notify a page's origin server when you start interacting with it long after you loaded it and then forgot about it for a while.
+
+In some cases you might even feel paranoid enough to want to prevent your browser from opening non-remapped jump-links (=a href=) on replay pages, even when you explicitly click them (by accident).
+
+Desktop versions of Firefox-based browsers have a =File > Work Offline= option that can solve most of this, but it disables all new requests browser-wise, which is quite inconvenient and error-prone if you want to keep some of your tabs offline while not restricting others, and it will break replay over =HTTP= with =hoardy-web serve=.
 Chromium-based browsers do not appear to have such a feature at all.
 
-To solve this issue --- and to add an equivalent of =File > Work Offline= to Chromium-based browsers --- =Hoardy-Web= implements its own =Work offline= mode controlled via the following toggles:
+To solve this issue, and to add an equivalent of =File > Work Offline= to Chromium-based browsers, =Hoardy-Web= implements its own /work offline mode/ which can be controlled via the following toggles:
 
 - the {{{config2(workOffline,global toggle (glob))}}} is pretty much equivalent to the Firefox's own option and enables canceling of all new requests browser-wise;
 
-- {{{tabconfig2(workOffline,this toggle (cur))}}} enables "Work offline" mode in the currently active tab, thus also preventing you from navigating to any Internet URLs by clicking any links that open in the same tab;
+- {{{tabconfig2(workOffline,this toggle (cur))}}} enables work offline mode in the currently active tab, thus also preventing you from navigating to any Internet URLs by clicking any links that open in the same tab;
 
 - {{{tabconfig2(children.workOffline,this toggle (chld))}}} enables it for the currently active tab's new children, thus also preventing you from opening any Internet URLs by spawning new tabs from it;
 
 - there is also a {{{config2(root.workOffline,toggle (root))}}} for controlling the default value of the above two options in newly spawned root tabs,
 
-- as well as toggles controlling "Work offline" mode for {{{config2(background.workOffline,background requests (bg))}}} and {{{config2(extension.workOffline,requests generated by extensions (ext))}}}.
+- as well as toggles controlling work offline mode for {{{config2(background.workOffline,background requests (bg))}}} and {{{config2(extension.workOffline,requests generated by extensions (ext))}}}.
 
 Unlike the =File > Work Offline= option of Firefox, enabling any of these toggles:
 
 - does not break =hoardy-web serve= replay URLs;
 - does not break any requests that are already in-flight;
-- does not prevent generation/capture of new =canceled= reqres when a corresponding =Track new requests= toggles {{{config2(collecting,(glob))}}}, {{{perSource(collecting)}}} are enabled and {{{config2(collectingWorkOffline,this toggle)}}} is set;
+- does not prevent generation/capture of new =canceled= reqres when a corresponding =Track new requests= toggles {{{globPerSource(collecting)}}} are enabled and {{{config2(collectingWorkOffline,this toggle)}}} is set;
 
-  this makes it possible to inspect the resulting =canceled= reqres in the log {{{logPage}}};
+  this makes it possible to inspect the resulting =canceled= reqres in the logs {{{logPage}}};
 
   though, note that those newly generated =canceled= reqres will be marked as =problematic= if {{{config2(markProblematicDroppedWithErrors,that option)}}} is enabled.
 
-Finally, there is also a {{{div2(special-tab-options,bunch options)}}} that automatically enable "Work offline" mode in tabs with various classes of URLs.
-By default, "Work offline" mode is enabled for =file:= and replay URLs to stop any pages generated by =hoardy-web mirror= and =hoardy-web serve= to accessing the Internet.
-** Using =Hoardy-Web= with Tor Browser
-:PROPERTIES:
-:CUSTOM_ID: tor-browser
-:END:
-
-When running =Hoardy-Web= under Tor Browser, you probably want to configure it all in such a way so that all of the machinery of =Hoardy-Web= is completely invisible to web pages running under your Tor Browser, to prevent fingerprinting.
-
-Thus, you can simply use =Hoardy-Web= extension configured to {{{config2(archiveSaveLS,=Save reqres into local storage=)}}}, which is the default, and then {{{config2(rearchiveExportAs,export your dumps manually)}}} at the end of a browsing session via {{{div2(rearchive-actions,re-archival actions)}}}, which would take a couple of clicks, as [[#re-archival][discussed above]].
-
-Or, alternatively, you can switch to using {{{config2(archiveExportAs,=Export dumps via 'saveAs'=)}}} by default instead, disabling the other archiving methods.
-I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [[#unsafe-saveas][this is unsafe]].
-Also, by default, browser's UI will be slightly annoying, since =Hoardy-Web= will be generating new "Downloads" all the time, but that issue [[#faq-firefox-saveas][can be fixed with a small =about:config= change]].
-
-Using either of the above methods won't allow you to replay archived captured, though.
-*** Replay
-In theory, running [[../../tool/][=hoardy-web serve=]] listening on a loopback IP address should prevent web pages from accessing it, since the browsers disallow cross-origin requests from non-localhost domains to localhost, thus making the normal {{{config2(archiveSubmitHTTP,=Submit dumps via 'HTTP'= mode)}}} with {{{config2(replaySubmitHTTP,replay)}}} setup quite viable.
-However, Tor Browser is configured to proxy everything via the TOR network by default, so you need to configure it to exclude the requests to =hoardy-web serve= from being proxied.
-
-A slightly more paranoid than normal way to do this is as follows:
-
-- Run the server as =hoardy-web serve --host 127.0.99.1= or similar.
-- Point the {{{config2(submitHTTPURLBase,=Server URL= setting)}}} to the resulting URL (=http://127.0.99.1:3210/= or similar).
-- Switch to {{{config2(archiveSubmitHTTP,=Submit dumps via 'HTTP'=)}}} by default, disabling the other archiving methods.
-- Go to =about:config= in your Tor Browser and add =127.0.99.1= (or similar) to =network.proxy.no_proxies_on=.
-
-Why?
-When using Tor Browser, you probably don't want to use =127.0.0.1= and =127.0.1.1= as those are normal loopback IP addresses used by most things, and you probably don't want to allow any =JavaScript= code running in Tor Browser to (potentially, if there are any bugs) access to those.
-Yes, if there are any bugs in the cross-domain check code, with this setup =JavaScript= could discover you are using =Hoardy-Web= (and then, in the worst case, access all of your archived captures and DOS your system by flooding your disk with garbage dumps), but it won't be able to touch the rest of your stuff listening on your other loopback addresses.
-
-So, while this setup is not super-secure if your Tor Browser allows web pages to run arbitrary =JavaScript= (in which case, let's be honest, no setup is secure), with =JavaScript= always disabled, to me, it looks like a completely reasonable thing to do.
+Finally, there is also a {{{div2(special-tab-options,bunch of options)}}} that automatically enable work offline mode in tabs with various classes of URLs.
+By default, work offline mode is enabled for =file:= and replay URLs to stop any pages generated by =hoardy-web mirror= and =hoardy-web serve= to accessing the Internet.
 * Keyboard shortcuts
 :PROPERTIES:
 :CUSTOM_ID: shortcuts
@@ -787,36 +814,70 @@ Moreover, =Hoardy-Web= provides context menu actions to:
   - toggling {{{tabconfig2(children.collecting,this)}}},
   - middle-mouse clicking a link,
   - toggling {{{tabconfig2(children.collecting,this)}}} again.
+* Workflows
+:PROPERTIES:
+:CUSTOM_ID: workflows
+:END:
+** Using =Hoardy-Web= with Tor Browser
+:PROPERTIES:
+:CUSTOM_ID: tor-browser
+:END:
+
+When running =Hoardy-Web= under Tor Browser you'll probably want to configure it in such a way so that all of the machinery of =Hoardy-Web= is completely invisible to web pages running under your Tor Browser, to prevent fingerprinting.
+
+Thus, you can simply use =Hoardy-Web= extension configured to {{{config2(archiveSaveLS,=Save reqres into local storage=)}}}, which is the default, and then {{{config2(rearchiveExportAs,export your dumps manually)}}} at the end of a browsing session via {{{div2(rearchive-actions,re-archival actions)}}}, which would take a couple of clicks, as [[#re-archival][discussed above]].
+
+Or, alternatively, you can switch to using {{{config2(archiveExportAs,=Export dumps via 'saveAs'=)}}} by default instead, disabling the other archiving methods.
+I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [[#unsafe-saveas][this is unsafe]].
+Also, by default, browser's UI will be slightly annoying, since =Hoardy-Web= will be generating new "Downloads" all the time, but that issue [[#faq-firefox-saveas][can be fixed with a small =about:config= change]].
+
+Using either of the above methods won't allow you to replay archived captures, though.
+*** Replay
+:PROPERTIES:
+:CUSTOM_ID: tor-browser-replay
+:END:
+
+In theory, running [[../../tool/][=hoardy-web serve=]] listening on a loopback IP address should prevent web pages from accessing it, since the browsers disallow cross-origin requests from non-localhost domains to localhost, thus making the normal {{{config2(archiveSubmitHTTP,=Submit dumps via 'HTTP'= mode)}}} with {{{config2(replaySubmitHTTP,replay)}}} setup quite viable.
+However, Tor Browser is configured to proxy everything via the TOR network by default, so you need to configure it to exclude the requests to =hoardy-web serve= from being proxied.
+
+A slightly more paranoid than normal way to do this is as follows:
+
+- Run the server as =hoardy-web serve --host 127.0.99.1= or similar.
+- Point the {{{config2(submitHTTPURLBase,=Server URL= setting)}}} to the resulting URL (=http://127.0.99.1:3210/= or similar).
+- Switch to {{{config2(archiveSubmitHTTP,=Submit dumps via 'HTTP'=)}}} by default, disabling the other archiving methods.
+- Go to =about:config= in your Tor Browser and add =127.0.99.1= (or similar) to =network.proxy.no_proxies_on=.
+
+Why?
+When using Tor Browser, you probably don't want to use =127.0.0.1= and =127.0.1.1= as those are normal loopback IP addresses used by most things, and you probably don't want to allow any =JavaScript= code running in Tor Browser to (potentially, if there are any bugs) access to those.
+Yes, if there are any bugs in the cross-domain check code, with this setup =JavaScript= could discover you are using =Hoardy-Web= (and then, in the worst case, access all of your archived captures and DOS your system by flooding your disk with garbage dumps), but it won't be able to touch the rest of your stuff listening on your other loopback addresses.
+
+So, while this setup is not super-secure if your Tor Browser allows web pages to run arbitrary =JavaScript= (in which case, let's be honest, no setup is secure), with =JavaScript= always disabled, to me, it looks like a completely reasonable thing to do.
 * Error messages and codes
 :PROPERTIES:
 :CUSTOM_ID: errors
 :END:
 ** Error messages, as seen in generated notifications
 :PROPERTIES:
-:CUSTOM_ID: errors-notifications
+:CUSTOM_ID: error-notifications
 :END:
 
-- =`Hoardy-Web` can't establish a connection to the archiving server at `<URL>`=, =The archiving server at `<URL>` appears to be defunct=, =The archiving server at `<URL>` does not allow archiving, it appears to be a replay-only instance=, =Failed to archive <N> items because `Hoardy-Web` can't establish a connection to the archiving server=, and =Failed to archive <N> items because this archiving server is defunct=
+- One of
+  - =`Hoardy-Web` can't establish a connection to the archiving server at `<URL>`=,
+  - =The archiving server at `<URL>` appears to be unavailable=,
+  - =The archiving server at `<URL>` does not allow archiving, it appears to be a replay-only instance=,
+  - =... Failed to archive <N> items because this archiving server is unavailable=,
+  - =... Failed to archive <N> items because this archiving server does not support archiving=,
+  - =... Failed to archive <N> items because this archiving server appears to be defunct=, or
+  - =... Failed to archive <N> items because `Hoardy-Web` can't establish a connection to the archiving server: <reason>=:
 
   Are you running the [[../../simple_server/][=hoardy-web-sas= archiving server script]] or a [[../../tool/][=hoardy-web serve=]] instance?
 
-  In the case of =hoardy-web serve=, does that server instance allow archiving? is it replay-only, maybe?
+  In the case of =hoardy-web serve=, does that server instance allow archiving?
+  Is it replay-only, maybe?
 
   If you fixed it and the error persists, press {{{button2(retryAllFailed,this button)}}}.
 
-- =Replay is forbidden by the "Replay from the archiving server" option.=
-
-  Un-disable {{{config2(replaySubmitHTTP,this option)}}}.
-
-- =Replay is impossible because the archiving server at `<URL>` is unavailable or defunct.= and =The archiving server at `<URL>` does not support replay.=
-
-  Are you running [[../../tool/][=hoardy-web serve=]]?
-
-  At the moment, that's the only archiving server that supports this.
-
-  If you fixed it and the error persists, press {{{button2(retryAllFailed,this button)}}}.
-
-- =Failed to archive <N> items because requests to the archiving server failed with: <STATUS> <REASON>: <RESPONSE>=
+- =... Failed to archive <N> items because requests to the archiving server failed with: <STATUS> <REASON>: <RESPONSE>=:
 
   Your archiving sever is returning =HTTP= errors when =Hoardy-Web= is trying to archive data to it.
   See your archiving server's console for more information.
@@ -825,7 +886,10 @@ Moreover, =Hoardy-Web= provides context menu actions to:
   - No space left on the device you are archiving to.
   - It's a bug, {{{reportit()}}}.
 
-- =Failed to stash <N> items becase <reason>= or =Failed to archive <N> items becase <reason>=
+- One of
+  - =... Failed to stash <N> items because <reason>= or
+  - =... Failed to archive <N> items because <reason>=
+  that are not the ones mentioned above:
 
   Stashing or archiving failed for some other reason.
 
@@ -833,10 +897,21 @@ Moreover, =Hoardy-Web= provides context menu actions to:
   - No space left on the device your browser saves its local storage to.
   - It's a bug, {{{reportit()}}}.
 
-- =Failed to open/create a database via `IndexedDB` API, all data persistence will be done via `storage.local` API instead. This is not ideal, but not particularly bad. However, the critical issue is that it appears Hoardy-Web previously used `IndexedDB` for archiving and/or stashing reqres.=
+- =Replay/Auto-replay is forbidden by the "Replay from the archiving server" option=:
 
-  So, it worked before, but why doesn't it work now?
-  The most likely reason is: you are running =Hoardy-Web= under a browser based on an older version of Firefox and you have recently enabled =Always use private browsing mode= setting in your browser's config.
+  Enable {{{config2(replaySubmitHTTP,this option)}}}.
+
+- =Replay/Auto-replay is impossible because the archiving server at `<URL>` <reason>=:
+
+  Are you running [[../../tool/][=hoardy-web serve=]]?
+
+  At the moment, that's the only archiving server that supports this feature.
+
+  If you fixed it and the error persists, press {{{button2(retryAllFailed,this button)}}}.
+
+- =Failed to open Hoardy-Web's database using `IndexedDB` API, but it appears that `IndexedDB` was previously used for stashing and/or archiving reqres. ...=:
+
+  The most likely reason for this error is that you are running =Hoardy-Web= under a browser based on an older version of Firefox and you have recently enabled =Always use private browsing mode= setting in your browser's config.
   Older versions of Firefox forbid the use of =IndexedDB= API when that setting is set.
 
   To make archives currently saved in =IndexedDB= accessible to =Hoardy-Web= under =Always use private browsing mode= you need to:
@@ -844,22 +919,22 @@ Moreover, =Hoardy-Web= provides context menu actions to:
   - Disable =Always use private browsing mode= browser setting and restart the browser, thus allowing =Hoardy-Web= access to =IndexedDB= again.
   - Disable {{{config2(preferIndexedDB,=Prefer 'IndexedDB' API= setting)}}}.
   - Disable all {{{div2(rearchive-methods,re-archival methods)}}}.
-  - Enable {{{div2(rearchive.andRewrite,=... and force a re-write= option)}}},
+  - Enable {{{div2(rearchive.andRewrite,rewrites)}}},
   - press {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}},
   - and wait for re-archival to finish.
   - Now, you can re-enable the =Always use private browsing mode= browser setting and restart you browser again.
 
   All old data should be available at the {{{button2(showSaved,=Saved in Local Storage= page)}}} now.
 
-- =Failed to process <N> items becase <reason>=
+- =Bugged out: Failed to process <N> items because <reason>=:
 
   It's a bug, {{{reportit()}}}.
 
 - Other error notifications should be completely self descriptive.
   If they are not, {{{reportit()}}}.
-** Errors recorded in =reqres=, as seen in the log
+** Errors recorded in =reqres=, as seen in the logs
 :PROPERTIES:
-:CUSTOM_ID: errors-reqres
+:CUSTOM_ID: reqres-errors
 :END:
 
 ... at {{{logPage}}}.
@@ -900,7 +975,7 @@ In particular:
   but it can happen if a page tries to load a sub-frame (like =iframe=) while the debugger for the tab (and, thus, the main frame) did not attach yet (which only happens for pages where Chromium disallows debugging, or when =Hoardy-Web= gets enabled after the page in question already started loading, e.g. the very first page after the browser starts);
   also, this can happen when the debugger gets detached after the main frame was captured but its resources are still loading.
 
-- =webRequest::capture::CANCELED::BY_WORK_OFFLINE= is produced when the reqres was canceled by one of "Work offline" options, i.e. as a result of one or more of {{{config2(workOffline,this)}}}-{{{tabconfig2(workOffline,this)}}}-{{{tabconfig2(children.workOffline,this)}}}-{{{config2(root.workOffline,this)}}}-{{{config2(background.workOffline,or)}}}-{{{config2(extension.workOffline,that)}}} options being set.
+- =webRequest::capture::CANCELED::BY_WORK_OFFLINE= is produced when the reqres was canceled as a result of one of the work offline options {{{globPerSource(workOffline,this)}}} being set.
 * Quirks and Bugs
 :PROPERTIES:
 :CUSTOM_ID: bugs
@@ -919,7 +994,7 @@ If you are reading this page outside of the extension's UI be sure to read the [
   Chromium does support it, in theory, but I have not tried using that API, so I have no idea how well it works.)
 
   This is low-priority issue since you can simply {{{button2(snapshotTab,take a =DOM= snapshot)}}} instead of capturing and later replaying WebSocket messages to in-page =JavaScript=.
-  Also, capturing and archiving a =DOM= snapshot will free you from needing to run any =JavaScript= at all when you decide to return to view the archived page later, which is nice.
+  Also, capturing and archiving a =DOM= snapshot will free you from needing to run any =JavaScript= at all when you decide to replay the archived page later, which is nice.
 
 - On Chromium, response data of background requests and requests made by other extensions does not get collected, since there's no tab to attach a debugger to, and I have not figured out how to attach debugger to other things yet.
 
@@ -953,7 +1028,7 @@ If you are reading this page outside of the extension's UI be sure to read the [
 
 - =If-Modified-Since= and =If-None-Match= headers never get archived, because the browser never supplies them to the extensions. Thus, you can get =304 Not Modified= reqres response to a seemingly normal =GET= request.
 
-- Reqres of already cached media files (images, audio, video, except for svg and favicons) will end in =incomplete_fc= state because =webRequest.filterResponseData= API does not provide response bodies for such requests.
+- Reqres of already cached media files (images, audio, video, except for SVG and favicons) will end in =incomplete_fc= state because =webRequest.filterResponseData= API does not provide response bodies for such requests.
   {{{config2(archiveIncompleteResponse,This toggle)}}} controls if such reqres should be =picked=.
 
   By default, =Hoardy-Web= will =drop= them.
@@ -973,7 +1048,7 @@ If you are reading this page outside of the extension's UI be sure to read the [
   =Hoardy-Web= then has to take guesses, and marks such reqres with =buggy response metadata= flag.
 ** Known issues that are consequences of issues of Firefox-based mobile browsers: Fenix aka Firefox for Android, Fennec, Mull, etc
 :PROPERTIES:
-:CUSTOM_ID: firefoxa-android-bugs
+:CUSTOM_ID: firefox-android-bugs
 :END:
 
 [[#firefox-bugs][All of the above]] apply, moreover:
@@ -1010,14 +1085,14 @@ This makes things a bit tricky, for instance:
 
 Moreover, Chromium has the following long-standing issues/bugs making things difficult:
 
-- @@html:<span id="chromium-bug-no-large-files">@@ Chromium will automatically detach a debugger from a tab if it tries to save too much data into its debugger state.
+- @@html:<span id="chromium-bug-no-large-files">@@ Chromium will automatically detach its debugger from a tab if it tries to save too much data into its debugger state.
   Which means that a tab that loads too much data too fast will get its debugger detached.
   Chromium does this to try and save memory, but this, among other issues, means that large images will fail to be properly archived, and any page that loads such files is likely to fail to be archived too.
   @@html:</span>@@
 
   This is a design limitation of Chromium debugging interface, there appears to be no work-around for this at the moment.
 
-  Meanwhile, on Firefox, =Hoardy-Web= uses =webRequest.filterResponseData= API (not available no Chromium, because it greatly enhances browser's ad-blocking capabilities) which does not suffer from this problem.
+  Meanwhile, on Firefox, =Hoardy-Web= uses =webRequest.filterResponseData= API (not available on Chromium, because it greatly enhances browser's ad-blocking capabilities) which does not suffer from this problem.
 
 - @@html:<span id="chromium-bug-autodetach">@@ Chromium will occasionally detach debuggers from some tabs at random.
   It just happens.
@@ -1059,7 +1134,7 @@ Moreover, Chromium has the following long-standing issues/bugs making things dif
 
   Most commonly, this happens for responses loaded from cache, but it can also happen for network fetches, apparently, at random.
 
-  In this case, =Hoardy-Web= will collect no request data and metadata, this marking such reqres with both =partial request body= and =buggy request metadata=.
+  In this case, =Hoardy-Web= will collect no request data and metadata, this marking such reqres with both =partial request body= and =buggy request metadata= flags.
 * Frequently Asked Questions
 :PROPERTIES:
 :CUSTOM_ID: faq
@@ -1091,7 +1166,7 @@ This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough 
 *** =Hoardy-Web= asks for a lot of permissions, what does it use all those permissions for?
 
 - =<all_urls>= permission is used so that =Hoardy-Web= could capture all URLs.
-- =tabs= permission is used for tracking per-tab state and stats, making =Hoardy-Web='s toolbar icon show per-tab state, {{{button2(snapshotAll,taking =DOM= snapshot of all tabs)}}}, buttons switching to a related tab in the log {{{logPage}}}, etc.
+- =tabs= permission is used for tracking per-tab state and stats, making =Hoardy-Web='s toolbar icon show per-tab state, {{{button2(snapshotAll,taking =DOM= snapshot of all tabs)}}}, switching to reqres-related tabs from the logs {{{logPage}}}, etc.
 - =webRequest=, =webRequestBlocking=, and (on Chromium) =debugger= permissions are used to track and capture =HTTP= requests and responses as well as to apply {{{div2(special-tab-options,=Tabs with special URLs= options)}}} and other URL-dependent settings when a tab navigates to a different URL.
 - =webNavigation= permission is only used for internal logging at the moment.
 - =storage= permission is used to save extension config and stats.
@@ -1128,14 +1203,14 @@ You can also do that for all open tabs for which {{{tabconfig2(snapshottable,thi
 
 In the most general case, you will have to scroll the page around and click random buttons and media elements.
 
-=Hoardy-Web= has no "autopilot" for doing this, nor will it ever get one, at least as part of =Hoardy-Web= extension, since "autopiloting" is very website-specific.
+=Hoardy-Web= has no "autopilot" for doing this, nor will it ever get one, at least as part of =Hoardy-Web= extension itself, since "autopiloting" is very website-specific.
 So, at the moment, the most general semi-automated solution is to run a website-specific UserScript via [[https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/][Tampermonkey]] or some such, wait until everything finishes loading, and then take a {{{button2(snapshotTab,snapshot)}}}.
 (=Hoardy-Web= will get an integration for automating that, eventually.)
 
 On the other hand, if you
 
 - run =Hoardy-Web= under Firefox,
-- just want to load all lazily-loaded images the page already has (NOT load more stuff), and
+- just want to load all lazily-loaded images the page already has (*not* load more stuff), and
 - the page in question uses modern HTML5 lazy loading attributes instead of using =JavaScript= to do the same,
 
 then you can simply go to =about:config= and toggle =dom.image-lazy-loading.enabled= to =false=.
@@ -1157,7 +1232,7 @@ In combination with {{{div2(closed-tab-options,=Closed tabs= options)}}} you can
 :CUSTOM_ID: store-pages
 :END:
 
-Browsers prevent extensions from running on extension store pages to prevent them from manipulating ratings, reviews, and etc such things.
+Browsers prevent extensions from running on extension store pages to prevent them from manipulating ratings, reviews, and similar things.
 However, you can archive [[https://addons.mozilla.org/]] pages by running =Hoardy-Web= under Chromium and [[https://chromewebstore.google.com/]] pages by running =Hoardy-Web= under Firefox.
 *** When running =Hoardy-Web= under Chromium, a lot of my captures fail with =debugger::capture::EMIT_FORCED::BY_DETACHED_DEBUGGER=, =debugger::capture::NO_RESPONSE_BODY::DETACHED_DEBUGGER=, =webRequest::capture::CANCELED::NO_DEBUGGER=, and similar errors. What do I do?
 :PROPERTIES:
@@ -1175,7 +1250,7 @@ You are either
   the only solution to this I know of is to just not touch the keyboard at all, at least while things are still loading;
   i.e. just click on stuff using the mouse/track-point/touch-pad/touchscreen/etc, wait for the =T= ("Tracking") to vanish from the extension's badge, and only then let your (grabby and impatient for exercise via [[#shortcuts][keyboard shortcuts]]) fingers to touch the keyboard;
 
-  even then, Chromium will detach debuggers from time to time seemingly at random, but at least it will be rare enough that you won't need to reload much;
+  even then, Chromium will detach its debugger from time to time seemingly at random, but at least it will be rare enough that you won't need to reload much;
 
 - trying to capture large images, any audio files, or any videos;
 
@@ -1207,7 +1282,7 @@ Most notably:
 :CUSTOM_ID: faq-unsafe
 :END:
 
-Archival {{{config2(archiveExportAs,by exporting using =saveAs=)}}} (generation of fake-Downloads) can fail and **lose a bit of your collected data at a time** if you press a wrong button in you browser's UI, mis-reconfigure your browser a bit, or [[#unsafe-saveas][your disk gets out of space unexpectedly]].
+Archival {{{config2(archiveExportAs,by exporting using =saveAs=)}}} (generation of fake-Downloads) can fail and **lose a bit of your collected data at a time** if you press a wrong button in you browser's UI, misconfigure your browser a bit, or [[#unsafe-saveas][your disk gets out of space unexpectedly]].
 
 Archival {{{config2(archiveSaveLS,to browser's local storage)}}} (which is what =Hoardy-Web= is doing by default) can **loose all your collected data at the same time** if you uninstall the extension by accident.
 
@@ -1219,9 +1294,9 @@ Meanwhile, archival {{{config2(archiveSubmitHTTP,by submission via =HTTP=)}}} ha
 
   by using an archiving server, you can only loose your archived data if you go to its directory and delete some of it yourself, or if your disk dies, or if your file system gets corrupted;
 
-  all of those problems are solved by regular backups.
+  all of these problems can be trivially solved by doing backups regularly.
 
-Archival {{{config2(archiveSaveLS,to browser's local storage)}}} was added because it was very easy to implement after [[#stash][stashing]] was added.
+Archival {{{config2(archiveSaveLS,to browser's local storage)}}} was added because it was very easy to implement after [[#stashing][stashing]] was added.
 It is the default because it usually works fine, it properly reports errors, has the most consistent behaviour across all browsers, and does not require the user to install any Python code, which helps with on-boarding.
 
 In the ideal world, browsers would provide a better =saveAs= API which would have a less annoying UI for the user and would return out-of-disk-space errors to the extension, in which case {{{config2(archiveExportAs,exporting via =saveAs=)}}} would be the default.
@@ -1234,12 +1309,18 @@ As it is now, the only way to be absolutely sure you data is properly forever-sa
 
 Yes, go to =about:config= and toggle =browser.download.alwaysOpenPanel= to =false=.
 ** This page does not answer my question. What do I do?
+:PROPERTIES:
+:CUSTOM_ID: more
+:END:
+
 Did you try searching for stuff with =Control+F= on this page?
 This document contains quite a bit of information.
 
-If you question is about =hoardy-web serve= replay server, see [[../../tool/][there]].
-If you question is about other parts of this project, see [[../../][there]].
-If the those pages do not mention your problem, {{{reportit()}}}.
+Is your question about the =Hoardy-Web= browser extension in truth?
+- If it's about =hoardy-web serve= replay server, see [[../../tool/][there]].
+- If it's about another parts of the =Hoardy-Web= project, see [[../../][there]].
+
+If none of those pages mention your problem, {{{reportit()}}}.
 
 Usually, the simplest way to search for things is to simply =git clone= the [[../../][whole thing]] and then search there with =grep= or more advanced tools.
 This applies not only to this project, but in general.
