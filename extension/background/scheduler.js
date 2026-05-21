@@ -41,9 +41,9 @@ let scheduledHidden = new Map();
 // a list of [function, args] pairs; these are closures that need to be run synchronously
 let synchronousClosures = [];
 
-async function evalSynchronousClosures(closures, updatedTabId) {
+async function evalClosures(closures, updatedTabId) {
     while (closures.length > 0) {
-        let [name, fun, args] = closures.shift();
+        let [name, func, args] = closures.shift();
 
         let key = "endgame::" + name;
         if (config.debugRuntime)
@@ -54,7 +54,7 @@ async function evalSynchronousClosures(closures, updatedTabId) {
         updatedTabId = undefined;
 
         try {
-            let res = fun(...args);
+            let res = func(...args);
             while (res instanceof Promise)
                 res = await res;
         } catch (err) {
@@ -126,7 +126,7 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
         });
     } else if (synchronousClosures.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
-            await evalSynchronousClosures(synchronousClosures, updatedTabId);
+            await evalClosures(synchronousClosures, updatedTabId);
             scheduleEndgame(undefined, notifyTimeout);
         });
     } else if (config.archive && reqresQueue.length > 0) {
@@ -211,22 +211,22 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
 // `scheduleEndgame` or update the UI.
 //
 // The scheduled function is experted to return `updatedTabId` value.
-function scheduleActionExtra(map, key, priority, timeout, hurry, func, endgame) {
-    let value = resetSingletonTimeout(map, key, timeout, func, priority, hurry);
+function scheduleActionExtra(map, name, priority, timeout, hurry, func, endgame) {
+    let value = resetSingletonTimeout(map, name, timeout, func, priority, hurry);
     if (value === undefined)
         // it was already scheduled (and might have been re-scheduled), no nothing
         return;
 
     value.before.push(async () => {
         if (config.debugRuntime)
-            console.warn("running", key);
-        runningActions.add(key);
+            console.warn("running", name);
+        runningActions.add(name);
         await forceUpdateDisplay(true);
     });
     value.after.push(async (results) => {
         if (config.debugRuntime)
-            console.warn("finished", key, results);
-        runningActions.delete(key);
+            console.warn("finished", name, results);
+        runningActions.delete(name);
 
         // merge results of all performed updates
         let updatedTabId;
@@ -241,10 +241,10 @@ function scheduleActionExtra(map, key, priority, timeout, hurry, func, endgame) 
     return value;
 }
 
-function scheduleAction(map, key, timeout, func) {
-    return scheduleActionExtra(map, key, 100, timeout, false, func, false);
+function scheduleAction(map, name, timeout, func) {
+    return scheduleActionExtra(map, name, 100, timeout, false, func, false);
 }
 
-function scheduleActionEndgame(map, key, timeout, func) {
-    return scheduleActionExtra(map, key, 100, timeout, false, func, true);
+function scheduleActionEndgame(map, name, timeout, func) {
+    return scheduleActionExtra(map, name, 100, timeout, false, func, true);
 }

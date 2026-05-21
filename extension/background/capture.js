@@ -46,7 +46,7 @@ async function syncDebuggersState(tabs) {
         }
 
         let attached = tabsDebugging.has(tab.id);
-        let tabcfg = getOriginConfig(tab.id);
+        let tabcfg = getTabConfig(tab.id);
         let workOffline = config.workOffline || tabcfg.workOffline;
         let wantAttached = hasInFlight
             || config.collecting && tabcfg.collecting
@@ -788,7 +788,7 @@ function handleBeforeRequest(e) {
     }
 
     let tabId = e.tabId;
-    let tabcfg = getOriginConfig(tabId, fromExtension);
+    let tabcfg = getTabConfig(tabId, fromExtension);
 
     if (isMainFrame) {
         if (config.debugRuntime)

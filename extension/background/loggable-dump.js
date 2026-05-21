@@ -83,10 +83,10 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
     for (let archivable of popped) {
         let [loggable, dump] = archivable;
         try {
-            let info = getOriginState(loggable.tabId, loggable.fromExtension);
+            let tabstate = getTabState(loggable.tabId, loggable.fromExtension);
             loggable.problematic = false;
             loggable.dirty = true;
-            info.problematicTotal -= 1;
+            tabstate.problematicTotal -= 1;
 
             if (loggable.inLS !== undefined)
                 // it was stashed before, re-stash it
@@ -180,7 +180,7 @@ function popInLimbo(collect, rrfilter) {
             let dumpSize = loggable.dumpSize;
             minusSize += dumpSize;
 
-            let info = getOriginState(loggable.tabId, loggable.fromExtension);
+            let tabstate = getTabState(loggable.tabId, loggable.fromExtension);
 
             if (collect)
                 unmarkProblematicSimilarTo(loggable, false, newlyUnproblematic, true);
@@ -188,11 +188,11 @@ function popInLimbo(collect, rrfilter) {
             loggable.in_limbo = false;
             loggable.dirty = true;
             if (loggable.sessionId === sessionId) {
-                info.inLimboTotal -= 1;
-                info.inLimboSize -= dumpSize;
+                tabstate.inLimboTotal -= 1;
+                tabstate.inLimboSize -= dumpSize;
             }
 
-            processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+            processNonLimbo(archivable, collect, tabstate, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
         } catch (err) {
             logHandledError(err);
             markAsBuggedOut(err, archivable);
@@ -293,9 +293,9 @@ function updateLoggable(loggable) {
     if (loggable.sessionId !== sessionId)
         return;
 
-    let options = getOriginConfig(loggable.tabId, loggable.fromExtension);
-    if (loggable.bucket !== options.bucket) {
-        loggable.bucket = options.bucket;
+    let tabcfg = getTabConfig(loggable.tabId, loggable.fromExtension);
+    if (loggable.bucket !== tabcfg.bucket) {
+        loggable.bucket = tabcfg.bucket;
         loggable.dirty = true;
     }
 }
@@ -436,7 +436,7 @@ function renderReqres(encoder, reqres) {
     });
 }
 
-function processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
+function processNonLimbo(archivable, collect, tabstate, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
@@ -449,8 +449,8 @@ function processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, ne
 
         globals.collectedTotal += 1;
         globals.collectedSize += dumpSize;
-        info.collectedTotal += 1;
-        info.collectedSize += dumpSize;
+        tabstate.collectedTotal += 1;
+        tabstate.collectedSize += dumpSize;
 
         if (!config.archive && config.stash)
             // stuck queue, stash it
@@ -458,8 +458,8 @@ function processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, ne
     } else {
         globals.discardedTotal += 1;
         globals.discardedSize += dumpSize;
-        info.discardedTotal += 1;
-        info.discardedSize += dumpSize;
+        tabstate.discardedTotal += 1;
+        tabstate.discardedSize += dumpSize;
 
         if (loggable.inLS !== undefined)
             // it was stashed before, unstash it
@@ -543,8 +543,8 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
     let updatedTabId = reqres.tabId;
     let statusCode = reqres.statusCode;
 
-    let options = getOriginConfig(updatedTabId, reqres.fromExtension);
-    let info = getOriginState(updatedTabId, reqres.fromExtension);
+    let tabcfg = getTabConfig(updatedTabId, reqres.fromExtension);
+    let tabstate = getTabState(updatedTabId, reqres.fromExtension);
 
     let state = "complete";
     let problematic = false;
@@ -628,7 +628,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
                        : config.markProblematicDroppedWithErrors);
     }
 
-    let in_limbo = picked && options.limbo || !picked && options.negLimbo;
+    let in_limbo = picked && tabcfg.limbo || !picked && tabcfg.negLimbo;
 
     // dump it to console when debugging
     if (config.debugCaptures || config.dumpCaptures)
@@ -643,11 +643,11 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
             "res", reqres.responseComplete,
             "result", statusCode, reqres.reason, reqres.statusLine,
             "errors", reqres.errors,
-            "bucket", options.bucket,
+            "bucket", tabcfg.bucket,
             reqres);
 
     let loggable = makeLoggable(reqres);
-    loggable.bucket = options.bucket;
+    loggable.bucket = tabcfg.bucket;
     loggable.net_state = state;
     loggable.was_problematic = loggable.problematic = problematic;
     loggable.picked = picked;
@@ -678,29 +678,29 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
         unmarkProblematicSimilarTo(loggable, true, newlyUnproblematic, true);
 
         globals.pickedTotal += 1;
-        info.pickedTotal += 1;
+        tabstate.pickedTotal += 1;
     } else {
         globals.droppedTotal += 1;
-        info.droppedTotal += 1;
+        tabstate.droppedTotal += 1;
     }
 
     if (in_limbo) {
         reqresLimbo.push(archivable);
         reqresLimboSize += dumpSize;
-        info.inLimboTotal += 1;
-        info.inLimboSize += dumpSize;
+        tabstate.inLimboTotal += 1;
+        tabstate.inLimboSize += dumpSize;
         newlyLimboed.push(loggable);
-        if (config.stash && options.stashLimbo)
+        if (config.stash && tabcfg.stashLimbo)
             newlyStashed.push(archivable);
         gotNewLimbo = true;
     } else
-        processNonLimbo(archivable, picked, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+        processNonLimbo(archivable, picked, tabstate, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
 
     if (problematic) {
         reqresProblematic.push(archivable);
-        info.problematicTotal += 1;
+        tabstate.problematicTotal += 1;
         newlyProblematic.push(loggable);
-        if (options.problematicNotify)
+        if (tabcfg.problematicNotify)
             gotNewProblematic = true;
     }
 }

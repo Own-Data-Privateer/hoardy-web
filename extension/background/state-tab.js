@@ -42,7 +42,7 @@ let tabStateDefaults = {
 // per-source globals.pickedTotal, globals.droppedTotal, etc
 let tabState = new Map();
 
-function getOriginState(tabId, fromExtension) {
+function getTabState(tabId, fromExtension) {
     // NB: not tracking extensions separately here, unlike with configs
     if (fromExtension)
         tabId = -1;
@@ -55,7 +55,7 @@ function prefillChildren(data) {
     }, data);
 }
 
-function getOriginConfig(tabId, fromExtension) {
+function getTabConfig(tabId, fromExtension) {
     if (fromExtension)
         return prefillChildren(config.extension);
     else if (tabId == -1)
@@ -254,16 +254,16 @@ function processNewTab(tabId, openerTabId) {
         // variable.
         openerTabId = negateOpenerTabIds.shift();
 
-    let openercfg = getOriginConfig(openerTabId !== undefined ? openerTabId : null);
+    let openercfg = getTabConfig(openerTabId !== undefined ? openerTabId : null);
 
-    let children = openercfg.children;
+    let base = openercfg.children;
     if (openerTabId !== undefined && negateConfigFor.delete(openerTabId)) {
-        // Negate children.collecting when `openerTabId` is in `negateConfigFor`.
-        children = assignRec({}, openercfg.children);
-        children.collecting = !children.collecting;
+        // Negate `base.collecting` when `openerTabId` is in `negateConfigFor`.
+        base = assignRec({}, base);
+        base.collecting = !base.collecting;
     }
 
-    let tabcfg = prefillChildren(children);
+    let tabcfg = prefillChildren(base);
     tabConfig.set(tabId, tabcfg);
 
     scheduleUpdateDisplay(false, tabId);

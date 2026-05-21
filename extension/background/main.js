@@ -158,23 +158,23 @@ function latestReplayOf(url) {
     return (new URL(replayURL, serverConfig.baseURL)).href;
 }
 
-async function replay(tabIdNull, direction) {
+async function replay(tabIdOrNull, direction) {
     if (!checkReplay())
         return;
 
     let tabs;
-    if (tabIdNull === null)
+    if (tabIdOrNull === null)
         tabs = await browser.tabs.query({});
     else {
-        let tab = await browser.tabs.get(tabIdNull);
+        let tab = await browser.tabs.get(tabIdOrNull);
         tabs = [ tab ];
     }
 
     for (let tab of tabs) {
         let tabId = tab.id;
-        let tabcfg = getOriginConfig(tabId);
+        let tabcfg = getTabConfig(tabId);
         let url = getTabURL(tab);
-        if (tabIdNull === null && !tabcfg.replayable
+        if (tabIdOrNull === null && !tabcfg.replayable
             || isBoringOrServerURL(url)) {
             if (config.debugRuntime)
                 console.log("MAIN: NOT replaying tab", tabId, url);
@@ -240,13 +240,13 @@ function handleTabReplaced(addedTabId, removedTabId) {
     processNewTab(addedTabId);
 }
 
-function handleTabActivated(e) {
-    let tabId = e.tabId;
+function handleTabActivated(tab) {
+    let tabId = tab.tabId;
     if (config.debugRuntime)
         console.log("BROWSER: tab activated", tabId);
     if (useDebugger)
         // Chromium does not provide `browser.menus.onShown` event
-        updateMenu(getOriginConfig(tabId));
+        updateMenu(getTabConfig(tabId));
     // Usually, this will not be enough, see `handleTabUpdated`.
     scheduleUpdateDisplay(false, tabId, true);
 }
@@ -394,7 +394,7 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         return true;
 
     if (command.startsWith("toggleTabConfig")) {
-        let oldTabcfg = getOriginConfig(tabId);
+        let oldTabcfg = getTabConfig(tabId);
         let tabcfg = assignRec({}, oldTabcfg);
 
         let [field, cfg] = mapShortcutName((field, children) => [field, children ? tabcfg.children : tabcfg], command);
@@ -463,9 +463,9 @@ function evalRPCRequest(request) {
         return null;
 
     case "getTabConfig":
-        return getOriginConfig(arg1);
+        return getTabConfig(arg1);
     case "setTabConfig":
-        let oldTabcfg = getOriginConfig(arg1);
+        let oldTabcfg = getTabConfig(arg1);
         setTabConfig(arg1, undefined, arg2, oldTabcfg);
         return null;
 
@@ -724,7 +724,7 @@ function initMenus() {
         // Firefox provides `browser.menus.onShown` event, so `updateMenu` can be called on-demand
         browser.menus.onShown.addListener(catchAll((info, tab) => {
             if (tab === undefined) return;
-            updateMenu(getOriginConfig(tab.id));
+            updateMenu(getTabConfig(tab.id));
             browser.menus.refresh();
         }));
     }
@@ -833,9 +833,9 @@ async function main() {
         // populate reqresProblematic
         for (let loggable of reqresLog) {
             if (loggable.problematic) {
-                let info = getOriginState(loggable.tabId, loggable.fromExtension);
+                let tabstate = getTabState(loggable.tabId, loggable.fromExtension);
                 reqresProblematic.push([loggable, null]);
-                info.problematicTotal += 1;
+                tabstate.problematicTotal += 1;
                 gotNewProblematic = true;
             }
         }

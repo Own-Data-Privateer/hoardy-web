@@ -66,7 +66,7 @@ function formatProblematic(list) {
     let latestMap = new Map();
     for (let i = list.length - 1; i >= 0; --i) {
         let loggable = list[i][0];
-        let tabcfg = getOriginConfig(loggable.tabId, loggable.fromExtension);
+        let tabcfg = getTabConfig(loggable.tabId, loggable.fromExtension);
         if (!tabcfg.problematicNotify)
             continue;
 

@@ -115,20 +115,20 @@ async function snapshotOneTab(tabId, url) {
     }
 }
 
-async function snapshot(tabIdNull) {
+async function snapshot(tabIdOrNull) {
     let tabs;
-    if (tabIdNull === null)
+    if (tabIdOrNull === null)
         tabs = await browser.tabs.query({});
     else {
-        let tab = await browser.tabs.get(tabIdNull);
+        let tab = await browser.tabs.get(tabIdOrNull);
         tabs = [ tab ];
     }
 
     for (let tab of tabs) {
         let tabId = tab.id;
-        let tabcfg = getOriginConfig(tabId);
+        let tabcfg = getTabConfig(tabId);
         let url = getTabURL(tab);
-        if (tabIdNull === null && !tabcfg.snapshottable
+        if (tabIdOrNull === null && !tabcfg.snapshottable
             || !config.snapshotAny && isBoringOrServerURL(url)) {
             if (config.debugRuntime)
                 console.log("NOT taking DOM snapshot of tab", tabId, url);
@@ -137,5 +137,5 @@ async function snapshot(tabIdNull) {
         await snapshotOneTab(tabId, url);
     }
 
-    scheduleEndgame(tabIdNull);
+    scheduleEndgame(tabIdOrNull);
 }

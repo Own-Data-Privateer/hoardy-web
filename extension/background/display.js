@@ -203,9 +203,9 @@ function getStats() {
 // Produce a value similar to that of `getStats`, but for a single tab.
 // Used in the UI.
 function getTabStats(tabId) {
-    let info = tabState.get(tabId);
-    if (info === undefined)
-        info = tabStateDefaults;
+    let tabstate = tabState.get(tabId);
+    if (tabstate === undefined)
+        tabstate = tabStateDefaults;
 
     let in_flight = 0;
     let in_flight_debug = 0;
@@ -233,15 +233,15 @@ function getTabStats(tabId) {
     return {
         in_flight: Math.max(in_flight, in_flight_debug),
         finishing_up: Math.max(finishing_up, finishing_up_debug) + almost_done,
-        problematic: info.problematicTotal,
-        picked: info.pickedTotal,
-        dropped: info.droppedTotal,
-        in_limbo: info.inLimboTotal,
-        in_limbo_size: info.inLimboSize,
-        collected: info.collectedTotal,
-        collected_size: info.collectedSize,
-        discarded: info.discardedTotal,
-        discarded_size: info.discardedSize,
+        problematic: tabstate.problematicTotal,
+        picked: tabstate.pickedTotal,
+        dropped: tabstate.droppedTotal,
+        in_limbo: tabstate.inLimboTotal,
+        in_limbo_size: tabstate.inLimboSize,
+        collected: tabstate.collectedTotal,
+        collected_size: tabstate.collectedSize,
+        discarded: tabstate.discardedTotal,
+        discarded_size: tabstate.discardedSize,
     };
 }
 
@@ -258,7 +258,7 @@ let udGTitle = null;
 //   have been updated;
 // - `updatedTabId is int` is a `tabId` of the tab that was updated;
 // - `tabChanged === true` means that one of the windows changed its currently
-//   active tab or `updatedTabId`'s tab info (e.g., `.url`) was updated; we
+//   active tab or `updatedTabId`'s tab data (e.g., `.url`) was updated; we
 //   conflate these two cases because updated `tab.url` could change the result
 //   of `getStateTabIdOrTabId`, which will then effectively "switch" the tab
 //   under display.
@@ -524,7 +524,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         if (updatedTabId !== null && updatedTabId !== tabId && updatedTabId !== stateTabId)
             continue;
 
-        // we don't use `getOriginConfig` here to not introduced new `tabConfig`
+        // we don't use `getTabConfig` here to not introduce new `tabConfig`
         // elements for yet-unprocessed tabs
         let tabcfg = tabConfig.get(stateTabId);
         if (tabcfg === undefined)

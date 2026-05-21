@@ -263,7 +263,7 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
     //
     //   exportAsOne -> submitHTTPOne -> saveOne
     //   -> ... -> scheduledEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
-    //   and does recordManyUnarchived -> evalSynchronousClosures -> stashMany
+    //   and does recordManyUnarchived -> evalClosures(synchronousClosures) -> stashMany
     //
     // Also note that it will work properly only if the above
     // `runSynchronously` is run after `processArchiving` for the same
@@ -274,7 +274,7 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
     //   exportAsOne -> submitHTTPOne -> (no saveOne)
     //   -> syncWithStorage(archivable, 0, ...)
     //   -> ... -> scheduleEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
-    //   and does recordManyUnarchived -> evalSynchronousClosures -> stashMany
+    //   and does recordManyUnarchived -> evalClosures(synchronousClosures) -> stashMany
     //
     // Which will only work if all `syncWithStorage` uses above do not elide the dump from memory,
     // which it does not in (notEliding).
@@ -776,7 +776,7 @@ async function saveOne(archivable, elide, unarchivedAccumulator) {
 function loadOneStashed(loggable) {
     deserializeLoggable(loggable);
 
-    let info = getOriginState(loggable.tabId, loggable.fromExtension);
+    let tabstate = getTabState(loggable.tabId, loggable.fromExtension);
     let dumpId = loggable.dumpId;
     let dumpSize = loggable.dumpSize;
 
@@ -784,7 +784,7 @@ function loadOneStashed(loggable) {
 
     if (loggable.problematic) {
         reqresProblematic.push(archivable);
-        info.problematicTotal += 1;
+        tabstate.problematicTotal += 1;
         gotNewProblematic = true;
     }
 
@@ -795,8 +795,8 @@ function loadOneStashed(loggable) {
         reqresLimbo.push(archivable);
         reqresLimboSize += dumpSize;
         if (loggable.sessionId === sessionId) {
-            info.inLimboTotal += 1;
-            info.inLimboSize += dumpSize;
+            tabstate.inLimboTotal += 1;
+            tabstate.inLimboSize += dumpSize;
         }
         gotNewLimbo = true;
     } else if (loggable.collected) {
