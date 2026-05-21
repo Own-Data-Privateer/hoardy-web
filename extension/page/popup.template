@@ -766,11 +766,11 @@ section {
     <ui id="rearchive.andRewrite" type="boolean" data-help="For each reqres saved in browser's local storage, after it gets re-archived with all of the above methods, successfully or not, forcefully re-write it into browser's local storage again. This is only useful for debugging and migration between local storage backends.">Re-write everything into local storage</ui>
     <ui id="rearchive.andDelete" type="boolean" data-help="For each reqres saved in browser's local storage, after it gets successfully re-archived with all of the above methods, delete it from browser's local storage.">Delete everything from local storage</ui>
 
-    <center class="on-rearchive-carefully attention">
-      <p>
+    <center class="on-rearchive-attention attention">
+      <p class="on-rearchive-unsafe">
         <span data-help="This combination of options might be unsafe to use since export via `saveAs` is unable to report most errors. Thus, for instance, if the generated dump file fails to be written to disk because the file system is out of space, that data will be lost. This combination can be used safely, but it requires some care. See the `Help` page for more info.">The following buttons might be UNSAFE!</span>
       </p>
-      <p>
+      <p class="on-rearchive-carefully">
         <span data-help="With current settings, pressing the `Re-archive new` button will skip re-archival of reqres that were previously ARCHIVED OR RE-ARCHIVED using all of the enabled re-archival methods, pretend that it re-archived them again, and then DELETE ALL AND EVERY REQRES SAVED INTO BROWSER'S LOCAL STORAGE. This might be exactly what you want to happen, but it might not. Use this feature wisely.">Use <code>Re-archive new</code> button with CAUTION!</span>
       </p>
     </center>
