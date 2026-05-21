@@ -530,7 +530,11 @@ Re-archival can be most useful in following use cases:
 
   By using this feature, you can delay re-archival to your archiving server until you get back to your home WiFi network, and re-archive everything all at once there.
 
-- You run [[#tor-browser][=Hoardy-Web= under Tor Browser]].
+  See [[#fenix][below]] for concrete setup and usage instructions.
+
+- You run =Hoardy-Web= under Tor Browser and you want your browsing/capture and archival/replay completely isolated from each other.
+
+  Se [[#tor-browser][below]] for concrete setup and usage instructions.
 *** Controlling what gets re-archived
 The simplest way to re-archive old data is to configure the desired {{{div2(rearchive-methods,re-archival methods)}}} and then press {{{button2(rearchiveAllSaved,this button)}}}.
 This will simply re-archive everything stored in local storage unconditionally.
@@ -818,6 +822,36 @@ Moreover, =Hoardy-Web= provides context menu actions to:
 :PROPERTIES:
 :CUSTOM_ID: workflows
 :END:
+** Using =Hoardy-Web= with Fenix (Firefox on Android)
+:PROPERTIES:
+:CUSTOM_ID: fenix
+:END:
+
+Since {{{config2(archiveExportAs,=Export dumps via 'saveAs'= option)}}} and {{{config2(rearchiveExportAs,its re-archival variant)}}} do not work under Firefox on Android, you will have to use {{{config2(archiveSubmitHTTP,=Submit dumps via 'HTTP'=)}}} and/or {{{config2(rearchiveSubmitHTTP,its re-archival variant)}}} to extract your archives from =Hoardy-Web=.
+There are several ways you can do this:
+
+- You can simply
+  - run your archiving server with =--host 0.0.0.0= argument on your PC to allow non-localhost connections;
+  - put your PC and your Android device on the same Wi-Fi network;
+  - setup your =Hoardy-Web= to archive data via {{{config2(archiveSubmitHTTP,=Submit dumps via 'HTTP'=)}}};
+  - point {{{config2(submitHTTPURLBase,=Server URL= setting)}}} to your PC;
+  - and then just let =Hoardy-Web= work normally.
+
+- Alternatively, you can
+  - tether your Android device to your PC via a USB cable;
+  - setup and enable USB Debugging there;
+  - run
+    =sudo adb kill-server && sudo adb start-server && adb reverse tcp:3210 tcp:3210=
+    on your PC, which would setup a reverse port forwarding from your Android device to your PC;
+  - setup your =Hoardy-Web= to archive data via {{{config2(archiveSubmitHTTP,=Submit dumps via 'HTTP'=)}}};
+  - use the default value of {{{config2(submitHTTPURLBase,=Server URL= setting)}}};
+  - and then just let =Hoardy-Web= work normally.
+
+- Finally, to archive data when using your Android device while it's untethered from your PC:
+  - setup your =Hoardy-Web= to archive data via {{{config2(archiveSaveLS,=Save reqres into local storage=)}}}, which is the default;
+  - enable {{{config2(rearchiveSubmitHTTP,re-archival via =HTTP=)}}};
+  - configure your PC and your {{{config2(submitHTTPURLBase,=Server URL= setting)}}} using one of the above ways;
+  - and then, after getting back to your PC and connecting your Android device to it via Wi-Fi or USB (with the above =adb= commands included), [[#re-archival][re-archive]] your archived data incrementally.
 ** Using =Hoardy-Web= with Tor Browser
 :PROPERTIES:
 :CUSTOM_ID: tor-browser
