@@ -45,10 +45,9 @@ async function evalClosures(closures, updatedTabId) {
     while (closures.length > 0) {
         let [name, func, args] = closures.shift();
 
-        let key = "endgame::" + name;
         if (config.debugRuntime)
-            console.warn("running", key);
-        runningActions.add(key);
+            console.warn("SCHEDULER: running sync", name);
+        runningActions.add(name);
 
         await forceUpdateDisplay(true, updatedTabId, getGoodEpisodic(closures.length));
         updatedTabId = undefined;
@@ -61,9 +60,9 @@ async function evalClosures(closures, updatedTabId) {
             logError(err);
         }
 
+        runningActions.delete(name);
         if (config.debugRuntime)
-            console.warn("finished", key);
-        runningActions.delete(key);
+            console.warn("SCHEDULER: finished sync", name);
     }
 }
 
@@ -219,14 +218,14 @@ function scheduleActionExtra(map, name, priority, timeout, hurry, func, endgame)
 
     value.before.push(async () => {
         if (config.debugRuntime)
-            console.warn("running", name);
+            console.warn("SCHEDULER: running async", name);
         runningActions.add(name);
         await forceUpdateDisplay(true);
     });
     value.after.push(async (results) => {
-        if (config.debugRuntime)
-            console.warn("finished", name, results);
         runningActions.delete(name);
+        if (config.debugRuntime)
+            console.warn("SCHEDULER: finished async", name, results);
 
         // merge results of all performed updates
         let updatedTabId;
