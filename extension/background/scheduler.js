@@ -211,32 +211,40 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
 //
 // The scheduled function is experted to return `updatedTabId` value.
 function scheduleActionExtra(map, name, priority, timeout, hurry, func, endgame) {
-    let value = resetSingletonTimeout(map, name, timeout, func, priority, hurry);
-    if (value === undefined)
-        // it was already scheduled (and might have been re-scheduled), no nothing
-        return;
-
-    value.before.push(async () => {
+    let value = resetSingletonTimeout(map, name, timeout, async () => {
         if (config.debugRuntime)
             console.warn("SCHEDULER: running async", name);
         runningActions.add(name);
+
         await forceUpdateDisplay(true);
-    });
-    value.after.push(async (results) => {
+
+        let updatedTabId;
+        try {
+            updatedTabId = func();
+        } catch (err) {
+            logError(err);
+        }
+
         runningActions.delete(name);
         if (config.debugRuntime)
-            console.warn("SCHEDULER: finished async", name, results);
+            console.warn("SCHEDULER: finished async", name, updatedTabId);
 
-        // merge results of all performed updates
-        let updatedTabId;
-        for (let res of results)
-            updatedTabId = mergeUpdatedTabIds(updatedTabId, res)
+        return updatedTabId;
+    }, priority, hurry);
 
-        if (endgame)
-            scheduleEndgame(updatedTabId);
-        else
-            await forceUpdateDisplay(true, updatedTabId);
-    });
+    if (value !== undefined) {
+        // if newly scheduled
+        async function after(results) {
+            let updatedTabId = results.reduce(mergeUpdatedTabIds, undefined);
+            if (endgame)
+                scheduleEndgame(updatedTabId);
+            else
+                await forceUpdateDisplay(true, updatedTabId);
+        }
+        value.delay.push(after);
+        value.then.push(after);
+    }
+
     return value;
 }
 

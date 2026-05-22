@@ -123,17 +123,8 @@ function evalFunctionsAway(iterable) {
     return res;
 }
 
-async function asyncEvalSequence(list, ...args) {
-    while (list.length > 0) {
-        let func = list.shift();
-        try {
-            let res = func(...args);
-            while (res instanceof Promise)
-                res = await res;
-        } catch (err) {
-            logError(err);
-        }
-    }
+function asyncAllApply (list, nthis, ...args) {
+    return Promise.all(list.map((f) => f.apply(nthis, args)));
 }
 
 // based on https://stackoverflow.com/questions/13405129/create-and-save-a-file-with-javascript
