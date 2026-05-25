@@ -370,6 +370,9 @@ function mkReqresFilter(attrs) {
 }
 
 function buildReqresFilter(attrs) {
+    if (attrs === false || attrs === null)
+        return attrs;
+
     let res = mkReqresFilter(attrs);
 
     // .url_matches tests if the URL is accepted by rrfilter
@@ -394,6 +397,10 @@ function buildReqresFilter(attrs) {
 
 // loggable is accepted by the rrfilter
 function isAcceptedBy(rrfilter, loggable) {
+    if (rrfilter === false)
+        return false;
+    if (rrfilter === null)
+        return true;
     if (
         (rrfilter.sessionId === null || loggable.sessionId === rrfilter.sessionId) &&
         (rrfilter.tabId === null || loggable.tabId === rrfilter.tabId) &&
