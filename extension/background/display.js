@@ -135,9 +135,7 @@ function getStats() {
 
     let [archiveFailed, archiveFailedSize] = sumStats((m) => sumIssueAccByReasonStats(m.values()), reqresUnarchivedIssueAcc[1].values());
 
-    let in_flight = Math.max(reqresInFlight.size, debugReqresInFlight.size);
-
-    let finishing_up = Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length) + reqresAlmostDone.length;
+    let [in_flight, finishing_up, almost_done] = getInFlight3Num(null);
 
     let actions = [];
     pushNotRunning(scheduledCancelable.keys(), actions);
@@ -158,7 +156,7 @@ function getStats() {
         scheduled: actions.length,
         scheduled_actions: actions.join(", "),
         in_flight,
-        finishing_up,
+        finishing_up: finishing_up + almost_done,
         problematic: reqresProblematic.length,
         picked: globals.pickedTotal,
         dropped: globals.droppedTotal,
@@ -191,6 +189,7 @@ function getStats() {
         buggedOut_size: buggedOutSize,
         issues: in_flight
             + finishing_up
+            + almost_done
             + reqresProblematic.length
             + reqresLimbo.length
             + reqresQueue.length
@@ -207,32 +206,11 @@ function getTabStats(tabId) {
     if (tabstate === undefined)
         tabstate = tabStateDefaults;
 
-    let in_flight = 0;
-    let in_flight_debug = 0;
-    for (let [k, v] of reqresInFlight.entries())
-        if (v.tabId === tabId)
-            in_flight += 1;
-    for (let [k, v] of debugReqresInFlight.entries())
-        if (v.tabId === tabId)
-            in_flight_debug += 1;
-
-    let finishing_up = 0;
-    let finishing_up_debug = 0;
-    for (let v of reqresFinishingUp)
-        if (v.tabId === tabId)
-            finishing_up += 1;
-    for (let v of debugReqresFinishingUp)
-        if (v.tabId === tabId)
-            finishing_up_debug += 1;
-
-    let almost_done = 0;
-    for (let v of reqresAlmostDone)
-        if (v.tabId === tabId)
-            almost_done += 1;
+    let [in_flight, finishing_up, almost_done] = getInFlight3Num({tabId});
 
     return {
-        in_flight: Math.max(in_flight, in_flight_debug),
-        finishing_up: Math.max(finishing_up, finishing_up_debug) + almost_done,
+        in_flight,
+        finishing_up: finishing_up + almost_done,
         problematic: tabstate.problematicTotal,
         picked: tabstate.pickedTotal,
         dropped: tabstate.droppedTotal,

@@ -120,22 +120,64 @@ let firstNetworkRequest = true;
 
 // Logging
 
-function getInFlight() {
-    let res = [];
-    for (let [k, v] of debugReqresInFlight.entries()) {
+function applyToReqresInFlight5(func, early, a, b, c, d, e) {
+    for (let v of reqresInFlight.values())
+        func(v, a);
+    for (let v of debugReqresInFlight.values()) {
         // `.url` can be unset, see (veryEarly) in `emitDebugRequest`.
-        if (v.url !== undefined && !isBoringOrServerURL(v.url))
+        if (early || v.url !== undefined && !isBoringOrServerURL(v.url))
+            func(v, b);
+    }
+    for (let v of reqresFinishingUp)
+        func(v, c);
+    for (let v of debugReqresFinishingUp)
+        func(v, d);
+    for (let v of reqresAlmostDone)
+        func(v, d);
+}
+
+function getInFlight(rrfilter) {
+    rrfilter = buildReqresFilter(rrfilter);
+
+    let res = [];
+
+    function collect(v) {
+        if (isAcceptedBy(rrfilter, v))
             res.push(makeLoggable(v));
     }
-    for (let [k, v] of reqresInFlight.entries())
-        res.push(makeLoggable(v));
-    for (let v of debugReqresFinishingUp)
-        res.push(makeLoggable(v));
-    for (let v of reqresFinishingUp)
-        res.push(makeLoggable(v));
-    for (let v of reqresAlmostDone)
-        res.push(makeLoggable(v));
+    applyToReqresInFlight5(collect, false);
+
     return res;
+}
+
+function getInFlight3Num(rrfilter) {
+    if (rrfilter === null)
+        return [
+            Math.max(reqresInFlight.size, debugReqresInFlight.size),
+            Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length),
+            reqresAlmostDone.length,
+        ];
+
+    rrfilter = buildReqresFilter(rrfilter);
+
+    let counts = {a1: 0, a2: 0, b1: 0, b2: 0, c: 0};
+
+    function collect(v, k) {
+        if (isAcceptedBy(rrfilter, v))
+            counts[k] += 1;
+    }
+    applyToReqresInFlight5(collect, true, ...(Object.keys(counts)));
+
+    return [
+        Math.max(counts.a1, counts.a2),
+        Math.max(counts.b1, counts.b2),
+        counts.c,
+    ];
+}
+
+function getInFlightNum(rrfilter) {
+    let [a, b, c] = getInFlight3Num(rrfilter);
+    return a + b + c;
 }
 
 // Reqres data structures
@@ -627,7 +669,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     // `handleDebugRequestWillBeSent(false, ...)` but before
     // `handleDebugRequestWillBeSent(true, ...)`.
     //
-    // Also see (veryEarly) in `getInFlight`.
+    // Also see (veryEarly) in `applyToReqresInFlight5`.
     //
     // Second case: ignore data, file, end extension URLs.
     if (dreqres.url === undefined || isBoringOrServerURL(dreqres.url)) {

@@ -162,7 +162,7 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
             cleanupTabs();
 
             // do we have some reqres in flight?
-            let haveInFlight = reqresInFlight.size + debugReqresInFlight.size + reqresFinishingUp.length + debugReqresFinishingUp.length > 0;
+            let haveInFlight = getInFlightNum(null) > 0;
 
             if (wantSaveGlobals) {
                 wantSaveGlobals = false;

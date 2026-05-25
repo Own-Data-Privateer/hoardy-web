@@ -730,7 +730,7 @@ async function processAlmostDone(updatedTabId) {
     truncateLog();
     wantSaveGlobals = true;
 
-    broadcastToState(updatedTabId, "resetInFlight", getInFlight);
+    broadcastToState(updatedTabId, "resetInFlight", () => getInFlight(null));
 
     if (newlyUnproblematic.length > 0) {
         // TODO mergeUpdatedTabIds?

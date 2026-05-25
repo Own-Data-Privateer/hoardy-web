@@ -46,13 +46,7 @@ async function performReloadSelf() {
         return;
     }
 
-    let notDoneReqres
-        = reqresInFlight.size
-        + debugReqresInFlight.size
-        + reqresFinishingUp.length
-        + debugReqresFinishingUp.length
-        + reqresAlmostDone.length
-        + reqresBundledAs.size;
+    let notDoneReqres = getInFlightNum(null) + reqresBundledAs.size;
 
     let notDoneTasks
         = synchronousClosures.length
