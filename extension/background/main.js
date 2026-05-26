@@ -602,7 +602,7 @@ async function handleShortcut(request) {
     // The map is set this way so that show-state -> show-tab-state would open
     // the state narrowed to background tasks. This is not very intuitive but
     // rather useful.
-    let tabId = getMapURLParam(statePageURL, "tab", new URL(getTabURL(tab, "")), toNumber, -1, activeTabId);
+    let tabId = getMapURLParam(statePageURL, "tab", new URL(getTabURL(tab, "")), toNumber, TAB_ID_NONE, activeTabId);
 
     let res = evalSimpleRequest(request, tabId, activeTabId);
     if (res)

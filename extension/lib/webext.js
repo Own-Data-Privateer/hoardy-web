@@ -28,6 +28,9 @@
 
 "use strict";
 
+const TAB_ID_NONE = browser.tabs.TAB_ID_NONE;
+const WINDOW_ID_NONE = browser.windows.WINDOW_ID_NONE;
+
 async function getTab(tabId) {
     let tabs = await browser.tabs.query({ active: true, currentWindow: true });
     for (let tab of tabs) {

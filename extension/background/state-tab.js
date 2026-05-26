@@ -45,7 +45,7 @@ let tabState = new Map();
 function getTabState(tabId, fromExtension) {
     // NB: not tracking extensions separately here, unlike with configs
     if (fromExtension)
-        tabId = -1;
+        tabId = TAB_ID_NONE;
     return cacheSingleton(tabState, tabId, () => assignRec({}, tabStateDefaults));
 }
 
@@ -58,7 +58,7 @@ function prefillChildren(data) {
 function getTabConfig(tabId, fromExtension) {
     if (fromExtension)
         return prefillChildren(config.extension);
-    else if (tabId == -1)
+    else if (tabId === TAB_ID_NONE)
         return prefillChildren(config.background);
     else if (tabId === null)
         return prefillChildren(config.root);
@@ -145,7 +145,7 @@ function cleanupTabs() {
 
     // delete configs of closed and unused tabs
     for (let tabId of Array.from(tabConfig.keys())) {
-        if(tabId === -1 || openTabs.has(tabId) || usedTabs.has(tabId))
+        if(tabId === TAB_ID_NONE || openTabs.has(tabId) || usedTabs.has(tabId))
             continue;
         if (config.debugRuntime)
             console.log("removing config of tab", tabId);
@@ -155,7 +155,7 @@ function cleanupTabs() {
 
     // delete any stale leftovers from tabState
     for (let tabId of Array.from(tabState.keys())) {
-        if(tabId === -1 || openTabs.has(tabId) || usedTabs.has(tabId))
+        if(tabId === TAB_ID_NONE || openTabs.has(tabId) || usedTabs.has(tabId))
             continue;
         console.warn("removing stale tab state", tabId);
         tabState.delete(tabId);

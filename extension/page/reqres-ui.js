@@ -91,7 +91,7 @@ function appendLoggable(node, loggable) {
 
     let reqresSessionId = loggable.sessionId;
     let reqresTabId = loggable.tabId;
-    let name = loggable.fromExtension ? "ext" : (reqresTabId === -1 ? "bg" : `tab #${loggable.tabId}`);
+    let name = loggable.fromExtension ? "ext" : (reqresTabId === TAB_ID_NONE ? "bg" : `tab #${reqresTabId}`);
 
     let div = document.createElement("div");
 

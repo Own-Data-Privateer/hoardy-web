@@ -883,7 +883,7 @@ function handleBeforeRequest(e) {
     if (useDebugger) {
         // On Chromium, cancel all requests from a tab that is not yet debugged,
         // start debugging, and then reload the tab.
-        if (!workOffline && tabId !== -1 && !tabsDebugging.has(tabId)
+        if (!workOffline && tabId !== TAB_ID_NONE && !tabsDebugging.has(tabId)
             && (url.startsWith("http://") || url.startsWith("https://"))) {
             if (config.debugRuntime)
                 console.warn("CAPTURE: canceling and restarting request to", url, "as tab", tabId, "is not managed yet");
@@ -909,7 +909,7 @@ function handleBeforeRequest(e) {
         if (!workOffline && firstNetworkRequest
             && (url.startsWith("http://") || url.startsWith("https://"))) {
             firstNetworkRequest = false;
-            if (config.workaroundFirefoxFirstRequest && tabId !== -1 && initiator === undefined && isMainFrame) {
+            if (config.workaroundFirefoxFirstRequest && tabId !== TAB_ID_NONE && initiator === undefined && isMainFrame) {
                 if (config.debugRuntime)
                     console.warn("CAPTURE: canceling and restarting request to", url, "to workaround a bug in Firefox");
                 resetAndNavigateTab(tabId, url).catch(logError);

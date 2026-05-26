@@ -494,7 +494,7 @@ function processNonLimbo(archivable, collect, tabstate, newlyQueued, newlyLogged
 async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
     if (reqres.tabId === undefined)
         // just in case
-        reqres.tabId = -1;
+        reqres.tabId = TAB_ID_NONE;
 
     if (!useDebugger && reqres.generated && !reqres.responded) {
         if (reqres.errors.length === 1 && reqres.errors[0].startsWith("webRequest::NS_ERROR_NET_ON_")) {
