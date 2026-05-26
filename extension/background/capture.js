@@ -252,7 +252,8 @@ function fillResponse(reqres, e) {
 // In-flight reqres handling
 
 // flush reqresFinishingUp into the reqresAlmostDone, interrupting filters
-function forceFinishingUpWebRequest(predicate, updatedTabId) {
+function forceFinishingUpWebRequest(predicate) {
+    let updatedTabId;
     let notFinished = [];
 
     for (let reqres of reqresFinishingUp) {
@@ -286,7 +287,8 @@ function forceFinishingUpWebRequest(predicate, updatedTabId) {
 }
 
 // flush debugReqresFinishingUp into the reqresAlmostDone
-function forceFinishingUpDebug(predicate, updatedTabId) {
+function forceFinishingUpDebug(predicate) {
+    let updatedTabId;
     let notFinished = [];
 
     // Emit these by making up fake webRequest counterparts for them
@@ -325,7 +327,8 @@ function forceFinishingUpDebug(predicate, updatedTabId) {
 }
 
 // wait up for reqres filters to finish
-function processFinishingUpWebRequest(forcing, updatedTabId) {
+function processFinishingUpWebRequest(forcing) {
+    let updatedTabId;
     let notFinished = [];
 
     for (let reqres of reqresFinishingUp) {
@@ -449,7 +452,9 @@ function mergeInDebugReqres(reqres, dreqres) {
     reqres.responseComplete = dreqres.responseComplete;
 }
 
-function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
+function processMatchFinishingUpWebRequestDebug(forcing) {
+    let updatedTabId;
+
     if (debugReqresFinishingUp.length > 0 && reqresFinishingUp.length > 0) {
         // match elements from debugReqresFinishingUp to elements from
         // reqresFinishingUp, attach the former to the best-matching latter,
@@ -518,7 +523,7 @@ function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
             // generating the corresponding webRequest events. This actually
             // happens sometimes when loading a tab in background. Chromium
             // has a surprising number of bugs...
-            updatedTabId = forceFinishingUpDebug(undefined, updatedTabId);
+            updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpDebug(undefined));
 
         if (reqresFinishingUp.length > 0) {
             // This means Chromium generated some webRequests but did not
@@ -534,12 +539,12 @@ function processMatchFinishingUpWebRequestDebug(forcing, updatedTabId) {
             scheduleActionEndgame(scheduledCancelable, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000 + 500, () => {
                 // First, finish up unsent requests (which are usually redirects).
                 let olderThan1 = Date.now() - config.workaroundChromiumDebugTimeout * 1000;
-                updatedTabId2 = forceFinishingUpWebRequest((r) => !r.submitted && r.emitTimeStamp <= olderThan1, updatedTabId2);
+                updatedTabId2 = mergeUpdatedTabIds(updatedTabId2, forceFinishingUpWebRequest((r) => !r.submitted && r.emitTimeStamp <= olderThan1));
 
                 // Then, eventually, finish up the rest.
                 scheduleActionEndgame(scheduledCancelable, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 2000 + 500, () => {
                     let olderThan2 = Date.now() - config.workaroundChromiumDebugTimeout * 2000;
-                    return forceFinishingUpWebRequest((r) => r.emitTimeStamp <= olderThan2, updatedTabId2);
+                    return mergeUpdatedTabIds(updatedTabId2, forceFinishingUpWebRequest((r) => r.emitTimeStamp <= olderThan2));
                 });
 
                 return updatedTabId2;
@@ -766,16 +771,16 @@ function emitTabInFlightDebug(tabId, reason) {
     }
 }
 
-function stopInFlight(tabId, reason, updatedTabId) {
+function stopInFlight(tabId, reason) {
     if (useDebugger)
         emitTabInFlightDebug(tabId, reason);
     emitTabInFlightWebRequest(tabId, reason);
 
-    updatedTabId = processFinishingUp(true, tabId);
+    let updatedTabId = processFinishingUp(true);
 
     if (useDebugger)
-        updatedTabId = forceFinishingUpDebug((r) => tabId === null || r.tabId === tabId, updatedTabId);
-    updatedTabId = forceFinishingUpWebRequest((r) => tabId === null || r.tabId === tabId, updatedTabId);
+        updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpDebug((r) => tabId === null || r.tabId === tabId));
+    updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpWebRequest((r) => tabId === null || r.tabId === tabId));
 
     return updatedTabId;
     // NB: needs scheduleEndgame after

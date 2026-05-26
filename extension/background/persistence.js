@@ -1046,7 +1046,9 @@ async function archive(archivables, wantArchived, reset, andRewrite, andDelete, 
     return [changedNum, exportedNum, submittedNum, savedNum, deletedNum];
 }
 
-async function processArchiving(updatedTabId) {
+async function processArchiving() {
+    let updatedTabId;
+
     while (config.archive && synchronousClosures.length === 0 && reqresQueue.length > 0) {
         let archivable = reqresQueue.shift();
 

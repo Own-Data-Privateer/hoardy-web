@@ -142,7 +142,7 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
             seUpdatedTabId = undefined; // reset
 
             await forceUpdateDisplay(true, updatedTabId);
-            updatedTabId = await processArchiving(updatedTabId);
+            updatedTabId = await processArchiving();
             scheduleEndgame(updatedTabId, notifyTimeout);
         });
     } else if (reqresAlmostDone.length > 0) {
@@ -151,7 +151,7 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
             seUpdatedTabId = undefined; // reset
 
             await forceUpdateDisplay(true, updatedTabId);
-            updatedTabId = await processAlmostDone(updatedTabId);
+            updatedTabId = await processAlmostDone();
             scheduleEndgame(updatedTabId, notifyTimeout);
         });
     } else {

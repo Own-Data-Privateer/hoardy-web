@@ -726,7 +726,9 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
     }
 }
 
-async function processAlmostDone(updatedTabId) {
+async function processAlmostDone() {
+    let updatedTabId;
+
     let newlyProblematic = [];
     let newlyUnproblematic = [];
     let newlyLimboed = [];
