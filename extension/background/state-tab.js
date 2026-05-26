@@ -168,7 +168,7 @@ function cleanupProblematicAfterTab(tabId) {
     if (config.debugRuntime)
         console.log("MAIN: cleaning up reqresProblematic after tab", tabId);
 
-    let unprob = unmarkProblematic({tabId});
+    let unprob = unmarkProblematic({tabId})[1];
 
     if (config.problematicNotify === true && unprob > 0)
         browser.notifications.create(`cleanedProblematic-${tabId}`, {
@@ -179,6 +179,8 @@ function cleanupProblematicAfterTab(tabId) {
         }).catch(logError);
 
     cleanupTabs();
+
+    return unprob > 0 ? tabId : undefined;
 }
 
 function cleanupLimboAfterTab(tabId) {
@@ -189,10 +191,10 @@ function cleanupLimboAfterTab(tabId) {
     let unlimbo = 0;
     if (config.autoPopInLimboCollect) {
         what = "collected";
-        unlimbo = popInLimbo(true, {tabId});
+        unlimbo = popInLimbo(true, {tabId})[1];
     } else if (config.autoPopInLimboDiscard) {
         what = "discarded";
-        unlimbo = popInLimbo(false, {tabId});
+        unlimbo = popInLimbo(false, {tabId})[1];
     }
 
     if (config.autoNotify && unlimbo > 0)
@@ -204,6 +206,8 @@ function cleanupLimboAfterTab(tabId) {
         }).catch(logError);
 
     cleanupTabs();
+
+    return unlimbo > 0 ? tabId : undefined;
 }
 
 function cleanupAfterTab(tabId) {

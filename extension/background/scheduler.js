@@ -49,21 +49,24 @@ async function evalClosures(closures, updatedTabId) {
             console.warn("SCHEDULER: running sync", name);
         runningActions.add(name);
 
-        await forceUpdateDisplay(true, updatedTabId, getGoodEpisodic(closures.length));
+        await forceUpdateDisplay(true, updatedTabId);
         updatedTabId = undefined;
 
         try {
             let res = func(...args);
             while (res instanceof Promise)
                 res = await res;
+            updatedTabId = res;
         } catch (err) {
             logError(err);
         }
 
         runningActions.delete(name);
         if (config.debugRuntime)
-            console.warn("SCHEDULER: finished sync", name);
+            console.warn("SCHEDULER: finished sync", name, updatedTabId);
     }
+
+    return updatedTabId;
 }
 
 // syntax sugar
@@ -79,6 +82,7 @@ function syncRunActions() {
         await runAllSingletonTimeouts(scheduledRetry);
         await runAllSingletonTimeouts(scheduledDelayed);
         await runAllSingletonTimeouts(scheduledSaveState);
+        return null;
     });
 }
 
@@ -89,6 +93,7 @@ function syncCancelActions() {
         await cancelAllSingletonTimeouts(scheduledDelayed);
         // `scheduledSaveState` mustn't ever be cancelled, so we run them instead
         await runAllSingletonTimeouts(scheduledSaveState);
+        return null;
     });
 }
 
@@ -128,8 +133,8 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
             let updatedTabId = seUpdatedTabId;
             seUpdatedTabId = undefined; // reset
 
-            await evalClosures(synchronousClosures, updatedTabId);
-            scheduleEndgame(undefined, notifyTimeout);
+            updatedTabId = await evalClosures(synchronousClosures, updatedTabId);
+            scheduleEndgame(updatedTabId, notifyTimeout);
         });
     } else if (config.archive && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {

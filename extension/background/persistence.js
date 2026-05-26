@@ -156,6 +156,8 @@ function retryUnarchived(unrecoverable, rrfilter) {
 
     broadcastToState(null, "resetQueued", getQueued);
     broadcastToState(null, "resetUnarchived", getUnarchived);
+
+    return tabId;
 }
 
 function syncRetryUnarchived(...args) {
@@ -732,6 +734,8 @@ async function stashMany(archivables, unstashedAccumulator) {
 
     for (let archivable of archivables)
         await stashOne(archivable, unstashedAccumulator);
+
+    return null;
 }
 
 async function retryAllUnstashed() {
@@ -739,6 +743,8 @@ async function retryAllUnstashed() {
     for (let archivable of reqresUnstashedIssueAcc[0])
         await stashOne(archivable, newUnstashed);
     reqresUnstashedIssueAcc = newUnstashed;
+
+    return null;
 }
 
 async function stashAll(alsoLimbo) {
@@ -747,6 +753,8 @@ async function stashAll(alsoLimbo) {
     if (alsoLimbo)
         await stashMany(reqresLimbo);
     await stashMany(reqresUnarchivedIssueAcc[0]);
+
+    return null;
 }
 
 function syncStashAll(...args) {
@@ -765,6 +773,8 @@ async function deleteOne(archivable) {
 async function deleteMany(archivables) {
     for (let archivable of archivables)
         deleteOne(archivable);
+
+    return null;
 }
 
 
@@ -1142,6 +1152,8 @@ function syncRearchiveSaved(rrfilter, reset, andRewrite, andDelete) {
         wantBroadcastSaved = true;
 
         await processRearchiving(() => loadSaved(rrfilter, undefined, (v) => [v, null]), reset, andRewrite, andDelete);
+
+        // return undefined;
     });
 }
 
@@ -1173,6 +1185,8 @@ function syncDeleteSaved(rrfilter) {
             iconUrl: iconURL(allOK ? "idle" : "error", 128),
             type: "basic",
         }).catch(logError);
+
+        // return undefined;
     });
 }
 
@@ -1199,6 +1213,8 @@ function syncArchiveBuggedOut(rrfilter, reset, andRewrite, andDelete) {
 
         broadcastToState(tabId, "appendQueued", newlyQueued);
         broadcastToState(tabId, "resetBuggedOut", getBuggedOut);
+
+        return tabId;
     });
 }
 
@@ -1216,5 +1232,7 @@ function syncDeleteBuggedOut(rrfilter) {
         await deleteMany(popped);
 
         broadcastToState(tabId, "resetBuggedOut", getBuggedOut);
+
+        return tabId;
     });
 }

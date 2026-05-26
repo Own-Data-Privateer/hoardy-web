@@ -84,14 +84,14 @@ function partitionArchivables(rrfilter, iterable) {
 
 function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
     if (reqresProblematic.length == 0)
-        return 0;
+        return [undefined, 0];
 
     // the following is written as two loops to make it mostly atomic w.r.t. reqresProblematic
 
     let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresProblematic);
 
     if (popped.length === 0)
-        return 0;
+        return [undefined, 0];
 
     let newlyRestashed = [];
 
@@ -117,7 +117,7 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
         newlyUnproblematic.push(...popped);
 
     if (dontBroadcast)
-        return popped.length;
+        return [tabId, popped.length];
 
     // since archivables in `reqresProblematic` can also be in any of these
     broadcastToState(tabId, "resetProblematic", getProblematic);
@@ -127,17 +127,17 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
     if (newlyRestashed.length > 0)
         runSynchronouslyB("stash", stashMany, newlyRestashed);
 
-    return popped.length;
+    return [tabId, popped.length];
 }
 
 function syncUnmarkProblematic(...args) {
-    runSynchronously("unmarkProblematic", unmarkProblematic, ...args);
+    runSynchronously("unmarkProblematic", (...args) => unmarkProblematic(...args)[0], ...args);
 }
 
 function unmarkProblematicSimilarTo(loggable, allowInLimbo, newlyUnproblematic, dontBroadcast) {
     // TODO: more methods
     if (!config.autoUnmarkProblematicSimilar || loggable.method !== "GET")
-        return 0;
+        return [undefined, 0];
 
     return unmarkProblematic({
         sessionId: loggable.sessionId,
@@ -163,6 +163,8 @@ function rotateProblematic(rrfilter) {
     reqresProblematic = unpopped;
 
     broadcastToState(tabId, "resetProblematic", getProblematic);
+
+    return tabId;
 }
 
 function syncRotateProblematic(...args) {
@@ -171,12 +173,12 @@ function syncRotateProblematic(...args) {
 
 function popInLimbo(collect, rrfilter) {
     if (reqresLimbo.length == 0)
-        return;
+        return [undefined, 0];
 
     let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresLimbo);
 
     if (popped.length === 0)
-        return 0;
+        return [undefined, 0];
 
     // this is written as a separate loop to make it mostly atomic w.r.t. reqresLimbo
 
@@ -239,11 +241,11 @@ function popInLimbo(collect, rrfilter) {
     if (newlyUnstashed.length > 0)
         runSynchronously("unstash", deleteMany, newlyUnstashed);
 
-    return popped.length;
+    return [tabId, popped.length];
 }
 
 function syncPopInLimbo(...args) {
-    runSynchronously("popInLimbo", popInLimbo, ...args);
+    runSynchronously("popInLimbo", (...args) => popInLimbo(...args)[0], ...args);
 }
 
 function rotateInLimbo(rrfilter) {
@@ -257,6 +259,8 @@ function rotateInLimbo(rrfilter) {
     reqresLimbo = unpopped;
 
     broadcastToState(tabId, "resetInLimbo", getInLimbo);
+
+    return tabId;
 }
 
 function syncRotateInLimbo(...args) {
@@ -282,6 +286,8 @@ function forgetLog(rrfilter) {
     reqresLog = unpopped;
 
     broadcastToState(tabId, "resetLog", reqresLog);
+
+    return tabId;
 }
 
 function syncForgetLog(...args) {
