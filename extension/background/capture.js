@@ -75,7 +75,10 @@ async function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
             } catch (err) {
                 logError(err);
             }
+            // because no of the usages need it yet
+            // return undefined;
         }, false);
+        // return undefined;
     }, false);
 }
 

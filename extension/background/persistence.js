@@ -273,6 +273,7 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
             let res = bucketSaveAs(bucket, 0);
             if (res === false)
                 runSynchronously("stash", () => stashMany(reqresUnarchivedIssueAcc[0]));
+            // return undefined;
         });
     // NB: This is slightly fragile, consider the following sequence of
     // events for a given archivable:
@@ -923,6 +924,7 @@ function loadAndBroadcastSaved(rrfilter) {
             if (!(err instanceof StopIteration))
                 throw err;
         }
+        // return undefined;
     };
 }
 

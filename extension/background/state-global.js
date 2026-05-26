@@ -555,6 +555,7 @@ function scheduleSaveConfig(timeout, force) {
 
     scheduleAction(scheduledSaveState, "saveConfig", timeout, () => {
         saveConfig(force);
+        // return undefined;
     });
     // NB: needs scheduleUpdateDisplay afterwards
 }
@@ -577,6 +578,7 @@ function scheduleSaveGlobals(timeout, force) {
 
     scheduleAction(scheduledSaveState, "saveGlobals", timeout, () => {
         saveGlobals(force);
+        // return undefined;
     });
     // NB: needs scheduleUpdateDisplay afterwards
 }
