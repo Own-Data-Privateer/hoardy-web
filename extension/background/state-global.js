@@ -589,6 +589,42 @@ async function resetPersistentStats() {
     scheduleUpdateDisplay(true);
 }
 
+function setConfig(newConfig) {
+    let oldConfig = config;
+    config = updateFromRec(assignRec({}, oldConfig), newConfig);
+
+    [config, serverConfig] = fixConfig(config, oldConfig, serverConfig);
+
+    if (config.stash && config.stash != oldConfig.stash)
+        syncStashAll(false);
+
+    if (config.archive && config.archiveSubmitHTTP
+        && (config.archive !== oldConfig.archive
+            || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
+            || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)) {
+        syncRetryUnarchived(true, {});
+        wantArchiveDoneNotify = true;
+    }
+
+    if (config.rearchiveSubmitHTTP
+        && (config.rearchiveSubmitHTTP !== oldConfig.rearchiveSubmitHTTP
+            || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)
+     || config.replaySubmitHTTP !== false
+        && (config.replaySubmitHTTP !== oldConfig.replaySubmitHTTP
+            || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase))
+        wantCheckServer = true;
+
+    if (!config.ephemeral && !equalRec(config, oldConfig))
+        // save config after a little pause to give the user time to click
+        // the same toggle again without torturing the SSD
+        scheduleSaveConfig(1000, true);
+
+    if (useDebugger)
+        syncDebuggersState();
+
+    broadcast(false, "updateConfig", config);
+}
+
 function isServerURL(url) {
     return url.startsWith(serverConfig.baseURL);
 }

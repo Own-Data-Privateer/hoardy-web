@@ -212,6 +212,14 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
     }
 }
 
+function runThenScheduleEndgame(func, ...args) {
+    let res = catchAll(func)(...args);
+    if (res instanceof Promise)
+        res.then(() => scheduleEndgame());
+    else
+        scheduleEndgame();
+}
+
 // Schedule a given function using `resetSingletonTimeout`. But just
 // before it starts, add its name to `runningActions` and update the
 // UI, after it ends, remove it from `runningActions` and run

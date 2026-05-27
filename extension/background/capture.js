@@ -786,11 +786,6 @@ function stopInFlight(tabId, reason) {
     // NB: needs scheduleEndgame after
 }
 
-function syncStopInFlight(tabId) {
-    let updatedTabId = stopInFlight(tabId, "capture::EMIT_FORCED::BY_USER");
-    scheduleEndgame(updatedTabId);
-}
-
 // webRequest handlers
 
 function logEvent(rtype, e, reqres) {

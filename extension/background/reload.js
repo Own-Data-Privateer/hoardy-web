@@ -117,10 +117,13 @@ function reloadSelf() {
     wantReloadSelf = true;
     syncStashAll(true);
     syncRunActions();
+    // NB: keep this here here instead of wrapping this function using `runThenScheduleEndgame` so
+    // that this function could be called from the debug console
     scheduleEndgame(null);
 }
 
 function cancelReloadSelf() {
     wantReloadSelf = false;
+    // NB: similarly
     scheduleEndgame(null);
 }

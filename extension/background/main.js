@@ -202,7 +202,7 @@ let updateAvailable = false;
 function handleUpdateAvailable(details) {
     updateAvailable = true;
     if (config.autoReloadOnUpdates)
-        reloadSelf();
+        shortcutCommands.reloadSelf();
     else
         scheduleUpdateDisplay(true);
 }
@@ -277,317 +277,145 @@ function handleTabUpdated(tabId, changeInfo, tab) {
     scheduleUpdateDisplay(false, tabId, true);
 }
 
-function evalSimpleRequest(command, tabId, activeTabId) {
-    let handled = true;
+let rpcCommands = {
+    getSessionId: () => sessionId,
 
-    switch (command) {
-    case "reloadSelf":
-        reloadSelf();
-        break;
-    case "cancelReloadSelf":
-        cancelReloadSelf();
-        break;
+    getConfig: () => config,
+    setConfig: (newConfig) => runThenScheduleEndgame(setConfig, newConfig),
+    resetConfig: () => runThenScheduleEndgame(setConfig, configDefaults),
 
-    case "runActions":
-        syncRunActions();
-        scheduleEndgame(null);
-        break;
-    case "cancelActions":
-        syncCancelActions();
-        scheduleEndgame(null);
-        break;
+    getTabConfig,
+    setTabConfig: (tabId, newConfig) => {
+        let oldConfig = getTabConfig(tabId);
+        newConfig = updateFromRec(prefillChildren(configDefaults.root), newConfig);
+        setTabConfig(tabId, undefined, newConfig, oldConfig);
+    },
 
-    case "showState":
-        showState(null, null, "top", activeTabId);
-        break;
-    case "showLog":
-        showState(null, null, "tail", activeTabId, true, scrollEndIntoView);
-        break;
-    case "showTabState":
-        showState(sessionId, tabId, "top", activeTabId);
-        break;
-    case "showTabLog":
-        showState(sessionId, tabId, "tail", activeTabId, true, scrollEndIntoView);
-        break;
+    getStats,
+    resetPersistentStats,
 
-    case "forgetAllLog":
-        syncForgetLog({});
-        scheduleEndgame(null);
-        break;
-    case "forgetAllTabLog":
-        syncForgetLog({tabId});
-        scheduleEndgame(tabId);
-        break;
+    getTabStats,
 
-    case "retryAllFailed":
-        syncRetryUnarchived(true, {});
-        syncRetryAllUnstashed();
-        scheduleEndgame(null);
-        break;
-    case "retryAllUnstashed":
-        syncRetryAllUnstashed();
-        scheduleEndgame(null);
-        break;
-    case "retryAllUnarchived":
-        syncRetryUnarchived(true, {});
-        scheduleEndgame(null);
-        break;
+    // NB: not wrapping these ones because they return `Promise`s
+    snapshot: (tabId) => {
+        snapshot(tabId);
+    },
+    replay: (tabId, direction) => {
+        replay(tabId, direction);
+    },
 
-    case "exportAsAll":
+    getInFlight,
+    // TODO rrfilter too
+    stopInFlight: (tabId, reason) => {
+        if (reason === undefined)
+            reason = "capture::EMIT_FORCED::BY_USER";
+        let updatedTabId = stopInFlight(tabId, reason);
+        scheduleEndgame(updatedTabId);
+    },
+
+    getProblematic,
+    unmarkProblematic: (rrfilter) => runThenScheduleEndgame(syncUnmarkProblematic, rrfilter),
+    rotateProblematic: (rrfilter) => runThenScheduleEndgame(syncRotateProblematic, rrfilter),
+
+    getInLimbo,
+    popInLimbo: (collect, rrfilter) => runThenScheduleEndgame(syncPopInLimbo, collect, rrfilter),
+    rotateInLimbo: (rrfilter) => runThenScheduleEndgame(syncRotateInLimbo, rrfilter),
+
+    getLog: () => reqresLog,
+    forgetLog: (rrfilter) => runThenScheduleEndgame(syncForgetLog, rrfilter),
+
+    getQueued,
+
+    getUnarchived,
+    retryUnarchived: (unrecoverable, rrfilter) => runThenScheduleEndgame(syncRetryUnarchived, unrecoverable, rrfilter),
+
+    getBuggedOut,
+    archiveBuggedOut: (rrfilter) => runThenScheduleEndgame(syncArchiveBuggedOut, rrfilter),
+    deleteBuggedOut: (rrfilter) => runThenScheduleEndgame(syncDeleteBuggedOut, rrfilter),
+
+    getSavedFilters: () => savedFilters,
+    setSavedFilters: (newSavedFilters) => runThenScheduleEndgame(setSavedFilters, newSavedFilters),
+
+    exportAs: (bucketOrNull) => {
+        scheduleBucketSaveAs(0, bucketOrNull);
+        scheduleUpdateDisplay(true);
+    },
+    rearchiveSaved: (...args) => runThenScheduleEndgame(syncRearchiveSaved, ...args),
+    deleteSaved: (rrfilter) => runThenScheduleEndgame(syncDeleteSaved, rrfilter),
+};
+
+let shortcutCommands = {
+    // Global
+    reloadSelf,
+    cancelReloadSelf,
+
+    runActions: () => runThenScheduleEndgame(syncRunActions),
+    cancelActions: () => runThenScheduleEndgame(syncCancelActions),
+
+    exportAsAll: () => {
         scheduleBucketSaveAs(0, null);
         scheduleUpdateDisplay(true);
-        break;
-    case "stashAll":
-        syncStashAll(true);
+    },
+    stashAll: () => runThenScheduleEndgame(syncStashAll, true),
+    retryAllUnstashed: () => runThenScheduleEndgame(syncRetryAllUnstashed),
+    retryAllUnarchived: () => runThenScheduleEndgame(syncRetryUnarchived, true, {}),
+    retryAllFailed: () => {
+        syncRetryUnarchived(true, {});
+        syncRetryAllUnstashed();
         scheduleEndgame(null);
-        break;
-    case "rearchiveAdjunctSaved":
-        syncRearchiveSaved(null, false, false, false);
-        scheduleEndgame(null);
-        break;
+    },
+    rearchiveAdjunctSaved: () => runThenScheduleEndgame(syncRearchiveSaved, null, false, false, false),
 
-    case "stopAllInFlight":
-        syncStopInFlight(null);
-        break;
-    case "stopAllTabInFlight":
-        syncStopInFlight(tabId);
-        break;
+    snapshotAll: () => rpcCommands.snapshot(null),
+    replayAll: () => rpcCommands.replay(null, null),
 
-    case "unmarkAllProblematic":
-        syncUnmarkProblematic({});
-        scheduleEndgame(null);
-        break;
-    case "unmarkAllTabProblematic":
-        syncUnmarkProblematic({tabId});
-        scheduleEndgame(tabId);
-        break;
+    forgetAllLog: () => runThenScheduleEndgame(syncForgetLog, {}),
+    showState: (tabId, activeTabId) => showState(null, null, "top", activeTabId),
+    showLog: (tabId, activeTabId) => showState(null, null, "tail", activeTabId, true, scrollEndIntoView),
 
-    case "collectAllInLimbo":
-        syncPopInLimbo(true, {});
-        scheduleEndgame(null);
-        break;
-    case "collectAllTabInLimbo":
-        syncPopInLimbo(true, {tabId});
-        scheduleEndgame(tabId);
-        break;
+    stopAllInFlight: () => rpcCommands.stopInFlight(null),
+    unmarkAllProblematic: () => runThenScheduleEndgame(syncUnmarkProblematic, {}),
+    collectAllInLimbo: () => runThenScheduleEndgame(syncPopInLimbo, true, {}),
+    discardAllInLimbo: () => runThenScheduleEndgame(syncPopInLimbo, false, {}),
 
-    case "discardAllInLimbo":
-        syncPopInLimbo(false, {});
-        scheduleEndgame(null);
-        break;
-    case "discardAllTabInLimbo":
-        syncPopInLimbo(false, {tabId});
-        scheduleEndgame(tabId);
-        break;
+    // per-Tab
+    snapshotTab: rpcCommands.snapshot,
+    replayTabBack: (tabId) => rpcCommands.replay(tabId, false),
+    replayTabForward: (tabId) => rpcCommands.replay(tabId, true),
 
-    case "snapshotAll":
-        snapshot(null);
-        break;
-    case "replayAll":
-        replay(null, null);
-        break;
+    forgetAllTabLog: (tabId) => runThenScheduleEndgame(syncForgetLog, {tabId}),
+    showTabState: (tabId, activeTabId) => showState(sessionId, tabId, "top", activeTabId),
+    showTabLog: (tabId, activeTabId) => showState(sessionId, tabId, "tail", activeTabId, true, scrollEndIntoView),
 
-    case "snapshotTab":
-        snapshot(tabId);
-        break;
-    case "replayTabBack":
-        replay(tabId, false);
-        break;
-    case "replayTabForward":
-        replay(tabId, true);
-        break;
-    default:
-        handled = false;
-    }
+    stopAllTabInFlight: rpcCommands.stopInFlight,
+    unmarkAllTabProblematic: (tabId) => runThenScheduleEndgame(syncUnmarkProblematic, {tabId}),
+    collectAllTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, true, {tabId}),
+    discardAllTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, false, {tabId}),
+};
 
-    if (handled)
-        return true;
+function initShortcutCommands() {
+    let commands = manifest.commands;
+    for (let command of Object.keys(commands)) {
+        if (command.startsWith("_") || shortcutCommands[command] !== undefined)
+            continue;
+        if (command.startsWith("toggleTabConfig")) {
+            let [field, children] = mapShortcutName((field, children) => [field, children], command);
 
-    if (command.startsWith("toggleTabConfig")) {
-        let oldTabcfg = getTabConfig(tabId);
-        let tabcfg = assignRec({}, oldTabcfg);
+            shortcutCommands[command] = (tabId) => {
+                let oldTabcfg = getTabConfig(tabId);
+                let tabcfg = assignRec({}, oldTabcfg);
 
-        let [field, cfg] = mapShortcutName((field, children) => [field, children ? tabcfg.children : tabcfg], command);
+                let cfg = children ? tabcfg.children : tabcfg;
+                if (cfg[field] === undefined)
+                    throw Error(`toggleTabConfig*: no such field: ${field}`);
+                cfg[field] = !cfg[field];
 
-        if (cfg[field] === undefined)
-            throw Error(`no such field ${field}`);
-        cfg[field] = !cfg[field];
-
-        setTabConfig(tabId, undefined, tabcfg, oldTabcfg);
-
-        return true;
-    }
-
-    return false;
-}
-
-function evalRPCRequest(request) {
-    let [cmd, arg1, arg2, arg3, arg4] = request;
-    switch (cmd) {
-    case "getSessionId":
-        return sessionId;
-
-    case "getConfig":
-        return config;
-    case "setConfig":
-        let oldConfig = config;
-        config = updateFromRec(assignRec({}, oldConfig), arg1);
-
-        [config, serverConfig] = fixConfig(config, oldConfig, serverConfig);
-
-        if (config.stash && config.stash != oldConfig.stash)
-            syncStashAll(false);
-
-        if (config.archive && config.archiveSubmitHTTP
-            && (config.archive !== oldConfig.archive
-                || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
-                || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)) {
-            syncRetryUnarchived(true, {});
-            wantArchiveDoneNotify = true;
+                setTabConfig(tabId, undefined, tabcfg, oldTabcfg);
+            };
+            continue;
         }
-
-        if (config.rearchiveSubmitHTTP
-            && (config.rearchiveSubmitHTTP !== oldConfig.rearchiveSubmitHTTP
-                || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)
-         || config.replaySubmitHTTP !== false
-            && (config.replaySubmitHTTP !== oldConfig.replaySubmitHTTP
-                || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase))
-            wantCheckServer = true;
-
-        if (!config.ephemeral && !equalRec(config, oldConfig))
-            // save config after a little pause to give the user time to click
-            // the same toggle again without torturing the SSD
-            scheduleSaveConfig(1000, true);
-
-        if (useDebugger)
-            syncDebuggersState();
-
-        scheduleEndgame(null);
-        broadcast(false, "updateConfig", config);
-        return null;
-    case "resetConfig":
-        config = assignRec({}, configDefaults);
-        scheduleSaveConfig(0, true);
-        scheduleUpdateDisplay(true, null);
-        broadcast(false, "updateConfig", config);
-        return null;
-
-    case "getTabConfig":
-        return getTabConfig(arg1);
-    case "setTabConfig":
-        let oldTabcfg = getTabConfig(arg1);
-        setTabConfig(arg1, undefined, arg2, oldTabcfg);
-        return null;
-
-    case "getStats":
-        return getStats();
-    case "resetPersistentStats":
-        resetPersistentStats();
-        return null;
-
-    case "getTabStats":
-        return getTabStats(arg1);
-
-    case "getLog":
-        return reqresLog;
-
-    case "forgetLog":
-        syncForgetLog(arg1);
-        scheduleEndgame(null);
-        return null;
-
-    case "exportAs":
-        scheduleBucketSaveAs(0, arg1);
-        scheduleUpdateDisplay(true);
-        return null;
-
-    case "getSavedFilters":
-        return savedFilters;
-    case "setSavedFilters":
-        setSavedFilters(arg1);
-        scheduleEndgame(null);
-        return null;
-
-    case "rearchiveSaved":
-        syncRearchiveSaved(arg1, arg2, arg3, arg4);
-        scheduleEndgame(null);
-        return null;
-    case "deleteSaved":
-        syncDeleteSaved(arg1);
-        scheduleEndgame(null);
-        return null;
-
-    case "stopInFlight":
-        syncStopInFlight(arg1);
-        return null;
-
-    case "getInFlight":
-        return getInFlight();
-
-    case "getProblematic":
-        return getProblematic();
-    case "unmarkProblematic":
-        syncUnmarkProblematic(arg1);
-        scheduleEndgame(null);
-        return null;
-    case "rotateProblematic":
-        syncRotateProblematic(arg1);
-        scheduleEndgame();
-        return null;
-
-    case "getInLimbo":
-        return getInLimbo();
-    case "popInLimbo":
-        syncPopInLimbo(arg1, arg2);
-        scheduleEndgame(null);
-        return null;
-    case "rotateInLimbo":
-        syncRotateInLimbo(arg1);
-        scheduleEndgame(null);
-        return null;
-
-    case "getQueued":
-        return getQueued();
-
-    case "getUnarchived":
-        return getUnarchived();
-    case "retryUnarchived":
-        syncRetryUnarchived(arg1, arg2);
-        scheduleEndgame(null);
-        break;
-
-    case "getBuggedOut":
-        return getBuggedOut();
-
-    case "archiveBuggedOut":
-        syncArchiveBuggedOut(arg1);
-        scheduleEndgame(null);
-        return null;
-    case "deleteBuggedOut":
-        syncDeleteBuggedOut(arg1);
-        scheduleEndgame(null);
-        return null;
-
-    case "snapshot":
-        snapshot(arg1);
-        return null;
-
-    case "replay":
-        replay(arg1, arg2);
-        return null;
-
-    default:
-        let res = evalSimpleRequest(cmd, arg1, arg1);
-        if (res)
-            return null;
-
-        console.error("BROWSER: RPC: unknown request", request);
-        throw new Error(`unknown request`);
+        console.error(`a superfulous manifest.commands entry: ${command}`);
     }
-}
-
-function handleInternalMessage(request, sender, sendResponse) {
-    sendResponse(evalRPCRequest(request));
 }
 
 async function handleShortcut(request) {
@@ -604,12 +432,41 @@ async function handleShortcut(request) {
     // rather useful.
     let tabId = getMapURLParam(statePageURL, "tab", new URL(getTabURL(tab, "")), toNumber, TAB_ID_NONE, activeTabId);
 
-    let res = evalSimpleRequest(request, tabId, activeTabId);
-    if (res)
+    let action = shortcutCommands[request];
+    if (action !== undefined) {
+        action(tabId, activeTabId);
         return;
+    }
 
     console.error("BROWSER: SHORTCUT: unknown request", request);
     throw new Error(`unknown request`);
+}
+
+function evalRPCRequest(request) {
+    let command = request[0];
+
+    let shortcutFunc = shortcutCommands[command];
+    if (shortcutFunc !== undefined) {
+        let tabId = request[1];
+        shortcutFunc(tabId, tabId);
+        return null;
+    }
+
+    let rpcFunc = rpcCommands[command];
+    if (rpcFunc !== undefined) {
+        request.shift();
+        let res = rpcFunc(...request);
+        if (res !== undefined)
+            return res;
+        return null;
+    }
+
+    console.error("BROWSER: RPC: unknown request", request);
+    throw new Error(`unknown request`);
+}
+
+function handleInternalMessage(request, sender, sendResponse) {
+    sendResponse(evalRPCRequest(request));
 }
 
 function handleNotificationClicked(notificationId) {
@@ -618,7 +475,7 @@ function handleNotificationClicked(notificationId) {
 
     switch (notificationId) {
     case "info-updated":
-        evalRPCRequest(["setConfig", { seenChangelog: true }]);
+        rpcCommands.setConfig({ seenChangelog: true });
         showChangelog("");
         return;
     default:
@@ -744,6 +601,9 @@ function initMenus() {
 
 async function main() {
     browser.runtime.onUpdateAvailable.addListener(catchAll(handleUpdateAvailable));
+
+    // Init stuff.
+    initShortcutCommands();
 
     // Load old config and globals.
 
