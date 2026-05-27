@@ -113,32 +113,38 @@ async function popupMain() {
 
     // emoji labels for the UI buttons
     let emojiButtons = {
+        // Global
         reloadSelf: "（🌟ω🌟）",
+        runActions: "🟢",
+        cancelActions: "🟥",
+        exportAsAll: "💾",
+        stashAll: "💾",
+        retryAllUnstashed: "♻",
+        retryAllUnarchived: "♻",
+        retryAllFailed: "♻",
+        showBuggedOut: "📜",
+
         snapshotAll: "📸",
         replayAll: "⏏",
         forgetAllLog: "🧹",
         showState: "📜",
-        runActions: "🟢",
-        cancelActions: "🟥",
-        exportAsAll: "💾",
-        retryAllFailed: "♻",
-        retryAllUnarchived: "♻",
-        stashAll: "💾",
-        retryAllUnstashed: "♻",
+
         collectAllInLimbo: "✔",
         discardAllInLimbo: "✖",
         unmarkAllProblematic: "🧹",
         stopAllInFlight: "⏹",
+
+        // per-Tab
         snapshotTab: "📸",
         replayTabBack: "⏮",
         //replayTabForward: "⏭",
         forgetAllTabLog: "🧹",
         showTabState: "📜",
+
         collectAllTabInLimbo: "✔",
         discardAllTabInLimbo: "✖",
         unmarkAllTabProblematic: "🧹",
         stopAllTabInFlight: "⏹",
-        showBuggedOut: "📜",
     };
 
     // populate with the original values from the ./popup.html
@@ -249,17 +255,36 @@ async function popupMain() {
     });
 
     let shortcutButtons = [
-        "reloadSelf", "cancelReloadSelf",
-        "runActions", "cancelActions",
-        "forgetAllLog", "forgetAllTabLog",
-        "retryAllFailed", "retryAllUnstashed", "retryAllUnarchived",
-        "exportAsAll", "stashAll",
-        "stopAllInFlight", "stopAllTabInFlight",
-        "unmarkAllProblematic", "unmarkAllTabProblematic",
-        "collectAllInLimbo", "collectAllTabInLimbo",
-        "discardAllInLimbo", "discardAllTabInLimbo",
-        "snapshotAll", "snapshotTab",
-        "replayAll", "replayTabBack", // "replayTabForward"
+        // Global
+        "reloadSelf",
+        "cancelReloadSelf",
+        "runActions",
+        "cancelActions",
+        "exportAsAll",
+        "retryAllFailed",
+        "retryAllUnarchived",
+        "stashAll",
+        "retryAllUnstashed",
+
+        "snapshotAll",
+        "replayAll",
+        "forgetAllLog",
+
+        "collectAllInLimbo",
+        "discardAllInLimbo",
+        "unmarkAllProblematic",
+        "stopAllInFlight",
+
+        // per-Tab
+        "snapshotTab",
+        "replayTabBack",
+        // "replayTabForward"
+        "forgetAllTabLog",
+
+        "collectAllTabInLimbo",
+        "discardAllTabInLimbo",
+        "unmarkAllTabProblematic",
+        "stopAllTabInFlight",
     ];
     for (let id of shortcutButtons) {
         buttonToMessage(id, () => [id, narrowTabId]);
