@@ -392,6 +392,15 @@ section {
     <div class="idots ui">
     <!-- thisTabOptions -->
 
+    <center class="tag-def tag-tab">
+      <input id="smartSwitchTabsBackward" type="button" data-shortcut="smartSwitchTabsBackward" value="N-" />
+      <input id="smartSwitchTabsForward" type="button" data-shortcut="smartSwitchTabsForward" value="N+" />
+      <input id="smartSwitchTabsLatest" type="button" data-shortcut="smartSwitchTabsLatest" value="N" />
+      <input id="highlightTabsBackward" type="button" data-shortcut="highlightTabsBackward" value="HL-" />
+      <input id="highlightTabsForward" type="button" data-shortcut="highlightTabsForward" value="HL+" />
+      <input id="highlightTabsLatest" type="button" data-shortcut="highlightTabsLatest" value="HL" />
+    </center>
+
     <div class="stats">
       <div id="div-tabstats.collected" class="tag-tab tag-pr" data-help="For this tab, the number of `finished` reqres that were taken for archival (and the sum total of all sizes of their dumps).">
         <span>Collected</span>

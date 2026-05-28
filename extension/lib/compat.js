@@ -137,6 +137,7 @@ function makeFirefoxish(browser) {
     browser.tabs.create = makePromiseAPI(browser.tabs.create);
     browser.tabs.executeScript = makePromiseAPI2(browser.tabs.executeScript);
     browser.tabs.get = makePromiseAPI(browser.tabs.get);
+    browser.tabs.highlight = makePromiseAPI(browser.tabs.highlight);
     browser.tabs.query = makePromiseAPI(browser.tabs.query);
     browser.tabs.update = makePromiseAPI2(browser.tabs.update);
     browser.windows.create = makePromiseAPI(browser.windows.create);

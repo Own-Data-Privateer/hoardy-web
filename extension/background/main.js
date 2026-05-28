@@ -379,8 +379,29 @@ let shortcutCommands = {
     collectAllInLimbo: () => runThenScheduleEndgame(syncPopInLimbo, true, {}),
     discardAllInLimbo: () => runThenScheduleEndgame(syncPopInLimbo, false, {}),
 
+    // NB: wrapping these because they return `Promise`s
+    smartSwitchTabsBackward: () => {
+        smartSwitchTabs(false, false, true);
+    },
+    smartSwitchTabsForward: () => {
+        smartSwitchTabs(false, true, true);
+    },
+    smartSwitchTabsLatest: () => {
+        smartSwitchTabs(false, false, false);
+    },
+    highlightTabsBackward: () => {
+        smartSwitchTabs(true, false, true);
+    },
+    highlightTabsForward: () => {
+        smartSwitchTabs(true, true, true);
+    },
+    highlightTabsLatest: () => {
+        smartSwitchTabs(true, false, false);
+    },
+
     // per-Tab
     snapshotTab: rpcCommands.snapshot,
+    // TODO rename -> *Backward
     replayTabBack: (tabId) => rpcCommands.replay(tabId, false),
     replayTabForward: (tabId) => rpcCommands.replay(tabId, true),
 

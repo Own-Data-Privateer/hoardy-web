@@ -133,3 +133,39 @@ async function showInternalPageAtNode(url, id, openerTabId, spawn, scrollIntoVie
         return tab.id;
     }
 }
+
+// For a given list of `tabs`, split them by `windowId`, then run `func` for each `windowId` and its
+// tabs.
+function mapTabsPerWindow(func, tabs) {
+    let byWindow = new Map();
+    for (let tab of tabs)
+        cacheSingleton(byWindow, tab.windowId, () => []).push(tab);
+
+    let out = [];
+    for (let [windowId, windowTabs] of byWindow.entries())
+        out.push(func(windowId, windowTabs));
+    return out;
+}
+
+// For a given list of `tabs`, split them by `windowId`, round-robin the list within each `windowId`
+// so that the tab following the currently active tab would be at the beggining fo the list and the
+// currently active tab would be at its the end, then run `func` for each `windowId` and its
+// round-robin'ed tabs.
+function mapRoundRobinTabsPerWindow(func, tabs) {
+    return mapTabsPerWindow((windowId, windowTabs) => {
+        let seenActive = false;
+        let rrTabs = [];
+        let rrTabsBefore = [];
+        for (let tab of windowTabs) {
+            if (seenActive)
+                rrTabs.push(tab);
+            else
+                rrTabsBefore.push(tab);
+            if (tab.active)
+                seenActive = true;
+        }
+        rrTabs.push(...rrTabsBefore);
+
+        return func(windowId, rrTabs);
+    }, tabs);
+}

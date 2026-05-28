@@ -64,6 +64,36 @@
                 "default": "Alt+Shift+U"
             }
         },
+        "smartSwitchTabsBackward": {
+            "suggested_key": {
+                "default": "Alt+J"
+            }
+        },
+        "smartSwitchTabsForward": {
+            "suggested_key": {
+                "default": "Alt+K"
+            }
+        },
+        "smartSwitchTabsLatest": {
+            "suggested_key": {
+                "default": "Alt+M"
+            }
+        },
+        "highlightTabsBackward": {
+            "suggested_key": {
+                "default": "Alt+Shift+J"
+            }
+        },
+        "highlightTabsForward": {
+            "suggested_key": {
+                "default": "Alt+Shift+K"
+            }
+        },
+        "highlightTabsLatest": {
+            "suggested_key": {
+                "default": "Alt+Shift+M"
+            }
+        },
         "showTabState": {
             "suggested_key": {
                 "default": "Alt+I"

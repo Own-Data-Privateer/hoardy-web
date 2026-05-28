@@ -45,6 +45,24 @@
         "unmarkAllProblematic": {
             "description": "Unmark All Problematic: Unmark all `problematic` reqres."
         },
+        "smartSwitchTabsBackward": {
+            "description": "Smart Switch Tabs Backward: Switch between the tabs of the currently active window *in reverse order* of their last `picked` reqres (or tab creation times, for tabs that have none of those yet), with tabs that have associated `in_limbo`, `problematic`, or `in_flight` reqres placed before all the others, in a round-robin manner."
+        },
+        "smartSwitchTabsForward": {
+            "description": "Smart Switch Tabs Forward: Switch between the tabs of the currently active window *in order* of their last `picked` reqres (or tab creation times, for tabs that have none of those yet), with tabs that have associated `in_limbo`, `problematic`, or `in_flight` reqres placed before all the others, in a round-robin manner."
+        },
+        "smartSwitchTabsLatest": {
+            "description": "Smart Switch Tabs to the Most Recent: Find the tab of the currently active window with the most recently `picked` reqres (or tab creation time, when a tab has none of those yes) and switch to it. If some of the tabs of the currently active window have associated `in_limbo`, `problematic`, or `in_flight` reqres, then switch to such a tab among them."
+        },
+        "highlightTabsBackward": {
+            "description": "Smart Switch Tabs Backward with Highlight: Switch between the tabs of the currently active window that have associated `in_limbo`, `problematic`, or `in_flight` reqres *in reverse order* of their last `picked` reqres, then highlight/select all of them. See `Smart Switch Tabs to the Most Recent with Highlight` action for relevant quirks."
+        },
+        "highlightTabsForward": {
+            "description": "Smart Switch Tabs Forward with Highlight: Switch between the tabs of the currently active window that have associated `in_limbo`, `problematic`, or `in_flight` reqres *in order* of their last `picked` reqres, then highlight/select all of them. See `Smart Switch Tabs to the Most Recent with Highlight` action for relevant quirks info."
+        },
+        "highlightTabsLatest": {
+            "description": "Smart Switch Tabs to the Most Recent with Highlight: Find the tab with the most recently `picked` reqres among the tabs of the currently active window that have associated `in_limbo`, `problematic`, or `in_flight` reqres, switch to it, then highlight/select all of them.\n\nDoing things this way produces a much nicer UI compared to `Smart Switch Tabs *` action variants and the resulting highlighted tabs set can be used in various advanced ways, especially when using other tab-managing extensions like `Tree Style Tab` or similar. However, you should be careful when using these `* with Highlight` action variants because they use browser's tab highlighting API in a way it's not designed for. Tab highlighting is, essentially, a multi-tab selection mechanism. Thus, if you, for example, press this button and then immediately close one of the highlighted tabs, all of the other highlighted tabs will be closed too."
+        },
         "snapshotTab": {
             "description": "Snapshot Tab: Take `DOM` snapshots of all frames of this tab, regardless of its `Include in global snapshots` setting."
         },

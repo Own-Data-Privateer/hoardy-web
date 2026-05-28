@@ -147,6 +147,60 @@ function getUsedTabs(rrfilter, unqueued, problematic, limbo, log, dumping) {
     return set;
 }
 
+async function smartSwitchTabs(highlight, direction, roundRobin) {
+    let usedTabs = getUsedTabs({sessionId}, true, true, true, false, false);
+    let isInteresting = (tabId) => usedTabs.has(tabId);
+
+    let tabs = await browser.tabs.query({currentWindow: true});
+
+    if (highlight)
+        tabs = tabs.filter((tab) => isInteresting(tab.id));
+
+    if (tabs.length === 0)
+        return;
+
+    tabs.sort((a, b) => {
+        let aid = a.id;
+        let bid = b.id;
+
+        if (!highlight) {
+            // interesing ones go first
+            let ai = isInteresting(aid);
+            let bi = isInteresting(bid);
+            if (ai !== bi)
+                return ai ? -1 : 1;
+        }
+
+        // otherwise, sort in order of their last `emitTimeStamp`s
+        return getTabState(bid).emitTimeStamp - getTabState(aid).emitTimeStamp;
+    });
+    if (direction)
+        tabs.reverse();
+
+    let act = roundRobin ? mapRoundRobinTabsPerWindow : mapTabsPerWindow;
+
+    await Promise.all(
+        act((windowId, tabs) => {
+            if (config.debugRuntime)
+                console.log("smartSwitchTabs", windowId, tabs.map((tab) => tab.id));
+
+            if (highlight)
+                return browser.tabs.highlight(assignRec(
+                    { windowId, tabs: tabs.map((e) => e.index) },
+                    useDebugger ? undefined : { populate: false }
+                )).catch(logError);
+            else
+                return browser.tabs.highlight(assignRec(
+                    { windowId, tabs: [tabs[0].index] },
+                    useDebugger ? undefined : { populate: false }
+                )).catch(logError);
+                // NB: not doing
+                //   return browser.tabs.update(tabs[0].id, {active: true}).catch(logError);
+                // instead because that keeps old highlight if `tabs[0]` was highlighted too
+        }, tabs)
+    );
+}
+
 // Free unused `tabConfig` and `tabState` structures.
 function cleanupTabs() {
     let usedTabs = getUsedTabs(null, true, true, true, true, true);
