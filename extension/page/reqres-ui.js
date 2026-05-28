@@ -190,12 +190,12 @@ function resetDataNode(node, log_data, predicate) {
 function mkDataNodeUpdater(id, getReqresFilter) {
     return [
         (log_data) => {
-            let rrfilter = buildReqresFilter(getReqresFilter());
-            resetDataNode(document.getElementById(id), log_data, (loggable) => isAcceptedBy(rrfilter, loggable));
+            let rrpredicate = compileReqresFilter(getReqresFilter())[1];
+            resetDataNode(document.getElementById(id), log_data, rrpredicate);
         },
         (log_data) => {
-            let rrfilter = buildReqresFilter(getReqresFilter());
-            appendToLog(document.getElementById(id), log_data, (loggable) => isAcceptedBy(rrfilter, loggable));
+            let rrpredicate = compileReqresFilter(getReqresFilter())[1];
+            appendToLog(document.getElementById(id), log_data, rrpredicate);
         },
     ];
 }

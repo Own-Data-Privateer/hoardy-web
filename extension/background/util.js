@@ -347,7 +347,6 @@ function updateRearchiveVars(rearchive, path) {
 
 // filter expression
 let reqresFilterDefaults = {
-    limit: null,
     sessionId: null,
     tabId: null,
     picked: null,
@@ -363,62 +362,79 @@ let reqresFilterDefaults = {
     method: null,
     url_algo: null,
     url: "",
+    limit: null,
 };
 
-function mkReqresFilter(attrs) {
-    return updateFromRec(assignRec({}, reqresFilterDefaults), attrs);
+function mkReqresFilter(value) {
+    return updateFromRec(assignRec({}, reqresFilterDefaults), value);
 }
 
-function buildReqresFilter(attrs) {
-    if (attrs === false || attrs === null)
-        return attrs;
+function compileReqresFilter(value) {
+    if (value === false)
+        return [mkReqresFilter({limit: 0}), (reqres) => false];
+    if (value === null)
+        return [mkReqresFilter({}), (reqres) => true];
 
-    let res = mkReqresFilter(attrs);
+    value = mkReqresFilter(value);
 
-    // .url_matches tests if the URL is accepted by rrfilter
-    let algo = res.url_algo;
-    let arg = res.url;
-    if (algo === null && arg.length === 0)
-        res.url_matches = (url) => true;
-    else if (algo === false)
-        res.url_matches = (url) => url === arg;
-    else if (algo === null)
-        res.url_matches = (url) => url.includes(arg);
-    else if (algo === true) {
-        let re = new RegExp(arg);
-        res.url_matches = (url) => re.test(url);
-    }
+    let predicates = [];
 
-    if (res.url_matches === undefined)
-        throw new TypeError("rrfilter.url");
+    // add predicates for the simple checks
+    if (value.sessionId !== null)
+        predicates.push((reqres) => reqres.sessionId === value.sessionId);
+    if (value.tabId !== null)
+        predicates.push((reqres) => reqres.tabId === value.tabId);
+    if (value.picked !== null)
+        predicates.push((reqres) => reqres.picked === value.picked);
+    if (value.collected !== null)
+        predicates.push((reqres) => reqres.collected === value.collected);
+    if (value.problematic !== null)
+        predicates.push((reqres) => reqres.problematic === value.problematic);
+    if (value.was_problematic !== null)
+        predicates.push((reqres) => reqres.was_problematic === value.was_problematic);
+    if (value.in_limbo !== null)
+        predicates.push((reqres) => reqres.in_limbo === value.in_limbo);
+    if (value.was_in_limbo !== null)
+        predicates.push((reqres) => reqres.was_in_limbo === value.was_in_limbo);
+    if (value.with_errors !== null)
+        predicates.push((reqres) => value.with_errors ?
+                                    reqres.errors.length > 0 :
+                                    reqres.errors.length === 0);
+    if (value.did_exportAs !== null)
+        predicates.push((reqres) => value.did_exportAs ?
+                                    reqres.archived & archivedViaExportAs !== 0 :
+                                    reqres.archived & archivedViaExportAs === 0);
+    if (value.did_submitHTTP !== null)
+        predicates.push((reqres) => value.did_submitHTTP ?
+                                    reqres.archived & archivedViaSubmitHTTP !== 0 :
+                                    reqres.archived & archivedViaSubmitHTTP === 0);
+    if (value.in_ls !== null)
+        predicates.push((reqres) => reqres.inLS === value.in_ls);
+    if (value.method !== null)
+        predicates.push((reqres) => reqres.method === value.method);
 
-    return res;
-}
+    // add a predicate that tests that `reqres.url` matches
+    let url_algo = value.url_algo;
+    let url = value.url;
+    if (url_algo === false)
+        predicates.push((reqres) => reqres.url === url);
+    else if (url_algo === null) {
+        if (url.length !== 0)
+            predicates.push((reqres) => reqres.url.includes(url));
+        // else, add nothing
+    } else if (url_algo === true) {
+        let re = new RegExp(url);
+        predicates.push((reqres) => re.test(reqres.url));
+    } else
+        throw new TypeError("Bad url_algo");
 
-// loggable is accepted by the rrfilter
-function isAcceptedBy(rrfilter, loggable) {
-    if (rrfilter === false)
-        return false;
-    if (rrfilter === null)
+    return [value, (reqres) => {
+        for (let predicate of predicates) {
+            if (!predicate(reqres))
+                return false;
+        }
         return true;
-    if (
-        (rrfilter.sessionId === null || loggable.sessionId === rrfilter.sessionId) &&
-        (rrfilter.tabId === null || loggable.tabId === rrfilter.tabId) &&
-        (rrfilter.picked === null || loggable.picked === rrfilter.picked) &&
-        (rrfilter.collected === null || loggable.collected === rrfilter.collected) &&
-        (rrfilter.problematic === null || loggable.problematic === rrfilter.problematic) &&
-        (rrfilter.was_problematic === null || loggable.was_problematic === rrfilter.was_problematic) &&
-        (rrfilter.in_limbo === null || loggable.in_limbo === rrfilter.in_limbo) &&
-        (rrfilter.was_in_limbo === null || loggable.was_in_limbo === rrfilter.was_in_limbo) &&
-        (rrfilter.with_errors === null || (rrfilter.with_errors ? (loggable.errors.length > 0) : (loggable.errors.length === 0))) &&
-        (rrfilter.did_exportAs === null || (rrfilter.did_exportAs ? (loggable.archived & archivedViaExportAs !== 0) : (loggable.archived & archivedViaExportAs === 0))) &&
-        (rrfilter.did_submitHTTP === null || (rrfilter.did_submitHTTP ? (loggable.archived & archivedViaSubmitHTTP !== 0) : (loggable.archived & archivedViaSubmitHTTP === 0))) &&
-        (rrfilter.in_ls === null || loggable.inLS === rrfilter.in_ls) &&
-        (rrfilter.method === null || loggable.method === rrfilter.method) &&
-        rrfilter.url_matches(loggable.url)
-    )
-        return true;
-    return false;
+    }];
 }
 
 function escapeNotification(config, what) {

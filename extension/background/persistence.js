@@ -851,21 +851,22 @@ async function loadStashed() {
 }
 
 async function loadSaved(rrfilter, wantStop, mapFunc) {
-    rrfilter = buildReqresFilter(rrfilter);
+    let [rrfilter_, rrpredicate] = compileReqresFilter(rrfilter);
+    rrfilter = rrfilter_;
 
     let res = [];
     let [newSavedLS, newSavedIDB] = await forEachInStorage("save", (loggable) => {
         if (wantStop !== undefined && wantStop())
             throw new StopIteration();
         deserializeLoggable(loggable);
-        if (!isAcceptedBy(rrfilter, loggable))
+        if (!rrpredicate(loggable))
             return false;
         if (mapFunc === undefined)
             res.push(loggable);
         else
             res.push(mapFunc(loggable));
         return true;
-    }, isDefinedURL(rrfilter) && isDefined(rrfilter.limit) ? rrfilter.limit : null);
+    }, rrfilter.limit);
 
     // recover from wrong counts
     if (newSavedLS !== undefined && !equalRec(globals.savedLS, newSavedLS)) {

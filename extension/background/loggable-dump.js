@@ -68,18 +68,11 @@ function getQueued() {
 
 // User-actions
 
-function rrfilterNumTabId(rrfilter) {
-    return [
-        isDefined(rrfilter.limit) ? rrfilter.limit : null,
-        isDefined(rrfilter.tabId) ? rrfilter.tabId : null,
-    ];
-}
-
 function partitionArchivables(rrfilter, iterable) {
-    rrfilter = buildReqresFilter(rrfilter);
-    let [num, tabId] = rrfilterNumTabId(rrfilter);
-    let [popped, unpopped] = partitionN((archivable) => isAcceptedBy(rrfilter, archivable[0]), num, iterable);
-    return [tabId, popped, unpopped];
+    let [rrfilter_, rrpredicate] = compileReqresFilter(rrfilter);
+    rrfilter = rrfilter_;
+    let [popped, unpopped] = partitionN((archivable) => rrpredicate(archivable[0]), rrfilter.limit, iterable);
+    return [rrfilter.tabId, popped, unpopped];
 }
 
 function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
@@ -276,9 +269,10 @@ function forgetLog(rrfilter) {
     if (reqresLog.length == 0)
         return;
 
-    rrfilter = buildReqresFilter(rrfilter);
-    let [num, tabId] = rrfilterNumTabId(rrfilter);
-    let [popped, unpopped] = partitionN((loggable) => !loggable.problematic && isAcceptedBy(rrfilter, loggable), num, reqresLog);
+    let [rrfilter_, rrpredicate] = compileReqresFilter(rrfilter);
+    rrfilter = rrfilter_;
+    let tabId = rrfilter.tabId;
+    let [popped, unpopped] = partitionN((loggable) => !loggable.problematic && rrpredicate(loggable), rrfilter.limit, reqresLog);
 
     if (popped.length === 0)
         return;

@@ -140,19 +140,30 @@ function applyToReqresInFlight5(func, early, a, b, c, d, e) {
 }
 
 function getInFlight(rrfilter) {
-    rrfilter = buildReqresFilter(rrfilter);
+    let [rrfilter_, rrpredicate] = compileReqresFilter(rrfilter);
+    rrfilter = rrfilter_;
+    let limit = rrfilter.limit;
 
     let res = [];
 
     function collect(v) {
-        if (isAcceptedBy(rrfilter, v))
+        if (rrpredicate(v)) {
             res.push(makeLoggable(v));
+            if (limit !== null && res.length >= limit)
+                throw new StopIteration();
+        }
     }
-    applyToReqresInFlight5(collect, false);
+    try {
+        applyToReqresInFlight5(collect, false);
+    } catch (err) {
+        if (!(err instanceof StopIteration))
+            throw err;
+    }
 
     return res;
 }
 
+// NB: ignores rrfilter.limit
 function getInFlight3Num(rrfilter) {
     if (rrfilter === null)
         return [
@@ -161,12 +172,12 @@ function getInFlight3Num(rrfilter) {
             reqresAlmostDone.length,
         ];
 
-    rrfilter = buildReqresFilter(rrfilter);
+    let rrpredicate = compileReqresFilter(rrfilter)[1];
 
     let counts = {a1: 0, a2: 0, b1: 0, b2: 0, c: 0};
 
     function collect(v, k) {
-        if (isAcceptedBy(rrfilter, v))
+        if (rrpredicate(v))
             counts[k] += 1;
     }
     applyToReqresInFlight5(collect, true, ...(Object.keys(counts)));

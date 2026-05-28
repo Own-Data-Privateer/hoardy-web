@@ -118,13 +118,14 @@ function setTabConfig(tabId, tabUrl, tabcfg, oldTabcfg, dontBroadcast) {
 }
 
 // collect all tabs referenced in not yet archived reqres
+// NB: ignores rrfilter.limit
 function getUsedTabs(rrfilter, unqueued, problematic, limbo, log, dumping) {
-    rrfilter = buildReqresFilter(rrfilter);
+    let rrpredicate = compileReqresFilter(rrfilter)[1];
 
     let set = new Set();
 
     function collect(reqres, c) {
-        if (c && isAcceptedBy(rrfilter, reqres))
+        if (c && rrpredicate(reqres))
             set.add(reqres.tabId);
     }
     applyToReqres13(
