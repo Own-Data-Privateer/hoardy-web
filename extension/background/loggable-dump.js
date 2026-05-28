@@ -728,13 +728,18 @@ async function processAlmostDone() {
 
     while (reqresAlmostDone.length > 0) {
         let reqres = reqresAlmostDone.shift();
+        let tabId = reqres.tabId;
+
         try {
             await processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
         } catch (err) {
             logHandledError(err);
             markAsBuggedOut(err, [reqres, null]);
         }
-        let tabId = reqres.tabId;
+
+        let tabstate = getTabState(tabId, reqres.fromExtension);
+        tabstate.emitTimeStamp = reqres.emitTimeStamp;
+
         updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
         scheduleUpdateDisplay(true, tabId, false, getGoodEpisodic(reqresAlmostDone.length));
     }

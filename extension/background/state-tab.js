@@ -27,7 +27,9 @@
 let tabConfig = new Map();
 
 // per-tab state
-let tabStateDefaults = assignRec({}, dynamicStateDefaults, commonStateDefaults);
+let tabStateDefaults = assignRec({
+    emitTimeStamp: 0,
+}, dynamicStateDefaults, commonStateDefaults);
 
 // per-tab state
 let tabState = new Map();
@@ -271,6 +273,9 @@ function processNewTab(tabId, openerTabId) {
 
     let tabcfg = prefillChildren(base);
     tabConfig.set(tabId, tabcfg);
+
+    let tabstate = getTabStateInternal(tabId);
+    tabstate.emitTimeStamp = Date.now();
 
     scheduleUpdateDisplay(false, tabId);
 
