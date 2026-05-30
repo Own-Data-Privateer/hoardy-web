@@ -6,6 +6,52 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.25.0] - 2026-05-30: Documentation-related improvements, bug fixes
+
+### Changed
+
+- Notifications:
+
+  - Improved some notification messages.
+
+  - Clicking "`Hoardy-Web` updated" notification now opens the `CHANGELOG`.
+
+- Popup UI, Shortcuts, Documentation:
+
+  - Improved a bunch of option doc strings, aligned them with reality.
+
+  - Re-ordered shortcuts to use "global, then per-tab" action order to improve comprehensibility.
+
+- Popup UI, [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Improved formatting of error messages, mostly to make copy-pasting of errors and related URLs easier.
+
+- [`Help` page](./extension/page/help.org):
+
+  - Reorganized, edited, and improved that page quite a bit, aligned everything there with reality, fixed a bunch of typos.
+
+  - Documented setup and usage workflows on Fenix.
+
+  - Reworked the body of "Keyboard shortcuts" section into a table instead of a list.
+
+    That table is also completely auto-generated now, so de-synchronization with the actual shortcuts is now impossible.
+
+- `CHANGELOG`:
+
+  - Normalized formatting of all entries, improved readability of some of them, fixed a bunch of typos.
+
+- Core:
+
+  - Improved some internals a bit.
+
+### Fixed
+
+- Popup UI:
+
+  - Fixed `#options` variant, so add-on's preferences menu should work again, which is most notable on Fenix.
+
+  - Fix display of re-archive-related warnings.
+
 ## [extension-v1.24.1] - 2026-05-18: Bug fixes
 
 ### Fixed
@@ -3149,6 +3195,7 @@ All planned features are complete now.
 
   - Initial public release.
 
+[extension-v1.25.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.24.1...extension-v1.25.0
 [extension-v1.24.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.24.0...extension-v1.24.1
 [extension-v1.24.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.23.0...extension-v1.24.0
 [extension-v1.23.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.22.0...extension-v1.23.0
