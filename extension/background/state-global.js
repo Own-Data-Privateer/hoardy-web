@@ -234,7 +234,7 @@ function upgradeConfig(config) {
     case 1:
         rename("collectPartialRequests", "archivePartialRequest");
         rename("collectNoResponse", "archiveNoResponse");
-        rename("collectIncompleteResponses", "archiveIncompleteResponse")
+        rename("collectIncompleteResponses", "archiveIncompleteResponse");
     case 2:
         // because it got updated lots
         config.seenHelp = false;
@@ -242,7 +242,7 @@ function upgradeConfig(config) {
         // making them disjoint
         if (config.markProblematicWithErrors)
             config.markProblematicPickedWithErrors = true;
-        rename("markProblematicWithErrors", "markProblematicDroppedWithErrors")
+        rename("markProblematicWithErrors", "markProblematicDroppedWithErrors");
     case 4:
         // because that, essentially, was the default before, even though it is not now
         config.archiveSubmitHTTP = true;
@@ -250,9 +250,9 @@ function upgradeConfig(config) {
 
         rename("archiving", "archive")
         rename("archiveURLBase", "submitHTTPURLBase");
-        rename("archiveNotifyOK", "archiveDoneNotify")
-        rename("archiveNotifyFailed", "archiveFailedNotify")
-        rename("archiveNotifyDisabled", "archiveStuckNotify")
+        rename("archiveNotifyOK", "archiveDoneNotify");
+        rename("archiveNotifyFailed", "archiveFailedNotify");
+        rename("archiveNotifyDisabled", "archiveStuckNotify");
 
         config.root.bucket = config.root.profile;
         config.extension.bucket = config.extension.profile;

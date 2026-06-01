@@ -175,7 +175,7 @@ function cleanupProblematicAfterTab(tabId) {
     if (config.debugRuntime)
         console.log("MAIN: cleaning up reqresProblematic after tab", tabId);
 
-    let unprob = unmarkProblematic({limit: null, tabId});
+    let unprob = unmarkProblematic({tabId});
 
     if (config.problematicNotify === true && unprob > 0)
         browser.notifications.create(`cleanedProblematic-${tabId}`, {

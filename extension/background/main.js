@@ -254,12 +254,16 @@ function handleTabActivated(e) {
 function handleTabUpdated(tabId, changeInfo, tab) {
     if (config.debugRuntime)
         console.log("BROWSER: tab updated", tabId, getTabURL(tab));
+
+    // On Firefox, there's no `tab.pendingUrl`, so we skip updates
+    // until `tab.url` is set.
+    //
+    // Otherwise, `scheduleUpdateDisplay` might get confused about
+    // which icon to show for our internal pages narrowed to a
+    // tracked tab. So,
     if (!useDebugger && tab.url === undefined)
-        // On Firefox, there's no `tab.pendingUrl`, so `scheduleUpdateDisplay`
-        // might get confused about which icon to show for our internal pages
-        // narrowed to a tracked tab. So, we skip updates until `tab.url` is
-        // set.
         return;
+
     scheduleUpdateDisplay(false, tabId, true);
 }
 
@@ -340,11 +344,11 @@ function evalSimpleRequest(command, tabId, activeTabId) {
         break;
 
     case "unmarkAllProblematic":
-        syncUnmarkProblematic({limit: null});
+        syncUnmarkProblematic({});
         scheduleEndgame(null);
         break;
     case "unmarkAllTabProblematic":
-        syncUnmarkProblematic({limit: null, tabId});
+        syncUnmarkProblematic({tabId});
         scheduleEndgame(tabId);
         break;
 

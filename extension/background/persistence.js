@@ -85,12 +85,13 @@ function recordOneAssumedBroken(accumulator, storeID, reason, archivable, dumpSi
     let byReasonMap = accumulator[1].get(storeID);
     if (byReasonMap === undefined)
         return false;
+    // find and take the first recent issue with a different `reason`
     let recent = Array.from(byReasonMap.entries()).filter(
-        (x) => (Date.now() - x[1].when) < 1000 && x[0] != reason
+        (x) => (Date.now() - x[1].when) < 1000 && x[0] !== reason
     )[0];
     if (recent === undefined)
         return false;
-    // we had recent errors there, fail this reqres immediately
+    // fail this reqres immediately
     let recoverable = recent[1].recoverable;
     pushToIssueAcc([accumulator[0], byReasonMap, accumulator[2]], reason, recoverable, archivable);
     return true;
@@ -255,9 +256,7 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
         scheduleActionEndgame(scheduledDelayed, `exportAs-${bucket}`, timeout, () => {
             let res = bucketSaveAs(bucket, 0);
             if (res === false)
-                runSynchronously("stash", async () => {
-                    await stashMany(reqresUnarchivedIssueAcc[0]);
-                });
+                runSynchronously("stash", () => stashMany(reqresUnarchivedIssueAcc[0]));
         });
     // NB: This is slightly fragile, consider the following sequence of
     // events for a given archivable:

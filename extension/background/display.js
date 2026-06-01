@@ -392,7 +392,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             // because these global stats influence the tab's icon
             || stats.buggedOut !== udStats.buggedOut
             || stats.failed !== udStats.failed
-            || stats.queued != udStats.queued
+            || stats.queued !== udStats.queued
             || stats.bundledAs !== udStats.bundledAs;
 
         if (statsChanged)
@@ -442,7 +442,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         udGTitle = gtitle;
 
     let tabs;
-    if (useDebugger && updatedTabId == null)
+    if (useDebugger && updatedTabId === null)
         // On Chromium, when updating all tabs, actually update all tabs,
         // otherwise switching to those tabs for the first time will
         // display the `main` icon at first and then blink-switch to the

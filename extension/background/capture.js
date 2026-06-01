@@ -1215,7 +1215,8 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
 
 function handleDebugResponseRecieved(nonExtra, e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
-    if (dreqres === undefined) return;
+    if (dreqres === undefined)
+        return;
 
     popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
@@ -1259,7 +1260,8 @@ function handleDebugResponseRecieved(nonExtra, e) {
 
 function handleRequestServedFromCache(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
-    if (dreqres === undefined) return;
+    if (dreqres === undefined)
+        return;
 
     popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
@@ -1272,7 +1274,8 @@ function handleRequestServedFromCache(e) {
 
 function handleDebugLoadingFinished(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
-    if (dreqres === undefined) return;
+    if (dreqres === undefined)
+        return;
 
     popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
@@ -1283,7 +1286,8 @@ function handleDebugLoadingFinished(e) {
 
 function handleDebugLoadingFailed(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
-    if (dreqres === undefined) return;
+    if (dreqres === undefined)
+        return;
 
     popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
