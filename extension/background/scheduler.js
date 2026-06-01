@@ -55,8 +55,8 @@ async function evalSynchronousClosures(closures, updatedTabId) {
 
         try {
             let res = fun(...args);
-            if (res instanceof Promise)
-                await res;
+            while (res instanceof Promise)
+                res = await res;
         } catch (err) {
             logError(err);
         }

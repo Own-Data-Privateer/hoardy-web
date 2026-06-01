@@ -113,8 +113,8 @@ async function lslotForEach(get, meta, func, limit) {
                 end = cur + 128;
 
                 let res = func(el, cur);
-                if (res instanceof Promise)
-                    await res;
+                while (res instanceof Promise)
+                    res = await res;
             }
             cur += 1;
             count += 1;

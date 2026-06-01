@@ -163,7 +163,7 @@ function subscribeToExtension(name, retries, init, uninit, handleMessage, dontPa
             let res;
             try {
                 res = catchAll(handleMessage)(update);
-                if (res instanceof Promise)
+                while (res instanceof Promise)
                     res = await res;
                 invalid = invalid || res === true;
             } catch (err) {
@@ -195,7 +195,7 @@ function subscribeToExtension(name, retries, init, uninit, handleMessage, dontPa
 
             // run init
             let res = init(isInvalid);
-            if (res instanceof Promise)
+            while (res instanceof Promise)
                 res = await res;
 
             // if `init` forces us to continue or there were no state-breaking messages, stop here
@@ -215,8 +215,8 @@ function subscribeToExtension(name, retries, init, uninit, handleMessage, dontPa
     }, async () => {
         webextRPCPortToExtension.onMessage.removeListener(handleMessageSync);
         let res = uninit();
-        if (res instanceof Promise)
-            await res;
+        while (res instanceof Promise)
+            res = await res;
     }, extensionId, connectInfo);
 }
 

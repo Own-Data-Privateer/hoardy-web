@@ -151,7 +151,7 @@ async function evalSingletonTimeout(value, run) {
 
         try {
             let res = task(() => { return value.stop; });
-            if (res instanceof Promise)
+            while (res instanceof Promise)
                 res = await res;
             value.results.push(res);
         } catch (err) {
