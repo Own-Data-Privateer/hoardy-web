@@ -454,10 +454,12 @@ function escapeHTMLTags(text) {
 }
 
 function escapeHTML(text) {
-    return escapeHTMLTags(text)
+    return escapeHTMLTags(
+        text
         .replaceAll("&", "&amp;")
         .replaceAll("\"", "&quot;")
-        .replaceAll("'", "&#039;");
+        .replaceAll("'", "&#039;")
+    );
 }
 
 function microMarkdownToHTML(text) {
