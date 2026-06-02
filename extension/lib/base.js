@@ -333,7 +333,7 @@ function updateFromRec(target, ...values) {
         let typ = typeof value;
         if (typeof target !== typ) {
             console.error("updateFromRec", typ, target, value);
-            throw new Error("what?");
+            throw new Error(`updateFromRec: ${typ} ${target} ${value}`);
         }
 
         if (typ == "boolean" || typ == "number" || typ == "string") {
@@ -346,7 +346,7 @@ function updateFromRec(target, ...values) {
                 target[k] = updateFromRec(target[k], value[k]);
         } else {
             console.error("updateFromRec", typ, target, value);
-            throw new Error("what?");
+            throw new Error(`updateFromRec: ${typ} ${target} ${value}`);
         }
     }
 
