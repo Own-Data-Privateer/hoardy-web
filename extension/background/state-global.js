@@ -280,6 +280,8 @@ function upgradeConfig(config) {
     }
 
     config.version = configVersion;
+
+    return config;
 }
 
 function setServer(config) {

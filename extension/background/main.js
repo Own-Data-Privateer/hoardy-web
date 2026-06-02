@@ -747,8 +747,7 @@ async function main() {
     if (oldConfig !== undefined) {
         console.log(`MAIN: Loading config of version ${oldConfig.version}`);
 
-        upgradeConfig(oldConfig);
-        config = updateFromRec(config, oldConfig);
+        config = updateFromRec(config, upgradeConfig(oldConfig));
         // just in case
         config.ephemeral = false;
     }
