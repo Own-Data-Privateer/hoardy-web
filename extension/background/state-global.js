@@ -481,6 +481,7 @@ let savedGlobals;
 async function saveConfig(force) {
     if (!force && equalRec(savedConfig, config))
         return;
+
     savedConfig = assignRec({}, config);
     if (config.debugRuntime)
         console.log("saving config", savedConfig);
@@ -488,7 +489,10 @@ async function saveConfig(force) {
 }
 
 function scheduleSaveConfig(timeout, force) {
-    scheduleActionWhen(force || !equalRec(savedConfig, config), scheduledSaveState, "saveConfig", timeout, () => {
+    if (!force && equalRec(savedConfig, config))
+        return;
+
+    scheduleAction(scheduledSaveState, "saveConfig", timeout, () => {
         saveConfig(force);
     });
     // NB: needs scheduleUpdateDisplay afterwards
@@ -497,6 +501,7 @@ function scheduleSaveConfig(timeout, force) {
 async function saveGlobals(force) {
     if (!force && equalRec(savedGlobals, globals))
         return;
+
     savedGlobals = assignRec({}, globals);
     if (config.debugRuntime)
         console.log("saving globals", savedGlobals);
@@ -506,7 +511,10 @@ async function saveGlobals(force) {
 }
 
 function scheduleSaveGlobals(timeout, force) {
-    scheduleActionWhen(force || !equalRec(savedGlobals, globals), scheduledSaveState, "saveGlobals", timeout, () => {
+    if (!force && equalRec(savedGlobals, globals))
+        return;
+
+    scheduleAction(scheduledSaveState, "saveGlobals", timeout, () => {
         saveGlobals(force);
     });
     // NB: needs scheduleUpdateDisplay afterwards

@@ -194,16 +194,20 @@ function popInLimbo(collect, rrfilter) {
         // TODO mergeUpdatedTabIds?
         broadcastToState(null, "resetProblematic", getProblematic);
         reqresUnproblematic.push(...newlyUnproblematic);
-    } else
+    } else if (someProblematic)
         // since reqres statuses have changed
-        broadcastToStateWhen(someProblematic, tabId, "resetProblematic", getProblematic);
+        broadcastToState(tabId, "resetProblematic", getProblematic);
     // since (popped.length > 0)
     broadcastToState(tabId, "resetInLimbo", getInLimbo);
-    broadcastToStateWhen(newlyQueued.length > 0, tabId, "appendQueued", newlyQueued);
-    broadcastToStateWhen(newlyLogged.length > 0, tabId, "appendLog", newlyLogged);
+    if (newlyQueued.length > 0)
+        broadcastToState(tabId, "appendQueued", newlyQueued);
+    if (newlyLogged.length > 0)
+        broadcastToState(tabId, "appendLog", newlyLogged);
 
-    runSynchronouslyWhen(newlyStashed.length > 0, "stash", stashMany, newlyStashed);
-    runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", deleteMany, newlyUnstashed);
+    if (newlyStashed.length > 0)
+        runSynchronously("stash", stashMany, newlyStashed);
+    if (newlyUnstashed.length > 0)
+        runSynchronously("unstash", deleteMany, newlyUnstashed);
 
     return popped.length;
 }
@@ -717,14 +721,19 @@ async function processAlmostDone(updatedTabId) {
         // TODO mergeUpdatedTabIds?
         broadcastToState(null, "resetProblematic", getProblematic);
         reqresUnproblematic.push(...newlyUnproblematic);
-    } else
-        broadcastToStateWhen(newlyProblematic.length > 0, updatedTabId, "appendProblematic", newlyProblematic);
-    broadcastToStateWhen(newlyLimboed.length > 0, updatedTabId, "appendInLimbo", newlyLimboed);
-    broadcastToStateWhen(newlyQueued.length > 0, updatedTabId, "appendQueued", newlyQueued);
-    broadcastToStateWhen(newlyLogged.length > 0, updatedTabId, "appendLog", newlyLogged);
+    } else if (newlyProblematic.length > 0)
+        broadcastToState(updatedTabId, "appendProblematic", newlyProblematic);
+    if (newlyLimboed.length > 0)
+        broadcastToState(updatedTabId, "appendInLimbo", newlyLimboed);
+    if (newlyQueued.length > 0)
+        broadcastToState(updatedTabId, "appendQueued", newlyQueued);
+    if (newlyLogged.length > 0)
+        broadcastToState(updatedTabId, "appendLog", newlyLogged);
 
-    runSynchronouslyWhen(newlyStashed.length > 0, "stash", stashMany, newlyStashed);
-    runSynchronouslyWhen(newlyUnstashed.length > 0, "unstash", deleteMany, newlyUnstashed);
+    if (newlyStashed.length > 0)
+        runSynchronously("stash", stashMany, newlyStashed);
+    if (newlyUnstashed.length > 0)
+        runSynchronously("unstash", deleteMany, newlyUnstashed);
 
     // scheduleEndgame by the caller
 

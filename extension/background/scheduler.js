@@ -72,11 +72,6 @@ function runSynchronously(name, func, ...args) {
     synchronousClosures.push([name, func, args]);
 }
 
-function runSynchronouslyWhen(condition, name, func, ...args) {
-    if (condition)
-        return runSynchronously(name, func, ...args);
-}
-
 // actions
 
 function syncRunActions() {
@@ -248,11 +243,6 @@ function scheduleActionExtra(map, key, priority, timeout, hurry, func, endgame) 
 
 function scheduleAction(map, key, timeout, func) {
     return scheduleActionExtra(map, key, 100, timeout, false, func, false);
-}
-
-function scheduleActionWhen(condition, map, key, timeout, func) {
-    if (condition)
-        return scheduleAction(map, key, timeout, func);
 }
 
 function scheduleActionEndgame(map, key, timeout, func) {

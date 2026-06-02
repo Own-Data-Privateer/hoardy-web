@@ -892,7 +892,8 @@ async function fsckDumps() {
 // The main thing.
 
 function syncRetryAllUnstashed() {
-    runSynchronouslyWhen(reqresUnstashedIssueAcc[0].size > 0, "retryAllUnstashed", retryAllUnstashed);
+    if (reqresUnstashedIssueAcc[0].size > 0)
+        runSynchronously("retryAllUnstashed", retryAllUnstashed);
 }
 
 function loadAndBroadcastSaved(rrfilter) {
@@ -1112,7 +1113,10 @@ async function processRearchiving(getArchivables, reset, andRewrite, andDelete) 
 }
 
 function syncRearchiveSaved(rrfilter, reset, andRewrite, andDelete) {
-    runSynchronouslyWhen(config.rearchiveExportAs || config.rearchiveSubmitHTTP || andRewrite, "rearchiveSaved", async () => {
+    if (!config.rearchiveExportAs && !config.rearchiveSubmitHTTP && !andRewrite)
+        return;
+
+    runSynchronously("rearchiveSaved", async () => {
         // invalidate UI
         broadcastToSaved("resetSaved", [null]);
         wantBroadcastSaved = true;
@@ -1153,7 +1157,10 @@ function syncDeleteSaved(rrfilter) {
 }
 
 function syncArchiveBuggedOut(rrfilter, reset, andRewrite, andDelete) {
-    runSynchronouslyWhen(reqresBuggedOutIssueAcc[0].size > 0, "archiveBuggedOut", async () => {
+    if (reqresBuggedOutIssueAcc[0].size === 0)
+        return;
+
+    runSynchronously("archiveBuggedOut", async () => {
         let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresBuggedOutIssueAcc[0]);
 
         if (popped.length === 0)
@@ -1176,7 +1183,10 @@ function syncArchiveBuggedOut(rrfilter, reset, andRewrite, andDelete) {
 }
 
 function syncDeleteBuggedOut(rrfilter) {
-    runSynchronouslyWhen(reqresBuggedOutIssueAcc[0].size > 0, "deleteBuggedOut", async () => {
+    if (reqresBuggedOutIssueAcc[0].size === 0)
+        return;
+
+    runSynchronously("deleteBuggedOut", async () => {
         let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresBuggedOutIssueAcc[0]);
 
         if (popped.length === 0)
