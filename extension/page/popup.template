@@ -907,12 +907,13 @@ section {
     </div>
 
     <ui id="config.ephemeral" type="boolean" class="prefer-off" data-help="Make all changes to settings in this popup ephemeral from this point on. Restarting the browser or reloading the extension will reset config to the last state when this setting was off.">Ephemeral config</ui>
-    <ui id="config.debugRuntime" type="boolean" data-help="Enable some cheap debugging options.
+    <ui id="config.debugRuntime" type="boolean" data-help="Enable runtime debugging. This is (relatively) cheap.
 
 Specifically:
 
-- Log all internal broadcasts and informational runtime messages into extension's debugging log (in Firefox: about:debugging; in Chromium: extension inspector).
-- Enable display of various debugging UI elements. E.g., the `Reload` button (the button with an awfully excited face emoji) will be shown regardless of new extension versions being available.
+- When extension (re-)starts, run all available unit tests in background and report any errors into extension's debugging log (in Firefox: `about:debugging`; in Chromium: extension inspector) and via notifications.
+- Log all internal events and broadcasts into extension's debugging log.
+- Enable display of all debugging-related popup UI elements. E.g., the `Reload` button (the button with an awfully excited face emoji) will be shown regardless of new extension versions being available.
 ">Debug runtime</ui>
     <ui id="config.debugPersisence" type="boolean" data-help="Report stashes and archivals into extension's debugging log. This is, usually, cheap.">Debug persistence</ui>
     <ui id="config.debugCaptures" type="boolean" class="prefer-off" data-help="Log captures and their progress into extension's debugging log. This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Debug capture (SLOW!)</ui>

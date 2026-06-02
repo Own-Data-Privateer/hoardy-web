@@ -926,6 +926,23 @@ async function main() {
             type: "basic",
         }).catch(logError);
     }
+
+    if (!config.debugRuntime)
+        return;
+
+    // Run tests all the tests and report any errors.
+
+    let errors = await runTests();
+    let issues = Object.entries(errors).map((e) => `- ${e[0]}: ${e[1]}`).join("\n");
+
+    if (issues.length > 0) {
+        browser.notifications.create("tests", {
+            title: "Hoardy-Web: UNIT TESTS FAILED",
+            message: escapeNotification(config, issues),
+            iconUrl: iconURL("error", 128),
+            type: "basic",
+        }).catch(logError);
+    }
 }
 
 main();
