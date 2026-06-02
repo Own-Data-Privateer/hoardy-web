@@ -287,6 +287,62 @@ function upgradeConfig(config) {
     return config;
 }
 
+tests.upgradeConfig = () => {
+    let value = {
+        version: 1,
+        debugging: false,
+        history: 1000,
+
+        archiving: true,
+        archiveURLBase: "http://127.0.0.1:3210/pwebarc/dump",
+
+        collecting: true,
+        collectPartialRequests: true,
+        collectNoResponse: false,
+        collectIncompleteResponses: false,
+
+        root: {
+            collecting: true,
+            profile: "default",
+        },
+
+        background: {
+            collecting: true,
+            profile: "background",
+        },
+
+        extension: {
+            collecting: false,
+            profile: "extension",
+        },
+    };
+
+    let up = upgradeConfig(assignRec({}, value));
+
+    // sanity checks
+    if (up.version !== configVersion)
+        throw new Error("upgradeConfig version");
+    try {
+        updateFromRec(assignRec({}, configDefaults), up);
+    } catch (err) {
+        console.trace();
+        throw new Error("upgradeConfig updateFromRec", { cause: err });
+    }
+
+    let issues = [];
+    let res = equivalentRec((a, b, prefix) => {
+        if (a === undefined && b !== undefined) {
+            console.error("upgradeConfig", prefix, a, b);
+            issues.push(prefix);
+            return false;
+        }
+        return true;
+    }, configDefaults, up, false);
+
+    if (!res)
+        throw new Error("upgradeConfig fields");
+}
+
 function setServer(config) {
     let res = assignRec({}, serverConfigDefaults);
 
