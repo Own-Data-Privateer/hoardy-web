@@ -484,12 +484,12 @@ async function saveConfig(force) {
 
     savedConfig = assignRec({}, config);
     if (config.debugRuntime)
-        console.log("saving config", savedConfig);
+        console.warn("SAVE: writing config", savedConfig);
     await browser.storage.local.set({ config: savedConfig }).catch(logError);
 }
 
 function scheduleSaveConfig(timeout, force) {
-    if (!force && equalRec(savedConfig, config))
+    if (!force && equalRecWarnNeq(savedConfig, config, "SAVE:"))
         return;
 
     scheduleAction(scheduledSaveState, "saveConfig", timeout, () => {
@@ -504,14 +504,14 @@ async function saveGlobals(force) {
 
     savedGlobals = assignRec({}, globals);
     if (config.debugRuntime)
-        console.log("saving globals", savedGlobals);
+        console.warn("SAVE: writing globals", savedGlobals);
     await browser.storage.local.set({ globals: savedGlobals }).catch(logError);
     await browser.storage.local.remove("persistentStats").catch(noop);
     await browser.storage.local.remove("globalStats").catch(noop);
 }
 
 function scheduleSaveGlobals(timeout, force) {
-    if (!force && equalRec(savedGlobals, globals))
+    if (!force && equalRecWarnNeq(savedGlobals, globals, "SAVE:"))
         return;
 
     scheduleAction(scheduledSaveState, "saveGlobals", timeout, () => {
