@@ -307,6 +307,38 @@ function equalRecWarnNeq(a, b, msg, path) {
     return res;
 }
 
+tests.equalRec = () => {
+    let ls = [undefined, null, true, false, 0, 1, 2, "", "a", [], {}];
+    for (let a of ls) {
+        for (let b of ls) {
+            if (equalRec(a, b) !== (a === b)) {
+                console.error("neq id", a, b);
+                throw new Error(`neq id`);
+            }
+        }
+    }
+
+    if (!equalRec([], []))
+        throw new Error("neq []");
+
+    if (!equalRec({}, {}))
+        throw new Error("neq {}");
+}
+
+tests.equivalentRec = () => {
+    if (!equivalentRec((a, b) => a === 2 && b === 3, [2], [3]))
+        throw new Error("neq []1");
+
+    if (!equivalentRec((a, b) => a === 2 && b === 3 || a === undefined && b === 4, [2], [3, 4]))
+        throw new Error("neq []2");
+
+    if (!equivalentRec((a, b) => a === 2 && b === 3, {a: 2}, {a: 3}))
+        throw new Error("neq {}1");
+
+    if (!equivalentRec((a, b) => a === 2 && b === undefined || a === undefined && b === 3, {a: 2}, {b: 3}))
+        throw new Error("neq {}2");
+};
+
 // recursively assign fields in target from fields in values, i.e. `assignRec({}, value)` would just
 // copy `value`
 function assignRec(target, ...values) {
