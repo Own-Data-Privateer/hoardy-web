@@ -216,70 +216,95 @@ function cacheSingleton(map, key, func) {
     return value;
 }
 
-// recursive equality comparison
-function equalRec(a, b, diff, prefix) {
+// Check if `a` and `b` are equivalent, recursively. The `func` argmument supplies an equivalence
+// checking function that will be called for all sub-parts of `a` and `b`, let's name them `x` and
+// `y`, respectively, when `x !== y`.
+//
+// Thus, for example,
+//   equivalentRec((x, y) => false, a, b, true)
+// is just a recursive version of `a === b`.
+function equivalentRec(func, a, b, quick, path) {
     if (a === b)
         return true;
 
-    if (a === undefined && b !== undefined
-        || a !== undefined && b === undefined
-        || a === null && b !== null
-        || a !== null && b === null) {
-        if (diff !== undefined)
-            diff.push(prefix);
-        return false;
-    }
-
-    let typ = typeof a;
-    if (typ === "boolean" || typ === "number" || typ === "string") {
-        if (a !== b) {
-            if (diff !== undefined)
-                diff.push(prefix);
-            return false;
-        }
-        return true;
-    }
-
     if (a instanceof Array && b instanceof Array) {
-        if (a.length !== b.length) {
-            if (diff !== undefined)
-                diff.push(prefix);
+        let al = a.length;
+        let bl = b.length;
+
+        if (quick && al !== bl)
             return false;
-        }
 
-        if (diff === undefined)
-            return a.every((v, i) => equalRec(v, b[i]));
-        else
-            return a.every((v, i) => equalRec(v, b[i], diff, prefix ? prefix + "." + i.toString() : i.toString()));
-    }
-
-    if (a instanceof Object && b instanceof Object) {
-        let ae = Array.from(Object.entries(a));
-        let be = Array.from(Object.entries(b));
-        if (ae.length !== be.length) {
-            if (diff !== undefined)
-                diff.push(prefix);
-            return false;
-        }
-
+        let ml = Math.max(a.length, b.length);
         let res = true;
-        if (diff === undefined) {
-            for (let [k, v] of ae) {
-                if (!equalRec(v, b[k])) {
-                    res = false;
+
+        for (let i = 0; i < ml; ++i) {
+            if (!equivalentRec(func, a[i], b[i], quick, path ? path + "." + i.toString() : i.toString())) {
+                res = false;
+                if (quick)
                     break;
-                }
-            }
-        } else {
-            for (let [k, v] of ae) {
-                if (!equalRec(v, b[k], diff, prefix ? prefix + "." + k : k))
-                    res = false;
             }
         }
+
         return res;
     }
 
-    return false;
+    if (a instanceof Object && !(a instanceof Array) &&
+        b instanceof Object && !(b instanceof Array)) {
+        let ae = Array.from(Object.entries(a));
+        let be = Array.from(Object.entries(b));
+
+        if (quick && ae.length !== be.length)
+            return false;
+
+        let seen = new Set();
+        let res = true;
+
+        for (let [k, v] of ae) {
+            seen.add(k);
+            if (!equivalentRec(func, v, b[k], quick, path ? path + "." + k.toString() : k.toString())) {
+                res = false;
+                if (quick)
+                    break;
+            }
+        }
+
+        for (let [k, v] of be) {
+            if (seen.has(k))
+                continue;
+            if (!equivalentRec(func, a[k], v, quick, path ? path + "." + k.toString() : k.toString())) {
+                res = false;
+                if (quick)
+                    break;
+            }
+        }
+
+        return res;
+    }
+
+    return func(a, b, path ? path : "");
+}
+
+// Check if `a` and `b` are equial, recursively.
+function equalRec(a, b, path) {
+    return equivalentRec(() => false, a, b, true, path);
+}
+
+function equalRecDiff(a, b, path) {
+    let diff = [];
+    let res = equivalentRec((a, b, path) => {
+        diff.push([path, a, b]);
+        return false;
+    }, a, b, false, path);
+    return [res, diff];
+}
+
+function equalRecWarnNeq(a, b, msg, path) {
+    let [res, diff] = equalRecDiff(a, b, path);
+    if (!res) {
+        for (let [k, a, b] of diff)
+            console.warn(msg ? msg : "changed", k, ":", a, "->", b);
+    }
+    return res;
 }
 
 // recursively assign fields in target from fields in values, i.e. `assignRec({}, value)` would just
