@@ -89,6 +89,29 @@ function catchAll(func, def) {
     };
 }
 
+let tests = {};
+
+async function runTests(noConsole) {
+    let errors = {};
+
+    for (let [k, v] of Object.entries(tests)) {
+        try {
+            let res = v();
+            while (res instanceof Promise)
+                res = await res;
+            if (!noConsole)
+                console.debug("test PASS", k);
+        } catch (err) {
+            let msg = errorMessageOf(err);
+            errors[k] = msg;
+            if (!noConsole)
+                console.error("test FAIL", k, ":", msg);
+        }
+    }
+
+    return errors;
+}
+
 function evalFunctionsAway(iterable) {
     let res = [];
     for (let e of iterable) {
