@@ -222,12 +222,16 @@ let serverConfigDefaults = {
 };
 
 function upgradeConfig(config) {
-    function rename(from, to) {
-        let old = config[from];
-        if (old === undefined)
-            return;
-        delete config[from];
-        config[to] = old;
+    function rename(from, to, ...args) {
+        if (args.length === 0)
+            args = [config];
+        for (let cfg of args) {
+            let old = cfg[from];
+            if (old === undefined)
+                return;
+            delete cfg[from];
+            cfg[to] = old;
+        }
     }
 
     switch (config.version) {
@@ -254,9 +258,7 @@ function upgradeConfig(config) {
         rename("archiveNotifyFailed", "archiveFailedNotify");
         rename("archiveNotifyDisabled", "archiveStuckNotify");
 
-        config.root.bucket = config.root.profile;
-        config.extension.bucket = config.extension.profile;
-        config.background.bucket = config.background.profile;
+        rename("profile", "bucket", config.root, config.background, config.extension);
     case 5:
         if (config.exportAsMaxSize === 0) {
             config.exportAsBundle = false;
@@ -267,6 +269,7 @@ function upgradeConfig(config) {
     case 6:
         // its semantics changed
         config.problematicNotify = config.autoNotify ? true : null;
+        rename("debugging", "debugRuntime");
     case 7:
         // its semantics changed
         config.collectingWorkOffline = true;
