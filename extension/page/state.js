@@ -55,7 +55,7 @@ async function stateMain() {
     buttonToMessage("discardAllInLimbo",    () => ["popInLimbo", false, rrfilters.inLimbo]);
     buttonToMessage("collectOneInLimbo",    () => ["popInLimbo", true, assignRec({}, rrfilters.inLimbo, {limit: 1})]);
     buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, rrfilters.inLimbo]);
-    buttonToMessage("stopAllInFlight",      () => ["stopInFlight", narrowTabId]);
+    buttonToMessage("stopAllInFlight",      () => ["stopInFlight", {tabId: narrowTabId}]);
     buttonToMessage("retryUnarchived",      () => ["retryUnarchived", true, rrfilters.unarchived]);
     buttonToMessage("archiveBuggedOut",     () => ["archiveBuggedOut", rrfilters.buggedOut]);
     buttonToMessage("deleteBuggedOut",      () => ["deleteBuggedOut", rrfilters.buggedOut]);

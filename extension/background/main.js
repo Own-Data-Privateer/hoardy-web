@@ -305,11 +305,10 @@ let rpcCommands = {
     },
 
     getInFlight,
-    // TODO rrfilter too
-    stopInFlight: (tabId, reason) => {
+    stopInFlight: (rrfilter, reason) => {
         if (reason === undefined)
             reason = "capture::EMIT_FORCED::BY_USER";
-        let updatedTabId = stopInFlight(tabId, reason);
+        let updatedTabId = stopInFlight(rrfilter, reason);
         scheduleEndgame(updatedTabId);
     },
 

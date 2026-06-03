@@ -274,7 +274,7 @@ function processRemoveTab(tabId) {
 
     let updatedTabId;
     if (useDebugger)
-        updatedTabId = stopInFlight(tabId, "capture::EMIT_FORCED::BY_CLOSED_TAB");
+        updatedTabId = stopInFlight({tabId}, "capture::EMIT_FORCED::BY_CLOSED_TAB");
     updatedTabId = mergeUpdatedTabIds(updatedTabId, cleanupAfterTab(tabId));
 
     scheduleEndgame(updatedTabId);

@@ -263,12 +263,12 @@ function fillResponse(reqres, e) {
 // In-flight reqres handling
 
 // flush reqresFinishingUp into the reqresAlmostDone, interrupting filters
-function forceFinishingUpWebRequest(predicate) {
+function forceFinishingUpWebRequest(rrpredicate) {
     let updatedTabId;
     let notFinished = [];
 
     for (let reqres of reqresFinishingUp) {
-        if (predicate !== undefined && !predicate(reqres)) {
+        if (!rrpredicate(reqres)) {
             notFinished.push(reqres);
             continue;
         }
@@ -298,13 +298,13 @@ function forceFinishingUpWebRequest(predicate) {
 }
 
 // flush debugReqresFinishingUp into the reqresAlmostDone
-function forceFinishingUpDebug(predicate) {
+function forceFinishingUpDebug(rrpredicate) {
     let updatedTabId;
     let notFinished = [];
 
     // Emit these by making up fake webRequest counterparts for them
     for (let dreqres of debugReqresFinishingUp) {
-        if (predicate !== undefined && !predicate(dreqres)) {
+        if (!rrpredicate(dreqres)) {
             notFinished.push(dreqres);
             continue;
         }
@@ -534,7 +534,7 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             // generating the corresponding webRequest events. This actually
             // happens sometimes when loading a tab in background. Chromium
             // has a surprising number of bugs...
-            updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpDebug(undefined));
+            updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpDebug(() => true));
 
         if (reqresFinishingUp.length > 0) {
             // This means Chromium generated some webRequests but did not
@@ -768,30 +768,32 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     }
 }
 
-function emitTabInFlightWebRequest(tabId, reason) {
+function emitTabInFlightWebRequest(rrpredicate, reason) {
     for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
-        if (tabId === null || reqres.tabId === tabId)
+        if (rrpredicate(reqres))
             emitRequest(requestId, reqres, "webRequest::" + reason, true);
     }
 }
 
-function emitTabInFlightDebug(tabId, reason) {
+function emitTabInFlightDebug(rrpredicate, reason) {
     for (let [requestId, dreqres] of Array.from(debugReqresInFlight.entries())) {
-        if (tabId === null || dreqres.tabId === tabId)
+        if (rrpredicate(dreqres))
             emitDebugRequest(requestId, dreqres, false, "debugger::" + reason, true);
     }
 }
 
-function stopInFlight(tabId, reason) {
+function stopInFlight(rrfilter, reason) {
+    let rrpredicate = compileReqresFilter(rrfilter)[1];
+
     if (useDebugger)
-        emitTabInFlightDebug(tabId, reason);
-    emitTabInFlightWebRequest(tabId, reason);
+        emitTabInFlightDebug(rrpredicate, reason);
+    emitTabInFlightWebRequest(rrpredicate, reason);
 
     let updatedTabId = processFinishingUp(true);
 
     if (useDebugger)
-        updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpDebug((r) => tabId === null || r.tabId === tabId));
-    updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpWebRequest((r) => tabId === null || r.tabId === tabId));
+        updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpDebug(rrpredicate));
+    updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpWebRequest(rrpredicate));
 
     return updatedTabId;
     // NB: needs scheduleEndgame after
@@ -1411,7 +1413,7 @@ function handleDebugDetach(debuggee, reason) {
     if (tabId !== undefined) {
         tabsDebugging.delete(tabId);
         // Unfortunately, this means all in-flight reqres of this tab are broken now
-        let updatedTabId = stopInFlight(tabId, "capture::EMIT_FORCED::BY_DETACHED_DEBUGGER");
+        let updatedTabId = stopInFlight({tabId}, "capture::EMIT_FORCED::BY_DETACHED_DEBUGGER");
         // In Chrome, it's pretty easy to click the notification or press Escape while doing
         // Control+F and detach the debugger, so let's reattach it immediately in that case
         if (reason !== "target_closed")
