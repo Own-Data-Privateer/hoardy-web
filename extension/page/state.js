@@ -46,6 +46,7 @@ async function stateMain() {
     if (narrowTabId !== null)
         document.title = `Hoardy-Web: tab ${narrowTabId}${narrowSessionId === null || thisSessionId === narrowSessionId ? "" : " of " + narrowSessionId.toString()}: Internal State`;
 
+    buttonToMessage("stopInFlight",         () => ["stopInFlight", rrfilters.inFlight]);
     buttonToMessage("forgetLog",            () => ["forgetLog", rrfilters.log]);
     buttonToMessage("rotateOneProblematic", () => ["rotateProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
     buttonToMessage("unmarkOneProblematic", () => ["unmarkProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
@@ -55,7 +56,6 @@ async function stateMain() {
     buttonToMessage("discardAllInLimbo",    () => ["popInLimbo", false, rrfilters.inLimbo]);
     buttonToMessage("collectOneInLimbo",    () => ["popInLimbo", true, assignRec({}, rrfilters.inLimbo, {limit: 1})]);
     buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, rrfilters.inLimbo]);
-    buttonToMessage("stopAllInFlight",      () => ["stopInFlight", {tabId: narrowTabId}]);
     buttonToMessage("retryUnarchived",      () => ["retryUnarchived", true, rrfilters.unarchived]);
     buttonToMessage("archiveBuggedOut",     () => ["archiveBuggedOut", rrfilters.buggedOut]);
     buttonToMessage("deleteBuggedOut",      () => ["deleteBuggedOut", rrfilters.buggedOut]);

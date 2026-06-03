@@ -20,7 +20,7 @@
         <ui id="rrfilters.inFlight.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
       </span>
       <span class="right">
-        <input type="button" id="stopAllInFlight" data-help="Stop tracking progress of all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup." value="Stop tracking all" />
+        <input type="button" id="stopInFlight" data-help="Stop tracking all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup." value="Stop tracking" />
       </span>
     </h1>
     <table><tbody id="data-inFlight"></tbody></table>
