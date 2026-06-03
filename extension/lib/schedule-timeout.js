@@ -231,3 +231,38 @@ async function cancelAllSingletonTimeouts(map) {
     for (let key of Array.from(map.keys()))
         await popSingletonTimeout(map, key, false, true);
 }
+
+tests.sheduleTimeout = async () => {
+    let res = 0;
+    let m = new Map();
+    resetSingletonTimeout(m, "a", 1000, () => {
+        res = 1;
+    });
+    await sleep(100);
+    resetSingletonTimeout(m, "a", 100, () => {
+        res = 2;
+    });
+    await sleep(1000);
+
+    if (res !== 2)
+        throw new Error();
+
+    resetSingletonTimeout(m, "a", 100, () => {
+        res = 3;
+    });
+    popSingletonTimeout(m, "a");
+    await sleep(1000);
+
+    if (res !== 2)
+        throw new Error();
+
+    resetSingletonTimeout(m, "a", 0, async () => {
+        await sleep(1000);
+        res = 4;
+    });
+    await sleep(100);
+    await popSingletonTimeout(m, "a", true, true);
+
+    if (res !== 4)
+        throw new Error();
+}
