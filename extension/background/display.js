@@ -264,7 +264,7 @@ let udGTitle = null;
 //   under display.
 async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
     statsChanged = statsChanged || udStats === null;
-    let wantUpdate = updatedTabId === null;
+    let wantUpdate = updatedTabId === null || udStats === null;
 
     let stats = udStats;
     let badge = udBadge;
@@ -386,14 +386,17 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
 
         gtitle = chunks.join(", ");
 
-        wantUpdate = wantUpdate
-            || udBadge !== badge || udColor !== color || udGTitle !== gtitle
-            || udStats === null
+        wantUpdate = (
+            wantUpdate ||
+            udBadge !== badge ||
+            udColor !== color ||
+            udGTitle !== gtitle ||
             // because these global stats influence the tab's icon
-            || stats.buggedOut !== udStats.buggedOut
-            || stats.failed !== udStats.failed
-            || stats.queued !== udStats.queued
-            || stats.bundledAs !== udStats.bundledAs;
+            stats.buggedOut !== udStats.buggedOut ||
+            stats.failed !== udStats.failed ||
+            stats.queued !== udStats.queued ||
+            stats.bundledAs !== udStats.bundledAs
+        );
 
         if (statsChanged)
             broadcastToPopup("updateStats", stats);
@@ -601,9 +604,9 @@ let udEpisode = 1;
 
 function scheduleUpdateDisplay(statsChanged, updatedTabId, tabChanged, episodic, timeout) {
     // merge succesive arguments
-    statsChanged = udStatsChanged = udStatsChanged || statsChanged;
-    updatedTabId = udUpdatedTabId = mergeUpdatedTabIds(udUpdatedTabId, updatedTabId);
-    tabChanged = udTabChanged = udTabChanged || tabChanged;
+    udStatsChanged = udStatsChanged || statsChanged;
+    udUpdatedTabId = mergeUpdatedTabIds(udUpdatedTabId, updatedTabId);
+    udTabChanged = udTabChanged || tabChanged;
 
     // only run the rest every `episodic` updates, when it's set
     if (udEpisode < episodic) {
@@ -613,6 +616,9 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, tabChanged, episodic,
     udEpisode = 1;
 
     resetSingletonTimeout(scheduledHidden, "updateDisplay", timeout !== undefined ? timeout : 200, async () => {
+        let statsChanged = udStatsChanged;
+        let updatedTabId = udUpdatedTabId;
+        let tabChanged = udTabChanged;
         // reset
         udStatsChanged = false;
         udUpdatedTabId = undefined;

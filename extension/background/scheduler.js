@@ -116,22 +116,25 @@ let seUpdatedTabId;
 
 // schedule processArchiving, processAlmostDone, etc
 function scheduleEndgame(updatedTabId, notifyTimeout) {
-    updatedTabId = seUpdatedTabId = mergeUpdatedTabIds(seUpdatedTabId, updatedTabId);
+    seUpdatedTabId = mergeUpdatedTabIds(seUpdatedTabId, updatedTabId);
 
     if (wantCheckServer) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             await checkServer();
-            scheduleEndgame(updatedTabId, notifyTimeout);
+            scheduleEndgame(undefined, notifyTimeout);
         });
     } else if (synchronousClosures.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
+            let updatedTabId = seUpdatedTabId;
+            seUpdatedTabId = undefined; // reset
+
             await evalClosures(synchronousClosures, updatedTabId);
             scheduleEndgame(undefined, notifyTimeout);
         });
     } else if (config.archive && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
-            // reset
-            seUpdatedTabId = undefined;
+            let updatedTabId = seUpdatedTabId;
+            seUpdatedTabId = undefined; // reset
 
             await forceUpdateDisplay(true, updatedTabId);
             updatedTabId = await processArchiving(updatedTabId);
@@ -139,17 +142,17 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
         });
     } else if (reqresAlmostDone.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
-            // reset
-            seUpdatedTabId = undefined;
+            let updatedTabId = seUpdatedTabId;
+            seUpdatedTabId = undefined; // reset
 
             await forceUpdateDisplay(true, updatedTabId);
             updatedTabId = await processAlmostDone(updatedTabId);
             scheduleEndgame(updatedTabId, notifyTimeout);
         });
-    } else /* if (!config.archive || reqresQueue.length == 0) */ {
+    } else {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
-            // reset
-            seUpdatedTabId = undefined;
+            let updatedTabId = seUpdatedTabId;
+            seUpdatedTabId = undefined; // reset
 
             if (wantBroadcastSaved) {
                 wantBroadcastSaved = false;
