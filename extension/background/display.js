@@ -386,17 +386,22 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
 
         gtitle = chunks.join(", ");
 
-        wantUpdate = (
+        if (
             wantUpdate ||
-            udBadge !== badge ||
-            udColor !== color ||
-            udGTitle !== gtitle ||
-            // because these global stats influence the tab's icon
+            // because these global stats influence per-tab icons for all tabs
             stats.buggedOut !== udStats.buggedOut ||
             stats.failed !== udStats.failed ||
             stats.queued !== udStats.queued ||
             stats.bundledAs !== udStats.bundledAs
-        );
+        ) {
+            updatedTabId = null;
+            wantUpdate = true;
+        } else
+            wantUpdate = (
+                udBadge !== badge ||
+                udColor !== color ||
+                udGTitle !== gtitle
+            );
 
         if (statsChanged)
             broadcastToPopup("updateStats", stats);
@@ -408,7 +413,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
     }
 
     if (updatedTabId === undefined && !wantUpdate && !tabChanged)
-        // no tab-specific stuff needs updating, skip the rest of this
+        // nothing needs updating, skip the rest of this
         return;
 
     if (udBadge !== badge) {
