@@ -344,7 +344,7 @@ async function popupMain() {
         setConditionalClass(reloadSelfButton, "attention", stats.update_available);
         implySetConditionalClass(dbody, "on-reload",  "hidden", !hash && !(stats.update_available || config.debugRuntime));
         implySetConditionalClass(dbody, "on-pending", "hidden", !stats.reload_pending);
-        implySetConditionalOff(dbody, "on-replay", !(config.replaySubmitHTTP !== false && stats.can_replay));
+        implySetConditionalOff(dbody, "on-replay", !stats.can_replay);
     }
 
     async function updateTabConfig(tabconfig) {

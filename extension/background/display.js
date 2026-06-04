@@ -178,7 +178,7 @@ function getStats() {
         bundledAs_size: bundledAsSize,
         submittedHTTP: globals.submittedHTTPTotal,
         submittedHTTP_size: globals.submittedHTTPSize,
-        can_replay: serverConfig.canReplay,
+        can_replay: config.replaySubmitHTTP !== false && serverConfig.canReplay,
         saved: globals.savedLS.number + globals.savedIDB.number,
         saved_size: globals.savedLS.size + globals.savedIDB.size,
         unarchived: archiveFailed,
