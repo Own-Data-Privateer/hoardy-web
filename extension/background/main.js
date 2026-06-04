@@ -25,6 +25,16 @@
 
 "use strict";
 
+// Stuff that does not fit anywhere else.
+
+function applyToReqres13(func, early, a, b, c, d, e, f, g, h, i, j, k, l, m) {
+    applyToReqresInFlight5(func, early, a, b, c, d, e);
+    applyToReqresProblematic1(func, f);
+    applyToReqresNotInFlight3(func, g, h, i);
+    applyToReqresBundled1(func, j);
+    applyToReqresWithIssues3(func, k, l, m);
+}
+
 // Archiving/replay via an archiving server.
 
 async function checkServer() {

@@ -118,37 +118,30 @@ function setTabConfig(tabId, tabUrl, tabcfg, oldTabcfg, dontBroadcast) {
 }
 
 // collect all tabs referenced in not yet archived reqres
-function getUsedTabs() {
-    let usedTabs = new Set();
-    for (let [k, v] of reqresInFlight.entries())
-        usedTabs.add(v.tabId);
-    for (let [k, v] of debugReqresInFlight.entries())
-        usedTabs.add(v.tabId);
-    for (let v of reqresFinishingUp)
-        usedTabs.add(v.tabId);
-    for (let v of debugReqresFinishingUp)
-        usedTabs.add(v.tabId);
-    for (let v of reqresAlmostDone)
-        usedTabs.add(v.tabId);
-    for (let [v, _x] of reqresProblematic)
-        usedTabs.add(v.tabId);
-    for (let [v, _x] of reqresLimbo)
-        usedTabs.add(v.tabId);
-    for (let [v, _x] of reqresQueue)
-        usedTabs.add(v.tabId);
-    for (let v of reqresBuggedOutIssueAcc[0])
-        usedTabs.add(v[0].tabId);
-    for (let v of reqresUnstashedIssueAcc[0])
-        usedTabs.add(v[0].tabId);
-    for (let v of reqresUnarchivedIssueAcc[0])
-        usedTabs.add(v[0].tabId);
+function getUsedTabs(rrfilter, unqueued, problematic, limbo, log, dumping) {
+    rrfilter = buildReqresFilter(rrfilter);
 
-    return usedTabs;
+    let set = new Set();
+
+    function collect(reqres, c) {
+        if (c && isAcceptedBy(rrfilter, reqres))
+            set.add(reqres.tabId);
+    }
+    applyToReqres13(
+        collect, true,
+        unqueued, unqueued, unqueued, unqueued, unqueued, // inFlight
+        problematic, // problematic
+        limbo, log, dumping, // limbo, log, queue
+        dumping, // bundled
+        dumping, dumping, true // unstashed, unarchived, bugged out
+    );
+
+    return set;
 }
 
 // Free unused `tabConfig` and `tabState` structures.
 function cleanupTabs() {
-    let usedTabs = getUsedTabs();
+    let usedTabs = getUsedTabs(null, true, true, true, true, true);
 
     // delete configs of closed and unused tabs
     for (let tabId of Array.from(tabConfig.keys())) {

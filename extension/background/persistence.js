@@ -64,6 +64,15 @@ function newReqresUnarchivedIssueAcc() {
 }
 let reqresUnarchivedIssueAcc = newReqresUnarchivedIssueAcc();
 
+function applyToReqresWithIssues3(func, a, b, c) {
+    for (let v of reqresUnstashedIssueAcc[0])
+        func(v[0], a);
+    for (let v of reqresUnarchivedIssueAcc[0])
+        func(v[0], b);
+    for (let v of reqresBuggedOutIssueAcc[0])
+        func(v[0], c);
+}
+
 function getUnarchived() {
     return pushFirstTo(reqresUnarchivedIssueAcc[0], []);
 }
@@ -169,6 +178,13 @@ function scheduleRetryAllUnarchived(timeout) {
 
 // dumps ready for export, indexed by bucket
 let reqresBundledAs = new Map();
+
+function applyToReqresBundled1(func, a) {
+    for (let b of reqresBundledAs.values()) {
+        for (let v of b.queue)
+            func(v[0], a);
+    }
+}
 
 let exportAsLastEpoch;
 let exportAsLastNum = 0;

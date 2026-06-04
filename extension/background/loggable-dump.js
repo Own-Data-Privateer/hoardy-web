@@ -28,6 +28,16 @@
 // problematic archivables
 let reqresProblematic = [];
 let reqresUnproblematic = [];
+
+function applyToReqresProblematic1(func, a) {
+    for (let v of reqresProblematic)
+        func(v[0], a);
+}
+
+function getProblematic() {
+    return pushFirstTo(reqresProblematic, []);
+}
+
 // archivables in limbo, waiting to be either dropped or queued
 let reqresLimbo = [];
 let reqresLimboSize = 0;
@@ -37,11 +47,16 @@ let reqresLog = [];
 let reqresQueue = [];
 let reqresQueueSize = 0;
 
-// Logging
-
-function getProblematic() {
-    return pushFirstTo(reqresProblematic, []);
+function applyToReqresNotInFlight3(func, a, b, c) {
+    for (let v of reqresLimbo)
+        func(v[0], a);
+    for (let v of reqresLog)
+        func(v, b);
+    for (let v of reqresQueue)
+        func(v[0], c);
 }
+
+// Logging
 
 function getInLimbo() {
     return pushFirstTo(reqresLimbo, []);
