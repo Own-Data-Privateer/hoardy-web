@@ -246,8 +246,7 @@ function handleTabRemoved(tabId) {
 function handleTabReplaced(addedTabId, removedTabId) {
     if (config.debugRuntime)
         console.log("BROWSER: tab replaced", removedTabId, addedTabId);
-    processRemoveTab(removedTabId);
-    processNewTab(addedTabId);
+    processReplaceTab(addedTabId, removedTabId);
 }
 
 function handleTabActivated(tab) {

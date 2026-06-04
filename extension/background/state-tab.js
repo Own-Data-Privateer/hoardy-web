@@ -282,3 +282,25 @@ function processRemoveTab(tabId) {
 
     scheduleEndgame(updatedTabId);
 }
+
+function processReplaceTab(addedTabId, removedTabId) {
+    openTabs.delete(removedTabId);
+    openTabs.add(addedTabId);
+
+    // NB: Not calling `.delete`s below because some async stuff might still be using the old
+    // values, so we have to make `addedTabId` and `removedTabId` share their states.
+    //
+    // Unused keys will be freed in `cleanupTabs`.
+
+    let tabcfg = tabConfig.get(removedTabId);
+    if (tabcfg !== undefined)
+        // tabConfig.delete(removedTabId);
+        tabConfig.set(addedTabId);
+
+    let tabstate = tabState.get(removedTabId);
+    if (tabstate !== undefined)
+        // tabState.delete(removedTabId);
+        tabState.set(addedTabId, tabState);
+
+    scheduleUpdateDisplay(false, addedTabId);
+}
