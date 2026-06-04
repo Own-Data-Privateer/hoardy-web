@@ -687,6 +687,7 @@ async function main() {
     // and its elements in `reqresProblematic`.
 
     let oldSession = localData.session;
+    let sessionBg;
     let sessionTabs = {};
     if (oldSession !== undefined) {
         // to prevent it from being loaded again
@@ -694,18 +695,20 @@ async function main() {
 
         sessionId = oldSession.id;
         console.log(`MAIN: Loading old session ${oldSession.id}`);
-        sessionTabs = oldSession.tabs;
+        sessionBg = oldSession.bg;
+        sessionTabs = oldSession.tabs || {};
         reqresLog = oldSession.log;
+    }
 
-        // populate reqresProblematic
-        for (let loggable of reqresLog) {
-            if (loggable.problematic) {
-                let tabstate = getTabState(loggable.tabId, loggable.fromExtension);
-                reqresProblematic.push([loggable, null]);
-                tabstate.problematicTotal += 1;
-                gotNewProblematic = true;
-            }
-        }
+    // Restore the state of background requests.
+
+    if (sessionBg !== undefined) {
+        let bgstate = updateFromRec(assignRec({}, tabStateDefaults), sessionBg, {
+            problematicTotal: 0,
+            inLimboTotal: 0,
+            inLimboSize: 0,
+        });
+        tabState.set(-1, bgstate);
     }
 
     // Init configs and states of currently open tabs, possibly reusing old session data.
@@ -718,17 +721,36 @@ async function main() {
         // record they exist
         openTabs.add(tabId);
 
-        let oldTab = sessionTabs[tab.id];
+        let tabcfg = prefillChildren(configDefaults.root);
+        let tabstate = assignRec({}, tabStateDefaults);
 
-        let tabcfg = prefillChildren(config.root);
-        if (oldTab !== undefined && oldTab.url === tabUrl)
-            // reuse old config
-            tabcfg = updateFromRec(tabcfg, oldTab.tabcfg);
+        let oldTab = sessionTabs[tabId];
+        if (oldTab !== undefined && oldTab.url === tabUrl) {
+            // reuse old values
+            tabcfg = updateFromRec(tabcfg, getFirstDefined(oldTab.cfg, oldTab.tabcfg));
+            tabstate = updateFromRec(tabstate, oldTab.state, {
+                problematicTotal: 0,
+                inLimboTotal: 0,
+                inLimboSize: 0,
+            });
+        }
+
         setTabConfig(tabId, undefined, tabcfg, tabcfg, true);
+        tabState.set(tabId, tabstate);
 
         // on Chromium, reset their URLs, maybe
         if (useDebugger && tabUrl === "chrome://newtab/")
             chromiumResetRootTab(tabId, tabcfg);
+    }
+
+    // Populate reqresProblematic.
+    for (let loggable of reqresLog) {
+        if (loggable.problematic) {
+            let tabstate = getTabState(loggable.tabId, loggable.fromExtension);
+            reqresProblematic.push([loggable, null]);
+            tabstate.problematicTotal += 1;
+            gotNewProblematic = true;
+        }
     }
 
     // Init capture.

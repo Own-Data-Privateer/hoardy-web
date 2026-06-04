@@ -85,20 +85,22 @@ async function performReloadSelf() {
 
     console.warn("reloading!");
 
-    let tabs = {};
-    let currentTabs = await browser.tabs.query({});
+    let savedTabs = {};
 
+    let currentTabs = await browser.tabs.query({});
     for (let tab of currentTabs) {
         let tabId = tab.id;
-        tabs[tabId] = {
+        savedTabs[tabId] = {
             url: getTabURL(tab),
-            tabcfg: tabConfig.get(tabId),
+            cfg: tabConfig.get(tabId),
+            state: tabState.get(tabId),
         };
     }
 
     let session = {
         id: sessionId,
-        tabs,
+        tabs: savedTabs,
+        bg: tabState.get(-1),
         log: reqresLog,
         // queue and others are stashed
     };
