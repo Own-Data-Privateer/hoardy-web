@@ -212,15 +212,18 @@ function cleanupLimboAfterTab(tabId) {
 }
 
 function cleanupAfterTab(tabId) {
-    let updatedTabId;
-    let tabstats = getTabStats(tabId);
+    let tabstate = tabState.get(tabId);
+    if (tabstate === undefined)
+        return;
 
-    if (config.autoUnmarkProblematic && tabstats.problematic > 0) {
+    let updatedTabId;
+
+    if (config.autoUnmarkProblematic && tabstate.problematicTotal > 0) {
         cleanupProblematicAfterTab(tabId);
         updatedTabId = tabId;
     }
 
-    if ((config.autoPopInLimboCollect || config.autoPopInLimboDiscard) && tabstats.in_limbo > 0) {
+    if ((config.autoPopInLimboCollect || config.autoPopInLimboDiscard) && tabstate.inLimboTotal > 0) {
         if (config.autoTimeout === 0) {
             cleanupLimboAfterTab(tabId);
             updatedTabId = tabId;
