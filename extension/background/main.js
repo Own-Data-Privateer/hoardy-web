@@ -780,6 +780,7 @@ async function main() {
             reqresProblematic.push([loggable, null]);
             // NB: (reDynamicState)
             tabstate.problematicTotal += 1;
+            tabstate.problematicSize += loggable.dumpSize;
             gotNewProblematic = true;
         }
     }

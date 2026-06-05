@@ -801,6 +801,7 @@ function loadOneStashed(loggable) {
     if (loggable.problematic) {
         reqresProblematic.push(archivable);
         tabstate.problematicTotal += 1;
+        tabstate.problematicSize += dumpSize;
         gotNewProblematic = true;
     }
 

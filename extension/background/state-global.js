@@ -507,6 +507,7 @@ function fixConfig(config, oldConfig, serverConfig) {
 // these are to be computed dynamically from `reqresProblematic` and `reqresLimbo`
 let dynamicStateDefaults = {
     problematicTotal: 0,
+    problematicSize: 0,
     inLimboTotal: 0,
     inLimboSize: 0,
 };
@@ -514,7 +515,9 @@ let dynamicStateDefaults = {
 // common
 let commonStateDefaults = {
     pickedTotal: 0,
+    pickedSize: 0,
     droppedTotal: 0,
+    droppedSize: 0,
     collectedTotal: 0,
     collectedSize: 0,
     discardedTotal: 0,

@@ -95,6 +95,7 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
             loggable.problematic = false;
             loggable.dirty = true;
             tabstate.problematicTotal -= 1;
+            tabstate.problematicSize -= loggable.dumpSize;
 
             if (loggable.inLS !== undefined)
                 // it was stashed before, re-stash it
@@ -690,8 +691,10 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
 
     if (picked) {
         tabstate.pickedTotal += 1;
+        tabstate.pickedSize += dumpSize;
     } else {
         tabstate.droppedTotal += 1;
+        tabstate.droppedSize += dumpSize;
     }
 
     if (in_limbo) {
@@ -709,6 +712,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
     if (problematic) {
         reqresProblematic.push(archivable);
         tabstate.problematicTotal += 1;
+        tabstate.problematicSize += dumpSize;
         newlyProblematic.push(loggable);
         if (tabcfg.problematicNotify)
             gotNewProblematic = true;

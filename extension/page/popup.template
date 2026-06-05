@@ -300,29 +300,32 @@ section {
           (<span id="stats.in_limbo_size">0</span>)
         </span>
       </div>
-      <div id="div-stats.picked" class="tag-glob tag-cls" data-help="From the last reset, the number of reqres that satisfied `Pick reqres for archival when they finish` conditions at the moment they `finished`.">
+      <div id="div-stats.picked" class="tag-glob tag-cls" data-help="From the last reset, the number of reqres that satisfied `Pick reqres for archival when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
         <span>Picked</span>
         <span>
         </span>
         <span>
           <span id="stats.picked">0</span>
+          (<span id="stats.picked_size">0</span>)
         </span>
       </div>
-      <div id="div-stats.dropped" class="tag-glob tag-cls" data-help="From the last reset, the number of reqres that did NOT satisfy `Pick reqres for archival when they finish` conditions at the moment they `finished`.">
+      <div id="div-stats.dropped" class="tag-glob tag-cls" data-help="From the last reset, the number of reqres that did NOT satisfy `Pick reqres for archival when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
         <span>Dropped</span>
         <span>
         </span>
         <span>
           <span id="stats.dropped">0</span>
+          (<span id="stats.dropped_size">0</span>)
         </span>
       </div>
-      <div id="div-stats.problematic" class="tag-def tag-glob tag-cls" data-help="At the moment, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished`.">
+      <div id="div-stats.problematic" class="tag-def tag-glob tag-cls" data-help="At the moment, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
         <span>Problematic</span>
         <span>
           <input id="unmarkAllProblematic" type="button" data-shortcut="unmarkAllProblematic" value="Unmark" />
         </span>
         <span>
           <span id="stats.problematic">0</span>
+          (<span id="stats.problematic_size">0</span>)
         </span>
       </div>
       <div id="div-stats.in_flight" class="tag-def tag-glob" data-help="At the moment, the number of reqres that have not finished yet. See the `Help` page for more info.">
@@ -431,29 +434,32 @@ section {
           (<span id="tabstats.in_limbo_size">0</span>)
         </span>
       </div>
-      <div id="div-tabstats.picked" class="tag-tab tag-cls" data-help="For this tab, the number of reqres that satisfied `Pick reqres for archival when they finish` conditions at the moment they `finished`.">
+      <div id="div-tabstats.picked" class="tag-tab tag-cls" data-help="For this tab, the number of reqres that satisfied `Pick reqres for archival when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
         <span>Picked</span>
         <span>
         </span>
         <span>
           <span id="tabstats.picked">0</span>
+          (<span id="tabstats.picked_size">0</span>)
         </span>
       </div>
-      <div id="div-tabstats.dropped" class="tag-tab tag-cls" data-help="For this tab, the number of reqres that did NOT satisfy `Pick reqres for archival when they finish` conditions at the moment they `finished`.">
+      <div id="div-tabstats.dropped" class="tag-tab tag-cls" data-help="For this tab, the number of reqres that did NOT satisfy `Pick reqres for archival when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
         <span>Dropped</span>
         <span>
         </span>
         <span>
           <span id="tabstats.dropped">0</span>
+          (<span id="tabstats.dropped_size">0</span>)
         </span>
       </div>
-      <div id="div-tabstats.problematic" class="tag-def tag-tab tag-cls" data-help="For this tab, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished`.">
+      <div id="div-tabstats.problematic" class="tag-def tag-tab tag-cls" data-help="For this tab, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
         <span>Problematic</span>
         <span>
           <input id="unmarkAllTabProblematic" type="button" data-shortcut="unmarkAllTabProblematic" value="Unmark" />
         </span>
         <span>
           <span id="tabstats.problematic">0</span>
+          (<span id="tabstats.problematic_size">0</span>)
         </span>
       </div>
       <div id="div-tabstats.in_flight" class="tag-def tag-tab" data-help="For this tab, the number of in-flight reqres that have not `finished` yet. See the `Help` page for more info.">
