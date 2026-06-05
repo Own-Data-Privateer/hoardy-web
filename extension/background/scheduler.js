@@ -183,8 +183,11 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
                 // delay for longer if there's probably going to be more updates soon or this update is not that important
                 if (haveInFlight || (
                     savedState.collectedTotal === state.collectedTotal &&
+                    savedState.exportedAsTotal === state.exportedAsTotal &&
                     savedState.submittedHTTPTotal === state.submittedHTTPTotal &&
-                    savedState.exportedAsTotal === state.exportedAsTotal
+                    savedState.dumpedTotal === state.dumpedTotal &&
+                    savedState.stashedTotal === state.stashedTotal &&
+                    savedState.savedTotal === state.savedTotal
                 ))
                     timeout *= 10;
                 scheduleSaveState(timeout);

@@ -530,6 +530,16 @@ let resettableStateDefaults = assignRec({
     exportedAsSize: 0,
     submittedHTTPTotal: 0,
     submittedHTTPSize: 0,
+    dumpedTotal: 0,
+    dumpedUndo: 0,
+    dumpedSize: 0,
+    dumpedReal: 0,
+    stashedTotal: 0,
+    stashedRedo: 0,
+    stashedUndo: 0,
+    savedTotal: 0,
+    savedRedo: 0,
+    savedUndo: 0,
 }, commonStateDefaults);
 
 let dbStateDefaults = { number: 0, size: 0 };

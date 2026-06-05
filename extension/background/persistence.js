@@ -482,20 +482,29 @@ async function wipeFromStorage(tss, dumpSize, dumpId, stashId, saveId) {
             await saveStore.delete(saveId);
     });
 
+    if (dumpId !== undefined) {
+        state.dumpedUndo += 1;
+        wantSaveState = true;
+    }
+
     if (stashId !== undefined) {
         stashStats.number -= 1;
         stashStats.size -= dumpSize;
+        state.stashedUndo += 1;
         wantSaveState = true;
     }
+
     if (saveId !== undefined) {
         savedStats.number -= 1;
         savedStats.size -= dumpSize;
+        state.savedUndo += 1;
         wantSaveState = true;
     }
 }
 
-async function writeToStorage(tss, state, clean, dump, dumpSize, dumpId, stashId, saveId) {
+async function writeToStorage(tss, want, clean, dump, dumpSize, dumpId, stashId, saveId) {
     let [mkTransaction, stashStats, savedStats] = tss;
+    let writtenSize = 0;
 
     await mkTransaction(async (transaction, dumpStore, stashStore, saveStore) => {
         if (dumpId === undefined && dump !== null) {
@@ -505,20 +514,46 @@ async function writeToStorage(tss, state, clean, dump, dumpSize, dumpId, stashId
                     level: 9,
                 }, logHandledError);
             clean.dumpId = await dumpStore.put({ dump });
+            writtenSize = dump.byteLength;
         } else if (dumpId !== undefined)
             // reuse the old one
             clean.dumpId = dumpId;
 
-        if (state === 1) {
+        if (want === 1) {
             clean.stashId = await stashStore.put(clean, stashId);
             if (saveId !== undefined)
                 await saveStore.delete(saveId);
-        } else if (state === 2) {
+        } else if (want === 2) {
             clean.saveId = await saveStore.put(clean, saveId);
             if (stashId !== undefined)
                 await stashStore.delete(stashId);
         }
     });
+
+    if (writtenSize > 0) {
+        state.dumpedTotal += 1;
+        state.dumpedSize += dumpSize;
+        state.dumpedReal += writtenSize;
+        wantSaveState = true;
+    }
+
+    if (want === 1) {
+        if (stashId === undefined)
+            state.stashedTotal += 1;
+        else
+            state.stashedRedo += 1;
+        if (saveId !== undefined)
+            state.savedUndo += 1;
+        wantSaveState = true;
+    } else if (want === 2) {
+        if (saveId === undefined)
+            state.savedTotal += 1;
+        else
+            state.savedRedo += 1;
+        if (stashId !== undefined)
+            state.stashedUndo += 1;
+        wantSaveState = true;
+    }
 
     if (stashId === undefined && clean.stashId !== undefined) {
         stashStats.number += 1;
@@ -529,6 +564,7 @@ async function writeToStorage(tss, state, clean, dump, dumpSize, dumpId, stashId
         stashStats.size -= dumpSize;
         wantSaveState = true;
     }
+
     if (saveId === undefined && clean.saveId !== undefined) {
         savedStats.number += 1;
         savedStats.size += dumpSize;
@@ -540,7 +576,7 @@ async function writeToStorage(tss, state, clean, dump, dumpSize, dumpId, stashId
     }
 }
 
-async function syncWithStorage(archivable, state, elide) {
+async function syncWithStorage(archivable, want, elide) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
@@ -557,10 +593,10 @@ async function syncWithStorage(archivable, state, elide) {
 
     // Do we even have anything to do?
     if (
-        (state === 0 && dumpId === undefined && stashId === undefined && saveId === undefined) ||
+        (want === 0 && dumpId === undefined && stashId === undefined && saveId === undefined) ||
         (
-            (state === 1 && stashId !== undefined && saveId === undefined) ||
-            (state === 2 && stashId === undefined && saveId !== undefined)
+            (want === 1 && stashId !== undefined && saveId === undefined) ||
+            (want === 2 && stashId === undefined && saveId !== undefined)
         ) && (dumpId !== undefined || dump === null) && inLS === wantInLS && !dirty
     )
         return null;
@@ -574,7 +610,7 @@ async function syncWithStorage(archivable, state, elide) {
         // NB: but keeping "dumpSize"
     }
 
-    if (state === 0) {
+    if (want === 0) {
         // delete from the current store
         await wipeFromStorage(selectTSS(inLS !== false), dumpSize, dumpId, stashId, saveId);
         scrub(loggable);
@@ -588,11 +624,11 @@ async function syncWithStorage(archivable, state, elide) {
 
         if (inLS === undefined || inLS === wantInLS)
             // first write ever or overwrite to the same store
-            await writeToStorage(selectTSS(wantInLS), state, clean, dump, dumpSize, dumpId, stashId, saveId);
+            await writeToStorage(selectTSS(wantInLS), want, clean, dump, dumpSize, dumpId, stashId, saveId);
         else {
             // we are moving the data from one store to the other
             dump = await loadDumpFromStorage(archivable, true, true);
-            await writeToStorage(selectTSS(wantInLS), state, clean, dump, dumpSize);
+            await writeToStorage(selectTSS(wantInLS), want, clean, dump, dumpSize);
             await wipeFromStorage(selectTSS(inLS), dumpSize, dumpId, stashId, saveId);
         }
 
@@ -610,7 +646,7 @@ async function syncWithStorage(archivable, state, elide) {
 
     if (config.debugPersisence)
         console.info("PERSISTENCE:",
-                     state === 0 ? "DELETED" : (state === 1 ? "STASHED" : "SAVED"),
+                     want === 0 ? "DELETED" : (want === 1 ? "STASHED" : "SAVED"),
                      "elide", elide,
                      "ids", dumpId, stashId, saveId,
                      "loggable", loggable);

@@ -722,6 +722,25 @@ section {
           (<span id="stats.submittedHTTP_size">0</span>)
         </span>
       </div>
+      <div id="div-stats.dumped" data-help="From the last reset, the number of dumps written into local storage (and the sum total of all of their sizes, both raw and compressed). This stat line counts actual writes into local storage. Therefore, if a reqres gets stashed and then later saved into local storage, this stat line will only count it once, since `Hoardy-Web` will reuse the written dump when moving data from the stashed to the saved storage.">
+        <span>Dumps dumped</span>
+        <span>
+        </span>
+        <span>
+          <span id="stats.dumped">0</span>
+          (<span id="stats.dumped_size">0</span> → <span id="stats.dumped_real_size">0</span>)
+        </span>
+      </div>
+      <div id="div-stats.modified" data-help="From the last reset, the number of dumps and `loggable` metadata objects that were successfully written to, rewritten in, or deleted from local storage, respectively. I.e., the total number of local storage database rows modified since the last reset. Note that stashed object modifications (e.g., unmarking of `problematic`) and re-archivals can cause the middle value to increase even when no new reqres are being captured and/or archived.">
+        <span>Rows modified</span>
+        <span>
+        </span>
+        <span>
+          <span id="stats.written">0</span> +
+          <span id="stats.rewritten">0</span> +
+          <span id="stats.deleted">0</span>
+        </span>
+      </div>
       <div id="div-stats.saved" data-help="At the moment, the number of reqres that were archived into browser's local storage (and the sum total of all sizes of their dumps).">
         <span>Saved in LS</span>
         <span>
@@ -938,7 +957,7 @@ Specifically:
 
     <center>
       <input id="resetConfig" type="button" data-help="Reset all config options to their default values." value="Reset config!" />
-      <input id="resetStats" type="button" data-help="Reset all global persistent &quot;Exported&quot;, &quot;Submitted&quot;, &quot;Collected&quot;, &quot;Discarded&quot;, &quot;Picked&quot;, and &quot;Dropped&quot; stats to zero." value="Reset stats!" />
+      <input id="resetStats" type="button" data-help="Reset all global stats whose help strings start with &quot;From the last reset&quot; to zero." value="Reset stats!" />
     </center>
 
     <!-- destructiveOptions -->
