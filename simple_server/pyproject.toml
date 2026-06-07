@@ -36,7 +36,9 @@ dependencies = [
 ]
 requires-python = ">=3.7"
 [project.optional-dependencies]
-cbor = ["cbor2"]
+cbor = [
+    "cbor2>=5.6.3,<6",
+]
 [project.urls]
 "Homepage" = "https://oxij.org/software/hoardy-web/"
 "GitHub" = "https://github.com/Own-Data-Privateer/hoardy-web"
