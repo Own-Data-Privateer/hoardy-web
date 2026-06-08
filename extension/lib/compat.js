@@ -140,7 +140,10 @@ function makeFirefoxish(browser) {
     browser.tabs.highlight = makePromiseAPI(browser.tabs.highlight);
     browser.tabs.query = makePromiseAPI(browser.tabs.query);
     browser.tabs.update = makePromiseAPI2(browser.tabs.update);
-    browser.windows.create = makePromiseAPI(browser.windows.create);
+
+    if (browser.windows !== undefined) {
+        browser.windows.create = makePromiseAPI(browser.windows.create);
+    }
 
     browser.menus = browser.contextMenus;
     browser.menus.create = makePromiseAPI(browser.contextMenus.create);
@@ -167,6 +170,9 @@ if (browser === undefined) {
     browser = makeFirefoxish(chrome);
 }
 browser.nameVersion = parseUA();
+
+const TAB_ID_NONE = browser.tabs.TAB_ID_NONE;
+const WINDOW_ID_NONE = browser.windows !== undefined ? browser.windows.WINDOW_ID_NONE : -1;
 
 let manifest = browser.runtime.getManifest();
 let permissions = new Set(manifest.permissions);
