@@ -198,8 +198,10 @@ function getInFlightNum(rrfilter) {
 
 function shallowCopyOfReqres(reqres) {
     return {
-        sessionId: reqres.sessionId,
         requestId: reqres.requestId,
+
+        sessionId: reqres.sessionId,
+        windowId: reqres.windowId,
         tabId: reqres.tabId,
         fromExtension: reqres.fromExtension,
 
@@ -932,8 +934,10 @@ function handleBeforeRequest(e) {
 
     let requestId = e.requestId;
     let reqres = {
-        sessionId,
         requestId,
+
+        sessionId,
+        windowId: getWindowId(tabId),
         tabId,
         fromExtension,
 
@@ -1225,8 +1229,10 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
     logDebugEvent("requestWillBeSent", nonExtra, e, undefined);
 
     let dreqres = cacheSingleton(debugReqresInFlight, e.requestId, () => { return {
-        sessionId,
         requestId: e.requestId,
+
+        sessionId,
+        windowId: getWindowId(tabId),
         tabId,
         fromExtension,
 

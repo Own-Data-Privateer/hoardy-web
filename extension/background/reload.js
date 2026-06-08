@@ -95,10 +95,19 @@ async function performReloadSelf() {
 
     console.warn("reloading!");
 
+    let savedWindows = {};
     let savedTabs = {};
 
     let currentTabs = await browser.tabs.query({});
     for (let tab of currentTabs) {
+        let windowId = tab.windowId;
+        if (!savedWindows.hasOwnProperty(windowId)) {
+            savedWindows[windowId] = {
+                cfg: windowConfig.get(windowId),
+                state: windowState.get(windowId),
+            };
+        }
+
         let tabId = tab.id;
         savedTabs[tabId] = {
             url: getTabURL(tab),
@@ -109,6 +118,7 @@ async function performReloadSelf() {
 
     let session = {
         id: sessionId,
+        windows: savedWindows,
         tabs: savedTabs,
         bg: tabState.get(-1),
         log: reqresLog,

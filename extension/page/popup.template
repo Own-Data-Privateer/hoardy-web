@@ -206,6 +206,7 @@ section {
     <div id="tags">
       <input id="showTag-def" type="button" title="Most commonly used stuff." value="**" />
       <input id="showTag-glob" type="button" tabindex=4 title="All per-browser capture-controlling actions, stats, and settings, except for the general behaviour-controlling and reqres classifier settings." value="Glob" />
+      <input id="showTag-win" type="button" tabindex=4 title="All per-this-window capture-controlling actions, stats, and settings." value="Win" />
       <input id="showTag-tab" type="button" tabindex=4 title="All per-this-tab capture-controlling actions, stats, and settings." value="Tab" />
       <input id="showTag-cls" type="button" tabindex=4 title="Reqres classifier settings." value="CLS" />
       <span class="spacer"></span>
@@ -808,30 +809,141 @@ Specifically:
     <!-- globallyOptions -->
     </div>
 
-    <section id="sec-root-tab-options" class="tag-def tag-glob tag-ui">
-    <h2>+ New root tabs</h2>
+    <section id="sec-root-tab-options" class="tag-glob tag-ui">
+    <h2>+ New root windows/tabs</h2>
     <div class="idots2">
     <!-- rootTabOptions -->
 
-    <ui id="config.root.autoReplay" type="boolean" class="tag-def tag-glob" data-help="Enable `Auto-replay` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Auto-replay</ui>
-    <ui id="config.root.workOffline" type="boolean" class="prefer-off tag-glob" data-help="Enable `Work offline` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Work offline</ui>
-    <ui id="config.root.collecting" type="boolean" class="prefer-on tag-glob" data-help="Enable `Track new requests` option in new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Track new requests</ui>
-    <ui id="config.root.collectingWorkOffline" type="boolean" class="prefer-on tag-glob" data-help="Enable `.. including when 'Work offline' is set` option in new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">... including when <code>Work offline</code> is set</ui>
+    <ui id="config.root.autoReplay" type="boolean" class="tag-glob" data-help="Enable `Auto-replay` option in new windows. See the `Help` page for more info.">Auto-replay</ui>
+    <ui id="config.root.workOffline" type="boolean" class="prefer-off tag-glob" data-help="Enable `Work offline` options in new windows. See the `Help` page for more info.">Work offline</ui>
+    <ui id="config.root.collecting" type="boolean" class="prefer-on tag-glob" data-help="Enable `Track new requests` option in new windows.">Track new requests</ui>
+    <ui id="config.root.collectingWorkOffline" type="boolean" class="prefer-on tag-glob" data-help="Enable `.. including when 'Work offline' is set` option in new windows.">... including when <code>Work offline</code> is set</ui>
     <section class="on-problematicNotify tag-glob tag-ui">
-    <ui id="config.root.problematicNotify" type="boolean" data-help="Enable `Notify about 'problematic' reqres` in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Notify about <code>problematic</code> reqres</ui>
+    <ui id="config.root.problematicNotify" type="boolean" data-help="Enable `Notify about 'problematic' reqres` in new windows.">Notify about <code>problematic</code> reqres</ui>
     </section>
-    <ui id="config.root.limbo" type="boolean" class="tag-def tag-glob" data-help="Enable `Pick into limbo` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Pick into limbo</ui>
-    <ui id="config.root.negLimbo" type="boolean" class="prefer-off tag-glob" data-help="Enable `Drop into limbo` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Drop into limbo</ui>
+    <ui id="config.root.limbo" type="boolean" class="tag-glob" data-help="Enable `Pick into limbo` option in new windows.">Pick into limbo</ui>
+    <ui id="config.root.negLimbo" type="boolean" class="prefer-off tag-glob" data-help="Enable `Drop into limbo` option in new windows.">Drop into limbo</ui>
     <section class="on-stash tag-glob">
-    <ui id="config.root.stashLimbo" type="boolean" data-help="Enable `Stash 'in_limbo' reqres` option in in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Stash <code>in_limbo</code> reqres</ui>
+    <ui id="config.root.stashLimbo" type="boolean" data-help="Enable `Stash 'in_limbo' reqres` option in new windows.">Stash <code>in_limbo</code> reqres</ui>
     </section>
-    <ui id="config.root.bucket" type="string" class="tag-def tag-glob" data-help="Set `Bucket` option in new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item) to this value.">Bucket</ui>
-    <ui id="config.root.snapshottable" type="boolean" class="prefer-on tag-glob" data-help="Enable `Include in global snapshots` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Include in global snapshots</ui>
-    <ui id="config.root.replayable" type="boolean" class="prefer-on tag-glob" data-help="Enable `Include in global replays` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Include in global replays</ui>
-    <ui id="config.root.settleDelay" type="number" class="c tag-glob" data-help="Set `Settle in ...` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item) to this value.">Settle in {}s after <code>in_flight</code></ui>
-    <ui id="config.root.settleRetries" type="number" class="c tag-glob" data-help="Set `... retry up to ...` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item) to this value.">... retry up to {} times</ui>
+    <ui id="config.root.bucket" type="string" class="tag-glob" data-help="Set `Bucket` option in new windows to this value.">Bucket</ui>
+    <ui id="config.root.snapshottable" type="boolean" class="prefer-on tag-glob" data-help="Enable `Include in global snapshots` options in new windows.">Include in global snapshots</ui>
+    <ui id="config.root.replayable" type="boolean" class="prefer-on tag-glob" data-help="Enable `Include in global replays` options in new windows.">Include in global replays</ui>
+    <ui id="config.root.settleDelay" type="number" class="c tag-glob" data-help="Set `Settle in ...` option in new windows to this value.">Settle in {}s after <code>in_flight</code></ui>
+    <ui id="config.root.settleRetries" type="number" class="c tag-glob" data-help="Set `... retry up to ...` option in new windows to this value.">... retry up to {} times</ui>
 
     <!-- rootTabOptions -->
+    </div>
+    </section>
+
+    <section id="sec-this-window-options" class="tag-def tag-win tag-tab tag-cls">
+    <h2 class="tag-def tag-win tag-cls">
+      + This window
+      <span class="right tag-def tag-win">
+      </span>
+    </h2>
+    <div class="idots2">
+    <!-- thisWindowOptions -->
+
+    <center id="sec-tab-switch-actions" class="tag-def tag-win tag-tab">
+      <input id="smartSwitchTabsBackward" type="button" data-shortcut="smartSwitchTabsBackward" value="N-" />
+      <input id="smartSwitchTabsForward" type="button" data-shortcut="smartSwitchTabsForward" value="N+" />
+      <input id="smartSwitchTabsLatest" type="button" data-shortcut="smartSwitchTabsLatest" value="N" />
+      <input id="highlightTabsBackward" type="button" data-shortcut="highlightTabsBackward" value="HL-" />
+      <input id="highlightTabsForward" type="button" data-shortcut="highlightTabsForward" value="HL+" />
+      <input id="highlightTabsLatest" type="button" data-shortcut="highlightTabsLatest" value="HL" />
+    </center>
+
+    <div class="stats">
+      <div id="div-winstats.collected" class="tag-win tag-cls" data-help="For tabs of this window, the number of `finished` reqres that were taken for archival (and the sum total of all sizes of their dumps).">
+        <span>Collected</span>
+        <span>
+        </span>
+        <span>
+          <span id="winstats.collected">0</span>
+          (<span id="winstats.collected_size">0</span>)
+        </span>
+      </div>
+      <div id="div-winstats.discarded" class="tag-win tag-cls" data-help="For tabs of this window, the number of `finished` reqres that were NOT taken for archival and thus were discarded from memory (and the sum total of all sizes of their dumps).">
+        <span>Discarded</span>
+        <span>
+        </span>
+        <span>
+          <span id="winstats.discarded">0</span>
+          (<span id="winstats.discarded_size">0</span>)
+        </span>
+      </div>
+      <div id="div-winstats.in_limbo" class="tag-def tag-win" data-help="For tabs of this window, the number of `finished` reqres that are in `in_limbo` state (and the sum total of all sizes of their dumps).">
+        <span>In limbo</span>
+        <span>
+        </span>
+        <span>
+          <span id="winstats.in_limbo">0</span>
+          (<span id="winstats.in_limbo_size">0</span>)
+        </span>
+      </div>
+      <div id="div-winstats.picked" class="tag-win tag-cls" data-help="For tabs of this window, the number of reqres that satisfied `Pick reqres for archival when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
+        <span>Picked</span>
+        <span>
+        </span>
+        <span>
+          <span id="winstats.picked">0</span>
+          (<span id="winstats.picked_size">0</span>)
+        </span>
+      </div>
+      <div id="div-winstats.dropped" class="tag-win tag-cls" data-help="For tabs of this window, the number of reqres that did NOT satisfy `Pick reqres for archival when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
+        <span>Dropped</span>
+        <span>
+        </span>
+        <span>
+          <span id="winstats.dropped">0</span>
+          (<span id="winstats.dropped_size">0</span>)
+        </span>
+      </div>
+      <div id="div-winstats.problematic" class="tag-def tag-win tag-cls" data-help="For tabs of this window, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
+        <span>Problematic</span>
+        <span>
+        </span>
+        <span>
+          <span id="winstats.problematic">0</span>
+          (<span id="winstats.problematic_size">0</span>)
+        </span>
+      </div>
+      <div id="div-winstats.in_flight" class="tag-def tag-win" data-help="For tabs of this window, the number of in-flight reqres that have not `finished` yet. See the `Help` page for more info.">
+        <span>In flight</span>
+        <span>
+        </span>
+        <span>
+          <span id="winstats.in_flight">0</span>
+          +
+          <span id="winstats.finishing_up">0</span>
+          +
+          <span id="winstats.almost_done">0</span>
+        </span>
+      </div>
+    </div>
+
+    <section id="sec-this-window-config">
+    <ui id="winconfig.autoReplay" type="boolean" class="tag-def tag-win" data-help="Enable `Auto-replay` option in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Auto-replay</ui>
+    <ui id="winconfig.workOffline" type="boolean" class="prefer-off tag-win" data-help="Enable `Work offline` options in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Work offline</ui>
+    <ui id="winconfig.collecting" type="boolean" class="prefer-on tag-def tag-win" data-help="Enable `Track new requests` option in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Track new requests</ui>
+    <ui id="winconfig.collectingWorkOffline" type="boolean" class="prefer-on tag-win" data-help="Enable `.. including when 'Work offline' is set` option in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">... including when <code>Work offline</code> is set</ui>
+    <section class="on-problematicNotify tag-win tag-ui">
+    <ui id="winconfig.problematicNotify" type="boolean" data-help="Enable `Notify about 'problematic' reqres` in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Notify about <code>problematic</code> reqres</ui>
+    </section>
+    <ui id="winconfig.limbo" type="boolean" class="tag-def tag-win" data-help="Enable `Pick into limbo` option in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Pick into limbo</ui>
+    <ui id="winconfig.negLimbo" type="boolean" class="prefer-off tag-win" data-help="Enable `Drop into limbo` option in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Drop into limbo</ui>
+    <section class="on-stash tag-win">
+    <ui id="winconfig.stashLimbo" type="boolean" data-help="Enable `Stash 'in_limbo' reqres` option in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Stash <code>in_limbo</code> reqres</ui>
+    </section>
+    <ui id="winconfig.bucket" type="string" class="tag-def tag-win" data-help="Set `Bucket` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item) to this value.">Bucket</ui>
+    <ui id="winconfig.snapshottable" type="boolean" class="prefer-on tag-win" data-help="Enable `Include in global snapshots` options in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Include in global snapshots</ui>
+    <ui id="winconfig.replayable" type="boolean" class="prefer-on tag-win" data-help="Enable `Include in global replays` options in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Include in global replays</ui>
+    <ui id="winconfig.settleDelay" type="number" class="c tag-win" data-help="Set `Settle in ...` option in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item) to this value.">Settle in {}s after <code>in_flight</code></ui>
+    <ui id="winconfig.settleRetries" type="number" class="c tag-win" data-help="Set `... retry up to ...` option in new tabs opened from this window via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item) to this value.">... retry up to {} times</ui>
+    </section>
+
+    <!-- thisWindowOptions -->
     </div>
     </section>
 
@@ -847,15 +959,6 @@ Specifically:
     </h3>
     <div class="idots3">
     <!-- thisTabOptions -->
-
-    <center class="tag-def tag-tab">
-      <input id="smartSwitchTabsBackward" type="button" data-shortcut="smartSwitchTabsBackward" value="N-" />
-      <input id="smartSwitchTabsForward" type="button" data-shortcut="smartSwitchTabsForward" value="N+" />
-      <input id="smartSwitchTabsLatest" type="button" data-shortcut="smartSwitchTabsLatest" value="N" />
-      <input id="highlightTabsBackward" type="button" data-shortcut="highlightTabsBackward" value="HL-" />
-      <input id="highlightTabsForward" type="button" data-shortcut="highlightTabsForward" value="HL+" />
-      <input id="highlightTabsLatest" type="button" data-shortcut="highlightTabsLatest" value="HL" />
-    </center>
 
     <div class="stats">
       <div id="div-tabstats.collected" class="tag-tab tag-cls" data-help="For this tab, the number of `finished` reqres that were taken for archival (and the sum total of all sizes of their dumps).">

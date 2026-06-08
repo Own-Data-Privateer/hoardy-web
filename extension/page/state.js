@@ -24,9 +24,10 @@
 "use strict";
 
 narrowSessionId = getMapURLParam(statePageURL, "session", document.location, toNumber, null, null);
-narrowTabId = getMapURLParam(statePageURL, "tab", document.location, toNumber, null, null);
+narrowWindowId = getMapURLParam(statePageURL, "window", document.location, toNumber, null, null);
+narrowTabId = narrowWindowId === null ? getMapURLParam(statePageURL, "tab", document.location, toNumber, null, null) : null;
 
-let defRRFilter = {sessionId: narrowSessionId, tabId: narrowTabId};
+let defRRFilter = {sessionId: narrowSessionId, windowId: narrowWindowId, tabId: narrowTabId};
 let rrfilters = {
     inFlight: mkReqresFilter(defRRFilter),
     problematic: mkReqresFilter(defRRFilter),
@@ -45,8 +46,14 @@ async function stateMain() {
 
     let config;
 
+    let titleParts = [];
+    if (narrowWindowId !== null)
+        titleParts.push(`Window #${narrowWindowId}`);
     if (narrowTabId !== null)
-        document.title = `Hoardy-Web: tab ${narrowTabId}${narrowSessionId === null || thisSessionId === narrowSessionId ? "" : " of " + narrowSessionId.toString()}: Internal State`;
+        titleParts.push(`Tab #${narrowTabId}`);
+    if (narrowSessionId !== null && thisSessionId !== narrowSessionId)
+        titleParts.push(`of Session #${narrowSessionId}`);
+    document.title += ": " + titleParts.join(" ");
 
     buttonToMessage("stopInFlight",         () => ["stopInFlight", rrfilters.inFlight]);
     buttonToMessage("forgetLog",            () => ["forgetLog", rrfilters.log]);

@@ -25,7 +25,7 @@
 
 let dbody = document.body;
 
-const tagNames = ["def", "glob", "tab", "cls", "sar", "bh", "ui", "all"];
+const tagNames = ["def", "glob", "win", "tab", "cls", "sar", "bh", "ui", "all"];
 
 function showTab(name) {
     //implySetConditionalClass(dbody, "more", "hidden", !condition);
@@ -238,10 +238,10 @@ async function popupMain() {
     // search function, which is very useful there.
 
     let reloadSelfButton = document.getElementById("reloadSelf");
-    buttonToAction("showState",    () => replaceWith(false, showState, null, null, "top"));
-    buttonToAction("showTabState", () => replaceWith(false, showState, narrowSessionId, narrowTabId, "top"));
+    buttonToAction("showState",    () => replaceWith(false, showState, null, null, null, "top"));
+    buttonToAction("showTabState", () => replaceWith(false, showState, narrowSessionId, null, narrowTabId, "top"));
     buttonToAction("showSaved",    () => replaceWith(false, showSaved, "top"));
-    buttonToAction("showBuggedOut",() => replaceWith(false, showState, null, null, "buggedOut"));
+    buttonToAction("showBuggedOut",() => replaceWith(false, showState, null, null, null, "buggedOut"));
     buttonToAction("resetStats", () => {
         if (!window.confirm("Really?"))
             return;
@@ -342,23 +342,41 @@ async function popupMain() {
         updateUI();
     });
 
-    async function updateConfig(nconfig) {
-        if (nconfig === undefined)
-            config = await browser.runtime.sendMessage(["getConfig"]);
-        else
-            config = nconfig;
+    async function updateCfg(cfg, prefix, get, set, ...args) {
+        if (cfg === undefined)
+            cfg = await browser.runtime.sendMessage([get, ...args]);
 
-        setUI(document, "config", config, (newconfig, path) => {
-            browser.runtime.sendMessage(["setConfig", newconfig]).catch(logError);
+        setUI(document, prefix, cfg, (newCfg, path) => {
+            browser.runtime.sendMessage([set, ...args, newCfg]).catch(logError);
         });
 
+        return cfg;
+    }
+
+    async function updateConfig(cfg) {
+        config = await updateCfg(cfg, "config", "getConfig", "setConfig");
         updateUI();
     }
 
-    async function updateStats(stats) {
+    function updateWindowConfig(cfg) {
+        return updateCfg(cfg, "winconfig", "getWindowConfig", "setWindowConfig", narrowWindowId);
+    }
+
+    function updateTabConfig(cfg) {
+        return updateCfg(cfg, "tabconfig", "getTabConfig", "setTabConfig", narrowTabId);
+    }
+
+    async function updateSt(stats, name, ...args) {
         if (stats === undefined)
-            stats = await browser.runtime.sendMessage(["getStats"]);
-        setUI(document, "stats", present(stats));
+            stats = await browser.runtime.sendMessage(args);
+
+        setUI(document, name, present(stats));
+
+        return stats;
+    }
+
+    async function updateStats(stats) {
+        stats = await updateSt(stats, "stats", "getStats");
 
         setConditionalClass(reloadSelfButton, "attention", stats.update_available);
         implySetConditionalClass(dbody, "on-reload",  "hidden", stats.reload_pending || !(hash || stats.update_available || config.debugRuntime));
@@ -366,20 +384,12 @@ async function popupMain() {
         implySetConditionalOff(dbody, "on-replay", !stats.can_replay);
     }
 
-    async function updateTabConfig(tabconfig) {
-        if (tabconfig === undefined)
-            tabconfig = await browser.runtime.sendMessage(["getTabConfig", narrowTabId]);
-
-        setUI(document, "tabconfig", tabconfig, (newtabconfig, path) => {
-            browser.runtime.sendMessage(["setTabConfig", narrowTabId, newtabconfig]).catch(logError);
-        });
+    function updateWindowStats(stats) {
+        return updateSt(stats, "winstats", "getWindowStats", narrowWindowId);
     }
 
-    async function updateTabStats(tabstats) {
-        if (tabstats === undefined)
-            tabstats = await browser.runtime.sendMessage(["getTabStats", narrowTabId]);
-
-        setUI(document, "tabstats", present(tabstats));
+    function updateTabStats(stats) {
+        return updateSt(stats, "tabstats", "getTabStats", narrowTabId);
     }
 
     async function processUpdate(update) {
@@ -390,6 +400,14 @@ async function popupMain() {
             return true;
         case "updateStats":
             await updateStats(arg1);
+            return true;
+        case "updateWindowConfig":
+            if (narrow && arg1 === narrowWindowId)
+                await updateWindowConfig(arg2);
+            return true;
+        case "updateWindowStats":
+            if (narrow && arg1 === narrowWindowId)
+                await updateWindowStats(arg2);
             return true;
         case "updateTabConfig":
             if (narrow && arg1 === narrowTabId)
@@ -417,6 +435,8 @@ async function popupMain() {
         await updateStats();
         if (isInvalid()) return;
         if (narrow) {
+            await updateWindowConfig();
+            await updateWindowStats();
             await updateTabConfig();
             await updateTabStats();
         }
@@ -434,7 +454,9 @@ async function popupMain() {
             // options/settings UI variant, hide non-relevant stuff
             for (let id of [
                 "showTag-def",
+                "showTag-win",
                 "showTag-tab",
+                "sec-this-window-options",
                 "sec-this-tab-options",
                 "sec-this-tab-children-options",
             ])

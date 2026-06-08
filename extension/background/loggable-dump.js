@@ -325,6 +325,12 @@ function updateLoggable(loggable) {
     if (loggable.sessionId !== sessionId)
         return;
 
+    let windowId = getWindowId(loggable.tabId);
+    if (loggable.windowId !== windowId) {
+        loggable.windowId = windowId;
+        loggable.dirty = true;
+    }
+
     let tabcfg = getTabConfig(loggable.tabId, loggable.fromExtension);
     if (loggable.bucket !== tabcfg.bucket) {
         loggable.bucket = tabcfg.bucket;

@@ -255,11 +255,11 @@ function handleTabCreated(tab) {
     if (useDebugger && tab.pendingUrl === "chrome://newtab/") {
         // work around Chrome's "New Tab" action creating a child tab by
         // ignoring openerTabId
-        let tabcfg = processNewTab(tabId, undefined);
+        let tabcfg = processNewTab(tabId, tab.windowId, undefined);
         // reset its URL, maybe
         chromiumResetRootTab(tabId, tabcfg);
     } else
-        processNewTab(tabId, tab.openerTabId);
+        processNewTab(tabId, tab.windowId, tab.openerTabId);
 }
 
 function handleTabRemoved(tabId) {
@@ -290,7 +290,7 @@ function handleTabActivated(tab) {
 
 function handleTabUpdated(tabId, changeInfo, tab) {
     if (config.debugRuntime)
-        console.log("BROWSER: tab updated", tabId, getTabURL(tab));
+        console.log("BROWSER: tab updated", tabId, tab.windowId, getTabURL(tab));
 
     // On Firefox, there's no `tab.pendingUrl`, so we skip updates until `tab.url` is set.
     //
@@ -301,7 +301,8 @@ function handleTabUpdated(tabId, changeInfo, tab) {
 
     // `handleTabUpdated` usually gets called by the browser repeatedly many times in succession, so
     // we `scheduleUpdateDisplay` here instead.
-    scheduleUpdateDisplay(false, tabId, false);
+    let statsChanged = processUpdateTab(tabId, tab.windowId);
+    scheduleUpdateDisplay(statsChanged, tabId, false);
 }
 
 let rpcCommands = {
@@ -311,16 +312,24 @@ let rpcCommands = {
     setConfig: (newConfig) => runThenScheduleEndgame(setConfig, newConfig),
     resetConfig: () => runThenScheduleEndgame(setConfig, configDefaults),
 
+    getWindowConfig,
+    setWindowConfig: (windowId, newConfig) => {
+        let oldConfig = getWindowConfig(windowId);
+        newConfig = updateFromRec(assignRec({}, oldConfig), newConfig);
+        setWindowConfig(windowId, newConfig, oldConfig);
+    },
+
     getTabConfig,
     setTabConfig: (tabId, newConfig) => {
         let oldConfig = getTabConfig(tabId);
-        newConfig = updateFromRec(prefillChildren(configDefaults.root), newConfig);
+        newConfig = updateFromRec(assignRec({}, oldConfig), newConfig);
         setTabConfig(tabId, undefined, newConfig, oldConfig);
     },
 
     getStats,
     resetStats,
 
+    getWindowStats,
     getTabStats,
 
     // NB: not wrapping these ones because they return `Promise`s
@@ -396,8 +405,8 @@ let shortcutCommands = {
     replayAll: () => rpcCommands.replay(null, null),
 
     forgetAllLog: () => runThenScheduleEndgame(syncForgetLog, {}),
-    showState: (tabId, activeTabId) => showState(null, null, "top", activeTabId),
-    showLog: (tabId, activeTabId) => showState(null, null, "tail", activeTabId, true, scrollEndIntoView),
+    showState: (tabId, activeTabId) => showState(null, null, null, "top", activeTabId),
+    showLog: (tabId, activeTabId) => showState(null, null, null, "tail", activeTabId, true, scrollEndIntoView),
 
     stopAllInFlight: () => rpcCommands.stopInFlight(null),
     unmarkAllProblematic: () => runThenScheduleEndgame(syncUnmarkProblematic, {}),
@@ -431,8 +440,8 @@ let shortcutCommands = {
     replayTabForward: (tabId) => rpcCommands.replay(tabId, true),
 
     forgetAllTabLog: (tabId) => runThenScheduleEndgame(syncForgetLog, {tabId}),
-    showTabState: (tabId, activeTabId) => showState(sessionId, tabId, "top", activeTabId),
-    showTabLog: (tabId, activeTabId) => showState(sessionId, tabId, "tail", activeTabId, true, scrollEndIntoView),
+    showTabState: (tabId, activeTabId) => showState(sessionId, null, tabId, "top", activeTabId),
+    showTabLog: (tabId, activeTabId) => showState(sessionId, null, tabId, "tail", activeTabId, true, scrollEndIntoView),
 
     stopAllTabInFlight: (tabId) => rpcCommands.stopInFlight({tabId}),
     unmarkAllTabProblematic: (tabId) => runThenScheduleEndgame(syncUnmarkProblematic, {tabId}),
@@ -567,38 +576,42 @@ function handleMenuAction(info, tab) {
     if (config.debugRuntime)
         console.log("BROWSER: MENU: request", info, "in tab", tab);
 
+    let tabId = tab.id;
+    let windowId = tab.windowId;
+
     let cmd = info.menuItemId;
+    let newWindow = cmd.endsWith("-window");
     let url = info.linkUrl;
-    let newWindow = cmd.endsWith("-window")
-        && (url.startsWith("http:") || url.startsWith("https:"));
 
     if (cmd.startsWith("replay-")) {
-        if (!checkReplay())
+        if (isBoringOrServerURL(url)) {
+            if (config.debugRuntime)
+                console.log("MAIN: spawn-cloning from tabId", tabId, "url", url);
+        } else if (!checkReplay()) {
             return;
-        url = latestReplayOf(url);
-    } else if (cmd.startsWith("open-not-")) {
-        negateConfigFor.add(tab.id);
-        if (useDebugger)
-            // work around Chromium bug
-            negateOpenerTabIds.push(tab.id);
-    }
+        } else {
+            url = latestReplayOf(url);
 
-    browser.tabs.create({
-        url,
-        openerTabId: tab.id,
-        windowId: tab.windowId,
-    }).then((tab) => {
-        if (config.debugRuntime)
-            console.log("BROWSER: MENU: spawned new tab", tab, "with url", url);
+            if (config.debugRuntime)
+                console.log("MAIN: spawn-replaying from tabId", tabId, "url", url, "->", newURL);
+        }
+    } else if (cmd.startsWith("open-not-"))
+        negateConfigFor.add(tabId);
 
-        if (!useDebugger && tab.url.startsWith("about:"))
-            // On Firefox, downloads spawned as new tabs become "about:blank"s and get closed.
-            // Spawning a new window in this case is counterproductive.
-            newWindow = false;
+    // See (openerIdsWorkaround).
+    openerIds.push([windowId, tabId]);
 
-        if (newWindow)
-            browser.windows.create({ tabId: tab.id }).catch(logError);
-    }, logError);
+    if (newWindow)
+        browser.windows.create({
+            url,
+            incognito: tab.incognito,
+        }).catch(logError);
+    else
+        browser.tabs.create({
+            url,
+            windowId,
+            openerTabId: tabId,
+        }).catch(logError);
 }
 
 function initMenus() {
@@ -750,6 +763,7 @@ async function main() {
     let oldSession = localData.session;
     let sessionBg;
     let sessionTabs = {};
+    let sessionWindows = {};
     if (oldSession !== undefined) {
         // to prevent it from being loaded again
         await browser.storage.local.remove("session").catch(noop);
@@ -758,21 +772,33 @@ async function main() {
         console.log(`MAIN: Loading old session ${oldSession.id}`);
         sessionBg = oldSession.bg;
         sessionTabs = oldSession.tabs || {};
+        sessionWindows = oldSession.windows || {};
         reqresLog = oldSession.log;
     }
 
     // Restore the state of background requests.
 
+    // add per-tab/per-source state to per-window state
+    function addToWindowState(windowId, state) {
+        let winstate = getWindowState(windowId);
+        for (let k of Object.keys(windowStateDefaults))
+            winstate[k] += state[k];
+    }
+
     if (sessionBg !== undefined) {
         // NB: (reDynamicState)
         let bgstate = updateFromRec(assignRec({}, tabStateDefaults), sessionBg, dynamicStateDefaults);
         tabState.set(-1, bgstate);
+        addToWindowState(WINDOW_ID_NONE, bgstate);
     }
 
     // Init configs and states of currently open tabs, possibly reusing old session data.
 
+    let doneWindows = new Set();
+
     let tabs = await browser.tabs.query({});
     for (let tab of tabs) {
+        let windowId = tab.windowId;
         let tabId = tab.id;
         let tabUrl = getTabURL(tab);
 
@@ -788,9 +814,26 @@ async function main() {
             tabcfg = updateFromRec(tabcfg, getFirstDefined(oldTab.cfg, oldTab.tabcfg));
             // NB: (reDynamicState)
             tabstate = updateFromRec(tabstate, oldTab.state, dynamicStateDefaults);
+
+            addToWindowState(windowId, tabstate);
+
+            if (windowId === WINDOW_ID_NONE || doneWindows.has(windowId))
+                continue;
+
+            // NB: referring back by `tabstate.windowId`, but writing to `windowId`
+            let oldWindow = sessionWindows[tabstate.windowId];
+            if (oldWindow === undefined)
+                continue;
+
+            let wincfg = updateFromRec(assignRec({}, config.root), oldWindow.cfg);
+            windowConfig.set(windowId, wincfg);
+
+            doneWindows.add(windowId);
         }
 
         setTabConfig(tabId, undefined, tabcfg, tabcfg, true);
+
+        tabstate.windowId = windowId; // reset
         tabState.set(tabId, tabstate);
 
         // on Chromium, reset their URLs, maybe
@@ -800,6 +843,9 @@ async function main() {
 
     // Reset their windowId's to match our current state and populate reqresProblematic.
     for (let loggable of reqresLog) {
+        // see also a similar line in `loadOneStashed`
+        loggable.windowId = getWindowId(loggable.tabId); // reset
+
         if (loggable.problematic) {
             let tabstate = getTabState(loggable.tabId, loggable.fromExtension);
             reqresProblematic.push([loggable, null]);

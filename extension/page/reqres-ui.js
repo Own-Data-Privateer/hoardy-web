@@ -29,6 +29,7 @@ let thisTabId;
 
 // this view should be narrowed to, to be filled in a derived page
 let narrowSessionId;
+let narrowWindowId;
 let narrowTabId;
 
 function switchToReqresTabId(reqresTabId) {
@@ -37,7 +38,7 @@ function switchToReqresTabId(reqresTabId) {
 
 function showStateOfReqresTabId(reqresSessionId, reqresTabId) {
     let openerTabId = thisTabId !== null ? thisTabId : reqresTabId;
-    showState(reqresSessionId, reqresTabId, "top", openerTabId);
+    showState(reqresSessionId, null, reqresTabId, "top", openerTabId);
 }
 
 // caches of `switchToReqresTabId` and `showStateOfReqresTabId` bound to a

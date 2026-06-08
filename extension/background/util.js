@@ -85,12 +85,13 @@ function showHelp(...args) {
     return showInternalPageAtNode(helpPageURL, ...args);
 }
 
-function showState(sessionId, tabId, ...args) {
-    let q = sessionId !== null || tabId !== null ? "?" : "";
-    let a = sessionId !== null && tabId !== null ? "&" : "";
-    let s = sessionId !== null ? `session=${sessionId}` : "";
-    let t = tabId !== null ? `tab=${tabId}` : "";
-    return showInternalPageAtNode(statePageURL + q + s + a + t, ...args);
+function showState(sessionId, windowId, tabId, ...args) {
+    let nargs = [["session", sessionId], ["window", windowId], ["tab", tabId]];
+    nargs = nargs.filter((a) => a[1] !== null);
+    let parts = nargs.map((a) => `${a[0]}=${a[1]}`);
+    let query = parts.join("&");
+    let q = query !== "" ? "?" : "";
+    return showInternalPageAtNode(statePageURL + q + query, ...args);
 }
 
 function showSaved(...args) {
@@ -355,6 +356,7 @@ function updateRearchiveVars(rearchive, path) {
 // filter expression
 let reqresFilterDefaults = {
     sessionId: null,
+    windowId: null,
     tabId: null,
     picked: null,
     was_problematic: null,
@@ -389,6 +391,8 @@ function compileReqresFilter(value) {
     // add predicates for the simple checks
     if (value.sessionId !== null)
         predicates.push((reqres) => reqres.sessionId === value.sessionId);
+    if (value.windowId !== null)
+        predicates.push((reqres) => reqres.windowId === value.windowId);
     if (value.tabId !== null)
         predicates.push((reqres) => reqres.tabId === value.tabId);
     if (value.picked !== null)

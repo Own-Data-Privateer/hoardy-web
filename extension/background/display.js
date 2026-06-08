@@ -239,32 +239,39 @@ function getStats() {
     };
 }
 
-// Produce a value similar to that of `getStats`, but for a single tab.
+// Produce a value similar to that of `getStats`, but for a window or a single tab.
 // Used in the UI.
-function getTabStats(tabId) {
-    let tabstate = tabState.get(tabId);
-    if (tabstate === undefined)
-        tabstate = tabStateDefaults;
+function getReqresStats(state, rrfilter) {
+    if (state === undefined)
+        state = tabStateDefaults;
 
-    let [in_flight, finishing_up, almost_done] = getInFlight3Num({tabId});
+    let [in_flight, finishing_up, almost_done] = getInFlight3Num(rrfilter);
 
     return {
         in_flight,
         finishing_up,
         almost_done,
-        problematic: tabstate.problematicTotal,
-        problematic_size: tabstate.problematicSize,
-        picked: tabstate.pickedTotal,
-        picked_size: tabstate.pickedSize,
-        dropped: tabstate.droppedTotal,
-        dropped_size: tabstate.droppedSize,
-        in_limbo: tabstate.inLimboTotal,
-        in_limbo_size: tabstate.inLimboSize,
-        collected: tabstate.collectedTotal,
-        collected_size: tabstate.collectedSize,
-        discarded: tabstate.discardedTotal,
-        discarded_size: tabstate.discardedSize,
+        problematic: state.problematicTotal,
+        problematic_size: state.problematicSize,
+        picked: state.pickedTotal,
+        picked_size: state.pickedSize,
+        dropped: state.droppedTotal,
+        dropped_size: state.droppedSize,
+        in_limbo: state.inLimboTotal,
+        in_limbo_size: state.inLimboSize,
+        collected: state.collectedTotal,
+        collected_size: state.collectedSize,
+        discarded: state.discardedTotal,
+        discarded_size: state.discardedSize,
     };
+}
+
+function getWindowStats(windowId) {
+    return getReqresStats(windowState.get(windowId), {windowId});
+}
+
+function getTabStats(tabId) {
+    return getReqresStats(tabState.get(tabId), {tabId});
 }
 
 // browserAction state
@@ -548,9 +555,11 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             if (tabChanged) {
                 broadcastToPopup("switchTab", windowId, stateTabId);
                 broadcastToPopup("updateTabConfig", stateTabId, tabcfg);
+            }
+            if (tabChanged || statsChanged) {
+                broadcastToPopup("updateWindowStats", windowId, () => getWindowStats(windowId));
                 broadcastToPopup("updateTabStats", stateTabId, tabstats);
-            } else if (statsChanged)
-                broadcastToPopup("updateTabStats", stateTabId, tabstats);
+            }
         }
 
         // compute toolbar button state

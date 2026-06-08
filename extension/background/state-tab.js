@@ -23,13 +23,44 @@
 
 "use strict";
 
+// per-window config
+let windowConfig = new Map();
+
+function getWindowConfig(windowId) {
+    if (windowId === WINDOW_ID_NONE)
+        return config.root;
+    return cacheSingleton(windowConfig, windowId, () => assignRec({}, config.root));
+}
+
+function setWindowConfig(windowId, wincfg, oldWincfg, dontBroadcast) {
+    fixSourceConfig(wincfg, config.root);
+    windowConfig.set(windowId, wincfg);
+
+    if (dontBroadcast)
+        return;
+
+    broadcastToPopup("updateWindowConfig", windowId, wincfg);
+
+    scheduleUpdateDisplay(false);
+}
+
+// per-window state
+let windowStateDefaults = assignRec({}, dynamicStateDefaults, commonStateDefaults);
+
+let windowState = new Map();
+
+function getWindowState(windowId) {
+    return cacheSingleton(windowState, windowId, () => assignRec({}, windowStateDefaults));
+}
+
 // per-tab config
 let tabConfig = new Map();
 
 // per-tab state
 let tabStateDefaults = assignRec({
+    windowId: WINDOW_ID_NONE,
     emitTimeStamp: 0,
-}, dynamicStateDefaults, commonStateDefaults);
+}, windowStateDefaults);
 
 // per-tab state
 let tabState = new Map();
@@ -43,7 +74,13 @@ let tabStateProxyFuncs = {
         let old = obj[name];
         obj[name] = value;
 
+        if (!windowStateDefaults.hasOwnProperty(name))
+            return true;
+
         let diff = value - old;
+
+        let winstate = getWindowState(obj.windowId);
+        winstate[name] += diff;
 
         state[name] += diff;
         wantSaveState = true;
@@ -59,6 +96,13 @@ function getTabState(tabId, fromExtension) {
     return new Proxy(getTabStateInternal(tabId), tabStateProxyFuncs);
 }
 
+function getWindowId(tabId) {
+    let tabstate = tabState.get(tabId);
+    if (tabstate === undefined)
+        return WINDOW_ID_NONE;
+    return tabstate.windowId;
+}
+
 function prefillChildren(data) {
     return assignRec({
         children: assignRec({}, data),
@@ -68,16 +112,15 @@ function prefillChildren(data) {
 function getTabConfig(tabId, fromExtension) {
     if (fromExtension)
         return prefillChildren(config.extension);
-    else if (tabId === TAB_ID_NONE)
+    if (tabId === TAB_ID_NONE)
         return prefillChildren(config.background);
-    else if (tabId === null)
-        return prefillChildren(config.root);
-    else
-        return cacheSingleton(tabConfig, tabId, () => prefillChildren(config.root));
+    console.assert(tabId !== undefined, "tabId !== undefined");
+    return cacheSingleton(tabConfig, tabId,
+                          (tabId) => prefillChildren(getWindowConfig(getWindowId(tabId))));
 }
 
-function fixTabConfig(url, cfg, oldCfg) {
-    fixSourceConfig(cfg, config.root);
+function fixTabConfig(tabId, url, cfg, oldCfg) {
+    fixSourceConfig(cfg, () => getWindowConfig(getWindowId(tabId)));
     fixSourceConfig(cfg.children, cfg);
 
     if (url !== undefined) {
@@ -107,7 +150,7 @@ function fixTabConfig(url, cfg, oldCfg) {
 }
 
 function setTabConfig(tabId, tabUrl, tabcfg, oldTabcfg, dontBroadcast) {
-    fixTabConfig(tabUrl, tabcfg, oldTabcfg);
+    fixTabConfig(tabId, tabUrl, tabcfg, oldTabcfg);
     tabConfig.set(tabId, tabcfg);
 
     if (dontBroadcast)
@@ -304,36 +347,99 @@ function cleanupAfterTab(tabId) {
 
 let openTabs = new Set();
 let negateConfigFor = new Set();
-let negateOpenerTabIds = [];
+let openerIds = [];
 
-function processNewTab(tabId, openerTabId) {
+function processNewTab(tabId, windowId, openerTabId) {
     openTabs.add(tabId);
 
-    if (useDebugger && openerTabId === undefined && negateOpenerTabIds.length > 0)
-        // On Chromium, `browser.tabs.create` with `openerTabId` specified
-        // does not pass it into `openerTabId` of `handleTabCreated` (it's a
-        // bug), so we have to work around it by using `negateOpenerTabIds`
-        // variable.
-        openerTabId = negateOpenerTabIds.shift();
+    let openerWindowId = windowId;
 
-    let openercfg = getTabConfig(openerTabId !== undefined ? openerTabId : null);
+    if (openerIds.length > 0)
+        // (openerIdsWorkaround)
+        //
+        // Work around the fact that `browser.windows.create` has no `openerTabId` argument.
+        //
+        // Also, on Chromium, `browser.tabs.create` with `openerTabId` specified does not pass it
+        // into `openerTabId` of `handleTabCreated` (it's a bug).
+        [openerWindowId, openerTabId] = openerIds.shift();
 
-    let base = openercfg.children;
-    if (openerTabId !== undefined && negateConfigFor.delete(openerTabId)) {
-        // Negate `base.collecting` when `openerTabId` is in `negateConfigFor`.
-        base = assignRec({}, base);
-        base.collecting = !base.collecting;
-    }
+    let wincfg;
 
-    let tabcfg = prefillChildren(base);
-    tabConfig.set(tabId, tabcfg);
+    if (openerWindowId !== windowId) {
+        // this is a new tab spawned into a new window, copy old window's config
+        wincfg = assignRec({}, getWindowConfig(openerWindowId));
+        setWindowConfig(windowId, wincfg, wincfg);
+    } else
+        wincfg = getWindowConfig(windowId);
 
     let tabstate = getTabStateInternal(tabId);
+    // force it, in case an async function created it via `getTabState`
+    tabstate.windowId = windowId;
     tabstate.emitTimeStamp = Date.now();
 
-    scheduleUpdateDisplay(false, tabId);
+    let oldTabcfg;
+    let tabcfg = oldTabcfg = prefillChildren(openerTabId !== undefined ? getTabConfig(openerTabId).children : wincfg);
+
+    if (openerTabId !== undefined && negateConfigFor.delete(openerTabId)) {
+        // Negate `tabcfg.collecting` when `openerTabId` is in `negateConfigFor`.
+        tabcfg = assignRec({}, tabcfg);
+        tabcfg.collecting = !tabcfg.collecting;
+    }
+
+    setTabConfig(tabId, undefined, tabcfg, oldTabcfg);
 
     return tabcfg;
+}
+
+function processUpdateTab(tabId, windowId) {
+    let tabstate = tabState.get(tabId);
+    if (tabstate === undefined)
+        return false;
+
+    let oldWindowId = tabstate.windowId;
+    if (oldWindowId === windowId)
+        return false;
+
+    // so, this tab was moved from one window to another
+
+    // if `windowId` is a completely new window, clone `oldWindowId`'s per-window config instead of
+    // using `config.root`
+    let wincfg = windowConfig.get(windowId);
+    if (wincfg === undefined) {
+        wincfg = assignRec({}, getWindowConfig(oldWindowId));
+        setWindowConfig(windowId, wincfg, wincfg);
+    }
+
+    // update its state
+    tabstate.windowId = windowId;
+
+    // substract its stats from the first and add them to the second
+    let oldWinstate = getWindowState(oldWindowId);
+    let winstate = getWindowState(windowId);
+
+    for (let k of Object.keys(windowStateDefaults)) {
+        let v = tabstate[k];
+        oldWinstate[k] -= v;
+        winstate[k] += v;
+    }
+
+    // apply this change to all the reqres
+    function rewrite(v) {
+        if (v.tabId === tabId)
+            v.windowId = windowId;
+    }
+    applyToReqres13(rewrite, true);
+
+    // reset everything
+    broadcastToState(tabId, "resetInFlight", () => getInFlight(null));
+    broadcastToState(tabId, "resetProblematic", getProblematic);
+    broadcastToState(tabId, "resetInLimbo", getInLimbo);
+    broadcastToState(tabId, "resetLog", reqresLog);
+    broadcastToState(tabId, "resetQueued", getQueued);
+    broadcastToState(tabId, "resetUnarchived", getUnarchived);
+    broadcastToState(tabId, "resetBuggedOut", getBuggedOut);
+
+    return true;
 }
 
 function processRemoveTab(tabId) {

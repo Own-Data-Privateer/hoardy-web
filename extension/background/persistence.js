@@ -839,6 +839,8 @@ function loadOneStashed(loggable) {
 
     let archivable = [loggable, null];
 
+    loggable.windowId = tabstate.windowId; // reset
+
     if (loggable.problematic) {
         reqresProblematic.push(archivable);
         tabstate.problematicTotal += 1;

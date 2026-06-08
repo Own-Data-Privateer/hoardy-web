@@ -383,8 +383,11 @@ function setServer(config) {
 
 function fixSourceConfig(cfg, defaults, noTab) {
     // if unset, reset to default
-    if (!cfg.bucket)
+    if (!cfg.bucket) {
+        if (typeof defaults === "function")
+            defaults = defaults();
         cfg.bucket = defaults.bucket;
+    }
 
     if (noTab)
         return;
