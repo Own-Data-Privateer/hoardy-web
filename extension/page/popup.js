@@ -25,7 +25,7 @@
 
 let dbody = document.body;
 
-const tagNames = ["def", "glob", "bg", "tab", "cls", "pr", "rt", "ui", "all"];
+const tagNames = ["def", "glob", "tab", "cls", "sar", "bh", "ui", "all"];
 
 function showTab(name) {
     //implySetConditionalClass(dbody, "more", "hidden", !condition);
@@ -39,7 +39,13 @@ function showTab(name) {
         for (let tn of tagNames)
             for (let node of document.getElementsByClassName(`tag-${tn}`))
                 node.classList.remove("hidden");
+
+        for (let node of document.getElementsByClassName("not-all"))
+            node.classList.add("hidden");
     } else {
+        for (let node of document.getElementsByClassName("not-all"))
+            node.classList.remove("hidden");
+
         for (let tn of tagNames)
             for (let node of document.getElementsByClassName(`tag-${tn}`))
                 node.classList.add("hidden");
@@ -355,7 +361,7 @@ async function popupMain() {
         setUI(document, "stats", present(stats));
 
         setConditionalClass(reloadSelfButton, "attention", stats.update_available);
-        implySetConditionalClass(dbody, "on-reload",  "hidden", !hash && !(stats.update_available || config.debugRuntime));
+        implySetConditionalClass(dbody, "on-reload",  "hidden", stats.reload_pending || !(hash || stats.update_available || config.debugRuntime));
         implySetConditionalClass(dbody, "on-pending", "hidden", !stats.reload_pending);
         implySetConditionalOff(dbody, "on-replay", !stats.can_replay);
     }
@@ -424,11 +430,15 @@ async function popupMain() {
 
     if (hash) {
         showTab("all");
-        document.getElementById("tags").style.display = "none";
         if (hash === "options") {
-            // options/settings UI variant
-            document.getElementById("div-this-tab-options").style.display = "none";
-            document.getElementById("div-this-tab-children-options").style.display = "none";
+            // options/settings UI variant, hide non-relevant stuff
+            for (let id of [
+                "showTag-def",
+                "showTag-tab",
+                "sec-this-tab-options",
+                "sec-this-tab-children-options",
+            ])
+                document.getElementById(id).style.display = "none";
             dbody.style.border = "none";
         }
     } else

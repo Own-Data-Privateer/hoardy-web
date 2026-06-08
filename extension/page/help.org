@@ -1,11 +1,12 @@
-#+MACRO: div2 [[./popup.html#div-$1][$2]]
-#+MACRO: stat2 [[./popup.html#div-stats.$1][$2]]
-#+MACRO: config2 [[./popup.html#div-config.$1][$2]]
-#+MACRO: tabconfig2 [[./popup.html#div-tabconfig.$1][$2]]
+#+MACRO: sec2 [[./popup.html#sec-$1][$2]]
+#+MACRO: el2 [[./popup.html#genui-$1][$2]]
 #+MACRO: button2 [[./popup.html#$1][$2]]
+#+MACRO: stat2 [[./popup.html#div-stats.$1][$2]]
+#+MACRO: config2 [[./popup.html#genui-config.$1][$2]]
+#+MACRO: tabconfig2 [[./popup.html#genui-tabconfig.$1][$2]]
 #+MACRO: stat ([[./popup.html#div-stats.$1][glob]])
 #+MACRO: stats ([[./popup.html#div-stats.$1][glob]], [[./popup.html#div-tabstats.$1][cur]])
-#+MACRO: perSource ([[./popup.html#div-config.$1][glob]], [[./popup.html#div-tabconfig.$1][cur]], [[./popup.html#div-tabconfig.children.$1][chld]], [[./popup.html#div-config.root.$1][root]], [[./popup.html#div-config.background.$1][bg]], [[./popup.html#div-config.extension.$1][ext]])
+#+MACRO: perSource ([[./popup.html#genui-config.root.$1][glob]], [[./popup.html#genui-tabconfig.$1][cur]], [[./popup.html#genui-tabconfig.children.$1][chld]], [[./popup.html#genui-config.root.$1][root]], [[./popup.html#genui-config.background.$1][bg]], [[./popup.html#genui-config.extension.$1][ext]])
 #+MACRO: logPage ([[./popup.html#showState][glob]], [[./popup.html#showTabState][cur]])
 #+MACRO: unmarkProblematic ([[./popup.html#unmarkAllProblematic][glob]], [[./popup.html#unmarkAllTabProblematic][cur]])
 #+MACRO: reportit [[https://github.com/Own-Data-Privateer/hoardy-web/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]]
@@ -282,7 +283,7 @@ A reqres can also be classified as =problematic=.
 This feature [[#problematic][shall be discussed in a much later section]] since the =problematic= flag is completely orthogonal to the current archiving-related discussion.
 *** Picked and Dropped reqres
 Each new =finished= reqres advances either to the =picked= or the =dropped= state.
-Which of those two states gets selected is decided based on reqres' [[#tracking][final networking state]], its [[#partial][partial, buggy, and incomplete flags]] discussed above, and the {{{div2(pick-options,=Pick reqres for archival when they finish= options)}}}:
+Which of those two states gets selected is decided based on reqres' [[#tracking][final networking state]], its [[#partial][partial, buggy, and incomplete flags]] discussed above, and the {{{sec2(pick-options,=Pick reqres for archival when they finish= options)}}}:
 
 - By default, all =complete= and =complete_fc= reqres get =picked=, regardless of their =HTTP= response status codes or any other errors reported by the browser.
 
@@ -296,11 +297,11 @@ Which of those two states gets selected is decided based on reqres' [[#tracking]
 
 - In contrast, picking of {{{config2(archiveCanceled,reqres in =canceled= state)}}}, {{{config2(archiveNoResponse,reqres in =no_response= state)}}}, and {{{config2(archiveIncompleteResponse,reqres with =incomplete response body= flag set)}}} is disabled by default because response-incomplete reqres are usually useless and can be easily fixed by reloading a page in question.
 *** Glossary
-- A /problematic reqres/ {{{stats(problematic)}}} is a /finished reqres/ that satisfies the conditions set by {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= settings)}}}, as [[#problematic][shall be discussed later]].
+- A /problematic reqres/ {{{stats(problematic)}}} is a /finished reqres/ that satisfies the conditions set by {{{sec2(problematic-options,=Mark reqres as 'problematic' when they finish= settings)}}}, as [[#problematic][shall be discussed later]].
 
-- A /picked reqres/ {{{stats(picked)}}} is a /finished reqres/ that satisfied the conditions controlled by {{{div2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
+- A /picked reqres/ {{{stats(picked)}}} is a /finished reqres/ that satisfied the conditions controlled by {{{sec2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
 
-- A /dropped reqres/ {{{stats(dropped)}}} is a /finished reqres/ that did *not* satisfy the conditions controlled by {{{div2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
+- A /dropped reqres/ {{{stats(dropped)}}} is a /finished reqres/ that did *not* satisfy the conditions controlled by {{{sec2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
 ** Step 3: Collection, Discarding, Logging, and Limbo
 :PROPERTIES:
 :CUSTOM_ID: main
@@ -338,7 +339,7 @@ The naive way to do it would be to load a page with {{{tabconfig2(collecting,cap
 Obviously, this is both annoying and will force you to fetch everything twice.
 
 Which is why =Hoardy-Web= implements /limbo mode/.
-With one of the limbo mode options enabled, =Hoardy-Web= will instead capture everything as normal, but then, instead of sending the newly captured reqres to =collected= or =discarded= states immediately, it will put them into =in_limbo= state where they would linger until you /collect/ or /discard/ them manually by pressing the appropriate buttons on the corresponding stats lines {{{stats(in_limbo)}}} or until {{{div2(closed-tab-options,=Closed tabs= options)}}} make a decision semi-automatically for you.
+With one of the limbo mode options enabled, =Hoardy-Web= will instead capture everything as normal, but then, instead of sending the newly captured reqres to =collected= or =discarded= states immediately, it will put them into =in_limbo= state where they would linger until you /collect/ or /discard/ them manually by pressing the appropriate buttons on the corresponding stats lines {{{stats(in_limbo)}}} or until {{{sec2(closed-tab-options,=Closed tabs= options)}}} make a decision semi-automatically for you.
 
 A =picked= reqres will be put into =in_limbo= when its corresponding {{{perSource(limbo,=Pick into limbo= setting)}}} is enabled.
 
@@ -353,7 +354,7 @@ If {{{config2(limboNotify,this option)}}} is enabled and there are more than {{{
 
 - An /in-limbo reqres/ {{{stats(in_limbo)}}} is a reqres that is being held =in_limbo= until you manually /collect/ or /discard/ it.
 
-- A /queued reqres/ ({{{stat2(queued,displayed)}}} on the {{{stat2(queued_failed,Queued/Failed)}}} line) is a =collected= reqres that is still =queued= for archival.
+- A /queued reqres/ (displayed on the {{{stat2(queued_failed,Queued/Failed)}}} line) is a =collected= reqres that is still =queued= for archival.
 ** (Optional) Step 3.5: Stashing
 :PROPERTIES:
 :CUSTOM_ID: stashing
@@ -369,9 +370,9 @@ This is why =Hoardy-Web= implements the optional =stashToLS?= states on the abov
 The =stashed= status is, essentially, a flag that says this reqres was temporarily backed up into browser's local storage.
 This process can be controlled using the following options:
 
-- When {{{config2(archive,=Archive 'collected' reqres= option)}}} is disabled but {{{config2(stash,=Stash 'collected' reqres into local storage= option)}}} is enabled, instead of archiving newly =queued= reqres, =Hoardy-Web= will /stash/ their =(loggable, dump)= tuples into browser's local storage.
+- When {{{config2(archive,=Archive 'collected' reqres= option)}}} is disabled but {{{config2(stash,=Stash reqres into local storage= option)}}} is enabled, instead of archiving newly =queued= reqres, =Hoardy-Web= will /stash/ their =(loggable, dump)= tuples into browser's local storage.
 
-- Similarly, when both {{{config2(stash,=Stash 'collected' reqres into local storage= option)}}} and one of the relevant per-source {{{perSource(stashLimbo)}}} settings is enabled, then all newly generated =in_limbo= reqres from that source will also get immediately stashed into browser's local storage.
+- Similarly, when both {{{config2(stash,=Stash reqres into local storage= option)}}} and one of the relevant per-source {{{perSource(stashLimbo)}}} settings is enabled, then all newly generated =in_limbo= reqres from that source will also get immediately stashed into browser's local storage.
 
 Moreover, the following section will discuss how =Hoardy-Web= will try stashing =unarchived= reqres into browser's local storage too.
 
@@ -385,11 +386,11 @@ Meaning that
 The above also implies that, technically, stashing is not a silver bullet against data loss.
 To try and make it such would mean unconditional immediate stashing of all captured data, which would waste a lot of disk IO on most =Hoardy-Web= configurations.
 
-When both {{{config2(stash,=Stash 'collected' reqres into local storage= option)}}} and {{{config2(archive,=Archive 'collected' reqres= option)}}} are disabled, then, after a new reqres gets =queued=, =Hoardy-Web= will generate a new notification complaining about it, unless {{{config2(archiveStuckNotify,that option)}}} is disabled too.
+When both {{{config2(stash,=Stash reqres into local storage= option)}}} and {{{config2(archive,=Archive 'collected' reqres= option)}}} are disabled, then, after a new reqres gets =queued=, =Hoardy-Web= will generate a new notification complaining about it, unless {{{config2(archiveStuckNotify,that option)}}} is disabled too.
 
 You can also forcefully stash all currently =queued=, =in_limbo=, and =unarchived= reqres by pressing {{{button2(stashAll,this button)}}}.
 It stashes everything immediately and unconditionally, ignoring all other stashing settings.
-When reloading the extension via the {{{div2(reloadSelf,=Reload= button)}}} or via {{{config2(autoReloadOnUpdates,=Auto-reload on updates= option)}}}, this action will be run automatically.
+When reloading the extension via the {{{button2(div-reloadSelf,=Reload= button)}}} or via {{{config2(autoReloadOnUpdates,=Auto-reload on updates= option)}}}, this action will be run automatically.
 
 If {{{config2(persistFailedNotify,this option)}}} is enabled and some reqres fail to stash, a new notification will be generated.
 *** Glossary
@@ -426,7 +427,7 @@ When {{{config2(archive,=Archive 'collected' reqres= toggle)}}} is enabled, =Hoa
 
   - move the reqres into the =unarchived= state,
 
-  - if {{{config2(stash,=Stash 'collected' reqres into local storage= option)}}} is enabled, it will try stashing the =(loggable, dump)= tuple into browser's local storage (which is denoted by =stashToLS?= states on the diagram above) and record but ignore any errors produced while doing that, and
+  - if {{{config2(stash,=Stash reqres into local storage= option)}}} is enabled, it will try stashing the =(loggable, dump)= tuple into browser's local storage (which is denoted by =stashToLS?= states on the diagram above) and record but ignore any errors produced while doing that, and
 
   - stop processing this reqres;
 
@@ -444,13 +445,13 @@ When {{{config2(archive,=Archive 'collected' reqres= toggle)}}} is enabled, =Hoa
 
 In the cases of stashing and archiving to local storage, the =dump='s get compressed if {{{config2(gzipLSDumps,this option)}}} is enabled.
 
-You can enable more than one {{{div2(archive-methods,archival method)}}} at the same time.
+You can enable more than one {{{sec2(archive-methods,archival method)}}} at the same time.
 For a given =loggable=, =Hoardy-Web= will remember and skip previously successful archival methods if the =loggable= ever returns to the archival pipeline.
 This can happen when one of the archival methods fails and =Hoardy-Web= auto-retries it, or you later ask =Hoardy-Web= to retry the archival manually with {{{button2(retryAllUnarchived,this)}}} or {{{button2(retryAllFailed,that)}}} buttons, or if you [[#re-archival][re-archive]] it again.
 
 Note the difference between /stashed/ and /saved/ reqres:
 
-- /stashed/ reqres are kept in memory until they get successfully archived by all configured {{{div2(archive-methods,archival methods)}}} (or until you manually discard them, in case they were stashed =in_limbo=);
+- /stashed/ reqres are kept in memory until they get successfully archived by all configured {{{sec2(archive-methods,archival methods)}}} (or until you manually discard them, in case they were stashed =in_limbo=);
 - /saved/ reqres get dumped into browser's local storage and, if that succeeds, discarded from memory (until you manually load them back from {{{button2(showSaved,there)}}}).
 *** Buckets (aka collections)
 :PROPERTIES:
@@ -479,9 +480,9 @@ So, for example, if you want to share a subset of your captures, you can
 - set {{{tabconfig2(bucket,this option)}}} in a tab to, say, "share",
 - clear your browser's cache,
 - then and only then navigate to a web page archives of which you plan to share,
-- thus separating out those reqres into separate =saveAs= =WRR bundle='s with "share" in their name and/or putting them into a separate archiving server directory named "share", depending on {{{div2(archive-methods,archival methods)}}}.
+- thus separating out those reqres into separate =saveAs= =WRR bundle='s with "share" in their name and/or putting them into a separate archiving server directory named "share", depending on {{{sec2(archive-methods,archival methods)}}}.
 *** Handling of failures
-As noted above, if any of the {{{div2(archive-methods,archival methods)}}} fail, the reqres in question will be moved into the =unarchived= state.
+As noted above, if any of the {{{sec2(archive-methods,archival methods)}}} fail, the reqres in question will be moved into the =unarchived= state.
 
 Submissions of reqres that are =unarchived= because of networking issues will be retried automatically every 60 seconds.
 Archivals of reqres rejected by the archiving server or those that failed to be saved to browser's local storage will not be retried automatically as those usually happen when there is no space left on the device you are archiving to.
@@ -492,7 +493,7 @@ You can also use them to nudge the archiving sub-process awake if something arch
 If {{{config2(persistFailedNotify,this option)}}} is enabled and a new reqres recently moved to the =unarchived= state, a new notification will be generated.
 If {{{config2(archiveDoneNotify,this option)}}} is enabled, a new notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
-- A /failed to archive reqres/ {{{stat(unarchived)}}} is a reqres that is currently in =unarchived= state, i.e., a reqres that failed to be archived by one of the enabled {{{div2(archive-methods,archival methods)}}}.
+- A /failed to archive reqres/ {{{stat(unarchived)}}} is a reqres that is currently in =unarchived= state, i.e., a reqres that failed to be archived by one of the enabled {{{sec2(archive-methods,archival methods)}}}.
   It is also a part of the sum of the "Failed" part of the {{{stat2(queued_failed,Queued/Failed)}}} line.
 
   You can retry archiving these by pressing {{{button2(retryAllUnarchived,this button)}}}.
@@ -514,7 +515,7 @@ This feature uses the same archiving pipeline as above with three major differen
 
 - Unlike archival, re-archival is not automatic.
 
-  You will have to manually press its {{{div2(rearchive-actions,popup UI action buttons)}}}, a similar button on the {{{button2(showSaved,=Saved in Local Storage= page)}}}, or [[#shortcuts][keyboard shortcuts]].
+  You will have to manually press its {{{sec2(rearchive-actions,popup UI action buttons)}}}, a similar button on the {{{button2(showSaved,=Saved in Local Storage= page)}}}, or [[#shortcuts][keyboard shortcuts]].
 
 - Re-archival pipeline uses a separate data structure for recording reqres that end up in the =unarchived= state.
   The =unarchived= reqres of re-archival pipeline do not get retried, becoming =forgotten= instead.
@@ -535,13 +536,13 @@ Re-archival can be most useful in following use cases:
 
 - You run =Hoardy-Web= under Tor Browser and you [[#tor-browser][want your browsing/capture and archival/replay completely isolated from each other]].
 *** Controlling what gets re-archived
-The simplest way to re-archive old data is to configure the desired {{{div2(rearchive-methods,re-archival methods)}}} and then press {{{button2(rearchiveAllSaved,this button)}}}.
+The simplest way to re-archive old data is to configure the desired {{{sec2(rearchive-methods,re-archival methods)}}} and then press {{{button2(rearchiveAllSaved,this button)}}}.
 This will simply re-archive everything stored in local storage unconditionally.
 
 Since archival and re-archival use the same archiving pipeline, similarly to =unarchived= reqres, re-archival also remembers if a given reqres was previously (re-)archived using the given archival method.
-Thus, enabling a {{{div2(rearchive-methods,re-archival method)}}} and then pressing {{{button2(rearchiveAdjunctSaved,this button)}}} will skip re-archival of reqres that were previously archived or re-archived using that same method.
+Thus, enabling a {{{sec2(rearchive-methods,re-archival method)}}} and then pressing {{{button2(rearchiveAdjunctSaved,this button)}}} will skip re-archival of reqres that were previously archived or re-archived using that same method.
 
-I.e., you can just configure the desired {{{div2(rearchive-methods,re-archival methods)}}} and then press {{{button2(rearchiveAdjunctSaved,that button)}}} from time to time, with each new press re-archiving a new batch.
+I.e., you can just configure the desired {{{sec2(rearchive-methods,re-archival methods)}}} and then press {{{button2(rearchiveAdjunctSaved,that button)}}} from time to time, with each new press re-archiving a new batch.
 
 If you want more control over what gets re-archived, you can also
 
@@ -553,34 +554,34 @@ In use cases
 - where, for safety, you archive both externally and into local storage at the same time, or
 - where, because of your [[#tor-browser][browser setup]], your archive into local storage and then periodically export your saved data via re-archival
 you can easily delete your previously successfully archived or re-archived reqres from your local storage by
-- pressing one {{{div2(rearchive-actions,re-archival action buttons)}}} while {{{div2(rearchive.andDelete,deletion)}}} is set,
+- pressing one {{{sec2(rearchive-actions,re-archival action buttons)}}} while {{{el2(rearchive.andDelete,deletion)}}} is set,
 - using a similar button and option on {{{button2(showSaved,=Saved in Local Storage= page)}}}, or
 - pressing the {{{button2(deleteRearchived,=Delete old= button)}}}.
 
 However, the first two options should be used with caution:
 
-- The behaviour of the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} with {{{div2(rearchive.andDelete,deletion)}}} enabled can be surprising if you sometimes use both available {{{div2(rearchive-methods,re-archival methods)}}} and sometimes only one of them.
+- The behaviour of the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} with {{{el2(rearchive.andDelete,deletion)}}} enabled can be surprising if you sometimes use both available {{{sec2(rearchive-methods,re-archival methods)}}} and sometimes only one of them.
 
-  For example, if you had both re-archival methods enabled and some reqres failed to be archived with one of them, but then, later, you disable that method and run {{{button2(rearchiveAdjunctSaved,=Re-archive new=)}}} with {{{div2(rearchive.andDelete,deletion)}}} enabled again, those previously failed to re-archive reqres will be deleted too.
+  For example, if you had both re-archival methods enabled and some reqres failed to be archived with one of them, but then, later, you disable that method and run {{{button2(rearchiveAdjunctSaved,=Re-archive new=)}}} with {{{el2(rearchive.andDelete,deletion)}}} enabled again, those previously failed to re-archive reqres will be deleted too.
 
   In other words, unlike with normal archival, re-archival failures don't get recorded anywhere.
 
-- Re-archiving by the means of {{{div2(rearchive-actions,re-archival action buttons)}}} (or their {{{button2(showSaved,=Saved in Local Storage= page)}}} equivalent) when both {{{config2(rearchiveExportAs,=Export via 'saveAs'=)}}} and {{{div2(rearchive.andDelete,deletion)}}} (or its {{{button2(showSaved,=Saved in Local Storage= page)}}} equivalent) are enabled is [[#unsafe-saveas][unsafe because of browser API limitations]].
+- Re-archiving by the means of {{{sec2(rearchive-actions,re-archival action buttons)}}} (or their {{{button2(showSaved,=Saved in Local Storage= page)}}} equivalent) when both {{{config2(rearchiveExportAs,=Export via 'saveAs'=)}}} and {{{el2(rearchive.andDelete,deletion)}}} (or its {{{button2(showSaved,=Saved in Local Storage= page)}}} equivalent) are enabled is [[#unsafe-saveas][unsafe because of browser API limitations]].
 
   The essence of the issue there is that if a new reqres gets captured and then saved into local storage via the normal {{{config2(archive,=Archive 'collected' reqres=)}}} machinery right at the moment you press the {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}} and the generated =WRR bundle= then [[#unsafe-saveas][silently fails to be saved to disk via =saveAs=]], then that sneaky reqres will still get deleted, and, thus, permanently lost.
 
   Thus, if you want to do this safely, you should:
 
-  - {{{div2(rearchive-actions,re-archive)}}} with {{{div2(rearchive.andDelete,deletion)}}} disabled;
+  - {{{sec2(rearchive-actions,re-archive)}}} with {{{el2(rearchive.andDelete,deletion)}}} disabled;
   - confirm that all generated fake-Downloads were actually successfully saved to disk;
-  - then immediately press the {{{button2(deleteRearchived,=Delete old= button)}}} without touching any {{{div2(rearchive-methods,re-archival method toggles)}}}.
+  - then immediately press the {{{button2(deleteRearchived,=Delete old= button)}}} without touching any {{{sec2(rearchive-methods,re-archival method toggles)}}}.
 
   Alternatively, you can also do this:
 
   - disable {{{config2(archive,=Archive 'collected' reqres= option)}}};
-  - {{{div2(rearchive-actions,re-archive)}}} with {{{div2(rearchive.andDelete,deletion)}}} disabled;
+  - {{{sec2(rearchive-actions,re-archive)}}} with {{{el2(rearchive.andDelete,deletion)}}} disabled;
   - confirm that all generated fake-Downloads were actually successfully saved to disk;
-  - enable {{{div2(rearchive.andDelete,deletion)}}} without changing any other options;
+  - enable {{{el2(rearchive.andDelete,deletion)}}} without changing any other options;
   - press {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}},
   - re-enable {{{config2(archive,archival)}}}.
 
@@ -589,13 +590,13 @@ However, the first two options should be used with caution:
 
   Or, alternatively, as a last step, you can open {{{button2(showSaved,=Saved in Local Storage= page)}}}, set =Exported via 'saveAs'= filter to =true= and then press =Delete= button there.
 
-In short, {{{div2(rearchive-actions,re-archival actions)}}} with {{{div2(rearchive.andDelete,deletion)}}} set should be used with lots of care.
-This is why the {{{div2(rearchive.andRewrite,rewrite)}}} and {{{div2(rearchive.andDelete,deletion)}}} options and their equivalents on {{{button2(showSaved,=Saved in Local Storage= page)}}} are ephemeral and will be reset the next time you reopen the popup or that page.
+In short, {{{sec2(rearchive-actions,re-archival actions)}}} with {{{el2(rearchive.andDelete,deletion)}}} set should be used with lots of care.
+This is why the {{{el2(rearchive.andRewrite,rewrite)}}} and {{{el2(rearchive.andDelete,deletion)}}} options and their equivalents on {{{button2(showSaved,=Saved in Local Storage= page)}}} are ephemeral and will be reset the next time you reopen the popup or that page.
 
-Additionally, note that you can press {{{div2(rearchive-actions,re-archive)}}} and {{{button2(deleteRearchived,deletion)}}} buttons one after the other immediately, their actions will get queued for execution properly and won't interfere with each other.
+Additionally, note that you can press {{{sec2(rearchive-actions,re-archive)}}} and {{{button2(deleteRearchived,deletion)}}} buttons one after the other immediately, their actions will get queued for execution properly and won't interfere with each other.
 Thus, if you are re-archiving via {{{config2(rearchiveSubmitHTTP,submission via =HTTP=)}}} it's safe to mash them one after the other, you don't need to sit there and wait for one action to finish before pressing the other button, since submission over =HTTP= reports errors properly.
 
-However, note that re-archival by {{{config2(rearchiveSubmitHTTP,submission via =HTTP=)}}} with {{{div2(rearchive.andDelete,deletion)}}} enabled is safe to use too.
+However, note that re-archival by {{{config2(rearchiveSubmitHTTP,submission via =HTTP=)}}} with {{{el2(rearchive.andDelete,deletion)}}} enabled is safe to use too.
 On-the-fly deletion is much more efficient compared to re-archival step followed by a {{{button2(deleteRearchived,separate deletion step)}}} because updated reqres' archival flags need not be written back into local storage.
 Thus, since {{{config2(rearchiveSubmitHTTP,submission via =HTTP=)}}} does report its errors properly, successfully re-archived reqres can be immediately and safely deleted from local storage in that case, which would save you a lot of time and disk writes if you are re-archiving a lot of stuff all at once.
 ** (Optional) Step 5: Replay
@@ -656,7 +657,7 @@ So, to provide an explicit indicator for such situations, =Hoardy-Web= keeps tra
 
 *In other words, the =problematic= flag is a UI indicator, it does not influence archival in any way.*
 
-What gets marked as =problematic= is controlled by {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= options)}}}.
+What gets marked as =problematic= is controlled by {{{sec2(problematic-options,=Mark reqres as 'problematic' when they finish= options)}}}.
 By default, =HTTP= requests that failed to get a response, those that were fetched with [[#partial][buggy metadata or have incomplete response bodies]], and those for which the browser reported /potentially problematic errors/ but then =Hoardy-Web= =picked= them anyway, will be marked as =problematic=.
 
 /Potentially problematic errors/ are errors like
@@ -690,7 +691,7 @@ Probably not.
 But to be absolutely pedantic in such a situation, you would actually need to carefully check that all of your old =problematic= reqres actually got re-fetched properly, just in case the browser decided to skip fetching of some of them, which could happen with modern =HTML= lazy-loading features, and only then stop caring about them.
 Obviously, actually doing this manually each time would be incredibly annoying.
 
-Which is why =Hoardy-Web= provides a {{{div2(unproblematic-options,bunch of configuration options)}}} that automatically unmark old =problematic= reqres in various situations.
+Which is why =Hoardy-Web= provides a {{{sec2(unproblematic-options,bunch of configuration options)}}} that automatically unmark old =problematic= reqres in various situations.
 By default, those options are set in a way that produces least annoying and least surprising workflows, but you might want to tweak them if you need that process to be stricter.
 
 In particular, note that the default value of {{{config2(autoUnmarkProblematicSimilarAcrossLimbo,Auto-unmark =problematic= reqres ... regardless of its =in_limbo= state)}}} option produces slightly imprecise results when combined with picking into limbo {{{perSource(limbo)}}}.
@@ -716,7 +717,7 @@ To do that you can:
 If you don't care about the =problematic= flag in a select tab and those notifications annoy you, you should disable {{{tabconfig2(problematicNotify,this per-source option)}}}.
 If such notification annoy you in general, you can disable the {{{config2(problematicNotify,global option)}}} instead.
 
-Note, however, that you probably shouldn't be disabling too many  {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= options)}}}.
+Note, however, that you probably shouldn't be disabling too many  {{{sec2(problematic-options,=Mark reqres as 'problematic' when they finish= options)}}}.
 This way, even with notifications disabled, you would still be able see a correct number of =problematic= reqres in extension's toolbar button's badge, popup {{{stats(problematic)}}}, and the logs {{{logPage}}}.
 ** Work offline mode
 :PROPERTIES:
@@ -761,7 +762,7 @@ Unlike the =File > Work Offline= option of Firefox, enabling any of these toggle
 
   though, note that those newly generated =canceled= reqres will be marked as =problematic= if {{{config2(markProblematicDroppedWithErrors,that option)}}} is enabled.
 
-Finally, there is also a {{{div2(special-tab-options,bunch of options)}}} that automatically enable work offline mode in tabs with various classes of URLs.
+Finally, there is also a {{{sec2(special-url-options,bunch of options)}}} that automatically enable work offline mode in tabs with various classes of URLs.
 By default, work offline mode is enabled for =file:= and replay URLs to stop any pages generated by =hoardy-web mirror= and =hoardy-web serve= to accessing the Internet.
 * Keyboard shortcuts
 :PROPERTIES:
@@ -848,7 +849,7 @@ There are several ways you can do this:
 
 When running =Hoardy-Web= under Tor Browser you'll probably want to configure it in such a way so that all of the machinery of =Hoardy-Web= is completely invisible to web pages running under your Tor Browser, to prevent fingerprinting.
 
-Thus, you can simply use =Hoardy-Web= extension configured to {{{config2(archiveSaveLS,=Save reqres into local storage=)}}}, which is the default, and then {{{config2(rearchiveExportAs,export your dumps manually)}}} at the end of a browsing session via {{{div2(rearchive-actions,re-archival actions)}}}, which would take a couple of clicks, as [[#re-archival][discussed above]].
+Thus, you can simply use =Hoardy-Web= extension configured to {{{config2(archiveSaveLS,=Save reqres into local storage=)}}}, which is the default, and then {{{config2(rearchiveExportAs,export your dumps manually)}}} at the end of a browsing session via {{{sec2(rearchive-actions,re-archival actions)}}}, which would take a couple of clicks, as [[#re-archival][discussed above]].
 
 Or, alternatively, you can switch to using {{{config2(archiveExportAs,=Export dumps via 'saveAs'=)}}} by default instead, disabling the other archiving methods.
 I expect this to work fine for 99.99% of the users 99.99% of the time, but, technically speaking, [[#unsafe-saveas][this is unsafe]].
@@ -941,8 +942,8 @@ So, while this setup is not super-secure if your Tor Browser allows web pages to
 
   - Disable =Always use private browsing mode= browser setting and restart the browser, thus allowing =Hoardy-Web= access to =IndexedDB= again.
   - Disable {{{config2(preferIndexedDB,=Prefer 'IndexedDB' API= setting)}}}.
-  - Disable all {{{div2(rearchive-methods,re-archival methods)}}}.
-  - Enable {{{div2(rearchive.andRewrite,rewrites)}}},
+  - Disable all {{{sec2(rearchive-methods,re-archival methods)}}}.
+  - Enable {{{el2(rearchive.andRewrite,rewrites)}}},
   - press {{{button2(rearchiveAdjunctSaved,=Re-archive new= button)}}},
   - and wait for re-archival to finish.
   - Now, you can re-enable the =Always use private browsing mode= browser setting and restart you browser again.
@@ -1023,9 +1024,9 @@ If you are reading this page outside of the extension's UI be sure to read the [
 
 - On Firefox, fetches that spawn new downloads will be marked as =problematic= by default, since Firefox's implementation of =webRequest.filterResponseData= API does not provide their contents to the extension and I have not figured out how to distinguish them from other fetches yet.
 ** Known issues that are consequences of issues of all supported browsers
-- When =Hoardy-Web= is reloaded without using the {{{div2(reloadSelf,=Reload= button)}}} or {{{config2(autoReloadOnUpdates,=Auto-reload on updates= option)}}}, e.g. when =Hoardy-Web= is reloaded by clicking the "Reload" button in browser's extension list, then all {{{div2(this-tab-config,per-tab settings)}}} of all tabs will be reset to the {{{div2(root-tab-options,values used by the newly spawned root tabs)}}}.
+- When =Hoardy-Web= is reloaded without using the {{{button2(div-reloadSelf,=Reload= button)}}} or {{{config2(autoReloadOnUpdates,=Auto-reload on updates= option)}}}, e.g. when =Hoardy-Web= is reloaded by clicking the "Reload" button in browser's extension list, then all {{{sec2(this-tab-config,per-tab settings)}}} of all tabs will be reset to the {{{sec2(root-tab-options,values used by the newly spawned root tabs)}}}.
 
-  This issue is not applicable in the case when the reload happens because the extension was updated, in that case the browser will notify =Hoardy-Web= about it and =Hoardy-Web= will handle it properly, see the help string of the {{{div2(reloadSelf,=Reload= button)}}} for more info.
+  This issue is not applicable in the case when the reload happens because the extension was updated, in that case the browser will notify =Hoardy-Web= about it and =Hoardy-Web= will handle it properly, see the help string of the {{{button2(div-reloadSelf,=Reload= button)}}} for more info.
 
   But in the case of =Reload= buttons, the browser does not ask the extension nicely, so all unsaved internal state will be lost.
 
@@ -1085,7 +1086,7 @@ If you are reading this page outside of the extension's UI be sure to read the [
 On Chromium-based browsers, there is no way to get =HTTP= response data without attaching Chromium's debugger to a tab from which a request originates from.
 This makes things a bit tricky, for instance:
 
-- With {{{config2(collecting,this)}}} and {{{config2(workaroundChromiumResetRootTab,this option)}}} enabled, new tabs will be reset to {{{config2(workaroundChromiumResetRootTabURL,this value)}}} (=about:blank= by default) because the default of =chrome://newtab/= does not allow attaching debugger to the tabs with =chrome:= URLs.
+- With {{{config2(root.collecting,this)}}} and {{{config2(workaroundChromiumResetRootTab,this option)}}} enabled, new tabs will be reset to {{{config2(workaroundChromiumResetRootTabURL,this value)}}} (=about:blank= by default) because the default of =chrome://newtab/= does not allow attaching debugger to the tabs with =chrome:= URLs.
 
 - @@html:<span id="chromium-quirk-reload">@@ Requests made before the debugger is attached will get canceled by =Hoardy-Web=.
   So, for instance, when you middle-click a link, Chromium will open a new tab, but =Hoardy-Web= will block the requests from there until the debugger gets attached and then automatically reload the tab after.
@@ -1093,7 +1094,7 @@ This makes things a bit tricky, for instance:
   The download will proceed as normal, though.
   @@html:</span>@@
 
-- @@html:<span id="chromium-bug-detach">@@ You will get an annoying notification bar constantly displayed in the browser while {{{config2(collecting,=Hoardy-Web= is enabled)}}}.
+- @@html:<span id="chromium-bug-detach">@@ You will get an annoying notification bar constantly displayed in the browser while {{{tabconfig2(collecting,=Hoardy-Web= is enabled)}}}.
   Closing that notification will detach the debugger.
   =Hoardy-Web= will reattach it immediately because it assumes you don't want to lose data and closing that notification on accident is, unfortunately, quite easy.
   @@html:</span>@@
@@ -1102,7 +1103,7 @@ This makes things a bit tricky, for instance:
 
   All alternatives to =Hoardy-Web= that work with Chromium suffer from the same issue.
 
-  If you disable {{{config2(collecting,this option)}}} the debuggers will get detached only after all requests finish.
+  If you disable {{{tabconfig2(collecting,this option)}}} the debuggers will get detached only after all requests finish.
   But even if there are no requests in-flight the notification will not disappear immediately.
   Chromium takes its time updating the UI after the debugger is detached.
 
@@ -1190,12 +1191,12 @@ This is by design, I expect a chunk of =Hoardy-Web= users to be paranoid enough 
 
 - =<all_urls>= permission is used so that =Hoardy-Web= could capture all URLs.
 - =tabs= permission is used for tracking per-tab state and stats, making =Hoardy-Web='s toolbar icon show per-tab state, {{{button2(snapshotAll,taking =DOM= snapshot of all tabs)}}}, switching to reqres-related tabs from the logs {{{logPage}}}, etc.
-- =webRequest=, =webRequestBlocking=, and (on Chromium) =debugger= permissions are used to track and capture =HTTP= requests and responses as well as to apply {{{div2(special-tab-options,=Tabs with special URLs= options)}}} and other URL-dependent settings when a tab navigates to a different URL.
+- =webRequest=, =webRequestBlocking=, and (on Chromium) =debugger= permissions are used to track and capture =HTTP= requests and responses as well as to apply {{{sec2(special-url-options,=Navigations to special URLs= options)}}} and other URL-dependent settings when a tab navigates to a different URL.
 - =webNavigation= permission is only used for internal logging at the moment.
 - =storage= permission is used to save extension config and stats.
-- =unlimitedStorage= permission is used for {{{div2(persistence-options,stashing and archival of captured data to browser's local storage)}}}.
+- =unlimitedStorage= permission is used for {{{sec2(stash-options,stashing)}}} and {{{sec2(archive-options,archival)}}} of captured data to browser's local storage.
 - =menus= (=contextMenus= on Chromium) permission is used to add [[#context-menu][context menu actions]].
-- =notifications= permission is used to {{{div2(notification-options,send notifications)}}}, which is mostly used for reporting various issues.
+- =notifications= permission is used to {{{sec2(notification-options,send notifications)}}}, which is mostly used for reporting various issues.
 ** Capture
 *** Can I use =Hoardy-Web= to capture web pages while my browser runs with =JavaScript= disabled?
 Yes.
@@ -1246,7 +1247,7 @@ All images will start being loaded eagerly after that.
 Yes. This is why {{{tabconfig2(limbo,=Pick into limbo= setting)}}} exists.
 See [[#limbo][above]] for more info.
 
-In combination with {{{div2(closed-tab-options,=Closed tabs= options)}}} you can implement any of the following workflows:
+In combination with {{{sec2(closed-tab-options,=Closed tabs= options)}}} you can implement any of the following workflows:
 
 - archive everything by default, but allow to exclude some things by manually discarding them from limbo;
 - only archive things that are explicitly manually collected, discard everything else by default.

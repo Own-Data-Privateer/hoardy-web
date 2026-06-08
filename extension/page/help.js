@@ -121,7 +121,7 @@ async function updatePage(initial) {
     let shortcuts = await getShortcuts(firefoxCommands);
     for (let [name, shortcut] of Object.entries(shortcuts)) {
         let pointer = name.startsWith("toggleTabConfig") ?
-            mapShortcutName((name, children) => "div-tabconfig." + (children ? "children." : "") + name, name) :
+            mapShortcutName((name, children) => "genui-tabconfig." + (children ? "children." : "") + name, name) :
             name;
 
         let desc = shortcut.description;

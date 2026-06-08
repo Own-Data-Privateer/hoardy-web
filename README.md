@@ -683,7 +683,7 @@ Or, alternatively, you can switch to `Export dumps via 'saveAs'` mode by default
   - disable capture by default and only enable it in tabs you never login in, or
 
   - (which, in author's humble opinion, is both most convenient and sufficiently paranoid)
-    enable "limbo" mode by default, disable `Stash 'collected' reqres into local storage`,
+    enable "limbo" mode by default, disable `Stash reqres into local storage`,
     and then train yourself to perform logins in separate tabs (which is rather simple in this case: simply middle-click all "Login" links), the collected data of which you then discard.
 
   This way, no login credentials will ever get accidentally saved by `Hoardy-Web`.

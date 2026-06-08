@@ -268,7 +268,7 @@ function setUIInternal(node, prefix, value, update, resetAcc) {
     if (el === null)
         return;
 
-    let div = node.getElementById("div-" + prefix);
+    let div = node.getElementById("genui-" + prefix);
     if (div !== null) {
         if ((value === null || typ === "boolean") && div.classList.contains("booleanOrNull"))
             typ = "booleanOrNull";
@@ -565,7 +565,7 @@ function makeUI(node) {
     let defvalue = node.getAttribute("data-default");
 
     let div = document.createElement("div");
-    div.id = "div-" + id;
+    div.id = "genui-" + id;
     // copy other attributes
     for (let attr of node.attributes) {
         let name = attr.name;
