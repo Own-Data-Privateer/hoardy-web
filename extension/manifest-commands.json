@@ -53,7 +53,16 @@
         "description": "Window: Show State : Open the `Internal State` page narrowed to the currently active window."
     },
     "showWindowLog": {
-        "description": "Window: Show Log : Open the `Internal State` page narrowed to the currently active window, then scroll it to the end of the log of recently collected and discarded reqres."
+        "description": "Window: Show Log : Open the `Internal State` page narrowed to the currently active window, then scroll it to the end of the log of recently `collected` and `discarded` reqres."
+    },
+    "collectWindowInLimbo": {
+        "description": "Window: Collect In Limbo : Collect all reqres in `in_limbo` state associated with the currently active window."
+    },
+    "discardWindowInLimbo": {
+        "description": "Window: Discard In Limbo : Discard all reqres in `in_limbo` state associated with the currently active window."
+    },
+    "unmarkWindowProblematic": {
+        "description": "Window: Unmark Problematic : Unmark all `problematic` reqres associated with the currently active window."
     },
     "smartSwitchTabsBackward": {
         "firefox": {

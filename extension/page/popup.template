@@ -880,6 +880,8 @@ Specifically:
       <div id="div-winstats.in_limbo" class="tag-def tag-win" data-help="For tabs of this window, the number of `finished` reqres that are in `in_limbo` state (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
+          <input id="collectWindowInLimbo" type="button" data-shortcut="collectWindowInLimbo" value="Collect" />
+          <input id="discardWindowInLimbo" type="button" data-shortcut="discardWindowInLimbo" value="Discard" />
         </span>
         <span>
           <span id="winstats.in_limbo">0</span>
@@ -907,6 +909,7 @@ Specifically:
       <div id="div-winstats.problematic" class="tag-def tag-win tag-cls" data-help="For tabs of this window, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
         <span>Problematic</span>
         <span>
+          <input id="unmarkWindowProblematic" type="button" data-shortcut="unmarkWindowProblematic" value="Unmark" />
         </span>
         <span>
           <span id="winstats.problematic">0</span>
@@ -916,6 +919,7 @@ Specifically:
       <div id="div-winstats.in_flight" class="tag-def tag-win" data-help="For tabs of this window, the number of in-flight reqres that have not `finished` yet. See the `Help` page for more info.">
         <span>In flight</span>
         <span>
+          <input id="stopWindowInFlight" type="button" data-help="For reqres the tabs of this window, stop tracking progress of all in-flight requests and either collect them for archival or fail them, depending on completion and `Pick reqres for archival when they finish` options." value="Stop" />
         </span>
         <span>
           <span id="winstats.in_flight">0</span>

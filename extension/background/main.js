@@ -438,6 +438,11 @@ let shortcutCommands = {
         smartSwitchTabs(true, false, false);
     },
 
+    stopWindowInFlight: (tabId) => rpcCommands.stopInFlight({windowId: getWindowId(tabId)}),
+    unmarkWindowProblematic: (tabId) => runThenScheduleEndgame(syncUnmarkProblematic, {windowId: getWindowId(tabId)}),
+    collectWindowInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, true, {windowId: getWindowId(tabId)}),
+    discardWindowInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, false, {windowId: getWindowId(tabId)}),
+
     // per-Tab
     snapshotTab: rpcCommands.snapshot,
     // TODO rename -> *Backward

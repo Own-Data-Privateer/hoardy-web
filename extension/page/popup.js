@@ -153,6 +153,11 @@ async function popupMain() {
         highlightTabsForward: "❇⏭",
         highlightTabsLatest: "❇",
 
+        collectWindowInLimbo: "✔",
+        discardWindowInLimbo: "✖",
+        unmarkWindowProblematic: "🧹",
+        stopWindowInFlight: "⏹",
+
         // per-Tab
         snapshotTab: "📸",
         replayTabBack: "⏮",
@@ -306,6 +311,11 @@ async function popupMain() {
         "highlightTabsBackward",
         "highlightTabsForward",
         "highlightTabsLatest",
+
+        "collectWindowInLimbo",
+        "discardWindowInLimbo",
+        "unmarkWindowProblematic",
+        "stopWindowInFlight",
 
         // per-Tab
         "snapshotTab",
