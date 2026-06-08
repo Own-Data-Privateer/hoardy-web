@@ -840,6 +840,8 @@ Specifically:
     <h2 class="tag-def tag-win tag-cls">
       + This window
       <span class="right tag-def tag-win">
+        <input id="snapshotWindow" type="button" data-shortcut="snapshotWindow" value="Snapshot" />
+        <input id="replayWindow" type="button" class="on-replay" data-shortcut="replayWindow" value="Replay" />
       </span>
     </h2>
     <div class="idots2">

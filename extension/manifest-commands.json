@@ -43,6 +43,12 @@
         },
         "description": "Browser: Unmark Problematic : Unmark all `problematic` reqres."
     },
+    "snapshotWindow": {
+        "description": "Window: Snapshot : Take `DOM` snapshots of all tabs of the currently active window."
+    },
+    "replayWindow": {
+        "description": "Window: Replay : Re-navigate all tabs of the currently active window to their replays. If the archiving server doesn't support replays, do nothing."
+    },
     "smartSwitchTabsBackward": {
         "firefox": {
             "default": "Alt+J"

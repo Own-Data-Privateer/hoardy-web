@@ -73,6 +73,36 @@ function mkIcons(what) {
     };
 }
 
+async function getTabs(query) {
+    let tabs;
+    let specific = false;
+
+    if (query instanceof Array && query.length === 1)
+        query = query[0];
+
+    if (query === null) {
+        tabs = await browser.tabs.query({});
+    } else if (typeof query === "number") {
+        let res = await browser.tabs.get(query);
+        tabs = [ res ];
+        specific = true;
+    } else if (query instanceof Array) {
+        let set = new Set(query);
+        let res = await browser.tabs.query({});
+        tabs = res.filter((tab) => set.has(tab.id));
+        specific = true;
+    } else if (query.windowId !== undefined) {
+        let windowId = query.windowId;
+        if (windowId === true)
+            tabs = await browser.tabs.query({currentWindow: true});
+        else
+            tabs = await browser.tabs.query({windowId});
+    } else
+        throw new Error("bad query");
+
+    return [tabs, specific];
+}
+
 function getStateTabIdOrTabId(tab) {
     return getMapURLParam(statePageURL, "tab", getTabURL(tab), toNumber, tab.id, tab.id);
 }

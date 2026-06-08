@@ -140,6 +140,10 @@ async function popupMain() {
         unmarkAllProblematic: "🧹",
         stopAllInFlight: "⏹",
 
+        // per-Window
+        snapshotWindow: "📸",
+        replayWindow: "⏏",
+
         smartSwitchTabsBackward: "⏮🎠",
         smartSwitchTabsForward: "🎠⏭",
         smartSwitchTabsLatest: "🎠",
@@ -287,6 +291,10 @@ async function popupMain() {
         "discardAllInLimbo",
         "unmarkAllProblematic",
         "stopAllInFlight",
+
+        // per-Window
+        "snapshotWindow",
+        "replayWindow",
 
         "smartSwitchTabsBackward",
         "smartSwitchTabsForward",

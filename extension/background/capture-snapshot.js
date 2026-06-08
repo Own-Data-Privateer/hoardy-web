@@ -121,22 +121,19 @@ async function snapshotOne(tabId, url) {
     return updatedTabId;
 }
 
-async function snapshot(tabIdOrNull) {
-    let tabs;
-    if (tabIdOrNull === null)
-        tabs = await browser.tabs.query({});
-    else {
-        let tab = await browser.tabs.get(tabIdOrNull);
-        tabs = [ tab ];
-    }
+async function snapshot(query) {
+    let [tabs, specific] = await getTabs(query);
     let updatedTabId;
 
     for (let tab of tabs) {
         let tabId = tab.id;
         let tabcfg = getTabConfig(tabId);
         let url = getTabURL(tab);
-        if (tabIdOrNull === null && !tabcfg.snapshottable
-            || !config.snapshotAny && isBoringOrServerURL(url)) {
+
+        if (
+            !specific && !tabcfg.snapshottable ||
+            !config.snapshotAny && isBoringOrServerURL(url)
+        ) {
             if (config.debugRuntime)
                 console.log("NOT DOM-snapshoting tab", tabId, url);
             continue;

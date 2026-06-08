@@ -178,25 +178,22 @@ function replayOne(tabId, url) {
     // return undefined;
 }
 
-async function replay(tabIdOrNull, direction) {
+async function replay(query, direction) {
     if (!checkReplay())
         return;
 
-    let tabs;
-    if (tabIdOrNull === null)
-        tabs = await browser.tabs.query({});
-    else {
-        let tab = await browser.tabs.get(tabIdOrNull);
-        tabs = [ tab ];
-    }
+    let [tabs, specific] = await getTabs(query);
     let updatedTabId;
 
     for (let tab of tabs) {
         let tabId = tab.id;
         let tabcfg = getTabConfig(tabId);
         let url = getTabURL(tab);
-        if (tabIdOrNull === null && !tabcfg.replayable
-            || isBoringOrServerURL(url)) {
+
+        if (
+            !specific && !tabcfg.replayable ||
+            isBoringOrServerURL(url)
+        ) {
             if (config.debugRuntime)
                 console.log("MAIN: NOT replaying tab", tabId, url);
             continue;
@@ -412,6 +409,10 @@ let shortcutCommands = {
     unmarkAllProblematic: () => runThenScheduleEndgame(syncUnmarkProblematic, {}),
     collectAllInLimbo: () => runThenScheduleEndgame(syncPopInLimbo, true, {}),
     discardAllInLimbo: () => runThenScheduleEndgame(syncPopInLimbo, false, {}),
+
+    // per-Window
+    snapshotWindow: (tabId) => rpcCommands.snapshot({windowId: getWindowId(tabId)}),
+    replayWindow: (tabId) => rpcCommands.replay({windowId: getWindowId(tabId)}, false),
 
     // NB: wrapping these because they return `Promise`s
     smartSwitchTabsBackward: () => {
