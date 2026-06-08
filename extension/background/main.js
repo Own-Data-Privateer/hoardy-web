@@ -414,6 +414,10 @@ let shortcutCommands = {
     snapshotWindow: (tabId) => rpcCommands.snapshot({windowId: getWindowId(tabId)}),
     replayWindow: (tabId) => rpcCommands.replay({windowId: getWindowId(tabId)}, false),
 
+    forgetWindowLog: (tabId) => runThenScheduleEndgame(syncForgetLog, {windowId: getWindowId(tabId)}),
+    showWindowState: (tabId, activeTabId) => showState(sessionId, getWindowId(tabId), null, "top", activeTabId),
+    showWindowLog: (tabId, activeTabId) => showState(sessionId, getWindowId(tabId), null, "tail", activeTabId, true, scrollEndIntoView),
+
     // NB: wrapping these because they return `Promise`s
     smartSwitchTabsBackward: () => {
         smartSwitchTabs(false, false, true);

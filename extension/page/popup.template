@@ -842,6 +842,8 @@ Specifically:
       <span class="right tag-def tag-win">
         <input id="snapshotWindow" type="button" data-shortcut="snapshotWindow" value="Snapshot" />
         <input id="replayWindow" type="button" class="on-replay" data-shortcut="replayWindow" value="Replay" />
+        <input id="forgetWindowLog" type="button" data-help="For reqres of the tabs of this window, forget recent history." value="Forget" />
+        <input id="showWindowState" type="button" data-shortcut="showWindowState" value="State" />
       </span>
     </h2>
     <div class="idots2">

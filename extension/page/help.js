@@ -109,7 +109,12 @@ function updateLinks(node) {
 }
 
 // no corresponding popup UI elements
-let noPopup = new Set(["_execute_browser_action", "showLog", "showTabLog"]);
+let noPopup = new Set([
+    "_execute_browser_action",
+    "showLog",
+    "showWindowLog",
+    "showTabLog",
+]);
 
 // only set on Chromium
 let firefoxCommands;

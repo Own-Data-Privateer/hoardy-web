@@ -143,6 +143,8 @@ async function popupMain() {
         // per-Window
         snapshotWindow: "📸",
         replayWindow: "⏏",
+        forgetWindowLog: "🧹",
+        showWindowState: "📜",
 
         smartSwitchTabsBackward: "⏮🎠",
         smartSwitchTabsForward: "🎠⏭",
@@ -243,6 +245,7 @@ async function popupMain() {
 
     let reloadSelfButton = document.getElementById("reloadSelf");
     buttonToAction("showState",    () => replaceWith(false, showState, null, null, null, "top"));
+    buttonToAction("showWindowState", () => replaceWith(false, showState, narrowSessionId, narrowWindowId, null, "top"));
     buttonToAction("showTabState", () => replaceWith(false, showState, narrowSessionId, null, narrowTabId, "top"));
     buttonToAction("showSaved",    () => replaceWith(false, showSaved, "top"));
     buttonToAction("showBuggedOut",() => replaceWith(false, showState, null, null, null, "buggedOut"));
@@ -295,6 +298,7 @@ async function popupMain() {
         // per-Window
         "snapshotWindow",
         "replayWindow",
+        "forgetWindowLog",
 
         "smartSwitchTabsBackward",
         "smartSwitchTabsForward",

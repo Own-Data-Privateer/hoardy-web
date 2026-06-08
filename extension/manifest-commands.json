@@ -49,6 +49,12 @@
     "replayWindow": {
         "description": "Window: Replay : Re-navigate all tabs of the currently active window to their replays. If the archiving server doesn't support replays, do nothing."
     },
+    "showWindowState": {
+        "description": "Window: Show State : Open the `Internal State` page narrowed to the currently active window."
+    },
+    "showWindowLog": {
+        "description": "Window: Show Log : Open the `Internal State` page narrowed to the currently active window, then scroll it to the end of the log of recently collected and discarded reqres."
+    },
     "smartSwitchTabsBackward": {
         "firefox": {
             "default": "Alt+J"
