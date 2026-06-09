@@ -6,6 +6,55 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [tool-v0.24.0] - 2026-06-09: Incremental improvements
+
+### Changed
+
+- `*`:
+
+  - Updated for `kisstdlib-v0.0.11`.
+
+  - Switched to using `kisstdlib`'s `abbrev` and `quoter` machinery for `abbrev*` expressions and URL quoting, making things cleaner and improving performance a bit.
+
+- `mirror`:
+
+  - Switched to using and printing relative paths.
+
+    The old behaviour can be produced by giving absolute paths as `--to` and inputs.
+
+- Build:
+
+  - Improved the build process a bit.
+
+  - Improved the tests.
+
+- Documentation:
+
+  - Improved documentation and `--help`.
+
+### Fixed
+
+- `serve`:
+
+  - Fixed one of the error messages failing to print relevant paths properly.
+
+- `*`:
+
+  - Fixed some typos.
+
+- `pyproject.toml`:
+
+  - Added a restriction for `cbor2` module versions to resolve [#21](https://github.com/Own-Data-Privateer/hoardy-web/issues/21).
+    Thanks to @HexagonWin on GitHub for reporting it!
+
+## [simple_server-v1.9.1] - 2026-06-09: Distribution bug fix
+
+### Fixed
+
+- `pyproject.toml`:
+
+  - Added a restriction for `cbor2` module versions to resolve [#21](https://github.com/Own-Data-Privateer/hoardy-web/issues/21).
+
 ## [extension-v1.25.0] - 2026-05-30: Documentation-related improvements, bug fixes
 
 ### Changed
@@ -3195,6 +3244,8 @@ All planned features are complete now.
 
   - Initial public release.
 
+[tool-v0.24.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.23.0...tool-v0.24.0
+[simple_server-v1.9.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.9.0...simple_server-v1.9.1
 [extension-v1.25.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.24.1...extension-v1.25.0
 [extension-v1.24.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.24.0...extension-v1.24.1
 [extension-v1.24.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.23.0...extension-v1.24.0
