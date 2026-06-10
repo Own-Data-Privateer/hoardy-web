@@ -119,7 +119,7 @@ function syncUnmarkProblematic(...args) {
     runSynchronously("unmarkProblematic", unmarkProblematic, ...args);
 }
 
-function unmarkProblematicSimilarTo(loggable, newlyUnproblematic, dontBroadcast) {
+function unmarkProblematicSimilarTo(loggable, allowInLimbo, newlyUnproblematic, dontBroadcast) {
     // TODO: more methods
     if (!config.autoUnmarkProblematicSimilar || loggable.method !== "GET")
         return 0;
@@ -129,9 +129,11 @@ function unmarkProblematicSimilarTo(loggable, newlyUnproblematic, dontBroadcast)
         tabId: config.autoUnmarkProblematicSimilarAcrossTabs ? null : loggable.tabId,
         method: loggable.method,
         url: loggable.url,
-        // if `loggable` is `in_limbo`, then it should only evict other reqres `in_limbo` since this
-        // `loggable` can still be discarded later
-        in_limbo: (config.autoUnmarkProblematicSimilarAcrossLimbo || !loggable.in_limbo) ? null : true,
+        in_limbo: allowInLimbo ?
+            // if a `loggable` is `in_limbo`, then it should only evict other reqres `in_limbo` since
+            // this `loggable` can still be discarded later
+            (loggable.in_limbo && !config.autoUnmarkProblematicSimilarAcrossLimbo ? true : null) :
+            false,
     }, newlyUnproblematic, dontBroadcast);
 }
 
@@ -179,14 +181,18 @@ function popInLimbo(collect, rrfilter) {
             minusSize += dumpSize;
 
             let info = getOriginState(loggable.tabId, loggable.fromExtension);
+
+            if (collect)
+                unmarkProblematicSimilarTo(loggable, false, newlyUnproblematic, true);
+
             loggable.in_limbo = false;
             loggable.dirty = true;
             if (loggable.sessionId === sessionId) {
                 info.inLimboTotal -= 1;
                 info.inLimboSize -= dumpSize;
             }
+
             processNonLimbo(archivable, collect, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
-            unmarkProblematicSimilarTo(loggable, newlyUnproblematic, true);
         } catch (err) {
             logHandledError(err);
             markAsBuggedOut(err, archivable);
@@ -669,6 +675,8 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
     let archivable = [loggable, dump];
 
     if (picked) {
+        unmarkProblematicSimilarTo(loggable, true, newlyUnproblematic, true);
+
         globals.pickedTotal += 1;
         info.pickedTotal += 1;
     } else {
@@ -687,8 +695,6 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
         gotNewLimbo = true;
     } else
         processNonLimbo(archivable, picked, info, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
-
-    unmarkProblematicSimilarTo(loggable, newlyUnproblematic, true);
 
     if (problematic) {
         reqresProblematic.push(archivable);
