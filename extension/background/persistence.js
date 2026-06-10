@@ -382,11 +382,13 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
         return false;
     }
 
-    retryStoreUnarchived(unarchivedAccumulator, storeID, true);
     globals.submittedHTTPTotal += 1;
     globals.submittedHTTPSize += loggable.dumpSize;
     loggable.archived |= archivedViaSubmitHTTP;
     loggable.dirty = true;
+
+    retryStoreUnarchived(unarchivedAccumulator, config.submitHTTPURLBase, true);
+    retryStoreUnarchived(unarchivedAccumulator, storeID, true);
 
     return true;
 }
