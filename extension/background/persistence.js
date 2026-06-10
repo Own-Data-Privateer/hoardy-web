@@ -39,7 +39,7 @@ function getBuggedOut() {
 }
 
 function markAsBuggedOut(err, archivable) {
-    pushToIssueAcc(reqresBuggedOutIssueAcc, errorMessageOf(err), false, archivable);
+    pushToIssueAcc(reqresBuggedOutIssueAcc, errorMessageOf(err), true, false, archivable);
     broadcastToState(null, "appendBuggedOut", [archivable[0]]);
 }
 
@@ -89,7 +89,7 @@ function recordOneAssumedBroken(accumulator, storeID, reason, archivable, dumpSi
         return false;
     // fail this reqres immediately
     let recoverable = recent[1].recoverable;
-    pushToIssueAcc([accumulator[0], byReasonMap, accumulator[2]], reason, recoverable, archivable);
+    pushToIssueAcc([accumulator[0], byReasonMap, accumulator[2]], reason, false, recoverable, archivable);
     return true;
 }
 
@@ -238,7 +238,7 @@ function bucketSaveAs(bucket, ifGEQ, bundleBuckets, unarchivedAccumulator) {
             loggable.archived &= ~archivedViaExportAs;
             loggable.dirty = true;
         }
-        pushManyToIssueAcc2(unarchivedAccumulator, "exportAs", errorMessageOf(err), false, res.queue);
+        pushManyToIssueAcc2(unarchivedAccumulator, "exportAs", errorMessageOf(err), true, false, res.queue);
 
         return false;
     } finally {
@@ -340,7 +340,7 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
     function broken(storeID, reason, recoverable, quiet) {
         if (!quiet)
             logHandledError(reason);
-        pushToIssueAcc2(unarchivedAccumulator, storeID, reason, recoverable, archivable);
+        pushToIssueAcc2(unarchivedAccumulator, storeID, reason, true, recoverable, archivable);
     }
 
     if (!serverConfig.alive) {
@@ -709,7 +709,7 @@ async function stashOne(archivable, unstashedAccumulator) {
         await syncWithStorage(archivable, 1, true);
     } catch (err) {
         logHandledError(err);
-        pushToIssueAcc(unstashedAccumulator, errorMessageOf(err), false, archivable);
+        pushToIssueAcc(unstashedAccumulator, errorMessageOf(err), true, false, archivable);
     }
 
     gotNewSyncedOrNot = true;
@@ -778,7 +778,7 @@ async function saveOne(archivable, elide, unarchivedAccumulator) {
         res = await syncWithStorage(archivable, 2, elide);
     } catch (err) {
         logHandledError(err);
-        pushToIssueAcc2(unarchivedAccumulator, "localStorage", errorMessageOf(err), false, archivable);
+        pushToIssueAcc2(unarchivedAccumulator, "localStorage", errorMessageOf(err), true, false, archivable);
         return false;
     }
 

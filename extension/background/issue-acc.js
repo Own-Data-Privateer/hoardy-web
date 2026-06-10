@@ -29,48 +29,50 @@ function newIssueAcc(callback) {
 
 function getByReasonMapRecord(byReasonMap, reason) {
     return cacheSingleton(byReasonMap, reason, () => { return {
+        real: true,
         recoverable: true,
         queue: [],
         size: 0,
     }; });
 }
 
-function pushToByReasonRecord(v, recoverable, archivable) {
+function pushToByReasonRecord(v, real, recoverable, archivable) {
     v.when = Date.now();
+    v.real = v.real && real;
     v.recoverable = v.recoverable && recoverable;
     v.queue.push(archivable);
     v.size += archivable[0].dumpSize || 0;
 }
 
-function pushManyToSetByReasonRecord(set, v, recoverable, archivables) {
+function pushManyToSetByReasonRecord(set, v, real, recoverable, archivables) {
     for (let archivable of archivables) {
         set.add(archivable);
-        pushToByReasonRecord(v, recoverable, archivable);
+        pushToByReasonRecord(v, real, recoverable, archivable);
     }
 }
 
-function pushToByReasonMap(byReasonMap, reason, recoverable, archivable) {
+function pushToByReasonMap(byReasonMap, reason, real, recoverable, archivable) {
     let v = getByReasonMapRecord(byReasonMap, reason);
-    pushToByReasonRecord(v, recoverable, archivable);
+    pushToByReasonRecord(v, real, recoverable, archivable);
     return v;
 }
 
-function pushToIssueAcc(accumulator, reason, recoverable, archivable) {
+function pushToIssueAcc(accumulator, reason, real, recoverable, archivable) {
     accumulator[0].add(archivable);
-    pushToByReasonMap(accumulator[1], reason, recoverable, archivable);
+    pushToByReasonMap(accumulator[1], reason, real, recoverable, archivable);
     if (accumulator[2] !== undefined)
         accumulator[2](recoverable);
 }
 
-function pushToIssueAcc2(accumulator, storeID, reason, recoverable, archivable) {
+function pushToIssueAcc2(accumulator, storeID, reason, real, recoverable, archivable) {
     let m = cacheSingleton(accumulator[1], storeID, () => new Map());
-    pushToIssueAcc([accumulator[0], m, accumulator[2]], reason, recoverable, archivable);
+    pushToIssueAcc([accumulator[0], m, accumulator[2]], reason, real, recoverable, archivable);
 }
 
-function pushManyToIssueAcc2(accumulator, storeID, reason, recoverable, archivables) {
+function pushManyToIssueAcc2(accumulator, storeID, reason, real, recoverable, archivables) {
     let byReasonMap = cacheSingleton(accumulator[1], storeID, () => new Map());
     let v = getByReasonMapRecord(byReasonMap, reason);
-    pushManyToSetByReasonRecord(accumulator[0], v, recoverable, archivables);
+    pushManyToSetByReasonRecord(accumulator[0], v, real, recoverable, archivables);
     if (accumulator[2] !== undefined)
         accumulator[2](recoverable);
 }
