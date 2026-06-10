@@ -71,12 +71,14 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
     if (reqresProblematic.length == 0)
         return 0;
 
+    // the following is written as two loops to make it mostly atomic w.r.t. reqresProblematic
+
     let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresProblematic);
 
     if (popped.length === 0)
         return 0;
 
-    // this is written as a separate loop to make it mostly atomic w.r.t. reqresProblematic
+    let newlyRestashed = [];
 
     for (let archivable of popped) {
         let [loggable, dump] = archivable;
@@ -85,6 +87,10 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
             loggable.problematic = false;
             loggable.dirty = true;
             info.problematicTotal -= 1;
+
+            if (loggable.inLS !== undefined)
+                // it was stashed before, re-stash it
+                newlyRestashed.push(archivable);
         } catch (err) {
             logHandledError(err);
             markAsBuggedOut(err, archivable);
@@ -98,10 +104,13 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
     if (dontBroadcast)
         return popped.length;
 
-    // reset all the logs, since some statuses may have changed
+    // since archivables in `reqresProblematic` can also be in any of these
     broadcastToState(tabId, "resetProblematic", getProblematic);
     broadcastToState(tabId, "resetInLimbo", getInLimbo);
     broadcastToState(tabId, "resetLog", reqresLog);
+
+    if (newlyRestashed.length > 0)
+        runSynchronouslyB("stash", stashMany, newlyRestashed);
 
     return popped.length;
 }
