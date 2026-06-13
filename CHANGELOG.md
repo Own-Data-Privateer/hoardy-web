@@ -6,6 +6,78 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.26.0] - 2026-06-13: Bug fixes, polishing of internals, unit tests
+
+### Fixed
+
+- Popup UI:
+
+  - Fixed it crashing on Chromium when "Activate the extension" keyboard shortcut is set.
+
+- Documentation, Popup UI:
+
+  - Fixed rendering of some tooltips.
+
+  - Fixed some typos.
+
+- [`Internal State` pages](#state-in-extension-ui-only):
+
+  - From now on, `Stop tracking` button there respects its reqres filters.
+
+    And thus, finally, all buttons on those pages respect their reqres filters now.
+
+- Core:
+
+  - **From now on, reloading the extension preserves per-tab config and stats/state.**
+
+  - Similarly, those per-tab things are now also being preserved on tab replacement (when a browser replaces a tab with another tab pre-rendered in background).
+
+  - Fixed a bug where reqres from closed tabs could forget their proper `bucket` values and get archived with the default `bucket` instead.
+
+  - Fixed a bug where unmarking some problematic reqres and then reloading the extension would make them problematic again.
+
+  - Fixed a bug where discarding a reqres from limbo would auto-unmark the `problematic` flag from said reqres.
+
+  - Fixed a bug where a reqres being discarded could cause other reqres to be auto-unmarked as `problematic`.
+
+  - Fixed a bug where a successful archival of a reqres failed to force a retry of some reqres that previously failed to archive to the same archiving server.
+
+- Core, Toolbar button, Popup UI:
+
+  - Fixed a bug where scheduled actions list and/or toolbar button's badge can become stuck in incorrect states even though global state variables they are derived from are fine.
+
+  - Fixed a bunch of bugs where toolbar button would fail to be updated properly in a bunch of situations.
+
+### Changed
+
+- Popup UI:
+
+  - `Running actions` line now uses a better naming scheme for its actions.
+
+- [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Improved help strings of many of the buttons there.
+
+- Core:
+
+  - Improved performance of reqres filtering machinery.
+
+  - Improved debugging log output.
+
+  - Generalized away some copy-paste.
+
+  - Improved naming schemes of various thins.
+
+  - Fixed a bunch of code lint.
+
+  - Polished the internals.
+
+### Added
+
+- Core:
+
+  - Added unit tests for the parts that were shown to be error-prone.
+
 ## [tool-v0.24.0] - 2026-06-09: Incremental improvements, distribution bug fix
 
 ### Changed
@@ -3244,6 +3316,7 @@ All planned features are complete now.
 
   - Initial public release.
 
+[extension-v1.26.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.25.0...extension-v1.26.0
 [tool-v0.24.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.23.0...tool-v0.24.0
 [simple_server-v1.9.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.9.0...simple_server-v1.9.1
 [extension-v1.25.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.24.1...extension-v1.25.0
