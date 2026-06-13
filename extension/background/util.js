@@ -74,7 +74,7 @@ function mkIcons(what) {
 }
 
 function getStateTabIdOrTabId(tab) {
-    return getMapURLParam(statePageURL, "tab", new URL(getTabURL(tab, "")), toNumber, tab.id, tab.id);
+    return getMapURLParam(statePageURL, "tab", getTabURL(tab), toNumber, tab.id, tab.id);
 }
 
 function showChangelog(...args) {

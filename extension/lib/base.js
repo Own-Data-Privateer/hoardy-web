@@ -477,16 +477,17 @@ function dumpToConsole(dump) {
 }
 
 // return mapped ?`param`= parameter when the URL starts with `op`
-function getMapURLParam(op, param, purl, f, def1, def2) {
-    if (purl.origin + purl.pathname == op) {
-        let params = new URLSearchParams(purl.search);
-        let id = params.get(param);
-        if (id !== null)
-            return f(id);
-        else
-            return def1;
-    }
-    return def2;
+function getMapURLParam(op, param, url, f, def1, def2) {
+    if (url === undefined)
+        return def2;
+    let purl = url instanceof URL ? url : new URL(url);
+    if (purl.origin + purl.pathname !== op)
+        return def2;
+    let params = new URLSearchParams(purl.search);
+    let id = params.get(param);
+    if (id === null)
+        return def1;
+    return f(id);
 }
 
 // given a URL, return its HTTP-on-the-wire version
