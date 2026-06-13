@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
-## [tool-v0.24.0] - 2026-06-09: Incremental improvements
+## [tool-v0.24.0] - 2026-06-09: Incremental improvements, distribution bug fix
 
 ### Changed
 
@@ -207,7 +207,7 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
   - All sections of the internal state pages can now be filtered by URL, in a bunch of different ways: by the exact URL, by a sub-string, and via a regular expression.
 
-  - From now on, all the action buttons there respect selected filters.
+  - From now on, most of the action buttons there respect reqres filters.
     Most notably, this now includes the `Retry all` button of the "Failed to archive" section too.
 
     I.e., it's now possible to retry archivals only for a filtered subset of reqres.
@@ -1990,7 +1990,7 @@ But the current state is quite usable.
 
   - From now on `stylesheet`, `icon`, and `shortcut` `link`s are treated as page requisites.
 
-    This fixed a bug where `export mirror` with `--depth` set would forget to mirror `shortcut` `icon`s and `CSS` files.
+    Fixed a bug where `export mirror` with `--depth` set would forget to mirror `shortcut` `icon`s and `CSS` files.
 
   - Fixed a bug where `export mirror` with `--depth` and `--remap-(open|closed)` set would fail to remap unreachable URLs properly.
 
