@@ -74,7 +74,11 @@ async function getTabURLThenNavigateTabToBlank(tabId) {
 }
 
 async function getShortcuts() {
-    let res = assignRec({}, manifest.commands);
+    let res = assignRec({}, manifest.commands, {
+        _execute_browser_action: {
+            description: "Open extension's popup."
+        },
+    });
     if (browser.commands !== undefined) {
         let shortcuts = await browser.commands.getAll();
         for (let s of shortcuts)

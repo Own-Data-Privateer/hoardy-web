@@ -50,13 +50,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (name.startsWith("toggleTabConfig"))
             name = mapShortcutName((name, children) => "div-tabconfig." + (children ? "children." : "") + name, name);
 
-        let desc = shortcut.description || "Open extension's popup.";
+        let desc = shortcut.description;
         let [sdesc, ldesc] = desc.split(": ");
 
         let cur = shortcut.shortcut;
-        let def = "";
-        if (shortcut.suggested_key)
-            def = shortcut.suggested_key.default || "";
+        let def = shortcut.suggested_key ? shortcut.suggested_key.default || "" : "";
 
         let tr = document.createElement("tr");
         appendElements(tr, "td", cur ? cur : "unbound");

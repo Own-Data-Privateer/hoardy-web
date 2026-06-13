@@ -438,7 +438,7 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     }
 
     if (shortcut !== undefined)
-        help = mapShortcutFunc(help !== null ? help : shortcut.description, shortcut);
+        help = mapShortcutFunc(help !== null ? help : shortcut.description, shortcut.shortcut);
 
     if (!isDefined(help))
         return;

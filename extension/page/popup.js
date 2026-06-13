@@ -102,7 +102,7 @@ async function popupMain() {
 
     let shortcuts = await getShortcuts();
     addHelp(body, shortcuts, (help, shortcut) => {
-        let sk = shortcut.shortcut ? `\`${shortcut.shortcut}\`` : "unbound";
+        let sk = shortcut ? `\`${shortcut}\`` : "unbound";
         return `(${sk}) ${help}`;
     });
 
