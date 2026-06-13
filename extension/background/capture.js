@@ -744,7 +744,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
                 }
             }
             dreqres.errors.push("debugger::capture::NO_RESPONSE_BODY::OTHER");
-            logError(err);
+            logHandledError(err);
         }).finally(() => {
             debugReqresFinishingUp.push(dreqres);
             if (config.debugCaptures)
