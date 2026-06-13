@@ -23,7 +23,9 @@
 
 "use strict";
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function helpMain () {
+    setPageLoading();
+
     let body = document.getElementById("body");
     let iframe = document.getElementById("iframe");
     let minWidth = 1355; // see ./help.template
@@ -42,8 +44,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // generate shortcuts table
     let haveShortcuts = false;
-    let shortcuts = await getShortcuts();
     let tbody = document.getElementById("tbody-sk");
+    let shortcuts = await getShortcuts();
     for (let [name, shortcut] of Object.entries(shortcuts)) {
         haveShortcuts = true;
 
@@ -186,8 +188,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     await sleep(1);
 
     // show UI
-    document.body.style["visibility"] = null;
+    body.style["visibility"] = null;
+    document.getElementById("container").style["visibility"] = null;
+
+    // finish
+    setPageDone();
 
     // highlight current target
     focusHashNode();
-});
+}
+
+document.addEventListener("DOMContentLoaded", () => helpMain().catch(setPageError), setPageError);

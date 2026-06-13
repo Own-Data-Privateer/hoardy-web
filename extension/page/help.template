@@ -18,7 +18,11 @@
     --popup-height: 2000px;
 }
 
-#body, #container, #iframe {
+#body_loading,
+#body_error,
+#body,
+#container,
+#iframe {
     box-sizing: border-box;
 }
 
@@ -27,6 +31,8 @@ body {
     text-align: justify;
 }
 
+#body_loading,
+#body_error,
 #body {
     font: 17px sans-serif;
     max-width: var(--body);
@@ -44,6 +50,8 @@ body.linear {
     max-width: var(--body);
 }
 
+.linear #body_loading,
+.linear #body_error,
 .linear #body {
     padding: 0 var(--padding);
     width: 100%;
@@ -64,11 +72,15 @@ body.columns {
     display: flex;
 }
 
+.columns #body_loading,
+.columns #body_error,
 .columns #body,
 .columns #container {
     display: inline-block;
 }
 
+.columns #body_loading,
+.columns #body_error,
 .columns #body {
     margin: 0 0 0 auto;
     overflow-y: scroll;
@@ -110,11 +122,13 @@ table, th, td {
 }
     </style>
   </head>
-  <body style="visibility: hidden">
-    <div id="body">
+  <body>
+    <div id="body_loading" style="display: none"></div>
+    <div id="body_error" style="display: none"></div>
+    <div id="body" style="visibility: hidden">
       $body$
     </div>
-    <div id="container">
+    <div id="container" style="visibility: hidden">
     <iframe id="iframe" src="./popup.html#all" title="The Settings Popup."></iframe>
     </div>
 
