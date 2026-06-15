@@ -43,12 +43,9 @@ async function helpMain () {
     let noPopup = new Set(["_execute_browser_action", "showLog", "showTabLog"]);
 
     // generate shortcuts table
-    let haveShortcuts = false;
     let tbody = document.getElementById("tbody-sk");
     let shortcuts = await getShortcuts();
     for (let [name, shortcut] of Object.entries(shortcuts)) {
-        haveShortcuts = true;
-
         if (name.startsWith("toggleTabConfig"))
             name = mapShortcutName((name, children) => "div-tabconfig." + (children ? "children." : "") + name, name);
 
@@ -73,11 +70,6 @@ async function helpMain () {
             ]);
         tbody.append(tr);
     }
-    if (!haveShortcuts)
-        appendElements(tbody, "tr", (e) => {
-            e.setAttribute("colspan", 3);
-            return e;
-        }, "td", "Your browser does not support keyboard shortcuts.");
 
     classifyDocumentLinks(document, [
         ["/page/help.html", "internal"],
