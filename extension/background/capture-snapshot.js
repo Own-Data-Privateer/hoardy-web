@@ -78,6 +78,7 @@ async function snapshotOneTab(tabId, url) {
 
                 errors: [],
 
+                requestSize: 0,
                 requestTimeStamp: start,
                 requestHeaders: [],
                 requestBody: new ChunkedBuffer(),
@@ -87,6 +88,7 @@ async function snapshotOneTab(tabId, url) {
                 responded: true,
                 fromCache: false,
 
+                responseSize: result.length,
                 responseTimeStamp: date,
                 responseHeaders : [
                     { name: "Content-Type", value: ct }
