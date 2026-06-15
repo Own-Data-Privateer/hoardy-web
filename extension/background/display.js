@@ -124,6 +124,11 @@ function pushNotRunning(m, actions) {
     }
 }
 
+function pushClosures(m, actions) {
+    for (let v of m)
+        actions.push(v[0]);
+}
+
 // Compute total sizes of all queues and similar.
 // Used in the UI.
 function getStats() {
@@ -145,7 +150,8 @@ function getStats() {
     let low_prio = actions.length;
     pushNotRunning(scheduledInternal.keys(), actions);
     // scheduledHidden are not shown to the UI
-    pushNotRunning(synchronousClosures, actions);
+
+    pushClosures(synchronousClosures, actions);
 
     return {
         update_available: updateAvailable,
