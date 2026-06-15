@@ -894,7 +894,7 @@ section {
     <!-- debuggingOptions -->
 
     <div class="stats">
-      <div id="div-stats.buggedOut" data-help="At the moment, the number of reqres for which the internals of `Hoardy-Web` encountered internal errors instead of completing the action they were supposed to complete. Basically, the number of reqres that hit bugs in `Hoardy-Web`. `Hoardy-Web` does its best to preserve such reqres for anti-data-loss and debugging purposes.">
+      <div id="div-stats.buggedOut" data-help="At the moment, the number of reqres for which the internals of `Hoardy-Web` encountered internal errors instead of completing the action they were supposed to complete (and the sum total of all sizes of their dumps). Basically, the number of reqres that hit bugs in `Hoardy-Web`. `Hoardy-Web` does its best to preserve such reqres for anti-data-loss and debugging purposes.">
         <span>Bugged out</span>
         <span>
           <input type="button" id="showBuggedOut" data-help="Show them on the internal state page." value="Show" />
