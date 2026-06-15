@@ -162,7 +162,8 @@ function getStats() {
         scheduled: actions.length,
         scheduled_actions: actions.join(", "),
         in_flight,
-        finishing_up: finishing_up + almost_done,
+        finishing_up,
+        almost_done,
         problematic: reqresProblematic.length,
         picked: globals.pickedTotal,
         dropped: globals.droppedTotal,
@@ -216,7 +217,8 @@ function getTabStats(tabId) {
 
     return {
         in_flight,
-        finishing_up: finishing_up + almost_done,
+        finishing_up,
+        almost_done,
         problematic: tabstate.problematicTotal,
         picked: tabstate.pickedTotal,
         dropped: tabstate.droppedTotal,
@@ -286,15 +288,11 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             color = Math.max(color, 2);
             chunks.push(`failed to archive ${stats.unarchived} reqres`);
         }
-        if (stats.in_flight > 0) {
+        let inFlightNum = stats.in_flight + stats.finishing_up + stats.almost_done;
+        if (inFlightNum > 0) {
             badge += "T";
             color = Math.max(color, 1);
-            chunks.push(`tracking ${stats.in_flight} in-flight reqres`);
-        }
-        if (stats.finishing_up > 0) {
-            badge += "T";
-            color = Math.max(color, 1);
-            chunks.push(`tracking ${stats.finishing_up} finishing-up reqres`);
+            chunks.push(`tracking ${inFlightNum} in-flight reqres`);
         }
         if (stats.queued > 0) {
             badge += "Q";
@@ -354,8 +352,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             chunks.push("debug log (slow!)");
         }
 
-        if (stats.in_flight + stats.finishing_up
-            + stats.queued + stats.bundledAs === 0)
+        if (inFlightNum + stats.queued + stats.bundledAs === 0)
             chunks.push("idle");
 
         if (stats.scheduled > stats.scheduled_low) {
@@ -540,13 +537,10 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         let tchunks = [];
         let cchunks = [];
 
-        if (tabstats.in_flight > 0) {
+        let tabInFlightNum = tabstats.in_flight + tabstats.finishing_up + tabstats.finishing_up;
+        if (tabInFlightNum > 0) {
             icons.push("tracking");
-            tchunks.push(`${tabstats.in_flight} in-flight reqres`);
-        }
-        if (tabstats.finishing_up > 0) {
-            icons.push("tracking");
-            tchunks.push(`${tabstats.finishing_up} finishing-up reqres`);
+            tchunks.push(`${tabInFlightNum} in-flight reqres`);
         }
         if (tabstats.problematic > 0) {
             icons.push("problematic");

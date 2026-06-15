@@ -208,17 +208,24 @@ As shown on the above diagram, a new reqres, i.e., a new =HTTP= request and resp
 *** Glossary
 - An /in-flight reqres/ {{{stats(in_flight)}}} is a reqres that did not reach the =finished= state yet, in the logs {{{logPage}}} such reqres will be shown to be in =in_flight= state.
 
-  These two stats are represented as sums of two numbers:
+  These stats are represented as sums of sizes of three sets of reqres:
 
-  - the number of reqres that are still being tracked via =webRequest= or =debugger= web browser API; and
-  - the number of reqres that have finished being tracked and are now waiting for all their events to finish processing.
+  - "bona fide in-flight reqres": reqres that are still being heavily tracked via =webRequest= and/or =debugger= APIs;
+
+    meaning, they are yet to reach the =headers received= state in =webRequest=-handling code and =body recived= state in =debugger=-handling code;
+
+  - "finishing up reqres": reqres that have captured all the metadata they can and are now waiting to be =finished=;
+
+    meaning, they reached the =headers received= state but not the =body recieved= state in =webRequest=-handling code and/or are waiting to be matched up with their =webRequest= counter-parts in =debugger=-handling code;
+
+  - "almost done reqres": the number of reqres that =finished= being tracked but hadn't yet been [[#classification][classified]] and dumped to =WRR=.
 
   On Firefox, nothing should ever get stuck, if something seems to be stuck in =in_flight= state, it's probably still loading (or it is a bug in this extension or the browser, both which do happen, rarely).
 
-  On Chromium, [[#chromium-bug-stuck][limitations of the Chromium's debugging interface mean a request can get stuck among the reqres represented by the first number above]].
-  If the first number is zero, however, then the second should also rapidly become zero, at most after {{{config2(workaroundChromiumDebugTimeout,two times this many seconds)}}}.
+  On Chromium, [[#chromium-bug-stuck][limitations of the Chromium's debugging interface mean a request can get stuck among the reqres represented by the first two numbers above]].
+  If the first number is zero, however, then the second and third numbers should also rapidly become zero, at most after {{{config2(workaroundChromiumDebugTimeout,two times this many seconds)}}}.
 
-  If some reqres got stuck in one of the =in_flight= states, you can forcefully move them out of that state using {{{button2(stopAllInFlight,this)}}} or {{{button2(stopAllTabInFlight,that)}}} buttons.
+  If some reqres got stuck in one of the =in_flight= states, you can forcefully move them out of that state using {{{button2(stopAllInFlight,this)}}}, {{{button2(stopAllTabInFlight,that)}}}, or similar buttons in the logs {{{logPage}}}.
 
 - A /finished reqres/ is a reqres that reached the =finished= state.
 

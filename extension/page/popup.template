@@ -334,6 +334,8 @@ section {
           <span id="stats.in_flight">0</span>
           +
           <span id="stats.finishing_up">0</span>
+          +
+          <span id="stats.almost_done">0</span>
         </span>
       </div>
     </div>
@@ -463,6 +465,8 @@ section {
           <span id="tabstats.in_flight">0</span>
           +
           <span id="tabstats.finishing_up">0</span>
+          +
+          <span id="tabstats.almost_done">0</span>
         </span>
       </div>
     </div>
