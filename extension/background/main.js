@@ -385,7 +385,7 @@ let shortcutCommands = {
     showTabState: (tabId, activeTabId) => showState(sessionId, tabId, "top", activeTabId),
     showTabLog: (tabId, activeTabId) => showState(sessionId, tabId, "tail", activeTabId, true, scrollEndIntoView),
 
-    stopAllTabInFlight: rpcCommands.stopInFlight,
+    stopAllTabInFlight: (tabId) => rpcCommands.stopInFlight({tabId}),
     unmarkAllTabProblematic: (tabId) => runThenScheduleEndgame(syncUnmarkProblematic, {tabId}),
     collectAllTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, true, {tabId}),
     discardAllTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, false, {tabId}),
