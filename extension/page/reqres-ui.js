@@ -140,7 +140,12 @@ function appendLoggable(node, loggable) {
         e.className = "long";
         return e;
     }, "td", loggable.reason);
-    appendElements(tr, "td", byteLengthToString(loggable.dumpSize) + ": " + byteLengthToString(loggable.requestSize) + " + " + byteLengthToString(loggable.responseSize));
+
+    let dumpSize = loggable.dumpSize;
+    let requestSize = loggable.requestSize;
+    let responseSize = loggable.responseSize;
+    let remainder = isDefined(dumpSize, requestSize, responseSize) ? dumpSize - requestSize - responseSize : undefined;
+    appendElements(tr, "td", `${byteLengthToString(dumpSize)} = ${byteLengthToString(requestSize)} + ${byteLengthToString(responseSize)} + ${byteLengthToString(remainder)}`);
 
     node.append(tr);
 
