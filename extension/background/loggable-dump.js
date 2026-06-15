@@ -137,9 +137,12 @@ function unmarkProblematicSimilarTo(loggable, allowInLimbo, newlyUnproblematic, 
         tabId: config.autoUnmarkProblematicSimilarAcrossTabs ? null : loggable.tabId,
         method: loggable.method,
         url: loggable.url,
+        // if the `loggable` is not `picked` it should only evict other non-`picked` reqres
+        picked: loggable.picked ? null : false,
         in_limbo: allowInLimbo ?
-            // if a `loggable` is `in_limbo`, then it should only evict other reqres `in_limbo` since
-            // this `loggable` can still be discarded later
+            // if the `loggable` is `in_limbo`, then it should only evict other `in_limbo` reqres
+            // since this `loggable` can still be discarded later, but setting
+            // `config.autoUnmarkProblematicSimilarAcrossLimbo` will ignore this rule
             (loggable.in_limbo && !config.autoUnmarkProblematicSimilarAcrossLimbo ? true : null) :
             false,
     }, newlyUnproblematic, dontBroadcast);
@@ -192,8 +195,7 @@ function popInLimbo(collect, rrfilter) {
 
             let tabstate = getTabState(loggable.tabId, loggable.fromExtension);
 
-            if (collect)
-                unmarkProblematicSimilarTo(loggable, false, newlyUnproblematic, true);
+            unmarkProblematicSimilarTo(loggable, false, newlyUnproblematic, true);
 
             loggable.in_limbo = false;
             loggable.dirty = true;
@@ -689,9 +691,9 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
     loggable.dumpSize = dumpSize;
     let archivable = [loggable, dump];
 
-    if (picked) {
-        unmarkProblematicSimilarTo(loggable, true, newlyUnproblematic, true);
+    unmarkProblematicSimilarTo(loggable, true, newlyUnproblematic, true);
 
+    if (picked) {
         globals.pickedTotal += 1;
         tabstate.pickedTotal += 1;
     } else {
