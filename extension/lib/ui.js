@@ -217,8 +217,14 @@ function _mkHandleOnChange(prefix, update, value, getValue, setValue) {
 
         if (setValue !== undefined)
             setValue(nvalue, event, partial);
-        update(nvalue, prefix);
+        update(nvalue, prefix, event.resetting);
     };
+}
+
+function _dispatchReset(el) {
+    let event = new Event("change");
+    event.resetting = true;
+    el.dispatchEvent(event);
 }
 
 function _mkHandleKeyUp(prefix, timeout, onchange) {
@@ -231,15 +237,15 @@ function _mkHandleKeyUp(prefix, timeout, onchange) {
 }
 
 // set values of DOM elements from a given object
-function setUI(node, prefix, value, update) {
+function setUIInternal(node, prefix, value, update, resetAcc) {
     let typ = typeof value;
 
     if (value !== null && typ === "object") {
         for (let k of Object.keys(value)) {
-            setUI(node, prefix ? prefix + "." + k : k, value[k], update !== undefined ? ((newvalue, path) => {
+            setUIInternal(node, prefix ? prefix + "." + k : k, value[k], update !== undefined ? ((newvalue, path) => {
                 value[k] = newvalue;
                 update(value, path);
-            }) : undefined);
+            }) : undefined, resetAcc);
         }
 
         return;
@@ -291,6 +297,13 @@ function setUI(node, prefix, value, update) {
             () => el.checked,
         );
 
+        let defvalue = div.getAttribute("data-default");
+        defvalue = defvalue === "true";
+        resetAcc.push(() => {
+            el.checked = defvalue;
+            _dispatchReset(el);
+        });
+
         return;
     }
 
@@ -306,12 +319,22 @@ function setUI(node, prefix, value, update) {
         el.onchange = _mkHandleOnChange(
             prefix, update,
             value,
-            () => {
+            (event) => {
+                if (event.resetting)
+                    return el.checked ? true : (el.classList.contains("false") ? false : null);
+
                 // switch it like this: false -> null -> true -> false
                 return el.classList.contains("false") ? null : el.checked;
             },
             (nvalue) => setBooleanOrNull(el, nvalue),
         );
+
+        let defvalue = div.getAttribute("data-default");
+        defvalue = defvalue === null || defvalue === "null" ? null : defvalue === "true";
+        resetAcc.push(() => {
+            setBooleanOrNull(el, defvalue);
+            _dispatchReset(el);
+        });
 
         return;
     }
@@ -331,6 +354,13 @@ function setUI(node, prefix, value, update) {
             () => Number(el.value).valueOf(),
         );
         el.onchange = onchange;
+
+        let defvalue = div.getAttribute("data-default");
+        defvalue = defvalue || "0";
+        resetAcc.push(() => {
+            el.value = defvalue;
+            _dispatchReset(el);
+        });
 
         let timeout = Number(div.getAttribute("timeout")).valueOf();
         el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
@@ -357,6 +387,13 @@ function setUI(node, prefix, value, update) {
         checkbox.onchange = onchange;
         el.onchange = onchange;
 
+        let defvalue = div.getAttribute("data-default");
+        defvalue = defvalue === null || defvalue === "null" ? null : (defvalue || "0");
+        resetAcc.push(() => {
+            setNumberOrNull(checkbox, el, defvalue);
+            _dispatchReset(el);
+        });
+
         let timeout = Number(div.getAttribute("timeout")).valueOf();
         el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
 
@@ -381,6 +418,13 @@ function setUI(node, prefix, value, update) {
         );
         el.onchange = onchange;
 
+        let defvalue = div.getAttribute("data-default");
+        defvalue = defvalue || "";
+        resetAcc.push(() => {
+            el.value = defvalue;
+            _dispatchReset(el);
+        });
+
         let timeout = Number(div.getAttribute("timeout")).valueOf();
         el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
 
@@ -389,6 +433,20 @@ function setUI(node, prefix, value, update) {
     }
 
     throw new Error(`setUI: can't set ${typ} to ${etyp}`);
+}
+
+function setUI(node, prefix, value, update) {
+    if (update === undefined) {
+        setUIInternal(node, prefix, value);
+        return noop;
+    }
+
+    let resetAcc = [];
+    setUIInternal(node, prefix, value, update, resetAcc);
+    return () => {
+        for (let func of resetAcc)
+            func();
+    };
 }
 
 // setUI, but with recursive updates for when `update` modifies the `value` too
@@ -487,7 +545,7 @@ function makeUI(node) {
     // copy other attributes
     for (let attr of node.attributes) {
         let name = attr.name;
-        if (name === "id" || name === "tabindex" || name === "data-default")
+        if (name === "id" || name === "tabindex")
             continue;
         div.setAttribute(name, node.getAttribute(name))
     }
