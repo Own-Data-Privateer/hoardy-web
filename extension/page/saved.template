@@ -15,7 +15,7 @@
 
     <h1 class="ui">Saved
       <span class="controls">
-        <ui id="rrfilters.url_algo" type="tristate" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+        <ui id="rrfilters.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
         <ui id="rrfilters.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
       </span>
       <span class="right">
@@ -26,17 +26,17 @@
       </span>
     </h1>
     <div class="controls ui">
-      <ui id="rrfilters.limit" type="omega" class="c" data-default="1024" data-help="Load no more than this many elements.">{} At most {} elements</ui>
-      <ui id="rrfilters.did_exportAs" type="tristate" data-help="Tristate filter for the &quot;exported via `saveAs`&quot; flag.">Exported via <code>saveAs</code></ui>
-      <ui id="rrfilters.did_submitHTTP" type="tristate" data-help="Tristate filter for the &quot;submitted via `HTTP`&quot; flag.">Submitted via <code>HTTP</code></ui>
-      <ui id="rrfilters.in_ls" type="tristate" data-help="Tristate filter for the &quot;in `storage.local`&quot;/&quot;in `IndexedDB`&quot; flag.">In <code>storage.local</code></ui>
+      <ui id="rrfilters.limit" type="numberOrNull" class="c" data-default="1024" data-help="Load no more than this many elements.">{} At most {} elements</ui>
+      <ui id="rrfilters.did_exportAs" type="booleanOrNull" data-help="Tristate filter for the &quot;exported via `saveAs`&quot; flag.">Exported via <code>saveAs</code></ui>
+      <ui id="rrfilters.did_submitHTTP" type="booleanOrNull" data-help="Tristate filter for the &quot;submitted via `HTTP`&quot; flag.">Submitted via <code>HTTP</code></ui>
+      <ui id="rrfilters.in_ls" type="booleanOrNull" data-help="Tristate filter for the &quot;in `storage.local`&quot;/&quot;in `IndexedDB`&quot; flag.">In <code>storage.local</code></ui>
     </div>
     <div class="controls ui">
-      <ui id="rrfilters.problematic" type="tristate" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
-      <ui id="rrfilters.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
-      <ui id="rrfilters.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.with_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">With errors</ui>
-      <ui id="rrfilters.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+      <ui id="rrfilters.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+      <ui id="rrfilters.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+      <ui id="rrfilters.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
+      <ui id="rrfilters.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
+      <ui id="rrfilters.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
     </div>
     <table>
       <tbody id="data"></tbody>

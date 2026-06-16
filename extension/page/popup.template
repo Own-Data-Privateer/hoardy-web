@@ -803,7 +803,7 @@ section {
     <h2>Replay</h2>
     <div class="idots ui">
     <!-- replayOptions -->
-    <ui id="config.replaySubmitHTTP" type="tristate" data-help="Replay old pages over `HTTP` from the archiving server configured with `Server URL` option below. This is a tristate of: disallow, enable if `Submit dumps via 'HTTP'` option is enabled and the server supports it, enable even if `Submit dumps via 'HTTP'` option is disabled.">Replay from the archiving server</ui>
+    <ui id="config.replaySubmitHTTP" type="booleanOrNull" data-help="Replay old pages over `HTTP` from the archiving server configured with `Server URL` option below. This is a tristate of: disallow, enable if `Submit dumps via 'HTTP'` option is enabled and the server supports it, enable even if `Submit dumps via 'HTTP'` option is disabled.">Replay from the archiving server</ui>
     <!-- replayOptions -->
     </div>
     </section>
@@ -947,13 +947,13 @@ Specifically:
     <div class="idots ui">
     <!-- uiOptions -->
 
-    <ui id="config.colors" type="tristate" data-help="Color scheme tristate: light mode, browser's default, dark mode.">Color scheme</ui>
+    <ui id="config.colors" type="booleanOrNull" data-help="Color scheme tristate of: light mode, browser's default, dark mode.">Color scheme</ui>
     <ui id="config.colorblind" type="boolean" data-help="Use bluish colors instead of greenish where possible.">Colorblind mode</ui>
     <ui id="config.seasonal" type="boolean" data-help="Allow `Hoardy-Web` to use seasonal themes. Disabling this will forbid the use of the following sub-options, including those that might be added here in future versions of `Hoardy-Web`. Enabled by default. You might want to disable this if you hate fun.">Allow seasonal theming</ui>
     <section class="on-seasonal">
     <div class="isubdots">
-    <ui id="config.season.halloween" type="tristate" data-help="Tristate controlling the use of the &quot;Halloween&quot; theme: disabled, enabled when close to Halloween, enabled. When enabled, this theme will force the dark mode theme regardless of what the `Color scheme` setting above says.">🦇 Halloween mode</ui>
-    <ui id="config.season.winter" type="tristate" data-help="Tristate controlling the use of the &quot;Winter Days&quot; theme: disabled, enabled between Winter Solstice and Orthodox Christmas (which also includes Yuletide, Catholic Christmas, Newtonmas, New Year, and, sometimes, Hanukkah), enabled. When enabled, this theme will force the dark mode theme regardless of what the `Color scheme` setting above says.">🎄 Winter Days mode</ui>
+    <ui id="config.season.halloween" type="booleanOrNull" data-help="Tristate controlling the use of the &quot;Halloween&quot; theme: disabled, enabled when close to Halloween, enabled. When enabled, this theme will force the dark mode theme regardless of what the `Color scheme` setting above says.">🦇 Halloween mode</ui>
+    <ui id="config.season.winter" type="booleanOrNull" data-help="Tristate controlling the use of the &quot;Winter Days&quot; theme: disabled, enabled between Winter Solstice and Orthodox Christmas (which also includes Yuletide, Catholic Christmas, Newtonmas, New Year, and, sometimes, Hanukkah), enabled. When enabled, this theme will force the dark mode theme regardless of what the `Color scheme` setting above says.">🎄 Winter Days mode</ui>
     </div>
     </section>
     <ui id="config.pureText" type="boolean" data-help="Do not use emojis in UI labels. Makes screen readers happier.">Use pure text labels</ui>
@@ -977,7 +977,7 @@ Specifically:
     <section class="on-mobile">
     <ui id="config.invisibleUINotify" type="boolean" class="c" data-help="Generate notifications about actions that are quirky on mobile browsers. This only has an effect if `Hoardy-Web` runs on a mobile browser like Fenix/Fennec/Mull/etc.">... {} mobile UI quirks</ui>
     </section>
-    <ui id="config.problematicNotify" type="tristate" class="prefer-nooff c" data-help="Generate notifications when new `problematic` reqres appear and/or disappear. This option is a tristate of: off, only generate notifications for new `problematic` reqres, also generate notifications when `problematic` reqres get automatically unmarked. The middle state is the default.">... {} <code>problematic</code> reqres</ui>
+    <ui id="config.problematicNotify" type="booleanOrNull" class="prefer-nooff c" data-help="Generate notifications when new `problematic` reqres appear and/or disappear. This option is a tristate of: off, only generate notifications for new `problematic` reqres, also generate notifications when `problematic` reqres get automatically unmarked. The middle state is the default.">... {} <code>problematic</code> reqres</ui>
     <section class="on-problematicNotify">
     <div class="ishiftdots">
     <ui id="config.problematicNotifyNumber" type="number" class="c" data-help="Show no more than this many latest METHOD + URL lines in the generated `problematic` reqres notification.">... but no more than {} lines</ui>

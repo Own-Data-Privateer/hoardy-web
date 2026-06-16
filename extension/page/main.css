@@ -250,24 +250,24 @@ a {
     transform: translate(11px, calc(50% - 5px));
 }
 
-.ui .tristate input[type="checkbox"].toggle {
+.ui .booleanOrNull input[type="checkbox"].toggle {
     width: 32px;
 }
 
-.ui .tristate input[type="checkbox"].toggle::before {
+.ui .booleanOrNull input[type="checkbox"].toggle::before {
     transform: translate(9px, calc(50% - 5px));
 }
 
-.ui .tristate input[type="checkbox"].toggle:checked::before {
+.ui .booleanOrNull input[type="checkbox"].toggle:checked::before {
     transform: translate(16px, calc(50% - 5px));
 }
 
-.ui .tristate input[type="checkbox"].toggle.false {
+.ui .booleanOrNull input[type="checkbox"].toggle.false {
     background: var(--netoggle-background);
     border-color: var(--netoggle-border-color);
 }
 
-.ui .tristate input[type="checkbox"].toggle.false::before {
+.ui .booleanOrNull input[type="checkbox"].toggle.false::before {
     background: var(--netoggle-dot-background);
     outline: 1px solid var(--netoggle-dot-border-color);
 
@@ -275,7 +275,7 @@ a {
 }
 
 .ui label:hover input[type="checkbox"].toggle::before,
-.ui .tristate label:hover input[type="checkbox"].toggle::before {
+.ui .booleanOrNull label:hover input[type="checkbox"].toggle::before {
     --netoggle-dot-background: var(--hover-background);
     --notoggle-dot-background: var(--hover-background);
     --toggle-dot-background: var(--hover-background);
@@ -290,7 +290,7 @@ a {
     --toggle-border-color: var(--toggle-border-color-bad);
 }
 
-.ui .tristate.prefer-off input[type="checkbox"].toggle {
+.ui .booleanOrNull.prefer-off input[type="checkbox"].toggle {
     --notoggle-background: var(--notoggle-background-bad);
     --notoggle-border-color: var(--notoggle-border-color-bad);
 }
@@ -304,7 +304,7 @@ a {
     --toggle-border-color: var(--toggle-border-color-good);
 }
 
-.ui .tristate.prefer-nooff input[type="checkbox"].toggle {
+.ui .booleanOrNull.prefer-nooff input[type="checkbox"].toggle {
     --netoggle-background: var(--netoggle-background-bad);
     --netoggle-border-color: var(--netoggle-border-color-bad);
     --notoggle-background: var(--notoggle-background-good);
@@ -601,20 +601,20 @@ input.attention {
     transform: translate(14px, calc(50% - 15px));
 }
 
-.season .ui .tristate input[type="checkbox"].toggle {
+.season .ui .booleanOrNull input[type="checkbox"].toggle {
     --notoggle-background: var(--text-inactive-background);
     --notoggle-border-color: var(--text-inactive-color);
 }
 
-.season .ui .tristate input[type="checkbox"].toggle::before {
+.season .ui .booleanOrNull input[type="checkbox"].toggle::before {
     transform: translate(6px, calc(50% - 11px));
 }
 
-.season .ui .tristate input[type="checkbox"].toggle.false::before {
+.season .ui .booleanOrNull input[type="checkbox"].toggle.false::before {
     transform: translate(-8px, calc(50% - 7px));
 }
 
-.season .ui .tristate input[type="checkbox"].toggle:checked::before {
+.season .ui .booleanOrNull input[type="checkbox"].toggle:checked::before {
     transform: translate(19px, calc(50% - 15px));
 }
 }

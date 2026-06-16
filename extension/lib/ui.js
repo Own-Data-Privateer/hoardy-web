@@ -209,10 +209,10 @@ function setUI(node, prefix, value, update) {
 
     let div = node.getElementById("div-" + prefix);
     if (div !== null) {
-        if (div.classList.contains("tristate"))
-            typ = "tristate";
-        else if (div.classList.contains("omega"))
-            typ = "omega";
+        if (div.classList.contains("booleanOrNull"))
+            typ = "booleanOrNull";
+        else if (div.classList.contains("numberOrNull"))
+            typ = "numberOrNull";
     }
 
     //console.log("setting UI", prefix, typ, el, value);
@@ -223,8 +223,8 @@ function setUI(node, prefix, value, update) {
             el.onchange = () => {
                 update(el.checked, prefix);
             };
-    } else if (typ === "tristate" && el.tagName === "INPUT" && el.type === "checkbox") {
-        // emulating tristate using a checkbox:
+    } else if (typ === "booleanOrNull" && el.tagName === "INPUT" && el.type === "checkbox") {
+        // emulating booleanOrNull using a checkbox:
         // - true -> true,
         // - false -> null,
         // - false + .false class -> false
@@ -276,9 +276,9 @@ function setUI(node, prefix, value, update) {
                     resetSingletonTimeout(scheduledUI, `update-${prefix}`, 0, () => onchange());
             }
         }
-    } else if (typ === "omega" && el.tagName === "INPUT" && el.type === "number") {
+    } else if (typ === "numberOrNull" && el.tagName === "INPUT" && el.type === "number") {
         let cvalue = value;
-        let checkbox = node.getElementById(prefix + "-omega");
+        let checkbox = node.getElementById(prefix + "-notNull");
         checkbox.checked = value !== null;
         el.disabled = value === null;
         if (update !== undefined) {
@@ -390,11 +390,11 @@ function makeUI(node) {
         return ne;
     }
 
-    if (typ === "tristate")
+    if (typ === "booleanOrNull")
         place(0, "boolean", "");
-    else if (typ === "omega") {
+    else if (typ === "numberOrNull") {
         place(1, "number", "");
-        place(0, "boolean", "-omega");
+        place(0, "boolean", "-notNull");
     } else
         place(0, typ, "");
 
