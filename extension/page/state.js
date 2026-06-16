@@ -60,14 +60,27 @@ async function stateMain() {
     buttonToMessage("archiveBuggedOut",     () => ["archiveBuggedOut", rrfilters.buggedOut]);
     buttonToMessage("deleteBuggedOut",      () => ["deleteBuggedOut", rrfilters.buggedOut]);
 
-    setUI(document, "rrfilters", rrfilters, (value, path) => {
-        let cid = capitalize(path.split(".")[1]);
-        let resetFunc = dataNodeUpdaters["reset" + cid];
-        if (resetFunc !== undefined)
-            browser.runtime.sendMessage(["get" + cid]).then(resetFunc).catch(logError);
-        else
-            console.warn("unknown update", path, value);
-    });
+    for (let id of Object.keys(rrfilters)) {
+        let cid = capitalize(id);
+        let getCid = ["get" + cid];
+        let resetCid = "reset" + cid;
+        let resetFunc = dataNodeUpdaters[resetCid];
+
+        if (resetFunc === undefined) {
+            console.error("no node updater for", id);
+            continue;
+        }
+
+        let reset = setUI(document, "rrfilters." + id, rrfilters[id], (value, path, resetting) => {
+            resetSingletonTimeout(
+                scheduledUI,
+                resetCid,
+                resetting ? 300 : 0,
+                () => browser.runtime.sendMessage(getCid).then(resetFunc).catch(logError)
+            );
+        });
+        buttonToAction("reset-rrfilters." + id, reset);
+    }
 
     async function updateConfig(config) {
         if (config === undefined)

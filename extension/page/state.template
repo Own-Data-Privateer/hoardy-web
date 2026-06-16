@@ -10,132 +10,151 @@
   <body>
     <div id="body_loading" style="display: none"></div>
     <div id="body_error" style="display: none"></div>
-    <div id="body" style="display: none">
+    <div id="body" class="ui" style="display: none">
     <!-- body -->
 
     <span id="top"></span>
-    <h1 id="in_flight" class="ui">In flight
-      <span class="controls">
-        <ui id="rrfilters.inFlight.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
-        <ui id="rrfilters.inFlight.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
-      </span>
+
+    <h1 id="in_flight">In flight
       <span class="right">
-        <input id="stopInFlight" type="button" data-help="Stop tracking all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup." value="Stop tracking" />
+        <input id="stopInFlight" type="button" data-help="Stop tracking all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup." value="⏹ Stop tracking all" />
       </span>
     </h1>
+    <search><div>
+      <input id="reset-rrfilters.inFlight" type="button" value="Reset" />
+      <ui id="rrfilters.inFlight.url" type="search" trim timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+      <ui id="rrfilters.inFlight.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+    </div></search>
     <table><tbody id="data-inFlight"></tbody></table>
 
-    <h1 id="problematic" class="ui">Problematic
-      <span class="controls">
-        <ui id="rrfilters.problematic.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
-        <ui id="rrfilters.problematic.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
-      </span>
+    <h1 id="problematic">Problematic
       <span class="right">
+        <input id="rotateOneProblematic" type="button" data-help="Move the first reqres displayed below to the end." value="Rotate the first one" />
         <input id="unmarkOneProblematic" type="button" data-help="Unset `problematic` flag from the first reqres displayed below." value="Unmark the first one" />
-        <input id="unmarkAllProblematic" type="button" data-help="Unset `problematic` flag from all reqres displayed below." value="Unmark all" />
+        <input id="unmarkAllProblematic" type="button" data-help="Unset `problematic` flag from all reqres displayed below." value="🧹 Unmark all" />
       </span>
     </h1>
-    <div class="controls ui">
-      <ui id="rrfilters.problematic.in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;in_limbo&quot; flag.">In limbo</ui>
-      <ui id="rrfilters.problematic.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.problematic.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
-      <ui id="rrfilters.problematic.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
-      <input id="rotateOneProblematic" type="button" data-help="Move the first reqres displayed below to the end." value="Rotate the first one" />
-    </div>
+    <search>
+      <div>
+        <input id="reset-rrfilters.problematic" type="button" value="Reset" />
+        <ui id="rrfilters.problematic.url" type="search" trim timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+        <ui id="rrfilters.problematic.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+      </div>
+      <div>
+        <ui id="rrfilters.problematic.in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;in_limbo&quot; flag.">In limbo</ui>
+        <ui id="rrfilters.problematic.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
+        <ui id="rrfilters.problematic.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
+        <ui id="rrfilters.problematic.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+      </div>
+    </search>
     <table><tbody id="data-problematic"></tbody></table>
 
-    <h1 id="in_limbo" class="ui">In limbo
-      <span class="controls">
-        <ui id="rrfilters.inLimbo.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
-        <ui id="rrfilters.inLimbo.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
-      </span>
+    <h1 id="in_limbo">In limbo
       <span class="right">
+        <input id="rotateOneInLimbo" type="button" data-help="Move the first reqres displayed below to the end." value="Rotate the first one" />
+        <input id="collectOneInLimbo" type="button" data-help="Collect the first reqres displayed below." value="Collect the first one" />
         <input id="discardOneInLimbo" type="button" data-help="Discard the first reqres displayed below." value="Discard the first one" />
-        <input id="discardAllInLimbo" type="button" data-help="Discard all reqres displayed below." value="Discard all" />
+        <input id="collectAllInLimbo" type="button" data-help="Collect all reqres displayed below." value="✔ Collect all" />
+        <input id="discardAllInLimbo" type="button" data-help="Discard all reqres displayed below." value="✖ Discard all" />
       </span>
     </h1>
-    <div class="controls ui">
-      <ui id="rrfilters.inLimbo.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
-      <ui id="rrfilters.inLimbo.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
-      <ui id="rrfilters.inLimbo.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
-      <ui id="rrfilters.inLimbo.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
-      <input id="rotateOneInLimbo" type="button" data-help="Move the first reqres displayed below to the end." value="Rotate the first one" />
-      <input id="collectOneInLimbo" type="button" data-help="Collect the first reqres displayed below." value="Collect the first one" />
-      <input id="collectAllInLimbo" type="button" data-help="Collect all reqres displayed below." value="Collect all" />
-    </div>
+    <search>
+      <div>
+        <input id="reset-rrfilters.inLimbo" type="button" value="Reset" />
+        <ui id="rrfilters.inLimbo.url" type="search" trim timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+        <ui id="rrfilters.inLimbo.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+      </div>
+      <div>
+        <ui id="rrfilters.inLimbo.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+        <ui id="rrfilters.inLimbo.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+        <ui id="rrfilters.inLimbo.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
+        <ui id="rrfilters.inLimbo.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+      </div>
+    </search>
     <table><tbody id="data-inLimbo"></tbody></table>
 
-    <h1 id="log" class="ui">Recent history log
-      <span class="controls">
-        <ui id="rrfilters.log.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
-        <ui id="rrfilters.log.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
-      </span>
+    <h1 id="log">Recent history log
       <span class="right">
         <input id="forgetLog" type="button" data-help="Forget about all the requests displayed below except for those that are still marked as &quot;problematic&quot;." value="Forget all" />
       </span>
     </h1>
-    <div class="controls ui">
-      <ui id="rrfilters.log.collected" type="booleanOrNull" data-help="Tristate filter for the &quot;collected/discarded&quot; state.">Collected</ui>
-      <ui id="rrfilters.log.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
-      <ui id="rrfilters.log.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
-      <ui id="rrfilters.log.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.log.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
-      <ui id="rrfilters.log.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
-    </div>
+    <search>
+      <div>
+        <input id="reset-rrfilters.log" type="button" value="Reset" />
+        <ui id="rrfilters.log.url" type="search" trim timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+        <ui id="rrfilters.log.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+      </div>
+      <div>
+        <ui id="rrfilters.log.collected" type="booleanOrNull" data-help="Tristate filter for the &quot;collected/discarded&quot; state.">Collected</ui>
+        <ui id="rrfilters.log.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+        <ui id="rrfilters.log.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+        <ui id="rrfilters.log.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
+        <ui id="rrfilters.log.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
+        <ui id="rrfilters.log.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+      </div>
+    </search>
     <table><tbody id="data-log"></tbody></table>
     <!-- This anchor goes here, because we usually want to see the tail of the log. -->
     <span id="tail"></span>
 
-    <h1 id="queued" class="ui">Queued
-      <span class="controls">
+    <h1 id="queued">Queued</h1>
+    <search>
+      <div>
+        <input id="reset-rrfilters.queued" type="button" value="Reset" />
+        <ui id="rrfilters.queued.url" type="search" trim timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
         <ui id="rrfilters.queued.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
-        <ui id="rrfilters.queued.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
-      </span>
-    </h1>
-    <div class="controls ui">
-      <ui id="rrfilters.queued.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
-      <ui id="rrfilters.queued.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
-      <ui id="rrfilters.queued.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.queued.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
-      <ui id="rrfilters.queued.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
-    </div>
+      </div>
+      <div>
+        <ui id="rrfilters.queued.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+        <ui id="rrfilters.queued.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+        <ui id="rrfilters.queued.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
+        <ui id="rrfilters.queued.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
+        <ui id="rrfilters.queued.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+      </div>
+    </search>
     <table><tbody id="data-queued"></tbody></table>
 
-    <h1 id="unarchived" class="ui">Failed to archive
-      <span class="controls">
-        <ui id="rrfilters.unarchived.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
-        <ui id="rrfilters.unarchived.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
-      </span>
+    <h1 id="unarchived">Failed to archive
       <span class="right">
-        <input id="retryUnarchived" type="button" data-help="Move all reqres displayed below to the archival queue and then nudge the archiving sub-process awake." value="Retry all" />
+        <input id="retryUnarchived" type="button" data-help="Move all reqres displayed below to the archival queue and then nudge the archiving sub-process awake." value="♻ Retry all" />
       </span>
     </h1>
-    <div class="controls ui">
-      <ui id="rrfilters.unarchived.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
-      <ui id="rrfilters.unarchived.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
-      <ui id="rrfilters.unarchived.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.unarchived.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
-      <ui id="rrfilters.unarchived.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
-    </div>
+    <search>
+      <div>
+        <input id="reset-rrfilters.unarchived" type="button" value="Reset" />
+        <ui id="rrfilters.unarchived.url" type="search" trim timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+        <ui id="rrfilters.unarchived.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+      </div>
+      <div>
+        <ui id="rrfilters.unarchived.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+        <ui id="rrfilters.unarchived.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+        <ui id="rrfilters.unarchived.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
+        <ui id="rrfilters.unarchived.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
+        <ui id="rrfilters.unarchived.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+      </div>
+    </search>
     <table><tbody id="data-unarchived"></tbody></table>
 
-    <h1 id="buggedOut" class="ui">Bugged out
-      <span class="controls">
-        <ui id="rrfilters.buggedOut.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
-        <ui id="rrfilters.buggedOut.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
-      </span>
+    <h1 id="buggedOut">Bugged out
       <span class="right">
-        <input id="archiveBuggedOut" type="button" data-help="Drop reqres displayed below from the bugged out list, push them into the archiving queue, and nudge the archiving process awake. If the archiving process bugs out, they will end up in this list again." value="Re-queue" />
-        <input id="deleteBuggedOut" type="button" data-help="Drop reqres displayed below from the bugged out list and delete them local storage if they have any stashed or saved data there." value="Delete" />
+        <input id="archiveBuggedOut" type="button" data-help="Drop reqres displayed below from the bugged out list, push them into the archiving queue, and nudge the archiving process awake. If the archiving process bugs out, they will end up in this list again." value="Re-queue all" />
+        <input id="deleteBuggedOut" type="button" data-help="Drop reqres displayed below from the bugged out list and delete them local storage if they have any stashed or saved data there." value="Delete all" />
       </span>
     </h1>
-    <div class="controls ui">
-      <ui id="rrfilters.buggedOut.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
-      <ui id="rrfilters.buggedOut.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
-      <ui id="rrfilters.buggedOut.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.buggedOut.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
-      <ui id="rrfilters.buggedOut.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
-    </div>
+    <search>
+      <div>
+        <input id="reset-rrfilters.buggedOut" type="button" value="Reset" />
+        <ui id="rrfilters.buggedOut.url" type="search" trim timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+        <ui id="rrfilters.buggedOut.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+      </div>
+      <div>
+        <ui id="rrfilters.buggedOut.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+        <ui id="rrfilters.buggedOut.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+        <ui id="rrfilters.buggedOut.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
+        <ui id="rrfilters.buggedOut.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
+        <ui id="rrfilters.buggedOut.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+      </div>
+    </search>
     <table><tbody id="data-buggedOut"></tbody></table>
 
     <!-- body -->

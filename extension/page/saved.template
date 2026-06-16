@@ -10,34 +10,38 @@
   <body>
     <div id="body_loading" style="display: none"></div>
     <div id="body_error" style="display: none"></div>
-    <div id="body" style="display: none">
+    <div id="body" class="ui" style="display: none">
+
     <span id="top"></span>
 
-    <h1 class="ui">Saved
-      <span class="controls">
-        <ui id="rrfilters.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
-        <ui id="rrfilters.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
-      </span>
+    <h1>Saved
       <span class="right">
-        <input id="rearchiveSaved" type="button" class="on-rearchive" data-help="Re-archive reqres currently displayed below with all currently enabled re-archival methods (configured in the settings)." value="Re-archive" />
+        <input id="rearchiveSaved" type="button" class="on-rearchive" data-help="Re-archive reqres currently displayed below with all currently enabled re-archival methods (configured in the settings)." value="Re-archive all" />
         <ui id="rearchive.andRewrite" type="boolean" style="font-size: 50%" data-help="After re-archival, forcefully re-write them from/to browser&#039;s local storage. This is only useful for debugging and for migration between local storage backends.">... and re-write</ui>
         <ui id="rearchive.andDelete" type="boolean" class="on-rearchive" style="font-size: 50%" data-help="After re-archival succeeds, delete them from browser&#039;s local storage.">... and delete</ui>
-        <input id="deleteSaved" type="button" data-help-class="help-tip-right" data-help="Delete all reqres currently displayed below from local storage." value="Delete" />
+        <input id="deleteSaved" type="button" data-help-class="help-tip-right" data-help="Delete all reqres currently displayed below from local storage." value="Delete all" />
       </span>
     </h1>
-    <div class="controls ui">
-      <ui id="rrfilters.limit" type="numberOrNull" class="c" data-default="1024" data-help="Load no more than this many elements.">{} At most {} elements</ui>
-      <ui id="rrfilters.did_exportAs" type="booleanOrNull" data-help="Tristate filter for the &quot;exported via `saveAs`&quot; flag.">Exported via <code>saveAs</code></ui>
-      <ui id="rrfilters.did_submitHTTP" type="booleanOrNull" data-help="Tristate filter for the &quot;submitted via `HTTP`&quot; flag.">Submitted via <code>HTTP</code></ui>
-      <ui id="rrfilters.in_ls" type="booleanOrNull" data-help="Tristate filter for the &quot;in `storage.local`&quot;/&quot;in `IndexedDB`&quot; flag.">In <code>storage.local</code></ui>
-    </div>
-    <div class="controls ui">
-      <ui id="rrfilters.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
-      <ui id="rrfilters.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
-      <ui id="rrfilters.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
-      <ui id="rrfilters.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
-      <ui id="rrfilters.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
-    </div>
+    <search>
+      <div>
+        <input id="reset-rrfilters" type="button" value="Reset" />
+        <ui id="rrfilters.url" type="search" trim timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
+        <ui id="rrfilters.url_algo" type="booleanOrNull" data-help="URL matching algorithm tristate of: exact, substring, regexp.">Match</ui>
+        <ui id="rrfilters.limit" type="numberOrNull" class="c" data-default="1024" data-help="Load no more than this many elements.">{} At most {} elements</ui>
+      </div>
+      <div>
+        <ui id="rrfilters.did_exportAs" type="booleanOrNull" data-help="Tristate filter for the &quot;exported via `saveAs`&quot; flag.">Exported via <code>saveAs</code></ui>
+        <ui id="rrfilters.did_submitHTTP" type="booleanOrNull" data-help="Tristate filter for the &quot;submitted via `HTTP`&quot; flag.">Submitted via <code>HTTP</code></ui>
+        <ui id="rrfilters.in_ls" type="booleanOrNull" data-help="Tristate filter for the &quot;in `storage.local`&quot;/&quot;in `IndexedDB`&quot; flag.">In <code>storage.local</code></ui>
+      </div>
+      <div>
+        <ui id="rrfilters.problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;problematic&quot; flag.">Problematic</ui>
+        <ui id="rrfilters.was_problematic" type="booleanOrNull" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
+        <ui id="rrfilters.was_in_limbo" type="booleanOrNull" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
+        <ui id="rrfilters.with_errors" type="booleanOrNull" data-help="Tristate filter for a reqres having errors.">With errors</ui>
+        <ui id="rrfilters.picked" type="booleanOrNull" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
+      </div>
+    </search>
     <table>
       <tbody id="data"></tbody>
     </table>

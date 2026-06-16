@@ -61,9 +61,15 @@ async function stateMain() {
         else
             savedFilters = nsavedFilters;
 
-        setUI(document, "rrfilters", savedFilters, (value, path) => {
-            browser.runtime.sendMessage(["setSavedFilters", value]).catch(logError);
+        let reset = setUI(document, "rrfilters", savedFilters, (value, path, resetting) => {
+            resetSingletonTimeout(
+                scheduledUI,
+                "setSavedFilters",
+                resetting ? 300 : 0,
+                () => browser.runtime.sendMessage(["setSavedFilters", value]).catch(logError)
+            );
         });
+        buttonToAction("reset-rrfilters", reset);
     }
 
     async function processUpdate(update) {
