@@ -181,25 +181,67 @@ function replaceElements(node, ...args) {
     node.replaceChildren(...(createElements(...args)));
 }
 
+// emulating booleanOrNull using a checkbox:
+// - true -> checked,
+// - null -> !checked,
+// - false -> !checked + .false class
+function setBooleanOrNull(el, value) {
+    el.checked = value === true;
+    if (value === false)
+        el.classList.add("false");
+    else
+        el.classList.remove("false");
+}
+
+function setNumberOrNull(checkbox, el, value) {
+    if (value === null) {
+        el.disabled = true;
+        checkbox.checked = false;
+    } else {
+        el.disabled = false;
+        el.value = value;
+        checkbox.checked = true;
+    }
+}
+
 let scheduledUI = new Map();
+
+function _mkHandleOnChange(prefix, update, value, getValue, setValue) {
+    let cvalue = value;
+    return (event, partial) => {
+        let nvalue = getValue(event, partial);
+
+        if (nvalue === cvalue)
+            return;
+        cvalue = nvalue;
+
+        if (setValue !== undefined)
+            setValue(nvalue, event, partial);
+        update(nvalue, prefix);
+    };
+}
+
+function _mkHandleKeyUp(prefix, timeout, onchange) {
+    return (event) => {
+        if (event.key === "Enter")
+            resetSingletonTimeout(scheduledUI, `update-${prefix}`, 0, () => onchange(event));
+        else if (timeout !== 0)
+            resetSingletonTimeout(scheduledUI, `update-${prefix}`, timeout, () => onchange(event, true));
+    };
+}
 
 // set values of DOM elements from a given object
 function setUI(node, prefix, value, update) {
     let typ = typeof value;
 
-    if (typ === "object" && value !== null) {
-        if (update === undefined) {
-            for (let k of Object.keys(value)) {
-                setUI(node, prefix ? prefix + "." + k : k, value[k]);
-            }
-        } else {
-            for (let k of Object.keys(value)) {
-                setUI(node, prefix ? prefix + "." + k : k, value[k], (newvalue, path) => {
-                    value[k] = newvalue;
-                    update(value, path);
-                });
-            }
+    if (value !== null && typ === "object") {
+        for (let k of Object.keys(value)) {
+            setUI(node, prefix ? prefix + "." + k : k, value[k], update !== undefined ? ((newvalue, path) => {
+                value[k] = newvalue;
+                update(value, path);
+            }) : undefined);
         }
+
         return;
     }
 
@@ -209,108 +251,147 @@ function setUI(node, prefix, value, update) {
 
     let div = node.getElementById("div-" + prefix);
     if (div !== null) {
-        if (div.classList.contains("booleanOrNull"))
+        if ((value === null || typ === "boolean") && div.classList.contains("booleanOrNull"))
             typ = "booleanOrNull";
-        else if (div.classList.contains("numberOrNull"))
+        else if ((value === null || typ === "number") && div.classList.contains("numberOrNull"))
             typ = "numberOrNull";
     }
 
     //console.log("setting UI", prefix, typ, el, value);
 
-    if (typ === "boolean" && el.tagName === "INPUT" && el.type === "checkbox") {
-        el.checked = value;
-        if (update !== undefined)
-            el.onchange = () => {
-                update(el.checked, prefix);
-            };
-    } else if (typ === "booleanOrNull" && el.tagName === "INPUT" && el.type === "checkbox") {
-        // emulating booleanOrNull using a checkbox:
-        // - true -> true,
-        // - false -> null,
-        // - false + .false class -> false
-        let cvalue = value;
-        el.checked = value === true;
-        if (value === false)
-            el.classList.add("false");
-        if (update !== undefined)
-            el.onchange = () => {
-                // switch it like this:
-                // null -> true -> false -> null
-                let nvalue = el.checked;
-                if (el.classList.contains("false")) {
-                    nvalue = null;
-                    el.checked = false;
-                    el.classList.remove("false");
-                } else if (!nvalue)
-                    el.classList.add("false");
-
-                if (nvalue === cvalue)
-                    return;
-
-                cvalue = nvalue;
-                update(nvalue, prefix);
-            };
-    } else if ((typ === "number" || typ === "string") && el.tagName === "INPUT"
-               && (el.type === "number" || el.type === "text" || el.type === "button")) {
-        let cvalue = value;
-        el.value  = value;
-        if (update !== undefined && el.type != "button") {
-            let onchange = () => {
-                let nvalue = el.value;
-                if (typ === "number")
-                    nvalue = Number(nvalue).valueOf();
-                else if (typ === "string")
-                    nvalue = String(nvalue).valueOf();
-
-                if (nvalue === cvalue)
-                    return;
-
-                cvalue = nvalue;
-                update(nvalue, prefix);
-            };
-            el.onchange = onchange;
-
-            let timeout = Number(div.getAttribute("timeout")).valueOf();
-            el.onkeyup = (event) => {
-                if (timeout !== 0 || event.key === "Enter")
-                    resetSingletonTimeout(scheduledUI, `update-${prefix}`, 0, () => onchange());
-            }
-        }
-    } else if (typ === "numberOrNull" && el.tagName === "INPUT" && el.type === "number") {
-        let cvalue = value;
-        let checkbox = node.getElementById(prefix + "-notNull");
-        checkbox.checked = value !== null;
-        el.disabled = value === null;
-        if (update !== undefined) {
-            let onchange = () => {
-                let isNull = !checkbox.checked;
-                let nvalue = isNull ? null : Number(el.value).valueOf();
-                if (isNull)
-                    div.classList.add("null");
-                else
-                    div.classList.remove("null");
-                el.disabled = isNull;
-
-                if (nvalue === cvalue)
-                    return;
-
-                cvalue = nvalue;
-                update(nvalue, prefix);
-            };
-            checkbox.onchange = onchange;
-            el.onchange = onchange;
-
-            let timeout = Number(div.getAttribute("timeout")).valueOf();
-            el.onkeyup = (event) => {
-                if (timeout !== 0 || event.key === "Enter")
-                    resetSingletonTimeout(scheduledUI, `update-${prefix}`, 0, () => onchange());
-            }
-        }
-    } else
+    if (el.tagName !== "INPUT") {
+        // fallback so that this function could be used to set values of rangom HTML elements
         el.innerText = value;
+        return;
+    }
+
+    let etyp = el.type;
+
+    if (etyp === "button" && (typ === "number" || typ === "string")) {
+        // fallback so that this function could be used to assign button labels
+        el.value = value;
+        return;
+    }
+
+    // actual implementation follows
+
+    switch (typ) {
+    case "boolean": {
+        if (etyp !== "checkbox")
+            break;
+
+        el.checked = value;
+
+        if (update === undefined)
+            return;
+
+        el.onchange = _mkHandleOnChange(
+            prefix, update,
+            value,
+            () => el.checked,
+        );
+
+        return;
+    }
+
+    case "booleanOrNull": {
+        if (etyp !== "checkbox")
+            break;
+
+        setBooleanOrNull(el, value);
+
+        if (update === undefined)
+            return;
+
+        el.onchange = _mkHandleOnChange(
+            prefix, update,
+            value,
+            () => {
+                // switch it like this: false -> null -> true -> false
+                return el.classList.contains("false") ? null : el.checked;
+            },
+            (nvalue) => setBooleanOrNull(el, nvalue),
+        );
+
+        return;
+    }
+
+    case "number": {
+        if (etyp !== "number")
+            break;
+
+        el.value = value;
+
+        if (update === undefined)
+            return;
+
+        let onchange = _mkHandleOnChange(
+            prefix, update,
+            value,
+            () => Number(el.value).valueOf(),
+        );
+        el.onchange = onchange;
+
+        let timeout = Number(div.getAttribute("timeout")).valueOf();
+        el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
+
+        return;
+    }
+
+    case "numberOrNull": {
+        if (etyp !== "number")
+            break;
+
+        let checkbox = node.getElementById(prefix + "-notNull");
+        setNumberOrNull(checkbox, el, value);
+
+        if (update === undefined)
+            return;
+
+        let onchange = _mkHandleOnChange(
+            prefix, update,
+            value,
+            () => checkbox.checked ? Number(el.value).valueOf() : null,
+            (nvalue) => setNumberOrNull(checkbox, el, nvalue),
+        );
+        checkbox.onchange = onchange;
+        el.onchange = onchange;
+
+        let timeout = Number(div.getAttribute("timeout")).valueOf();
+        el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
+
+        return;
+    }
+
+    case "string": {
+        if (etyp !== "text")
+            break;
+
+        el.value = value;
+
+        if (update === undefined)
+            return;
+
+        let onchange = _mkHandleOnChange(
+            prefix, update,
+            value,
+            () => {
+                return String(el.value).valueOf();
+            },
+        );
+        el.onchange = onchange;
+
+        let timeout = Number(div.getAttribute("timeout")).valueOf();
+        el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
+
+        return;
+    }
+    }
+
+    throw new Error(`setUI: can't set ${typ} to ${etyp}`);
 }
 
-// setUI, but with recursive updates
+// setUI, but with recursive updates for when `update` modifies the `value` too
 function setUIRec(node, prefix, value, update) {
     if (update === undefined)
         return setUI(node, prefix, value);
