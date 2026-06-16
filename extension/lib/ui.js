@@ -401,7 +401,7 @@ function setUIInternal(node, prefix, value, update, resetAcc) {
     }
 
     case "string": {
-        if (etyp !== "text")
+        if (etyp !== "text" && etyp !== "search")
             break;
 
         el.value = value;
@@ -501,7 +501,8 @@ function createUINodes(typ, id, name, tabindex, defvalue) {
         return els;
 
     case "string":
-        el.type = "text";
+    case "search":
+        el.type = typ === "string" ? "text" : typ;
         el.value = defvalue || "";
         return [el];
     }

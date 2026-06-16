@@ -205,6 +205,7 @@ a {
 
 .ui input[type="number"]:hover,
 .ui input[type="text"]:hover,
+.ui input[type="search"]:hover,
 .ui input[type="button"]:hover {
     background: var(--hover-background);
     border: 1px solid var(--hover-border-color);
@@ -366,7 +367,8 @@ div.help-tip {
 
 .ui .genui label,
 .ui .genui label input[type="number"],
-.ui .genui label input[type="text"] {
+.ui .genui label input[type="text"],
+.ui .genui label input[type="search"] {
     flex: 1 1 auto;
     margin: auto 0;
 }
@@ -378,6 +380,7 @@ div.help-tip {
 
 .ui .genui label input[type="number"],
 .ui .genui label input[type="text"],
+.ui .genui label input[type="search"],
 .ui .genui label input[type="checkbox"] {
     margin: auto 0;
 }
@@ -387,12 +390,14 @@ div.help-tip {
 }
 
 .ui .genui label input[type="number"]:nth-last-child(1),
-.ui .genui label input[type="text"]:nth-last-child(1) {
+.ui .genui label input[type="text"]:nth-last-child(1),
+.ui .genui label input[type="search"]:nth-last-child(1) {
     margin-left: 1ch;
 }
 
 .ui .genui.c label input[type="number"],
 .ui .genui.c label input[type="text"],
+.ui .genui.c label input[type="search"],
 .ui .genui.c label input[type="checkbox"] {
     margin: auto 1ch;
 }
