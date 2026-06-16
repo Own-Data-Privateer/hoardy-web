@@ -409,11 +409,21 @@ function setUIInternal(node, prefix, value, update, resetAcc) {
         if (update === undefined)
             return;
 
+        let trim = div.getAttribute("trim") !== null;
+
         let onchange = _mkHandleOnChange(
             prefix, update,
             value,
-            () => {
-                return String(el.value).valueOf();
+            (event, partial) => {
+                let nvalue = String(el.value).valueOf();
+
+                if (trim) {
+                    nvalue = nvalue.trim();
+                    if (!partial)
+                        el.value = nvalue;
+                }
+
+                return nvalue;
             },
         );
         el.onchange = onchange;
