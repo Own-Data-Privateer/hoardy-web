@@ -404,6 +404,67 @@ function setUIRec(node, prefix, value, update) {
     return setUI(node, prefix, value, recUpdate);
 }
 
+function createUINodes(typ, id, name, tabindex, defvalue) {
+    let el = document.createElement("input");
+    el.id = id;
+    el.name = name;
+    if (isValid(tabindex))
+        el.setAttribute("tabindex", tabindex);
+
+    switch (typ) {
+    case "boolean":
+    case "booleanOrNull":
+        el.type = "checkbox";
+        el.classList.add("toggle");
+
+        if (typ === "boolean")
+            el.checked = defvalue === "true";
+        else {
+            defvalue = defvalue === null || defvalue === "null" ? null : defvalue === "true";
+            setBooleanOrNull(el, defvalue);
+        }
+
+        return [el];
+
+    case "number":
+    case "numberOrNull":
+        el.type = "number";
+
+        if (typ === "number") {
+            el.value = defvalue || "0";
+            return [el];
+        }
+
+        let els = createUINodes("boolean", id + "-notNull", id, tabindex, null);
+        els.push(el);
+
+        defvalue = defvalue === null || defvalue === "null" ? null : (defvalue || "0");
+        setNumberOrNull(els[0], el, defvalue);
+        return els;
+
+    case "string":
+        el.type = "text";
+        el.value = defvalue || "";
+        return [el];
+    }
+
+    throw new Error(`createUINodes: unknown node type: ${typ}`);
+}
+
+function placeUINodes(node, places, typ, ...args) {
+    let els = createUINodes(typ, ...args);
+    let elslen = els.length;
+    for (let i = 0; i < els.length; ++i) {
+        let child = places[i];
+        if (child !== undefined)
+            node.replaceChild(els[i], child);
+        else if (typ.startsWith("boolean"))
+            node.prepend(els[i]);
+        else
+            node.append(els[i]);
+    }
+}
+
 // given a DOM node, replace <ui> nodes with corresponding UI elements
 function makeUI(node) {
     for (let child of node.childNodes) {
@@ -435,54 +496,8 @@ function makeUI(node) {
 
     let lbl = document.createElement("label");
     lbl.innerHTML = node.innerHTML.replaceAll("{}", `<span class="placeholder"></span>`);
-    let placeholders = lbl.getElementsByClassName("placeholder");
-
-    function mk(tt, sub) {
-        let el = document.createElement("input");
-        el.id = id + sub;
-        el.name = id;
-        if (tabindex !== null)
-            el.setAttribute("tabindex", tabindex);
-
-        switch (tt) {
-        case "boolean":
-            el.type = "checkbox";
-            el.classList.add("toggle");
-            el.checked = defvalue || false;
-            break;
-        case "number":
-            el.type = "number";
-            el.value = defvalue || 0;
-            break;
-        case "string":
-            el.type = "text";
-            el.value = defvalue || "";
-            break;
-        }
-
-        return el;
-    }
-
-    function place(i, tt, sub) {
-        let el = mk(tt, sub);
-        let placeholder = placeholders[i];
-        if (placeholder !== undefined)
-            lbl.replaceChild(el, placeholder);
-        else if (tt !== "boolean")
-            lbl.append(el);
-        else
-            lbl.prepend(el);
-        return el;
-    }
-
-    if (typ === "booleanOrNull")
-        place(0, "boolean", "");
-    else if (typ === "numberOrNull") {
-        place(1, "number", "");
-        place(0, "boolean", "-notNull");
-    } else
-        place(0, typ, "");
-
+    let places = lbl.getElementsByClassName("placeholder");
+    placeUINodes(lbl, places, typ, id, id, tabindex, defvalue);
     div.append(lbl);
 
     node.parentElement.replaceChild(div, node);
