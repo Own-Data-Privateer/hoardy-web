@@ -25,7 +25,7 @@
 
 let dbody = document.body;
 
-const tagNames = ["common", "main", "bg", "this", "class", "pr", "rt", "ui", "all"];
+const tagNames = ["def", "glob", "bg", "tab", "cls", "pr", "rt", "ui", "all"];
 
 function showTab(name) {
     //implySetConditionalClass(dbody, "more", "hidden", !condition);
@@ -48,7 +48,7 @@ function showTab(name) {
             node.classList.remove("hidden");
     }
 
-    if (name !== "common")
+    if (name !== "def")
         for (let node of dbody.getElementsByTagName("input")) {
             let ti = node.getAttribute("tabindex");
             if (ti !== null && ti != -1) {
@@ -419,7 +419,7 @@ async function popupMain() {
             dbody.style.border = "none";
         }
     } else
-        showTab("common");
+        showTab("def");
 
     // finish
     setPageDone();
