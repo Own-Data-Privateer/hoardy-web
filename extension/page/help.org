@@ -4,8 +4,7 @@
 #+MACRO: tabconfig2 [[./popup.html#div-tabconfig.$1][$2]]
 #+MACRO: button2 [[./popup.html#$1][$2]]
 #+MACRO: stat ([[./popup.html#div-stats.$1][glob]])
-#+MACRO: tabstat ([[./popup.html#div-tabstats.$1][cur]])
-#+MACRO: bothstats ([[./popup.html#div-stats.$1][glob]], [[./popup.html#div-tabstats.$1][cur]])
+#+MACRO: stats ([[./popup.html#div-stats.$1][glob]], [[./popup.html#div-tabstats.$1][cur]])
 #+MACRO: globPerSource ([[./popup.html#div-config.$1][glob]], [[./popup.html#div-tabconfig.$1][cur]], [[./popup.html#div-tabconfig.children.$1][chld]], [[./popup.html#div-config.root.$1][root]], [[./popup.html#div-config.background.$1][bg]], [[./popup.html#div-config.extension.$1][ext]])
 #+MACRO: perSource ([[./popup.html#div-tabconfig.$1][cur]], [[./popup.html#div-tabconfig.children.$1][chld]], [[./popup.html#div-config.root.$1][root]], [[./popup.html#div-config.background.$1][bg]], [[./popup.html#div-config.extension.$1][ext]])
 #+MACRO: perSource0 ([[./popup.html#div-tabconfig.children.$1][chld]], [[./popup.html#div-config.root.$1][root]], [[./popup.html#div-config.background.$1][bg]], [[./popup.html#div-config.extension.$1][ext]])
@@ -207,7 +206,7 @@ As shown on the above diagram, a new reqres, i.e., a new =HTTP= request and resp
 
 - =finished=: the terminal state of this step, no new events for this reqres will come from the browser.
 *** Glossary
-- An /in-flight reqres/ {{{bothstats(in_flight)}}} is a reqres that did not reach the =finished= state yet, in the logs {{{logPage}}} such reqres will be shown to be in =in_flight= state.
+- An /in-flight reqres/ {{{stats(in_flight)}}} is a reqres that did not reach the =finished= state yet, in the logs {{{logPage}}} such reqres will be shown to be in =in_flight= state.
 
   These two stats are represented as sums of two numbers:
 
@@ -288,11 +287,11 @@ Which of those two states gets selected is decided based on reqres' [[#tracking]
 
 - In contrast, picking of {{{config2(archiveCanceled,reqres in =canceled= state)}}}, {{{config2(archiveNoResponse,reqres in =no_response= state)}}}, and {{{config2(archiveIncompleteResponse,reqres with =incomplete response body= flag set)}}} is disabled by default because response-incomplete reqres are usually useless and can be easily fixed by reloading a page in question.
 *** Glossary
-- A /problematic reqres/ {{{bothstats(problematic)}}} is a /finished reqres/ that satisfies the conditions set by {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= settings)}}}, as [[#problematic][shall be discussed later]].
+- A /problematic reqres/ {{{stats(problematic)}}} is a /finished reqres/ that satisfies the conditions set by {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= settings)}}}, as [[#problematic][shall be discussed later]].
 
-- A /picked reqres/ {{{bothstats(picked)}}} is a /finished reqres/ that satisfied the conditions controlled by {{{div2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
+- A /picked reqres/ {{{stats(picked)}}} is a /finished reqres/ that satisfied the conditions controlled by {{{div2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
 
-- A /dropped reqres/ {{{bothstats(dropped)}}} is a /finished reqres/ that did *not* satisfy the conditions controlled by {{{div2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
+- A /dropped reqres/ {{{stats(dropped)}}} is a /finished reqres/ that did *not* satisfy the conditions controlled by {{{div2(pick-options,=Pick reqres for archival when they finish= settings)}}} on entering the =finished= state.
 ** Step 3: Collection, Discarding, Logging, and Limbo
 :PROPERTIES:
 :CUSTOM_ID: main
@@ -330,7 +329,7 @@ The naive way to do it would be to load a page with {{{tabconfig2(collecting,cap
 Obviously, this is both annoying and will force you to fetch everything twice.
 
 Which is why =Hoardy-Web= implements /limbo mode/.
-With one of the limbo mode options enabled, =Hoardy-Web= will instead capture everything as normal, but then, instead of sending the newly captured reqres to =collected= or =discarded= states immediately, it will put them into =in_limbo= state where they would linger until you /collect/ or /discard/ them manually by pressing the appropriate buttons on the corresponding stats lines {{{bothstats(in_limbo)}}} or until {{{div2(closed-tab-options,=Closed tabs= options)}}} make a decision semi-automatically for you.
+With one of the limbo mode options enabled, =Hoardy-Web= will instead capture everything as normal, but then, instead of sending the newly captured reqres to =collected= or =discarded= states immediately, it will put them into =in_limbo= state where they would linger until you /collect/ or /discard/ them manually by pressing the appropriate buttons on the corresponding stats lines {{{stats(in_limbo)}}} or until {{{div2(closed-tab-options,=Closed tabs= options)}}} make a decision semi-automatically for you.
 
 A =picked= reqres will be put into =in_limbo= when {{{tabconfig2(limbo,=Pick into limbo= setting (cur))}}} is enabled in the currently active tab or when one of the similar {{{perSource0(limbo)}}} options is enabled for other reqres sources.
 
@@ -339,11 +338,11 @@ Similarly, a =dropped= reqres will be put into =in_limbo= when {{{tabconfig2(neg
 
 If {{{config2(limboNotify,this option)}}} is enabled and there are more than {{{config2(limboMaxNumber,this number)}}} reqres =in_limbo= or the total size of all dumps =in_limbo= is more than {{{config2(limboMaxSize,this size)}}} (in MiB), =Hoardy-Web= will complain to remind you to collect or discard some of them.
 *** Glossary
-- A /collected reqres/ {{{bothstats(collected)}}} is a reqres that was (either automatically or manually) sent to the =collected= state.
+- A /collected reqres/ {{{stats(collected)}}} is a reqres that was (either automatically or manually) sent to the =collected= state.
 
-- A /discarded reqres/ {{{bothstats(discarded)}}} is a reqres that was (either automatically or manually) sent to the =discarded= state.
+- A /discarded reqres/ {{{stats(discarded)}}} is a reqres that was (either automatically or manually) sent to the =discarded= state.
 
-- An /in-limbo reqres/ {{{bothstats(in_limbo)}}} is a reqres that is being held =in_limbo= until you manually /collect/ or /discard/ it.
+- An /in-limbo reqres/ {{{stats(in_limbo)}}} is a reqres that is being held =in_limbo= until you manually /collect/ or /discard/ it.
 
 - A /queued reqres/ ({{{stat2(queued,displayed)}}} on the {{{stat2(queued_failed,Queued/Failed)}}} line) is a =collected= reqres that is still =queued= for archival.
 ** (Optional) Step 3.5: Stashing
@@ -645,7 +644,7 @@ So, to provide an explicit indicator for such situations, =Hoardy-Web= keeps tra
 
   all of which depend on the numbers of currently =problematic= reqres;
 
-- the corresponding stat lines {{{bothstats(problematic)}}} in the popup;
+- the corresponding stat lines {{{stats(problematic)}}} in the popup;
 
 - the logs {{{logPage}}}, which shows =problematic= reqres in a separate section;
 
@@ -718,7 +717,7 @@ If you don't care about the =problematic= flag in a select tab and those notific
 If such notification annoy you in general, you can disable the {{{config2(problematicNotify,global option)}}} instead.
 
 Note, however, that you probably shouldn't be disabling too many  {{{div2(problematic-options,=Mark reqres as 'problematic' when they finish= options)}}}.
-This way, even with notifications disabled, you would still be able see a correct number of =problematic= reqres in extension's toolbar button's badge, popup {{{bothstats(problematic)}}}, and the logs {{{logPage}}}.
+This way, even with notifications disabled, you would still be able see a correct number of =problematic= reqres in extension's toolbar button's badge, popup {{{stats(problematic)}}}, and the logs {{{logPage}}}.
 ** Work offline mode
 :PROPERTIES:
 :CUSTOM_ID: work-offline
