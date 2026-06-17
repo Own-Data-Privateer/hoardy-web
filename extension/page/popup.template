@@ -355,22 +355,22 @@ section {
     <div class="idots ui">
     <!-- rootTabOptions -->
 
-    <ui id="config.root.autoReplay" type="boolean" data-help="Enable `Auto-replay` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Set <code>Auto-replay</code></ui>
-    <ui id="config.root.workOffline" type="boolean" class="prefer-off tag-main" data-help="Enable `Work offline` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Set <code>Work offline</code></ui>
+    <ui id="config.root.autoReplay" type="boolean" data-help="Enable `Auto-replay` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Auto-replay</ui>
+    <ui id="config.root.workOffline" type="boolean" class="prefer-off tag-main" data-help="Enable `Work offline` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item). See the `Help` page for more info.">Work offline</ui>
     <section class="on-collecting">
-    <ui id="config.root.collecting" type="boolean" class="prefer-on tag-main" data-help="Enable `Track new requests` option in new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Track new requests</code></ui>
+    <ui id="config.root.collecting" type="boolean" class="prefer-on tag-main" data-help="Enable `Track new requests` option in new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Track new requests</ui>
     </section>
     <section class="on-problematicNotify tag-main">
-    <ui id="config.root.problematicNotify" type="boolean" data-help="Enable `Notify about 'problematic' reqres` in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Notify about 'problematic' reqres</code></ui>
+    <ui id="config.root.problematicNotify" type="boolean" data-help="Enable `Notify about 'problematic' reqres` in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Notify about <code>problematic</code> reqres</ui>
     </section>
-    <ui id="config.root.limbo" type="boolean" data-help="Enable `Pick into limbo` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Pick into limbo</code></ui>
-    <ui id="config.root.negLimbo" type="boolean" class="prefer-off tag-main" data-help="Enable `Drop into limbo` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Drop into limbo</code></ui>
+    <ui id="config.root.limbo" type="boolean" data-help="Enable `Pick into limbo` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Pick into limbo</ui>
+    <ui id="config.root.negLimbo" type="boolean" class="prefer-off tag-main" data-help="Enable `Drop into limbo` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Drop into limbo</ui>
     <section class="on-stash tag-main">
-    <ui id="config.root.stashLimbo" type="boolean" data-help="Enable `Stash 'in_limbo' reqres` option in in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Stash 'in_limbo' reqres</code></ui>
+    <ui id="config.root.stashLimbo" type="boolean" data-help="Enable `Stash 'in_limbo' reqres` option in in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Stash <code>in_limbo</code> reqres</ui>
     </section>
     <ui id="config.root.bucket" type="string" data-help="Use this bucket when archiving reqres originating from new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Bucket</ui>
-    <ui id="config.root.snapshottable" type="boolean" class="prefer-on tag-main" data-help="Enable `Include in global snapshots` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Include in global snapshots</code></ui>
-    <ui id="config.root.replayable" type="boolean" class="prefer-on tag-main" data-help="Enable `Include in global replays` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Set <code>Include in global replays</code></ui>
+    <ui id="config.root.snapshottable" type="boolean" class="prefer-on tag-main" data-help="Enable `Include in global snapshots` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Include in global snapshots</ui>
+    <ui id="config.root.replayable" type="boolean" class="prefer-on tag-main" data-help="Enable `Include in global replays` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Include in global replays</ui>
 
     <!-- rootTabOptions -->
     </div>
@@ -495,22 +495,22 @@ section {
     <div class="isubdots ui">
     <!-- thisTabChildrenOptions -->
 
-    <ui id="tabconfig.children.autoReplay" type="boolean" tabindex=3 data-shortcut="toggleTabConfigChildrenAutoReplay" data-help="Enable `Auto-replay` option in new tabs spawned from this tab (via middle mouse click, context menu actions). See the `Help` page for more info.">Set <code>Auto-replay</code></ui>
-    <ui id="tabconfig.children.workOffline" type="boolean" class="prefer-off" tabindex=3 data-help="Enable `Work offline` option in new tabs spawned from this tab (via middle mouse click, context menu actions). See the `Help` page for more info.">Set <code>Work offline</code></ui>
+    <ui id="tabconfig.children.autoReplay" type="boolean" tabindex=3 data-shortcut="toggleTabConfigChildrenAutoReplay" data-help="Enable `Auto-replay` option in new tabs spawned from this tab (via middle mouse click, context menu actions). See the `Help` page for more info.">Auto-replay</ui>
+    <ui id="tabconfig.children.workOffline" type="boolean" class="prefer-off" tabindex=3 data-help="Enable `Work offline` option in new tabs spawned from this tab (via middle mouse click, context menu actions). See the `Help` page for more info.">Work offline</ui>
     <section class="on-collecting">
-    <ui id="tabconfig.children.collecting" type="boolean" class="prefer-on" tabindex=3 data-shortcut="toggleTabConfigChildrenTracking" data-help="Enable `Track new requests` option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Set <code>Track new requests</code></ui>
+    <ui id="tabconfig.children.collecting" type="boolean" class="prefer-on" tabindex=3 data-shortcut="toggleTabConfigChildrenTracking" data-help="Enable `Track new requests` option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Track new requests</ui>
     </section>
     <section class="on-problematicNotify tag-this">
-    <ui id="tabconfig.children.problematicNotify" type="boolean" data-help="Enable `Notify about 'problematic' reqres` in new tabs spawned from this tab (via middle mouse click, context menu actions).">Set <code>Notify about 'problematic' reqres</code></ui>
+    <ui id="tabconfig.children.problematicNotify" type="boolean" data-help="Enable `Notify about 'problematic' reqres` in new tabs spawned from this tab (via middle mouse click, context menu actions).">Notify about <code>problematic</code> reqres</ui>
     </section>
-    <ui id="tabconfig.children.limbo" type="boolean" tabindex=3 data-shortcut="toggleTabConfigChildrenLimbo" data-help="Enable `Pick into limbo` option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Set <code>Pick into limbo</code></ui>
-    <ui id="tabconfig.children.negLimbo" type="boolean" class="prefer-off tag-this" data-help="Enable `Drop into limbo` option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Set <code>Drop into limbo</code></ui>
+    <ui id="tabconfig.children.limbo" type="boolean" tabindex=3 data-shortcut="toggleTabConfigChildrenLimbo" data-help="Enable `Pick into limbo` option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Pick into limbo</ui>
+    <ui id="tabconfig.children.negLimbo" type="boolean" class="prefer-off tag-this" data-help="Enable `Drop into limbo` option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Drop into limbo</ui>
     <section class="on-stash tag-this">
-    <ui id="tabconfig.children.stashLimbo" type="boolean" tabindex=3 data-help="Enable `Stash 'in_limbo' reqres` option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Set <code>Stash 'in_limbo' reqres</code></ui>
+    <ui id="tabconfig.children.stashLimbo" type="boolean" tabindex=3 data-help="Enable `Stash 'in_limbo' reqres` option in new tabs spawned from this tab (via middle mouse click, context menu actions).">Stash <code>in_limbo</code> reqres</ui>
     </section>
     <ui id="tabconfig.children.bucket" type="string" tabindex=3 data-help="Use this bucket when archiving reqres originating from new tabs opened from this tab (middle mouse click, context menu actions).">Bucket</ui>
-    <ui id="tabconfig.children.snapshottable" type="boolean" class="prefer-on tag-this" data-help="Enable `Include in global snapshots` options in new tabs spawned from this tab (via middle mouse click, context menu actions).">Set <code>Include in global snapshots</code></ui>
-    <ui id="tabconfig.children.replayable" type="boolean" class="prefer-on tag-this" data-help="Enable `Include in global replays` options in new tabs spawned from this tab (via middle mouse click, context menu actions).">Set <code>Include in global replays</code></ui>
+    <ui id="tabconfig.children.snapshottable" type="boolean" class="prefer-on tag-this" data-help="Enable `Include in global snapshots` options in new tabs spawned from this tab (via middle mouse click, context menu actions).">Include in global snapshots</ui>
+    <ui id="tabconfig.children.replayable" type="boolean" class="prefer-on tag-this" data-help="Enable `Include in global replays` options in new tabs spawned from this tab (via middle mouse click, context menu actions).">Include in global replays</ui>
 
     <!-- thisTabChildrenOptions -->
     </div>
