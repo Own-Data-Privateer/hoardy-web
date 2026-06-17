@@ -527,13 +527,9 @@ Re-archival can be most useful in following use cases:
 
 - You run =Hoardy-Web= under a Fenix-based mobile browser, where {{{config2(archiveExportAs,Export via =saveAs=)}}} does not work, you are unable to run an {{{config2(submitHTTPURLBase,archiving server)}}} on the same device, because it's an unrooted mobile phone, and you don't want to submit your dumps over the Internet, because you are feeling paranoid.
 
-  By using this feature, you can delay re-archival to your archiving server until you get back to your home WiFi network, and re-archive everything all at once there.
+  By using this feature, you can delay re-archival to your archiving server until you [[#fenix][get back to your home Wi-Fi network, and re-archive everything all at once there]].
 
-  See [[#fenix][below]] for concrete setup and usage instructions.
-
-- You run =Hoardy-Web= under Tor Browser and you want your browsing/capture and archival/replay completely isolated from each other.
-
-  Se [[#tor-browser][below]] for concrete setup and usage instructions.
+- You run =Hoardy-Web= under Tor Browser and you [[#tor-browser][want your browsing/capture and archival/replay completely isolated from each other]].
 *** Controlling what gets re-archived
 The simplest way to re-archive old data is to configure the desired {{{div2(rearchive-methods,re-archival methods)}}} and then press {{{button2(rearchiveAllSaved,this button)}}}.
 This will simply re-archive everything stored in local storage unconditionally.
