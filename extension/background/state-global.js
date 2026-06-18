@@ -18,12 +18,25 @@
  */
 
 /*
- * Global config and stats.
+ * Global config and state.
  */
 
 "use strict";
 
 // default config
+let sourceConfigDefaults = {
+    autoReplay: false,
+    // are in work offline mode?
+    workOffline: false,
+    // are we collecting new data?
+    collecting: true,
+    problematicNotify: true,
+    limbo: false,
+    negLimbo: false,
+    stashLimbo: true,
+    bucket: "default",
+};
+
 let configVersion = 8;
 
 let configDefaults = {
@@ -157,40 +170,18 @@ let configDefaults = {
     workOfflineReplay: true,
     autoReplayOffInReplay: true,
 
-    root: {
-        autoReplay: false,
-        workOffline: false,
-        collecting: true,
-        problematicNotify: true,
-        limbo: false,
-        negLimbo: false,
-        stashLimbo: true,
-        bucket: "default",
+    root: assignRec({
         snapshottable: true,
         replayable: true,
-    },
+    }, sourceConfigDefaults),
 
-    extension: {
-        autoReplay: false,
-        workOffline: false,
-        collecting: false,
-        problematicNotify: true,
-        limbo: false,
-        negLimbo: false,
-        stashLimbo: true,
-        bucket: "extension",
-    },
-
-    background: {
-        autoReplay: false,
-        workOffline: false,
-        collecting: true,
-        problematicNotify: true,
-        limbo: false,
-        negLimbo: false,
-        stashLimbo: true,
+    background: assignRec({}, sourceConfigDefaults, {
         bucket: "background",
-    },
+    }),
+
+    extension: assignRec({}, sourceConfigDefaults, {
+        bucket: "extension",
+    }),
 
     // debugging options
     ephemeral: false, // stop the config from being saved to disk
@@ -503,38 +494,47 @@ function fixConfig(config, oldConfig, serverConfig) {
     return [config, serverConfig];
 }
 
-// persistent global variables
-let globalsVersion = 1;
-let persistentStatsDefaults = {
-    // problematicTotal is reqresProblematic.length
-    // total numbers of picked and dropped reqres
+// these are to be computed dynamically from `reqresProblematic` and `reqresLimbo`
+let dynamicStateDefaults = {
+    problematicTotal: 0,
+    inLimboTotal: 0,
+    inLimboSize: 0,
+};
+
+// common
+let commonStateDefaults = {
     pickedTotal: 0,
     droppedTotal: 0,
-    // total numbers of collected and discarded reqres
     collectedTotal: 0,
     collectedSize: 0,
     discardedTotal: 0,
     discardedSize: 0,
+};
 
-    submittedHTTPTotal: 0,
-    submittedHTTPSize: 0,
+// these can be reset by `resetStats`
+let resettableStateDefaults = assignRec({
     exportedAsTotal: 0,
     exportedAsSize: 0,
-};
-let dbstatsDefaults = { number: 0, size: 0 };
-let globalsDefaults = assignRec({
-    version: globalsVersion,
-    stashedLS: assignRec({}, dbstatsDefaults),
-    stashedIDB: assignRec({}, dbstatsDefaults),
-    savedLS: assignRec({}, dbstatsDefaults),
-    savedIDB: assignRec({}, dbstatsDefaults),
-}, persistentStatsDefaults);
+    submittedHTTPTotal: 0,
+    submittedHTTPSize: 0,
+}, commonStateDefaults);
 
-function upgradeGlobals(globals) {
-    if (globals.version === undefined)
-        globals.version = 1;
+let dbStateDefaults = { number: 0, size: 0 };
 
-    return globals;
+let stateVersion = 1;
+let stateDefaults = assignRec({
+    version: stateVersion,
+    stashedLS: assignRec({}, dbStateDefaults),
+    stashedIDB: assignRec({}, dbStateDefaults),
+    savedLS: assignRec({}, dbStateDefaults),
+    savedIDB: assignRec({}, dbStateDefaults),
+}, dynamicStateDefaults, resettableStateDefaults);
+
+function upgradeState(state) {
+    if (state.version === undefined)
+        state.version = 1;
+
+    return state;
 }
 
 // Global state, its predicates, and persistence.
@@ -550,9 +550,9 @@ let savedConfig;
 // current server config
 let serverConfig = assignRec({}, serverConfigDefaults);
 // current global stats
-let globals = assignRec({}, globalsDefaults);
+let state = assignRec({}, stateDefaults);
 // last global stats saved in storage, will be set in `main`
-let savedGlobals;
+let savedState;
 
 async function saveConfig(force) {
     if (!force && equalRec(savedConfig, config))
@@ -575,32 +575,33 @@ function scheduleSaveConfig(timeout, force) {
     // NB: needs scheduleUpdateDisplay afterwards
 }
 
-async function saveGlobals(force) {
-    if (!force && equalRec(savedGlobals, globals))
+async function saveState(force) {
+    if (!force && equalRec(savedState, state))
         return;
 
-    savedGlobals = assignRec({}, globals);
+    savedState = assignRec({}, state);
     if (config.debugRuntime)
-        console.warn("SAVE: writing globals", savedGlobals);
-    await browser.storage.local.set({ globals: savedGlobals }).catch(logError);
+        console.warn("SAVE: writing state", savedState);
+    await browser.storage.local.set({ state: savedState }).catch(logError);
+    await browser.storage.local.remove("globals").catch(noop);
     await browser.storage.local.remove("persistentStats").catch(noop);
     await browser.storage.local.remove("globalStats").catch(noop);
 }
 
-function scheduleSaveGlobals(timeout, force) {
-    if (!force && equalRecWarnNeq(savedGlobals, globals, "SAVE:"))
+function scheduleSaveState(timeout, force) {
+    if (!force && equalRecWarnNeq(savedState, state, "SAVE:"))
         return;
 
-    scheduleAction(scheduledSaveState, "saveGlobals", timeout, () => {
-        saveGlobals(force);
+    scheduleAction(scheduledSaveState, "saveState", timeout, () => {
+        saveState(force);
         // return undefined;
     });
     // NB: needs scheduleUpdateDisplay afterwards
 }
 
-async function resetPersistentStats() {
-    globals = updateFromRec(globals, persistentStatsDefaults);
-    await saveGlobals();
+function resetStats() {
+    state = updateFromRec(state, resettableStateDefaults);
+    scheduleSaveState(0, true);
     scheduleUpdateDisplay(true);
 }
 

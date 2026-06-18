@@ -229,11 +229,11 @@ async function popupMain() {
     buttonToAction("showTabState", () => replaceWith(false, showState, narrowSessionId, narrowTabId, "top"));
     buttonToAction("showSaved",    () => replaceWith(false, showSaved, "top"));
     buttonToAction("showBuggedOut",() => replaceWith(false, showState, null, null, "buggedOut"));
-    buttonToAction("resetPersistentStats", () => {
+    buttonToAction("resetStats", () => {
         if (!window.confirm("Really?"))
             return;
 
-        browser.runtime.sendMessage(["resetPersistentStats"]).catch(logError);
+        browser.runtime.sendMessage(["resetStats"]).catch(logError);
     });
     buttonToAction("resetConfig", () => {
         if (!window.confirm("Really?"))

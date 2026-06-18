@@ -112,7 +112,7 @@ function setSavedFilters(rrfilter) {
 
 // other scheduleEndgame flags
 let wantCheckServer = true;
-let wantSaveGlobals = false;
+let wantSaveState = false;
 let wantBucketSaveAs = false;
 let wantRetryAllUnarchived = false;
 
@@ -169,25 +169,25 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
             // do we have some reqres in flight?
             let haveInFlight = getInFlightNum(null) > 0;
 
-            if (wantSaveGlobals) {
-                wantSaveGlobals = false;
+            if (wantSaveState) {
+                wantSaveState = false;
 
                 // save immediately if we want to reload or we just wrote to local storage
                 let timeout = (
                     wantReloadSelf ||
-                    savedGlobals.stashedLS.number !== globals.stashedLS.number ||
-                    savedGlobals.stashedIDB.number !== globals.stashedIDB.number ||
-                    savedGlobals.savedLS.number !== globals.savedLS.number ||
-                    savedGlobals.savedIDB.number !== globals.savedIDB.number
+                    savedState.stashedLS.number !== state.stashedLS.number ||
+                    savedState.stashedIDB.number !== state.stashedIDB.number ||
+                    savedState.savedLS.number !== state.savedLS.number ||
+                    savedState.savedIDB.number !== state.savedIDB.number
                 ) ? 0 : 1000;
                 // delay for longer if there's probably going to be more updates soon or this update is not that important
                 if (haveInFlight || (
-                    savedGlobals.collectedTotal === globals.collectedTotal &&
-                    savedGlobals.submittedHTTPTotal === globals.submittedHTTPTotal &&
-                    savedGlobals.exportedAsTotal === globals.exportedAsTotal
+                    savedState.collectedTotal === state.collectedTotal &&
+                    savedState.submittedHTTPTotal === state.submittedHTTPTotal &&
+                    savedState.exportedAsTotal === state.exportedAsTotal
                 ))
                     timeout *= 10;
-                scheduleSaveGlobals(timeout);
+                scheduleSaveState(timeout);
             }
 
             if (wantBucketSaveAs) {

@@ -225,8 +225,8 @@ function bucketSaveAs(bucket, ifGEQ, bundleBuckets, unarchivedAccumulator) {
 
         saveAs(dataChunks, mime, `Hoardy-Web-export-${bucket}-${dt}_${exportAsLastNum}.${ext}`);
 
-        globals.exportedAsTotal += res.queue.length;
-        globals.exportedAsSize += res.size;
+        state.exportedAsTotal += res.queue.length;
+        state.exportedAsSize += res.size;
 
         return true;
     } catch (err) {
@@ -388,8 +388,8 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
         return false;
     }
 
-    globals.submittedHTTPTotal += 1;
-    globals.submittedHTTPSize += loggable.dumpSize;
+    state.submittedHTTPTotal += 1;
+    state.submittedHTTPSize += loggable.dumpSize;
     loggable.archived |= archivedViaSubmitHTTP;
     loggable.dirty = true;
 
@@ -465,9 +465,9 @@ function selectTSS(inLS) {
     let stashStats;
     let savedStats;
     if (inLS)
-        return [mkLSlotTransaction, globals.stashedLS, globals.savedLS];
+        return [mkLSlotTransaction, state.stashedLS, state.savedLS];
     else
-        return [mkIDBTransaction, globals.stashedIDB, globals.savedIDB];
+        return [mkIDBTransaction, state.stashedIDB, state.savedIDB];
 }
 
 async function wipeFromStorage(tss, dumpSize, dumpId, stashId, saveId) {
@@ -485,12 +485,12 @@ async function wipeFromStorage(tss, dumpSize, dumpId, stashId, saveId) {
     if (stashId !== undefined) {
         stashStats.number -= 1;
         stashStats.size -= dumpSize;
-        wantSaveGlobals = true;
+        wantSaveState = true;
     }
     if (saveId !== undefined) {
         savedStats.number -= 1;
         savedStats.size -= dumpSize;
-        wantSaveGlobals = true;
+        wantSaveState = true;
     }
 }
 
@@ -523,20 +523,20 @@ async function writeToStorage(tss, state, clean, dump, dumpSize, dumpId, stashId
     if (stashId === undefined && clean.stashId !== undefined) {
         stashStats.number += 1;
         stashStats.size += dumpSize;
-        wantSaveGlobals = true;
+        wantSaveState = true;
     } else if (stashId !== undefined && clean.stashId === undefined) {
         stashStats.number -= 1;
         stashStats.size -= dumpSize;
-        wantSaveGlobals = true;
+        wantSaveState = true;
     }
     if (saveId === undefined && clean.saveId !== undefined) {
         savedStats.number += 1;
         savedStats.size += dumpSize;
-        wantSaveGlobals = true;
+        wantSaveState = true;
     } else if (saveId !== undefined && clean.saveId === undefined) {
         savedStats.number -= 1;
         savedStats.size -= dumpSize;
-        wantSaveGlobals = true;
+        wantSaveState = true;
     }
 }
 
@@ -648,8 +648,8 @@ async function forEachInStorage(storeName, func, limit) {
     if (limit === undefined)
         limit = null;
 
-    let storeStatsLS = assignRec({}, dbstatsDefaults);
-    let storeStatsIDB = assignRec({}, dbstatsDefaults);
+    let storeStatsLS = assignRec({}, dbStateDefaults);
+    let storeStatsIDB = assignRec({}, dbStateDefaults);
     let sn = storeName + "Id";
     let loaded = 0;
 
@@ -829,13 +829,13 @@ async function loadStashed() {
     let [newStashedLS, newStashedIDB] = await forEachInStorage("stash", loadOneStashed);
 
     // recover from wrong counts
-    if (newStashedLS !== undefined && !equalRec(globals.stashedLS, newStashedLS)) {
-        globals.stashedLS = newStashedLS;
-        wantSaveGlobals = true;
+    if (newStashedLS !== undefined && !equalRec(state.stashedLS, newStashedLS)) {
+        state.stashedLS = newStashedLS;
+        wantSaveState = true;
     }
-    if (newStashedIDB !== undefined && !equalRec(globals.stashedIDB, newStashedIDB)) {
-        globals.stashedIDB = newStashedIDB;
-        wantSaveGlobals = true;
+    if (newStashedIDB !== undefined && !equalRec(state.stashedIDB, newStashedIDB)) {
+        state.stashedIDB = newStashedIDB;
+        wantSaveState = true;
     }
 }
 
@@ -858,20 +858,20 @@ async function loadSaved(rrfilter, wantStop, mapFunc) {
     }, rrfilter.limit);
 
     // recover from wrong counts
-    if (newSavedLS !== undefined && !equalRec(globals.savedLS, newSavedLS)) {
-        globals.savedLS = newSavedLS;
-        wantSaveGlobals = true;
+    if (newSavedLS !== undefined && !equalRec(state.savedLS, newSavedLS)) {
+        state.savedLS = newSavedLS;
+        wantSaveState = true;
     }
-    if (newSavedIDB !== undefined && !equalRec(globals.savedIDB, newSavedIDB)) {
-        globals.savedIDB = newSavedIDB;
-        wantSaveGlobals = true;
+    if (newSavedIDB !== undefined && !equalRec(state.savedIDB, newSavedIDB)) {
+        state.savedIDB = newSavedIDB;
+        wantSaveState = true;
     }
 
     return res;
 }
 
 async function fsckDumps() {
-    if (globals.stashedLS.number + globals.stashedIDB.number + globals.savedLS.number + globals.savedIDB.number !== 0)
+    if (state.stashedLS.number + state.stashedIDB.number + state.savedLS.number + state.savedIDB.number !== 0)
         return;
 
     // TODO: load those dumps into buggedOut reqres or some such.
@@ -1105,7 +1105,7 @@ async function processRearchiving(getArchivables, reset, andRewrite, andDelete) 
         bucketSaveAs(bucket, 0, bundleBuckets, unrearchivedAccumulator);
 
     // TODO: do this properly, this is slow
-    // re-load everything again to update `globals`
+    // re-load everything again to update `state`
     if (deletedNum > 0)
         await loadSaved();
 

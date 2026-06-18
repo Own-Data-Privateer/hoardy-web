@@ -936,7 +936,7 @@ Specifically:
 
     <center>
       <input id="resetConfig" type="button" data-help="Reset all config options to their default values." value="Reset config!" />
-      <input id="resetPersistentStats" type="button" data-help="Reset all persistent `collected`, `discarded`, `picked`, and `dropped` stats to zero." value="Reset stats!" />
+      <input id="resetStats" type="button" data-help="Reset all global persistent &quot;Exported&quot;, &quot;Submitted&quot;, &quot;Collected&quot;, &quot;Discarded&quot;, &quot;Picked&quot;, and &quot;Dropped&quot; stats to zero." value="Reset stats!" />
     </center>
 
     <!-- destructiveOptions -->

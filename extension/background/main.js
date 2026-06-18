@@ -294,7 +294,7 @@ let rpcCommands = {
     },
 
     getStats,
-    resetPersistentStats,
+    resetStats,
 
     getTabStats,
 
@@ -606,12 +606,12 @@ async function main() {
     // Init stuff.
     initShortcutCommands();
 
-    // Load old config and globals.
+    // Load old config and state.
 
     let localData = await browser.storage.local.get([
-        "config", "globals", "session",
-        // obsolete names for `globals`
-        "persistentStats", "globalStats"
+        "config", "state", "session",
+        // obsolete names for `state`
+        "globals", "persistentStats", "globalStats"
     ]).catch(() => { return {}; });
 
     let oldConfig = localData.config;
@@ -621,17 +621,28 @@ async function main() {
         config = updateFromRec(config, upgradeConfig(oldConfig));
         // just in case
         config.ephemeral = false;
-    }
-    savedConfig = assignRec({}, config);
 
-    let oldGlobals = getFirstDefined(localData.globals, localData.persistentStats, localData.globalStats);
-    if (oldGlobals !== undefined) {
-        console.log(`MAIN: Loading globals of version ${oldGlobals.version}`);
+        // NB: we set `savedConfig` to the upgraded version so that calling `scheduleSaveConfig`
+        // would be a noop
+        savedConfig = assignRec({}, config);
 
-        oldGlobals = upgradeGlobals(oldGlobals);
-        globals = updateFromRec(globals, oldGlobals);
+        // NB: see also `fixConfig` bit below
     }
-    savedGlobals = assignRec({}, globals);
+
+    let oldState = getFirstDefined(localData.state, localData.globals, localData.persistentStats, localData.globalStats);
+    if (oldState !== undefined) {
+        console.log(`MAIN: Loading state of version ${oldState.version}`);
+
+        state = updateFromRec(state, upgradeState(oldState));
+
+        // NB: this is a bit tricky. The following bit ensures that `savedState` has all keys of
+        // `dynamicStateDefaults` ...
+        savedState = assignRec({}, state);
+        // then, it resets them ...
+        state = updateFromRec(state, dynamicStateDefaults);
+        // and then repopulates them in some of the following (reDynamicState) bits, thus making the
+        // `scheduleSaveState` that will be run from `scheduleEndgame` below into a noop.
+    }
 
     let lastSeenVersion = config.lastSeenVersion;
     config.lastSeenVersion = manifest.version;
@@ -671,7 +682,7 @@ async function main() {
         logHandledError(err);
     }
 
-    if (reqresIDB === undefined && (globals.stashedIDB.number > 0 || globals.savedIDB.number > 0)) {
+    if (reqresIDB === undefined && (state.stashedIDB.number > 0 || state.savedIDB.number > 0)) {
         browser.notifications.create("error-noIndexedDB", {
             title: "Hoardy-Web: ERROR",
             message: escapeNotification(config, `Failed to open Hoardy-Web's database using \`IndexedDB\` API, but it appears that \`IndexedDB\` was previously used for stashing and/or archiving reqres.\n\n\`IndexedDB\` API appears to be unusable at the moment, so all data persistence operations will now be done via \`storage.local\` API instead. This means that old reqres are now (temporarily) unavailable.\n\nSee the "Help" page for more info and instructions on how to fix this.`),
@@ -681,8 +692,9 @@ async function main() {
     }
 
     // Init `config` and `serverConfig`.
-    // NB: this depends on reqresIDB
 
+    // NB: this goes here and not right after the `upgradeConfig` bit above because this depends on
+    // reqresIDB
     [config, serverConfig] = fixConfig(config, configDefaults, serverConfig);
 
     // Restore the old session, if reloading with `reloadSelf`.
@@ -706,11 +718,8 @@ async function main() {
     // Restore the state of background requests.
 
     if (sessionBg !== undefined) {
-        let bgstate = updateFromRec(assignRec({}, tabStateDefaults), sessionBg, {
-            problematicTotal: 0,
-            inLimboTotal: 0,
-            inLimboSize: 0,
-        });
+        // NB: (reDynamicState)
+        let bgstate = updateFromRec(assignRec({}, tabStateDefaults), sessionBg, dynamicStateDefaults);
         tabState.set(-1, bgstate);
     }
 
@@ -729,13 +738,10 @@ async function main() {
 
         let oldTab = sessionTabs[tabId];
         if (oldTab !== undefined && oldTab.url === tabUrl) {
-            // reuse old values
+            // recover old values
             tabcfg = updateFromRec(tabcfg, getFirstDefined(oldTab.cfg, oldTab.tabcfg));
-            tabstate = updateFromRec(tabstate, oldTab.state, {
-                problematicTotal: 0,
-                inLimboTotal: 0,
-                inLimboSize: 0,
-            });
+            // NB: (reDynamicState)
+            tabstate = updateFromRec(tabstate, oldTab.state, dynamicStateDefaults);
         }
 
         setTabConfig(tabId, undefined, tabcfg, tabcfg, true);
@@ -746,11 +752,12 @@ async function main() {
             chromiumResetRootTab(tabId, tabcfg);
     }
 
-    // Populate reqresProblematic.
+    // Reset their windowId's to match our current state and populate reqresProblematic.
     for (let loggable of reqresLog) {
         if (loggable.problematic) {
             let tabstate = getTabState(loggable.tabId, loggable.fromExtension);
             reqresProblematic.push([loggable, null]);
+            // NB: (reDynamicState)
             tabstate.problematicTotal += 1;
             gotNewProblematic = true;
         }
@@ -787,7 +794,7 @@ async function main() {
     // NB: this reuses `scheduleHidden, "endgame"` task singleton so that all `scheduleEndgame`
     // internals would block until this thing finishes.
     resetSingletonTimeout(scheduledHidden, "endgame", 100, async () => {
-        await loadStashed();
+        await loadStashed(); // NB: (reDynamicState)
         await fsckDumps();
         scheduleEndgame(null, 0);
     });
@@ -800,7 +807,7 @@ async function main() {
     console.log(`MAIN: Initialized Hoardy-Web with source of '${sourceDesc}'.`);
     console.log("MAIN: runtime options are", { useSVGIcons, useBlocking, useDebugger });
     console.log("MAIN: config is", config);
-    console.log("MAIN: globals are", globals);
+    console.log("MAIN: state is", state);
     console.log("MAIN: Ready to Hoard the Web!");
 
     // Generate some reminder notifications.

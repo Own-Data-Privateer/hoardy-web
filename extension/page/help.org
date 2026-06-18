@@ -1193,7 +1193,7 @@ Never else.
 *** Does =Hoardy-Web= collect and send any telemetry anywhere?
 For your convenience, =Hoardy-Web= saves some global stats across restarts (e.g., the {{{stat2(collected,Collected)}}}, {{{stat2(discarded,Discarded)}}}, {{{stat2(picked,Picked)}}}, and {{{stat2(dropped,Dropped)}}} lines).
 
-However, none of those are ever sent anywhere and {{{button2(resetPersistentStats,you can reset them)}}} at any time.
+However, none of those are ever sent anywhere and {{{button2(resetStats,you can reset them)}}} at any time.
 *** Will the answers to the above two questions ever change in a future version of =Hoardy-Web=?
 No.
 I (the author) hate non-consensual data collection.

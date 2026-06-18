@@ -27,19 +27,9 @@
 let tabConfig = new Map();
 
 // per-tab state
-let tabStateDefaults = {
-    problematicTotal: 0,
-    pickedTotal: 0,
-    droppedTotal: 0,
-    inLimboTotal: 0,
-    inLimboSize: 0,
-    collectedTotal: 0,
-    collectedSize: 0,
-    discardedTotal: 0,
-    discardedSize: 0,
-};
+let tabStateDefaults = assignRec({}, dynamicStateDefaults, commonStateDefaults);
 
-// per-source globals.pickedTotal, globals.droppedTotal, etc
+// per-tab state
 let tabState = new Map();
 
 function getTabState(tabId, fromExtension) {

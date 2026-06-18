@@ -215,7 +215,7 @@ function popInLimbo(collect, rrfilter) {
     reqresLimboSize -= minusSize;
 
     truncateLog();
-    wantSaveGlobals = true;
+    wantSaveState = true;
 
     if (newlyUnproblematic.length > 0) {
         // TODO mergeUpdatedTabIds?
@@ -464,8 +464,8 @@ function processNonLimbo(archivable, collect, tabstate, newlyQueued, newlyLogged
         newlyQueued.push(loggable);
         gotNewQueued = true;
 
-        globals.collectedTotal += 1;
-        globals.collectedSize += dumpSize;
+        state.collectedTotal += 1;
+        state.collectedSize += dumpSize;
         tabstate.collectedTotal += 1;
         tabstate.collectedSize += dumpSize;
 
@@ -473,8 +473,8 @@ function processNonLimbo(archivable, collect, tabstate, newlyQueued, newlyLogged
             // stuck queue, stash it
             newlyStashed.push(archivable);
     } else {
-        globals.discardedTotal += 1;
-        globals.discardedSize += dumpSize;
+        state.discardedTotal += 1;
+        state.discardedSize += dumpSize;
         tabstate.discardedTotal += 1;
         tabstate.discardedSize += dumpSize;
 
@@ -694,10 +694,10 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
     unmarkProblematicSimilarTo(loggable, true, newlyUnproblematic, true);
 
     if (picked) {
-        globals.pickedTotal += 1;
+        state.pickedTotal += 1;
         tabstate.pickedTotal += 1;
     } else {
-        globals.droppedTotal += 1;
+        state.droppedTotal += 1;
         tabstate.droppedTotal += 1;
     }
 
@@ -747,7 +747,7 @@ async function processAlmostDone() {
     }
 
     truncateLog();
-    wantSaveGlobals = true;
+    wantSaveState = true;
 
     broadcastToState(updatedTabId, "resetInFlight", () => getInFlight(null));
 
