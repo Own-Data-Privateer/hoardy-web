@@ -30,6 +30,8 @@ let sourceConfigDefaults = {
     workOffline: false,
     // are we collecting new data?
     collecting: true,
+    // are we also collecting work offline requests?
+    collectingWorkOffline: true,
     problematicNotify: true,
     limbo: false,
     negLimbo: false,
@@ -158,12 +160,6 @@ let configDefaults = {
     autoTimeout: 0,
     autoNotify: true,
 
-    // are in work offline mode?
-    workOffline: false,
-    // are we collecting new data?
-    collecting: true,
-    // are we also collecting work offline requests?
-    collectingWorkOffline: true,
     // work offline settings
     workOfflineFile: true,
     workOfflineData: false,
@@ -267,6 +263,19 @@ function upgradeConfig(config) {
     case 8:
         rename("archiveFailedNotify", "persistFailedNotify");
         rename("saveLSParanoid", "persistLSParanoid");
+
+        config.root.workOffline = config.root.workOffline && config.workOffline;
+        config.root.collecting = config.root.collecting && config.collecting;
+        config.root.collectingWorkOffline = config.collectingWorkOffline;
+        config.background.workOffline = config.background.workOffline && config.workOffline;
+        config.background.collecting = config.background.collecting && config.collecting;
+        config.background.collectingWorkOffline = config.collectingWorkOffline;
+        config.extension.workOffline = config.extension.workOffline && config.workOffline;
+        config.extension.collecting = config.extension.collecting && config.collecting;
+        config.extension.collectingWorkOffline = config.collectingWorkOffline;
+        delete config["workOffline"];
+        delete config["collecting"];
+        delete config["collectingWorkOffline"];
 
     // epilog, do NOT move or copy-paste this `break` into the above
         break;

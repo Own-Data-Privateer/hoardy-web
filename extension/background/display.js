@@ -313,14 +313,6 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             color = Math.max(color, 1);
             chunks.push(`${stats.in_limbo} in-limbo reqres`);
         }
-        if (config.workOffline) {
-            badge += "O";
-            chunks.push("work offline");
-        }
-        if (!(config.collecting && (!config.workOffline || config.collectingWorkOffline))) {
-            badge += "I";
-            chunks.push("ignore new requests");
-        }
         if (!config.stash && !config.archive) {
             badge += "?";
             color = Math.max(color, 1);
@@ -447,13 +439,14 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             chunks.push("auto-replay");
         }
 
-        let workOffline = config.workOffline || cfg.workOffline;
+        let workOffline = cfg.workOffline;
+        let collecting = cfg.collecting && (!workOffline || cfg.collectingWorkOffline);
         if (workOffline) {
             now.wicon = "work_offline";
             chunks.push("work offline");
         }
 
-        if (!(config.collecting && cfg.collecting && (!workOffline || config.collectingWorkOffline))) {
+        if (!collecting) {
             now.icon = "off";
             chunks.push("ignore new requests");
         } else if (cfg.limbo && cfg.negLimbo) {

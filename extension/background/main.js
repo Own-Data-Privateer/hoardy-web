@@ -217,7 +217,7 @@ function chromiumResetRootTab(tabId, tabcfg) {
     //
     // NB: `priority` argument here overrides `attachDebuggerAndReloadTab` what
     // `handleBeforeRequest` does. Thus, this action wins.
-    if (config.collecting && tabcfg.collecting && config.workaroundChromiumResetRootTab)
+    if (tabcfg.collecting && config.workaroundChromiumResetRootTab)
         resetAttachDebuggerAndNavigateTab(tabId, config.workaroundChromiumResetRootTabURL, 0).catch(logError);
 }
 

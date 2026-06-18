@@ -47,11 +47,11 @@ async function syncDebuggersState(tabs) {
 
         let attached = tabsDebugging.has(tab.id);
         let tabcfg = getTabConfig(tab.id);
-        let workOffline = config.workOffline || tabcfg.workOffline;
-        let wantAttached = hasInFlight
-            || config.collecting && tabcfg.collecting
-               && (!workOffline || config.collectingWorkOffline)
-               && (url === "about:blank" || url.startsWith("http://") || url.startsWith("https://"));
+        let wantAttached = (
+            hasInFlight ||
+            tabcfg.collecting && (!tabcfg.workOffline || tabcfg.collectingWorkOffline) &&
+            (url === "about:blank" || url.startsWith("http://") || url.startsWith("https://"))
+        );
 
         if (!attached && wantAttached) {
             await attachDebugger(tab.id).catch(logError);
@@ -881,11 +881,10 @@ function handleBeforeRequest(e) {
 
     let noDebuggerYet = false;
 
-    // ignore this request if archiving is disabled
-    let workOffline = config.workOffline || tabcfg.workOffline;
-    let collecting = config.collecting && tabcfg.collecting
-        && (!workOffline || config.collectingWorkOffline);
+    let workOffline = tabcfg.workOffline;
+    let collecting = tabcfg.collecting && (!workOffline || tabcfg.collectingWorkOffline);
     if (!collecting) {
+        // ignore this request if collecting is disabled
         if (workOffline)
             return { cancel: true };
         return;
@@ -1212,21 +1211,24 @@ function logDebugEvent(rtype, nonExtra, e, dreqres) {
 }
 
 function handleDebugRequestWillBeSent(nonExtra, e) {
-    // don't do anything if we are globally disabled
-    let collecting = config.collecting && (!config.workOffline || config.collectingWorkOffline);
+    let tabId = e.tabId;
+    let fromExtension = false; // TODO: do it properly
+    let tabcfg = getTabConfig(tabId, fromExtension);
+
+    let collecting = tabcfg.collecting && (!tabcfg.workOffline || tabcfg.collectingWorkOffline);
     if (!collecting)
+        // ignore this request if collecting is disabled
         return;
 
     popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
     logDebugEvent("requestWillBeSent", nonExtra, e, undefined);
 
-    let tabId = e.tabId;
     let dreqres = cacheSingleton(debugReqresInFlight, e.requestId, () => { return {
         sessionId,
         requestId: e.requestId,
         tabId,
-        fromExtension: false, // most likely
+        fromExtension,
 
         //method: undefined,
         //url: undefined,
