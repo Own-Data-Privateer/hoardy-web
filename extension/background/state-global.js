@@ -375,24 +375,14 @@ function setServer(config) {
     return res;
 }
 
+function fixSourceConfig(cfg, defaults) {
+    // if unset, reset to default
+    if (!cfg.bucket)
+        cfg.bucket = defaults.bucket;
+}
+
 function fixConfig(config, oldConfig, serverConfig) {
-    // reset to defaults
-    if (!config.background.bucket)
-        config.background.bucket = configDefaults.background.bucket;
-    if (!config.extension.bucket)
-        config.extension.bucket = configDefaults.extension.bucket;
-    if (!config.root.bucket)
-        config.root.bucket = configDefaults.root.bucket;
-
-    if (!config.submitHTTPURLBase)
-        config.submitHTTPURLBase = configDefaults.submitHTTPURLBase;
-
-    // clamp
-    config.animateIcon = clamp(100, 5000, toNumber(config.animateIcon));
-
-    config.exportAsMaxSize = clamp(1, 512, toNumber(config.exportAsMaxSize));
-    config.exportAsTimeout = clamp(0, 900, toNumber(config.exportAsTimeout));
-    config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 900, toNumber(config.exportAsInFlightTimeout));
+    config.history = clamp(64, 10240, toNumber(config.history));
 
     // when more than one season is forced, reset the old ones to `null`s
     let season = config.season;
@@ -403,13 +393,9 @@ function fixConfig(config, oldConfig, serverConfig) {
                 season[key] = null;
     }
 
-    // these are mutually exclusive
-    if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard) {
-        if (config.autoPopInLimboCollect != oldConfig.autoPopInLimboCollect)
-            config.autoPopInLimboDiscard = !config.autoPopInLimboCollect;
-        else
-            config.autoPopInLimboCollect = !config.autoPopInLimboDiscard;
-    }
+    config.animateIcon = clamp(100, 5000, toNumber(config.animateIcon));
+
+    config.workaroundChromiumDebugTimeout = clamp(1, 120, toNumber(config.workaroundChromiumDebugTimeout));
 
     if (!config.debugConfig && !isMobile && !config.spawnNewTabs) {
         // unavailable
@@ -480,8 +466,35 @@ function fixConfig(config, oldConfig, serverConfig) {
             }).catch(logError);
     }
 
+    config.exportAsMaxSize = clamp(1, 512, toNumber(config.exportAsMaxSize));
+    config.exportAsTimeout = clamp(1, 900, toNumber(config.exportAsTimeout));
+    config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 1200, toNumber(config.exportAsInFlightTimeout));
+
+    // if unset, reset to default
+    if (!config.submitHTTPURLBase)
+        config.submitHTTPURLBase = configDefaults.submitHTTPURLBase;
+
     if (config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)
         serverConfig = setServer(config);
+
+    config.problematicNotifyNumber = clamp(1, 32, toNumber(config.problematicNotifyNumber));
+    config.limboMaxNumber = clamp(1, 10240, toNumber(config.limboMaxNumber));
+    config.limboMaxSize = clamp(1, 512, toNumber(config.limboMaxSize));
+    config.limboNotifyInterval = clamp(1, 3600, toNumber(config.limboNotifyInterval));
+
+    // these are mutually exclusive
+    if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard) {
+        if (config.autoPopInLimboCollect != oldConfig.autoPopInLimboCollect)
+            config.autoPopInLimboDiscard = !config.autoPopInLimboCollect;
+        else
+            config.autoPopInLimboCollect = !config.autoPopInLimboDiscard;
+    }
+    config.autoTimeout = clamp(0, 3600, toNumber(config.autoTimeout));
+
+    // fix per-source ones
+    fixSourceConfig(config.root, configDefaults.root);
+    fixSourceConfig(config.background, configDefaults.background);
+    fixSourceConfig(config.extension, configDefaults.extension);
 
     DEBUG_WEBEXT_RPC = DEBUG_CAYDARSC = config.debugRuntime;
 

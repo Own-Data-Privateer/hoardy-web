@@ -67,11 +67,8 @@ function getTabConfig(tabId, fromExtension) {
 }
 
 function fixTabConfig(url, cfg, oldCfg) {
-    // do some fixups
-    if (!cfg.bucket)
-        cfg.bucket = getFirstOk(config.root.bucket, configDefaults.root.bucket);
-    if (!cfg.children.bucket)
-        cfg.children.bucket = cfg.bucket;
+    fixSourceConfig(cfg, config.root);
+    fixSourceConfig(cfg.children, cfg);
 
     if (url !== undefined) {
         // force some settings based on tab's URL
