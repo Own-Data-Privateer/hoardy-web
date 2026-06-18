@@ -39,7 +39,7 @@ let sourceConfigDefaults = {
     bucket: "default",
 };
 
-let configVersion = 8;
+let configVersion = 9;
 
 let configDefaults = {
     version: configVersion,
@@ -276,6 +276,7 @@ function upgradeConfig(config) {
         delete config["workOffline"];
         delete config["collecting"];
         delete config["collectingWorkOffline"];
+    case 9:
 
     // epilog, do NOT move or copy-paste this `break` into the above
         break;
