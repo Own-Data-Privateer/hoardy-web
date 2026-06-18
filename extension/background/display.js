@@ -396,9 +396,14 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         udStats = stats;
     }
 
-    if (updatedTabId === undefined && !wantUpdate && !tabChanged)
-        // nothing needs updating, skip the rest of this
-        return;
+    if (updatedTabId === undefined) {
+        if (!wantUpdate && !tabChanged)
+            // nothing needs updating, skip the rest of this
+            return;
+
+        // to simplify the logic below
+        updatedTabId = null;
+    }
 
     if (udBadge !== badge) {
         await browser.browserAction.setBadgeText({ text: badge });
@@ -433,21 +438,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
     if (udGTitle !== gtitle)
         udGTitle = gtitle;
 
-    let tabs;
-    if (useDebugger && updatedTabId === null)
-        // On Chromium, when updating all tabs, actually update all tabs,
-        // otherwise switching to those tabs for the first time will
-        // display the `main` icon at first and then blink-switch to the
-        // target icon, which is ugly.
-        tabs = await browser.tabs.query({});
-    else
-        // On Firefox and when updating a select tab, we need only update
-        // for active tabs. This is more efficient.
-        tabs = await browser.tabs.query({ active: true });
-
-    if (updatedTabId === undefined)
-        // to simplify the logic below
-        updatedTabId = null;
+    let tabs = await browser.tabs.query({ active: true });
 
     let iconSlots = ["aicon", "wicon", "icon", "sicon", "ricon"];
 
@@ -513,8 +504,10 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         let stateTabId = getStateTabIdOrTabId(tab);
 
         // skip updates for unchanged tabs, when specified
-        if (updatedTabId !== null && updatedTabId !== tabId && updatedTabId !== stateTabId)
+        if (!(updatedTabId === null || updatedTabId === tabId || updatedTabId === stateTabId))
             continue;
+
+        let active = tab.active;
 
         // we don't use `getTabConfig` here to not introduce new `tabConfig`
         // elements for yet-unprocessed tabs
@@ -524,7 +517,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         // this one, handle like usual
         let tabstats = getTabStats(stateTabId);
 
-        if (tab.active) {
+        if (active) {
             // update popup UI
             if (tabChanged) {
                 broadcastToPopup("switchTab", windowId, stateTabId);
@@ -576,7 +569,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
 
         // update browserAction
         await setTitle(windowId, tabId, title);
-        await setIcons(windowId, tabId, tab.active, icons, tabChanged);
+        await setIcons(windowId, tabId, active, icons, tabChanged);
 
         if (config.debugRuntime) {
             console.info(`browserAction of tab ${tabId}: icons: [${icons.join(", ")}]`);
@@ -622,8 +615,8 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, tabChanged, episodic,
     }, undefined, true);
 }
 
-async function forceUpdateDisplay(statsChanged, updatedTabId, episodic) {
-    scheduleUpdateDisplay(statsChanged, updatedTabId, false, episodic, 0);
+async function forceUpdateDisplay(statsChanged, updatedTabId, tabChanged) {
+    scheduleUpdateDisplay(statsChanged, updatedTabId, tabChanged, 0, 0);
     await popSingletonTimeout(scheduledHidden, "updateDisplay", true, true);
 }
 

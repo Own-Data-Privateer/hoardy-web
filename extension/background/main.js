@@ -251,29 +251,32 @@ function handleTabReplaced(addedTabId, removedTabId) {
 
 function handleTabActivated(tab) {
     let tabId = tab.tabId;
+
     if (config.debugRuntime)
         console.log("BROWSER: tab activated", tabId);
+
     if (useDebugger)
         // Chromium does not provide `browser.menus.onShown` event
         updateMenu(getTabConfig(tabId));
-    // Usually, this will not be enough, see `handleTabUpdated`.
-    scheduleUpdateDisplay(false, tabId, true);
+
+    // Update immediately.
+    forceUpdateDisplay(false, tabId, true);
 }
 
 function handleTabUpdated(tabId, changeInfo, tab) {
     if (config.debugRuntime)
         console.log("BROWSER: tab updated", tabId, getTabURL(tab));
 
-    // On Firefox, there's no `tab.pendingUrl`, so we skip updates
-    // until `tab.url` is set.
+    // On Firefox, there's no `tab.pendingUrl`, so we skip updates until `tab.url` is set.
     //
-    // Otherwise, `scheduleUpdateDisplay` might get confused about
-    // which icon to show for our internal pages narrowed to a
-    // tracked tab. So,
+    // Otherwise, `updateDisplay` might get confused about which icon to show for our internal pages
+    // narrowed to a tracked tab.
     if (!useDebugger && tab.url === undefined)
         return;
 
-    scheduleUpdateDisplay(false, tabId, true);
+    // `handleTabUpdated` usually gets called by the browser repeatedly many times in succession, so
+    // we `scheduleUpdateDisplay` here instead.
+    scheduleUpdateDisplay(false, tabId, false);
 }
 
 let rpcCommands = {
