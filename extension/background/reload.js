@@ -29,12 +29,13 @@ async function performReloadSelf() {
     if (!wantReloadSelf)
         return;
 
-    let notGood
-        = reqresBuggedOutIssueAcc[0].size
-        + reqresUnstashedIssueAcc[0].size;
-        //+ reqresUnarchivedIssueAcc[0].size // these will be caught below
+    let badReqres = (
+        reqresUnstashedIssueAcc[0].size +
+        // reqresUnarchivedIssueAcc[0].size // will be caught below
+        reqresBuggedOutIssueAcc[0].size
+    );
 
-    if (notGood !== 0) {
+    if (badReqres > 0) {
         browser.notifications.create("error-noReload", {
             title: "Hoardy-Web: ERROR",
             message: escapeNotification(config, `\`Hoardy-Web\` can NOT be reloaded while some \`unstashed\` and/or \`buggedOut\` reqres are present.`),
@@ -42,44 +43,49 @@ async function performReloadSelf() {
             type: "basic",
         }).catch(logError);
 
-        wantReloadSelf = false;
+        cancelReloadSelf();
         return;
     }
 
-    let notDoneReqres = getInFlightNum(null) + reqresBundledAs.size;
-
-    let notDoneTasks
-        = synchronousClosures.length
-        + runningActions.size
-        + scheduledCancelable.size
+    let notDoneTasks = (
+        scheduledCancelable.size +
         // scheduledRetry is ignored here
-        + scheduledDelayed.size
-        + scheduledSaveState.size
-        + scheduledInternal.size;
-        // scheduledHidden is ignored here;
+        scheduledDelayed.size +
+        scheduledSaveState.size +
+        scheduledInternal.size +
+        // scheduledHidden is ignored here
+        synchronousClosures.length +
+        runningActions.size
+    );
+
+    if (notDoneTasks > 0) {
+        console.warn("reload blocked by unfinished tasks");
+        return;
+    }
+
+    let archivingReqres = config.archive ? reqresQueue.length : 0;
+    let notDoneReqres = getInFlightNum(null) + reqresBundledAs.size + archivingReqres;
+
+    if (notDoneReqres > 0) {
+        console.warn("reload blocked by unfinished and/or unarchived reqres");
+        return;
+    }
 
     function isInSyncWithLS(archivable) {
         let [loggable, dump] = archivable;
         return loggable.inLS !== undefined && !loggable.dirty;
     }
 
-    let allInSyncWithLS
-        = reqresLimbo.every(isInSyncWithLS)
-        && reqresQueue.every(isInSyncWithLS)
-        && Array.from(reqresUnarchivedIssueAcc[0]).every(isInSyncWithLS);
+    let allInSyncWithLS = (
+        reqresLimbo.every(isInSyncWithLS) &&
+        reqresQueue.every(isInSyncWithLS) &&
+        Array.from(reqresUnarchivedIssueAcc[0]).every(isInSyncWithLS)
+    );
 
-    let reloadAllowed
-        = notDoneReqres === 0
-        && notDoneTasks === 0
-        && allInSyncWithLS;
-
-    if (!reloadAllowed) {
-        let stats = getStats()
-        console.warn("reload blocked,",
-                     "#reqres", notDoneReqres,
-                     "running", stats.running_actions,
-                     "scheduled", stats.scheduled_actions,
-                     "LS?", allInSyncWithLS);
+    if (!allInSyncWithLS) {
+        console.warn("reload blocked by unstashed reqres");
+        syncStashAll(true);
+        scheduleEndgame(null);
         return;
     }
 
@@ -117,7 +123,6 @@ async function performReloadSelf() {
 
 function reloadSelf() {
     wantReloadSelf = true;
-    syncStashAll(true);
     syncRunActions();
     // NB: keep this here here instead of wrapping this function using `runThenScheduleEndgame` so
     // that this function could be called from the debug console
