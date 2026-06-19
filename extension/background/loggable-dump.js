@@ -125,7 +125,7 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
 }
 
 function syncUnmarkProblematic(...args) {
-    runSynchronously("unmarkProblematic", (...args) => unmarkProblematic(...args)[0], ...args);
+    runSynchronouslyB("unmarkProblematic", (...args) => unmarkProblematic(...args)[0], ...args);
 }
 
 function unmarkProblematicSimilarTo(loggable, allowInLimbo, newlyUnproblematic, dontBroadcast) {
@@ -165,7 +165,7 @@ function rotateProblematic(rrfilter) {
 }
 
 function syncRotateProblematic(...args) {
-    runSynchronously("rotateProblematic", rotateProblematic, ...args);
+    runSynchronouslyB("rotateProblematic", rotateProblematic, ...args);
 }
 
 function popInLimbo(collect, rrfilter) {
@@ -232,15 +232,15 @@ function popInLimbo(collect, rrfilter) {
         broadcastToState(tabId, "appendLog", newlyLogged);
 
     if (newlyStashed.length > 0)
-        runSynchronously("stash", stashMany, newlyStashed);
+        runSynchronouslyB("stash", stashMany, newlyStashed);
     if (newlyUnstashed.length > 0)
-        runSynchronously("unstash", deleteMany, newlyUnstashed);
+        runSynchronouslyB("unstash", deleteMany, newlyUnstashed);
 
     return [tabId, popped.length];
 }
 
 function syncPopInLimbo(...args) {
-    runSynchronously("popInLimbo", (...args) => popInLimbo(...args)[0], ...args);
+    runSynchronouslyB("popInLimbo", (...args) => popInLimbo(...args)[0], ...args);
 }
 
 function rotateInLimbo(rrfilter) {
@@ -259,7 +259,7 @@ function rotateInLimbo(rrfilter) {
 }
 
 function syncRotateInLimbo(...args) {
-    runSynchronously("rotateInLimbo", rotateInLimbo, ...args);
+    runSynchronouslyB("rotateInLimbo", rotateInLimbo, ...args);
 }
 
 function truncateLog() {
@@ -287,7 +287,7 @@ function forgetLog(rrfilter) {
 }
 
 function syncForgetLog(...args) {
-    runSynchronously("forgetLog", forgetLog, ...args);
+    runSynchronouslyB("forgetLog", forgetLog, ...args);
 }
 
 // (Re-)creation of loggable reqres.
@@ -766,9 +766,9 @@ async function processAlmostDone() {
         broadcastToState(updatedTabId, "appendLog", newlyLogged);
 
     if (newlyStashed.length > 0)
-        runSynchronously("stash", stashMany, newlyStashed);
+        runSynchronouslyB("stash", stashMany, newlyStashed);
     if (newlyUnstashed.length > 0)
-        runSynchronously("unstash", deleteMany, newlyUnstashed);
+        runSynchronouslyB("unstash", deleteMany, newlyUnstashed);
 
     // scheduleEndgame by the caller
 

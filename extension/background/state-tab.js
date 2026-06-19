@@ -291,7 +291,7 @@ function cleanupAfterTab(tabId) {
         } else {
             let name = `cleanup-tab#${tabId}`;
             resetSingletonTimeout(scheduledDelayed, name, config.autoTimeout * 1000, () => {
-                runSynchronously(name, cleanupLimboAfterTab, tabId);
+                runSynchronouslyB(name, cleanupLimboAfterTab, tabId);
                 scheduleEndgame(tabId);
             });
         }

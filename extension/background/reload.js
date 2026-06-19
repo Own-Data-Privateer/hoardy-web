@@ -54,7 +54,9 @@ async function performReloadSelf() {
         scheduledSaveState.size +
         scheduledInternal.size +
         // scheduledHidden is ignored here
-        synchronousClosures.length +
+        synchronousClosuresA.length +
+        synchronousClosuresB.length +
+        synchronousClosuresC.length +
         runningActions.size
     );
 

@@ -38,8 +38,10 @@ let scheduledInternal = new Map();
 // scheduled internal functions hidden from the UI
 let scheduledHidden = new Map();
 
-// a list of [function, args] pairs; these are closures that need to be run synchronously
-let synchronousClosures = [];
+// [[name, function, args]]: closures that need to be run synchronously
+let synchronousClosuresA = [];
+let synchronousClosuresB = [];
+let synchronousClosuresC = [];
 
 async function evalClosures(closures, updatedTabId) {
     while (closures.length > 0) {
@@ -70,27 +72,41 @@ async function evalClosures(closures, updatedTabId) {
 }
 
 // syntax sugar
-function runSynchronously(name, func, ...args) {
-    synchronousClosures.push([name, func, args]);
+function runSynchronouslyA(name, func, ...args) {
+    synchronousClosuresA.push([name, func, args]);
+}
+
+function runSynchronouslyB(name, func, ...args) {
+    synchronousClosuresB.push([name, func, args]);
+}
+
+function runSynchronouslyC(name, func, ...args) {
+    synchronousClosuresC.push([name, func, args]);
 }
 
 // actions
 
 function syncRunActions() {
-    runSynchronously("runAll", async () => {
+    runSynchronouslyA("runAll0", async () => {
         //await runAllSingletonTimeouts(scheduledCancelable);
         await runAllSingletonTimeouts(scheduledRetry);
         await runAllSingletonTimeouts(scheduledDelayed);
+        return null;
+    });
+    runSynchronouslyC("runAll2", async () => {
         await runAllSingletonTimeouts(scheduledSaveState);
         return null;
     });
 }
 
 function syncCancelActions() {
-    runSynchronously("cancelAll", async () => {
+    runSynchronouslyA("cancelAll0", async () => {
         await cancelAllSingletonTimeouts(scheduledCancelable);
         await cancelAllSingletonTimeouts(scheduledRetry);
         await cancelAllSingletonTimeouts(scheduledDelayed);
+        return null;
+    });
+    runSynchronouslyC("runAll2", async () => {
         // `scheduledSaveState` mustn't ever be cancelled, so we run them instead
         await runAllSingletonTimeouts(scheduledSaveState);
         return null;
@@ -145,15 +161,21 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
             await checkServer();
             scheduleEndgame(undefined, notifyTimeout);
         });
-    } else if (synchronousClosures.length > 0) {
+    } else if (synchronousClosuresA.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0,
-                              () => seEvalClosures(synchronousClosures, notifyTimeout));
+                              () => seEvalClosures(synchronousClosuresA, notifyTimeout));
     } else if (reqresAlmostDone.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0,
                               () => seEvalFunction(processAlmostDone, notifyTimeout));
+    } else if (synchronousClosuresB.length > 0) {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0,
+                              () => seEvalClosures(synchronousClosuresB, notifyTimeout));
     } else if (config.archive && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0,
                               () => seEvalFunction(processArchiving, notifyTimeout));
+    } else if (synchronousClosuresC.length > 0) {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0,
+                              () => seEvalClosures(synchronousClosuresC, notifyTimeout));
     } else {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             let updatedTabId = seUpdatedTabId;

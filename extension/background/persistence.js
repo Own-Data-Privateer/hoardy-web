@@ -148,7 +148,7 @@ function retryUnarchived(unrecoverable, rrfilter) {
 }
 
 function syncRetryUnarchived(...args) {
-    runSynchronously("retryUnarchived", retryUnarchived, ...args);
+    runSynchronouslyB("retryUnarchived", retryUnarchived, ...args);
 }
 
 function scheduleRetryAllUnarchived(timeout) {
@@ -261,7 +261,7 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
         scheduleActionEndgame(scheduledDelayed, `exportAs-${bucket}`, timeout, () => {
             let res = bucketSaveAs(bucket, 0);
             if (res === false)
-                runSynchronously("stash", () => stashMany(reqresUnarchivedIssueAcc[0]));
+                runSynchronouslyB("stash", () => stashMany(reqresUnarchivedIssueAcc[0]));
             // return undefined;
         });
     // NB: This is slightly fragile, consider the following sequence of
@@ -269,7 +269,7 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
     //
     //   exportAsOne -> submitHTTPOne -> saveOne
     //   -> ... -> scheduledEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
-    //   and does pushManyToIssueAcc2(unarchivedAccumulator, ...) -> evalClosures(synchronousClosures) -> stashMany
+    //   and does pushManyToIssueAcc2(unarchivedAccumulator, ...) -> evalClosures(synchronousClosures*) -> stashMany
     //
     // Also note that it will work properly only if the above
     // `runSynchronously` is run after `processArchiving` for the same
@@ -280,7 +280,7 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
     //   exportAsOne -> submitHTTPOne -> (no saveOne)
     //   -> syncWithStorage(archivable, 0, ...)
     //   -> ... -> scheduleEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
-    //   and does pushManyToIssueAcc2(unarchivedAccumulator, ...) -> evalClosures(synchronousClosures) -> stashMany
+    //   and does pushManyToIssueAcc2(unarchivedAccumulator, ...) -> evalClosures(synchronousClosures*) -> stashMany
     //
     // Which will only work if all `syncWithStorage` uses above do not elide the dump from memory,
     // which it does not in (notEliding).
@@ -786,7 +786,7 @@ async function retryAllUnstashed() {
 
 function syncRetryAllUnstashed() {
     if (reqresUnstashedIssueAcc[0].size > 0)
-        runSynchronously("retryAllUnstashed", retryAllUnstashed);
+        runSynchronouslyB("retryAllUnstashed", retryAllUnstashed);
 }
 
 async function stashAll(alsoLimbo) {
@@ -800,7 +800,7 @@ async function stashAll(alsoLimbo) {
 }
 
 function syncStashAll(...args) {
-    runSynchronously("stash", stashAll, ...args);
+    runSynchronouslyB("stash", stashAll, ...args);
 }
 
 async function deleteOne(archivable) {
@@ -1071,7 +1071,7 @@ async function archive(archivables, wantArchived, reset, andRewrite, andDelete, 
 async function processArchiving() {
     let updatedTabId;
 
-    while (config.archive && synchronousClosures.length === 0 && reqresQueue.length > 0) {
+    while (config.archive && synchronousClosuresA.length === 0 && synchronousClosuresB.length === 0 && reqresQueue.length > 0) {
         let archivable = reqresQueue.shift();
 
         try {
@@ -1170,7 +1170,7 @@ function syncRearchiveSaved(rrfilter, reset, andRewrite, andDelete) {
     if (!config.rearchiveExportAs && !config.rearchiveSubmitHTTP && !andRewrite)
         return;
 
-    runSynchronously("rearchiveSaved", async () => {
+    runSynchronouslyB("rearchiveSaved", async () => {
         // invalidate UI
         broadcastToSaved("resetSaved", [null]);
         wantBroadcastSaved = true;
@@ -1182,7 +1182,7 @@ function syncRearchiveSaved(rrfilter, reset, andRewrite, andDelete) {
 }
 
 function syncDeleteSaved(rrfilter) {
-    runSynchronously("deleteSaved", async () => {
+    runSynchronouslyB("deleteSaved", async () => {
         broadcastToSaved("resetSaved", [null]); // invalidate UI
         wantBroadcastSaved = true;
 
@@ -1218,7 +1218,7 @@ function syncArchiveBuggedOut(rrfilter, reset, andRewrite, andDelete) {
     if (reqresBuggedOutIssueAcc[0].size === 0)
         return;
 
-    runSynchronously("archiveBuggedOut", async () => {
+    runSynchronouslyB("archiveBuggedOut", async () => {
         let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresBuggedOutIssueAcc[0]);
 
         if (popped.length === 0)
@@ -1246,7 +1246,7 @@ function syncDeleteBuggedOut(rrfilter) {
     if (reqresBuggedOutIssueAcc[0].size === 0)
         return;
 
-    runSynchronously("deleteBuggedOut", async () => {
+    runSynchronouslyB("deleteBuggedOut", async () => {
         let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresBuggedOutIssueAcc[0]);
 
         if (popped.length === 0)

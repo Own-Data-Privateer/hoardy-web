@@ -116,17 +116,25 @@ function sumIssueAccByReasonStats(m) {
     return sumStats((f) => [f.queue.length, f.size], m);
 }
 
-function pushNotRunning(m, actions) {
+function pushNotRunning(m, actions, prefix, suffix) {
+    if (prefix === undefined)
+        prefix = "";
+    if (suffix === undefined)
+        suffix = "";
     for (let key of m) {
         if (runningActions.has(key))
             continue;
-        actions.push(key);
+        actions.push(prefix + key + suffix);
     }
 }
 
-function pushClosures(m, actions) {
+function pushClosures(m, actions, prefix, suffix) {
+    if (prefix === undefined)
+        prefix = "";
+    if (suffix === undefined)
+        suffix = "";
     for (let v of m)
-        actions.push(v[0]);
+        actions.push(prefix + v[0] + suffix);
 }
 
 // Compute total sizes of all queues and similar.
@@ -143,15 +151,22 @@ function getStats() {
     let [in_flight, finishing_up, almost_done] = getInFlight3Num(null);
 
     let actions = [];
-    pushNotRunning(scheduledCancelable.keys(), actions);
-    pushNotRunning(scheduledRetry.keys(), actions);
-    pushNotRunning(scheduledDelayed.keys(), actions);
-    pushNotRunning(scheduledSaveState.keys(), actions);
+
+    // "d:" for "delayed"
+    pushNotRunning(scheduledCancelable.keys(), actions, "d:");
+    pushNotRunning(scheduledRetry.keys(), actions, "d:");
+    pushNotRunning(scheduledDelayed.keys(), actions, "d:");
+    pushNotRunning(scheduledSaveState.keys(), actions, "d:");
+
     let low_prio = actions.length;
-    pushNotRunning(scheduledInternal.keys(), actions);
+
+    pushNotRunning(scheduledInternal.keys(), actions, "d:");
     // scheduledHidden are not shown to the UI
 
-    pushClosures(synchronousClosures, actions);
+    // "q:" for "queued"
+    pushClosures(synchronousClosuresA, actions, "q:");
+    pushClosures(synchronousClosuresB, actions, "q:");
+    pushClosures(synchronousClosuresC, actions, "q:");
 
     return {
         update_available: updateAvailable,
