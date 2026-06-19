@@ -32,11 +32,29 @@ let tabStateDefaults = assignRec({}, dynamicStateDefaults, commonStateDefaults);
 // per-tab state
 let tabState = new Map();
 
+function getTabStateInternal(tabId) {
+    return cacheSingleton(tabState, tabId, () => assignRec({}, tabStateDefaults));
+}
+
+let tabStateProxyFuncs = {
+    set(obj, name, value) {
+        let old = obj[name];
+        obj[name] = value;
+
+        let diff = value - old;
+
+        state[name] += diff;
+        wantSaveState = true;
+
+        return true;
+    }
+}
+
 function getTabState(tabId, fromExtension) {
     // NB: not tracking extensions separately here, unlike with configs
     if (fromExtension)
         tabId = TAB_ID_NONE;
-    return cacheSingleton(tabState, tabId, () => assignRec({}, tabStateDefaults));
+    return new Proxy(getTabStateInternal(tabId), tabStateProxyFuncs);
 }
 
 function prefillChildren(data) {
