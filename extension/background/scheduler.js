@@ -148,12 +148,12 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
     } else if (synchronousClosures.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0,
                               () => seEvalClosures(synchronousClosures, notifyTimeout));
-    } else if (config.archive && reqresQueue.length > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0,
-                              () => seEvalFunction(processArchiving, notifyTimeout));
     } else if (reqresAlmostDone.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0,
                               () => seEvalFunction(processAlmostDone, notifyTimeout));
+    } else if (config.archive && reqresQueue.length > 0) {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0,
+                              () => seEvalFunction(processArchiving, notifyTimeout));
     } else {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             let updatedTabId = seUpdatedTabId;
