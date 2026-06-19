@@ -119,6 +119,23 @@ let wantRetryAllUnarchived = false;
 // accumulated state
 let seUpdatedTabId;
 
+async function seEvalFunction(func, ...args) {
+    let updatedTabId = seUpdatedTabId;
+    seUpdatedTabId = undefined; // reset
+
+    await forceUpdateDisplay(true, updatedTabId);
+    updatedTabId = await func();
+    scheduleEndgame(updatedTabId, ...args);
+}
+
+async function seEvalClosures(closures, ...args) {
+    let updatedTabId = seUpdatedTabId;
+    seUpdatedTabId = undefined; // reset
+
+    updatedTabId = await evalClosures(closures, updatedTabId);
+    scheduleEndgame(updatedTabId, ...args);
+}
+
 // schedule processArchiving, processAlmostDone, etc
 function scheduleEndgame(updatedTabId, notifyTimeout) {
     seUpdatedTabId = mergeUpdatedTabIds(seUpdatedTabId, updatedTabId);
@@ -129,31 +146,14 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
             scheduleEndgame(undefined, notifyTimeout);
         });
     } else if (synchronousClosures.length > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
-            let updatedTabId = seUpdatedTabId;
-            seUpdatedTabId = undefined; // reset
-
-            updatedTabId = await evalClosures(synchronousClosures, updatedTabId);
-            scheduleEndgame(updatedTabId, notifyTimeout);
-        });
+        resetSingletonTimeout(scheduledHidden, "endgame", 0,
+                              () => seEvalClosures(synchronousClosures, notifyTimeout));
     } else if (config.archive && reqresQueue.length > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
-            let updatedTabId = seUpdatedTabId;
-            seUpdatedTabId = undefined; // reset
-
-            await forceUpdateDisplay(true, updatedTabId);
-            updatedTabId = await processArchiving();
-            scheduleEndgame(updatedTabId, notifyTimeout);
-        });
+        resetSingletonTimeout(scheduledHidden, "endgame", 0,
+                              () => seEvalFunction(processArchiving, notifyTimeout));
     } else if (reqresAlmostDone.length > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
-            let updatedTabId = seUpdatedTabId;
-            seUpdatedTabId = undefined; // reset
-
-            await forceUpdateDisplay(true, updatedTabId);
-            updatedTabId = await processAlmostDone();
-            scheduleEndgame(updatedTabId, notifyTimeout);
-        });
+        resetSingletonTimeout(scheduledHidden, "endgame", 0,
+                              () => seEvalFunction(processAlmostDone, notifyTimeout));
     } else {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             let updatedTabId = seUpdatedTabId;
