@@ -367,6 +367,8 @@ section {
     <ui id="config.root.bucket" type="string" data-help="Set `Bucket` option in new tabs opened via browser's &quot;New Tab&quot; browser action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item) to this value.">Bucket</ui>
     <ui id="config.root.snapshottable" type="boolean" class="prefer-on tag-glob" data-help="Enable `Include in global snapshots` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Include in global snapshots</ui>
     <ui id="config.root.replayable" type="boolean" class="prefer-on tag-glob" data-help="Enable `Include in global replays` options in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item).">Include in global replays</ui>
+    <ui id="config.root.settleDelay" type="number" class="c tag-glob" data-help="Set `Settle in ...` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item) to this value.">Settle in {}s after <code>in_flight</code></ui>
+    <ui id="config.root.settleRetries" type="number" class="c tag-glob" data-help="Set `... retry up to ...` option in new tabs opened via browser's &quot;New Tab&quot; action (new tabs created via the plus sign in the tab bar, `Control+T`, `New Tab` menu item) to this value.">... retry up to {} times</ui>
 
     <!-- rootTabOptions -->
     </div>
@@ -493,6 +495,8 @@ section {
     <ui id="tabconfig.bucket" type="string" tabindex=2 data-help="Use this bucket when archiving reqres originating from this tab.">Bucket</ui>
     <ui id="tabconfig.snapshottable" type="boolean" class="prefer-on tag-tab" data-help="Include this tab in a set of tabs that will be DOM-snapshotted by `Globally &gt; Snapshot` button.">Include in global snapshots</ui>
     <ui id="tabconfig.replayable" type="boolean" class="prefer-on tag-tab" data-help="Include this tab in a set of tabs that will be replayed by `Globally &gt; Replay` button.">Include in global replays</ui>
+    <ui id="tabconfig.settleDelay" type="number" class="c tag-tab" data-help="When taking a DOM snapshot of or replaying a tab, delay the corresponding action until no less than this many seconds passes since the last `in_flight` reqres finishes. In other words, when snapshotting or replaying a tab while it's still loading, wait this many seconds for the web page to settle before proceeding. This option exists to allow page's JavaScript to use the data the page just fetched to update its DOM and/or generate more requests.">Settle in {}s after <code>in_flight</code></ui>
+    <ui id="tabconfig.settleRetries" type="number" class="c tag-tab" data-help="Retry DOM snapshots and replays up to this many times before giving up. E.g., with the above delay set to 5 seconds, consider a situation when a page's JavaScript generates new requests every 3 seconds. Without this limit, trying to snapshot or replay such a page will make the corresponding action churn through its &quot;waiting for all `in_flight` reqres to finish → waiting for the additional delay to pass → repeat&quot; stages indefinitely. With this limit, such action run over such a page will fail (and generate a notification about it) after this number of retries instead.">... retry up to {} times</ui>
     </div>
 
     <!-- thisTabOptions -->
@@ -519,6 +523,8 @@ section {
     <ui id="tabconfig.children.bucket" type="string" tabindex=3 data-help="Set `Bucket` option in new tabs spawned from this tab (via middle mouse click, context menu actions) to this value.">Bucket</ui>
     <ui id="tabconfig.children.snapshottable" type="boolean" class="prefer-on tag-tab" data-help="Enable `Include in global snapshots` options in new tabs spawned from this tab (via middle mouse click, context menu actions).">Include in global snapshots</ui>
     <ui id="tabconfig.children.replayable" type="boolean" class="prefer-on tag-tab" data-help="Enable `Include in global replays` options in new tabs spawned from this tab (via middle mouse click, context menu actions).">Include in global replays</ui>
+    <ui id="tabconfig.children.settleDelay" type="number" class="c tag-tab" data-help="Set `Settle in ...` option in new tabs spawned from this tab (via middle mouse click, context menu actions) to this value.">Settle in {}s after <code>in_flight</code></ui>
+    <ui id="tabconfig.children.settleRetries" type="number" class="c tag-tab" data-help="Set `... retry up to ...` option in new tabs spawned from this tab (via middle mouse click, context menu actions) to this value.">... retry up to {} times</ui>
 
     <!-- thisTabChildrenOptions -->
     </div>

@@ -169,6 +169,8 @@ let configDefaults = {
     root: assignRec({
         snapshottable: true,
         replayable: true,
+        settleDelay: 5,
+        settleRetries: 5,
     }, sourceConfigDefaults),
 
     background: assignRec({}, sourceConfigDefaults, {
@@ -378,10 +380,16 @@ function setServer(config) {
     return res;
 }
 
-function fixSourceConfig(cfg, defaults) {
+function fixSourceConfig(cfg, defaults, noTab) {
     // if unset, reset to default
     if (!cfg.bucket)
         cfg.bucket = defaults.bucket;
+
+    if (noTab)
+        return;
+
+    cfg.settleDelay = clamp(0, 60, toNumber(cfg.settleDelay));
+    cfg.settleRetries = clamp(0, 100, toNumber(cfg.settleRetries));
 }
 
 function fixConfig(config, oldConfig, serverConfig) {
@@ -496,8 +504,8 @@ function fixConfig(config, oldConfig, serverConfig) {
 
     // fix per-source ones
     fixSourceConfig(config.root, configDefaults.root);
-    fixSourceConfig(config.background, configDefaults.background);
-    fixSourceConfig(config.extension, configDefaults.extension);
+    fixSourceConfig(config.background, configDefaults.background, true);
+    fixSourceConfig(config.extension, configDefaults.extension, true);
 
     DEBUG_WEBEXT_RPC = DEBUG_CAYDARSC = config.debugRuntime;
 

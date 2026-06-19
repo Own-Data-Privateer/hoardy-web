@@ -297,6 +297,52 @@ function runThenScheduleEndgame(func, ...args) {
         scheduleEndgame();
 }
 
+// run `func` after `tabId` settles
+async function runWhenTabSettles(what, desc, tabId, tabcfg, retries, func, ...args) {
+    async function doDelay(timeout) {
+        if (retries > tabcfg.settleRetries) {
+            await browser.notifications.create(`error-${what}-${tabId}`, {
+                title: "Hoardy-Web: ERROR",
+                message: escapeNotification(config, `Failed to ${desc}:\n- The page did not settle, the number of retries exeeds \`DOM Snapshots > Retry up to <N> times\` setting`),
+                iconUrl: iconURL("error", 128),
+                type: "basic",
+            }).catch(logError);
+            return;
+        }
+
+        // pause for a bit to let the page's JavaScript process it
+        resetSingletonTimeout(scheduledDelayed, `${what}#${tabId}`, timeout, async () => {
+            // and try again
+            let updatedTabId = await runWhenTabSettles(what, desc, tabId, tabcfg, retries + 1, func, ...args);
+            scheduleEndgame(updatedTabId);
+        });
+
+        // return undefined;
+    }
+
+    let delay = tabcfg.settleDelay * 1000;
+
+    if (getInFlightNum({tabId}) !== 0) {
+        // if some relevant reqres are still in flight
+        runSynchronouslyWhenNoInFlight(tabId, what, () => doDelay(delay));
+        return; // undefined
+    }
+
+    let tabstate = getTabState(tabId);
+    let left = tabstate.emitTimeStamp + delay - Date.now();
+
+    if (left > 0) {
+        await doDelay(left);
+        return; // undefined
+    }
+
+    // run it
+    let res = func(...args);
+    while (res instanceof Promise)
+        res = await res;
+    return res;
+}
+
 // Schedule a given function using `resetSingletonTimeout`. But just
 // before it starts, add its name to `runningActions` and update the
 // UI, after it ends, remove it from `runningActions` and run
