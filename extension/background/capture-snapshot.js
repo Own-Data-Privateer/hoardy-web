@@ -23,12 +23,13 @@
 
 "use strict";
 
-async function snapshotOneTab(tabId, url) {
+async function snapshotOne(tabId, url) {
     if (config.debugRuntime)
-        console.log("taking DOM snapshot of tab", tabId, url);
+        console.log("DOM-snapshoting tab", tabId, url);
 
     let start = Date.now();
     let allErrors = [];
+    let updatedTabId;
 
     try {
         let allResults = await browser.tabs.executeScript(tabId, {
@@ -103,6 +104,7 @@ async function snapshotOneTab(tabId, url) {
             };
 
             reqresAlmostDone.push(reqres);
+            updatedTabId = tabId;
         }
     } catch (err) {
         allErrors.push(errorMessageOf(err));
@@ -110,11 +112,13 @@ async function snapshotOneTab(tabId, url) {
         if (allErrors.length > 0)
             await browser.notifications.create(`error-snapshot-${tabId}`, {
                 title: "Hoardy-Web: ERROR",
-                message: escapeNotification(config, `While taking DOM snapshot of tab #${tabId} (${url.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`),
+                message: escapeNotification(config, `While taking a DOM snapshot of tab #${tabId} (${url.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`),
                 iconUrl: iconURL("error", 128),
                 type: "basic",
             }).catch(logError);
     }
+
+    return updatedTabId;
 }
 
 async function snapshot(tabIdOrNull) {
@@ -125,6 +129,7 @@ async function snapshot(tabIdOrNull) {
         let tab = await browser.tabs.get(tabIdOrNull);
         tabs = [ tab ];
     }
+    let updatedTabId;
 
     for (let tab of tabs) {
         let tabId = tab.id;
@@ -133,11 +138,17 @@ async function snapshot(tabIdOrNull) {
         if (tabIdOrNull === null && !tabcfg.snapshottable
             || !config.snapshotAny && isBoringOrServerURL(url)) {
             if (config.debugRuntime)
-                console.log("NOT taking DOM snapshot of tab", tabId, url);
+                console.log("NOT DOM-snapshoting tab", tabId, url);
             continue;
         }
-        await snapshotOneTab(tabId, url);
+
+        let res = await runWhenTabSettles(
+            "snapshot", `take a DOM snapshot of tab #${tabId} (${url.substr(0, 80)})`,
+            tabId, tabcfg, 0,
+            snapshotOne, tabId, url
+        );
+        updatedTabId = mergeUpdatedTabIds(updatedTabId, res);
     }
 
-    scheduleEndgame(tabIdOrNull);
+    scheduleEndgame(updatedTabId);
 }

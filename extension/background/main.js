@@ -168,6 +168,16 @@ function latestReplayOf(url) {
     return (new URL(replayURL, serverConfig.baseURL)).href;
 }
 
+function replayOne(tabId, url) {
+    runSynchronouslyB(`replay#${tabId}`, (tabId, url) => {
+        popInLimbo(true, {tabId});
+        runSynchronouslyWhenArchived(tabId, "replay",
+                                     // force return undefined
+                                     (tabId, url) => navigateTabTo(tabId, url).then(noop), tabId, url);
+    }, tabId, url);
+    // return undefined;
+}
+
 async function replay(tabIdOrNull, direction) {
     if (!checkReplay())
         return;
@@ -190,8 +200,20 @@ async function replay(tabIdOrNull, direction) {
                 console.log("MAIN: NOT replaying tab", tabId, url);
             continue;
         }
-        await navigateTabTo(tabId, latestReplayOf(url));
+
+        let replayURL = latestReplayOf(url);
+
+        if (config.debugRuntime)
+            console.log("MAIN: replaying tab", tabId, url, "->", replayURL);
+
+        await runWhenTabSettles(
+            "replay", `replay tab #${tabId} (${url.substr(0, 80)})`,
+            tabId, tabcfg, 0,
+            replayOne, tabId, replayURL
+        );
     }
+
+    scheduleEndgame();
 }
 
 // Handlers.
