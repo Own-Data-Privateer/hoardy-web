@@ -57,6 +57,8 @@ async function performReloadSelf() {
         synchronousClosuresA.length +
         synchronousClosuresB.length +
         synchronousClosuresC.length +
+        scheduledWhenNoInFlight.size +
+        scheduledWhenArchived.size +
         runningActions.size
     );
 

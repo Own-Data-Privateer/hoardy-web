@@ -137,6 +137,11 @@ function pushClosures(m, actions, prefix, suffix) {
         actions.push(prefix + v[0] + suffix);
 }
 
+function pushPerTabClosures(scheduled, actions, prefix) {
+    for (let [tabId, closures] of scheduled.entries())
+        pushClosures(closures, actions, prefix, tabId !== null ? `#${tabId}` : "");
+}
+
 // Compute total sizes of all queues and similar.
 // Used in the UI.
 function getStats() {
@@ -167,6 +172,10 @@ function getStats() {
     pushClosures(synchronousClosuresA, actions, "q:");
     pushClosures(synchronousClosuresB, actions, "q:");
     pushClosures(synchronousClosuresC, actions, "q:");
+
+    // "w:" for "waiting/when"
+    pushPerTabClosures(scheduledWhenNoInFlight, actions, "w:ni:");
+    pushPerTabClosures(scheduledWhenArchived, actions, "w:a:");
 
     return {
         update_available: updateAvailable,

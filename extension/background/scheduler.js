@@ -84,6 +84,19 @@ function runSynchronouslyC(name, func, ...args) {
     synchronousClosuresC.push([name, func, args]);
 }
 
+// tabId -> [[name, function, args]]: closures delayed until a given tabId has no in-flight reqres
+let scheduledWhenNoInFlight = new Map();
+// similarly, but until all tabId's reqres are processed
+let scheduledWhenArchived = new Map();
+
+function runSynchronouslyWhenNoInFlight(tabId, name, func, ...args) {
+    cacheSingleton(scheduledWhenNoInFlight, tabId, () => []).push([name, func, args]);
+}
+
+function runSynchronouslyWhenArchived(tabId, name, func, ...args) {
+    cacheSingleton(scheduledWhenArchived, tabId, () => []).push([name, func, args]);
+}
+
 // actions
 
 function syncRunActions() {
@@ -152,8 +165,37 @@ async function seEvalClosures(closures, ...args) {
     scheduleEndgame(updatedTabId, ...args);
 }
 
+function sePopClosures(scheduled, closures, ...args) {
+    let toDelete = [];
+
+    let numInFlight = getInFlightNum(null);
+
+    for (let [tabId, cs] of scheduled.entries()) {
+        // NB: the first part is so that `null` would be processed last, the second is so
+        // that the third won't be called when `numInFlight === 0`
+        if (tabId === null || numInFlight !== 0 && getInFlightNum({tabId}) !== 0)
+            continue;
+        closures.push(...cs);
+        toDelete.push(tabId);
+    }
+
+    if (numInFlight === 0) {
+        // process `null` last
+        let cs = scheduled.get(null);
+        if (cs !== undefined) {
+            closures.push(...cs);
+            toDelete.push(null);
+        }
+    }
+
+    for (let tabId of toDelete)
+        scheduled.delete(tabId);
+
+    scheduleEndgame(undefined, ...args);
+}
+
 // schedule processArchiving, processAlmostDone, etc
-function scheduleEndgame(updatedTabId, notifyTimeout) {
+function scheduleEndgame(updatedTabId, notifyTimeout, skipScheduledWhenNoInFlight, skipScheduledWhenArchived) {
     seUpdatedTabId = mergeUpdatedTabIds(seUpdatedTabId, updatedTabId);
 
     if (wantCheckServer) {
@@ -167,12 +209,22 @@ function scheduleEndgame(updatedTabId, notifyTimeout) {
     } else if (reqresAlmostDone.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0,
                               () => seEvalFunction(processAlmostDone, notifyTimeout));
+    } else if (!skipScheduledWhenNoInFlight && scheduledWhenNoInFlight.size > 0) {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0,
+                              // NB: `skipScheduledWhenNoInFlight = true`
+                              () => sePopClosures(scheduledWhenNoInFlight, synchronousClosuresB,
+                                                  notifyTimeout, true, skipScheduledWhenArchived));
     } else if (synchronousClosuresB.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0,
                               () => seEvalClosures(synchronousClosuresB, notifyTimeout));
     } else if (config.archive && reqresQueue.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0,
                               () => seEvalFunction(processArchiving, notifyTimeout));
+    } else if (!skipScheduledWhenArchived && scheduledWhenArchived.size > 0) {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0,
+                              // NB: `skipScheduledWhenArchived = true`
+                              () => sePopClosures(scheduledWhenArchived, synchronousClosuresC,
+                                                  notifyTimeout, skipScheduledWhenNoInFlight, true));
     } else if (synchronousClosuresC.length > 0) {
         resetSingletonTimeout(scheduledHidden, "endgame", 0,
                               () => seEvalClosures(synchronousClosuresC, notifyTimeout));
