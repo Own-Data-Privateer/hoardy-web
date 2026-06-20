@@ -122,8 +122,6 @@ function retryStoreUnarchived(accumulator, storeID, unrecoverable) {
 }
 
 function retryUnarchived(unrecoverable, rrfilter) {
-    wantCheckServer = true;
-
     if (reqresUnarchivedIssueAcc[0].size === 0)
         return;
 
@@ -148,6 +146,11 @@ function retryUnarchived(unrecoverable, rrfilter) {
 }
 
 function syncRetryUnarchived(...args) {
+    wantCheckServer = true;
+
+    if (reqresUnarchivedIssueAcc[0].size === 0)
+        return;
+
     runSynchronouslyB("retryUnarchived", retryUnarchived, ...args);
 }
 
@@ -785,8 +788,10 @@ async function retryAllUnstashed() {
 }
 
 function syncRetryAllUnstashed() {
-    if (reqresUnstashedIssueAcc[0].size > 0)
-        runSynchronouslyB("retryAllUnstashed", retryAllUnstashed);
+    if (reqresUnstashedIssueAcc[0].size === 0)
+        return;
+
+    runSynchronouslyB("retryAllUnstashed", retryAllUnstashed);
 }
 
 async function stashAll(alsoLimbo) {

@@ -125,6 +125,9 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
 }
 
 function syncUnmarkProblematic(...args) {
+    if (reqresProblematic.length === 0)
+        return;
+
     runSynchronouslyB("unmarkProblematic", (...args) => unmarkProblematic(...args)[0], ...args);
 }
 
@@ -165,6 +168,9 @@ function rotateProblematic(rrfilter) {
 }
 
 function syncRotateProblematic(...args) {
+    if (reqresProblematic.length === 0)
+        return;
+
     runSynchronouslyB("rotateProblematic", rotateProblematic, ...args);
 }
 
@@ -240,6 +246,9 @@ function popInLimbo(collect, rrfilter) {
 }
 
 function syncPopInLimbo(...args) {
+    if (reqresLimbo.length === 0)
+        return;
+
     runSynchronouslyB("popInLimbo", (...args) => popInLimbo(...args)[0], ...args);
 }
 
@@ -259,6 +268,9 @@ function rotateInLimbo(rrfilter) {
 }
 
 function syncRotateInLimbo(...args) {
+    if (reqresLimbo.length === 0)
+        return;
+
     runSynchronouslyB("rotateInLimbo", rotateInLimbo, ...args);
 }
 
@@ -287,6 +299,9 @@ function forgetLog(rrfilter) {
 }
 
 function syncForgetLog(...args) {
+    if (reqresLog.length == 0)
+        return;
+
     runSynchronouslyB("forgetLog", forgetLog, ...args);
 }
 
