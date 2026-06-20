@@ -71,6 +71,8 @@ function formatFailures(why, willRetry, list) {
 // make a log of no more than `problematicNotifyNumber`
 // elements, merging those referencing the same URL
 function formatProblematic(list) {
+    let partial = false;
+
     let latestMap = new Map();
     for (let i = list.length - 1; i >= 0; --i) {
         let loggable = list[i][0];
@@ -83,8 +85,10 @@ function formatProblematic(list) {
         if (l === undefined) {
             if (latestMap.size < config.problematicNotifyNumber)
                 latestMap.set(desc, 1);
-            else
+            else {
+                partial = true;
                 break;
+            }
         } else
             latestMap.set(desc, l + 1);
     }
@@ -100,6 +104,10 @@ function formatProblematic(list) {
             latestDesc.push(`${v}x ${k.substr(0, 80)}\u2026`);
     }
     latestDesc.reverse();
+
+    if (partial)
+        latestDesc.push("\u2026");
+
     return latestDesc;
 }
 
