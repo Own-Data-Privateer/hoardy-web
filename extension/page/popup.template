@@ -176,19 +176,19 @@ section {
     <!-- idBody -->
 
     <div id="tags">
-      <input type="button" id="showTag-common" title="Most commonly used stuff" value="**" />
-      <input type="button" id="showTag-main" tabindex=4 title="Main tracking actions, stats, and settings" value="Main" />
-      <input type="button" id="showTag-this" tabindex=4 title="Actions, stats, and settings related to the currently active tab" value="This" />
-      <input type="button" id="showTag-bg" tabindex=4 title="Actions, stats, and settings related to background tabs and requests" value="BG" />
-      <input type="button" id="showTag-class" tabindex=4 title="Reqres classifier settings" value="CLS" />
+      <input id="showTag-common" type="button" title="Most commonly used stuff" value="**" />
+      <input id="showTag-main" type="button" tabindex=4 title="Main tracking actions, stats, and settings" value="Main" />
+      <input id="showTag-this" type="button" tabindex=4 title="Actions, stats, and settings related to the currently active tab" value="This" />
+      <input id="showTag-bg" type="button" tabindex=4 title="Actions, stats, and settings related to background tabs and requests" value="BG" />
+      <input id="showTag-class" type="button" tabindex=4 title="Reqres classifier settings" value="CLS" />
       <span class="spacer"></span>
-      <input type="button" id="showTag-pr" tabindex=4 title="Actions, stats, and settings related to archival, stashing, and replay" value="P&amp;R" />
-      <input type="button" id="showTag-rt" tabindex=4 title="Actions, stats, and settings controlling runtime behaviour" value="RT" />
-      <input type="button" id="showTag-ui" tabindex=4 title="User Interface options" value="UI" />
+      <input id="showTag-pr" type="button" tabindex=4 title="Actions, stats, and settings related to archival, stashing, and replay" value="P&amp;R" />
+      <input id="showTag-rt" type="button" tabindex=4 title="Actions, stats, and settings controlling runtime behaviour" value="RT" />
+      <input id="showTag-ui" type="button" tabindex=4 title="User Interface options" value="UI" />
       <span class="spacer"></span>
-      <input type="button" id="showTag-all" tabindex=1 title="Show everything all at once" value="All" />
+      <input id="showTag-all" type="button" tabindex=1 title="Show everything all at once" value="All" />
       <span class="ui">
-        <input type="button" id="showHelp" data-help="Open the `Help` page." value="Help" />
+        <input id="showHelp" type="button" data-help="Open the `Help` page." value="Help" />
       </span>
     </div>
     <div id="content">
@@ -196,13 +196,13 @@ section {
 
     <h1 class="ui tag-common tag-rt">
       Hoardy-Web
-      <input type="button" id="version" data-help="Open the `Changelog` page." value="v?" />
+      <input id="version" type="button" data-help="Open the `Changelog` page." value="v?" />
       <span class="right">
       <span id="div-reloadSelf" class="on-reload">
-        <input type="button" id="reloadSelf" data-help="Reload and update `Hoardy-Web`. That is, ask `Hoardy-Web` to perform the following: wait for all in-flight reqres to finish, stash everything not yet stashed into local storage (regardless of `Stash 'collected' reqres into local storage` and `Stash 'in_limbo' reqres` options), run all scheduled actions immediately, dump the recent history log and per-tab configs into local storage, and then, if all of the above succeed, ask the browser to reload `Hoardy-Web`. If the browser has a new version of `Hoardy-Web` fetched and ready to go (which it has if this button appears to be highlighted), pressing this button will make the browser unload this and then load the new version of `Hoardy-Web`, thus updating it without a browser restart. This feature is experimental at the moment. See also `Auto-reload on updates` option below." value="Reload" />
+        <input id="reloadSelf" type="button" data-help="Reload and update `Hoardy-Web`. That is, ask `Hoardy-Web` to perform the following: wait for all in-flight reqres to finish, stash everything not yet stashed into local storage (regardless of `Stash 'collected' reqres into local storage` and `Stash 'in_limbo' reqres` options), run all scheduled actions immediately, dump the recent history log and per-tab configs into local storage, and then, if all of the above succeed, ask the browser to reload `Hoardy-Web`. If the browser has a new version of `Hoardy-Web` fetched and ready to go (which it has if this button appears to be highlighted), pressing this button will make the browser unload this and then load the new version of `Hoardy-Web`, thus updating it without a browser restart. This feature is experimental at the moment. See also `Auto-reload on updates` option below." value="Reload" />
       </span>
       <span class="on-pending">
-        <input type="button" id="cancelReloadSelf" data-help="Cancel pending `Hoardy-Web` reload." value="Reload pending..." />
+        <input id="cancelReloadSelf" type="button" data-help="Cancel pending `Hoardy-Web` reload." value="Reload pending..." />
       </span>
       </span>
     </h1>
@@ -214,8 +214,8 @@ section {
       <div id="div-stats.actions" class="tag-common tag-rt" data-help="The numbers of currently running and scheduled internal actions. Internal actions are things like: delayed saving of config and persistent stats, delayed exports via `saveAs`, automatic retries of failed archivals, actions generated by toggles of `Closed tabs` below, etc. The point of this stat being displayed is that if one of these numbers is non-zero, then you probably should wait for those actions to finish before closing your browser. Otherwise, you might lose some data. When the first number is non-zero, toolbar button's badge has `^` in it. When the second number is non-zero, toolbar button's badge has `~` or `.` in it (depending on task priority).">
         <span>Actions</span>
         <span>
-          <input type="button" id="runActions" data-help="For scheduled actions that can be run immediately, run all of them." value="Run" />
-          <input type="button" id="cancelActions" data-help="For scheduled actions that can be canceled, cancel all of them. Then, immediately run those that can't be canceled." value="Cancel" />
+          <input id="runActions" type="button" data-help="For scheduled actions that can be run immediately, run all of them." value="Run" />
+          <input id="cancelActions" type="button" data-help="For scheduled actions that can be canceled, cancel all of them. Then, immediately run those that can't be canceled." value="Cancel" />
         </span>
         <span>
           <span id="stats.running">0</span>
@@ -244,7 +244,7 @@ section {
       <div id="div-stats.queued_failed" class="tag-common tag-pr tag-rt" data-help="At the moment, the number of reqres that are waiting to be archived in the archival queue (and the sum total of all sizes of their dumps). / At the moment, the number of reqres that failed to be archived via one or more of the selected archiving methods and/or failed to be stashed to local storage (and the sum total of all sizes of their dumps).">
         <span>Queued/Failed</span>
         <span>
-          <input type="button" id="retryAllFailed" data-help="Retry archiving of all reqres that failed to be archived via one or more selected archiving methods. Then, retry stashing of all reqres that failed to be stashed to local storage." value="Retry" />
+          <input id="retryAllFailed" type="button" data-help="Retry archiving of all reqres that failed to be archived via one or more selected archiving methods. Then, retry stashing of all reqres that failed to be stashed to local storage." value="Retry" />
         </span>
         <span>
           <span id="stats.queued">0</span>
@@ -261,10 +261,10 @@ section {
     <h2 class="ui">
       Globally
       <span class="right tag-common tag-main">
-        <input type="button" id="snapshotAll" data-shortcut="snapshotAll" value="Snapshot" />
-        <input type="button" id="replayAll" class="on-replay" data-shortcut="replayAll" value="Replay" />
-        <input type="button" id="forgetAllLog" data-help="Forget recent history." value="Forget" />
-        <input type="button" id="showState" data-shortcut="showState" value="State" />
+        <input id="snapshotAll" type="button" data-shortcut="snapshotAll" value="Snapshot" />
+        <input id="replayAll" type="button" class="on-replay" data-shortcut="replayAll" value="Replay" />
+        <input id="forgetAllLog" type="button" data-help="Forget recent history." value="Forget" />
+        <input id="showState" type="button" data-shortcut="showState" value="State" />
       </span>
     </h2>
     <div class="idots ui">
@@ -292,8 +292,8 @@ section {
       <div id="div-stats.in_limbo" class="tag-common tag-main" data-help="At the moment, the number of `finished` reqres that are in `in_limbo` state (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
-          <input type="button" id="collectAllInLimbo" data-shortcut="collectAllInLimbo" value="Collect" />
-          <input type="button" id="discardAllInLimbo" data-shortcut="discardAllInLimbo" value="Discard" />
+          <input id="collectAllInLimbo" type="button" data-shortcut="collectAllInLimbo" value="Collect" />
+          <input id="discardAllInLimbo" type="button" data-shortcut="discardAllInLimbo" value="Discard" />
         </span>
         <span>
           <span id="stats.in_limbo">0</span>
@@ -319,7 +319,7 @@ section {
       <div id="div-stats.problematic" class="tag-common tag-main tag-class" data-help="At the moment, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished`.">
         <span>Problematic</span>
         <span>
-          <input type="button" id="unmarkAllProblematic" data-shortcut="unmarkAllProblematic" value="Unmark" />
+          <input id="unmarkAllProblematic" type="button" data-shortcut="unmarkAllProblematic" value="Unmark" />
         </span>
         <span>
           <span id="stats.problematic">0</span>
@@ -328,7 +328,7 @@ section {
       <div id="div-stats.in_flight" class="tag-common tag-main" data-help="At the moment, the number of reqres that have not finished yet. See the `Help` page for more info.">
         <span>In flight</span>
         <span>
-          <input type="button" id="stopAllInFlight" data-help="Stop tracking progress of all in-flight reqres and either pick or drop them, depending on their completion and `Pick reqres for archival when they finish` options." value="Stop" />
+          <input id="stopAllInFlight" type="button" data-help="Stop tracking progress of all in-flight reqres and either pick or drop them, depending on their completion and `Pick reqres for archival when they finish` options." value="Stop" />
         </span>
         <span>
           <span id="stats.in_flight">0</span>
@@ -389,11 +389,11 @@ section {
     <section id="div-this-tab-options" class="tag-common tag-this tag-class tag-pr">
     <h2 class="ui">This tab
       <span class="right tag-common tag-this">
-        <input type="button" id="snapshotTab" data-shortcut="snapshotTab" value="Snapshot" />
-        <input type="button" id="replayTabBack" class="on-replay" data-shortcut="replayTabBack" value="Replay" />
-        <!-- input type="button" id="replayTabForward" class="on-replay" data-shortcut="replayTabForward" data-help="" value="Replay Forward" / -->
-        <input type="button" id="forgetAllTabLog" data-help="For reqres of this tab, forget recent history." value="Forget" />
-        <input type="button" id="showTabState" tabindex=2 data-shortcut="showTabState" value="State" />
+        <input id="snapshotTab" type="button" data-shortcut="snapshotTab" value="Snapshot" />
+        <input id="replayTabBack" type="button" class="on-replay" data-shortcut="replayTabBack" value="Replay" />
+        <!-- input id="replayTabForward" type="button" class="on-replay" data-shortcut="replayTabForward" data-help="" value="Replay Forward" / -->
+        <input id="forgetAllTabLog" type="button" data-help="For reqres of this tab, forget recent history." value="Forget" />
+        <input id="showTabState" type="button" tabindex=2 data-shortcut="showTabState" value="State" />
       </span>
     </h2>
     <div class="idots ui">
@@ -421,8 +421,8 @@ section {
       <div id="div-tabstats.in_limbo" class="tag-common tag-this" data-help="For this tab, the number of `finished` reqres that are in `in_limbo` state (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
-          <input type="button" id="collectAllTabInLimbo" data-shortcut="collectAllTabInLimbo" value="Collect" />
-          <input type="button" id="discardAllTabInLimbo" data-shortcut="discardAllTabInLimbo" value="Discard" />
+          <input id="collectAllTabInLimbo" type="button" data-shortcut="collectAllTabInLimbo" value="Collect" />
+          <input id="discardAllTabInLimbo" type="button" data-shortcut="discardAllTabInLimbo" value="Discard" />
         </span>
         <span>
           <span id="tabstats.in_limbo">0</span>
@@ -448,7 +448,7 @@ section {
       <div id="div-tabstats.problematic" class="tag-common tag-this tag-class" data-help="For this tab, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished`.">
         <span>Problematic</span>
         <span>
-          <input type="button" id="unmarkAllTabProblematic" data-shortcut="unmarkAllTabProblematic" value="Unmark" />
+          <input id="unmarkAllTabProblematic" type="button" data-shortcut="unmarkAllTabProblematic" value="Unmark" />
         </span>
         <span>
           <span id="tabstats.problematic">0</span>
@@ -457,7 +457,7 @@ section {
       <div id="div-tabstats.in_flight" class="tag-common tag-this" data-help="For this tab, the number of in-flight reqres that have not `finished` yet. See the `Help` page for more info.">
         <span>In flight</span>
         <span>
-          <input type="button" id="stopAllTabInFlight" data-help="For reqres of this tab, stop tracking progress of all in-flight requests and either collect them for archival or fail them, depending on completion and `Pick reqres for archival when they finish` options." value="Stop" />
+          <input id="stopAllTabInFlight" type="button" data-help="For reqres of this tab, stop tracking progress of all in-flight requests and either collect them for archival or fail them, depending on completion and `Pick reqres for archival when they finish` options." value="Stop" />
         </span>
         <span>
           <span id="tabstats.in_flight">0</span>
@@ -650,7 +650,7 @@ section {
       <div id="div-stats.unstashed" data-help="At the moment, the number of reqres that failed to be stashed to local storage (and the sum total of all sizes of their dumps). Note that this number does not include reqres for which stashing was not even attempted, that number is not tracked at the moment.">
         <span>Failed to Stash</span>
         <span>
-          <input type="button" id="retryAllUnstashed" data-help="Retry stashing of all reqres that failed to be stashed to local storage." value="Retry" />
+          <input id="retryAllUnstashed" type="button" data-help="Retry stashing of all reqres that failed to be stashed to local storage." value="Retry" />
         </span>
         <span>
           <span id="stats.unstashed">0</span>
@@ -670,7 +670,7 @@ section {
       <div id="div-stats.not_stashed" data-help="Reqres that were not stashed in local storage and exist only in RAM.">
         <span>... not; In RAM</span>
         <span>
-          <input type="button" id="stashAll" data-help="Stash all `queued`, `in_limbo`, and `unarchived` reqres into browser's local storage, regardless of `Stash 'collected' reqres into local storage` and `Stash 'in_limbo' reqres` options." value="Stash" />
+          <input id="stashAll" type="button" data-help="Stash all `queued`, `in_limbo`, and `unarchived` reqres into browser's local storage, regardless of `Stash 'collected' reqres into local storage` and `Stash 'in_limbo' reqres` options." value="Stash" />
         </span>
         <span>
         </span>
@@ -679,7 +679,7 @@ section {
       <div id="div-stats.unarchived" data-help="At the moment, the number of reqres that failed to be archived via one or more of the selected archiving methods (and the sum total of all sizes of their dumps).">
         <span>Failed to Archive</span>
         <span>
-          <input type="button" id="retryAllUnarchived" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake. (Archivals that fail because of networking issues will be retried automatically every 60 seconds, others will not.) See the `Help` page for more info." value="Retry" />
+          <input id="retryAllUnarchived" type="button" data-help="Move all failed to archive reqres to the archival queue and then nudge the archiving sub-process awake. (Archivals that fail because of networking issues will be retried automatically every 60 seconds, others will not.) See the `Help` page for more info." value="Retry" />
         </span>
         <span>
           <span id="stats.unarchived">0</span>
@@ -699,7 +699,7 @@ section {
       <div id="div-stats.bundledAs" data-help="At the moment, for all buckets, the total number of dumps that are ready to be exported via `saveAs` but are currently being delayed because of bundling (and the sum total of their sizes).">
         <span>... not; Bundling</span>
         <span>
-          <input type="button" id="exportAsAll" data-help="For all buckets, export all currently bundled dumps immediately." value="Export" />
+          <input id="exportAsAll" type="button" data-help="For all buckets, export all currently bundled dumps immediately." value="Export" />
         </span>
         <span>
           <span id="stats.bundledAs">0</span>
@@ -719,7 +719,7 @@ section {
       <div id="div-stats.saved" data-help="At the moment, the number of reqres that were archived into browser's local storage (and the sum total of all sizes of their dumps).">
         <span>Saved in LS</span>
         <span>
-          <input type="button" id="showSaved" data-help="Show reqres currently saved in browser's local storage." value="Show" />
+          <input id="showSaved" type="button" data-help="Show reqres currently saved in browser's local storage." value="Show" />
         </span>
         <span>
           <span id="stats.saved">0</span>
@@ -776,8 +776,8 @@ section {
     </center>
 
     <center id="div-rearchive-actions" class="on-rearchive ui">
-      <input type="button" id="rearchiveAdjunctSaved" data-shortcut="rearchiveAdjunctSaved" data-help="Re-archive new reqres using the configured re-archival methods. That is, re-archive all reqres saved in browser's local storage, but for each enabled re-archival method, skip actual (re-)archival action for those reqres that were previously (re-)archived using the same method. In other words, for all of the enabled re-archival methods and all saved reqres, only actually run (re-)archival actions on reqres they were not yet run on. Or, in set-theoretic terms, only run on the set that completes the set of &lt;method, reqres&gt; tuples for all enabled re-archival methods and all reqres saved in browser's local storage. I.e. process the adjunct set. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive new" />
-      <input type="button" id="rearchiveAllSaved" data-help="Re-archive all reqres saved in browser's local storage using all of the enabled re-archival methods. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive all" />
+      <input id="rearchiveAdjunctSaved" type="button" data-shortcut="rearchiveAdjunctSaved" data-help="Re-archive new reqres using the configured re-archival methods. That is, re-archive all reqres saved in browser's local storage, but for each enabled re-archival method, skip actual (re-)archival action for those reqres that were previously (re-)archived using the same method. In other words, for all of the enabled re-archival methods and all saved reqres, only actually run (re-)archival actions on reqres they were not yet run on. Or, in set-theoretic terms, only run on the set that completes the set of &lt;method, reqres&gt; tuples for all enabled re-archival methods and all reqres saved in browser's local storage. I.e. process the adjunct set. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive new" />
+      <input id="rearchiveAllSaved" type="button" data-help="Re-archive all reqres saved in browser's local storage using all of the enabled re-archival methods. Then, if deletion is enabled, delete those reqres for which all the enabled re-archival methods succeeded from local storage." value="Re-archive all" />
     </center>
 
     </section>
@@ -786,7 +786,7 @@ section {
     <h3>Quick deletion</h3>
 
     <center id="div-rearchive-deletion" class="on-rearchive ui">
-      <input type="button" id="deleteRearchived" data-help="Delete all reqres saved into local storage that were archived or re-archived using all of the above re-archival methods. This button does essentially the same things `Re-archive new` button above does when `Delete everything from local storage` option is enabled, except no new re-archivals will happen. See the `Help` page for more info." value="Delete (re)-archived" />
+      <input id="deleteRearchived" type="button" data-help="Delete all reqres saved into local storage that were archived or re-archived using all of the above re-archival methods. This button does essentially the same things `Re-archive new` button above does when `Delete everything from local storage` option is enabled, except no new re-archivals will happen. See the `Help` page for more info." value="Delete (re)-archived" />
     </center>
 
     </section>
@@ -897,7 +897,7 @@ section {
       <div id="div-stats.buggedOut" data-help="At the moment, the number of reqres for which the internals of `Hoardy-Web` encountered internal errors instead of completing the action they were supposed to complete (and the sum total of all sizes of their dumps). Basically, the number of reqres that hit bugs in `Hoardy-Web`. `Hoardy-Web` does its best to preserve such reqres for anti-data-loss and debugging purposes.">
         <span>Bugged out</span>
         <span>
-          <input type="button" id="showBuggedOut" data-help="Show them on the internal state page." value="Show" />
+          <input id="showBuggedOut" type="button" data-help="Show them on the internal state page." value="Show" />
         </span>
         <span>
           <span id="stats.buggedOut">0</span>
@@ -931,8 +931,8 @@ Specifically:
     <div class="isubdots ui">
 
     <center>
-      <input type="button" id="resetConfig" data-help="Reset all config options to their default values." value="Reset config!" />
-      <input type="button" id="resetPersistentStats" data-help="Reset all persistent `collected`, `discarded`, `picked`, and `dropped` stats to zero." value="Reset stats!" />
+      <input id="resetConfig" type="button" data-help="Reset all config options to their default values." value="Reset config!" />
+      <input id="resetPersistentStats" type="button" data-help="Reset all persistent `collected`, `discarded`, `picked`, and `dropped` stats to zero." value="Reset stats!" />
     </center>
 
     <!-- destructiveOptions -->

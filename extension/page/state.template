@@ -20,7 +20,7 @@
         <ui id="rrfilters.inFlight.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
       </span>
       <span class="right">
-        <input type="button" id="stopInFlight" data-help="Stop tracking all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup." value="Stop tracking" />
+        <input id="stopInFlight" type="button" data-help="Stop tracking all in-flight requests displayed below and either pick or drop them, depending on their completion and &quot;Pick reqres for archival when they finish&quot; options in the settings popup." value="Stop tracking" />
       </span>
     </h1>
     <table><tbody id="data-inFlight"></tbody></table>
@@ -31,8 +31,8 @@
         <ui id="rrfilters.problematic.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
       </span>
       <span class="right">
-        <input type="button" id="unmarkOneProblematic" data-help="Unset `problematic` flag from the first reqres displayed below." value="Unmark the first one" />
-        <input type="button" id="unmarkAllProblematic" data-help="Unset `problematic` flag from all reqres displayed below." value="Unmark all" />
+        <input id="unmarkOneProblematic" type="button" data-help="Unset `problematic` flag from the first reqres displayed below." value="Unmark the first one" />
+        <input id="unmarkAllProblematic" type="button" data-help="Unset `problematic` flag from all reqres displayed below." value="Unmark all" />
       </span>
     </h1>
     <div class="controls ui">
@@ -40,7 +40,7 @@
       <ui id="rrfilters.problematic.was_in_limbo" type="tristate" data-help="Tristate filter for the &quot;was_in_limbo&quot; flag.">Was in limbo</ui>
       <ui id="rrfilters.problematic.with_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">With errors</ui>
       <ui id="rrfilters.problematic.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
-      <input type="button" id="rotateOneProblematic" data-help="Move the first reqres displayed below to the end." value="Rotate the first one" />
+      <input id="rotateOneProblematic" type="button" data-help="Move the first reqres displayed below to the end." value="Rotate the first one" />
     </div>
     <table><tbody id="data-problematic"></tbody></table>
 
@@ -50,8 +50,8 @@
         <ui id="rrfilters.inLimbo.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
       </span>
       <span class="right">
-        <input type="button" id="discardOneInLimbo" data-help="Discard the first reqres displayed below." value="Discard the first one" />
-        <input type="button" id="discardAllInLimbo" data-help="Discard all reqres displayed below." value="Discard all" />
+        <input id="discardOneInLimbo" type="button" data-help="Discard the first reqres displayed below." value="Discard the first one" />
+        <input id="discardAllInLimbo" type="button" data-help="Discard all reqres displayed below." value="Discard all" />
       </span>
     </h1>
     <div class="controls ui">
@@ -59,9 +59,9 @@
       <ui id="rrfilters.inLimbo.was_problematic" type="tristate" data-help="Tristate filter for the &quot;was_problematic&quot; flag.">Was problematic</ui>
       <ui id="rrfilters.inLimbo.with_errors" type="tristate" data-help="Tristate filter for a reqres having errors.">With errors</ui>
       <ui id="rrfilters.inLimbo.picked" type="tristate" data-help="Tristate filter for the &quot;picked/dropped&quot; state.">Picked</ui>
-      <input type="button" id="rotateOneInLimbo" data-help="Move the first reqres displayed below to the end." value="Rotate the first one" />
-      <input type="button" id="collectOneInLimbo" data-help="Collect the first reqres displayed below." value="Collect the first one" />
-      <input type="button" id="collectAllInLimbo" data-help="Collect all reqres displayed below." value="Collect all" />
+      <input id="rotateOneInLimbo" type="button" data-help="Move the first reqres displayed below to the end." value="Rotate the first one" />
+      <input id="collectOneInLimbo" type="button" data-help="Collect the first reqres displayed below." value="Collect the first one" />
+      <input id="collectAllInLimbo" type="button" data-help="Collect all reqres displayed below." value="Collect all" />
     </div>
     <table><tbody id="data-inLimbo"></tbody></table>
 
@@ -71,7 +71,7 @@
         <ui id="rrfilters.log.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
       </span>
       <span class="right">
-        <input type="button" id="forgetLog" data-help="Forget about all the requests displayed below except for those that are still marked as &quot;problematic&quot;." value="Forget all" />
+        <input id="forgetLog" type="button" data-help="Forget about all the requests displayed below except for those that are still marked as &quot;problematic&quot;." value="Forget all" />
       </span>
     </h1>
     <div class="controls ui">
@@ -107,7 +107,7 @@
         <ui id="rrfilters.unarchived.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
       </span>
       <span class="right">
-        <input type="button" id="retryUnarchived" data-help="Move all reqres displayed below to the archival queue and then nudge the archiving sub-process awake." value="Retry all" />
+        <input id="retryUnarchived" type="button" data-help="Move all reqres displayed below to the archival queue and then nudge the archiving sub-process awake." value="Retry all" />
       </span>
     </h1>
     <div class="controls ui">
@@ -125,8 +125,8 @@
         <ui id="rrfilters.buggedOut.url" type="string" timeout="600" data-help="URL, substring, or regexp to match.">URL</ui>
       </span>
       <span class="right">
-        <input type="button" id="archiveBuggedOut" data-help="Drop reqres displayed below from the bugged out list, push them into the archiving queue, and nudge the archiving process awake. If the archiving process bugs out, they will end up in this list again." value="Re-queue" />
-        <input type="button" id="deleteBuggedOut" data-help="Drop reqres displayed below from the bugged out list and delete them local storage if they have any stashed or saved data there." value="Delete" />
+        <input id="archiveBuggedOut" type="button" data-help="Drop reqres displayed below from the bugged out list, push them into the archiving queue, and nudge the archiving process awake. If the archiving process bugs out, they will end up in this list again." value="Re-queue" />
+        <input id="deleteBuggedOut" type="button" data-help="Drop reqres displayed below from the bugged out list and delete them local storage if they have any stashed or saved data there." value="Delete" />
       </span>
     </h1>
     <div class="controls ui">
