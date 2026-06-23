@@ -830,7 +830,7 @@ function handleBeforeRequest(e) {
     let initiator;
     if (isValidStr(e.documentUrl))
         initiator = e.documentUrl; // Firefox
-    else if (isValidStr(e.initiator) && e.initiator !== "null")
+    else if (isValidChromiumStr(e.initiator))
         initiator = e.initiator; // Chromium
 
     let fromExtension = false;
@@ -959,16 +959,15 @@ function handleBeforeRequest(e) {
         fromCache: false,
     };
 
-    if (isValidStr(e.documentUrl)
-        && !e.documentUrl.startsWith(selfURL)) // just in case
+    // Set `documentUrl`, when it's not us.
+    if (isValidStr(e.documentUrl) && !e.documentUrl.startsWith(selfURL))
         reqres.documentUrl = e.documentUrl;
 
-    if (isValidStr(e.originUrl)
-        && !e.originUrl.startsWith(selfURL)) // do not leak extension id when using config.workaroundFirefoxFirstRequest
+    // Do not leak extension id in `originUrl` either. E.g., when
+    // `config.workaroundFirefoxFirstRequest` fires and such.
+    if (isValidStr(e.originUrl) && !e.originUrl.startsWith(selfURL))
         reqres.originUrl = e.originUrl; // Firefox
-    else if (isValidStr(e.initiator)
-             && e.initiator !== "null"
-             && !e.initiator.startsWith(selfURL)) // just in case
+    else if (isValidChromiumStr(e.initiator) && !e.initiator.startsWith(selfURL))
         reqres.originUrl = e.initiator; // Chromium
 
     if (e.requestBody !== undefined && e.requestBody !== null) {

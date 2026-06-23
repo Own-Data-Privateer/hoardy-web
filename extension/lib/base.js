@@ -38,6 +38,10 @@ function isValidStr(...args) {
     return args.every((x) => x !== undefined && x !== null && x !== "");
 }
 
+function isValidChromiumStr(...args) {
+    return args.every((x) => x !== undefined && x !== null && x !== "" && x !== "null");
+}
+
 class StopIteration extends Error {}
 
 function sleep(timeout) {
