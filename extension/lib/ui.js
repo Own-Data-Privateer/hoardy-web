@@ -326,68 +326,72 @@ function setUIRec(node, prefix, value, update) {
 // given a DOM node, replace <ui> nodes with corresponding UI elements
 function makeUI(node) {
     for (let child of node.childNodes) {
-        if (child.nodeName === "#text" || child.nodeName === "#comment") continue;
+        if (child.nodeName === "#text" || child.nodeName === "#comment")
+            continue;
+
         makeUI(child);
     }
 
-    if (node.tagName !== "UI") return;
+    if (node.tagName !== "UI")
+        return;
 
     let id = node.getAttribute("id");
     let typ = node.getAttribute("type");
     let tabindex = node.getAttribute("tabindex");
     let defvalue = node.getAttribute("data-default");
 
-    let res = document.createElement("div");
-    res.id = "div-" + id;
+    let div = document.createElement("div");
+    div.id = "div-" + id;
     // copy other attributes
     for (let attr of node.attributes) {
         let name = attr.name;
-        if (name === "id" || name === "tabindex" || name === "data-default") continue;
-        res.setAttribute(name, node.getAttribute(name))
+        if (name === "id" || name === "tabindex" || name === "data-default")
+            continue;
+        div.setAttribute(name, node.getAttribute(name))
     }
-    res.classList.add("genui");
-    res.classList.add(typ);
+    div.classList.add("genui");
+    div.classList.add(typ);
 
     let lbl = document.createElement("label");
     lbl.innerHTML = node.innerHTML.replaceAll("{}", `<span class="placeholder"></span>`);
     let placeholders = lbl.getElementsByClassName("placeholder");
 
     function mk(tt, sub) {
-        let ne = document.createElement("input");
-        ne.id = id + sub;
-        ne.name = id;
+        let el = document.createElement("input");
+        el.id = id + sub;
+        el.name = id;
         if (tabindex !== null)
-            ne.setAttribute("tabindex", tabindex);
+            el.setAttribute("tabindex", tabindex);
 
         switch (tt) {
         case "boolean":
-            ne.type = "checkbox";
-            ne.classList.add("toggle");
-            ne.checked = defvalue || false;
+            el.type = "checkbox";
+            el.classList.add("toggle");
+            el.checked = defvalue || false;
             break;
         case "number":
-            ne.type = "number";
-            ne.value = defvalue || 0;
+            el.type = "number";
+            el.value = defvalue || 0;
             break;
         case "string":
-            ne.type = "text";
-            ne.value = defvalue || "";
+            el.type = "text";
+            el.value = defvalue || "";
             break;
         }
 
-        return ne;
+        return el;
     }
 
     function place(i, tt, sub) {
-        let ne = mk(tt, sub);
+        let el = mk(tt, sub);
         let placeholder = placeholders[i];
         if (placeholder !== undefined)
-            lbl.replaceChild(ne, placeholder);
+            lbl.replaceChild(el, placeholder);
         else if (tt !== "boolean")
-            lbl.append(ne);
+            lbl.append(el);
         else
-            lbl.prepend(ne);
-        return ne;
+            lbl.prepend(el);
+        return el;
     }
 
     if (typ === "booleanOrNull")
@@ -398,9 +402,9 @@ function makeUI(node) {
     } else
         place(0, typ, "");
 
-    res.append(lbl);
+    div.append(lbl);
 
-    node.parentElement.replaceChild(res, node);
+    node.parentElement.replaceChild(div, node);
 }
 
 // current helpMark and helpDiv
@@ -420,7 +424,9 @@ function hideHelp() {
 // given a DOM node, add help tooltips to all its children with data-help attribute
 function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     for (let child of node.childNodes) {
-        if (child.nodeName === "#text" || child.nodeName === "#comment") continue;
+        if (child.nodeName === "#text" || child.nodeName === "#comment")
+            continue;
+
         addHelp(child, shortcuts, mapShortcutFunc, true);
     }
 
