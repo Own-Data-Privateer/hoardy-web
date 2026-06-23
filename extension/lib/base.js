@@ -30,8 +30,12 @@ function noop() {}
 
 async function asyncNoop() {}
 
-function isDefined(x) {
+function isValid(x) {
     return x !== undefined && x !== null;
+}
+
+function isValidStr(x) {
+    return isValid(x) && x !== "";
 }
 
 class StopIteration extends Error {}
@@ -402,7 +406,7 @@ function updateFromRec(target, ...values) {
 }
 
 function numberToPowerString(n, powers) {
-    if (!isDefined(n))
+    if (!isValid(n))
         return "?";
 
     function mk(pow, psuf) {
@@ -495,10 +499,6 @@ function normalizedURL(url) {
     let nurl = new URL(url);
     nurl.hash = "";
     return nurl.href;
-}
-
-function isDefinedURL(url) {
-    return isDefined(url) && url !== "";
 }
 
 function isLocalURL(url) {

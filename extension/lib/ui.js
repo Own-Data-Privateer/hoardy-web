@@ -440,7 +440,7 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     if (shortcut !== undefined)
         help = mapShortcutFunc(help !== null ? help : shortcut.description, shortcut.shortcut);
 
-    if (!isDefined(help))
+    if (!isValid(help))
         return;
 
     node.removeAttribute("data-help");

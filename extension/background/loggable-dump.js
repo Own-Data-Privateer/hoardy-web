@@ -392,10 +392,10 @@ let sourceDesc = browser.nameVersion + "+Hoardy-Web/" + manifest.version;
 function renderReqres(encoder, reqres) {
     let rest = {};
 
-    if (isDefinedURL(reqres.documentUrl))
+    if (isValidStr(reqres.documentUrl))
         rest.document_url = reqres.documentUrl;
 
-    if (isDefinedURL(reqres.originUrl))
+    if (isValidStr(reqres.originUrl))
         rest.origin_url = reqres.originUrl;
 
     if (reqres.errors.length > 0)

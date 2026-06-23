@@ -58,10 +58,10 @@ function navigateTabToBlank(tabId) {
 
 function getTabURL(tab, def) {
     let pendingUrl = tab.pendingUrl;
-    if (isDefinedURL(pendingUrl))
+    if (isValidStr(pendingUrl))
         return pendingUrl;
     let url = tab.url;
-    if (isDefinedURL(url))
+    if (isValidStr(url))
         return url;
     return def;
 }

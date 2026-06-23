@@ -828,9 +828,9 @@ function handleBeforeRequest(e) {
         return;
 
     let initiator;
-    if (isDefinedURL(e.documentUrl))
+    if (isValidStr(e.documentUrl))
         initiator = e.documentUrl; // Firefox
-    else if (isDefinedURL(e.initiator) && e.initiator !== "null")
+    else if (isValidStr(e.initiator) && e.initiator !== "null")
         initiator = e.initiator; // Chromium
 
     let fromExtension = false;
@@ -959,14 +959,14 @@ function handleBeforeRequest(e) {
         fromCache: false,
     };
 
-    if (isDefinedURL(e.documentUrl)
+    if (isValidStr(e.documentUrl)
         && !e.documentUrl.startsWith(selfURL)) // just in case
         reqres.documentUrl = e.documentUrl;
 
-    if (isDefinedURL(e.originUrl)
+    if (isValidStr(e.originUrl)
         && !e.originUrl.startsWith(selfURL)) // do not leak extension id when using config.workaroundFirefoxFirstRequest
         reqres.originUrl = e.originUrl; // Firefox
-    else if (isDefinedURL(e.initiator)
+    else if (isValidStr(e.initiator)
              && e.initiator !== "null"
              && !e.initiator.startsWith(selfURL)) // just in case
         reqres.originUrl = e.initiator; // Chromium
@@ -1257,7 +1257,7 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
         dreqres.requestTimeStamp = e.wallTime * 1000;
         dreqres.method = e.request.method;
         dreqres.url = e.request.url;
-        if (isDefinedURL(e.documentURL))
+        if (isValidStr(e.documentURL))
             dreqres.documentUrl = e.documentURL;
         dreqres.requestHeadersDebug = e.request.headers;
         if (!isBoringOrServerURL(dreqres.url))
