@@ -136,7 +136,7 @@ function getStats() {
 
     let [buggedOut, buggedOutSize] = sumIssueAccByReasonStats(reqresBuggedOutIssueAcc[1].values());
 
-    let [stashFailed, stashFailedSize] = sumIssueAccByReasonStats(reqresUnstashedIssueAcc[1].values());
+    let [stashFailed, stashFailedSize] = sumStats((m) => sumIssueAccByReasonStats(m.values()), reqresUnstashedIssueAcc[1].values());
 
     let [archiveFailed, archiveFailedSize] = sumStats((m) => sumIssueAccByReasonStats(m.values()), reqresUnarchivedIssueAcc[1].values());
 

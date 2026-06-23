@@ -214,12 +214,12 @@ async function doGlobalNotify() {
         // clear stale
         promises.push(browser.notifications.clear("warning-notSaving"));
 
-    let rrUnstashed = reqresUnstashedIssueAcc[1];
+    let rrUnstashed = Array.from(reqresUnstashedIssueAcc[1].entries());
 
     if (gotNewSyncedOrNot) {
         gotNewSyncedOrNot = false;
 
-        notifyAboutUn("stash", all, promises, [["localStorage", rrUnstashed]]);
+        notifyAboutUn("stash", all, promises, rrUnstashed);
     }
 
     let rrUnarchived = Array.from(reqresUnarchivedIssueAcc[1].entries());
@@ -229,7 +229,7 @@ async function doGlobalNotify() {
 
         notifyAboutUn("archive", all, promises, rrUnarchived);
 
-        if (wantArchiveDoneNotify && reqresQueue.length === 0 && rrUnstashed.size === 0 && rrUnarchived.length === 0) {
+        if (wantArchiveDoneNotify && reqresQueue.length === 0 && rrUnstashed.length === 0 && rrUnarchived.length === 0) {
             wantArchiveDoneNotify = false;
 
             if (config.archiveDoneNotify) {

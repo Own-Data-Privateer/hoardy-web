@@ -618,6 +618,32 @@ async function syncWithStorage(archivable, state, elide) {
     return true;
 }
 
+async function stashOrSaveOne(archivable, update, what, want, elide, accumulator) {
+    try {
+        let [loggable, dump] = archivable;
+        let dumpSize = loggable.dumpSize;
+
+        if (update)
+            updateLoggable(loggable);
+
+        if (config.saveLSParanoid && recordOneAssumedBroken(accumulator, "localStorage", `this ${what} method appears to be defunct`, archivable, dumpSize))
+            return false;
+
+        try {
+            let res = await syncWithStorage(archivable, want, elide);
+            return res;
+        } catch (err) {
+            logHandledError(err);
+            pushToIssueAcc2(unstashedAccumulator, "localStorage", errorMessageOf(err), true, false, archivable);
+        }
+    } catch (err) {
+        logHandledError(err);
+        markAsBuggedOut(err, archivable);
+    }
+
+    return false;
+}
+
 async function forEachInStorage(storeName, func, limit) {
     if (limit === undefined)
         limit = null;
@@ -696,23 +722,8 @@ async function forEachInStorage(storeName, func, limit) {
 }
 
 // Saving
-async function stashOne(archivable, unstashedAccumulator) {
-    try {
-        let [loggable, dump] = archivable;
-        updateLoggable(loggable);
-    } catch (err) {
-        logHandledError(err);
-        markAsBuggedOut(err, archivable);
-    }
-
-    try {
-        await syncWithStorage(archivable, 1, true);
-    } catch (err) {
-        logHandledError(err);
-        pushToIssueAcc(unstashedAccumulator, errorMessageOf(err), true, false, archivable);
-    }
-
-    gotNewSyncedOrNot = true;
+function stashOne(archivable, unstashedAccumulator) {
+    return stashOrSaveOne(archivable, true, "stashing", 1, true, unstashedAccumulator);
 }
 
 async function stashMany(archivables, unstashedAccumulator) {
@@ -722,16 +733,24 @@ async function stashMany(archivables, unstashedAccumulator) {
     for (let archivable of archivables)
         await stashOne(archivable, unstashedAccumulator);
 
+    gotNewSyncedOrNot = true;
     return null;
 }
 
 async function retryAllUnstashed() {
-    let newUnstashed = newReqresUnstashedIssueAcc();
-    for (let archivable of reqresUnstashedIssueAcc[0])
-        await stashOne(archivable, newUnstashed);
-    reqresUnstashedIssueAcc = newUnstashed;
+    let rrUnstashed = reqresUnstashedIssueAcc[0];
+    reqresUnstashedIssueAcc = newReqresUnstashedIssueAcc();
 
+    for (let archivable of rrUnstashed)
+        await stashOne(archivable, reqresUnstashedIssueAcc);
+
+    gotNewSyncedOrNot = true;
     return null;
+}
+
+function syncRetryAllUnstashed() {
+    if (reqresUnstashedIssueAcc[0].size > 0)
+        runSynchronously("retryAllUnstashed", retryAllUnstashed);
 }
 
 async function stashAll(alsoLimbo) {
@@ -764,25 +783,8 @@ async function deleteMany(archivables) {
     return null;
 }
 
-
-async function saveOne(archivable, elide, unarchivedAccumulator) {
-    let res;
-
-    try {
-        let [loggable, dump] = archivable;
-        let dumpSize = loggable.dumpSize;
-
-        if (config.saveLSParanoid && recordOneAssumedBroken(unarchivedAccumulator, "localStorage", "this archiving method appears to be defunct", archivable, dumpSize))
-            return false;
-
-        res = await syncWithStorage(archivable, 2, elide);
-    } catch (err) {
-        logHandledError(err);
-        pushToIssueAcc2(unarchivedAccumulator, "localStorage", errorMessageOf(err), true, false, archivable);
-        return false;
-    }
-
-    return res;
+function saveOne(archivable, elide, unarchivedAccumulator) {
+    return stashOrSaveOne(archivable, false, "archiving", 2, elide, unarchivedAccumulator);
 }
 
 // Loading
@@ -907,11 +909,6 @@ async function fsckDumps() {
 }
 
 // The main thing.
-
-function syncRetryAllUnstashed() {
-    if (reqresUnstashedIssueAcc[0].size > 0)
-        runSynchronously("retryAllUnstashed", retryAllUnstashed);
-}
 
 function loadAndBroadcastSaved(rrfilter) {
     return async (wantStop) => {
