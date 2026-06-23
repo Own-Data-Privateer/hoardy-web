@@ -90,7 +90,7 @@ let configDefaults = {
 
     // saving to local storage
     archiveSaveLS: true,
-    saveLSParanoid: true,
+    persistLSParanoid: true,
 
     // archiving notifications
     archiveDoneNotify: true,
@@ -275,6 +275,7 @@ function upgradeConfig(config) {
         config.collectingWorkOffline = true;
     case 8:
         rename("archiveFailedNotify", "persistFailedNotify");
+        rename("saveLSParanoid", "persistLSParanoid");
 
     // epilog, do NOT move or copy-paste this `break` into the above
         break;

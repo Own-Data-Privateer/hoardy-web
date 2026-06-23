@@ -626,7 +626,7 @@ async function stashOrSaveOne(archivable, update, what, want, elide, accumulator
         if (update)
             updateLoggable(loggable);
 
-        if (config.saveLSParanoid && recordOneAssumedBroken(accumulator, "localStorage", `this ${what} method appears to be defunct`, archivable, dumpSize))
+        if (config.persistLSParanoid && recordOneAssumedBroken(accumulator, "localStorage", `this ${what} method appears to be defunct`, archivable, dumpSize))
             return false;
 
         try {
