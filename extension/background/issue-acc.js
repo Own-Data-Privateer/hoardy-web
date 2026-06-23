@@ -62,6 +62,19 @@ function pushToIssueAcc(accumulator, reason, recoverable, archivable) {
         accumulator[2](recoverable);
 }
 
+function pushToIssueAcc2(accumulator, storeID, reason, recoverable, archivable) {
+    let m = cacheSingleton(accumulator[1], storeID, () => new Map());
+    pushToIssueAcc([accumulator[0], m, accumulator[2]], reason, recoverable, archivable);
+}
+
+function pushManyToIssueAcc2(accumulator, storeID, reason, recoverable, archivables) {
+    let byReasonMap = cacheSingleton(accumulator[1], storeID, () => new Map());
+    let v = getByReasonMapRecord(byReasonMap, reason);
+    pushManyToSetByReasonRecord(accumulator[0], v, recoverable, archivables);
+    if (accumulator[2] !== undefined)
+        accumulator[2](recoverable);
+}
+
 function deleteFromIssueAccSet(set, archivables) {
     let toDelete = new Set();
     for (let archivable of archivables) {

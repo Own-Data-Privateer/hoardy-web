@@ -77,19 +77,6 @@ function getUnarchived() {
     return pushFirstTo(reqresUnarchivedIssueAcc[0], []);
 }
 
-function recordOneUnarchived(accumulator, storeID, reason, recoverable, archivable) {
-    let m = cacheSingleton(accumulator[1], storeID, () => new Map());
-    pushToIssueAcc([accumulator[0], m, accumulator[2]], reason, recoverable, archivable);
-}
-
-function recordManyUnarchived(accumulator, storeID, reason, recoverable, archivables) {
-    let byReasonMap = cacheSingleton(accumulator[1], storeID, () => new Map());
-    let v = getByReasonMapRecord(byReasonMap, reason);
-    pushManyToSetByReasonRecord(accumulator[0], v, recoverable, archivables);
-    if (accumulator[2] !== undefined)
-        accumulator[2](recoverable);
-}
-
 function recordOneAssumedBroken(accumulator, storeID, reason, archivable, dumpSize) {
     let byReasonMap = accumulator[1].get(storeID);
     if (byReasonMap === undefined)
@@ -251,7 +238,7 @@ function bucketSaveAs(bucket, ifGEQ, bundleBuckets, unarchivedAccumulator) {
             loggable.archived &= ~archivedViaExportAs;
             loggable.dirty = true;
         }
-        recordManyUnarchived(unarchivedAccumulator, "exportAs", errorMessageOf(err), false, res.queue);
+        pushManyToIssueAcc2(unarchivedAccumulator, "exportAs", errorMessageOf(err), false, res.queue);
 
         return false;
     } finally {
@@ -282,7 +269,7 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
     //
     //   exportAsOne -> submitHTTPOne -> saveOne
     //   -> ... -> scheduledEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
-    //   and does recordManyUnarchived -> evalClosures(synchronousClosures) -> stashMany
+    //   and does pushManyToIssueAcc2(unarchivedAccumulator, ...) -> evalClosures(synchronousClosures) -> stashMany
     //
     // Also note that it will work properly only if the above
     // `runSynchronously` is run after `processArchiving` for the same
@@ -293,7 +280,7 @@ function scheduleBucketSaveAs(timeout, bucketOrNull) {
     //   exportAsOne -> submitHTTPOne -> (no saveOne)
     //   -> syncWithStorage(archivable, 0, ...)
     //   -> ... -> scheduleEndgame -> scheduleBucketSaveAs -> bucketSaveAs, which fails
-    //   and does recordManyUnarchived -> evalClosures(synchronousClosures) -> stashMany
+    //   and does pushManyToIssueAcc2(unarchivedAccumulator, ...) -> evalClosures(synchronousClosures) -> stashMany
     //
     // Which will only work if all `syncWithStorage` uses above do not elide the dump from memory,
     // which it does not in (notEliding).
@@ -353,7 +340,7 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
     function broken(storeID, reason, recoverable, quiet) {
         if (!quiet)
             logHandledError(reason);
-        recordOneUnarchived(unarchivedAccumulator, storeID, reason, recoverable, archivable);
+        pushToIssueAcc2(unarchivedAccumulator, storeID, reason, recoverable, archivable);
     }
 
     if (!serverConfig.alive) {
@@ -791,7 +778,7 @@ async function saveOne(archivable, elide, unarchivedAccumulator) {
         res = await syncWithStorage(archivable, 2, elide);
     } catch (err) {
         logHandledError(err);
-        recordOneUnarchived(unarchivedAccumulator, "localStorage", errorMessageOf(err), false, archivable);
+        pushToIssueAcc2(unarchivedAccumulator, "localStorage", errorMessageOf(err), false, archivable);
         return false;
     }
 
