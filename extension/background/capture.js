@@ -39,7 +39,7 @@ async function syncDebuggersState(tabs) {
 
         let hasInFlight = false;
         for (let [requestId, dreqres] of debugReqresInFlight.entries()) {
-            if (dreqres.tabId == tab.id) {
+            if (dreqres.tabId === tab.id) {
                 hasInFlight = true;
                 break;
             }
@@ -51,7 +51,7 @@ async function syncDebuggersState(tabs) {
         let wantAttached = hasInFlight
             || config.collecting && tabcfg.collecting
                && (!workOffline || config.collectingWorkOffline)
-               && (url == "about:blank" || url.startsWith("http://") || url.startsWith("https://"));
+               && (url === "about:blank" || url.startsWith("http://") || url.startsWith("https://"));
 
         if (!attached && wantAttached) {
             await attachDebugger(tab.id).catch(logError);
@@ -351,7 +351,7 @@ function processFinishingUpWebRequest(forcing) {
         }
 
         let fs = reqres.filter.status;
-        if (fs == "disconnected" || fs == "closed" || fs == "failed") {
+        if (fs === "disconnected" || fs === "closed" || fs === "failed") {
             // the filter is done, remove it
             delete reqres["filter"];
             reqresAlmostDone.push(reqres);
@@ -374,7 +374,7 @@ function processFinishingUpWebRequest(forcing) {
 
 // schedule processFinishingUpWebRequest
 function scheduleProcessFinishingUpWebRequest() {
-    if (reqresFinishingUp.length == 0 && debugReqresFinishingUp.length == 0)
+    if (reqresFinishingUp.length === 0 && debugReqresFinishingUp.length === 0)
         // nothing to do
         return;
 
@@ -392,8 +392,8 @@ function debugHeadersMatchScore(reqres, dreqres) {
             let found = false;
             let foundWrong = false;
             for (let header of headers) {
-                if (header.name.toLowerCase() == name) {
-                    if (getHeaderString(header) == getHeaderString(dheader)) {
+                if (header.name.toLowerCase() === name) {
+                    if (getHeaderString(header) === getHeaderString(dheader)) {
                         found = true;
                         break;
                     } else
@@ -447,7 +447,7 @@ function mergeInDebugReqres(reqres, dreqres) {
 
     mergeInHeaders(reqres.responseHeaders, dreqres.responseHeaders);
 
-    if (dreqres.statusCodeExtra == 304) {
+    if (dreqres.statusCodeExtra === 304) {
         // handle 304 Not Modified cached result by submitting this request twice,
         // first time with 304 code and with no response body
         let creqres = completedCopyOfReqres(reqres);
@@ -495,7 +495,7 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
                     let next = matching.shift();
                     let nscore = debugHeadersMatchScore(next, dreqres);
                     let ndiff = Math.abs(dreqres.requestTimeStamp - next.requestTimeStamp);
-                    if (nscore > score || nscore == score && ndiff < diff) {
+                    if (nscore > score || nscore === score && ndiff < diff) {
                         notMatching.push(closest);
                         closest = next;
                         score = nscore;
@@ -597,7 +597,7 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
         // recover requestBody from formData
         let contentType = getHeaderValue(reqres.requestHeaders, "Content-Type") || "";
         let parts = contentType.split(";");
-        if (parts[0] == "application/x-www-form-urlencoded") {
+        if (parts[0] === "application/x-www-form-urlencoded") {
             let bodyParts = [];
             for (const [name, value] of Object.entries(reqres.formData)) {
                 bodyParts.push(
@@ -608,7 +608,7 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
             let data = enc.encode(bodyParts.join("&"));
             reqres.requestBody.push(data);
             reqres.requestSize += data.byteLength;
-        } else if (parts[0] == "multipart/form-data") {
+        } else if (parts[0] === "multipart/form-data") {
             let boundary;
             for (let i = 1; i < parts.length; ++i) {
                 if (parts[i].startsWith("boundary=")) {
@@ -668,8 +668,8 @@ function mergeInHeaders(headers, dheaders) {
         let name = dheader.name.toLowerCase();
         let found = false;
         for (let header of headers) {
-            if (header.name.toLowerCase() == name) {
-                if (getHeaderString(header) == getHeaderString(dheader)) {
+            if (header.name.toLowerCase() === name) {
+                if (getHeaderString(header) === getHeaderString(dheader)) {
                     found = true;
                     break;
                 }
@@ -724,7 +724,7 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
         delete dreqres["responseHeadersDebugExtra"];
     }
 
-    if (withResponse === true) {
+    if (withResponse) {
         browser.debugger.sendCommand({ tabId: dreqres.tabId }, "Network.getResponseBody", { requestId }).then((res) => {
             if (res.base64Encoded)
                 dreqres.responseBody = unBase64(res.body);
@@ -837,7 +837,7 @@ function handleBeforeRequest(e) {
     if (initiator !== undefined) {
         // ignore our own requests
         if (initiator.startsWith(selfURL) // Firefox
-            || (initiator + "/") == selfURL) // Chromium
+            || (initiator + "/") === selfURL) // Chromium
             return;
 
         // request originates from another extension
@@ -1044,14 +1044,16 @@ function handleBeforeRequest(e) {
 
 function handleBeforeSendHeaders(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined) return;
+    if (reqres === undefined)
+        return;
 
     logEvent("BeforeSendHeaders", e, reqres);
 }
 
 function handleSendHeaders(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined) return;
+    if (reqres === undefined)
+        return;
 
     logEvent("SendHeaders", e, reqres);
     reqres.submitted = true;
@@ -1060,7 +1062,8 @@ function handleSendHeaders(e) {
 
 function handleHeadersRecieved(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined) return;
+    if (reqres === undefined)
+        return;
 
     logEvent("HeadersRecieved", e, reqres);
 
@@ -1084,7 +1087,8 @@ function handleHeadersRecieved(e) {
 
 function handleBeforeRedirect(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined) return;
+    if (reqres === undefined)
+        return;
 
     logEvent("BeforeRedirect", e, reqres);
 
@@ -1125,7 +1129,8 @@ function handleBeforeRedirect(e) {
 
 function handleAuthRequired(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined) return;
+    if (reqres === undefined)
+        return;
 
     logEvent("AuthRequired", e, reqres);
 
@@ -1139,7 +1144,8 @@ function handleAuthRequired(e) {
 
 function handleCompleted(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined) return;
+    if (reqres === undefined)
+        return;
 
     logEvent("Completed", e, reqres);
 
@@ -1155,7 +1161,8 @@ function handleCompleted(e) {
 
 function handleErrorOccurred(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined) return;
+    if (reqres === undefined)
+        return;
 
     logEvent("ErrorOccured", e, reqres);
 
@@ -1286,9 +1293,9 @@ function handleDebugResponseRecieved(nonExtra, e) {
     if (nonExtra) {
         dreqres.responseTimeStamp = e.response.responseTime;
         let protocol = e.response.protocol.toUpperCase();
-        if (protocol == "H3" || protocol == "H3C")
+        if (protocol === "H3" || protocol === "H3C")
             dreqres.protocol = "HTTP/3.0";
-        else if (protocol == "H2" || protocol == "H2C")
+        else if (protocol === "H2" || protocol === "H2C")
             dreqres.protocol = "HTTP/2.0";
         else
             dreqres.protocol = protocol;
@@ -1351,9 +1358,9 @@ function handleDebugLoadingFailed(e) {
 
     logDebugEvent("loadingFailed", true, e, dreqres);
 
-    if (e.canceled === true) {
+    if (e.canceled) {
         emitDebugRequest(e.requestId, dreqres, false, "debugger::" + (e.errorText ? e.errorText : "net::ERR_CANCELED"));
-    } else if (e.blockedReason !== undefined && e.blockedReason !== "") {
+    } else if (e.blockedReason) {
         emitDebugRequest(e.requestId, dreqres, false, "debugger::net::ERR_BLOCKED::" + e.blockedReason);
     } else
         emitDebugRequest(e.requestId, dreqres, true, "debugger::" + e.errorText);
