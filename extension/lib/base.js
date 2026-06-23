@@ -30,12 +30,12 @@ function noop() {}
 
 async function asyncNoop() {}
 
-function isValid(x) {
-    return x !== undefined && x !== null;
+function isValid(...args) {
+    return args.every((x) => x !== undefined && x !== null);
 }
 
-function isValidStr(x) {
-    return isValid(x) && x !== "";
+function isValidStr(...args) {
+    return args.every((x) => x !== undefined && x !== null && x !== "");
 }
 
 class StopIteration extends Error {}
