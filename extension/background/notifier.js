@@ -41,21 +41,24 @@ let gotNewProblematic = false;
 // do we have new buggedOut reqres?
 let gotNewBuggedOut = false;
 
-function formatFailures(why, list, recoverable) {
+function formatFailures(why, willRetry, list) {
     let parts = [];
-    let someUnrecoverable = false;
-    let allUnrecoverable = true;
+    let allRecoverable = true;
+    let someRecoverable = false;
     for (let [reason, unarchived] of list) {
-        someUnrecoverable = someUnrecoverable || !unarchived.recoverable;
-        allUnrecoverable = allUnrecoverable && !unarchived.recoverable;
+        let recoverable = unarchived.recoverable;
+        allRecoverable = allRecoverable && recoverable;
+        someRecoverable = someRecoverable || recoverable;
         parts.push(`- ${why} ${unarchived.queue.length} reqres because ${reason}.`);
     }
-    if (someUnrecoverable && recoverable) {
-        let recoverHow = `to retry them you will have to press the "Retry" button on the "Queued/Failed" line in the popup`;
-        if (allUnrecoverable)
-            parts.push(`\nNone of these will be retried automatically, ${recoverHow}.`)
+    if (willRetry) {
+        let cont = "to retry them manually you need to press the \"Retry\" button on the \"Queued/Failed\" line in the popup.";
+        if (!someRecoverable)
+            parts.push("\nNone of these will be retried automatically, " + cont);
+        else if (!allRecoverable)
+            parts.push("\nSome of these won't be retried automatically, " + cont);
         else
-            parts.push(`\nSome of these will not be retried automatically, ${recoverHow}.`)
+            parts.push("\nAll of these will be retried automatically.");
     }
     return parts.join("\n");
 }
@@ -95,8 +98,23 @@ function formatProblematic(list) {
     return latestDesc;
 }
 
-async function notifyAboutUnarchived(id, why, rrUnarchived) {
-    for (let [storeID, byReasonMap] of rrUnarchived) {
+function notifyAboutUn(what, all, promises, list) {
+    let prefix = `error-${what}-`;
+
+    // clear stale
+    for (let label in all) {
+        if (label.startsWith(prefix)) {
+            let storeID = label.substr(prefix.length);
+            if (list.every((e) => e[0] !== storeID))
+                promises.push(browser.notifications.clear(label));
+        }
+    }
+
+    if (!config.archiveFailedNotify)
+        return;
+
+    // generate new ones
+    for (let [storeID, byReasonMap] of list) {
         let where;
         if (storeID === "exportAs")
             where = "Export via `saveAs`";
@@ -104,106 +122,57 @@ async function notifyAboutUnarchived(id, why, rrUnarchived) {
             where = "Browser's local storage";
         else
             where = `Archiving server at ${storeID}`;
-        await browser.notifications.create(`error-${id}-${storeID}`, {
+
+        promises.push(browser.notifications.create(prefix + storeID, {
             title: "Hoardy-Web: FAILED",
-            message: escapeNotification(config, `${where}:\n${formatFailures(why, byReasonMap.entries(), true)}`),
+            message: escapeNotification(config, `${where}:\n${formatFailures("Failed to " + what, true, byReasonMap.entries())}`),
             iconUrl: iconURL("failed", 128),
             type: "basic",
-        });
+        }));
     }
 }
 
 async function doGlobalNotify() {
+    // get shown notifications
+    let all_ = await browser.notifications.getAll();
+    let all = Object.keys(all_);
+
+    let promises = [];
+
+    let now = Date.now();
+
     // record the current state, because the rest of this chunk is async
-    let rrBuggedOut = Array.from(reqresBuggedOutIssueAcc[1].entries());
-    let rrUnstashed = Array.from(reqresUnstashedIssueAcc[1].entries());
-    let rrUnarchived = Array.from(reqresUnarchivedIssueAcc[1].entries());
     let rrUnproblematic = reqresUnproblematic;
     // continue collecting the new ones
     reqresUnproblematic = [];
 
-    if (gotNewBuggedOut && rrBuggedOut.length > 0) {
-        gotNewBuggedOut = false;
-
-        await browser.notifications.create("error-buggedOut", {
-            title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `Bugged out:\n${formatFailures("Failed to process", rrBuggedOut)}`),
-            iconUrl: iconURL("error", 128),
+    if (config.problematicNotify === true && rrUnproblematic.length > 0) {
+        let latest = formatProblematic(rrUnproblematic);
+        promises.push(browser.notifications.create("", {
+            title: "Hoardy-Web: AUTO",
+            message: escapeNotification(config, `Auto-unmarked ${rrUnproblematic.length} problematic reqres:\n` + latest.join("\n") + annoyingNotification(config, "Generate notifications about > ... 'problematic' reqres")),
+            iconUrl: iconURL("idle", 128),
             type: "basic",
-        });
-    } else if (rrBuggedOut.length === 0)
-        // clear stale
-        await browser.notifications.clear("error-buggedOut");
-
-    if (gotNewQueued && reqresQueue.length > 0) {
-        gotNewQueued = false;
-
-        if (config.archiveStuckNotify && !config.archive && !config.stash) {
-            await browser.notifications.create("warning-notSaving", {
-                title: "Hoardy-Web: WARNING",
-                message: escapeNotification(config, "Some reqres are waiting in the archival queue, but both reqres stashing and archiving are disabled."),
-                iconUrl: iconURL("archiving", 128),
-                type: "basic",
-            });
-        }
-    } else if (config.archive || config.stash)
-        // clear stale
-        await browser.notifications.clear("warning-notSaving");
-
-    if (gotNewSyncedOrNot && rrUnstashed.length > 0) {
-        gotNewSyncedOrNot = false;
-
-        if (config.archiveFailedNotify) {
-            // generate a new one
-            await browser.notifications.create("error-unstashed", {
-                title: "Hoardy-Web: FAILED",
-                message: escapeNotification(config, `For browser's local storage:\n${formatFailures("Failed to stash", rrUnstashed, true)}`),
-                iconUrl: iconURL("failed", 128),
-                type: "basic",
-            });
-        }
-    } else if (rrUnstashed.length === 0)
-        // clear stale
-        await browser.notifications.clear("error-unstashed");
-
-    if (gotNewArchivedOrNot) {
-        gotNewArchivedOrNot = false;
-
-        // get shown notifications
-        let all_ = await browser.notifications.getAll();
-        let all = Object.keys(all_);
-
-        // clear stale
-        for (let label in all) {
-            if (!label.startsWith("error-unarchived-"))
-                continue;
-            let storeID = label.substr(17);
-            if (rrUnarchived.every((e) => e[0] !== storeID))
-                await browser.notifications.clear(label);
-        }
-
-        if (config.archiveFailedNotify)
-            // generate new ones
-            await notifyAboutUnarchived("unarchived", "Failed to archive", rrUnarchived);
-
-        let isDone = rrUnstashed.length === 0 && rrUnarchived.length === 0;
-
-        if (wantArchiveDoneNotify && isDone && reqresQueue.length === 0) {
-            wantArchiveDoneNotify = false;
-
-            if (config.archiveDoneNotify) {
-                // generate a new one
-                await browser.notifications.create("ok-done", {
-                    title: "Hoardy-Web: OK",
-                    message: escapeNotification(config, "Archiving appears to work OK!\n\nThis message won't be repeated unless something breaks." + annoyingNotification(config, "Generate notifications about > ... newly empty archival queue")),
-                    iconUrl: iconURL("idle", 128),
-                    type: "basic",
-                });
-            }
-        }
+        }));
     }
 
-    let now = Date.now();
+    if (gotNewProblematic && reqresProblematic.length > 0) {
+        gotNewProblematic = false;
+
+        if (config.problematicNotify !== false) {
+            // generate a new one
+            let latest = formatProblematic(reqresProblematic);
+            promises.push(browser.notifications.create("warning-problematic", {
+                title: "Hoardy-Web: WARNING",
+                message: escapeNotification(config, `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latest.join("\n") + annoyingNotification(config, "Generate notifications about > ... 'problematic' reqres")),
+                iconUrl: iconURL("problematic", 128),
+                type: "basic",
+            }));
+        }
+    } else if (reqresProblematic.length === 0)
+        // clear stale
+        promises.push(browser.notifications.clear("warning-problematic"));
+
     let fatLimbo = reqresLimbo.length > config.limboMaxNumber
                 || reqresLimboSize > config.limboMaxSize * MEGABYTE;
 
@@ -214,43 +183,78 @@ async function doGlobalNotify() {
             gotNewLimboLastNotification = now;
 
             // generate a new one
-            await browser.notifications.create("warning-fatLimbo", {
+            promises.push(browser.notifications.create("warning-fatLimbo", {
                 title: "Hoardy-Web: WARNING",
                 message: escapeNotification(config, `Too much stuff in limbo, collect or discard some of those reqres to reduce memory consumption and improve browsing performance.` + annoyingNotification(config, "Generate notifications about > ... too much stuff in limbo")),
                 iconUrl: iconURL("limbo", 128),
                 type: "basic",
-            });
+            }));
         }
     } else if (!fatLimbo)
         // clear stale
-        await browser.notifications.clear("warning-fatLimbo");
+        promises.push(browser.notifications.clear("warning-fatLimbo"));
 
-    if (config.problematicNotify === true && rrUnproblematic.length > 0) {
-        let latest = formatProblematic(rrUnproblematic);
-        await browser.notifications.create("", {
-            title: "Hoardy-Web: AUTO",
-            message: escapeNotification(config, `Auto-unmarked ${rrUnproblematic.length} problematic reqres:\n` + latest.join("\n") + annoyingNotification(config, "Generate notifications about > ... 'problematic' reqres")),
-            iconUrl: iconURL("idle", 128),
-            type: "basic",
-        });
+    if (gotNewQueued && reqresQueue.length > 0) {
+        gotNewQueued = false;
+
+        if (config.archiveStuckNotify && !config.archive && !config.stash) {
+            promises.push(browser.notifications.create("warning-notSaving", {
+                title: "Hoardy-Web: WARNING",
+                message: escapeNotification(config, "Some reqres are waiting in the archival queue, but both reqres stashing and archiving are disabled."),
+                iconUrl: iconURL("archiving", 128),
+                type: "basic",
+            }));
+        }
+    } else if (config.archive || config.stash)
+        // clear stale
+        promises.push(browser.notifications.clear("warning-notSaving"));
+
+    let rrUnstashed = reqresUnstashedIssueAcc[1];
+
+    if (gotNewSyncedOrNot) {
+        gotNewSyncedOrNot = false;
+
+        notifyAboutUn("stash", all, promises, [["localStorage", rrUnstashed]]);
     }
 
-    if (gotNewProblematic && reqresProblematic.length > 0) {
-        gotNewProblematic = false;
+    let rrUnarchived = Array.from(reqresUnarchivedIssueAcc[1].entries());
 
-        if (config.problematicNotify !== false) {
-            // generate a new one
-            let latest = formatProblematic(reqresProblematic);
-            await browser.notifications.create("warning-problematic", {
-                title: "Hoardy-Web: WARNING",
-                message: escapeNotification(config, `Have ${reqresProblematic.length} reqres marked as problematic:\n` + latest.join("\n") + annoyingNotification(config, "Generate notifications about > ... 'problematic' reqres")),
-                iconUrl: iconURL("problematic", 128),
-                type: "basic",
-            });
+    if (gotNewArchivedOrNot) {
+        gotNewArchivedOrNot = false;
+
+        notifyAboutUn("archive", all, promises, rrUnarchived);
+
+        if (wantArchiveDoneNotify && reqresQueue.length === 0 && rrUnstashed.size === 0 && rrUnarchived.length === 0) {
+            wantArchiveDoneNotify = false;
+
+            if (config.archiveDoneNotify) {
+                // generate a new one
+                promises.push(browser.notifications.create("ok-done", {
+                    title: "Hoardy-Web: OK",
+                    message: escapeNotification(config, "Archiving appears to work OK!\n\nThis message won't be repeated unless something breaks." + annoyingNotification(config, "Generate notifications about > ... newly empty archival queue")),
+                    iconUrl: iconURL("idle", 128),
+                    type: "basic",
+                }));
+            }
         }
-    } else if (reqresProblematic.length === 0)
+    }
+
+    let rrBuggedOut = Array.from(reqresBuggedOutIssueAcc[1].entries());
+
+    if (gotNewBuggedOut && rrBuggedOut.length > 0) {
+        gotNewBuggedOut = false;
+
+        promises.push(browser.notifications.create("error-buggedOut", {
+            title: "Hoardy-Web: ERROR",
+            message: escapeNotification(config, `Bugged out:\n${formatFailures("Failed to process", false, rrBuggedOut)}`),
+            iconUrl: iconURL("error", 128),
+            type: "basic",
+        }));
+    } else if (rrBuggedOut.length === 0)
         // clear stale
-        await browser.notifications.clear("warning-problematic");
+        promises.push(browser.notifications.clear("error-buggedOut"));
+
+    await Promise.all(promises.map((p) => p.catch(logError)));
 }
 
 function scheduleGlobalNotifications(timeout) {
