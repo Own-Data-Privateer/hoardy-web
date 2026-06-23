@@ -30,6 +30,10 @@ function noop() {}
 
 async function asyncNoop() {}
 
+function isDefined(...args) {
+    return args.every((x) => x !== undefined);
+}
+
 function isValid(...args) {
     return args.every((x) => x !== undefined && x !== null);
 }
