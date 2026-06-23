@@ -94,7 +94,7 @@ let configDefaults = {
 
     // archiving notifications
     archiveDoneNotify: true,
-    archiveFailedNotify: true,
+    persistFailedNotify: true,
     archiveStuckNotify: true,
 
     // problematic marking options
@@ -274,6 +274,7 @@ function upgradeConfig(config) {
         // its semantics changed
         config.collectingWorkOffline = true;
     case 8:
+        rename("archiveFailedNotify", "persistFailedNotify");
 
     // epilog, do NOT move or copy-paste this `break` into the above
         break;

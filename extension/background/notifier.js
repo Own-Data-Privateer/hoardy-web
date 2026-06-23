@@ -110,7 +110,7 @@ function notifyAboutUn(what, all, promises, list) {
         }
     }
 
-    if (!config.archiveFailedNotify)
+    if (!config.persistFailedNotify)
         return;
 
     // generate new ones

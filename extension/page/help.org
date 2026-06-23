@@ -388,6 +388,8 @@ When both {{{config2(stash,=Stash 'collected' reqres into local storage= option)
 You can also forcefully stash all currently =queued=, =in_limbo=, and =unarchived= reqres by pressing {{{button2(stashAll,this button)}}}.
 It stashes everything immediately and unconditionally, ignoring all other stashing settings.
 When reloading the extension via the {{{div2(reloadSelf,=Reload= button)}}} or via {{{config2(autoReloadOnUpdates,=Auto-reload on updates= option)}}}, this action will be run automatically.
+
+If {{{config2(persistFailedNotify,this option)}}} is enabled and some reqres fail to stash, a new notification will be generated.
 *** Glossary
 - A /stuck queued reqres/ is a =queued= reqres that got stuck in the archival queue, e.g., because it got queued while {{{config2(archive,=Archive 'collected' reqres= option)}}} was disabled.
 
@@ -492,7 +494,7 @@ Archivals of reqres rejected by the archiving server or those that failed to be 
 You can retry all archiving failures by pressing one of {{{button2(retryAllUnarchived,this)}}} or {{{button2(retryAllFailed,that)}}} buttons.
 You can also use them to nudge the archiving sub-process awake if something archival-related appears to be stuck.
 
-If {{{config2(archiveFailedNotify,this option)}}} is enabled and a new reqres recently moved to the =unarchived= state, a new notification will be generated.
+If {{{config2(persistFailedNotify,this option)}}} is enabled and a new reqres recently moved to the =unarchived= state, a new notification will be generated.
 If {{{config2(archiveDoneNotify,this option)}}} is enabled, a new notification will be generated when the archival queue gets empty the very first time or after any failures.
 *** Glossary
 - A /failed to archive reqres/ {{{stat(unarchived)}}} is a reqres that is currently in =unarchived= state, i.e., a reqres that failed to be archived by one of the enabled {{{div2(archive-methods,archival methods)}}}.
