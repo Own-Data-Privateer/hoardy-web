@@ -18,7 +18,7 @@
 - *`WRR`* is a native archiving format used by `Hoardy-Web` project.
   The abbreviation comes from "Web Request+Response".
 
-  `WRR` is very much inspired by `mitmproxy` in that it stores a raw `HTTP` request+response pairs (instead of encoding `GET` documents like `WARC` does), but, unlike, `mitmproxy`, `WRR` is a very simple [`CBOR` (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) encoding of `HTTP` request+response pairs, not a custom binary encoding.
+  `WRR` is very much inspired by `mitmproxy` in that it stores a raw `HTTP` request+response pairs (instead of encoding `GET` documents like `WARC` does), but, unlike `mitmproxy`, `WRR` is a very simple [`CBOR` (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) encoding of `HTTP` request+response pairs, not a custom binary encoding.
 
 - A *`reqres`* (`Reqres` when a type/class) is an instance of an internal structure used by `WRR`, it represents `HTTP` request+response pair with some additional metadata.
 
