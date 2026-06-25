@@ -10,7 +10,8 @@
 <li><a href="#who-hoardy-web-is-for" id="toc-who-hoardy-web-is-for">Who <code>Hoardy-Web</code> is for?</a></li>
 <li><a href="#walkthrough" id="toc-walkthrough">Walkthrough</a>
 <ul>
-<li><a href="#replay" id="toc-replay">Replay</a></li>
+<li><a href="#replay-controls" id="toc-replay-controls">Replay controls</a></li>
+<li><a href="#replay-workflows" id="toc-replay-workflows">Replay workflows</a></li>
 <li><a href="#search" id="toc-search">Search</a></li>
 <li><a href="#well-alright-this-is-kinda-nice-but-i.-need.-more-power" id="toc-well-alright-this-is-kinda-nice-but-i.-need.-more-power">Well, alright, this is kinda nice, but I. Need. More! POWER!</a></li>
 </ul></li>
