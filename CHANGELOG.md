@@ -6,6 +6,143 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.27.0] - 2026-06-25: Tab settling, smart tab switch/highlight, incremental improvements, bug fixes
+
+### Added
+
+- Core, Popup UI, Shortcuts:
+
+  - **Introduced new *tab settling* machinery:**
+    - Implemented tracking of per-tab timestamps of when the last reqres in that tab was `finished`.
+    - Reworked DOM snapshots and tab replays to wait for their tab to settle before actually firing.
+    - Added per-tab `Settle in <N>s after 'in_flight'` and `... retry up to <M> times` config settings.
+
+    In other words, from now on, trying to snapshot or replay a tab that has associated in-flight reqres will wait until all those reqres finish, then wait an additional configurable delay to allow that page's JavaScript to process its fetched data (and, possibly, update its DOM and/or generate new requests), and then do the actual snapshot or replay only after that page settles.
+
+    If the page generates new requests in the meantime, the process will repeat from the beginning up to configured number of times.
+
+  - **Introduced new `Smart switch tabs` and `Highlight tabs` actions, popup UI buttons, and shortcuts.**
+
+    The extension now provides a bunch of actions that can switch and highlight/select tabs in ways that take those last-`finished` timestamps mentioned above and the numbers of `problematic` and `in_limbo` reqres belonging to those tabs into account.
+
+    Notably, the extension now provides popup UI buttons and keyboard shortcuts that, in the currently active window:
+    - jump to a tab with the most recently `finished` reqres,
+    - switch between tabs sorted by this timestamp in a round-robin manner,
+    - highlight/select all tabs with `problematic` and/or `in_limbo` reqres,
+    - perform either of the first two actions listed above among the tabs that can be highlighted and then highlight them.
+
+    These features are most useful when you use the limbo machinery extensively, as it allows you to easily switch between the not-yet-archived tabs easily, highlight/select them and them move them to another window, etc.
+
+    This is also useful outside of the limbo use-case since it allows you to browse your tabs in order they were loaded/updated.
+
+  - Added tracking and display of accumulated reqres sizes for `picked`, `dropped`, and `problematic` stats.
+
+  - Added tracking and display of `dumped`, `written`, `rewritten`, and `deleted` stats (under `Persistence` on `P&R` tab).
+
+### Changed
+
+- Core:
+
+  - **Improved tab replay handling.**
+
+    From now on, replaying a tab collects all of its in-limbo reqres and then delays navigation to the replay page until everything actually finishes archiving.
+
+  - **Improved extension reloading algorithm.**
+
+    From now on, the extension won't attempt to reload while things are still archiving and will stash reqres lazily, only when there's no other things that can be done to those reqres instead.
+
+  - **The `dropped`/`discarded` reqres are now allowed to auto-unmark `problematic` flags from other `dropped`/`discarded` reqres.**
+
+    From now on, this works similarly to how `in_limbo` reqres unmark other `in_limbo` reqres when `Auto-unmark 'problematic' reqres ... when a new 'GET' reqres replaces it ... regardless of its 'in_limbo' state` is unset.
+
+    The `picked`/`collected` reqres still unmark everything as before (when auto-unmarking machinery is enabled at all).
+
+    This makes the user experience much more pleasant.
+
+  - From now on, `almost_done` reqres get processed before all archivals.
+
+    This eats slightly more RAM when hundreds of requests are fetching simultaneously, but produces better-compressed bundles more reliably.
+
+- Core, Popup UI:
+
+  - **Reworked `Work offline`, `Track new requests`, and `Track new requests ... including when 'Work offline' is set` config toggles to be per-tab/per-source and removed the old global toggles altogether.**
+
+    The latter ones were unsafe to use in most cases.
+
+  - Improved task labels used by the `Actions ... scheduled` line.
+
+    From now on, task names of tasks
+    - delayed until a specific future time are prefixed by "d:",
+    - waiting until some condition is satisfied (like the archival queue becoming empty) are prefixed by "w:", and
+    - queued to be run as soon as possible are prefixed by "q:".
+
+  - From now on, all `In flight` stat lines display the `almost_done` stat separately from `finishing_up`.
+
+    See the [`Help` page](./extension/page/help.org) for more info.
+
+- Popup UI:
+
+  - Improved and some many labels.
+
+  - Improved some help strings.
+
+- [`Internal State` pages](#state-in-extension-ui-only), [`Saved in Local Storage` page](#saved-in-extension-ui-only):
+
+  - Reorganized the UI a bit, edited button labels and help strings.
+
+  - Switched by-URL filters to use HTML `input type="search"`.
+
+  - **Made by-URL filters trim their inputs to simplify usage while copy-pasting things around.**
+
+  - **Added a `Reset` button to each filter block.**
+
+  - Made all reqres tables display not just reqres sizes, but also their remainders (`dumpSize - requestSize - responseSize`).
+
+- Core, Notifications:
+
+  - Improved the order in which new notifications get generated, when the extension wants to generate a bunch at once.
+
+  - **From now on, stashing and archival track if the unstashed/unarchived error they are generating is real or was produced by the corresponding `Paranoid error handling` toggle in the popup.
+    When some errors are of the latter kind, the generated notification will now say so and point the user to those toggles.**
+
+    This is useful in situations like [#20](https://github.com/Own-Data-Privateer/hoardy-web/issues/20) and [#21](https://github.com/Own-Data-Privateer/hoardy-web/issues/21).
+
+- Core, Toolbar Button:
+
+  - **From now on, on Chromium, state updates only ever update toolbar icons and badges associated with active tabs, instead of updating them for all tabs.**
+
+    This is how it works on Firefox too, but on Firefox toolbar buttons are per-window, while on Chromium they are per-tab, so the implementations differed before, now they do not.
+
+    This greatly improves extension's performance on Chromium with lots of open tabs.
+
+- [`Help` page](./extension/page/help.org):
+
+  - Documented the above changes.
+
+  - Improved documentation.
+
+- Core:
+
+  - Polished internals a bunch more.
+
+  - Removed some dead code.
+
+### Fixed
+
+- Core, [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Fixed DOM snapshots to track request and response sizes like any other reqres.
+
+- Core, Popup UI:
+
+  - Fixed queued task labels used by the `Actions ... running` line.
+
+  - Fixed the `Stop` button on the per-tab "In flight" line to work again.
+
+    The relevant bit of code was accidentally left in an unrelated later commit while rebasing the previous release.
+
+  - Fixed some numerical values failing to be clamped properly in `fixConfig`.
+
 ## [extension-v1.26.0] - 2026-06-13: Bug fixes, polishing of internals, unit tests
 
 ### Fixed
@@ -3316,6 +3453,7 @@ All planned features are complete now.
 
   - Initial public release.
 
+[extension-v1.27.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.26.0...extension-v1.27.0
 [extension-v1.26.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.25.0...extension-v1.26.0
 [tool-v0.24.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.23.0...tool-v0.24.0
 [simple_server-v1.9.1]: https://github.com/Own-Data-Privateer/hoardy-web/compare/simple_server-v1.9.0...simple_server-v1.9.1
