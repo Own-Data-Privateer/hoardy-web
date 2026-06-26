@@ -82,9 +82,9 @@ async function helpMain () {
 
         switch (info.klass) {
         case "internal":
-            link.href = "javascript:void(0)";
             link.onclick = (event) => {
-                event.cancelBubble = true;
+                event.stopPropagation();
+                event.preventDefault();
                 historyFromTo({ id: info.id }, { id: info.target });
                 focusNode(info.target);
             };
@@ -94,9 +94,9 @@ async function helpMain () {
             };
             break;
         case "popup":
-            link.href = "javascript:void(0)";
             link.onclick = (event) => {
-                event.cancelBubble = true;
+                event.stopPropagation();
+                event.preventDefault();
                 if (!columns)
                     historyFromTo({ id: info.id }, info.href);
                 broadcastToPopup("focusNode", info.target);
@@ -109,6 +109,7 @@ async function helpMain () {
         case "local":
         default:
             link.onclick = (event) => {
+                event.stopPropagation();
                 historyFromTo({ id: info.id });
             };
             link.onmouseover = (event) => {
