@@ -776,7 +776,7 @@ async function main() {
         // record they exist
         openTabs.add(tabId);
 
-        let tabcfg = prefillChildren(configDefaults.root);
+        let tabcfg = prefillChildren(config.root);
         let tabstate = assignRec({}, tabStateDefaults);
 
         let oldTab = sessionTabs[tabId];
