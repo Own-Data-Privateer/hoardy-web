@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Jan Malakhovski <oxij@oxij.org>
+ * Copyright (c) 2024-2026 Jan Malakhovski <oxij@oxij.org>
  *
  * This file is a part of `hoardy-web` project.
  *
