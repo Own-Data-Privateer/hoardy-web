@@ -37,12 +37,12 @@ function applyToReqres13(func, early, a, b, c, d, e, f, g, h, i, j, k, l, m) {
 
 // Archiving/replay via an archiving server.
 
-async function checkServer() {
+async function checkServer(wantDump) {
     wantCheckServer = false;
 
-    if (!(config.archive && config.archiveSubmitHTTP
-          || config.rearchiveSubmitHTTP
-          || config.replaySubmitHTTP))
+    wantDump = wantDump || config.archive && config.archiveSubmitHTTP;
+
+    if (!wantDump && !config.replaySubmitHTTP)
         return;
 
     let baseURL = serverConfig.baseURL;
@@ -97,7 +97,7 @@ async function checkServer() {
             type: "basic",
         });
         return;
-    } else if (!serverConfig.canDump && config.archive && config.archiveSubmitHTTP) {
+    } else if (wantDump && !serverConfig.canDump) {
         await browser.notifications.create("error-server", {
             title: "Hoardy-Web: ERROR",
             message: escapeNotification(config, `The archiving server at \`${baseURL}\` does not support archiving, it appears to be a replay-only instance.`),
