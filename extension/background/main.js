@@ -189,6 +189,7 @@ async function replay(tabIdOrNull, direction) {
         let tab = await browser.tabs.get(tabIdOrNull);
         tabs = [ tab ];
     }
+    let updatedTabId;
 
     for (let tab of tabs) {
         let tabId = tab.id;
@@ -211,9 +212,11 @@ async function replay(tabIdOrNull, direction) {
             tabId, tabcfg, 0,
             replayOne, tabId, replayURL
         );
+
+        updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
     }
 
-    scheduleEndgame();
+    scheduleEndgame(updatedTabId);
 }
 
 // Handlers.

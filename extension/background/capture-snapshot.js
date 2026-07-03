@@ -147,6 +147,7 @@ async function snapshot(tabIdOrNull) {
             tabId, tabcfg, 0,
             snapshotOne, tabId, url
         );
+
         updatedTabId = mergeUpdatedTabIds(updatedTabId, res);
     }
 
