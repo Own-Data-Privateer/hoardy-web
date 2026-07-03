@@ -1150,7 +1150,7 @@ async function processRearchiving(getArchivables, reset, andRewrite, andDelete) 
 
     let allOK = unrearchivedAccumulator[0].size === 0;
     if (!allOK)
-        await notifyAboutUnarchived("unrearchived", "Failed to re-archive", unrearchivedAccumulator[1].entries()).catch(logError);
+        await runNotifier(notifyAboutUn, "re-archive", unrearchivedAccumulator[1].entries(), false).catch(logError);
 
     let actions;
     if (exportedNum > 0 || submittedNum > 0 || savedNum > 0)

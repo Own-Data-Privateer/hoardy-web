@@ -103,11 +103,11 @@ function formatProblematic(list) {
     return latestDesc;
 }
 
-function notifyAboutUn(what, all, promises, list) {
+function notifyAboutUn(what, list, willRetry, all, promises) {
     let prefix = `error-${what}-`;
 
     // clear stale
-    for (let label in all) {
+    for (let label of all) {
         if (label.startsWith(prefix)) {
             let storeID = label.substr(prefix.length);
             if (list.every((e) => e[0] !== storeID))
@@ -130,20 +130,14 @@ function notifyAboutUn(what, all, promises, list) {
 
         promises.push(browser.notifications.create(prefix + storeID, {
             title: "Hoardy-Web: FAILED",
-            message: escapeNotification(config, `${where}:\n${formatFailures("Failed to " + what, true, byReasonMap.entries())}`),
+            message: escapeNotification(config, `${where}:\n${formatFailures("Failed to " + what, willRetry, byReasonMap.entries())}`),
             iconUrl: iconURL("failed", 128),
             type: "basic",
         }));
     }
 }
 
-async function doGlobalNotify() {
-    // get shown notifications
-    let all_ = await browser.notifications.getAll();
-    let all = Object.keys(all_);
-
-    let promises = [];
-
+function doGlobalNotify(all, promises) {
     let now = Date.now();
 
     // record the current state, because the rest of this chunk is async
@@ -219,7 +213,7 @@ async function doGlobalNotify() {
     if (gotNewSyncedOrNot) {
         gotNewSyncedOrNot = false;
 
-        notifyAboutUn("stash", all, promises, rrUnstashed);
+        notifyAboutUn("stash", rrUnstashed, true, all, promises);
     }
 
     let rrUnarchived = Array.from(reqresUnarchivedIssueAcc[1].entries());
@@ -227,7 +221,7 @@ async function doGlobalNotify() {
     if (gotNewArchivedOrNot) {
         gotNewArchivedOrNot = false;
 
-        notifyAboutUn("archive", all, promises, rrUnarchived);
+        notifyAboutUn("archive", rrUnarchived, true, all, promises);
 
         if (wantArchiveDoneNotify && reqresQueue.length === 0 && rrUnstashed.length === 0 && rrUnarchived.length === 0) {
             wantArchiveDoneNotify = false;
@@ -258,11 +252,23 @@ async function doGlobalNotify() {
     } else if (rrBuggedOut.length === 0)
         // clear stale
         promises.push(browser.notifications.clear("error-buggedOut"));
+}
 
+async function runNotifier(func, ...args) {
+    // get shown notifications
+    let all_ = await browser.notifications.getAll();
+    let all = Object.keys(all_);
+
+    // collect into here
+    let promises = [];
+
+    func(...args, all, promises);
+
+    // wait for all the promisse to finish
     await Promise.all(promises.map((p) => p.catch(logError)));
 }
 
 function scheduleGlobalNotifications(timeout) {
-    resetSingletonTimeout(scheduledHidden, "notify", timeout, doGlobalNotify);
+    resetSingletonTimeout(scheduledHidden, "notify", timeout, () => runNotifier(doGlobalNotify));
     // NB: needs scheduleUpdateDisplay after
 }
