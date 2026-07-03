@@ -269,7 +269,7 @@ To provide indication of this, =Hoardy-Web= keeps track of such things and marks
 
   see the relevant browser bugs of [[#firefox-bug-no-post][Firefox]] and [[#chromium-bug-no-post][Chromium]];
 
-- =buggy request metadata= or =buggy response metadata=, which is denoted by =buggy= flag in the logs {{{logPage}}};
+- =buggy request metadata= or =buggy response metadata=, which is denoted by =buggy_request= and =buggy_response= flags in the logs {{{logPage}}};
 
   see the relevant browser bugs of [[#firefox-bug-race][Firefox]] and [[#chromium-bug-no-wre][Chromium]];
 

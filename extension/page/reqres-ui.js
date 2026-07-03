@@ -76,8 +76,10 @@ function appendLoggable(node, loggable) {
         sparts.push("partial");
     if (!loggable.responseComplete)
         sparts.push("incomplete");
-    if (loggable.requestBuggy || loggable.responseBuggy)
-        sparts.push("buggy");
+    if (loggable.requestBuggy)
+        sparts.push("buggy_request");
+    if (loggable.responseBuggy)
+        sparts.push("buggy_response");
     if (loggable.redirectUrl !== undefined)
         sparts.push("redirected");
     if (loggable.problematic === true)
