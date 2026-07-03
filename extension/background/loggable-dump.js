@@ -505,10 +505,6 @@ function processNonLimbo(archivable, collect, tabstate, newlyQueued, newlyLogged
 }
 
 async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
-    if (reqres.tabId === undefined)
-        // just in case
-        reqres.tabId = TAB_ID_NONE;
-
     if (!useDebugger && reqres.generated && !reqres.responded) {
         if (reqres.errors.length === 1 && reqres.errors[0].startsWith("webRequest::NS_ERROR_NET_ON_")) {
             // (raceCondition)
@@ -574,11 +570,16 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
             reqres.reason = "";
     }
 
-    let updatedTabId = reqres.tabId;
+    let tabId = reqres.tabId;
+    console.assert(tabId !== undefined, "tabId !== undefined");
+    let fromExtension = reqres.fromExtension;
     let statusCode = reqres.statusCode;
 
-    let tabcfg = getTabConfig(updatedTabId, reqres.fromExtension);
-    let tabstate = getTabState(updatedTabId, reqres.fromExtension);
+    let tabcfg = getTabConfig(tabId, fromExtension);
+    let tabstate = getTabState(tabId, fromExtension);
+
+    // for `tabcfg.settleDelay` and `smartSwitchTabs`
+    tabstate.emitTimeStamp = reqres.emitTimeStamp;
 
     let state = "complete";
     let problematic = false;
@@ -672,7 +673,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
             reqres.requestId,
             "state", state,
             reqres.protocol, reqres.method, reqres.url,
-            "tabId", updatedTabId,
+            "tabId", tabId,
             "req", reqres.requestComplete,
             "res", reqres.responseComplete,
             "result", statusCode, reqres.reason, reqres.statusLine,
@@ -738,6 +739,8 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
         if (tabcfg.problematicNotify)
             gotNewProblematic = true;
     }
+
+    return tabId;
 }
 
 async function processAlmostDone() {
@@ -753,17 +756,14 @@ async function processAlmostDone() {
 
     while (reqresAlmostDone.length > 0) {
         let reqres = reqresAlmostDone.shift();
-        let tabId = reqres.tabId;
 
+        let tabId;
         try {
-            await processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+            tabId = await processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
         } catch (err) {
             logHandledError(err);
             markAsBuggedOut(err, [reqres, null]);
         }
-
-        let tabstate = getTabState(tabId, reqres.fromExtension);
-        tabstate.emitTimeStamp = reqres.emitTimeStamp;
 
         updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
         scheduleUpdateDisplay(true, tabId, false, getGoodEpisodic(reqresAlmostDone.length));
