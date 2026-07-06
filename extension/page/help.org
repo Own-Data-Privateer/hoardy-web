@@ -777,9 +777,9 @@ On this browser, =Hoardy-Web= implement the following keyboard shortcuts:
 <table id="tbl-sk">
   <thead>
     <tr>
+      <th>Description</th>
       <th>Currently</th>
       <th>Default</th>
-      <th>Description</th>
     </tr>
   </thead>
   <tbody id="tbody-sk">

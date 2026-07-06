@@ -120,20 +120,22 @@ async function updatePage(initial) {
 
     let shortcuts = await getShortcuts(firefoxCommands);
     for (let [name, shortcut] of Object.entries(shortcuts)) {
-        if (name.startsWith("toggleTabConfig"))
-            name = mapShortcutName((name, children) => "div-tabconfig." + (children ? "children." : "") + name, name);
+        let pointer = name.startsWith("toggleTabConfig") ?
+            mapShortcutName((name, children) => "div-tabconfig." + (children ? "children." : "") + name, name) :
+            name;
 
         let desc = shortcut.description;
         let [sdesc, ldesc] = desc.split(" : ");
+        shortcut.sdesc = sdesc;
+        shortcut.ldesc = ldesc;
 
-        let cur = shortcut.shortcut;
-        let def = shortcut.suggested_key ? shortcut.suggested_key.default || "" : "";
+        let cur = shortcut.shortcut || "unbound";
+        let def = shortcut.default = shortcut.suggested_key ? shortcut.suggested_key.default || "unbound" : "unbound";
 
         let tr = document.createElement("tr");
+        tr.id = `shortcut-${name}`;
         let s = document.createElement("span");
 
-        appendElements(tr, "td", cur ? cur : "unbound");
-        appendElements(tr, "td", cur === def ? "ditto" : (def ? def : "unbound"));
         if (noPopup.has(name)) {
             if (ldesc !== undefined)
                 s.innerHTML = sdesc + ": " + microMarkdownToHTML(ldesc);
@@ -144,12 +146,22 @@ async function updatePage(initial) {
             s.innerHTML = ": " + microMarkdownToHTML(ldesc);
             appendElements(tr, "td", [
                 [(e) => {
-                    e.href = `./popup.html#${name}`;
+                    e.href = `./popup.html#${pointer}`;
                     return e;
                 }, "a", sdesc],
                 [s],
             ]);
         }
+        appendElements(tr, "td", cur);
+        appendElements(
+            tr, "td", "div",
+            cur === def ? "ditto" : browser.commands !== undefined && browser.commands.update !== undefined ?
+                createButton(def, "Reset to default", async () => {
+                    await browser.commands.update({name, shortcut: def});
+                    await updatePage(false);
+                }) :
+                def,
+        );
 
         rows.push(tr);
     }
