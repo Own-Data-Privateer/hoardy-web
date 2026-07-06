@@ -23,55 +23,43 @@
 
 "use strict";
 
-async function helpMain () {
-    setPageLoading();
+let minWidth = 1355; // see ./help.template
+let columns = true;
 
-    let body = document.getElementById("body");
-    let iframe = document.getElementById("iframe");
-    let minWidth = 1355; // see ./help.template
-    let columns = true;
+// Resize elements to window. This switches between `columns` and `linear` layouts depending on
+// width. This part is not done via `CSS` because we use the `columns` value above too.
+function resize() {
+    let w = window.innerWidth;
+    let h = window.innerHeight;
 
-    // allow to un-highlight currently highlighted node
-    document.body.addEventListener("click", (event) => {
-        highlightNode(null);
-        broadcastToPopup("highlightNode", null);
-    });
+    console.log("current viewport:", w, h);
+    columns = w >= minWidth;
 
-    setupHistoryPopState();
+    setConditionalClass(document.body, "columns", columns);
+    setConditionalClass(document.body, "linear", !columns);
 
-    // no corresponding popup UI elements
-    let noPopup = new Set(["_execute_browser_action", "showLog", "showTabLog"]);
+    // Prevent independent scroll in `columns` layout.
+    let h1 = columns ? `${h - 5}px` : null;
+    body.style["min-height"]
+        = body.style["max-height"]
+        = body.style["height"]
+        = h1;
 
-    // generate shortcuts table
-    let tbody = document.getElementById("tbody-sk");
-    let shortcuts = await getShortcuts();
-    for (let [name, shortcut] of Object.entries(shortcuts)) {
-        if (name.startsWith("toggleTabConfig"))
-            name = mapShortcutName((name, children) => "div-tabconfig." + (children ? "children." : "") + name, name);
+    let ib = iframe.contentDocument.body;
+    if (ib === null)
+        // not yet loaded
+        return;
 
-        let desc = shortcut.description;
-        let [sdesc, ldesc] = desc.split(": ");
+    // Prevent in-iframe scroll in `linear` layout.
+    let h2 = columns ? h1 : `${ib.scrollHeight + 20}px`;
+    iframe.style["min-height"]
+        = iframe.style["max-height"]
+        = iframe.style["height"]
+        = h2;
+}
 
-        let cur = shortcut.shortcut;
-        let def = shortcut.suggested_key ? shortcut.suggested_key.default || "" : "";
-
-        let tr = document.createElement("tr");
-        appendElements(tr, "td", cur ? cur : "unbound");
-        appendElements(tr, "td", cur === def ? "ditto" : (def ? def : "unbound"));
-        if (noPopup.has(name))
-            appendElements(tr, "td", desc);
-        else
-            appendElements(tr, "td", [
-                [(e) => {
-                    e.href = `./popup.html#${name}`;
-                    return e;
-                }, "a", sdesc],
-                [": " + ldesc],
-            ]);
-        tbody.append(tr);
-    }
-
-    classifyDocumentLinks(document, [
+function updateLinks(node) {
+    classifyDocumentLinks(node, [
         ["/page/help.html", "internal"],
         ["/page/popup.html", "popup"],
         ["/", "local"],
@@ -118,39 +106,71 @@ async function helpMain () {
             };
         }
     });
+}
 
-    // Resize elements to window. This switches between `columns` and
-    // `linear` layouts depending on width. This part is not done via
-    // `CSS` because we use the `columns` value above too.
-    function resize() {
-        let w = window.innerWidth;
-        let h = window.innerHeight;
+// no corresponding popup UI elements
+let noPopup = new Set(["_execute_browser_action", "showLog", "showTabLog"]);
 
-        console.log("current viewport:", w, h);
-        columns = w >= minWidth;
+async function updatePage(initial) {
+    // generate shortcuts table
+    let rows = [];
 
-        setConditionalClass(document.body, "columns", columns);
-        setConditionalClass(document.body, "linear", !columns);
+    let shortcuts = await getShortcuts();
+    for (let [name, shortcut] of Object.entries(shortcuts)) {
+        if (name.startsWith("toggleTabConfig"))
+            name = mapShortcutName((name, children) => "div-tabconfig." + (children ? "children." : "") + name, name);
 
-        // Prevent independent scroll in `columns` layout.
-        let h1 = columns ? `${h - 5}px` : null;
-        body.style["min-height"]
-            = body.style["max-height"]
-            = body.style["height"]
-            = h1;
+        let desc = shortcut.description;
+        let [sdesc, ldesc] = desc.split(": ");
 
-        let ib = iframe.contentDocument.body;
-        if (ib === null)
-            // not yet loaded
-            return;
+        let cur = shortcut.shortcut;
+        let def = shortcut.suggested_key ? shortcut.suggested_key.default || "" : "";
 
-        // Prevent in-iframe scroll in `linear` layout.
-        let h2 = columns ? h1 : `${ib.scrollHeight + 20}px`;
-        iframe.style["min-height"]
-            = iframe.style["max-height"]
-            = iframe.style["height"]
-            = h2;
+        let tr = document.createElement("tr");
+        appendElements(tr, "td", cur ? cur : "unbound");
+        appendElements(tr, "td", cur === def ? "ditto" : (def ? def : "unbound"));
+        if (noPopup.has(name))
+            appendElements(tr, "td", desc);
+        else
+            appendElements(tr, "td", [
+                [(e) => {
+                    e.href = `./popup.html#${name}`;
+                    return e;
+                }, "a", sdesc],
+                [": " + ldesc],
+            ]);
+
+        rows.push(tr);
     }
+
+    let tbody = document.getElementById("tbody-sk");
+    tbody.replaceChildren(...rows);
+
+    if (!initial)
+        updateLinks(tbody);
+}
+
+async function helpMain () {
+    setPageLoading();
+
+    let body = document.getElementById("body");
+    let iframe = document.getElementById("iframe");
+
+    // allow to un-highlight currently highlighted node
+    document.body.addEventListener("click", (event) => {
+        highlightNode(null);
+        broadcastToPopup("highlightNode", null);
+    });
+
+    setupHistoryPopState();
+
+    if (browser.commands !== undefined && browser.commands.onChanged !== undefined)
+        browser.commands.onChanged.addListener(() => {
+            resetSingletonTimeout(scheduledUI, "updatePage", 300, () => updatePage(false));
+        });
+    await updatePage(true);
+
+    updateLinks(document);
 
     async function processUpdate(update) {
         let [what, data] = update;
