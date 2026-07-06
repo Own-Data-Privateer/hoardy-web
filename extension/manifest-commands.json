@@ -1,0 +1,199 @@
+{
+    "_execute_browser_action": {
+        "firefox": {
+            "default": "Alt+A"
+        }
+    },
+    "snapshotAll": {
+        "description": "Browser: Snapshot : Take `DOM` snapshots of all open tabs for which `Include in global snapshots` setting is enabled."
+    },
+    "replayAll": {
+        "description": "Browser: Replay : Re-navigate all open tabs for which `Include in global replays` setting is enabled to their replays. If the archiving server doesn't support replays, do nothing."
+    },
+    "showState": {
+        "firefox": {
+            "default": "Alt+G"
+        },
+        "chromium": {
+            "default": "Alt+G"
+        },
+        "description": "Browser: Show State : Open the global `Internal State` page."
+    },
+    "showLog": {
+        "firefox": {
+            "default": "Alt+Shift+G"
+        },
+        "description": "Browser: Show Log : Open the global `Internal State` page, then scroll it to the end of the log of recently `collected` and `discarded` reqres."
+    },
+    "collectAllInLimbo": {
+        "firefox": {
+            "default": "Ctrl+Alt+A"
+        },
+        "description": "Browser: Collect In Limbo : Collect all reqres in `in_limbo` state."
+    },
+    "discardAllInLimbo": {
+        "firefox": {
+            "default": "Alt+Shift+D"
+        },
+        "description": "Browser: Discard In Limbo : Discard all reqres in `in_limbo` state."
+    },
+    "unmarkAllProblematic": {
+        "firefox": {
+            "default": "Alt+Shift+U"
+        },
+        "description": "Browser: Unmark Problematic : Unmark all `problematic` reqres."
+    },
+    "smartSwitchTabsBackward": {
+        "firefox": {
+            "default": "Alt+J"
+        },
+        "description": "Smart Switch Tabs Backward : Switch between the tabs of the currently active window **in reverse order** of their last `picked` reqres (or tab creation times, for tabs that have none of those yet), with tabs that have associated `in_limbo`, `problematic`, or `in_flight` reqres placed before all the others, in a round-robin manner."
+    },
+    "smartSwitchTabsForward": {
+        "firefox": {
+            "default": "Alt+K"
+        },
+        "description": "Smart Switch Tabs Forward : Switch between the tabs of the currently active window **in order** of their last `picked` reqres (or tab creation times, for tabs that have none of those yet), with tabs that have associated `in_limbo`, `problematic`, or `in_flight` reqres placed before all the others, in a round-robin manner."
+    },
+    "smartSwitchTabsLatest": {
+        "firefox": {
+            "default": "Alt+M"
+        },
+        "description": "Smart Switch Tabs to the Most Recent : Find the tab of the currently active window with the most recently `picked` reqres (or tab creation time, when a tab has none of those yet) and switch to it. If some of the tabs of the currently active window have associated `in_limbo`, `problematic`, or `in_flight` reqres, then switch to such a tab among them."
+    },
+    "highlightTabsBackward": {
+        "firefox": {
+            "default": "Alt+Shift+J"
+        },
+        "description": "Smart Switch Tabs Backward with Highlight : Switch between the tabs of the currently active window that have associated `in_limbo`, `problematic`, or `in_flight` reqres **in reverse order** of their last `picked` reqres, then highlight/select all of them. See `Smart Switch Tabs to the Most Recent with Highlight` action for relevant quirks."
+    },
+    "highlightTabsForward": {
+        "firefox": {
+            "default": "Alt+Shift+K"
+        },
+        "description": "Smart Switch Tabs Forward with Highlight : Switch between the tabs of the currently active window that have associated `in_limbo`, `problematic`, or `in_flight` reqres **in order** of their last `picked` reqres, then highlight/select all of them. See `Smart Switch Tabs to the Most Recent with Highlight` action for relevant quirks."
+    },
+    "highlightTabsLatest": {
+        "firefox": {
+            "default": "Alt+Shift+M"
+        },
+        "description": "Smart Switch Tabs to the Most Recent with Highlight : Find the tab with the most recently `picked` reqres among the tabs of the currently active window that have associated `in_limbo`, `problematic`, or `in_flight` reqres, switch to it, then highlight/select all of them.\n\nDoing things this way produces a much nicer UI compared to `Smart Switch Tabs *` action variants and the resulting highlighted tabs set can be used in various advanced ways, especially when using other tab-managing extensions like `Tree Style Tab` or similar. However, you should be careful when using these `* with Highlight` action variants because they use browser's tab highlighting API in a way it's not designed for. Tab highlighting is, essentially, a multi-tab selection mechanism. Thus, if you, for example, run this action and then immediately close one of the highlighted tabs, all of the other highlighted tabs will be closed too."
+    },
+    "snapshotTab": {
+        "firefox": {
+            "default": "Ctrl+Alt+S"
+        },
+        "description": "Tab: Snapshot : Take `DOM` snapshots of the currently active tab, regardless of its `Include in global snapshots` setting. If the tab has multiple frames, all the frames will be snapshotted."
+    },
+    "replayTabBack": {
+        "description": "Tab: Replay : Re-navigate the currently active tab to its replay, regardless of its `Include in global replays` setting. If the archiving server doesn't support replays, do nothing."
+    },
+    "showTabState": {
+        "firefox": {
+            "default": "Alt+I"
+        },
+        "description": "Tab: Show State : Open the `Internal State` page narrowed to the currently active tab."
+    },
+    "showTabLog": {
+        "firefox": {
+            "default": "Alt+Shift+I"
+        },
+        "description": "Tab: Show Log : Open the `Internal State` page narrowed to the currently active tab, then scroll it to the end of the log of recently `collected` and `discarded` reqres."
+    },
+    "collectAllTabInLimbo": {
+        "firefox": {
+            "default": "Ctrl+Alt+C"
+        },
+        "description": "Tab: Collect In Limbo : Collect all reqres in `in_limbo` state associated with the currently active tab."
+    },
+    "discardAllTabInLimbo": {
+        "firefox": {
+            "default": "Alt+Shift+W"
+        },
+        "description": "Tab: Discard In Limbo : Discard all reqres in `in_limbo` state associated with the currently active tab."
+    },
+    "unmarkAllTabProblematic": {
+        "firefox": {
+            "default": "Ctrl+Alt+U"
+        },
+        "chromium": {
+            "default": "Alt+U"
+        },
+        "description": "Tab: Unmark Problematic : Unmark all `problematic` reqres associated with the currently active tab."
+    },
+    "toggleTabConfigAutoReplay": {
+        "firefox": {
+            "default": "Alt+R"
+        },
+        "description": "Tab: Toggle Auto-Replay : Toggle `Auto-replay` setting for the currently active tab and reset the same setting for its new children."
+    },
+    "toggleTabConfigWorkOffline": {
+        "firefox": {
+            "default": "Alt+O"
+        },
+        "description": "Tab: Toggle Work Offline : Toggle `Work Offline` setting for the currently active tab and reset the same setting for its new children."
+    },
+    "toggleTabConfigTracking": {
+        "firefox": {
+            "default": "Alt+C"
+        },
+        "chromium": {
+            "default": "Alt+C"
+        },
+        "description": "Tab: Toggle Tracking : Toggle `Track new requests` setting for the currently active tab and reset the same setting for its new children."
+    },
+    "toggleTabConfigProblematicNotify": {
+        "description": "Tab: Toggle Notify About Problematic : Toggle `Notify about 'problematic' reqres` setting for the currently active tab and reset the same setting for its new children."
+    },
+    "toggleTabConfigLimbo": {
+        "firefox": {
+            "default": "Alt+L"
+        },
+        "chromium": {
+            "default": "Alt+L"
+        },
+        "description": "Tab: Toggle Limbo : Toggle `Pick into limbo` setting for the currently active tab and reset the same setting for its new children."
+    },
+    "toggleTabConfigSnapshottable": {
+        "description": "Tab: Toggle Snapshottable : Toggle `Include in global snapshots` setting for the currently active tab and reset the same setting for its new children."
+    },
+    "toggleTabConfigReplayable": {
+        "description": "Tab: Toggle Replayable : Toggle `Include in global replays` setting for the currently active tab and reset the same setting for its new children."
+    },
+    "toggleTabConfigChildrenAutoReplay": {
+        "firefox": {
+            "default": "Alt+Shift+R"
+        },
+        "description": "Tab's Children: Toggle Auto-Replay : Toggle `Auto-Replay` setting for the currently active tab's new children."
+    },
+    "toggleTabConfigChildrenWorkOffline": {
+        "firefox": {
+            "default": "Alt+Shift+O"
+        },
+        "description": "Tab's Children: Toggle Work Offline : Toggle `Work Offline` setting for the currently active tab's new children."
+    },
+    "toggleTabConfigChildrenTracking": {
+        "firefox": {
+            "default": "Alt+Shift+C"
+        },
+        "description": "Tab's Children: Toggle Tracking : Toggle `Track new requests` setting for the currently active tab's new children."
+    },
+    "toggleTabConfigChildrenProblematicNotify": {
+        "description": "Tab's Children: Toggle Notify About Problematic : Toggle `Notify about 'problematic' reqres` setting for the currently active tab's new children."
+    },
+    "toggleTabConfigChildrenLimbo": {
+        "firefox": {
+            "default": "Alt+Shift+L"
+        },
+        "description": "Tab's Children: Toggle Limbo : Toggle `Pick into limbo` setting for the currently active tab's new children."
+    },
+    "toggleTabConfigChildrenSnapshottable": {
+        "description": "Tab's Children: Toggle Snapshottable : Toggle `Include in global snapshots` setting for the currently active tab's new children."
+    },
+    "toggleTabConfigChildrenReplayable": {
+        "description": "Tab's Children: Toggle Replayable : Toggle `Include in global replays` setting for the currently active tab's new children."
+    },
+    "rearchiveAdjunctSaved": {
+        "description": "Browser: Re-archive new : Re-archive new reqres using the configured re-archival methods."
+    }
+}

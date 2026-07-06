@@ -222,10 +222,13 @@ s%@\(\S\+\) on GitHub%[\\@\1 on GitHub](https://github.com/\1)%g
         )
     fi
 
+    jq --indent 4 'map_values(if has("firefox") then setpath(["suggested_key"]; .firefox) else . end | del(.firefox) | del(.chromium))' manifest-commands.json > dist/manifest-commands-firefox.json
+    jq --indent 4 'map_values(if has("chromium") then setpath(["suggested_key"]; .chromium) else . end | del(.firefox) | del(.chromium))' manifest-commands.json > dist/manifest-commands-chromium.json
+
     if [[ "$target" =~ firefox-* ]]; then
-        jq -s --indent 4 '.[0] * .[1] * .[2]' manifest-common.json dist/manifest-version.json "manifest-$target.json" > "$DEST"/manifest.json
+        jq -s --indent 4 '.[0] * { commands: .[1] } * .[2] * .[3]' manifest-common.json dist/manifest-commands-firefox.json "manifest-$target.json" dist/manifest-version.json > "$DEST"/manifest.json
     elif [[ "$target" =~ chromium-* ]]; then
-        jq -s --indent 4 '.[0] * .[1] * .[2] * .[3]' manifest-common.json dist/manifest-version.json dist/manifest-chromium-key.json "manifest-$target.json" > "$DEST"/manifest.json
+        jq -s --indent 4 '.[0] * { commands: .[1] } * .[2] * .[3] * .[4]' manifest-common.json dist/manifest-commands-chromium.json "manifest-$target.json" dist/manifest-version.json dist/manifest-chromium-key.json > "$DEST"/manifest.json
     fi
 
     if [[ -n "$timestamp" ]]; then

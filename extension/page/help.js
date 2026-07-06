@@ -121,24 +121,32 @@ async function updatePage(initial) {
             name = mapShortcutName((name, children) => "div-tabconfig." + (children ? "children." : "") + name, name);
 
         let desc = shortcut.description;
-        let [sdesc, ldesc] = desc.split(": ");
+        let [sdesc, ldesc] = desc.split(" : ");
 
         let cur = shortcut.shortcut;
         let def = shortcut.suggested_key ? shortcut.suggested_key.default || "" : "";
 
         let tr = document.createElement("tr");
+        let s = document.createElement("span");
+
         appendElements(tr, "td", cur ? cur : "unbound");
         appendElements(tr, "td", cur === def ? "ditto" : (def ? def : "unbound"));
-        if (noPopup.has(name))
-            appendElements(tr, "td", desc);
-        else
+        if (noPopup.has(name)) {
+            if (ldesc !== undefined)
+                s.innerHTML = sdesc + ": " + microMarkdownToHTML(ldesc);
+            else
+                s.innerHTML = microMarkdownToHTML(desc);
+            appendElements(tr, "td", s);
+        } else {
+            s.innerHTML = ": " + microMarkdownToHTML(ldesc);
             appendElements(tr, "td", [
                 [(e) => {
                     e.href = `./popup.html#${name}`;
                     return e;
                 }, "a", sdesc],
-                [": " + ldesc],
+                [s],
             ]);
+        }
 
         rows.push(tr);
     }
