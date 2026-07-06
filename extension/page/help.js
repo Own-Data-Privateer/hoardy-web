@@ -111,11 +111,14 @@ function updateLinks(node) {
 // no corresponding popup UI elements
 let noPopup = new Set(["_execute_browser_action", "showLog", "showTabLog"]);
 
+// only set on Chromium
+let firefoxCommands;
+
 async function updatePage(initial) {
     // generate shortcuts table
     let rows = [];
 
-    let shortcuts = await getShortcuts();
+    let shortcuts = await getShortcuts(firefoxCommands);
     for (let [name, shortcut] of Object.entries(shortcuts)) {
         if (name.startsWith("toggleTabConfig"))
             name = mapShortcutName((name, children) => "div-tabconfig." + (children ? "children." : "") + name, name);
@@ -171,6 +174,9 @@ async function helpMain () {
     });
 
     setupHistoryPopState();
+
+    if (useDebugger)
+        firefoxCommands = await fetch(browser.runtime.getURL("/manifest-commands-firefox.json")).then((result) => result.json());
 
     if (browser.commands !== undefined && browser.commands.onChanged !== undefined)
         browser.commands.onChanged.addListener(() => {

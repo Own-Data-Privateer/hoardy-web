@@ -228,6 +228,7 @@ s%@\(\S\+\) on GitHub%[\\@\1 on GitHub](https://github.com/\1)%g
     if [[ "$target" =~ firefox-* ]]; then
         jq -s --indent 4 '.[0] * { commands: .[1] } * .[2] * .[3]' manifest-common.json dist/manifest-commands-firefox.json "manifest-$target.json" dist/manifest-version.json > "$DEST"/manifest.json
     elif [[ "$target" =~ chromium-* ]]; then
+        install -C -t "$DEST" dist/manifest-commands-firefox.json
         jq -s --indent 4 '.[0] * { commands: .[1] } * .[2] * .[3] * .[4]' manifest-common.json dist/manifest-commands-chromium.json "manifest-$target.json" dist/manifest-version.json dist/manifest-chromium-key.json > "$DEST"/manifest.json
     fi
 

@@ -73,8 +73,10 @@ async function getTabURLThenNavigateTabToBlank(tabId) {
     return url;
 }
 
-async function getShortcuts() {
-    let res = assignRec({}, manifest.commands, {
+async function getShortcuts(...args) {
+    // NB: these are set in this order because, on Firefox,
+    // `manifest.commands._execute_browser_action.description == null`.
+    let res = assignRec({}, ...args, manifest.commands, {
         _execute_browser_action: {
             description: "Open extension's popup."
         },
