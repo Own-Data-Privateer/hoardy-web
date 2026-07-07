@@ -808,6 +808,7 @@ function processOneAlmostDone(
 
         let encoder = new CBOREncoder();
         encoder.encode(data, {
+            sortKeys: true,
             forbidUndefined: true,
         });
 

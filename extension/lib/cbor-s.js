@@ -283,13 +283,21 @@ class CBOREncoder {
                 this.encode(e, options);
             }
         } else if (value instanceof Map) {
+            let keys = value.keys();
+            if (options.sortKeys) {
+                keys = Array.from(keys);
+                keys.sort();
+            }
             this.writeTypeAndLength(5, value.size);
-            for (let [k, v] of value.entries()) {
+            for (let k of keys) {
                 this.encode(k, options);
-                this.encode(v, options);
+                this.encode(value.get(k), options);
             }
         } else if (typ === "object") {
             let keys = Object.keys(value);
+            if (options.sortKeys) {
+                keys.sort();
+            }
             this.writeTypeAndLength(5, keys.length);
             for (let k of keys) {
                 this.encode(k, options);
