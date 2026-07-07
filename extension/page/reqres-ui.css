@@ -29,11 +29,7 @@ h1 {
     font-size: 200%;
     margin: 5px 0 0 0;
     display: flex;
-}
-
-search div,
-.right {
-    display: flex;
+    flex-wrap: wrap;
 }
 
 h1 code,
@@ -43,6 +39,8 @@ search div code,
 }
 
 search div {
+    display: flex;
+    flex-wrap: wrap;
     margin-top: 10px;
 }
 

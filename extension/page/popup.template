@@ -23,28 +23,29 @@ body {
     line-height: 160%;
 }
 
-h1 {
-    font-size: 110%;
+h1,
+h2,
+h3,
+h4 {
     margin: 0;
     display: flex;
+    flex-wrap: wrap;
+}
+
+h1 {
+    font-size: 110%;
 }
 
 h2 {
     font-size: 108%;
-    margin: 0;
-    display: flex;
 }
 
 h3 {
     font-size: 105%;
-    margin: 0;
-    display: flex;
 }
 
 h4 {
     font-size: 100%;
-    margin: 0;
-    display: flex;
 }
 
 h1 code,
@@ -52,13 +53,6 @@ h2 code,
 h3 code,
 h4 code {
     margin: auto 0.5ch;
-}
-
-h1 span.right,
-h2 span.right,
-h3 span.right,
-h4 span.right {
-    display: flex;
 }
 
 h1 input[type="button"],
@@ -138,11 +132,17 @@ h4 input[type="button"] {
 
 .stats .help-root > div {
     display: flex;
+    flex-wrap: wrap;
+}
+
+.stats .help-root > div > span {
+    flex: 1 1 auto;
 }
 
 .stats .help-root > div > span:nth-child(2) {
     padding-left: 1em;
     margin: 0 1em 0 auto;
+    text-align: right;
 }
 
 .stats .help-root > div > span:nth-child(3) {

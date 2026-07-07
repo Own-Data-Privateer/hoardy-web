@@ -114,15 +114,26 @@
     --code-background: #0000ff10;
 }
 
-body, #body_loading, #body_error, #body {
+body,
+#body_loading,
+#body_error,
+#body {
     font: 16px sans-serif;
     background-color: var(--text-background);
     color: var(--text-color);
 }
 
-h1, h2, h3, h4,
-p, span, label,
-pre, code, li, a {
+h1,
+h2,
+h3,
+h4,
+p,
+span,
+label,
+pre,
+code,
+li,
+a {
     color: var(--text-color);
 }
 
@@ -145,10 +156,22 @@ pre, code, li, a {
 
 .right {
     margin-left: auto;
+    text-align: right;
 }
 
-a, code {
-    overflow-wrap: anywhere;
+h1 span.right,
+h2 span.right,
+h3 span.right,
+h4 span.right {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+h1 span.right > span,
+h2 span.right > span,
+h3 span.right > span,
+h4 span.right > span {
+    flex: 1 1 auto;
 }
 
 code {
@@ -236,6 +259,7 @@ a {
     border-radius: 50%;
     content: "";
     display: block;
+
     font: 12px sans-serif;
     height: 12px;
     width: 12px;
@@ -330,10 +354,12 @@ input[type="checkbox"].help-btn {
     width: 16px;
 }
 
-input[type="checkbox"].help-btn:after {
-    content: "?";
-    margin-left: calc(8px - 0.5ch);
+input[type="checkbox"].help-btn::before {
     color: var(--help-btn-color);
+    content: "?";
+
+    position: relative;
+    left: 4px;
 }
 
 input[type="checkbox"].help-btn:checked {
@@ -341,7 +367,7 @@ input[type="checkbox"].help-btn:checked {
     border-color: var(--help-btn-checked-border-color);
 }
 
-input[type="checkbox"].help-btn:checked:after {
+input[type="checkbox"].help-btn:checked::before {
     color: var(--help-btn-checked-color);
 }
 

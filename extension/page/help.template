@@ -98,6 +98,10 @@ body.columns {
     overflow-y: scroll;
 }
 
+a, code {
+    overflow-wrap: anywhere;
+}
+
 a.popup {
     border: 1px solid var(--outline-color);
     color: var(--a-local);
