@@ -712,10 +712,10 @@ Specifically:
 - Log all internal events and broadcasts into extension's debugging log.
 - Enable display of all debugging-related popup UI elements. E.g., the `Reload` button will be shown regardless of new extension versions being available.
 ">Debug runtime</ui>
-    <ui id="config.debugPersisence" type="boolean" data-help="Report stashes and archivals into extension's debugging log. This is, usually, cheap.">Debug persistence</ui>
-    <ui id="config.debugCaptures" type="boolean" class="prefer-off" data-help="Log captures and their progress into extension's debugging log. This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Debug capture (SLOW!)</ui>
-    <ui id="config.dumpCaptures" type="boolean" class="prefer-off" data-help="Log raw CBOR dumps of captured reqres into extension's debugging log. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Dump raw CBORs into the log (SLOOOOW!)</ui>
     <ui id="config.debugConfig" type="boolean" class="prefer-off" data-help="Disable config sanity checks, allowing you to set various config options into states unsupported by your current browser. Which will probably crash either `Hoardy-Web` or your browser. Toggling this option off will automatically fix your config again.">Allow unsafe config values</ui>
+    <ui id="config.debugPersisence" type="boolean" data-help="Report stashes, archivals, and other writes to local storage into extension's debugging log. This is, usually, cheap.">Log persistence</ui>
+    <ui id="config.debugCaptures" type="boolean" class="prefer-off" data-help="Log captures and their progress into extension's debugging log. This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Log captures (!)</ui>
+    <ui id="config.dumpCaptures" type="boolean" class="prefer-off" data-help="Log raw WRR dumps into extension's debugging log. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Log raw WRRs (!!)</ui>
     <ui id="config.snapshotAny" type="boolean" class="prefer-off" data-help="Try capturing DOM snapshots for tabs and frames with all URLs, including `about:`, `data:`, `file:`, and extension pages. If you enable this, expect to see a lot of snapshot capture errors.">Capture snapshots of all URLs</ui>
     <ui id="config.discardAll" type="boolean" class="prefer-off" data-help="Automatically discard all reqres instead of archiving them. Useful for debugging most of the machinery of `Hoardy-Web` without actually archiving anything. Do not enable unless you know what you are doing.">Discard all reqres just before archival</ui>
 
