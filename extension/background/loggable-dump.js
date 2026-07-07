@@ -808,8 +808,7 @@ function processOneAlmostDone(
 
         let encoder = new CBOREncoder();
         encoder.encode(data, {
-            allowNull: true,
-            allowUndefined: false,
+            forbidUndefined: true,
         });
 
         if (in_limbo || picked) {

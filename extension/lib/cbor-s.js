@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Jan Malakhovski <oxij@oxij.org>
+ * Copyright (c) 2023-2026 Jan Malakhovski <oxij@oxij.org>
  * Copyright (c) 2014-2016 Patrick Gansterer <paroga@paroga.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -220,12 +220,9 @@ class CBOREncoder {
         }
     }
 
-    encode(value, limits) {
-        if (limits === undefined) {
-            limits = {
-                allowNull: true,
-                allowUndefined: true,
-            };
+    encode(value, options) {
+        if (options === undefined) {
+            options = {};
         }
 
         //console.log("CBOR encode", typeof value, value);
@@ -237,13 +234,13 @@ class CBOREncoder {
             this.writeUint8(0xf5);
             return this;
         } else if (value === null) {
-            if (!limits.allowNull) {
+            if (options.forbidNull) {
                 throw new Error("trying to encode null");
             }
             this.writeUint8(0xf6);
             return this;
         } else if (value === undefined) {
-            if (!limits.allowUndefined) {
+            if (options.forbidUndefined) {
                 throw new Error("trying to encode undefined");
             }
             this.writeUint8(0xf7);
@@ -283,20 +280,20 @@ class CBOREncoder {
             let length = value.length;
             this.writeTypeAndLength(4, length);
             for (let e of value) {
-                this.encode(e, limits);
+                this.encode(e, options);
             }
         } else if (value instanceof Map) {
             this.writeTypeAndLength(5, value.size);
             for (let [k, v] of value.entries()) {
-                this.encode(k, limits);
-                this.encode(v, limits);
+                this.encode(k, options);
+                this.encode(v, options);
             }
         } else if (typ === "object") {
             let keys = Object.keys(value);
             this.writeTypeAndLength(5, keys.length);
             for (let k of keys) {
-                this.encode(k, limits);
-                this.encode(value[k], limits);
+                this.encode(k, options);
+                this.encode(value[k], options);
             }
         } else {
             throw new TypeError(`can't encode ${value}`);
