@@ -114,6 +114,7 @@ let noPopup = new Set([
     "showLog",
     "showWindowLog",
     "showTabLog",
+    "closeTabThenDiscardInLimbo"
 ]);
 
 // only set on Chromium

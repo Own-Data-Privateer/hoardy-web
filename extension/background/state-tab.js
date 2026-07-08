@@ -343,6 +343,21 @@ function cleanupAfterTab(tabId) {
     return updatedTabId;
 }
 
+function closeTabThenDiscardInLimbo(tabId) {
+    runSynchronouslyB("closeTabThenDiscardInLimbo", async () => {
+        try {
+            await browser.tabs.remove(tabId);
+        } catch (err) {
+            logError(err);
+            return;
+        }
+        // drop some stuff immediately
+        popInLimbo(false, {tabId});
+        // drop the rest when it finishes
+        runSynchronouslyWhenNoInFlight(tabId, `discardTab#${tabId}`, () => syncPopInLimbo(false, {tabId}));
+    });
+}
+
 // Tracking open tabs and generating their configs.
 
 let openTabs = new Set();

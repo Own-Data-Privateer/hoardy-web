@@ -139,6 +139,7 @@ function makeFirefoxish(browser) {
     browser.tabs.get = makePromiseAPI(browser.tabs.get);
     browser.tabs.highlight = makePromiseAPI(browser.tabs.highlight);
     browser.tabs.query = makePromiseAPI(browser.tabs.query);
+    browser.tabs.remove = makePromiseAPI(browser.tabs.remove);
     browser.tabs.update = makePromiseAPI2(browser.tabs.update);
 
     if (browser.windows !== undefined) {

@@ -457,6 +457,7 @@ let shortcutCommands = {
     unmarkAllTabProblematic: (tabId) => runThenScheduleEndgame(syncUnmarkProblematic, {tabId}),
     collectAllTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, true, {tabId}),
     discardAllTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, false, {tabId}),
+    closeTabThenDiscardInLimbo: (tabId) => runThenScheduleEndgame(closeTabThenDiscardInLimbo, tabId),
 };
 
 function initShortcutCommands() {

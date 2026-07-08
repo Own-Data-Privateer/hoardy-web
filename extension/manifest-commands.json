@@ -133,6 +133,9 @@
         },
         "description": "Tab: Discard In Limbo : Discard all reqres in `in_limbo` state associated with the currently active tab."
     },
+    "closeTabThenDiscardInLimbo": {
+        "description": "Tab: Close and Discard In Limbo : Close the currently active tab, then discard all of its reqres in `in_limbo` state."
+    },
     "unmarkAllTabProblematic": {
         "firefox": {
             "default": "Ctrl+Alt+U"
