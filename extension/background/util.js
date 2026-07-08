@@ -176,6 +176,10 @@ function setPageDone() {
 }
 
 function setRootClasses(config) {
+    let sparse = config.sparse;
+    if (sparse === null && isMobile)
+        sparse = true;
+
     let dark = config.colors;
     if (dark === null && window.matchMedia("(prefers-color-scheme: dark)").matches)
         dark = true;
@@ -200,6 +204,9 @@ function setRootClasses(config) {
         dark = true;
 
     let droot = getRootNode(document);
+
+    setConditionalClass(droot, "sparse", sparse);
+
     setConditionalClass(droot, "light", !dark);
     setConditionalClass(droot, "colorblind", config.colorblind);
 

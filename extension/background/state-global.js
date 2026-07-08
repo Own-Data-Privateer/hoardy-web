@@ -49,6 +49,7 @@ let configDefaults = {
     autoReloadOnUpdates: false,
 
     // user interface
+    sparse: null,
     colors: null,
     colorblind: false,
     seasonal: true,

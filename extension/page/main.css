@@ -220,6 +220,10 @@ a {
     color: var(--input-color);
 }
 
+.sparse .ui input {
+    padding: 10px 10px;
+}
+
 .ui input[type="button"] {
     background: var(--button-background);
     border: 1px solid var(--button-border-color);
@@ -247,6 +251,12 @@ a {
     width: 26px;
 }
 
+.sparse .ui input[type="checkbox"].toggle {
+    border-radius: 13px;
+    height: 26px;
+    width: 42px;
+}
+
 .ui input[type="checkbox"].toggle:checked {
     background: var(--toggle-background);
     border-color: var(--toggle-border-color);
@@ -268,6 +278,14 @@ a {
     transition: transform 500ms;
 }
 
+.sparse .ui input[type="checkbox"].toggle::before {
+    font: 22px sans-serif;
+    height: 22px;
+    width: 22px;
+
+    transform: translate(1px, calc(50% - 10px));
+}
+
 .ui input[type="checkbox"].toggle:checked::before {
     background: var(--toggle-dot-background);
     outline: 1px solid var(--toggle-dot-border-color);
@@ -275,16 +293,32 @@ a {
     transform: translate(11px, calc(50% - 5px));
 }
 
+.sparse .ui input[type="checkbox"].toggle:checked::before {
+    transform: translate(17px, calc(50% - 10px));
+}
+
 .ui .booleanOrNull input[type="checkbox"].toggle {
     width: 32px;
+}
+
+.sparse .ui .booleanOrNull input[type="checkbox"].toggle {
+    width: 52px;
 }
 
 .ui .booleanOrNull input[type="checkbox"].toggle::before {
     transform: translate(9px, calc(50% - 5px));
 }
 
+.sparse .ui .booleanOrNull input[type="checkbox"].toggle::before {
+    transform: translate(14px, calc(50% - 10px));
+}
+
 .ui .booleanOrNull input[type="checkbox"].toggle:checked::before {
     transform: translate(16px, calc(50% - 5px));
+}
+
+.sparse .ui .booleanOrNull input[type="checkbox"].toggle:checked::before {
+    transform: translate(27px, calc(50% - 10px));
 }
 
 .ui .booleanOrNull input[type="checkbox"].toggle.false {
@@ -297,6 +331,10 @@ a {
     outline: 1px solid var(--netoggle-dot-border-color);
 
     transform: translate(1px, calc(50% - 5px));
+}
+
+.sparse .ui .booleanOrNull input[type="checkbox"].toggle.false::before {
+    transform: translate(1px, calc(50% - 10px));
 }
 
 .ui label:hover input[type="checkbox"].toggle::before,
@@ -354,12 +392,21 @@ input[type="checkbox"].help-btn {
     width: 16px;
 }
 
+.sparse input[type="checkbox"].help-btn {
+    padding: 10px 10px;
+}
+
 input[type="checkbox"].help-btn::before {
     color: var(--help-btn-color);
     content: "?";
 
     position: relative;
     left: 4px;
+}
+
+.sparse input[type="checkbox"].help-btn::before {
+    top: -7px;
+    left: -4px;
 }
 
 input[type="checkbox"].help-btn:checked {
@@ -389,6 +436,10 @@ div.help-tip {
 .ui .genui,
 .ui .genui label {
     display: flex;
+}
+
+.sparse .ui .genui {
+    margin: 7px 0;
 }
 
 .ui .genui label,
@@ -620,6 +671,10 @@ input.attention {
     transform: translate(-8px, calc(50% - 7px));
 }
 
+.sparse.season input[type="checkbox"].toggle::before {
+    transform: translate(-12px, calc(50% - 15px));
+}
+
 .halloween input[type="checkbox"].toggle::before {
     content: "🦇";
 }
@@ -632,6 +687,10 @@ input.attention {
     transform: translate(14px, calc(50% - 15px));
 }
 
+.sparse.season input[type="checkbox"].toggle:checked::before {
+    transform: translate(26px, calc(50% - 15px));
+}
+
 .season .ui .booleanOrNull input[type="checkbox"].toggle {
     --notoggle-background: var(--text-inactive-background);
     --notoggle-border-color: var(--text-inactive-color);
@@ -641,12 +700,24 @@ input.attention {
     transform: translate(6px, calc(50% - 11px));
 }
 
+.sparse.season .ui .booleanOrNull input[type="checkbox"].toggle::before {
+    transform: translate(12px, calc(50% - 15px));
+}
+
 .season .ui .booleanOrNull input[type="checkbox"].toggle.false::before {
     transform: translate(-8px, calc(50% - 7px));
 }
 
+.sparse.season .ui .booleanOrNull input[type="checkbox"].toggle.false::before {
+    transform: translate(-12px, calc(50% - 5px));
+}
+
 .season .ui .booleanOrNull input[type="checkbox"].toggle:checked::before {
     transform: translate(19px, calc(50% - 15px));
+}
+
+.sparse.season .ui .booleanOrNull input[type="checkbox"].toggle:checked::before {
+    transform: translate(32px, calc(50% - 25px));
 }
 }
 
