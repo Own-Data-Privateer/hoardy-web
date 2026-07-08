@@ -358,6 +358,28 @@ function closeTabThenDiscardInLimbo(tabId) {
     });
 }
 
+// New tab spawning.
+
+function spawnChildTab(url, newWindow, tab) {
+    let windowId =  tab.windowId;
+    let tabId = tab.id;
+
+    // See (openerIdsWorkaround).
+    openerIds.push([windowId, tabId]);
+
+    if (newWindow && browser.windows !== undefined)
+        return browser.windows.create({
+            url,
+            incognito: tab.incognito,
+        }).catch(logError);
+
+    return browser.tabs.create({
+        url,
+        windowId,
+        openerTabId: tabId,
+    }).catch(logError);
+}
+
 // Tracking open tabs and generating their configs.
 
 let openTabs = new Set();
@@ -370,7 +392,7 @@ function processNewTab(tabId, windowId, openerTabId) {
     let openerWindowId = windowId;
 
     if (openerIds.length > 0)
-        // (openerIdsWorkaround)
+        // (openerIdsWorkaround):
         //
         // Work around the fact that `browser.windows.create` has no `openerTabId` argument.
         //

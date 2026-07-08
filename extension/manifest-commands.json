@@ -109,6 +109,9 @@
     "replayTabBack": {
         "description": "Tab: Replay : Re-navigate the currently active tab to its replay, regardless of its `Include in global replays` setting. If the archiving server doesn't support replays, do nothing."
     },
+    "spawnReplayTabBackward": {
+        "description": "Tab: Replay in a New Tab : Replay the URL of the currently active tab in a newly spawned tab. If the archiving server doesn't support replays, do nothing. If the tab already contains a replay, clone it."
+    },
     "showTabState": {
         "firefox": {
             "default": "Alt+I"

@@ -162,6 +162,7 @@ async function popupMain() {
         snapshotTab: "📸",
         replayTabBack: "⏮",
         //replayTabForward: "⏭",
+        spawnReplayTabBackward: "⏮🆕",
         forgetAllTabLog: "🧹",
         showTabState: "📜",
 
@@ -321,6 +322,7 @@ async function popupMain() {
         "snapshotTab",
         "replayTabBack",
         // "replayTabForward"
+        "spawnReplayTabBackward",
         "forgetAllTabLog",
 
         "collectAllTabInLimbo",

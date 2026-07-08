@@ -960,6 +960,7 @@ Specifically:
       <span class="right tag-def tag-tab">
         <input id="snapshotTab" type="button" data-shortcut="snapshotTab" value="Snapshot" />
         <input id="replayTabBack" type="button" class="on-replay" data-shortcut="replayTabBack" value="Replay" />
+        <input id="spawnReplayTabBackward" type="button" class="on-replay" data-shortcut="spawnReplayTabBackward" value="Replay+" />
         <!-- input id="replayTabForward" type="button" class="on-replay" data-shortcut="replayTabForward" data-help="" value="Replay Forward" / -->
         <input id="forgetAllTabLog" type="button" data-help="For reqres of this tab, forget recent history." value="Forget" />
         <input id="showTabState" type="button" tabindex=2 data-shortcut="showTabState" value="State" />

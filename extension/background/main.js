@@ -195,14 +195,14 @@ async function replay(query, direction) {
             isBoringOrServerURL(url)
         ) {
             if (config.debugRuntime)
-                console.log("MAIN: NOT replaying tab", tabId, url);
+                console.log("MAIN: NOT replaying tabId", tabId, "url", url);
             continue;
         }
 
         let replayURL = latestReplayOf(url);
 
         if (config.debugRuntime)
-            console.log("MAIN: replaying tab", tabId, url, "->", replayURL);
+            console.log("MAIN: replaying tabId", tabId, "url", url, "->", replayURL);
 
         await runWhenTabSettles(
             "replay", `replay tab #${tabId} (${url.substr(0, 80)})`,
@@ -214,6 +214,30 @@ async function replay(query, direction) {
     }
 
     scheduleEndgame(updatedTabId);
+}
+
+function spawnReplay(url, direction, newWindow, tab) {
+    if (!checkReplay())
+        return;
+
+    let newURL = url;
+
+    if (isBoringOrServerURL(url)) {
+        if (config.debugRuntime)
+            console.log("MAIN: spawn-cloning from tabId", tab.id, "url", url);
+    } else {
+        newURL = latestReplayOf(url);
+
+        if (config.debugRuntime)
+            console.log("MAIN: spawn-replaying from tabId", tab.id, "url", url, "->", newURL);
+    }
+
+    spawnChildTab(newURL, newWindow, tab);
+}
+
+function spawnNegated(url, newWindow, tab) {
+    negateConfigFor.add(tab.id);
+    spawnChildTab(newURL, newWindow, tab);
 }
 
 // Handlers.
@@ -336,6 +360,11 @@ let rpcCommands = {
     replay: (tabId, direction) => {
         replay(tabId, direction);
     },
+    spawnReplay: (tabId, direction) => {
+        browser.tabs.get(tabId).then((tab) => {
+            spawnReplay(getTabURL(tab), false, false, tab);
+        });
+    },
 
     getInFlight,
     stopInFlight: (rrfilter, reason) => {
@@ -448,6 +477,7 @@ let shortcutCommands = {
     // TODO rename -> *Backward
     replayTabBack: (tabId) => rpcCommands.replay(tabId, false),
     replayTabForward: (tabId) => rpcCommands.replay(tabId, true),
+    spawnReplayTabBackward: (tabId) => rpcCommands.spawnReplay(tabId, false),
 
     forgetAllTabLog: (tabId) => runThenScheduleEndgame(syncForgetLog, {tabId}),
     showTabState: (tabId, activeTabId) => showState(sessionId, null, tabId, "top", activeTabId),
@@ -587,42 +617,14 @@ function handleMenuAction(info, tab) {
     if (config.debugRuntime)
         console.log("BROWSER: MENU: request", info, "in tab", tab);
 
-    let tabId = tab.id;
-    let windowId = tab.windowId;
-
     let cmd = info.menuItemId;
     let newWindow = cmd.endsWith("-window");
     let url = info.linkUrl;
 
-    if (cmd.startsWith("replay-")) {
-        if (isBoringOrServerURL(url)) {
-            if (config.debugRuntime)
-                console.log("MAIN: spawn-cloning from tabId", tabId, "url", url);
-        } else if (!checkReplay()) {
-            return;
-        } else {
-            url = latestReplayOf(url);
-
-            if (config.debugRuntime)
-                console.log("MAIN: spawn-replaying from tabId", tabId, "url", url, "->", newURL);
-        }
-    } else if (cmd.startsWith("open-not-"))
-        negateConfigFor.add(tabId);
-
-    // See (openerIdsWorkaround).
-    openerIds.push([windowId, tabId]);
-
-    if (newWindow)
-        browser.windows.create({
-            url,
-            incognito: tab.incognito,
-        }).catch(logError);
+    if (cmd.startsWith("replay-"))
+        spawnReplay(url, false, newWindow, tab);
     else
-        browser.tabs.create({
-            url,
-            windowId,
-            openerTabId: tabId,
-        }).catch(logError);
+        spawnNegated(url, newWindow, tab);
 }
 
 function initMenus() {
