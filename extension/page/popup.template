@@ -708,6 +708,7 @@ section {
 Specifically:
 
 - When extension (re-)starts, run all available unit tests in background and report any errors into extension's debugging log (in Firefox: `about:debugging`; in Chromium: extension inspector) and via notifications.
+- Every time an internal/bundled page gets opened, verify validity all of its links to other internal/bundled pages and report any issues into extension's debugging log.
 - Log all internal events and broadcasts into extension's debugging log.
 - Enable display of all debugging-related popup UI elements. E.g., the `Reload` button will be shown regardless of new extension versions being available.
 ">Debug runtime</ui>

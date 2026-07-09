@@ -123,6 +123,9 @@ async function stateMain() {
             dataNodeUpdaters["reset" + capitalize(id)](res[id]);
     }, asyncNoop, processUpdate);
 
+    if (config.debugRuntime)
+        setTimeout(() => verifyLinks(document, console.error, true), 100);
+
     setPageDone();
 
     // force re-scroll

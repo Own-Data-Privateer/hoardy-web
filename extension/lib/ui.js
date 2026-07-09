@@ -585,6 +585,73 @@ function makeUI(node) {
     node.parentElement.replaceChild(div, node);
 }
 
+async function verifyLinks(node, onerror, sameOrigin, allowOrigin, remapId) {
+    if (allowOrigin === undefined)
+        allowOrigin = () => false;
+    if (remapId === undefined)
+        remapId = (h, x) => x;
+
+    let selfUrl = new URL(document.location.href);
+    selfUrl.hash = "";
+    let selfHref = selfUrl.href;
+    let selfOrigin = selfUrl.origin;
+
+    let documents = new Map();
+
+    for (let link of node.getElementsByTagName("a")) {
+        let text = link.innerText;
+        let href = link.href;
+
+        let hashlessURL = new URL(href);
+        let target = hashlessURL.hash.substr(1);
+        hashlessURL.hash = "";
+        let hashlessHref = hashlessURL.href;
+
+        let doc;
+        if (hashlessHref === selfHref)
+            // this document
+            doc = document;
+        else if (
+            sameOrigin && hashlessURL.origin === selfOrigin ||
+            allowOrigin(hashlessURL.origin)
+        ) {
+            doc = await asyncCacheSingleton(documents, hashlessHref, async () => {
+                console.info("verifyLinks: fetching:", hashlessHref);
+
+                // something we can fetch
+                let response = await fetch(hashlessHref);
+                if (!response.ok) {
+                    onerror("fetch failed", hashlessHref);
+                    return null;
+                }
+
+                let text;
+                try {
+                    text = await response.text();
+                } catch (err) {
+                    onerror("fetch failed", hashlessHref, err);
+                    return null;
+                }
+
+                try {
+                    const parser = new DOMParser();
+                    let x = parser.parseFromString(text, "text/html");
+                    return x;
+                } catch (err) {
+                    onerror("parse failed", hashlessHref, err);
+                    return null;
+                }
+            });
+            if (doc === null)
+                continue;
+        } else
+            continue;
+
+        if (target !== "" && doc.getElementById(remapId(hashlessHref, target)) === null)
+            onerror("broken link", href, `from "${text}" at`, selfHref);
+    }
+}
+
 // current helpMark and helpDiv
 let helpNodes;
 

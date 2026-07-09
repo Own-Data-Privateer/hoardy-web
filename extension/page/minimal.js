@@ -49,6 +49,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     {
         let config = await browser.runtime.sendMessage(["getConfig"]);
         setRootClasses(config);
+
+        if (config.debugRuntime)
+            setTimeout(() => verifyLinks(document, console.error, true), 100);
     }
 
     // show UI

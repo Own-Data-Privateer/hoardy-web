@@ -218,6 +218,16 @@ async function helpMain () {
     {
         let config = await browser.runtime.sendMessage(["getConfig"]);
         setRootClasses(config);
+
+        if (config.debugRuntime)
+            setTimeout(
+                () => verifyLinks(document, console.error, true, undefined, (hashlessHref, id) => {
+                    if (hashlessHref === popupPageURL && id.startsWith("genui-"))
+                        return id.substr(6);
+                    return id;
+                }),
+                100,
+            );
     }
 
     window.onresize = catchAll(resize);

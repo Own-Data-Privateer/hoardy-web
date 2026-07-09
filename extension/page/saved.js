@@ -111,6 +111,9 @@ async function stateMain() {
 
     await browser.runtime.sendMessage(["setSavedFilters", savedFilters]);
 
+    if (config.debugRuntime)
+        setTimeout(() => verifyLinks(document, console.error, true), 100);
+
     setPageDone();
 
     // force re-scroll

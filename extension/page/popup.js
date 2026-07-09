@@ -444,6 +444,9 @@ async function popupMain() {
     } else
         showTab("def");
 
+    if (config.debugRuntime)
+        setTimeout(() => verifyLinks(document, console.error, true), 100);
+
     // finish
     setPageDone();
 
