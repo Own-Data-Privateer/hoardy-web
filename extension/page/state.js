@@ -43,6 +43,8 @@ async function stateMain() {
 
     await commonMain();
 
+    let config;
+
     if (narrowTabId !== null)
         document.title = `Hoardy-Web: tab ${narrowTabId}${narrowSessionId === null || thisSessionId === narrowSessionId ? "" : " of " + narrowSessionId.toString()}: Internal State`;
 
@@ -82,24 +84,26 @@ async function stateMain() {
         buttonToAction("reset-rrfilters." + id, reset);
     }
 
-    async function updateConfig(config) {
-        if (config === undefined)
+    async function updateConfig(nconfig) {
+        if (nconfig === undefined)
             config = await browser.runtime.sendMessage(["getConfig"]);
+        else
+            config = nconfig;
+
         setRootClasses(config);
     }
 
     async function processUpdate(update) {
         let [what, data] = update;
-
-        let updateFunc = dataNodeUpdaters[what];
-        if (updateFunc !== undefined)
-            return updateFunc(data);
-
         switch(what) {
         case "updateConfig":
             await updateConfig(data);
             return;
         default:
+            let updateFunc = dataNodeUpdaters[what];
+            if (updateFunc !== undefined)
+                return updateFunc(data);
+
             let res = await webextRPCHandleMessageDefault(update);
             return res;
         }
