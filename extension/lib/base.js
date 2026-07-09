@@ -219,6 +219,15 @@ function cacheSingleton(map, key, func) {
     return value;
 }
 
+async function asyncCacheSingleton(map, key, func) {
+    let value = cacheSingleton(map, key, func);
+    while (value instanceof Promise) {
+        value = await value;
+        map.set(key, value);
+    }
+    return value;
+}
+
 // Check if `a` and `b` are equivalent, recursively. The `func` argmument supplies an equivalence
 // checking function that will be called for all sub-parts of `a` and `b`, let's name them `x` and
 // `y`, respectively, when `x !== y`.
