@@ -678,6 +678,8 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     root.append(main, helpTip);
 }
 
+let _classifyLinksNum = 0;
+
 // Classify links under `node` based on their URLs. To get link highlights, run
 // `setupHistoryPopState` before running this.
 function classifyLinks(node, urlKlasses, setup) {
@@ -691,7 +693,6 @@ function classifyLinks(node, urlKlasses, setup) {
             };
         };
 
-    let num_links = 0;
     for (let link of node.getElementsByTagName("a")) {
         let href = link.href;
         let hashlessUrl = new URL(href);
@@ -701,8 +702,8 @@ function classifyLinks(node, urlKlasses, setup) {
 
         let id = link.id;
         if (!id) {
-            link.id = id = `link-${num_links}`;
-            num_links += 1;
+            link.id = id = `link-${_classifyLinksNum}`;
+            _classifyLinksNum += 1;
         }
 
         let klass;
