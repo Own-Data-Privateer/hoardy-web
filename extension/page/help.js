@@ -177,6 +177,31 @@ async function updatePage(initial) {
 
     if (!initial)
         updateLinks(tbody);
+
+    // expand shortcut macros
+    function mapShortcuts(func, nodes) {
+        for (let node of nodes) {
+            let sname = node.getAttribute("data-macro-shortcut");
+            if (sname === null) {
+                console.error("bad macro", node);
+                continue;
+            }
+            let shortcut = shortcuts[sname];
+            if (!shortcut) {
+                console.error("missing shortcut", sname);
+                continue;
+            }
+            func(node, shortcut);
+        }
+    }
+
+    mapShortcuts((node, shortcut) => {
+        node.children[0].innerText = shortcut.shortcut || "unbound";
+    }, document.getElementsByName("shortcutKey"));
+
+    mapShortcuts((node, shortcut) => {
+        node.children[0].innerText = shortcut.sdesc;
+    }, document.getElementsByName("shortcutShort"));
 }
 
 async function helpMain () {
