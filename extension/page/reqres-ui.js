@@ -95,34 +95,40 @@ function appendLoggable(node, loggable) {
 
     let div = document.createElement("div");
 
-    function mbtn(value, title, func) {
-        let btn = document.createElement("input");
-        btn.type = "button";
-        btn.value = value;
-        btn.title = title;
-        btn.onclick = func;
-        div.append(btn);
-    }
-
     if (reqresSessionId === thisSessionId) {
-        mbtn(name, "Switch to this tab.",
-             cacheSingleton(switchFuncMap, reqresTabId, () => switchToReqresTabId.bind(undefined, reqresTabId)));
+        appendButton(
+            div, name, "Switch to this tab.",
+            cacheSingleton(
+                switchFuncMap, reqresTabId,
+                () => switchToReqresTabId.bind(undefined, reqresTabId)
+            ),
+        );
         if (narrowTabId === null)
-            mbtn("T", "Narrow this page to this tab's data.",
-                 cacheSingleton(showStateFuncMap, reqresTabId,
-                                () => showStateOfReqresTabId.bind(undefined, reqresSessionId, reqresTabId)));
+            appendButton(
+                div, "T", "Narrow this page to this tab's data.",
+                cacheSingleton(
+                    showStateFuncMap, reqresTabId,
+                    () => showStateOfReqresTabId.bind(undefined, reqresSessionId, reqresTabId)
+                ),
+            );
     } else {
         appendElements(div, "span", `${name} of *${reqresSessionId.toString().substr(-3)}`);
         if (narrowSessionId === null)
-            mbtn("S", "Narrow this page to this session's data.",
-                 cacheSingleton(showStateFuncMap,
-                                reqresSessionId.toString() + ".",
-                                () => showStateOfReqresTabId.bind(undefined, reqresSessionId, null)));
+            appendButton(
+                div, "S", "Narrow this page to this session's data.",
+                cacheSingleton(
+                    showStateFuncMap, reqresSessionId.toString() + ".",
+                    () => showStateOfReqresTabId.bind(undefined, reqresSessionId, null)
+                ),
+            );
         else if (narrowTabId === null)
-            mbtn("ST", "Narrow this page to this session and tab's data.",
-                 cacheSingleton(showStateFuncMap,
-                                reqresSessionId.toString() + "." + reqresTabId.toString(),
-                                () => showStateOfReqresTabId.bind(undefined, reqresSessionId, reqresTabId)));
+            appendButton(
+                div, "ST", "Narrow this page to this session and tab's data.",
+                cacheSingleton(
+                    showStateFuncMap, reqresSessionId.toString() + "." + reqresTabId.toString(),
+                    () => showStateOfReqresTabId.bind(undefined, reqresSessionId, reqresTabId)
+                ),
+            );
     }
 
     appendElements(tr, "td", div);

@@ -181,6 +181,19 @@ function replaceElements(node, ...args) {
     node.replaceChildren(...(createElements(...args)));
 }
 
+function createButton(value, title, func) {
+    let el = document.createElement("input");
+    el.type = "button";
+    el.value = value;
+    el.title = title;
+    el.onclick = func;
+    return el;
+}
+
+function appendButton(node, ...args) {
+    node.append(createButton(...args));
+}
+
 // emulating booleanOrNull using a checkbox:
 // - true -> checked,
 // - null -> !checked,
