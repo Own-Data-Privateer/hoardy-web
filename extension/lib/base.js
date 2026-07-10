@@ -545,6 +545,8 @@ function escapeHTML(text) {
 function microMarkdownToHTML(text) {
     return escapeHTML(text)
         .replaceAll("\n", "<br />")
+        .replaceAll(/[*][*]([^*`]+)[*][*]/g, "<strong>$1</strong>")
+        .replaceAll(/[*]([^*`]+)[*]/g, "<em>$1</em>")
         .replaceAll(/`([^`]+)`/g, "<code>$1</code>")
     ;
 }
