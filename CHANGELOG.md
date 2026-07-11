@@ -1705,7 +1705,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 
     I.e., this means that on a Desktop browser, you can now zoom the [`Help` page](./extension/page/help.org) to arbitrary zoom levels and it will just switch between layouts and link-hover behaviors depending on available viewport width.
 
-  - Greatly improved the styling of all links and documented it in the ["Conventions" section](./extension/page/help.org#conventions).
+  - Greatly improved the styling of all links and documented it on the [`Help` page](./extension/page/help.org).
 
 - All internal pages:
 
@@ -1867,7 +1867,7 @@ In related news, I have [💸☕ a Patreon account](https://www.patreon.com/oxij
 - Documentation:
 
   - Moved re-archival instructions from the top-level [`README.md`](./README.md) to
-    the [`Help` page](./extension/page/help.org#re-archival) and generalized them a bit.
+    the [`Help` page](./extension/page/help.org#rearchive) and generalized them a bit.
 
   - Improved many random bits of documentation in random places.
 
