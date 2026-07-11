@@ -2,6 +2,9 @@
     "_execute_browser_action": {
         "firefox": {
             "default": "Alt+A"
+        },
+        "chromium": {
+            "default": "Alt+A"
         }
     },
     "snapshotAll": {
@@ -26,21 +29,12 @@
         "description": "Browser: Show Log : Open the global `Internal State` page, then scroll it to the end of the log of recently `collected` and `discarded` reqres."
     },
     "collectAllInLimbo": {
-        "firefox": {
-            "default": "Ctrl+Alt+A"
-        },
         "description": "Browser: Collect In Limbo : Collect all reqres in `in_limbo` state."
     },
     "discardAllInLimbo": {
-        "firefox": {
-            "default": "Alt+Shift+D"
-        },
         "description": "Browser: Discard In Limbo : Discard all reqres in `in_limbo` state."
     },
     "unmarkAllProblematic": {
-        "firefox": {
-            "default": "Alt+Shift+U"
-        },
         "description": "Browser: Unmark Problematic : Unmark all `problematic` reqres."
     },
     "snapshotWindow": {
@@ -56,9 +50,15 @@
         "description": "Window: Show Log : Open the `Internal State` page narrowed to the currently active window, then scroll it to the end of the log of recently `collected` and `discarded` reqres."
     },
     "collectWindowInLimbo": {
+        "firefox": {
+            "default": "Alt+Shift+1"
+        },
         "description": "Window: Collect In Limbo : Collect all reqres in `in_limbo` state associated with the currently active window."
     },
     "discardWindowInLimbo": {
+        "firefox": {
+            "default": "Alt+Shift+0"
+        },
         "description": "Window: Discard In Limbo : Discard all reqres in `in_limbo` state associated with the currently active window."
     },
     "unmarkWindowProblematic": {
@@ -102,18 +102,27 @@
     },
     "snapshotTab": {
         "firefox": {
-            "default": "Ctrl+Alt+S"
+            "default": "Alt+Shift+S"
         },
         "description": "Tab: Snapshot : Take `DOM` snapshots of the currently active tab, regardless of its `Include in global snapshots` setting. If the tab has multiple frames, all the frames will be snapshotted."
     },
     "replayTabBack": {
+        "firefox": {
+            "default": "Alt+P"
+        },
         "description": "Tab: Replay : Re-navigate the currently active tab to its replay, regardless of its `Include in global replays` setting. If the archiving server doesn't support replays, do nothing."
     },
     "spawnReplayTabBackward": {
+        "firefox": {
+            "default": "Alt+Shift+P"
+        },
         "description": "Tab: Replay in a New Tab : Replay the URL of the currently active tab in a newly spawned tab. If the archiving server doesn't support replays, do nothing. If the tab already contains a replay, clone it."
     },
     "showTabState": {
         "firefox": {
+            "default": "Alt+I"
+        },
+        "chromium": {
             "default": "Alt+I"
         },
         "description": "Tab: Show State : Open the `Internal State` page narrowed to the currently active tab."
@@ -126,25 +135,25 @@
     },
     "collectAllTabInLimbo": {
         "firefox": {
-            "default": "Ctrl+Alt+C"
+            "default": "Alt+Shift+C"
         },
         "description": "Tab: Collect In Limbo : Collect all reqres in `in_limbo` state associated with the currently active tab."
     },
     "discardAllTabInLimbo": {
         "firefox": {
-            "default": "Alt+Shift+W"
+            "default": "Alt+Shift+D"
         },
         "description": "Tab: Discard In Limbo : Discard all reqres in `in_limbo` state associated with the currently active tab."
     },
     "closeTabThenDiscardInLimbo": {
+        "firefox": {
+            "default": "Alt+Shift+W"
+        },
         "description": "Tab: Close and Discard In Limbo : Close the currently active tab, then discard all of its reqres in `in_limbo` state."
     },
     "unmarkAllTabProblematic": {
         "firefox": {
-            "default": "Ctrl+Alt+U"
-        },
-        "chromium": {
-            "default": "Alt+U"
+            "default": "Alt+Shift+U"
         },
         "description": "Tab: Unmark Problematic : Unmark all `problematic` reqres associated with the currently active tab."
     },
@@ -161,12 +170,6 @@
         "description": "Tab: Toggle Work Offline : Toggle `Work Offline` setting for the currently active tab and reset the same setting for its new children."
     },
     "toggleTabConfigTracking": {
-        "firefox": {
-            "default": "Alt+C"
-        },
-        "chromium": {
-            "default": "Alt+C"
-        },
         "description": "Tab: Toggle Tracking : Toggle `Track new requests` setting for the currently active tab and reset the same setting for its new children."
     },
     "toggleTabConfigProblematicNotify": {
@@ -200,9 +203,6 @@
         "description": "Tab's Children: Toggle Work Offline : Toggle `Work Offline` setting for the currently active tab's new children."
     },
     "toggleTabConfigChildrenTracking": {
-        "firefox": {
-            "default": "Alt+Shift+C"
-        },
         "description": "Tab's Children: Toggle Tracking : Toggle `Track new requests` setting for the currently active tab's new children."
     },
     "toggleTabConfigChildrenProblematicNotify": {
