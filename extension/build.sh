@@ -119,8 +119,10 @@ for target in "$@"; do
 
         local destfile="$DEST/$path".html
         mkdir -p "$(dirname "$destfile")"
-        pandoc --wrap=none -f "$format" -t html "$template" \
-               -M pagetitle="$path" "${pandocArgs[@]}" "$@" > "$destfile"
+        pandoc -f "$format" -t html "$template" \
+               --wrap=none \
+               -M pagetitle="$path" \
+               "${pandocArgs[@]}" "$@" > "$destfile"
     }
 
     for p in background/main page/popup page/state page/saved; do
@@ -132,11 +134,12 @@ for target in "$@"; do
 
     {
         echo '#+MACRO: config2 $2'
-        echo '#+MACRO: tabconfig2 $2'
         echo
         cat page/help.org | sed -E '0,/^#\+TOC: headlines /I d'
-    } | pandoc --wrap=none -f org -t html --template=page/toc.only.template \
-               -M pagetitle=TOC --toc > dist/help.toc
+    } | pandoc -f org -t html --template=page/toc.only.template \
+               --wrap=none \
+               -M pagetitle=TOC \
+               --toc > dist/help.toc
 
     {
         cat page/help.org | sed -E '/^#\+TOC: headlines /I,$ d'
