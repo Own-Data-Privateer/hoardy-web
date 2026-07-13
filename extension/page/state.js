@@ -55,19 +55,19 @@ async function stateMain() {
         titleParts.push(`of Session #${narrowSessionId}`);
     document.title += ": " + titleParts.join(" ");
 
-    buttonToMessage("stopInFlight",         () => ["stopInFlight", rrfilters.inFlight]);
-    buttonToMessage("forgetLog",            () => ["forgetLog", rrfilters.log]);
-    buttonToMessage("rotateOneProblematic", () => ["rotateProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
-    buttonToMessage("unmarkOneProblematic", () => ["unmarkProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
-    buttonToMessage("unmarkAllProblematic", () => ["unmarkProblematic", rrfilters.problematic]);
-    buttonToMessage("rotateOneInLimbo",     () => ["rotateInLimbo", assignRec({}, rrfilters.inLimbo, {limit: 1})]);
-    buttonToMessage("discardOneInLimbo",    () => ["popInLimbo", false, assignRec({}, rrfilters.inLimbo, {limit: 1})]);
-    buttonToMessage("discardAllInLimbo",    () => ["popInLimbo", false, rrfilters.inLimbo]);
-    buttonToMessage("collectOneInLimbo",    () => ["popInLimbo", true, assignRec({}, rrfilters.inLimbo, {limit: 1})]);
-    buttonToMessage("collectAllInLimbo",    () => ["popInLimbo", true, rrfilters.inLimbo]);
-    buttonToMessage("retryUnarchived",      () => ["retryUnarchived", true, rrfilters.unarchived]);
-    buttonToMessage("archiveBuggedOut",     () => ["archiveBuggedOut", rrfilters.buggedOut]);
-    buttonToMessage("deleteBuggedOut",      () => ["deleteBuggedOut", rrfilters.buggedOut]);
+    buttonToMessage("stopStarInFlight",     () => ["stopInFlight", rrfilters.inFlight]);
+    buttonToMessage("forgetStarLog",        () => ["forgetLog", rrfilters.log]);
+    buttonToMessage("rotate1Problematic",   () => ["rotateProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
+    buttonToMessage("unmark1Problematic",   () => ["unmarkProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
+    buttonToMessage("unmarkStarProblematic",() => ["unmarkProblematic", rrfilters.problematic]);
+    buttonToMessage("rotate1InLimbo",       () => ["rotateInLimbo", assignRec({}, rrfilters.inLimbo, {limit: 1})]);
+    buttonToMessage("discard1InLimbo",      () => ["popInLimbo", false, assignRec({}, rrfilters.inLimbo, {limit: 1})]);
+    buttonToMessage("discardStarInLimbo",   () => ["popInLimbo", false, rrfilters.inLimbo]);
+    buttonToMessage("collect1InLimbo",      () => ["popInLimbo", true, assignRec({}, rrfilters.inLimbo, {limit: 1})]);
+    buttonToMessage("collectStarInLimbo",   () => ["popInLimbo", true, rrfilters.inLimbo]);
+    buttonToMessage("retryStarUnarchived",  () => ["retryUnarchived", true, rrfilters.unarchived]);
+    buttonToMessage("archiveStarBuggedOut", () => ["archiveBuggedOut", rrfilters.buggedOut]);
+    buttonToMessage("deleteStarBuggedOut",  () => ["deleteBuggedOut", rrfilters.buggedOut]);
 
     for (let id of Object.keys(rrfilters)) {
         let cid = capitalize(id);
