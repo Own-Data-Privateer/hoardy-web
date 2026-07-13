@@ -7,13 +7,13 @@
             "default": "Alt+A"
         }
     },
-    "snapshotAll": {
+    "snapshotEvery": {
         "description": "Browser: Snapshot : Take `DOM` snapshots of all open tabs for which `Include in global snapshots` setting is enabled."
     },
-    "replayAll": {
+    "replayEvery": {
         "description": "Browser: Replay : Re-navigate all open tabs for which `Include in global replays` setting is enabled to their replays. If the archiving server doesn't support replays, do nothing."
     },
-    "showState": {
+    "showEveryState": {
         "firefox": {
             "default": "Alt+G"
         },
@@ -22,19 +22,19 @@
         },
         "description": "Browser: Show State : Open the global `Internal State` page."
     },
-    "showLog": {
+    "showEveryLog": {
         "firefox": {
             "default": "Alt+Shift+G"
         },
         "description": "Browser: Show Log : Open the global `Internal State` page, then scroll it to the end of the log of recently `collected` and `discarded` reqres."
     },
-    "collectAllInLimbo": {
+    "collectEveryInLimbo": {
         "description": "Browser: Collect In Limbo : Collect all reqres in `in_limbo` state."
     },
-    "discardAllInLimbo": {
+    "discardEveryInLimbo": {
         "description": "Browser: Discard In Limbo : Discard all reqres in `in_limbo` state."
     },
-    "unmarkAllProblematic": {
+    "unmarkEveryProblematic": {
         "description": "Browser: Unmark Problematic : Unmark all `problematic` reqres."
     },
     "snapshotWindow": {
@@ -106,7 +106,7 @@
         },
         "description": "Tab: Snapshot : Take `DOM` snapshots of the currently active tab, regardless of its `Include in global snapshots` setting. If the tab has multiple frames, all the frames will be snapshotted."
     },
-    "replayTabBack": {
+    "replayTabBackward": {
         "firefox": {
             "default": "Alt+P"
         },
@@ -133,13 +133,13 @@
         },
         "description": "Tab: Show Log : Open the `Internal State` page narrowed to the currently active tab, then scroll it to the end of the log of recently `collected` and `discarded` reqres."
     },
-    "collectAllTabInLimbo": {
+    "collectTabInLimbo": {
         "firefox": {
             "default": "Alt+Shift+C"
         },
         "description": "Tab: Collect In Limbo : Collect all reqres in `in_limbo` state associated with the currently active tab."
     },
-    "discardAllTabInLimbo": {
+    "discardTabInLimbo": {
         "firefox": {
             "default": "Alt+Shift+D"
         },
@@ -151,7 +151,7 @@
         },
         "description": "Tab: Close and Discard In Limbo : Close the currently active tab, then discard all of its reqres in `in_limbo` state."
     },
-    "unmarkAllTabProblematic": {
+    "unmarkTabProblematic": {
         "firefox": {
             "default": "Alt+Shift+U"
         },

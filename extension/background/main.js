@@ -427,17 +427,17 @@ let shortcutCommands = {
     },
     rearchiveAdjunctSaved: () => runThenScheduleEndgame(syncRearchiveSaved, null, false, false, false),
 
-    snapshotAll: () => rpcCommands.snapshot(null),
-    replayAll: () => rpcCommands.replay(null, null),
+    snapshotEvery: () => rpcCommands.snapshot(null),
+    replayEvery: () => rpcCommands.replay(null, null),
 
-    forgetAllLog: () => runThenScheduleEndgame(syncForgetLog, {}),
-    showState: (tabId, activeTabId) => showState(null, null, null, "top", activeTabId),
-    showLog: (tabId, activeTabId) => showState(null, null, null, "tail", activeTabId, true, scrollEndIntoView),
+    forgetEveryLog: () => runThenScheduleEndgame(syncForgetLog, {}),
+    showEveryState: (tabId, activeTabId) => showState(null, null, null, "top", activeTabId),
+    showEveryLog: (tabId, activeTabId) => showState(null, null, null, "tail", activeTabId, true, scrollEndIntoView),
 
-    stopAllInFlight: () => rpcCommands.stopInFlight(null),
-    unmarkAllProblematic: () => runThenScheduleEndgame(syncUnmarkProblematic, {}),
-    collectAllInLimbo: () => runThenScheduleEndgame(syncPopInLimbo, true, {}),
-    discardAllInLimbo: () => runThenScheduleEndgame(syncPopInLimbo, false, {}),
+    stopEveryInFlight: () => rpcCommands.stopInFlight(null),
+    unmarkEveryProblematic: () => runThenScheduleEndgame(syncUnmarkProblematic, {}),
+    collectEveryInLimbo: () => runThenScheduleEndgame(syncPopInLimbo, true, {}),
+    discardEveryInLimbo: () => runThenScheduleEndgame(syncPopInLimbo, false, {}),
 
     // per-Window
     snapshotWindow: (tabId) => rpcCommands.snapshot({windowId: getWindowId(tabId)}),
@@ -474,19 +474,18 @@ let shortcutCommands = {
 
     // per-Tab
     snapshotTab: rpcCommands.snapshot,
-    // TODO rename -> *Backward
-    replayTabBack: (tabId) => rpcCommands.replay(tabId, false),
+    replayTabBackward: (tabId) => rpcCommands.replay(tabId, false),
     replayTabForward: (tabId) => rpcCommands.replay(tabId, true),
     spawnReplayTabBackward: (tabId) => rpcCommands.spawnReplay(tabId, false),
 
-    forgetAllTabLog: (tabId) => runThenScheduleEndgame(syncForgetLog, {tabId}),
+    forgetTabLog: (tabId) => runThenScheduleEndgame(syncForgetLog, {tabId}),
     showTabState: (tabId, activeTabId) => showState(sessionId, null, tabId, "top", activeTabId),
     showTabLog: (tabId, activeTabId) => showState(sessionId, null, tabId, "tail", activeTabId, true, scrollEndIntoView),
 
-    stopAllTabInFlight: (tabId) => rpcCommands.stopInFlight({tabId}),
-    unmarkAllTabProblematic: (tabId) => runThenScheduleEndgame(syncUnmarkProblematic, {tabId}),
-    collectAllTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, true, {tabId}),
-    discardAllTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, false, {tabId}),
+    stopTabInFlight: (tabId) => rpcCommands.stopInFlight({tabId}),
+    unmarkTabProblematic: (tabId) => runThenScheduleEndgame(syncUnmarkProblematic, {tabId}),
+    collectTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, true, {tabId}),
+    discardTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, false, {tabId}),
     closeTabThenDiscardInLimbo: (tabId) => runThenScheduleEndgame(closeTabThenDiscardInLimbo, tabId),
 };
 

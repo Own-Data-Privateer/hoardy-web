@@ -229,10 +229,10 @@ section {
         <input id="version" type="button" data-help="Open the `Changelog` page." value="v?" />
       </span>
       <span class="right tag-def tag-glob">
-        <input id="snapshotAll" type="button" data-shortcut="snapshotAll" value="Snapshot" />
-        <input id="replayAll" type="button" class="on-replay" data-shortcut="replayAll" value="Replay" />
-        <input id="forgetAllLog" type="button" data-help="Forget recent history." value="Forget" />
-        <input id="showState" type="button" data-shortcut="showState" value="State" />
+        <input id="snapshotEvery" type="button" data-shortcut="snapshotEvery" value="Snapshot" />
+        <input id="replayEvery" type="button" class="on-replay" data-shortcut="replayEvery" value="Replay" />
+        <input id="forgetEveryLog" type="button" data-help="Forget recent history." value="Forget" />
+        <input id="showEveryState" type="button" data-shortcut="showEveryState" value="State" />
       </span>
     </h1>
     <div class="idots1">
@@ -413,8 +413,8 @@ section {
       <div id="div-stats.in_limbo" class="tag-def tag-glob" data-help="At the moment, the number of `finished` reqres that are in `in_limbo` state (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
-          <input id="collectAllInLimbo" type="button" data-shortcut="collectAllInLimbo" value="Collect" />
-          <input id="discardAllInLimbo" type="button" data-shortcut="discardAllInLimbo" value="Discard" />
+          <input id="collectEveryInLimbo" type="button" data-shortcut="collectEveryInLimbo" value="Collect" />
+          <input id="discardEveryInLimbo" type="button" data-shortcut="discardEveryInLimbo" value="Discard" />
         </span>
         <span>
           <span id="stats.in_limbo">0</span>
@@ -442,7 +442,7 @@ section {
       <div id="div-stats.problematic" class="tag-def tag-glob tag-cls" data-help="At the moment, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
         <span>Problematic</span>
         <span>
-          <input id="unmarkAllProblematic" type="button" data-shortcut="unmarkAllProblematic" value="Unmark" />
+          <input id="unmarkEveryProblematic" type="button" data-shortcut="unmarkEveryProblematic" value="Unmark" />
         </span>
         <span>
           <span id="stats.problematic">0</span>
@@ -452,7 +452,7 @@ section {
       <div id="div-stats.in_flight" class="tag-def tag-glob" data-help="At the moment, the number of reqres that have not finished yet. See the `Help` page for more info.">
         <span>In flight</span>
         <span>
-          <input id="stopAllInFlight" type="button" data-help="Stop tracking progress of all in-flight reqres and either pick or drop them, depending on their completion and `Pick reqres for archival when they finish` options." value="Stop" />
+          <input id="stopEveryInFlight" type="button" data-help="Stop tracking progress of all in-flight reqres and either pick or drop them, depending on their completion and `Pick reqres for archival when they finish` options." value="Stop" />
         </span>
         <span>
           <span id="stats.in_flight">0</span>
@@ -959,10 +959,10 @@ Specifically:
     <h3>++ This tab
       <span class="right tag-def tag-tab">
         <input id="snapshotTab" type="button" data-shortcut="snapshotTab" value="Snapshot" />
-        <input id="replayTabBack" type="button" class="on-replay" data-shortcut="replayTabBack" value="Replay" />
+        <input id="replayTabBackward" type="button" class="on-replay" data-shortcut="replayTabBackward" value="Replay" />
         <input id="spawnReplayTabBackward" type="button" class="on-replay" data-shortcut="spawnReplayTabBackward" value="Replay+" />
         <!-- input id="replayTabForward" type="button" class="on-replay" data-shortcut="replayTabForward" data-help="" value="Replay Forward" / -->
-        <input id="forgetAllTabLog" type="button" data-help="For reqres of this tab, forget recent history." value="Forget" />
+        <input id="forgetTabLog" type="button" data-help="For reqres of this tab, forget recent history." value="Forget" />
         <input id="showTabState" type="button" tabindex=2 data-shortcut="showTabState" value="State" />
       </span>
     </h3>
@@ -991,8 +991,8 @@ Specifically:
       <div id="div-tabstats.in_limbo" class="tag-def tag-tab" data-help="For this tab, the number of `finished` reqres that are in `in_limbo` state (and the sum total of all sizes of their dumps).">
         <span>In limbo</span>
         <span>
-          <input id="collectAllTabInLimbo" type="button" data-shortcut="collectAllTabInLimbo" value="Collect" />
-          <input id="discardAllTabInLimbo" type="button" data-shortcut="discardAllTabInLimbo" value="Discard" />
+          <input id="collectTabInLimbo" type="button" data-shortcut="collectTabInLimbo" value="Collect" />
+          <input id="discardTabInLimbo" type="button" data-shortcut="discardTabInLimbo" value="Discard" />
         </span>
         <span>
           <span id="tabstats.in_limbo">0</span>
@@ -1020,7 +1020,7 @@ Specifically:
       <div id="div-tabstats.problematic" class="tag-def tag-tab tag-cls" data-help="For this tab, the number of reqres that satisfied `Mark reqres as 'problematic' when they finish` conditions at the moment they `finished` (and the sum total of all sizes of their dumps).">
         <span>Problematic</span>
         <span>
-          <input id="unmarkAllTabProblematic" type="button" data-shortcut="unmarkAllTabProblematic" value="Unmark" />
+          <input id="unmarkTabProblematic" type="button" data-shortcut="unmarkTabProblematic" value="Unmark" />
         </span>
         <span>
           <span id="tabstats.problematic">0</span>
@@ -1030,7 +1030,7 @@ Specifically:
       <div id="div-tabstats.in_flight" class="tag-def tag-tab" data-help="For this tab, the number of in-flight reqres that have not `finished` yet. See the `Help` page for more info.">
         <span>In flight</span>
         <span>
-          <input id="stopAllTabInFlight" type="button" data-help="For reqres of this tab, stop tracking progress of all in-flight requests and either collect them for archival or fail them, depending on completion and `Pick reqres for archival when they finish` options." value="Stop" />
+          <input id="stopTabInFlight" type="button" data-help="For reqres of this tab, stop tracking progress of all in-flight requests and either collect them for archival or fail them, depending on completion and `Pick reqres for archival when they finish` options." value="Stop" />
         </span>
         <span>
           <span id="tabstats.in_flight">0</span>

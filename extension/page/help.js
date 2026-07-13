@@ -111,7 +111,7 @@ function updateLinks(node) {
 // no corresponding popup UI elements
 let noPopup = new Set([
     "_execute_browser_action",
-    "showLog",
+    "showEveryLog",
     "showWindowLog",
     "showTabLog",
     "closeTabThenDiscardInLimbo"

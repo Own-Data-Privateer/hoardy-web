@@ -16,13 +16,13 @@
 #+MACRO: shortcut @@html:<span name="shortcutShort" data-macro-shortcut="$1">@@[[#shortcut-$1][shortcut short of $1]]@@html:</span>@@ {{{shortcutKey($1)}}}
 #+MACRO: shortcutButton @@html:<span name="shortcutShort" data-macro-shortcut="$1">@@{{{button2($1,shortcut short of $1)}}}@@html:</span>@@ {{{shortcutKey($1)}}}
 #+MACRO: shortcutButton2 {{{button2($1,$2)}}} {{{shortcutKey($1)}}}
-#+MACRO: replay {{{buttons(replayAll,replayWindow,replayTabBack)}}}
-#+MACRO: snapshot {{{buttons(snapshotAll,snapshotWindow,snapshotTab)}}}
-#+MACRO: forgetLog {{{buttons(forgetAllLog,forgetWindowLog,forgetAllTabLog)}}}
-#+MACRO: logPage {{{buttons(showState,showWindowState,showTabState)}}}
-#+MACRO: collectInLimbo {{{buttons(collectAllInLimbo,collectWindowInLimbo,collectAllTabInLimbo)}}}
-#+MACRO: discardInLimbo {{{buttons(discardAllInLimbo,discardWindowInLimbo,discardAllTabInLimbo)}}}
-#+MACRO: unmarkProblematic {{{buttons(unmarkAllProblematic,unmarkWindowProblematic,unmarkAllTabProblematic)}}}
+#+MACRO: replay {{{buttons(replayEvery,replayWindow,replayTabBackward)}}}
+#+MACRO: snapshot {{{buttons(snapshotEvery,snapshotWindow,snapshotTab)}}}
+#+MACRO: forgetLog {{{buttons(forgetEveryLog,forgetWindowLog,forgetTabLog)}}}
+#+MACRO: logPage {{{buttons(showEveryState,showWindowState,showTabState)}}}
+#+MACRO: collectInLimbo {{{buttons(collectEveryInLimbo,collectWindowInLimbo,collectTabInLimbo)}}}
+#+MACRO: discardInLimbo {{{buttons(discardEveryInLimbo,discardWindowInLimbo,discardTabInLimbo)}}}
+#+MACRO: unmarkProblematic {{{buttons(unmarkEveryProblematic,unmarkWindowProblematic,unmarkTabProblematic)}}}
 #+MACRO: reportit [[https://github.com/Own-Data-Privateer/hoardy-web/issues][open an issue on GitHub]] or [[https://oxij.org/#contact][get in touch otherwise]]
 #+OPTIONS: H:5
 
@@ -934,16 +934,16 @@ Thus, naively, if you see =Hoardy-Web= toolbar button's badge show you a non-zer
 
 - start switching between your browser tabs with =Control+Tab= or similar and watching the changes to =Hoardy-Web='s toolbar button to see if each particular tab needs you attention;
 
-- open the {{{button2(showState,global log page)}}}, select a random reqres from the "Problematic" and/or "In Limbo" sections there, click one of the per-reqres buttons there to switch to its associated tab or a narrowed =Internal State= page, deal with the issue there, go back to the global log page, and do it all over again for the next reqres/tab.
+- open the {{{button2(showEveryState,global log page)}}}, select a random reqres from the "Problematic" and/or "In Limbo" sections there, click one of the per-reqres buttons there to switch to its associated tab or a narrowed =Internal State= page, deal with the issue there, go back to the global log page, and do it all over again for the next reqres/tab.
 
 Note, however, that both of the above methods are annoying in different ways.
 
 Which is why =Hoardy-Web=  implements a {{{sec2(tab-switch-actions,bunch of buttons)}}} and [[#keyboard-shortcuts][keyboard shortcuts]] that can switch between and/or highlight/select browser tabs in ways that take =problematic=, =in_limbo=, and last =finished= reqres of each tab into account.
 See their help strings for detailed descriptions of what those actions do.
 
-Most notably, by using those buttons/shortcuts, the above use cases can be solved by pressing {{{shortcutButton(smartSwitchTabsLatest)}}}, looking at the tab in question, pressing {{{shortcutButton(unmarkAllTabProblematic)}}}, {{{shortcutButton(collectAllTabInLimbo)}}}, {{{shortcutButton(discardAllTabInLimbo)}}}, and/or {{{shortcut(closeTabThenDiscardInLimbo)}}} buttons/shortcuts, and repeating until all =problematic= and/or =in_limbo= reqres dealt with.
+Most notably, by using those buttons/shortcuts, the above use cases can be solved by pressing {{{shortcutButton(smartSwitchTabsLatest)}}}, looking at the tab in question, pressing {{{shortcutButton(unmarkTabProblematic)}}}, {{{shortcutButton(collectTabInLimbo)}}}, {{{shortcutButton(discardTabInLimbo)}}}, and/or {{{shortcut(closeTabThenDiscardInLimbo)}}} buttons/shortcuts, and repeating until all =problematic= and/or =in_limbo= reqres dealt with.
 
-Moreover, for the =in_limbo= use case, you can hit {{{shortcutButton(highlightTabsLatest)}}}, then drag-and-drop all those tabs to a new window, walk through them pressing {{{shortcutButton(discardAllTabInLimbo)}}} or {{{shortcut(closeTabThenDiscardInLimbo)}}} buttons/shortcuts in all the tabs you don't want, and then press {{{shortcutButton(collectWindowInLimbo)}}} to collect everything else.
+Moreover, for the =in_limbo= use case, you can hit {{{shortcutButton(highlightTabsLatest)}}}, then drag-and-drop all those tabs to a new window, walk through them pressing {{{shortcutButton(discardTabInLimbo)}}} or {{{shortcut(closeTabThenDiscardInLimbo)}}} buttons/shortcuts in all the tabs you don't want, and then press {{{shortcutButton(collectWindowInLimbo)}}} to collect everything else.
 Which you can then follow up by {{{shortcutButton(replayWindow)}}} to confirm the results.
 * Keyboard shortcuts
 :PROPERTIES:

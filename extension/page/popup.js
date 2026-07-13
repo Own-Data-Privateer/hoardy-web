@@ -130,15 +130,15 @@ async function popupMain() {
         retryAllFailed: "♻",
         showBuggedOut: "📜",
 
-        snapshotAll: "📸",
-        replayAll: "⏏",
-        forgetAllLog: "🧹",
-        showState: "📜",
+        snapshotEvery: "📸",
+        replayEvery: "⏏",
+        forgetEveryLog: "🧹",
+        showEveryState: "📜",
 
-        collectAllInLimbo: "✔",
-        discardAllInLimbo: "✖",
-        unmarkAllProblematic: "🧹",
-        stopAllInFlight: "⏹",
+        collectEveryInLimbo: "✔",
+        discardEveryInLimbo: "✖",
+        unmarkEveryProblematic: "🧹",
+        stopEveryInFlight: "⏹",
 
         // per-Window
         snapshotWindow: "📸",
@@ -160,16 +160,16 @@ async function popupMain() {
 
         // per-Tab
         snapshotTab: "📸",
-        replayTabBack: "⏮",
+        replayTabBackward: "⏮",
         //replayTabForward: "⏭",
         spawnReplayTabBackward: "⏮🆕",
-        forgetAllTabLog: "🧹",
+        forgetTabLog: "🧹",
         showTabState: "📜",
 
-        collectAllTabInLimbo: "✔",
-        discardAllTabInLimbo: "✖",
-        unmarkAllTabProblematic: "🧹",
-        stopAllTabInFlight: "⏹",
+        collectTabInLimbo: "✔",
+        discardTabInLimbo: "✖",
+        unmarkTabProblematic: "🧹",
+        stopTabInFlight: "⏹",
     };
 
     // populate with the original values from the ./popup.html
@@ -250,7 +250,7 @@ async function popupMain() {
     // search function, which is very useful there.
 
     let reloadSelfButton = document.getElementById("reloadSelf");
-    buttonToAction("showState",    () => replaceWith(false, showState, null, null, null, "top"));
+    buttonToAction("showEveryState",  () => replaceWith(false, showState, null, null, null, "top"));
     buttonToAction("showWindowState", () => replaceWith(false, showState, narrowSessionId, narrowWindowId, null, "top"));
     buttonToAction("showTabState", () => replaceWith(false, showState, narrowSessionId, null, narrowTabId, "top"));
     buttonToAction("showSaved",    () => replaceWith(false, showSaved, "top"));
@@ -292,14 +292,14 @@ async function popupMain() {
         "stashAll",
         "retryAllUnstashed",
 
-        "snapshotAll",
-        "replayAll",
-        "forgetAllLog",
+        "snapshotEvery",
+        "replayEvery",
+        "forgetEveryLog",
 
-        "collectAllInLimbo",
-        "discardAllInLimbo",
-        "unmarkAllProblematic",
-        "stopAllInFlight",
+        "collectEveryInLimbo",
+        "discardEveryInLimbo",
+        "unmarkEveryProblematic",
+        "stopEveryInFlight",
 
         // per-Window
         "snapshotWindow",
@@ -320,15 +320,15 @@ async function popupMain() {
 
         // per-Tab
         "snapshotTab",
-        "replayTabBack",
+        "replayTabBackward",
         // "replayTabForward"
         "spawnReplayTabBackward",
-        "forgetAllTabLog",
+        "forgetTabLog",
 
-        "collectAllTabInLimbo",
-        "discardAllTabInLimbo",
-        "unmarkAllTabProblematic",
-        "stopAllTabInFlight",
+        "collectTabInLimbo",
+        "discardTabInLimbo",
+        "unmarkTabProblematic",
+        "stopTabInFlight",
     ];
     for (let id of shortcutButtons) {
         buttonToMessage(id, () => [id, narrowTabId]);
