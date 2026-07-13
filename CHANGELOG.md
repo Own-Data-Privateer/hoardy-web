@@ -6,6 +6,167 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.28.0] - 2026-07-13: Keyboard shortcuts, per-window things, Fenix UI, incremental improvements, bug fixes
+
+### Changed: Incompatible changes to keyboard shortcuts
+
+- Core, Shortcuts:
+
+  - **Introduced a new `Tab: Close and Discard In Limbo` keyboard shortcut that closes the currently active tab and then discards all of its data from limbo, now bound to `Alt+Shift+W` by default.**
+
+    **This same shortcut was previously used by the action that simply discarded all tab data from limbo, so, from now on, that action is bound to `Alt+Shift+D` instead.**
+
+  - **Edited most of the other shortcuts to make it possible to use the same shortcuts on both Firefox and Chromium.**
+
+  - **Re-mapped many default keyboard shortcuts to per-window versions of their actions (see below).**
+
+  - Since the above changes modified most keyboard shortcuts, this release became a good opportunity to rename all related internal commands to use a more consistent naming scheme for the upcoming external extension API, so that was also performed now.
+
+**Thus, you'll probably want to look at the ["Keyboard shortcuts" section on the `Help` page](./extension/page/help.org#keyboard-shortcuts) and possibly edit some of them before proceeding.**
+Also, note that that section can now help you quickly reset keyboard shortcuts to their default values on browsers that support it (see below).
+
+### Added/Changed: Keyboard shortcuts and related
+
+- Core, Shortcuts, Popup UI:
+
+  - Introduced a new `Tab: Replay in a New Tab` keyboard shortcut and popup UI button.
+
+- Core, Shortcuts, [`Help` page](./extension/page/help.org), Popup UI:
+
+  - Improved shortcut description format, putting the thing they act upon at the very beginning.
+
+  - Improved many of those descriptions to be clearer, re-aligned some of them with reality.
+
+  - Reworked the order and grouping of keyboard shortcuts to be nicer, especially on Chromium where its keyboard shortcuts settings UI ignores `manifest.commands` order, sorting them in lexicographic order instead.
+
+  - Reorganized the [keyboard shortcuts](./extension/page/help.org#keyboard-shortcuts) table:
+
+    - Reworked its format slightly, making it look more like related browser's settings pages do.
+
+    - On browsers that support `browsers.commands.onChanged` event, the above table will now be updated automatically as you are editing your keyboard shortcuts in browser settings, without you needing to reload the whole page.
+
+    - On browsers that support `browser.commands.update` call, when the currently set and the default shortcuts differ, the contents of the "Default" column will now become a button that resets the corresponding shortcut to its default.
+
+      If you want to change them to something else, however, you'll still need to go to your browser's settings.
+
+  - Some important keyboard shortcuts now also get mentioned directly in the other sections of the [`Help` page](./extension/page/help.org), including their actual bindings, which also get updated automatically on browsers that support `browsers.commands.onChanged`.
+
+  - From now on, on Chromium, the Firefox variant of `manifest.commands` gets stored into the extension `ZIP`/`CRX` by the build process and the defaults from there are now being used when generating the aforementioned shortcuts table.
+
+    Which is to say that, on Chromium, most keyboard shortcuts now come with useful defaults, even though Chromium forbids more than 4 defaults to be set in extension's `manifest.commands`.
+
+    As a nice side-effect, the ordering and grouping of keyboard shortcuts in the above table is identical on both Firefox and Chromium now.
+
+### Added/Changed: Per-window things
+
+- Core, Popup UI, Shortcuts:
+
+  - **Introduced new per-window configuration and tracking machinery, keyboard shortcuts, and UI:**
+
+    - Implemented `.windowId` tracking and filtering for reqres.
+
+    - Made [`Internal State` pages](#state-in-extension-ui-only) narrowable by `windowId`s.
+
+    - Introduced per-window `config`s and `state`/`stats` with all the needed internals and popup UI, including a new tag/tab for the latter.
+
+    - Implemented save and restore for per-window `config`s and `state`/`stats` for when extension is reloaded.
+
+    - Implemented the per-window versions of all of `Snapshot`, `Replay`, `Forget Log`, `Show State`, `Show Log`, `Collect In Limbo`, `Discard In Limbo`, `Unmark Problematic`, and `Stop In Flight` actions/buttons/keyboard shortcuts.
+
+  - **Reorganized the popup UI in a major way to work with the above changes.**
+
+    Most notably, the `New root tabs` configuration options block became `New root windows/tabs` and is now completely hidden by default.
+    Instead, there's now a new `New windows` block, parts of which are now shown in the default popup UI state, similarly to how it worked before.
+
+- [`Help` page](./extension/page/help.org):
+
+  - **Reorganized, edited, and improved it in a major way to work with the above changes.**
+
+**Note that the semantics of which per-window config gets used for a newly spawned tab could be a bit tricky, see [this newly written piece of the `Help` page](./extension/page/help.org#hier-copy) for more info.**
+
+### Added/Changed: Fenix UI
+
+- Popup UI, [`Internal State` pages](#state-in-extension-ui-only), [`Saved in Local Storage` page](#saved-in-extension-ui-only):
+
+  - Introduced `Sparse` UI variants, controlled by a new `User Interface > Sparse` configuration option.
+
+    Having this option enabled makes popup UI buttons and toggles larger and adds more space between different interactive elements, which makes the experience of using the extension on touchscreens much nicer.
+
+    From now on, by default, sparse UI variants are enabled on Fenix and disabled everywhere else.
+
+  - Edited the CSS and popup UI labels to make the popup to be more compact.
+
+    Which is most useful on Fenix too.
+
+### Changed: Misc
+
+- [`Internal State` pages](#state-in-extension-ui-only), [`Saved in Local Storage` page](#saved-in-extension-ui-only):
+
+    - Split `buggy` reqres flag into `buggy_request` and `buggy_response`.
+
+- Core, Popup UI:
+
+  - From now on, when re-archival via submission over `HTTP` is enabled but all other `HTTP` archival-related options are disabled, the extension won't try to perform server checks at startup.
+    However, when re-archival via submission over `HTTP` is enabled, each `Re-archive all` and `Re-archive new` button click will now perform the server check before proceeding.
+
+    This improves usability [on Fenix when the archiving server is only available intermittently](./extension/page/help.org#fenix).
+
+- Core, Toolbar button:
+
+  - From now on, no internal actions will be scheduled in situations when it's obvious they would do absolutely nothing (like trying to `Collect In Limbo` when the limbo is empty).
+
+    Since they would do nothing, this change simply eliminates some unneeded UI updates.
+
+- Notifications:
+
+  - From now on, notifications about `problematic` reqres add a "..." line at the end of `problematic` URL list when they want do display more than maximum allowed number of lines.
+
+- [`Help` page](./extension/page/help.org):
+
+  - Documented `DOM` snapshots better.
+
+  - Documented smart tab switch/highlight machinery.
+
+  - Reworked the internal machinery to make all links keep their `href`s, making hovering over them informative.
+
+### Added: Misc
+
+- Core, All internal pages:
+
+  - Introduced some more runtime debugging machinery.
+
+    I expect the probability of a broken link or reference appearing on any of the internal pages to be much lower now.
+
+### Fixed: Misc
+
+- Core:
+
+  - Fixed a bug where the first tab in a new browser instance would start with the wrong per-tab config values.
+
+    A bug introduced in `extension-v1.26.0`.
+
+  - Fixed a bug where toolbar's badge wouldn't show scheduled replays.
+
+    A bug introduced together with that feature in `extension-v1.27.0`.
+
+  - Fixed a bug where re-archival would fail to produce its "done" notifications when some things fail to be re-archived.
+
+    A bug introduced in `extension-v1.27.0`.
+
+  - Fixed a bug where trying to compress uncompressible `WRR`s would fail to fallback to no compression.
+
+    A bug that existed since those functions were introduced.
+
+    This bug was probably never actually hit by anyone because almost all `WRR`s can be compressed, even if a tiny little bit.
+
+  - On Firefox, fixed a bug where context menu actions that promise to spawn their result in a new window would frequently fail to do so.
+
+    A bug that existed since those functions were introduced.
+
+- Documentation:
+
+  - Fixed some typos everywhere.
+
 ## [extension-v1.27.0] - 2026-06-25: Tab settling, smart tab switch/highlight, incremental improvements, bug fixes
 
 ### Added
@@ -286,7 +447,9 @@ Also, at the bottom of this file there is a [TODO list](#todo) with planned futu
 
 - [`Help` page](./extension/page/help.org):
 
-  - Reorganized, edited, and improved that page quite a bit, aligned everything there with reality, fixed a bunch of typos.
+  - Reorganized, edited, and improved that page quite a bit, aligned everything there with reality.
+
+  - Fixed a bunch of typos.
 
   - Documented setup and usage workflows on Fenix.
 
@@ -3453,6 +3616,7 @@ All planned features are complete now.
 
   - Initial public release.
 
+[extension-v1.28.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.27.0...extension-v1.28.0
 [extension-v1.27.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.26.0...extension-v1.27.0
 [extension-v1.26.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.25.0...extension-v1.26.0
 [tool-v0.24.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/tool-v0.23.0...tool-v0.24.0
