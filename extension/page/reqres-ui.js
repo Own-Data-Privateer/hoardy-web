@@ -70,68 +70,88 @@ function appendLoggable(node, loggable) {
 
     tr.classList.add(color);
 
-    if (loggable.net_state !== undefined)
+    if (loggable.net_state !== undefined) {
         sparts.push("$" + loggable.net_state);
-    if (!loggable.requestComplete)
+    }
+    if (!loggable.requestComplete) {
         sparts.push("partial");
-    if (!loggable.responseComplete)
+    }
+    if (!loggable.responseComplete) {
         sparts.push("incomplete");
-    if (loggable.requestBuggy)
+    }
+    if (loggable.requestBuggy) {
         sparts.push("buggy_request");
-    if (loggable.responseBuggy)
+    }
+    if (loggable.responseBuggy) {
         sparts.push("buggy_response");
-    if (loggable.redirectUrl !== undefined)
+    }
+    if (loggable.redirectUrl !== undefined) {
         sparts.push("redirected");
-    if (loggable.problematic === true)
+    }
+    if (loggable.problematic === true) {
         sparts.push("problematic!");
-    else if (loggable.was_problematic === true)
+    } else if (loggable.was_problematic === true) {
         sparts.push("was_problematic");
+    }
 
-    if (loggable.in_limbo === true)
+    if (loggable.in_limbo === true) {
         sparts.push("@in_limbo");
-    else if (loggable.was_in_limbo === true)
+    } else if (loggable.was_in_limbo === true) {
         sparts.push("was_in_limbo");
+    }
 
     let reqresSessionId = loggable.sessionId;
     let reqresTabId = loggable.tabId;
-    let name = loggable.fromExtension ? "ext" : (reqresTabId === TAB_ID_NONE ? "bg" : `tab #${reqresTabId}`);
+    let name = loggable.fromExtension
+        ? "ext"
+        : reqresTabId === TAB_ID_NONE
+          ? "bg"
+          : `tab #${reqresTabId}`;
 
     let div = document.createElement("div");
 
     if (reqresSessionId === thisSessionId) {
         appendButton(
-            div, name, "Switch to this tab.",
-            cacheSingleton(
-                switchFuncMap, reqresTabId,
-                () => switchToReqresTabId.bind(undefined, reqresTabId)
+            div,
+            name,
+            "Switch to this tab.",
+            cacheSingleton(switchFuncMap, reqresTabId, () =>
+                switchToReqresTabId.bind(undefined, reqresTabId),
             ),
         );
-        if (narrowTabId === null)
+        if (narrowTabId === null) {
             appendButton(
-                div, "T", "Narrow this page to this tab's data.",
-                cacheSingleton(
-                    showStateFuncMap, reqresTabId,
-                    () => showStateOfReqresTabId.bind(undefined, reqresSessionId, reqresTabId)
+                div,
+                "T",
+                "Narrow this page to this tab's data.",
+                cacheSingleton(showStateFuncMap, reqresTabId, () =>
+                    showStateOfReqresTabId.bind(undefined, reqresSessionId, reqresTabId),
                 ),
             );
+        }
     } else {
         appendElements(div, "span", `${name} of *${reqresSessionId.toString().substr(-3)}`);
-        if (narrowSessionId === null)
+        if (narrowSessionId === null) {
             appendButton(
-                div, "S", "Narrow this page to this session's data.",
-                cacheSingleton(
-                    showStateFuncMap, reqresSessionId.toString() + ".",
-                    () => showStateOfReqresTabId.bind(undefined, reqresSessionId, null)
+                div,
+                "S",
+                "Narrow this page to this session's data.",
+                cacheSingleton(showStateFuncMap, reqresSessionId.toString() + ".", () =>
+                    showStateOfReqresTabId.bind(undefined, reqresSessionId, null),
                 ),
             );
-        else if (narrowTabId === null)
+        } else if (narrowTabId === null) {
             appendButton(
-                div, "ST", "Narrow this page to this session and tab's data.",
+                div,
+                "ST",
+                "Narrow this page to this session and tab's data.",
                 cacheSingleton(
-                    showStateFuncMap, reqresSessionId.toString() + "." + reqresTabId.toString(),
-                    () => showStateOfReqresTabId.bind(undefined, reqresSessionId, reqresTabId)
+                    showStateFuncMap,
+                    reqresSessionId.toString() + "." + reqresTabId.toString(),
+                    () => showStateOfReqresTabId.bind(undefined, reqresSessionId, reqresTabId),
                 ),
             );
+        }
     }
 
     appendElements(tr, "td", div);
@@ -139,57 +159,93 @@ function appendLoggable(node, loggable) {
     appendElements(tr, "td", dateToString(loggable.requestTimeStamp));
     appendElements(tr, "td", loggable.protocol);
     appendElements(tr, "td", loggable.method);
-    appendElements(tr, (e) => {
-        e.className = "long";
-        return e;
-    }, "td", loggable.url + (loggable.redirectUrl !== undefined ? " -> " + loggable.redirectUrl : ""));
+    appendElements(
+        tr,
+        (e) => {
+            e.className = "long";
+            return e;
+        },
+        "td",
+        loggable.url + (loggable.redirectUrl !== undefined ? " -> " + loggable.redirectUrl : ""),
+    );
 
     appendElements(tr, "td", dateToString(loggable.responseTimeStamp));
-    appendElements(tr, (e) => {
-        e.className = "long";
-        return e;
-    }, "td", loggable.reason);
+    appendElements(
+        tr,
+        (e) => {
+            e.className = "long";
+            return e;
+        },
+        "td",
+        loggable.reason,
+    );
 
     let dumpSize = loggable.dumpSize;
     let requestSize = loggable.requestSize;
     let responseSize = loggable.responseSize;
-    let remainder = isDefined(dumpSize, requestSize, responseSize) ? dumpSize - requestSize - responseSize : undefined;
-    appendElements(tr, "td", `${byteLengthToString(dumpSize)} = ${byteLengthToString(requestSize)} + ${byteLengthToString(responseSize)} + ${byteLengthToString(remainder)}`);
+    let remainder = isDefined(dumpSize, requestSize, responseSize)
+        ? dumpSize - requestSize - responseSize
+        : undefined;
+    appendElements(
+        tr,
+        "td",
+        `${byteLengthToString(dumpSize)} = ${byteLengthToString(requestSize)} + ${byteLengthToString(responseSize)} + ${byteLengthToString(remainder)}`,
+    );
 
     node.append(tr);
 
-    if (loggable.errors.length > 0)
-        appendElements(node, (e) => {
-            e.className = "errors";
-            return e;
-        }, "tr", [
-            [document.createElement("td")],
-            [(e) => {
-                e.className = color;
-                e.setAttribute("colspan", 8);
-                e.setAttribute("title", "errors");
+    if (loggable.errors.length > 0) {
+        appendElements(
+            node,
+            (e) => {
+                e.className = "errors";
                 return e;
-            }, "td", loggable.errors.map((err) => {
-                return createElements("pre", "code", err);
-            })],
-        ]);
+            },
+            "tr",
+            [
+                [document.createElement("td")],
+                [
+                    (e) => {
+                        e.className = color;
+                        e.setAttribute("colspan", 8);
+                        e.setAttribute("title", "errors");
+                        return e;
+                    },
+                    "td",
+                    loggable.errors.map((err) => {
+                        return createElements("pre", "code", err);
+                    }),
+                ],
+            ],
+        );
+    }
 }
 
 function appendToLog(node, log_data, predicate) {
     for (let loggable of log_data) {
-        if (loggable === null)
-            appendElements(node, (e) => {
-                e.setAttribute("colspan", 9);
-                return e;
-            }, "td", (e) => {
-                e.className = "flex";
-                return e;
-            }, "span", (e) => {
-                e.className = "center";
-                return e;
-            }, "span", "...");
-        else if (predicate === undefined || predicate(loggable))
+        if (loggable === null) {
+            appendElements(
+                node,
+                (e) => {
+                    e.setAttribute("colspan", 9);
+                    return e;
+                },
+                "td",
+                (e) => {
+                    e.className = "flex";
+                    return e;
+                },
+                "span",
+                (e) => {
+                    e.className = "center";
+                    return e;
+                },
+                "span",
+                "...",
+            );
+        } else if (predicate === undefined || predicate(loggable)) {
             appendLoggable(node, loggable);
+        }
     }
 }
 
@@ -291,8 +347,9 @@ async function commonMain() {
         tr.innerHTML = headerHTML;
         res.appendChild(tr);
 
-        if (created)
+        if (created) {
             addFunc(res);
+        }
     }
 
     for (let el of document.getElementsByTagName("table")) {

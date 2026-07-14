@@ -27,8 +27,9 @@
 let windowConfig = new Map();
 
 function getWindowConfig(windowId) {
-    if (windowId === WINDOW_ID_NONE)
+    if (windowId === WINDOW_ID_NONE) {
         return config.root;
+    }
     return cacheSingleton(windowConfig, windowId, () => assignRec({}, config.root));
 }
 
@@ -36,8 +37,9 @@ function setWindowConfig(windowId, wincfg, oldWincfg, dontBroadcast) {
     fixSourceConfig(wincfg, config.root);
     windowConfig.set(windowId, wincfg);
 
-    if (dontBroadcast)
+    if (dontBroadcast) {
         return;
+    }
 
     broadcastToPopup("updateWindowConfig", windowId, wincfg);
 
@@ -57,10 +59,13 @@ function getWindowState(windowId) {
 let tabConfig = new Map();
 
 // per-tab state
-let tabStateDefaults = assignRec({
-    windowId: WINDOW_ID_NONE,
-    emitTimeStamp: 0,
-}, windowStateDefaults);
+let tabStateDefaults = assignRec(
+    {
+        windowId: WINDOW_ID_NONE,
+        emitTimeStamp: 0,
+    },
+    windowStateDefaults,
+);
 
 // per-tab state
 let tabState = new Map();
@@ -74,8 +79,9 @@ let tabStateProxyFuncs = {
         let old = obj[name];
         obj[name] = value;
 
-        if (!windowStateDefaults.hasOwnProperty(name))
+        if (!windowStateDefaults.hasOwnProperty(name)) {
             return true;
+        }
 
         let diff = value - old;
 
@@ -86,37 +92,45 @@ let tabStateProxyFuncs = {
         wantSaveState = true;
 
         return true;
-    }
-}
+    },
+};
 
 function getTabState(tabId, fromExtension) {
     // NB: not tracking extensions separately here, unlike with configs
-    if (fromExtension)
+    if (fromExtension) {
         tabId = TAB_ID_NONE;
+    }
     return new Proxy(getTabStateInternal(tabId), tabStateProxyFuncs);
 }
 
 function getWindowId(tabId) {
     let tabstate = tabState.get(tabId);
-    if (tabstate === undefined)
+    if (tabstate === undefined) {
         return WINDOW_ID_NONE;
+    }
     return tabstate.windowId;
 }
 
 function prefillChildren(data) {
-    return assignRec({
-        children: assignRec({}, data),
-    }, data);
+    return assignRec(
+        {
+            children: assignRec({}, data),
+        },
+        data,
+    );
 }
 
 function getTabConfig(tabId, fromExtension) {
-    if (fromExtension)
+    if (fromExtension) {
         return prefillChildren(config.extension);
-    if (tabId === TAB_ID_NONE)
+    }
+    if (tabId === TAB_ID_NONE) {
         return prefillChildren(config.background);
+    }
     console.assert(tabId !== undefined, "tabId !== undefined");
-    return cacheSingleton(tabConfig, tabId,
-                          (tabId) => prefillChildren(getWindowConfig(getWindowId(tabId))));
+    return cacheSingleton(tabConfig, tabId, (tabId) =>
+        prefillChildren(getWindowConfig(getWindowId(tabId))),
+    );
 }
 
 function fixTabConfig(tabId, url, cfg, oldCfg) {
@@ -125,27 +139,37 @@ function fixTabConfig(tabId, url, cfg, oldCfg) {
 
     if (url !== undefined) {
         // force some settings based on tab's URL
-        if ((cfg.autoReplay || cfg.children.autoReplay) && config.autoReplayOffInReplay && isServerURL(url))
+        if (
+            (cfg.autoReplay || cfg.children.autoReplay) &&
+            config.autoReplayOffInReplay &&
+            isServerURL(url)
+        ) {
             cfg.autoReplay = cfg.children.autoReplay = false;
-        if ((!cfg.workOffline || !cfg.children.workOffline) && (
-               config.workOfflineFile && url.startsWith("file:") ||
-               config.workOfflineData && url.startsWith("data:")) ||
-               config.workOfflineReplay && isServerURL(url)
-           )
+        }
+        if (
+            ((!cfg.workOffline || !cfg.children.workOffline) &&
+                ((config.workOfflineFile && url.startsWith("file:")) ||
+                    (config.workOfflineData && url.startsWith("data:")))) ||
+            (config.workOfflineReplay && isServerURL(url))
+        ) {
             cfg.workOffline = cfg.children.workOffline = true;
+        }
     }
 
     // the most common case
-    if (cfg === oldCfg)
+    if (cfg === oldCfg) {
         return;
+    }
 
     // propagate any changes to `.children`
     for (let field of Object.keys(cfg)) {
-        if (field === "children")
+        if (field === "children") {
             continue;
+        }
 
-        if (cfg[field] !== oldCfg[field])
+        if (cfg[field] !== oldCfg[field]) {
             cfg.children[field] = cfg[field];
+        }
     }
 }
 
@@ -153,8 +177,9 @@ function setTabConfig(tabId, tabUrl, tabcfg, oldTabcfg, dontBroadcast) {
     fixTabConfig(tabId, tabUrl, tabcfg, oldTabcfg);
     tabConfig.set(tabId, tabcfg);
 
-    if (dontBroadcast)
+    if (dontBroadcast) {
         return;
+    }
 
     broadcastToPopup("updateTabConfig", tabId, tabcfg);
 
@@ -175,32 +200,44 @@ function getUsedTabs(rrfilter, unqueued, problematic, limbo, log, dumping) {
     let set = new Set();
 
     function collect(reqres, c) {
-        if (c && rrpredicate(reqres))
+        if (c && rrpredicate(reqres)) {
             set.add(reqres.tabId);
+        }
     }
     applyToReqres13(
-        collect, true,
-        unqueued, unqueued, unqueued, unqueued, unqueued, // inFlight
+        collect,
+        true,
+        unqueued,
+        unqueued,
+        unqueued,
+        unqueued,
+        unqueued, // inFlight
         problematic, // problematic
-        limbo, log, dumping, // limbo, log, queue
+        limbo,
+        log,
+        dumping, // limbo, log, queue
         dumping, // bundled
-        dumping, dumping, true // unstashed, unarchived, bugged out
+        dumping,
+        dumping,
+        true, // unstashed, unarchived, bugged out
     );
 
     return set;
 }
 
 async function smartSwitchTabs(highlight, direction, roundRobin) {
-    let usedTabs = getUsedTabs({sessionId}, true, true, true, false, false);
+    let usedTabs = getUsedTabs({ sessionId }, true, true, true, false, false);
     let isInteresting = (tabId) => usedTabs.has(tabId);
 
-    let tabs = await browser.tabs.query({currentWindow: true});
+    let tabs = await browser.tabs.query({ currentWindow: true });
 
-    if (highlight)
+    if (highlight) {
         tabs = tabs.filter((tab) => isInteresting(tab.id));
+    }
 
-    if (tabs.length === 0)
+    if (tabs.length === 0) {
         return;
+    }
 
     tabs.sort((a, b) => {
         let aid = a.id;
@@ -210,37 +247,53 @@ async function smartSwitchTabs(highlight, direction, roundRobin) {
             // interesing ones go first
             let ai = isInteresting(aid);
             let bi = isInteresting(bid);
-            if (ai !== bi)
+            if (ai !== bi) {
                 return ai ? -1 : 1;
+            }
         }
 
         // otherwise, sort in order of their last `emitTimeStamp`s
         return getTabState(bid).emitTimeStamp - getTabState(aid).emitTimeStamp;
     });
-    if (direction)
+    if (direction) {
         tabs.reverse();
+    }
 
     let act = roundRobin ? mapRoundRobinTabsPerWindow : mapTabsPerWindow;
 
     await Promise.all(
         act((windowId, tabs) => {
-            if (config.debugRuntime)
-                console.log("smartSwitchTabs", windowId, tabs.map((tab) => tab.id));
+            if (config.debugRuntime) {
+                console.log(
+                    "smartSwitchTabs",
+                    windowId,
+                    tabs.map((tab) => tab.id),
+                );
+            }
 
-            if (highlight)
-                return browser.tabs.highlight(assignRec(
-                    { windowId, tabs: tabs.map((e) => e.index) },
-                    useDebugger ? undefined : { populate: false }
-                )).catch(logError);
-            else
-                return browser.tabs.highlight(assignRec(
-                    { windowId, tabs: [tabs[0].index] },
-                    useDebugger ? undefined : { populate: false }
-                )).catch(logError);
-                // NB: not doing
-                //   return browser.tabs.update(tabs[0].id, {active: true}).catch(logError);
-                // instead because that keeps old highlight if `tabs[0]` was highlighted too
-        }, tabs)
+            if (highlight) {
+                return browser.tabs
+                    .highlight(
+                        assignRec(
+                            { windowId, tabs: tabs.map((e) => e.index) },
+                            useDebugger ? undefined : { populate: false },
+                        ),
+                    )
+                    .catch(logError);
+            } else {
+                return browser.tabs
+                    .highlight(
+                        assignRec(
+                            { windowId, tabs: [tabs[0].index] },
+                            useDebugger ? undefined : { populate: false },
+                        ),
+                    )
+                    .catch(logError);
+            }
+            // NB: not doing
+            //   return browser.tabs.update(tabs[0].id, {active: true}).catch(logError);
+            // instead because that keeps old highlight if `tabs[0]` was highlighted too
+        }, tabs),
     );
 }
 
@@ -250,18 +303,21 @@ function cleanupTabs() {
 
     // delete configs of closed and unused tabs
     for (let tabId of Array.from(tabConfig.keys())) {
-        if(tabId === TAB_ID_NONE || openTabs.has(tabId) || usedTabs.has(tabId))
+        if (tabId === TAB_ID_NONE || openTabs.has(tabId) || usedTabs.has(tabId)) {
             continue;
-        if (config.debugRuntime)
+        }
+        if (config.debugRuntime) {
             console.log("removing config of tab", tabId);
+        }
         tabConfig.delete(tabId);
         tabState.delete(tabId);
     }
 
     // delete any stale leftovers from tabState
     for (let tabId of Array.from(tabState.keys())) {
-        if(tabId === TAB_ID_NONE || openTabs.has(tabId) || usedTabs.has(tabId))
+        if (tabId === TAB_ID_NONE || openTabs.has(tabId) || usedTabs.has(tabId)) {
             continue;
+        }
         console.warn("removing stale tab state", tabId);
         tabState.delete(tabId);
     }
@@ -270,18 +326,22 @@ function cleanupTabs() {
 // Closed tab auto-cleanup.
 
 function cleanupProblematicAfterTab(tabId) {
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("MAIN: cleaning up reqresProblematic after tab", tabId);
+    }
 
-    let unprob = unmarkProblematic({tabId})[1];
+    let unprob = unmarkProblematic({ tabId })[1];
 
-    if (config.problematicNotify === true && unprob > 0)
-        browser.notifications.create(`cleanedProblematic-${tabId}`, {
-            title: "Hoardy-Web: AUTO",
-            message: `Auto-unmarked ${unprob} problematic reqres from tab #${tabId}.`,
-            iconUrl: iconURL("problematic", 128),
-            type: "basic",
-        }).catch(logError);
+    if (config.problematicNotify === true && unprob > 0) {
+        browser.notifications
+            .create(`cleanedProblematic-${tabId}`, {
+                title: "Hoardy-Web: AUTO",
+                message: `Auto-unmarked ${unprob} problematic reqres from tab #${tabId}.`,
+                iconUrl: iconURL("problematic", 128),
+                type: "basic",
+            })
+            .catch(logError);
+    }
 
     cleanupTabs();
 
@@ -289,26 +349,30 @@ function cleanupProblematicAfterTab(tabId) {
 }
 
 function cleanupLimboAfterTab(tabId) {
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("MAIN: cleaning up reqresLimbo after tab", tabId);
+    }
 
     let what;
     let unlimbo = 0;
     if (config.autoPopInLimboCollect) {
         what = "collected";
-        unlimbo = popInLimbo(true, {tabId})[1];
+        unlimbo = popInLimbo(true, { tabId })[1];
     } else if (config.autoPopInLimboDiscard) {
         what = "discarded";
-        unlimbo = popInLimbo(false, {tabId})[1];
+        unlimbo = popInLimbo(false, { tabId })[1];
     }
 
-    if (config.autoNotify && unlimbo > 0)
-        browser.notifications.create(`cleanedLimbo-${tabId}`, {
-            title: "Hoardy-Web: AUTO",
-            message: `Auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`,
-            iconUrl: iconURL("limbo", 128),
-            type: "basic",
-        }).catch(logError);
+    if (config.autoNotify && unlimbo > 0) {
+        browser.notifications
+            .create(`cleanedLimbo-${tabId}`, {
+                title: "Hoardy-Web: AUTO",
+                message: `Auto-${what} ${unlimbo} in-limbo reqres from tab #${tabId}.`,
+                iconUrl: iconURL("limbo", 128),
+                type: "basic",
+            })
+            .catch(logError);
+    }
 
     cleanupTabs();
 
@@ -317,8 +381,9 @@ function cleanupLimboAfterTab(tabId) {
 
 function cleanupAfterTab(tabId) {
     let tabstate = tabState.get(tabId);
-    if (tabstate === undefined)
+    if (tabstate === undefined) {
         return;
+    }
 
     let updatedTabId;
 
@@ -327,7 +392,10 @@ function cleanupAfterTab(tabId) {
         updatedTabId = tabId;
     }
 
-    if ((config.autoPopInLimboCollect || config.autoPopInLimboDiscard) && tabstate.inLimboTotal > 0) {
+    if (
+        (config.autoPopInLimboCollect || config.autoPopInLimboDiscard) &&
+        tabstate.inLimboTotal > 0
+    ) {
         if (config.autoTimeout === 0) {
             cleanupLimboAfterTab(tabId);
             updatedTabId = tabId;
@@ -352,32 +420,39 @@ function closeTabThenDiscardInLimbo(tabId) {
             return;
         }
         // drop some stuff immediately
-        popInLimbo(false, {tabId});
+        popInLimbo(false, { tabId });
         // drop the rest when it finishes
-        runSynchronouslyWhenNoInFlight(tabId, `discardTab#${tabId}`, () => syncPopInLimbo(false, {tabId}));
+        runSynchronouslyWhenNoInFlight(tabId, `discardTab#${tabId}`, () =>
+            syncPopInLimbo(false, { tabId }),
+        );
     });
 }
 
 // New tab spawning.
 
 function spawnChildTab(url, newWindow, tab) {
-    let windowId =  tab.windowId;
+    let windowId = tab.windowId;
     let tabId = tab.id;
 
     // See (openerIdsWorkaround).
     openerIds.push([windowId, tabId]);
 
-    if (newWindow && browser.windows !== undefined)
-        return browser.windows.create({
-            url,
-            incognito: tab.incognito,
-        }).catch(logError);
+    if (newWindow && browser.windows !== undefined) {
+        return browser.windows
+            .create({
+                url,
+                incognito: tab.incognito,
+            })
+            .catch(logError);
+    }
 
-    return browser.tabs.create({
-        url,
-        windowId,
-        openerTabId: tabId,
-    }).catch(logError);
+    return browser.tabs
+        .create({
+            url,
+            windowId,
+            openerTabId: tabId,
+        })
+        .catch(logError);
 }
 
 // Tracking open tabs and generating their configs.
@@ -391,7 +466,7 @@ function processNewTab(tabId, windowId, openerTabId) {
 
     let openerWindowId = windowId;
 
-    if (openerIds.length > 0)
+    if (openerIds.length > 0) {
         // (openerIdsWorkaround):
         //
         // Work around the fact that `browser.windows.create` has no `openerTabId` argument.
@@ -399,6 +474,7 @@ function processNewTab(tabId, windowId, openerTabId) {
         // Also, on Chromium, `browser.tabs.create` with `openerTabId` specified does not pass it
         // into `openerTabId` of `handleTabCreated` (it's a bug).
         [openerWindowId, openerTabId] = openerIds.shift();
+    }
 
     let wincfg;
 
@@ -406,8 +482,9 @@ function processNewTab(tabId, windowId, openerTabId) {
         // this is a new tab spawned into a new window, copy old window's config
         wincfg = assignRec({}, getWindowConfig(openerWindowId));
         setWindowConfig(windowId, wincfg, wincfg);
-    } else
+    } else {
         wincfg = getWindowConfig(windowId);
+    }
 
     let tabstate = getTabStateInternal(tabId);
     // force it, in case an async function created it via `getTabState`
@@ -432,12 +509,14 @@ function processNewTab(tabId, windowId, openerTabId) {
 
 function processUpdateTab(tabId, windowId) {
     let tabstate = tabState.get(tabId);
-    if (tabstate === undefined)
+    if (tabstate === undefined) {
         return false;
+    }
 
     let oldWindowId = tabstate.windowId;
-    if (oldWindowId === windowId)
+    if (oldWindowId === windowId) {
         return false;
+    }
 
     // so, this tab was moved from one window to another
 
@@ -464,8 +543,9 @@ function processUpdateTab(tabId, windowId) {
 
     // apply this change to all the reqres
     function rewrite(v) {
-        if (v.tabId === tabId)
+        if (v.tabId === tabId) {
             v.windowId = windowId;
+        }
     }
     applyToReqres13(rewrite, true);
 
@@ -485,8 +565,9 @@ function processRemoveTab(tabId) {
     openTabs.delete(tabId);
 
     let updatedTabId;
-    if (useDebugger)
-        updatedTabId = stopInFlight({tabId}, "capture::EMIT_FORCED::BY_CLOSED_TAB");
+    if (useDebugger) {
+        updatedTabId = stopInFlight({ tabId }, "capture::EMIT_FORCED::BY_CLOSED_TAB");
+    }
     updatedTabId = mergeUpdatedTabIds(updatedTabId, cleanupAfterTab(tabId));
 
     scheduleEndgame(updatedTabId);
@@ -502,14 +583,16 @@ function processReplaceTab(addedTabId, removedTabId) {
     // Unused keys will be freed in `cleanupTabs`.
 
     let tabcfg = tabConfig.get(removedTabId);
-    if (tabcfg !== undefined)
+    if (tabcfg !== undefined) {
         // tabConfig.delete(removedTabId);
         tabConfig.set(addedTabId);
+    }
 
     let tabstate = tabState.get(removedTabId);
-    if (tabstate !== undefined)
+    if (tabstate !== undefined) {
         // tabState.delete(removedTabId);
         tabState.set(addedTabId, tabState);
+    }
 
     scheduleUpdateDisplay(false, addedTabId);
 }

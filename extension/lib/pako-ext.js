@@ -29,13 +29,15 @@
 function deflateMaybe(input, options, errorHandler) {
     try {
         let compressed = pako.deflate(input, options);
-        if (compressed.byteLength < input.byteLength)
+        if (compressed.byteLength < input.byteLength) {
             return compressed;
+        }
     } catch (err) {
-        if (errorHandler !== undefined)
+        if (errorHandler !== undefined) {
             errorHandler(err);
-        else
+        } else {
             throw err;
+        }
     }
     return input;
 }
@@ -46,10 +48,11 @@ function inflateMaybe(input, options, errorHandler) {
         try {
             return pako.inflate(input, options);
         } catch (err) {
-            if (errorHandler !== undefined)
+            if (errorHandler !== undefined) {
                 errorHandler(err);
-            else
+            } else {
                 throw err;
+            }
         }
     }
     return input;
@@ -58,7 +61,7 @@ function inflateMaybe(input, options, errorHandler) {
 // `pako.Deflate` which does not fattern the compressed chunks and
 // tracks the total size of the result.
 class DeflateInChunks extends pako.Deflate {
-    constructor (options) {
+    constructor(options) {
         super(options);
         this.size = 0;
     }
@@ -85,8 +88,9 @@ function deflateChunks(inputChunks, options) {
     }
     deflate.push(new Uint8Array([]), true);
 
-    if (deflate.err)
+    if (deflate.err) {
         throw deflate.msg;
+    }
 
     return [deflate.chunks, deflate.size, inputSize];
 }
@@ -94,13 +98,15 @@ function deflateChunks(inputChunks, options) {
 function deflateChunksMaybe(inputChunks, options, errorHandler) {
     try {
         let [compressedChunks, compressedSize, inputSize] = deflateChunks(inputChunks, options);
-        if (compressedSize < inputSize)
+        if (compressedSize < inputSize) {
             return compressedChunks;
+        }
     } catch (err) {
-        if (errorHandler !== undefined)
+        if (errorHandler !== undefined) {
             errorHandler(err);
-        else
+        } else {
             throw err;
+        }
     }
     return inputChunks;
 }

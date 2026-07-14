@@ -40,23 +40,29 @@ function webextRPCHandleConnect(port) {
     let portId;
     let url = normalizedURL(port.sender.url);
     if (useDebugger) {
-        if (port.sender.tab !== undefined)
+        if (port.sender.tab !== undefined) {
             portId = port.sender.tab.id;
-        else
+        } else {
             portId = url;
-    } else
+        }
+    } else {
         portId = port.sender.contextId;
+    }
 
-    if (DEBUG_WEBEXT_RPC)
+    if (DEBUG_WEBEXT_RPC) {
         console.debug("WEBEXT_RPC: port opened", portId, url);
+    }
 
-    webextRPCOpenPorts.set(portId, {port, name: port.name, url});
-    port.onDisconnect.addListener(catchAll(() => {
-        if (DEBUG_WEBEXT_RPC)
-            console.debug("WEBEXT_RPC: port disconnected", portId, url);
+    webextRPCOpenPorts.set(portId, { port, name: port.name, url });
+    port.onDisconnect.addListener(
+        catchAll(() => {
+            if (DEBUG_WEBEXT_RPC) {
+                console.debug("WEBEXT_RPC: port disconnected", portId, url);
+            }
 
-        webextRPCOpenPorts.delete(portId);
-    }));
+            webextRPCOpenPorts.delete(portId);
+        }),
+    );
 }
 
 function broadcastToMatching(lazy, predicate, ...args) {
@@ -73,8 +79,9 @@ function broadcastToMatching(lazy, predicate, ...args) {
         }
     }
 
-    if (DEBUG_WEBEXT_RPC)
+    if (DEBUG_WEBEXT_RPC) {
         console.debug("WEBEXT_RPC: broadcasted", res, "to", number, "recipients");
+    }
 
     return [lazy, res];
 }
@@ -108,18 +115,21 @@ let webextRPCFuncs = {
 };
 
 function initWebextRPC(handleMessage) {
-    browser.runtime.onMessage.addListener(catchAll((request, ...args) => {
-        if (DEBUG_WEBEXT_RPC)
-            console.debug("WEBEXT_RPC: message", request);
+    browser.runtime.onMessage.addListener(
+        catchAll((request, ...args) => {
+            if (DEBUG_WEBEXT_RPC) {
+                console.debug("WEBEXT_RPC: message", request);
+            }
 
-        let cmd = request[0];
-        let func = webextRPCFuncs[cmd];
-        if (func !== undefined) {
-            func(false, ...(request.splice(1)));
-            return;
-        }
+            let cmd = request[0];
+            let func = webextRPCFuncs[cmd];
+            if (func !== undefined) {
+                func(false, ...request.splice(1));
+                return;
+            }
 
-        handleMessage(request, ...args)
-    }));
+            handleMessage(request, ...args);
+        }),
+    );
     browser.runtime.onConnect.addListener(catchAll(webextRPCHandleConnect));
 }

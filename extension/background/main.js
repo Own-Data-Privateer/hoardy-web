@@ -40,15 +40,17 @@ function applyToReqres13(func, early, a, b, c, d, e, f, g, h, i, j, k, l, m) {
 async function checkServer(wantDump) {
     wantCheckServer = false;
 
-    wantDump = wantDump || config.archive && config.archiveSubmitHTTP;
+    wantDump = wantDump || (config.archive && config.archiveSubmitHTTP);
 
-    if (!wantDump && !config.replaySubmitHTTP)
+    if (!wantDump && !config.replaySubmitHTTP) {
         return;
+    }
 
     let baseURL = serverConfig.baseURL;
 
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("MAIN: checking the archiving server at", baseURL);
+    }
 
     let infoURL = new URL("hoardy-web/server-info", baseURL);
 
@@ -59,7 +61,10 @@ async function checkServer(wantDump) {
         logHandledError(err);
         await browser.notifications.create("error-server-connection", {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `\`Hoardy-Web\` can't establish a connection to the archiving server at \`${baseURL}\`:\n${errorMessageOf(err)}`),
+            message: escapeNotification(
+                config,
+                `\`Hoardy-Web\` can't establish a connection to the archiving server at \`${baseURL}\`:\n${errorMessageOf(err)}`,
+            ),
             iconUrl: iconURL("failed", 128),
             type: "basic",
         });
@@ -76,14 +81,16 @@ async function checkServer(wantDump) {
         } catch (err) {
             logError(err);
         }
-    } else if (response.status === 404)
+    } else if (response.status === 404) {
         // an old version of `hoardy-web-sas`
         info = assignRec({}, serverConfigDefaults.info);
+    }
 
-    if (info !== undefined)
+    if (info !== undefined) {
         serverConfig.alive = true;
-    else
+    } else {
         info = { version: 0 };
+    }
 
     serverConfig.info = info;
     serverConfig.canDump = info.dump_wrr !== undefined;
@@ -92,7 +99,10 @@ async function checkServer(wantDump) {
     if (!serverConfig.alive) {
         await browser.notifications.create("error-server", {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `The archiving server at \`${baseURL}\` appears to be unavailable.`),
+            message: escapeNotification(
+                config,
+                `The archiving server at \`${baseURL}\` appears to be unavailable.`,
+            ),
             iconUrl: iconURL("failed", 128),
             type: "basic",
         });
@@ -100,87 +110,126 @@ async function checkServer(wantDump) {
     } else if (wantDump && !serverConfig.canDump) {
         await browser.notifications.create("error-server", {
             title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `The archiving server at \`${baseURL}\` does not support archiving, it appears to be a replay-only instance.`),
+            message: escapeNotification(
+                config,
+                `The archiving server at \`${baseURL}\` does not support archiving, it appears to be a replay-only instance.`,
+            ),
             iconUrl: iconURL("failed", 128),
             type: "basic",
         });
         return;
-    } else
+    } else {
         // clear stale
         await browser.notifications.clear("error-server");
+    }
 
     if (serverConfig.info.version < 0) {
         await browser.notifications.create("warning-server", {
             title: "Hoardy-Web: WARNING",
-            message: escapeNotification(config, `You are running a deprecated version of an archiving server at \`${baseURL}\`, please update it.`),
+            message: escapeNotification(
+                config,
+                `You are running a deprecated version of an archiving server at \`${baseURL}\`, please update it.`,
+            ),
             iconUrl: iconURL("archiving", 128),
             type: "basic",
         });
-    } else
+    } else {
         // clear stale
         await browser.notifications.clear("warning-server");
+    }
 }
 
 function checkReplay(replayType) {
-    if (replayType === undefined)
+    if (replayType === undefined) {
         replayType = "Replay";
+    }
     const ifFixed = `\n\nIf you fixed it and the error persists, press the "Retry" button the "Queued/Failed" line in the popup.`;
 
     if (config.replaySubmitHTTP === false) {
-        browser.notifications.create(`error-replay`, {
-            title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `${replayType} is forbidden by the "Replay from the archiving server" option.\n\nEnable it to allow this feature.`),
-            iconUrl: iconURL("error", 128),
-            type: "basic",
-        }).catch(logError);
+        browser.notifications
+            .create(`error-replay`, {
+                title: "Hoardy-Web: ERROR",
+                message: escapeNotification(
+                    config,
+                    `${replayType} is forbidden by the "Replay from the archiving server" option.\n\nEnable it to allow this feature.`,
+                ),
+                iconUrl: iconURL("error", 128),
+                type: "basic",
+            })
+            .catch(logError);
 
         return false;
     } else if (!serverConfig.alive) {
-        browser.notifications.create(`error-replay`, {
-            title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `${replayType} is impossible because the archiving server at \`${serverConfig.baseURL}\` is unavailable.` + ifFixed),
-            iconUrl: iconURL("error", 128),
-            type: "basic",
-        }).catch(logError);
+        browser.notifications
+            .create(`error-replay`, {
+                title: "Hoardy-Web: ERROR",
+                message: escapeNotification(
+                    config,
+                    `${replayType} is impossible because the archiving server at \`${serverConfig.baseURL}\` is unavailable.` +
+                        ifFixed,
+                ),
+                iconUrl: iconURL("error", 128),
+                type: "basic",
+            })
+            .catch(logError);
 
         return false;
     } else if (!serverConfig.canReplay) {
-        browser.notifications.create(`error-replay`, {
-            title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `${replayType} is impossible because the archiving server at \`${serverConfig.baseURL}\` does not support replay.\n\nSwitch your archiving server to \`hoardy-web serve\` for this feature to work.` + ifFixed),
-            iconUrl: iconURL("error", 128),
-            type: "basic",
-        }).catch(logError);
+        browser.notifications
+            .create(`error-replay`, {
+                title: "Hoardy-Web: ERROR",
+                message: escapeNotification(
+                    config,
+                    `${replayType} is impossible because the archiving server at \`${serverConfig.baseURL}\` does not support replay.\n\nSwitch your archiving server to \`hoardy-web serve\` for this feature to work.` +
+                        ifFixed,
+                ),
+                iconUrl: iconURL("error", 128),
+                type: "basic",
+            })
+            .catch(logError);
 
         return false;
-    } else
+    } else {
         // clear stale
         browser.notifications.clear("error-replay").catch(logError);
+    }
 
     return true;
 }
 
 function latestReplayOf(url) {
-    if (config.replaySubmitHTTP === false || !serverConfig.alive || !serverConfig.canReplay)
+    if (config.replaySubmitHTTP === false || !serverConfig.alive || !serverConfig.canReplay) {
         throw Error("replay is not available");
+    }
 
     let replayURL = serverConfig.info.replay_latest.replace("{url}", url);
-    return (new URL(replayURL, serverConfig.baseURL)).href;
+    return new URL(replayURL, serverConfig.baseURL).href;
 }
 
 function replayOne(tabId, url) {
-    runSynchronouslyB(`replay#${tabId}`, (tabId, url) => {
-        popInLimbo(true, {tabId});
-        runSynchronouslyWhenArchived(tabId, "replay",
-                                     // force return undefined
-                                     (tabId, url) => navigateTabTo(tabId, url).then(noop), tabId, url);
-    }, tabId, url);
+    runSynchronouslyB(
+        `replay#${tabId}`,
+        (tabId, url) => {
+            popInLimbo(true, { tabId });
+            runSynchronouslyWhenArchived(
+                tabId,
+                "replay",
+                // force return undefined
+                (tabId, url) => navigateTabTo(tabId, url).then(noop),
+                tabId,
+                url,
+            );
+        },
+        tabId,
+        url,
+    );
     // return undefined;
 }
 
 async function replay(query, direction) {
-    if (!checkReplay())
+    if (!checkReplay()) {
         return;
+    }
 
     let [tabs, specific] = await getTabs(query);
     let updatedTabId;
@@ -190,24 +239,28 @@ async function replay(query, direction) {
         let tabcfg = getTabConfig(tabId);
         let url = getTabURL(tab);
 
-        if (
-            !specific && !tabcfg.replayable ||
-            isBoringOrServerURL(url)
-        ) {
-            if (config.debugRuntime)
+        if ((!specific && !tabcfg.replayable) || isBoringOrServerURL(url)) {
+            if (config.debugRuntime) {
                 console.log("MAIN: NOT replaying tabId", tabId, "url", url);
+            }
             continue;
         }
 
         let replayURL = latestReplayOf(url);
 
-        if (config.debugRuntime)
+        if (config.debugRuntime) {
             console.log("MAIN: replaying tabId", tabId, "url", url, "->", replayURL);
+        }
 
         await runWhenTabSettles(
-            "replay", `replay tab #${tabId} (${url.substr(0, 80)})`,
-            tabId, tabcfg, 0,
-            replayOne, tabId, replayURL
+            "replay",
+            `replay tab #${tabId} (${url.substr(0, 80)})`,
+            tabId,
+            tabcfg,
+            0,
+            replayOne,
+            tabId,
+            replayURL,
         );
 
         updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
@@ -217,19 +270,22 @@ async function replay(query, direction) {
 }
 
 function spawnReplay(url, direction, newWindow, tab) {
-    if (!checkReplay())
+    if (!checkReplay()) {
         return;
+    }
 
     let newURL = url;
 
     if (isBoringOrServerURL(url)) {
-        if (config.debugRuntime)
+        if (config.debugRuntime) {
             console.log("MAIN: spawn-cloning from tabId", tab.id, "url", url);
+        }
     } else {
         newURL = latestReplayOf(url);
 
-        if (config.debugRuntime)
+        if (config.debugRuntime) {
             console.log("MAIN: spawn-replaying from tabId", tab.id, "url", url, "->", newURL);
+        }
     }
 
     spawnChildTab(newURL, newWindow, tab);
@@ -247,15 +303,17 @@ let updateAvailable = false;
 
 function handleUpdateAvailable(details) {
     updateAvailable = true;
-    if (config.autoReloadOnUpdates)
+    if (config.autoReloadOnUpdates) {
         shortcutCommands.reloadSelf();
-    else
+    } else {
         scheduleUpdateDisplay(true);
+    }
 }
 
 async function handleBeforeNavigate(e) {
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("BROWSER: tab navigation", e.tabId, e.url);
+    }
 }
 
 function chromiumResetRootTab(tabId, tabcfg) {
@@ -263,15 +321,19 @@ function chromiumResetRootTab(tabId, tabcfg) {
     //
     // NB: `priority` argument here overrides `attachDebuggerAndReloadTab` what
     // `handleBeforeRequest` does. Thus, this action wins.
-    if (tabcfg.collecting && config.workaroundChromiumResetRootTab)
-        resetAttachDebuggerAndNavigateTab(tabId, config.workaroundChromiumResetRootTabURL, 0).catch(logError);
+    if (tabcfg.collecting && config.workaroundChromiumResetRootTab) {
+        resetAttachDebuggerAndNavigateTab(tabId, config.workaroundChromiumResetRootTabURL, 0).catch(
+            logError,
+        );
+    }
 }
 
 function handleTabCreated(tab) {
     let tabId = tab.id;
 
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("BROWSER: tab added", tabId, tab.openerTabId);
+    }
 
     if (useDebugger && tab.pendingUrl === "chrome://newtab/") {
         // work around Chrome's "New Tab" action creating a child tab by
@@ -279,46 +341,53 @@ function handleTabCreated(tab) {
         let tabcfg = processNewTab(tabId, tab.windowId, undefined);
         // reset its URL, maybe
         chromiumResetRootTab(tabId, tabcfg);
-    } else
+    } else {
         processNewTab(tabId, tab.windowId, tab.openerTabId);
+    }
 }
 
 function handleTabRemoved(tabId) {
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("BROWSER: tab removed", tabId);
+    }
     processRemoveTab(tabId);
 }
 
 function handleTabReplaced(addedTabId, removedTabId) {
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("BROWSER: tab replaced", removedTabId, addedTabId);
+    }
     processReplaceTab(addedTabId, removedTabId);
 }
 
 function handleTabActivated(tab) {
     let tabId = tab.tabId;
 
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("BROWSER: tab activated", tabId);
+    }
 
-    if (useDebugger)
+    if (useDebugger) {
         // Chromium does not provide `browser.menus.onShown` event
         updateMenu(getTabConfig(tabId));
+    }
 
     // Update immediately.
     forceUpdateDisplay(false, tabId, true);
 }
 
 function handleTabUpdated(tabId, changeInfo, tab) {
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("BROWSER: tab updated", tabId, tab.windowId, getTabURL(tab));
+    }
 
     // On Firefox, there's no `tab.pendingUrl`, so we skip updates until `tab.url` is set.
     //
     // Otherwise, `updateDisplay` might get confused about which icon to show for our internal pages
     // narrowed to a tracked tab.
-    if (!useDebugger && tab.url === undefined)
+    if (!useDebugger && tab.url === undefined) {
         return;
+    }
 
     // `handleTabUpdated` usually gets called by the browser repeatedly many times in succession, so
     // we `scheduleUpdateDisplay` here instead.
@@ -368,8 +437,9 @@ let rpcCommands = {
 
     getInFlight,
     stopInFlight: (rrfilter, reason) => {
-        if (reason === undefined)
+        if (reason === undefined) {
             reason = "capture::EMIT_FORCED::BY_USER";
+        }
         let updatedTabId = stopInFlight(rrfilter, reason);
         scheduleEndgame(updatedTabId);
     },
@@ -388,7 +458,8 @@ let rpcCommands = {
     getQueued,
 
     getUnarchived,
-    retryUnarchived: (unrecoverable, rrfilter) => runThenScheduleEndgame(syncRetryUnarchived, unrecoverable, rrfilter),
+    retryUnarchived: (unrecoverable, rrfilter) =>
+        runThenScheduleEndgame(syncRetryUnarchived, unrecoverable, rrfilter),
 
     getBuggedOut,
     archiveBuggedOut: (rrfilter) => runThenScheduleEndgame(syncArchiveBuggedOut, rrfilter),
@@ -425,14 +496,16 @@ let shortcutCommands = {
         syncRetryAllUnstashed();
         scheduleEndgame(null);
     },
-    rearchiveAdjunctSaved: () => runThenScheduleEndgame(syncRearchiveSaved, null, false, false, false),
+    rearchiveAdjunctSaved: () =>
+        runThenScheduleEndgame(syncRearchiveSaved, null, false, false, false),
 
     snapshotEvery: () => rpcCommands.snapshot(null),
     replayEvery: () => rpcCommands.replay(null, null),
 
     forgetEveryLog: () => runThenScheduleEndgame(syncForgetLog, {}),
     showEveryState: (tabId, activeTabId) => showState(null, null, null, "top", activeTabId),
-    showEveryLog: (tabId, activeTabId) => showState(null, null, null, "tail", activeTabId, true, scrollEndIntoView),
+    showEveryLog: (tabId, activeTabId) =>
+        showState(null, null, null, "tail", activeTabId, true, scrollEndIntoView),
 
     stopEveryInFlight: () => rpcCommands.stopInFlight(null),
     unmarkEveryProblematic: () => runThenScheduleEndgame(syncUnmarkProblematic, {}),
@@ -440,12 +513,23 @@ let shortcutCommands = {
     discardEveryInLimbo: () => runThenScheduleEndgame(syncPopInLimbo, false, {}),
 
     // per-Window
-    snapshotWindow: (tabId) => rpcCommands.snapshot({windowId: getWindowId(tabId)}),
-    replayWindow: (tabId) => rpcCommands.replay({windowId: getWindowId(tabId)}, false),
+    snapshotWindow: (tabId) => rpcCommands.snapshot({ windowId: getWindowId(tabId) }),
+    replayWindow: (tabId) => rpcCommands.replay({ windowId: getWindowId(tabId) }, false),
 
-    forgetWindowLog: (tabId) => runThenScheduleEndgame(syncForgetLog, {windowId: getWindowId(tabId)}),
-    showWindowState: (tabId, activeTabId) => showState(sessionId, getWindowId(tabId), null, "top", activeTabId),
-    showWindowLog: (tabId, activeTabId) => showState(sessionId, getWindowId(tabId), null, "tail", activeTabId, true, scrollEndIntoView),
+    forgetWindowLog: (tabId) =>
+        runThenScheduleEndgame(syncForgetLog, { windowId: getWindowId(tabId) }),
+    showWindowState: (tabId, activeTabId) =>
+        showState(sessionId, getWindowId(tabId), null, "top", activeTabId),
+    showWindowLog: (tabId, activeTabId) =>
+        showState(
+            sessionId,
+            getWindowId(tabId),
+            null,
+            "tail",
+            activeTabId,
+            true,
+            scrollEndIntoView,
+        ),
 
     // NB: wrapping these because they return `Promise`s
     smartSwitchTabsBackward: () => {
@@ -467,10 +551,13 @@ let shortcutCommands = {
         smartSwitchTabs(true, false, false);
     },
 
-    stopWindowInFlight: (tabId) => rpcCommands.stopInFlight({windowId: getWindowId(tabId)}),
-    unmarkWindowProblematic: (tabId) => runThenScheduleEndgame(syncUnmarkProblematic, {windowId: getWindowId(tabId)}),
-    collectWindowInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, true, {windowId: getWindowId(tabId)}),
-    discardWindowInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, false, {windowId: getWindowId(tabId)}),
+    stopWindowInFlight: (tabId) => rpcCommands.stopInFlight({ windowId: getWindowId(tabId) }),
+    unmarkWindowProblematic: (tabId) =>
+        runThenScheduleEndgame(syncUnmarkProblematic, { windowId: getWindowId(tabId) }),
+    collectWindowInLimbo: (tabId) =>
+        runThenScheduleEndgame(syncPopInLimbo, true, { windowId: getWindowId(tabId) }),
+    discardWindowInLimbo: (tabId) =>
+        runThenScheduleEndgame(syncPopInLimbo, false, { windowId: getWindowId(tabId) }),
 
     // per-Tab
     snapshotTab: rpcCommands.snapshot,
@@ -478,32 +565,39 @@ let shortcutCommands = {
     replayTabForward: (tabId) => rpcCommands.replay(tabId, true),
     spawnReplayTabBackward: (tabId) => rpcCommands.spawnReplay(tabId, false),
 
-    forgetTabLog: (tabId) => runThenScheduleEndgame(syncForgetLog, {tabId}),
+    forgetTabLog: (tabId) => runThenScheduleEndgame(syncForgetLog, { tabId }),
     showTabState: (tabId, activeTabId) => showState(sessionId, null, tabId, "top", activeTabId),
-    showTabLog: (tabId, activeTabId) => showState(sessionId, null, tabId, "tail", activeTabId, true, scrollEndIntoView),
+    showTabLog: (tabId, activeTabId) =>
+        showState(sessionId, null, tabId, "tail", activeTabId, true, scrollEndIntoView),
 
-    stopTabInFlight: (tabId) => rpcCommands.stopInFlight({tabId}),
-    unmarkTabProblematic: (tabId) => runThenScheduleEndgame(syncUnmarkProblematic, {tabId}),
-    collectTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, true, {tabId}),
-    discardTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, false, {tabId}),
-    closeTabThenDiscardInLimbo: (tabId) => runThenScheduleEndgame(closeTabThenDiscardInLimbo, tabId),
+    stopTabInFlight: (tabId) => rpcCommands.stopInFlight({ tabId }),
+    unmarkTabProblematic: (tabId) => runThenScheduleEndgame(syncUnmarkProblematic, { tabId }),
+    collectTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, true, { tabId }),
+    discardTabInLimbo: (tabId) => runThenScheduleEndgame(syncPopInLimbo, false, { tabId }),
+    closeTabThenDiscardInLimbo: (tabId) =>
+        runThenScheduleEndgame(closeTabThenDiscardInLimbo, tabId),
 };
 
 function initShortcutCommands() {
     let commands = manifest.commands;
     for (let command of Object.keys(commands)) {
-        if (command.startsWith("_") || shortcutCommands[command] !== undefined)
+        if (command.startsWith("_") || shortcutCommands[command] !== undefined) {
             continue;
+        }
         if (command.startsWith("toggleTabConfig")) {
-            let [field, children] = mapShortcutName((field, children) => [field, children], command);
+            let [field, children] = mapShortcutName(
+                (field, children) => [field, children],
+                command,
+            );
 
             shortcutCommands[command] = (tabId) => {
                 let oldTabcfg = getTabConfig(tabId);
                 let tabcfg = assignRec({}, oldTabcfg);
 
                 let cfg = children ? tabcfg.children : tabcfg;
-                if (cfg[field] === undefined)
+                if (cfg[field] === undefined) {
                     throw Error(`toggleTabConfig*: no such field: ${field}`);
+                }
                 cfg[field] = !cfg[field];
 
                 setTabConfig(tabId, undefined, tabcfg, oldTabcfg);
@@ -515,18 +609,27 @@ function initShortcutCommands() {
 }
 
 async function handleShortcut(request) {
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("BROWSER: SHORTCUT: request", request);
+    }
 
     let tab = await getActiveTab();
-    if (tab === null)
+    if (tab === null) {
         return;
+    }
     let activeTabId = tab.id;
 
     // The map is set this way so that show-state -> show-tab-state would open
     // the state narrowed to background tasks. This is not very intuitive but
     // rather useful.
-    let tabId = getMapURLParam(statePageURL, "tab", getTabURL(tab), toNumber, TAB_ID_NONE, activeTabId);
+    let tabId = getMapURLParam(
+        statePageURL,
+        "tab",
+        getTabURL(tab),
+        toNumber,
+        TAB_ID_NONE,
+        activeTabId,
+    );
 
     let action = shortcutCommands[request];
     if (action !== undefined) {
@@ -552,8 +655,9 @@ function evalRPCRequest(request) {
     if (rpcFunc !== undefined) {
         request.shift();
         let res = rpcFunc(...request);
-        if (res !== undefined)
+        if (res !== undefined) {
             return res;
+        }
         return null;
     }
 
@@ -566,69 +670,83 @@ function handleInternalMessage(request, sender, sendResponse) {
 }
 
 function handleNotificationClicked(notificationId) {
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("BROWSER: NOTIFICATION: clicked", notificationId);
+    }
 
     switch (notificationId) {
-    case "info-updated":
-        rpcCommands.setConfig({ seenChangelog: true });
-        showChangelog("");
-        return;
-    default:
-        if (notificationId.startsWith("error-"))
-            showHelp("error-notifications");
+        case "info-updated":
+            rpcCommands.setConfig({ seenChangelog: true });
+            showChangelog("");
+            return;
+        default:
+            if (notificationId.startsWith("error-")) {
+                showHelp("error-notifications");
+            }
     }
 }
 
 let menuTitleTab = {
     true: "Open Link in New Tracked Tab",
     false: "Open Link in New Untracked Tab",
-}
+};
 let menuTitleWindow = {
     true: "Open Link in New Tracked Window",
     false: "Open Link in New Untracked Window",
-}
+};
 let menuIcons = {
     true: mkIcons("idle"),
     false: mkIcons("off"),
-}
+};
 let menuOldState = true;
 
 function updateMenu(tabcfg) {
-    if (browser.menus === undefined)
+    if (browser.menus === undefined) {
         return;
+    }
 
     let newState = !tabcfg.children.collecting;
 
-    if (menuOldState === newState) return;
+    if (menuOldState === newState) {
+        return;
+    }
     menuOldState = newState;
 
     if (useDebugger) {
         browser.menus.update("open-not-tab", { title: menuTitleTab[newState] });
         browser.menus.update("open-not-window", { title: menuTitleWindow[newState] });
     } else {
-        browser.menus.update("open-not-tab", { title: menuTitleTab[newState], icons: menuIcons[newState] });
-        browser.menus.update("open-not-window", { title: menuTitleWindow[newState], icons: menuIcons[newState] });
+        browser.menus.update("open-not-tab", {
+            title: menuTitleTab[newState],
+            icons: menuIcons[newState],
+        });
+        browser.menus.update("open-not-window", {
+            title: menuTitleWindow[newState],
+            icons: menuIcons[newState],
+        });
     }
 }
 
 function handleMenuAction(info, tab) {
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("BROWSER: MENU: request", info, "in tab", tab);
+    }
 
     let cmd = info.menuItemId;
     let newWindow = cmd.endsWith("-window");
     let url = info.linkUrl;
 
-    if (cmd.startsWith("replay-"))
+    if (cmd.startsWith("replay-")) {
         spawnReplay(url, false, newWindow, tab);
-    else
+    } else {
         spawnNegated(url, newWindow, tab);
+    }
 }
 
 function initMenus() {
-    if (browser.menus === undefined)
+    if (browser.menus === undefined) {
         return;
+    }
 
     browser.menus.create({
         id: "replay-tab",
@@ -661,11 +779,15 @@ function initMenus() {
         browser.menus.update("open-not-window", { icons: menuIcons[true] });
 
         // Firefox provides `browser.menus.onShown` event, so `updateMenu` can be called on-demand
-        browser.menus.onShown.addListener(catchAll((info, tab) => {
-            if (tab === undefined) return;
-            updateMenu(getTabConfig(tab.id));
-            browser.menus.refresh();
-        }));
+        browser.menus.onShown.addListener(
+            catchAll((info, tab) => {
+                if (tab === undefined) {
+                    return;
+                }
+                updateMenu(getTabConfig(tab.id));
+                browser.menus.refresh();
+            }),
+        );
     }
 
     browser.menus.onClicked.addListener(catchAll(handleMenuAction));
@@ -679,11 +801,19 @@ async function main() {
 
     // Load old config and state.
 
-    let localData = await browser.storage.local.get([
-        "config", "state", "session",
-        // obsolete names for `state`
-        "globals", "persistentStats", "globalStats"
-    ]).catch(() => { return {}; });
+    let localData = await browser.storage.local
+        .get([
+            "config",
+            "state",
+            "session",
+            // obsolete names for `state`
+            "globals",
+            "persistentStats",
+            "globalStats",
+        ])
+        .catch(() => {
+            return {};
+        });
 
     let oldConfig = localData.config;
     if (oldConfig !== undefined) {
@@ -700,7 +830,12 @@ async function main() {
         // NB: see also `fixConfig` bit below
     }
 
-    let oldState = getFirstDefined(localData.state, localData.globals, localData.persistentStats, localData.globalStats);
+    let oldState = getFirstDefined(
+        localData.state,
+        localData.globals,
+        localData.persistentStats,
+        localData.globalStats,
+    );
     if (oldState !== undefined) {
         console.log(`MAIN: Loading state of version ${oldState.version}`);
 
@@ -719,19 +854,24 @@ async function main() {
     config.lastSeenVersion = manifest.version;
 
     if (lastSeenVersion != manifest.version) {
-        if(config.seenChangelog) {
+        if (config.seenChangelog) {
             // reset `config.seenChangelog` when major version changes
             let vOld = lastSeenVersion.split(".");
             let vNew = manifest.version.split(".").slice(0, 2);
             config.seenChangelog = equalRec(vOld, vNew);
         }
 
-        browser.notifications.create("info-updated", {
-            title: "Hoardy-Web: INFO",
-            message: escapeNotification(config, `\`Hoardy-Web\` updated \`${lastSeenVersion}\` -> \`${manifest.version}\``),
-            iconUrl: iconURL("main", 128),
-            type: "basic",
-        }).catch(logError);
+        browser.notifications
+            .create("info-updated", {
+                title: "Hoardy-Web: INFO",
+                message: escapeNotification(
+                    config,
+                    `\`Hoardy-Web\` updated \`${lastSeenVersion}\` -> \`${manifest.version}\``,
+                ),
+                iconUrl: iconURL("main", 128),
+                type: "basic",
+            })
+            .catch(logError);
     }
 
     // for debugging
@@ -754,12 +894,17 @@ async function main() {
     }
 
     if (reqresIDB === undefined && (state.stashedIDB.number > 0 || state.savedIDB.number > 0)) {
-        browser.notifications.create("error-noIndexedDB", {
-            title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `Failed to open Hoardy-Web's database using \`IndexedDB\` API, but it appears that \`IndexedDB\` was previously used for stashing and/or archiving reqres.\n\n\`IndexedDB\` API appears to be unusable at the moment, so all data persistence operations will now be done via \`storage.local\` API instead. This means that old reqres are now (temporarily) unavailable.\n\nSee the "Help" page for more info and instructions on how to fix this.`),
-            iconUrl: iconURL("error", 128),
-            type: "basic",
-        }).catch(logError);
+        browser.notifications
+            .create("error-noIndexedDB", {
+                title: "Hoardy-Web: ERROR",
+                message: escapeNotification(
+                    config,
+                    `Failed to open Hoardy-Web's database using \`IndexedDB\` API, but it appears that \`IndexedDB\` was previously used for stashing and/or archiving reqres.\n\n\`IndexedDB\` API appears to be unusable at the moment, so all data persistence operations will now be done via \`storage.local\` API instead. This means that old reqres are now (temporarily) unavailable.\n\nSee the "Help" page for more info and instructions on how to fix this.`,
+                ),
+                iconUrl: iconURL("error", 128),
+                type: "basic",
+            })
+            .catch(logError);
     }
 
     // Init `config` and `serverConfig`.
@@ -793,13 +938,18 @@ async function main() {
     // add per-tab/per-source state to per-window state
     function addToWindowState(windowId, state) {
         let winstate = getWindowState(windowId);
-        for (let k of Object.keys(windowStateDefaults))
+        for (let k of Object.keys(windowStateDefaults)) {
             winstate[k] += state[k];
+        }
     }
 
     if (sessionBg !== undefined) {
         // NB: (reDynamicState)
-        let bgstate = updateFromRec(assignRec({}, tabStateDefaults), sessionBg, dynamicStateDefaults);
+        let bgstate = updateFromRec(
+            assignRec({}, tabStateDefaults),
+            sessionBg,
+            dynamicStateDefaults,
+        );
         tabState.set(-1, bgstate);
         addToWindowState(WINDOW_ID_NONE, bgstate);
     }
@@ -829,13 +979,15 @@ async function main() {
 
             addToWindowState(windowId, tabstate);
 
-            if (windowId === WINDOW_ID_NONE || doneWindows.has(windowId))
+            if (windowId === WINDOW_ID_NONE || doneWindows.has(windowId)) {
                 continue;
+            }
 
             // NB: referring back by `tabstate.windowId`, but writing to `windowId`
             let oldWindow = sessionWindows[tabstate.windowId];
-            if (oldWindow === undefined)
+            if (oldWindow === undefined) {
                 continue;
+            }
 
             let wincfg = updateFromRec(assignRec({}, config.root), oldWindow.cfg);
             windowConfig.set(windowId, wincfg);
@@ -849,8 +1001,9 @@ async function main() {
         tabState.set(tabId, tabstate);
 
         // on Chromium, reset their URLs, maybe
-        if (useDebugger && tabUrl === "chrome://newtab/")
+        if (useDebugger && tabUrl === "chrome://newtab/") {
             chromiumResetRootTab(tabId, tabcfg);
+        }
     }
 
     // Reset their windowId's to match our current state and populate reqresProblematic.
@@ -871,11 +1024,12 @@ async function main() {
     // Init capture.
 
     let filterAllN = { url: [{}] };
-    browser.webNavigation.onBeforeNavigate.addListener(catchAll(handleBeforeNavigate), filterAllN)
+    browser.webNavigation.onBeforeNavigate.addListener(catchAll(handleBeforeNavigate), filterAllN);
 
     initCapture();
-    if (useDebugger)
+    if (useDebugger) {
         await initDebugCapture(tabs);
+    }
 
     // Init RPC.
 
@@ -885,8 +1039,9 @@ async function main() {
 
     initMenus();
     browser.notifications.onClicked.addListener(catchAll(handleNotificationClicked));
-    if (browser.commands !== undefined)
+    if (browser.commands !== undefined) {
         browser.commands.onCommand.addListener(catchAll(handleShortcut));
+    }
 
     browser.tabs.onCreated.addListener(catchAll(handleTabCreated));
     browser.tabs.onRemoved.addListener(catchAll(handleTabRemoved));
@@ -919,33 +1074,45 @@ async function main() {
 
     if (config.autoPopInLimboDiscard || config.discardAll) {
         let what = [];
-        if (config.autoPopInLimboDiscard)
+        if (config.autoPopInLimboDiscard) {
             what.push(`"Auto-discard reqres in limbo"`);
-        if (config.discardAll)
+        }
+        if (config.discardAll) {
             what.push(`"Discard all reqres just before archival"`);
-        browser.notifications.create("reminder-autoDiscard", {
-            title: "Hoardy-Web: REMINDER",
-            message: escapeNotification(config, `Some auto-discarding options are enabled: ${what.join(", ")}.`),
-            iconUrl: iconURL("limbo", 128),
-            type: "basic",
-        }).catch(logError);
+        }
+        browser.notifications
+            .create("reminder-autoDiscard", {
+                title: "Hoardy-Web: REMINDER",
+                message: escapeNotification(
+                    config,
+                    `Some auto-discarding options are enabled: ${what.join(", ")}.`,
+                ),
+                iconUrl: iconURL("limbo", 128),
+                type: "basic",
+            })
+            .catch(logError);
     }
 
-    if (!config.debugRuntime)
+    if (!config.debugRuntime) {
         return;
+    }
 
     // Run tests all the tests and report any errors.
 
     let errors = await runTests();
-    let issues = Object.entries(errors).map((e) => `- ${e[0]}: ${e[1]}`).join("\n");
+    let issues = Object.entries(errors)
+        .map((e) => `- ${e[0]}: ${e[1]}`)
+        .join("\n");
 
     if (issues.length > 0) {
-        browser.notifications.create("tests", {
-            title: "Hoardy-Web: UNIT TESTS FAILED",
-            message: escapeNotification(config, issues),
-            iconUrl: iconURL("error", 128),
-            type: "basic",
-        }).catch(logError);
+        browser.notifications
+            .create("tests", {
+                title: "Hoardy-Web: UNIT TESTS FAILED",
+                message: escapeNotification(config, issues),
+                iconUrl: iconURL("error", 128),
+                type: "basic",
+            })
+            .catch(logError);
     }
 }
 

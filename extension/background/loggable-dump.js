@@ -30,8 +30,9 @@ let reqresProblematic = [];
 let reqresUnproblematic = [];
 
 function applyToReqresProblematic1(func, a) {
-    for (let v of reqresProblematic)
+    for (let v of reqresProblematic) {
         func(v[0], a);
+    }
 }
 
 function getProblematic() {
@@ -48,12 +49,15 @@ let reqresQueue = [];
 let reqresQueueSize = 0;
 
 function applyToReqresNotInFlight3(func, a, b, c) {
-    for (let v of reqresLimbo)
+    for (let v of reqresLimbo) {
         func(v[0], a);
-    for (let v of reqresLog)
+    }
+    for (let v of reqresLog) {
         func(v, b);
-    for (let v of reqresQueue)
+    }
+    for (let v of reqresQueue) {
         func(v[0], c);
+    }
 }
 
 // Logging
@@ -71,20 +75,26 @@ function getQueued() {
 function partitionArchivables(rrfilter, iterable) {
     let [rrfilter_, rrpredicate] = compileReqresFilter(rrfilter);
     rrfilter = rrfilter_;
-    let [popped, unpopped] = partitionN((archivable) => rrpredicate(archivable[0]), rrfilter.limit, iterable);
+    let [popped, unpopped] = partitionN(
+        (archivable) => rrpredicate(archivable[0]),
+        rrfilter.limit,
+        iterable,
+    );
     return [rrfilter.tabId, popped, unpopped];
 }
 
 function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
-    if (reqresProblematic.length == 0)
+    if (reqresProblematic.length == 0) {
         return [undefined, 0];
+    }
 
     // the following is written as two loops to make it mostly atomic w.r.t. reqresProblematic
 
     let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresProblematic);
 
-    if (popped.length === 0)
+    if (popped.length === 0) {
         return [undefined, 0];
+    }
 
     let newlyRestashed = [];
 
@@ -97,9 +107,10 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
             tabstate.problematicTotal -= 1;
             tabstate.problematicSize -= loggable.dumpSize;
 
-            if (loggable.inLS !== undefined)
+            if (loggable.inLS !== undefined) {
                 // it was stashed before, re-stash it
                 newlyRestashed.push(archivable);
+            }
         } catch (err) {
             logHandledError(err);
             markAsBuggedOut(err, archivable);
@@ -107,54 +118,66 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
     }
 
     reqresProblematic = unpopped;
-    if (newlyUnproblematic !== undefined)
+    if (newlyUnproblematic !== undefined) {
         newlyUnproblematic.push(...popped);
+    }
 
-    if (dontBroadcast)
+    if (dontBroadcast) {
         return [tabId, popped.length];
+    }
 
     // since archivables in `reqresProblematic` can also be in any of these
     broadcastToState(tabId, "resetProblematic", getProblematic);
     broadcastToState(tabId, "resetInLimbo", getInLimbo);
     broadcastToState(tabId, "resetLog", reqresLog);
 
-    if (newlyRestashed.length > 0)
+    if (newlyRestashed.length > 0) {
         runSynchronouslyB("stash", stashMany, newlyRestashed);
+    }
 
     return [tabId, popped.length];
 }
 
 function syncUnmarkProblematic(...args) {
-    if (reqresProblematic.length === 0)
+    if (reqresProblematic.length === 0) {
         return;
+    }
 
     runSynchronouslyB("unmarkProblematic", (...args) => unmarkProblematic(...args)[0], ...args);
 }
 
 function unmarkProblematicSimilarTo(loggable, allowInLimbo, newlyUnproblematic, dontBroadcast) {
     // TODO: more methods
-    if (!config.autoUnmarkProblematicSimilar || loggable.method !== "GET")
+    if (!config.autoUnmarkProblematicSimilar || loggable.method !== "GET") {
         return [undefined, 0];
+    }
 
-    return unmarkProblematic({
-        sessionId: loggable.sessionId,
-        tabId: config.autoUnmarkProblematicSimilarAcrossTabs ? null : loggable.tabId,
-        method: loggable.method,
-        url: loggable.url,
-        // if the `loggable` is not `picked` it should only evict other non-`picked` reqres
-        picked: loggable.picked ? null : false,
-        in_limbo: allowInLimbo ?
-            // if the `loggable` is `in_limbo`, then it should only evict other `in_limbo` reqres
-            // since this `loggable` can still be discarded later, but setting
-            // `config.autoUnmarkProblematicSimilarAcrossLimbo` will ignore this rule
-            (loggable.in_limbo && !config.autoUnmarkProblematicSimilarAcrossLimbo ? true : null) :
-            false,
-    }, newlyUnproblematic, dontBroadcast);
+    return unmarkProblematic(
+        {
+            sessionId: loggable.sessionId,
+            tabId: config.autoUnmarkProblematicSimilarAcrossTabs ? null : loggable.tabId,
+            method: loggable.method,
+            url: loggable.url,
+            // if the `loggable` is not `picked` it should only evict other non-`picked` reqres
+            picked: loggable.picked ? null : false,
+            in_limbo: allowInLimbo
+                ? // if the `loggable` is `in_limbo`, then it should only evict other `in_limbo` reqres
+                  // since this `loggable` can still be discarded later, but setting
+                  // `config.autoUnmarkProblematicSimilarAcrossLimbo` will ignore this rule
+                  loggable.in_limbo && !config.autoUnmarkProblematicSimilarAcrossLimbo
+                    ? true
+                    : null
+                : false,
+        },
+        newlyUnproblematic,
+        dontBroadcast,
+    );
 }
 
 function rotateProblematic(rrfilter) {
-    if (reqresProblematic.length == 0)
+    if (reqresProblematic.length == 0) {
         return;
+    }
 
     let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresProblematic);
 
@@ -168,20 +191,23 @@ function rotateProblematic(rrfilter) {
 }
 
 function syncRotateProblematic(...args) {
-    if (reqresProblematic.length === 0)
+    if (reqresProblematic.length === 0) {
         return;
+    }
 
     runSynchronouslyB("rotateProblematic", rotateProblematic, ...args);
 }
 
 function popInLimbo(collect, rrfilter) {
-    if (reqresLimbo.length == 0)
+    if (reqresLimbo.length == 0) {
         return [undefined, 0];
+    }
 
     let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresLimbo);
 
-    if (popped.length === 0)
+    if (popped.length === 0) {
         return [undefined, 0];
+    }
 
     // this is written as a separate loop to make it mostly atomic w.r.t. reqresLimbo
 
@@ -211,7 +237,15 @@ function popInLimbo(collect, rrfilter) {
                 tabstate.inLimboSize -= dumpSize;
             }
 
-            processNonLimbo(archivable, collect, tabstate, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+            processNonLimbo(
+                archivable,
+                collect,
+                tabstate,
+                newlyQueued,
+                newlyLogged,
+                newlyStashed,
+                newlyUnstashed,
+            );
         } catch (err) {
             logHandledError(err);
             markAsBuggedOut(err, archivable);
@@ -227,34 +261,41 @@ function popInLimbo(collect, rrfilter) {
         // TODO mergeUpdatedTabIds?
         broadcastToState(null, "resetProblematic", getProblematic);
         reqresUnproblematic.push(...newlyUnproblematic);
-    } else if (someProblematic)
+    } else if (someProblematic) {
         // since reqres statuses have changed
         broadcastToState(tabId, "resetProblematic", getProblematic);
+    }
     // since (popped.length > 0)
     broadcastToState(tabId, "resetInLimbo", getInLimbo);
-    if (newlyQueued.length > 0)
+    if (newlyQueued.length > 0) {
         broadcastToState(tabId, "appendQueued", newlyQueued);
-    if (newlyLogged.length > 0)
+    }
+    if (newlyLogged.length > 0) {
         broadcastToState(tabId, "appendLog", newlyLogged);
+    }
 
-    if (newlyStashed.length > 0)
+    if (newlyStashed.length > 0) {
         runSynchronouslyB("stash", stashMany, newlyStashed);
-    if (newlyUnstashed.length > 0)
+    }
+    if (newlyUnstashed.length > 0) {
         runSynchronouslyB("unstash", deleteMany, newlyUnstashed);
+    }
 
     return [tabId, popped.length];
 }
 
 function syncPopInLimbo(...args) {
-    if (reqresLimbo.length === 0)
+    if (reqresLimbo.length === 0) {
         return;
+    }
 
     runSynchronouslyB("popInLimbo", (...args) => popInLimbo(...args)[0], ...args);
 }
 
 function rotateInLimbo(rrfilter) {
-    if (reqresLimbo.length == 0)
+    if (reqresLimbo.length == 0) {
         return;
+    }
 
     let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresLimbo);
 
@@ -268,28 +309,36 @@ function rotateInLimbo(rrfilter) {
 }
 
 function syncRotateInLimbo(...args) {
-    if (reqresLimbo.length === 0)
+    if (reqresLimbo.length === 0) {
         return;
+    }
 
     runSynchronouslyB("rotateInLimbo", rotateInLimbo, ...args);
 }
 
 function truncateLog() {
-    while (reqresLog.length > config.history)
+    while (reqresLog.length > config.history) {
         reqresLog.shift();
+    }
 }
 
 function forgetLog(rrfilter) {
-    if (reqresLog.length == 0)
+    if (reqresLog.length == 0) {
         return;
+    }
 
     let [rrfilter_, rrpredicate] = compileReqresFilter(rrfilter);
     rrfilter = rrfilter_;
     let tabId = rrfilter.tabId;
-    let [popped, unpopped] = partitionN((loggable) => !loggable.problematic && rrpredicate(loggable), rrfilter.limit, reqresLog);
+    let [popped, unpopped] = partitionN(
+        (loggable) => !loggable.problematic && rrpredicate(loggable),
+        rrfilter.limit,
+        reqresLog,
+    );
 
-    if (popped.length === 0)
+    if (popped.length === 0) {
         return;
+    }
 
     reqresLog = unpopped;
 
@@ -299,8 +348,9 @@ function forgetLog(rrfilter) {
 }
 
 function syncForgetLog(...args) {
-    if (reqresLog.length == 0)
+    if (reqresLog.length == 0) {
         return;
+    }
 
     runSynchronouslyB("forgetLog", forgetLog, ...args);
 }
@@ -309,10 +359,11 @@ function syncForgetLog(...args) {
 
 function addLoggableFields(loggable) {
     // status in `hoardy-web`
-    loggable.status = (loggable.requestComplete ? "C" : "I") +
+    loggable.status =
+        (loggable.requestComplete ? "C" : "I") +
         (loggable.responded
-         ? loggable.statusCode.toString() + (loggable.responseComplete ? "C" : "I")
-         : "N");
+            ? loggable.statusCode.toString() + (loggable.responseComplete ? "C" : "I")
+            : "N");
 }
 
 function makeLoggable(reqres) {
@@ -322,8 +373,9 @@ function makeLoggable(reqres) {
 }
 
 function updateLoggable(loggable) {
-    if (loggable.sessionId !== sessionId)
+    if (loggable.sessionId !== sessionId) {
         return;
+    }
 
     let windowId = getWindowId(loggable.tabId);
     if (loggable.windowId !== windowId) {
@@ -342,21 +394,27 @@ function deserializeLoggable(loggable) {
     // fixup various things
     function rename(from, to) {
         let old = loggable[from];
-        if (old === undefined)
+        if (old === undefined) {
             return;
+        }
         delete loggable[from];
         loggable[to] = old;
     }
 
     rename("sent", "submitted");
     rename("fake", "requestBuggy");
-    if (loggable.requestBuggy)
+    if (loggable.requestBuggy) {
         loggable.requestComplete = loggable.fromCache;
+    }
 
     if (loggable.errors !== undefined) {
         let [popped, unpopped] = partitionN(
-            (err) => err == "webRequest::capture::RESPONSE::BROKEN" || err == "webRequest::pWebArc::RESPONSE::BROKEN",
-            null, loggable.errors);
+            (err) =>
+                err == "webRequest::capture::RESPONSE::BROKEN" ||
+                err == "webRequest::pWebArc::RESPONSE::BROKEN",
+            null,
+            loggable.errors,
+        );
 
         if (popped.length !== 0) {
             loggable.responseBuggy = true;
@@ -382,8 +440,9 @@ function getHeaderString(header) {
 function getHeaderValue(headers, name) {
     name = name.toLowerCase();
     for (let header of headers) {
-        if (header.name.toLowerCase() == name)
+        if (header.name.toLowerCase() == name) {
             return getHeaderString(header);
+        }
     }
     return;
 }
@@ -415,31 +474,39 @@ let sourceDesc = browser.nameVersion + "+Hoardy-Web/" + manifest.version;
 function renderReqres(encoder, reqres) {
     let rest = {};
 
-    if (isValidStr(reqres.documentUrl))
+    if (isValidStr(reqres.documentUrl)) {
         rest.document_url = reqres.documentUrl;
+    }
 
-    if (isValidStr(reqres.originUrl))
+    if (isValidStr(reqres.originUrl)) {
         rest.origin_url = reqres.originUrl;
+    }
 
-    if (reqres.errors.length > 0)
+    if (reqres.errors.length > 0) {
         rest.errors = reqres.errors;
+    }
 
-    if (reqres.fromCache)
+    if (reqres.fromCache) {
         rest.from_cache = true;
+    }
 
-    if (!reqres.submitted)
+    if (!reqres.submitted) {
         rest.submitted = false;
+    }
 
     // buggy metadata capture
-    if (reqres.requestBuggy)
+    if (reqres.requestBuggy) {
         rest.request_buggy = true;
+    }
 
-    if (reqres.responseBuggy)
+    if (reqres.responseBuggy) {
         rest.response_buggy = true;
+    }
 
     // response was genererated by another extension or a service/shared worker
-    if (reqres.generated)
+    if (reqres.generated) {
         rest.generated = true;
+    }
 
     let response = null;
     if (reqres.responded) {
@@ -450,31 +517,42 @@ function renderReqres(encoder, reqres) {
             encodeHeaders(reqres.responseHeaders),
             reqres.responseComplete,
             reqres.responseBody,
-        ]
+        ];
     }
 
-    encoder.encode([
-        "WEBREQRES/1",
-        sourceDesc,
-        reqres.protocol,
+    encoder.encode(
         [
-            Math.floor(reqres.requestTimeStamp),
-            reqres.method,
-            reqres.url,
-            encodeHeaders(reqres.requestHeaders),
-            reqres.requestComplete,
-            reqres.requestBody,
+            "WEBREQRES/1",
+            sourceDesc,
+            reqres.protocol,
+            [
+                Math.floor(reqres.requestTimeStamp),
+                reqres.method,
+                reqres.url,
+                encodeHeaders(reqres.requestHeaders),
+                reqres.requestComplete,
+                reqres.requestBody,
+            ],
+            response,
+            Math.floor(reqres.emitTimeStamp),
+            rest,
         ],
-        response,
-        Math.floor(reqres.emitTimeStamp),
-        rest,
-    ], {
-        allowNull: true,
-        allowUndefined: false,
-    });
+        {
+            allowNull: true,
+            allowUndefined: false,
+        },
+    );
 }
 
-function processNonLimbo(archivable, collect, tabstate, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
+function processNonLimbo(
+    archivable,
+    collect,
+    tabstate,
+    newlyQueued,
+    newlyLogged,
+    newlyStashed,
+    newlyUnstashed,
+) {
     let [loggable, dump] = archivable;
     let dumpSize = loggable.dumpSize;
 
@@ -488,25 +566,39 @@ function processNonLimbo(archivable, collect, tabstate, newlyQueued, newlyLogged
         tabstate.collectedTotal += 1;
         tabstate.collectedSize += dumpSize;
 
-        if (!config.archive && config.stash)
+        if (!config.archive && config.stash) {
             // stuck queue, stash it
             newlyStashed.push(archivable);
+        }
     } else {
         tabstate.discardedTotal += 1;
         tabstate.discardedSize += dumpSize;
 
-        if (loggable.inLS !== undefined)
+        if (loggable.inLS !== undefined) {
             // it was stashed before, unstash it
             newlyUnstashed.push(archivable);
+        }
     }
 
     reqresLog.push(loggable);
     newlyLogged.push(loggable);
 }
 
-async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed) {
+async function processOneAlmostDone(
+    reqres,
+    newlyProblematic,
+    newlyUnproblematic,
+    newlyLimboed,
+    newlyQueued,
+    newlyLogged,
+    newlyStashed,
+    newlyUnstashed,
+) {
     if (!useDebugger && reqres.generated && !reqres.responded) {
-        if (reqres.errors.length === 1 && reqres.errors[0].startsWith("webRequest::NS_ERROR_NET_ON_")) {
+        if (
+            reqres.errors.length === 1 &&
+            reqres.errors[0].startsWith("webRequest::NS_ERROR_NET_ON_")
+        ) {
             // (raceCondition)
             //
             // This happens when the networking code in Firefox gets
@@ -526,13 +618,14 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
             reqres.statusCode = 200;
             reqres.reason = "Assumed OK";
             reqres.responseBuggy = true;
-        } else
+        } else {
             // This was a normal error, not a race between the response
             // generator and the networking code.
             reqres.generated = false;
+        }
     }
 
-    if (!useDebugger && reqres.responseComplete && reqres.errors.some(isIncompleteError))
+    if (!useDebugger && reqres.responseComplete && reqres.errors.some(isIncompleteError)) {
         // Apparently, sometimes Firefox calls `filter.onstop` for aborted
         // requests as if nothing out of the ordinary happened. It is a
         // bug, yes.
@@ -543,6 +636,7 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
         // We are doing that here instead of in `emitRequest` because the
         // `filter` is guaranteed to be finished here.
         reqres.responseComplete = false;
+    }
 
     let lineProtocol;
     let lineReason;
@@ -550,24 +644,27 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
         lineProtocol = reqres.statusLine.split(" ", 1)[0];
         lineReason = "";
         let pos = reqres.statusLine.indexOf(" ", lineProtocol.length + 1);
-        if (pos !== -1)
+        if (pos !== -1) {
             lineReason = reqres.statusLine.substr(pos + 1);
+        }
     }
 
     if (reqres.protocol === undefined) {
-        if (lineProtocol !== undefined && lineProtocol !== "")
+        if (lineProtocol !== undefined && lineProtocol !== "") {
             reqres.protocol = lineProtocol;
-        else if (getHeaderValue(reqres.requestHeaders, ":authority") !== undefined)
+        } else if (getHeaderValue(reqres.requestHeaders, ":authority") !== undefined) {
             reqres.protocol = "HTTP/2.0";
-        else
+        } else {
             reqres.protocol = "HTTP/1.0";
+        }
     }
 
     if (reqres.reason === undefined) {
-        if (lineReason !== undefined)
+        if (lineReason !== undefined) {
             reqres.reason = lineReason;
-        else
+        } else {
             reqres.reason = "";
+        }
     }
 
     let tabId = reqres.tabId;
@@ -605,8 +702,13 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
         state = "incomplete";
         problematic = config.markProblematicIncomplete;
         picked = config.archiveIncompleteResponse;
-    } else if (!useDebugger && statusCode === 200 && reqres.fromCache && reqres.responseBody.byteLength == 0) {
-        let clength = getHeaderValue(reqres.responseHeaders, "Content-Length")
+    } else if (
+        !useDebugger &&
+        statusCode === 200 &&
+        reqres.fromCache &&
+        reqres.responseBody.byteLength == 0
+    ) {
+        let clength = getHeaderValue(reqres.responseHeaders, "Content-Length");
         if (clength !== undefined && clength !== 0) {
             // Under Firefox, filterResponseData filters will get empty response data for some
             // cached objects. We use a special state for these, as this is not really an error,
@@ -618,68 +720,85 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
             picked = config.archiveIncompleteResponse;
             // filter.onstop will have set it to true
             reqres.responseComplete = false;
-        } else
+        } else {
             state = "complete_fc";
-    } else if (reqres.fromCache)
+        }
+    } else if (reqres.fromCache) {
         state = "complete_fc";
+    }
 
     let sent = reqres.submitted && !reqres.fromCache;
 
     if (!reqres.requestComplete) {
         // requestBody recovered from formData
-        problematic = problematic || sent && config.markProblematicPartialRequest;
+        problematic = problematic || (sent && config.markProblematicPartialRequest);
         picked = picked && config.archivePartialRequest;
     }
 
     if (reqres.requestBuggy || reqres.responseBuggy) {
         // buggy metadata capture
-        problematic = problematic || sent && config.markProblematicBuggy;
+        problematic = problematic || (sent && config.markProblematicBuggy);
         picked = picked && config.archiveBuggy;
     }
 
-    if (!reqres.responded || statusCode >= 200 && statusCode < 300) {
+    if (!reqres.responded || (statusCode >= 200 && statusCode < 300)) {
         // do nothing
-    } else if (statusCode >= 100 && statusCode < 200)
+    } else if (statusCode >= 100 && statusCode < 200) {
         picked = picked && config.archive1xxCodes;
-    else if (statusCode >= 300 && statusCode < 400)
+    } else if (statusCode >= 300 && statusCode < 400) {
         picked = picked && config.archive3xxCodes;
-    else if (transientStatusCodes.has(statusCode)) {
+    } else if (transientStatusCodes.has(statusCode)) {
         picked = picked && config.archiveTransientCodes;
         problematic = problematic || config.markProblematicTransientCodes;
     } else if (statusCode >= 400 && statusCode < 600) {
         picked = picked && config.archivePermanentCodes;
         problematic = problematic || config.markProblematicPermanentCodes;
-    } else
+    } else {
         // a weird status code, mark it!
         problematic = true;
+    }
 
     if (!reqres.errors.every(isTrivialError)) {
         // it had some potentially problematic errors
         picked = picked && config.archiveWithErrors;
-        problematic = problematic
-            || (config.markProblematicWithImportantErrors
-                && reqres.errors.some(isImportantError))
-            || (picked ? config.markProblematicPickedWithErrors
-                       : config.markProblematicDroppedWithErrors);
+        problematic =
+            problematic ||
+            (config.markProblematicWithImportantErrors && reqres.errors.some(isImportantError)) ||
+            (picked
+                ? config.markProblematicPickedWithErrors
+                : config.markProblematicDroppedWithErrors);
     }
 
-    let in_limbo = picked && tabcfg.limbo || !picked && tabcfg.negLimbo;
+    let in_limbo = (picked && tabcfg.limbo) || (!picked && tabcfg.negLimbo);
 
     // dump it to console when debugging
-    if (config.debugCaptures || config.dumpCaptures)
+    if (config.debugCaptures || config.dumpCaptures) {
         console.warn(
             picked ? "PICKED" : "DROPPED",
             in_limbo ? "LIMBO" : "QUEUED",
             reqres.requestId,
-            "state", state,
-            reqres.protocol, reqres.method, reqres.url,
-            "tabId", tabId,
-            "req", reqres.requestComplete,
-            "res", reqres.responseComplete,
-            "result", statusCode, reqres.reason, reqres.statusLine,
-            "errors", reqres.errors,
-            "bucket", tabcfg.bucket,
-            reqres);
+            "state",
+            state,
+            reqres.protocol,
+            reqres.method,
+            reqres.url,
+            "tabId",
+            tabId,
+            "req",
+            reqres.requestComplete,
+            "res",
+            reqres.responseComplete,
+            "result",
+            statusCode,
+            reqres.reason,
+            reqres.statusLine,
+            "errors",
+            reqres.errors,
+            "bucket",
+            tabcfg.bucket,
+            reqres,
+        );
+    }
 
     let loggable = makeLoggable(reqres);
     loggable.bucket = tabcfg.bucket;
@@ -698,8 +817,9 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
             dump = encoder.result();
             dumpSize = dump.byteLength;
 
-            if (config.dumpCaptures)
+            if (config.dumpCaptures) {
                 dumpToConsole(dump);
+            }
         } else {
             dump = null;
             dumpSize = encoder.resultByteLength;
@@ -725,19 +845,30 @@ async function processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic
         tabstate.inLimboTotal += 1;
         tabstate.inLimboSize += dumpSize;
         newlyLimboed.push(loggable);
-        if (config.stash && tabcfg.stashLimbo)
+        if (config.stash && tabcfg.stashLimbo) {
             newlyStashed.push(archivable);
+        }
         gotNewLimbo = true;
-    } else
-        processNonLimbo(archivable, picked, tabstate, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+    } else {
+        processNonLimbo(
+            archivable,
+            picked,
+            tabstate,
+            newlyQueued,
+            newlyLogged,
+            newlyStashed,
+            newlyUnstashed,
+        );
+    }
 
     if (problematic) {
         reqresProblematic.push(archivable);
         tabstate.problematicTotal += 1;
         tabstate.problematicSize += dumpSize;
         newlyProblematic.push(loggable);
-        if (tabcfg.problematicNotify)
+        if (tabcfg.problematicNotify) {
             gotNewProblematic = true;
+        }
     }
 
     return tabId;
@@ -759,7 +890,16 @@ async function processAlmostDone() {
 
         let tabId;
         try {
-            tabId = await processOneAlmostDone(reqres, newlyProblematic, newlyUnproblematic, newlyLimboed, newlyQueued, newlyLogged, newlyStashed, newlyUnstashed);
+            tabId = await processOneAlmostDone(
+                reqres,
+                newlyProblematic,
+                newlyUnproblematic,
+                newlyLimboed,
+                newlyQueued,
+                newlyLogged,
+                newlyStashed,
+                newlyUnstashed,
+            );
         } catch (err) {
             logHandledError(err);
             markAsBuggedOut(err, [reqres, null]);
@@ -777,19 +917,25 @@ async function processAlmostDone() {
         // TODO mergeUpdatedTabIds?
         broadcastToState(null, "resetProblematic", getProblematic);
         reqresUnproblematic.push(...newlyUnproblematic);
-    } else if (newlyProblematic.length > 0)
+    } else if (newlyProblematic.length > 0) {
         broadcastToState(updatedTabId, "appendProblematic", newlyProblematic);
-    if (newlyLimboed.length > 0)
+    }
+    if (newlyLimboed.length > 0) {
         broadcastToState(updatedTabId, "appendInLimbo", newlyLimboed);
-    if (newlyQueued.length > 0)
+    }
+    if (newlyQueued.length > 0) {
         broadcastToState(updatedTabId, "appendQueued", newlyQueued);
-    if (newlyLogged.length > 0)
+    }
+    if (newlyLogged.length > 0) {
         broadcastToState(updatedTabId, "appendLog", newlyLogged);
+    }
 
-    if (newlyStashed.length > 0)
+    if (newlyStashed.length > 0) {
         runSynchronouslyB("stash", stashMany, newlyStashed);
-    if (newlyUnstashed.length > 0)
+    }
+    if (newlyUnstashed.length > 0) {
         runSynchronouslyB("unstash", deleteMany, newlyUnstashed);
+    }
 
     // scheduleEndgame by the caller
 

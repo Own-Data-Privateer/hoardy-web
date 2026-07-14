@@ -31,8 +31,9 @@
 async function getTab(tabId) {
     let tabs = await browser.tabs.query({ active: true, currentWindow: true });
     for (let tab of tabs) {
-        if (tab.id === tabId)
+        if (tab.id === tabId) {
             return tab;
+        }
     }
     return null;
 }
@@ -55,11 +56,13 @@ function navigateTabToBlank(tabId) {
 
 function getTabURL(tab, def) {
     let pendingUrl = tab.pendingUrl;
-    if (isValidStr(pendingUrl))
+    if (isValidStr(pendingUrl)) {
         return pendingUrl;
+    }
     let url = tab.url;
-    if (isValidStr(url))
+    if (isValidStr(url)) {
         return url;
+    }
     return def;
 }
 
@@ -75,29 +78,32 @@ async function getShortcuts(...args) {
     // `manifest.commands._execute_browser_action.description == null`.
     let res = assignRec({}, ...args, manifest.commands, {
         _execute_browser_action: {
-            description: "Open extension's popup."
+            description: "Open extension's popup.",
         },
     });
     if (browser.commands !== undefined) {
         let shortcuts = await browser.commands.getAll();
-        for (let s of shortcuts)
+        for (let s of shortcuts) {
             res[s.name].shortcut = s.shortcut;
+        }
     }
     return res;
 }
 
 // make a DOM node with a given id emit a `browser.runtime.sendMessage` with the same id
 function buttonToMessage(id, func) {
-    if (func === undefined)
+    if (func === undefined) {
         return buttonToAction(id, () => browser.runtime.sendMessage([id]));
-    else
+    } else {
         return buttonToAction(id, () => browser.runtime.sendMessage(func()));
+    }
 }
 
 // activate a tab with a given document URL if exists, or open new if not
 async function spawnOrActivateTab(url, createProperties, currentWindow) {
-    if (currentWindow === undefined)
+    if (currentWindow === undefined) {
         currentWindow = true;
+    }
 
     let tabs = await browser.tabs.query({ currentWindow });
     let nurl = normalizedURL(url);
@@ -127,8 +133,9 @@ async function showInternalPageAtNode(url, id, openerTabId, spawn, scrollIntoVie
             // in case openerTabId points to a dead tab
             [tab, spawned] = await spawnOrActivateTab(rurl);
         }
-        if (!spawned && id !== undefined)
+        if (!spawned && id !== undefined) {
             broadcastToURL(false, url, "viewNode", id, scrollIntoViewOptions);
+        }
         return tab.id;
     }
 }
@@ -137,12 +144,14 @@ async function showInternalPageAtNode(url, id, openerTabId, spawn, scrollIntoVie
 // tabs.
 function mapTabsPerWindow(func, tabs) {
     let byWindow = new Map();
-    for (let tab of tabs)
+    for (let tab of tabs) {
         cacheSingleton(byWindow, tab.windowId, () => []).push(tab);
+    }
 
     let out = [];
-    for (let [windowId, windowTabs] of byWindow.entries())
+    for (let [windowId, windowTabs] of byWindow.entries()) {
         out.push(func(windowId, windowTabs));
+    }
     return out;
 }
 
@@ -156,12 +165,14 @@ function mapRoundRobinTabsPerWindow(func, tabs) {
         let rrTabs = [];
         let rrTabsBefore = [];
         for (let tab of windowTabs) {
-            if (seenActive)
+            if (seenActive) {
                 rrTabs.push(tab);
-            else
+            } else {
                 rrTabsBefore.push(tab);
-            if (tab.active)
+            }
+            if (tab.active) {
                 seenActive = true;
+            }
         }
         rrTabs.push(...rrTabsBefore);
 

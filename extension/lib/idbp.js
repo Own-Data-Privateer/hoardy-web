@@ -60,7 +60,7 @@ function idbOpen(name, version, upgradeFunc) {
         request.onblocked = (event) => reject("blocked");
         request.onerror = (event) => reject(event.target.error);
         request.onsuccess = (event) => resolve(event.target.result);
-        if (upgradeFunc !== undefined)
+        if (upgradeFunc !== undefined) {
             request.onupgradeneeded = (event) => {
                 let db = event.target.result;
                 try {
@@ -70,6 +70,7 @@ function idbOpen(name, version, upgradeFunc) {
                     throw new Error("upgradeFunc threw an error, aborting indexdeDB upgrade");
                 }
             };
+        }
     });
 }
 
@@ -84,26 +85,29 @@ function idbTransaction(db, mode, objectStoreNames, func) {
         let error;
         transaction.onerror = (event) => reject(error !== undefined ? error : event.target.error);
         transaction.oncomplete = (event) => {
-            if (result instanceof Promise)
+            if (result instanceof Promise) {
                 result.then(resolve, reject);
-            else
+            } else {
                 resolve(result);
+            }
         };
         let args = [];
-        for (let n of objectStoreNames)
+        for (let n of objectStoreNames) {
             args.push(idbStoreProxyPromise(transaction.objectStore(n)));
+        }
         try {
             result = func(transaction, ...args);
         } catch (err) {
             error = err;
             transaction.abort();
         }
-        if (result instanceof Promise)
+        if (result instanceof Promise) {
             result.catch((err) => {
                 error = err;
                 transaction.abort();
                 throw err;
             });
+        }
     });
 }
 
@@ -126,16 +130,21 @@ async function idbExampleTest() {
         let db = await idbOpen("test", 1, (db, oldVersion, newVersion) => {
             db.createObjectStore("archive", { autoIncrement: true });
         });
-        let res = await idbTransaction(db, "readwrite", ["archive"], async (transaction, archiveStore) => {
-            let one = await archiveStore.add({data: "abc"});
-            let two = await archiveStore.add({data: new Uint8Array([1, 2, 3])});
-            //transaction.abort();
-            //throw new Error("bad");
-            return [one, two];
-        });
+        let res = await idbTransaction(
+            db,
+            "readwrite",
+            ["archive"],
+            async (transaction, archiveStore) => {
+                let one = await archiveStore.add({ data: "abc" });
+                let two = await archiveStore.add({ data: new Uint8Array([1, 2, 3]) });
+                //transaction.abort();
+                //throw new Error("bad");
+                return [one, two];
+            },
+        );
         console.log("ok", res);
         db.close();
-    } catch(err) {
+    } catch (err) {
         logError(err);
     } finally {
         idbDelete("test");

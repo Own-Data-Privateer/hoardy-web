@@ -64,8 +64,9 @@ class LSlotTransaction {
 
     async commit() {
         await this.storage.set(this._toPut);
-        if (this._toDelete.size > 0)
+        if (this._toDelete.size > 0) {
             await this.storage.remove(Array.from(this._toDelete));
+        }
     }
 }
 
@@ -113,18 +114,20 @@ async function lslotForEach(get, meta, func, limit) {
                 end = cur + 128;
 
                 let res = func(el, cur);
-                while (res instanceof Promise)
+                while (res instanceof Promise) {
                     res = await res;
+                }
             }
             cur += 1;
             count += 1;
             if (limit !== undefined && count > limit) {
-                if (isFirst)
+                if (isFirst) {
                     first = next = cur;
+                }
                 throw new StopIteration();
             }
         }
-    } catch(err) {
+    } catch (err) {
         // update the range
         meta.first = first;
         meta.next = Math.max(meta.next, next);
@@ -135,8 +138,9 @@ async function lslotForEach(get, meta, func, limit) {
     if (num !== 0) {
         meta.first = first;
         meta.next = next;
-    } else
+    } else {
         meta.first = meta.next = 0;
+    }
 }
 
 class LSlotObjectStore {
@@ -160,8 +164,9 @@ class LSlotObjectStore {
         while (true) {
             let sid = lslotDataIdOf(this.name, start);
             let res = await storageGetOne(this.transaction.storage, sid);
-            if (res === undefined)
+            if (res === undefined) {
                 return [start, sid];
+            }
             start += 1;
         }
         //throw new Error("no empty local storage slots are available");
@@ -206,11 +211,17 @@ class LSlotObjectStore {
         let name = this.name;
 
         try {
-            await lslotForEach((slot) => lslotGetSlot((id) => transaction.get(id), name, slot), meta, func, limit);
+            await lslotForEach(
+                (slot) => lslotGetSlot((id) => transaction.get(id), name, slot),
+                meta,
+                func,
+                limit,
+            );
         } finally {
-            if (meta.first !== firstBefore || meta.next !== nextBefore)
+            if (meta.first !== firstBefore || meta.next !== nextBefore) {
                 // record the update meta range
                 this.transaction.put(metaid, meta);
+            }
         }
     }
 }
@@ -219,8 +230,9 @@ async function lslotTransaction(storage, /* ignored */ mode, names, func) {
     let transaction = new LSlotTransaction(storage);
 
     let args = [];
-    for (let n of names)
+    for (let n of names) {
         args.push(new LSlotObjectStore(transaction, n));
+    }
 
     let res = await func(transaction, ...args);
     await transaction.commit();
@@ -230,11 +242,13 @@ async function lslotTransaction(storage, /* ignored */ mode, names, func) {
 async function lslotDump() {
     let res = await browser.storage.local.get();
     for (let [k, v] of Object.entries(res)) {
-        if (k.startsWith("lsmeta-"))
+        if (k.startsWith("lsmeta-")) {
             console.log("meta", k.substr(7), v);
+        }
     }
     for (let [k, v] of Object.entries(res)) {
-        if (k.startsWith("lsdata-"))
+        if (k.startsWith("lsdata-")) {
             console.log("data", k.substr(7), v);
+        }
     }
 }

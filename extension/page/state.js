@@ -25,9 +25,12 @@
 
 narrowSessionId = getMapURLParam(statePageURL, "session", document.location, toNumber, null, null);
 narrowWindowId = getMapURLParam(statePageURL, "window", document.location, toNumber, null, null);
-narrowTabId = narrowWindowId === null ? getMapURLParam(statePageURL, "tab", document.location, toNumber, null, null) : null;
+narrowTabId =
+    narrowWindowId === null
+        ? getMapURLParam(statePageURL, "tab", document.location, toNumber, null, null)
+        : null;
 
-let defRRFilter = {sessionId: narrowSessionId, windowId: narrowWindowId, tabId: narrowTabId};
+let defRRFilter = { sessionId: narrowSessionId, windowId: narrowWindowId, tabId: narrowTabId };
 let rrfilters = {
     inFlight: mkReqresFilter(defRRFilter),
     problematic: mkReqresFilter(defRRFilter),
@@ -47,27 +50,47 @@ async function stateMain() {
     let config;
 
     let titleParts = [];
-    if (narrowWindowId !== null)
+    if (narrowWindowId !== null) {
         titleParts.push(`Window #${narrowWindowId}`);
-    if (narrowTabId !== null)
+    }
+    if (narrowTabId !== null) {
         titleParts.push(`Tab #${narrowTabId}`);
-    if (narrowSessionId !== null && thisSessionId !== narrowSessionId)
+    }
+    if (narrowSessionId !== null && thisSessionId !== narrowSessionId) {
         titleParts.push(`of Session #${narrowSessionId}`);
+    }
     document.title += ": " + titleParts.join(" ");
 
-    buttonToMessage("stopStarInFlight",     () => ["stopInFlight", rrfilters.inFlight]);
-    buttonToMessage("forgetStarLog",        () => ["forgetLog", rrfilters.log]);
-    buttonToMessage("rotate1Problematic",   () => ["rotateProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
-    buttonToMessage("unmark1Problematic",   () => ["unmarkProblematic", assignRec({}, rrfilters.problematic, {limit: 1})]);
-    buttonToMessage("unmarkStarProblematic",() => ["unmarkProblematic", rrfilters.problematic]);
-    buttonToMessage("rotate1InLimbo",       () => ["rotateInLimbo", assignRec({}, rrfilters.inLimbo, {limit: 1})]);
-    buttonToMessage("discard1InLimbo",      () => ["popInLimbo", false, assignRec({}, rrfilters.inLimbo, {limit: 1})]);
-    buttonToMessage("discardStarInLimbo",   () => ["popInLimbo", false, rrfilters.inLimbo]);
-    buttonToMessage("collect1InLimbo",      () => ["popInLimbo", true, assignRec({}, rrfilters.inLimbo, {limit: 1})]);
-    buttonToMessage("collectStarInLimbo",   () => ["popInLimbo", true, rrfilters.inLimbo]);
-    buttonToMessage("retryStarUnarchived",  () => ["retryUnarchived", true, rrfilters.unarchived]);
+    buttonToMessage("stopStarInFlight", () => ["stopInFlight", rrfilters.inFlight]);
+    buttonToMessage("forgetStarLog", () => ["forgetLog", rrfilters.log]);
+    buttonToMessage("rotate1Problematic", () => [
+        "rotateProblematic",
+        assignRec({}, rrfilters.problematic, { limit: 1 }),
+    ]);
+    buttonToMessage("unmark1Problematic", () => [
+        "unmarkProblematic",
+        assignRec({}, rrfilters.problematic, { limit: 1 }),
+    ]);
+    buttonToMessage("unmarkStarProblematic", () => ["unmarkProblematic", rrfilters.problematic]);
+    buttonToMessage("rotate1InLimbo", () => [
+        "rotateInLimbo",
+        assignRec({}, rrfilters.inLimbo, { limit: 1 }),
+    ]);
+    buttonToMessage("discard1InLimbo", () => [
+        "popInLimbo",
+        false,
+        assignRec({}, rrfilters.inLimbo, { limit: 1 }),
+    ]);
+    buttonToMessage("discardStarInLimbo", () => ["popInLimbo", false, rrfilters.inLimbo]);
+    buttonToMessage("collect1InLimbo", () => [
+        "popInLimbo",
+        true,
+        assignRec({}, rrfilters.inLimbo, { limit: 1 }),
+    ]);
+    buttonToMessage("collectStarInLimbo", () => ["popInLimbo", true, rrfilters.inLimbo]);
+    buttonToMessage("retryStarUnarchived", () => ["retryUnarchived", true, rrfilters.unarchived]);
     buttonToMessage("archiveStarBuggedOut", () => ["archiveBuggedOut", rrfilters.buggedOut]);
-    buttonToMessage("deleteStarBuggedOut",  () => ["deleteBuggedOut", rrfilters.buggedOut]);
+    buttonToMessage("deleteStarBuggedOut", () => ["deleteBuggedOut", rrfilters.buggedOut]);
 
     for (let id of Object.keys(rrfilters)) {
         let cid = capitalize(id);
@@ -81,62 +104,71 @@ async function stateMain() {
         }
 
         let reset = setUI(document, "rrfilters." + id, rrfilters[id], (value, path, resetting) => {
-            resetSingletonTimeout(
-                scheduledUI,
-                resetCid,
-                resetting ? 300 : 0,
-                () => browser.runtime.sendMessage(getCid).then(resetFunc).catch(logError)
+            resetSingletonTimeout(scheduledUI, resetCid, resetting ? 300 : 0, () =>
+                browser.runtime.sendMessage(getCid).then(resetFunc).catch(logError),
             );
         });
         buttonToAction("reset-rrfilters." + id, reset);
     }
 
     async function updateConfig(nconfig) {
-        if (nconfig === undefined)
+        if (nconfig === undefined) {
             config = await browser.runtime.sendMessage(["getConfig"]);
-        else
+        } else {
             config = nconfig;
+        }
 
         setRootClasses(config);
     }
 
     async function processUpdate(update) {
         let [what, data] = update;
-        switch(what) {
-        case "updateConfig":
-            await updateConfig(data);
-            return;
-        default:
-            let updateFunc = dataNodeUpdaters[what];
-            if (updateFunc !== undefined)
-                return updateFunc(data);
+        switch (what) {
+            case "updateConfig":
+                await updateConfig(data);
+                return;
+            default:
+                let updateFunc = dataNodeUpdaters[what];
+                if (updateFunc !== undefined) {
+                    return updateFunc(data);
+                }
 
-            let res = await webextRPCHandleMessageDefault(update);
-            return res;
+                let res = await webextRPCHandleMessageDefault(update);
+                return res;
         }
     }
 
     setPageSettling();
 
-    await subscribeToExtension("state" + (narrowTabId !== null ? `#${narrowTabId}` : ""), 3, async (isInvalid) => {
-        await updateConfig();
-        let res = {};
-        for (let id of Object.keys(rrfilters)) {
-            res[id] = await browser.runtime.sendMessage(["get" + capitalize(id)]);
-            if (isInvalid()) return;
-        }
+    await subscribeToExtension(
+        "state" + (narrowTabId !== null ? `#${narrowTabId}` : ""),
+        3,
+        async (isInvalid) => {
+            await updateConfig();
+            let res = {};
+            for (let id of Object.keys(rrfilters)) {
+                res[id] = await browser.runtime.sendMessage(["get" + capitalize(id)]);
+                if (isInvalid()) {
+                    return;
+                }
+            }
 
-        for (let id of Object.keys(rrfilters))
-            dataNodeUpdaters["reset" + capitalize(id)](res[id]);
-    }, asyncNoop, processUpdate);
+            for (let id of Object.keys(rrfilters)) {
+                dataNodeUpdaters["reset" + capitalize(id)](res[id]);
+            }
+        },
+        asyncNoop,
+        processUpdate,
+    );
 
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         setTimeout(() => verifyLinks(document, console.error, true), 100);
+    }
 
     setPageDone();
 
     // force re-scroll
-    viewHashNode((id) => id === "tail" ? scrollEndIntoView : undefined);
+    viewHashNode((id) => (id === "tail" ? scrollEndIntoView : undefined));
 }
 
 document.addEventListener("DOMContentLoaded", () => stateMain().catch(setPageError), setPageError);

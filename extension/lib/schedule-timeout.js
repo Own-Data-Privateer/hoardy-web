@@ -83,10 +83,11 @@ function setSingletonTimeout(value, priority, timeout, func, hurry) {
         // `value` is still valid
 
         let oldPriority = value.priority;
-        if (oldPriority < priority)
+        if (oldPriority < priority) {
             // the scheduled/running task has a higher (smaller) priority, do
             // nothing regardless of it executing or not.
             return;
+        }
 
         let now = Date.now();
         if (value.tid !== null) {
@@ -94,8 +95,9 @@ function setSingletonTimeout(value, priority, timeout, func, hurry) {
             clearTimeout(value.tid);
             // hurry it up, meaning, do not move the target execution time
             // any more into the future
-            if (hurry)
+            if (hurry) {
                 timeout = clamp(0, value.when - now, timeout);
+            }
         }
 
         // update the scheduled task
@@ -104,13 +106,14 @@ function setSingletonTimeout(value, priority, timeout, func, hurry) {
         value.when = now + timeout;
         value.wantStop = false;
 
-        if (value.tid !== null)
+        if (value.tid !== null) {
             // re-schedule
             value.tid = setTimeout(() => evalSingletonTimeout(value), timeout);
-        else if (timeout === 0)
+        } else if (timeout === 0) {
             // ask the currently running task to stop, if possible, so that `hurry` would produce an
             // effect ASAP
             value.wantStop = null;
+        }
 
         return;
     }
@@ -120,10 +123,12 @@ function setSingletonTimeout(value, priority, timeout, func, hurry) {
 
 // Run a task stored in a given singletonTimeout value.
 async function evalSingletonTimeout(value) {
-    if (value.tid === undefined)
+    if (value.tid === undefined) {
         throw new Error("evalSingletonTimeout: the task is already finished");
-    if (value.tid === null)
+    }
+    if (value.tid === null) {
         throw new Error("evalSingletonTimeout: the task is already running");
+    }
 
     // mark as running
     value.tid = null;
@@ -132,9 +137,10 @@ async function evalSingletonTimeout(value) {
     let ntimeout = 0;
     while (value.wantStop !== true) {
         let task = value.task;
-        if (task === undefined)
+        if (task === undefined) {
             // nothing more to do
             break;
+        }
 
         if (!first) {
             ntimeout = value.when - Date.now();
@@ -151,9 +157,12 @@ async function evalSingletonTimeout(value) {
         value.wantStop = false;
 
         try {
-            let res = task(() => { return value.wantStop !== false; });
-            while (res instanceof Promise)
+            let res = task(() => {
+                return value.wantStop !== false;
+            });
+            while (res instanceof Promise) {
                 res = await res;
+            }
             value.results.push(res);
         } catch (err) {
             logError(err);
@@ -175,13 +184,15 @@ async function evalSingletonTimeout(value) {
 
 // Immediately run or cancel a given singletonTimeout.
 function emitSingletonTimeout(value, run, wait) {
-    if (value.tid === undefined)
+    if (value.tid === undefined) {
         // it's already finished
         return;
+    }
 
-    if (!run)
+    if (!run) {
         // ask it to stop
         value.wantStop = true;
+    }
 
     if (value.tid !== null) {
         // it's not running,
@@ -189,21 +200,24 @@ function emitSingletonTimeout(value, run, wait) {
         clearTimeout(value.tid);
         // and eval immediately
         let res = evalSingletonTimeout(value);
-        if (wait)
+        if (wait) {
             return res;
+        }
     }
 
     // it is already running
-    if (wait)
+    if (wait) {
         return new Promise((resolve, reject) => {
             value.then.push(resolve);
         });
+    }
 }
 
 // Use a Map as directory for delayed overridable and chainable functions.
 function resetSingletonTimeout(map, key, timeout, func, priority, hurry) {
-    if (priority === undefined)
+    if (priority === undefined) {
         priority = 100;
+    }
 
     let value = map.get(key);
     value = setSingletonTimeout(value, priority, timeout, func, hurry);
@@ -217,19 +231,22 @@ function resetSingletonTimeout(map, key, timeout, func, priority, hurry) {
 
 async function popSingletonTimeout(map, key, run, wait) {
     let value = map.get(key);
-    if (value === undefined)
+    if (value === undefined) {
         return;
+    }
     await emitSingletonTimeout(value, run, wait);
 }
 
 async function runAllSingletonTimeouts(map) {
-    for (let key of Array.from(map.keys()))
+    for (let key of Array.from(map.keys())) {
         await popSingletonTimeout(map, key, true, true);
+    }
 }
 
 async function cancelAllSingletonTimeouts(map) {
-    for (let key of Array.from(map.keys()))
+    for (let key of Array.from(map.keys())) {
         await popSingletonTimeout(map, key, false, true);
+    }
 }
 
 tests.sheduleTimeout = async () => {
@@ -244,8 +261,9 @@ tests.sheduleTimeout = async () => {
     });
     await sleep(1000);
 
-    if (res !== 2)
+    if (res !== 2) {
         throw new Error();
+    }
 
     resetSingletonTimeout(m, "a", 100, () => {
         res = 3;
@@ -253,8 +271,9 @@ tests.sheduleTimeout = async () => {
     popSingletonTimeout(m, "a");
     await sleep(1000);
 
-    if (res !== 2)
+    if (res !== 2) {
         throw new Error();
+    }
 
     resetSingletonTimeout(m, "a", 0, async () => {
         await sleep(1000);
@@ -263,6 +282,7 @@ tests.sheduleTimeout = async () => {
     await sleep(100);
     await popSingletonTimeout(m, "a", true, true);
 
-    if (res !== 4)
+    if (res !== 4) {
         throw new Error();
-}
+    }
+};

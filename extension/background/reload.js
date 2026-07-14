@@ -26,28 +26,33 @@
 let wantReloadSelf = false;
 
 async function performReloadSelf() {
-    if (!wantReloadSelf)
+    if (!wantReloadSelf) {
         return;
+    }
 
-    let badReqres = (
+    let badReqres =
         reqresUnstashedIssueAcc[0].size +
         // reqresUnarchivedIssueAcc[0].size // will be caught below
-        reqresBuggedOutIssueAcc[0].size
-    );
+        reqresBuggedOutIssueAcc[0].size;
 
     if (badReqres > 0) {
-        browser.notifications.create("error-noReload", {
-            title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `\`Hoardy-Web\` can NOT be reloaded while some \`unstashed\` and/or \`buggedOut\` reqres are present.`),
-            iconUrl: iconURL("error", 128),
-            type: "basic",
-        }).catch(logError);
+        browser.notifications
+            .create("error-noReload", {
+                title: "Hoardy-Web: ERROR",
+                message: escapeNotification(
+                    config,
+                    `\`Hoardy-Web\` can NOT be reloaded while some \`unstashed\` and/or \`buggedOut\` reqres are present.`,
+                ),
+                iconUrl: iconURL("error", 128),
+                type: "basic",
+            })
+            .catch(logError);
 
         cancelReloadSelf();
         return;
     }
 
-    let notDoneTasks = (
+    let notDoneTasks =
         scheduledCancelable.size +
         // scheduledRetry is ignored here
         scheduledDelayed.size +
@@ -59,8 +64,7 @@ async function performReloadSelf() {
         synchronousClosuresC.length +
         scheduledWhenNoInFlight.size +
         scheduledWhenArchived.size +
-        runningActions.size
-    );
+        runningActions.size;
 
     if (notDoneTasks > 0) {
         console.warn("reload blocked by unfinished tasks");
@@ -80,11 +84,10 @@ async function performReloadSelf() {
         return loggable.inLS !== undefined && !loggable.dirty;
     }
 
-    let allInSyncWithLS = (
+    let allInSyncWithLS =
         reqresLimbo.every(isInSyncWithLS) &&
         reqresQueue.every(isInSyncWithLS) &&
-        Array.from(reqresUnarchivedIssueAcc[0]).every(isInSyncWithLS)
-    );
+        Array.from(reqresUnarchivedIssueAcc[0]).every(isInSyncWithLS);
 
     if (!allInSyncWithLS) {
         console.warn("reload blocked by unstashed reqres");
@@ -127,10 +130,14 @@ async function performReloadSelf() {
 
     await browser.storage.local.set({ session });
 
-    if (useDebugger && currentTabs.every((tab) => tab.url === "about:blank" || isExtensionURL(tab.url)))
+    if (
+        useDebugger &&
+        currentTabs.every((tab) => tab.url === "about:blank" || isExtensionURL(tab.url))
+    ) {
         // Chromium will close all such tabs on extension reload, meaning, in
         // this case, the whole browser window will close
         await browser.tabs.create({ url: "chrome://extensions/" });
+    }
 
     browser.runtime.reload();
 }

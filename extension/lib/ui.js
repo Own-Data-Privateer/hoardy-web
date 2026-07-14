@@ -35,15 +35,17 @@ function getRootNode(document) {
 
 // add or remove a class based on condition
 function setConditionalClass(node, className, condition) {
-    if (condition)
+    if (condition) {
         node.classList.add(className);
-    else
+    } else {
         node.classList.remove(className);
+    }
 }
 
 function implySetConditionalClass(node, className, impliedClass, condition) {
-    for (let e of node.getElementsByClassName(className))
+    for (let e of node.getElementsByClassName(className)) {
         setConditionalClass(e, impliedClass, condition);
+    }
 }
 
 function implySetConditionalOff(node, className, condition) {
@@ -56,16 +58,22 @@ let scrollEndIntoView = { behavior: "smooth", block: "end" };
 
 function viewHTMLNode(el, scrollIntoViewOptions, showAllFunc, hideAllFunc) {
     if (el !== null) {
-        if (showAllFunc !== undefined)
+        if (showAllFunc !== undefined) {
             showAllFunc();
+        }
         let defopts = el.tagName.startsWith("H") ? scrollStartIntoView : scrollCenterIntoView;
         // give the page a chance to redraw, in case the code just before this call changed styles
         setTimeout(() => {
             // and then scroll
-            el.scrollIntoView(scrollIntoViewOptions ? updateFromRec(assignRec({}, defopts), scrollIntoViewOptions) : defopts);
+            el.scrollIntoView(
+                scrollIntoViewOptions
+                    ? updateFromRec(assignRec({}, defopts), scrollIntoViewOptions)
+                    : defopts,
+            );
         }, 0);
-    } else if (hideAllFunc !== undefined)
+    } else if (hideAllFunc !== undefined) {
         hideAllFunc();
+    }
 }
 
 function viewNode(id, scrollIntoViewOptions, showAllFunc, hideAllFunc) {
@@ -79,8 +87,9 @@ let targetNode;
 // Highlight DOM node with the given id by adding "target" to its class list.
 // It also un-highlights previously highlighted one, if any.
 function highlightNode(id) {
-    if (targetNode !== undefined)
+    if (targetNode !== undefined) {
         targetNode.classList.remove("target");
+    }
 
     let el = id ? document.getElementById(id) : null;
     if (el !== null) {
@@ -101,44 +110,60 @@ function viewHashNode(scrollIntoViewOptionsFunc, showAllFunc, hideAllFunc) {
     let id = document.location.hash.substr(1);
     let el = id ? document.getElementById(id) : null;
     // no-smooth scrolling by default here
-    viewHTMLNode(el, scrollIntoViewOptionsFunc !== undefined ? scrollIntoViewOptionsFunc(id) : undefined, showAllFunc, hideAllFunc);
+    viewHTMLNode(
+        el,
+        scrollIntoViewOptionsFunc !== undefined ? scrollIntoViewOptionsFunc(id) : undefined,
+        showAllFunc,
+        hideAllFunc,
+    );
 }
 
 function focusHashNode(scrollIntoViewOptionsFunc, showAllFunc, hideAllFunc) {
     let id = document.location.hash.substr(1);
     // no-smooth scrolling by default here
-    focusNode(id, scrollIntoViewOptionsFunc !== undefined ? scrollIntoViewOptionsFunc(id) : undefined, showAllFunc, hideAllFunc);
+    focusNode(
+        id,
+        scrollIntoViewOptionsFunc !== undefined ? scrollIntoViewOptionsFunc(id) : undefined,
+        showAllFunc,
+        hideAllFunc,
+    );
 }
 
 // setup history navigation
 function setupHistoryPopState() {
     window.onpopstate = (event) => {
         let state = event.state;
-        if (state === null)
+        if (state === null) {
             return;
+        }
         let id = state.id;
-        if (id !== undefined)
+        if (id !== undefined) {
             focusNode(id);
+        }
     };
 }
 
 // go from history state `fromState` to url or state `toURLOrState`
 function historyFromTo(fromState, toURLOrState) {
-    if (equalRec(history.state, fromState))
+    if (equalRec(history.state, fromState)) {
         return;
+    }
 
     let fromURL = "#" + fromState.id;
-    if (history.state !== null
-        && typeof history.state === "object"
-        && history.state.id !== undefined
-        && history.state.id.startsWith("link-"))
+    if (
+        history.state !== null &&
+        typeof history.state === "object" &&
+        history.state.id !== undefined &&
+        history.state.id.startsWith("link-")
+    ) {
         history.replaceState(fromState, "", fromURL);
-    else
+    } else {
         history.pushState(fromState, "", fromURL);
+    }
 
-    if (typeof toURLOrState === "string")
+    if (typeof toURLOrState === "string") {
         history.pushState({ skip: true }, "", toURLOrState);
-    else if (toURLOrState !== undefined) {
+    } else if (toURLOrState !== undefined) {
         let toURL = "#" + toURLOrState.id;
         history.pushState(toURLOrState, "", toURL);
     }
@@ -147,8 +172,9 @@ function historyFromTo(fromState, toURLOrState) {
 // attach function to `onclick` of DOM node with a given id
 function buttonToAction(id, action) {
     let el = document.getElementById(id);
-    if (el === null)
+    if (el === null) {
         throw new Error(`failed to attach an action to button id "${id}"`);
+    }
     el.onclick = catchAll(action);
     return el;
 }
@@ -157,28 +183,31 @@ function createElements(arg, ...args) {
     if (args.length === 0) {
         if (arg instanceof Array) {
             let res = [];
-            for (let e of arg)
-                res.push(...(createElements(...e)));
+            for (let e of arg) {
+                res.push(...createElements(...e));
+            }
             return res;
-        } else if (typeof arg === "string")
+        } else if (typeof arg === "string") {
             return [document.createTextNode(arg)];
+        }
         return [arg];
     }
 
-    if (typeof arg === "function")
+    if (typeof arg === "function") {
         return createElements(...args).map(arg);
+    }
 
     let node = document.createElement(arg);
-    node.append(...(createElements(...args)));
+    node.append(...createElements(...args));
     return [node];
 }
 
 function appendElements(node, ...args) {
-    node.append(...(createElements(...args)));
+    node.append(...createElements(...args));
 }
 
 function replaceElements(node, ...args) {
-    node.replaceChildren(...(createElements(...args)));
+    node.replaceChildren(...createElements(...args));
 }
 
 function createButton(value, title, func) {
@@ -200,10 +229,11 @@ function appendButton(node, ...args) {
 // - false -> !checked + .false class
 function setBooleanOrNull(el, value) {
     el.checked = value === true;
-    if (value === false)
+    if (value === false) {
         el.classList.add("false");
-    else
+    } else {
         el.classList.remove("false");
+    }
 }
 
 function setNumberOrNull(checkbox, el, value) {
@@ -224,12 +254,14 @@ function _mkHandleOnChange(prefix, update, value, getValue, setValue) {
     return (event, partial) => {
         let nvalue = getValue(event, partial);
 
-        if (nvalue === cvalue)
+        if (nvalue === cvalue) {
             return;
+        }
         cvalue = nvalue;
 
-        if (setValue !== undefined)
+        if (setValue !== undefined) {
             setValue(nvalue, event, partial);
+        }
         update(nvalue, prefix, event.resetting);
     };
 }
@@ -242,10 +274,13 @@ function _dispatchReset(el) {
 
 function _mkHandleKeyUp(prefix, timeout, onchange) {
     return (event) => {
-        if (event.key === "Enter")
+        if (event.key === "Enter") {
             resetSingletonTimeout(scheduledUI, `update-${prefix}`, 0, () => onchange(event));
-        else if (timeout !== 0)
-            resetSingletonTimeout(scheduledUI, `update-${prefix}`, timeout, () => onchange(event, true));
+        } else if (timeout !== 0) {
+            resetSingletonTimeout(scheduledUI, `update-${prefix}`, timeout, () =>
+                onchange(event, true),
+            );
+        }
     };
 }
 
@@ -255,25 +290,35 @@ function setUIInternal(node, prefix, value, update, resetAcc) {
 
     if (value !== null && typ === "object") {
         for (let k of Object.keys(value)) {
-            setUIInternal(node, prefix ? prefix + "." + k : k, value[k], update !== undefined ? ((newvalue, path) => {
-                value[k] = newvalue;
-                update(value, path);
-            }) : undefined, resetAcc);
+            setUIInternal(
+                node,
+                prefix ? prefix + "." + k : k,
+                value[k],
+                update !== undefined
+                    ? (newvalue, path) => {
+                          value[k] = newvalue;
+                          update(value, path);
+                      }
+                    : undefined,
+                resetAcc,
+            );
         }
 
         return;
     }
 
     let el = node.getElementById(prefix);
-    if (el === null)
+    if (el === null) {
         return;
+    }
 
     let div = node.getElementById("genui-" + prefix);
     if (div !== null) {
-        if ((value === null || typ === "boolean") && div.classList.contains("booleanOrNull"))
+        if ((value === null || typ === "boolean") && div.classList.contains("booleanOrNull")) {
             typ = "booleanOrNull";
-        else if ((value === null || typ === "number") && div.classList.contains("numberOrNull"))
+        } else if ((value === null || typ === "number") && div.classList.contains("numberOrNull")) {
             typ = "numberOrNull";
+        }
     }
 
     //console.log("setting UI", prefix, typ, el, value);
@@ -295,164 +340,168 @@ function setUIInternal(node, prefix, value, update, resetAcc) {
     // actual implementation follows
 
     switch (typ) {
-    case "boolean": {
-        if (etyp !== "checkbox")
-            break;
+        case "boolean": {
+            if (etyp !== "checkbox") {
+                break;
+            }
 
-        el.checked = value;
+            el.checked = value;
 
-        if (update === undefined)
+            if (update === undefined) {
+                return;
+            }
+
+            el.onchange = _mkHandleOnChange(prefix, update, value, () => el.checked);
+
+            let defvalue = div.getAttribute("data-default");
+            defvalue = defvalue === "true";
+            resetAcc.push(() => {
+                el.checked = defvalue;
+                _dispatchReset(el);
+            });
+
             return;
+        }
 
-        el.onchange = _mkHandleOnChange(
-            prefix, update,
-            value,
-            () => el.checked,
-        );
+        case "booleanOrNull": {
+            if (etyp !== "checkbox") {
+                break;
+            }
 
-        let defvalue = div.getAttribute("data-default");
-        defvalue = defvalue === "true";
-        resetAcc.push(() => {
-            el.checked = defvalue;
-            _dispatchReset(el);
-        });
+            setBooleanOrNull(el, value);
 
-        return;
-    }
+            if (update === undefined) {
+                return;
+            }
 
-    case "booleanOrNull": {
-        if (etyp !== "checkbox")
-            break;
+            el.onchange = _mkHandleOnChange(
+                prefix,
+                update,
+                value,
+                (event) => {
+                    if (event.resetting) {
+                        return el.checked ? true : el.classList.contains("false") ? false : null;
+                    }
 
-        setBooleanOrNull(el, value);
+                    // switch it like this: false -> null -> true -> false
+                    return el.classList.contains("false") ? null : el.checked;
+                },
+                (nvalue) => setBooleanOrNull(el, nvalue),
+            );
 
-        if (update === undefined)
+            let defvalue = div.getAttribute("data-default");
+            defvalue = defvalue === null || defvalue === "null" ? null : defvalue === "true";
+            resetAcc.push(() => {
+                setBooleanOrNull(el, defvalue);
+                _dispatchReset(el);
+            });
+
             return;
+        }
 
-        el.onchange = _mkHandleOnChange(
-            prefix, update,
-            value,
-            (event) => {
-                if (event.resetting)
-                    return el.checked ? true : (el.classList.contains("false") ? false : null);
+        case "number": {
+            if (etyp !== "number") {
+                break;
+            }
 
-                // switch it like this: false -> null -> true -> false
-                return el.classList.contains("false") ? null : el.checked;
-            },
-            (nvalue) => setBooleanOrNull(el, nvalue),
-        );
+            el.value = value;
 
-        let defvalue = div.getAttribute("data-default");
-        defvalue = defvalue === null || defvalue === "null" ? null : defvalue === "true";
-        resetAcc.push(() => {
-            setBooleanOrNull(el, defvalue);
-            _dispatchReset(el);
-        });
+            if (update === undefined) {
+                return;
+            }
 
-        return;
-    }
+            let onchange = _mkHandleOnChange(prefix, update, value, () =>
+                Number(el.value).valueOf(),
+            );
+            el.onchange = onchange;
 
-    case "number": {
-        if (etyp !== "number")
-            break;
+            let defvalue = div.getAttribute("data-default");
+            defvalue = defvalue || "0";
+            resetAcc.push(() => {
+                el.value = defvalue;
+                _dispatchReset(el);
+            });
 
-        el.value = value;
+            let timeout = Number(div.getAttribute("timeout")).valueOf();
+            el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
 
-        if (update === undefined)
             return;
+        }
 
-        let onchange = _mkHandleOnChange(
-            prefix, update,
-            value,
-            () => Number(el.value).valueOf(),
-        );
-        el.onchange = onchange;
+        case "numberOrNull": {
+            if (etyp !== "number") {
+                break;
+            }
 
-        let defvalue = div.getAttribute("data-default");
-        defvalue = defvalue || "0";
-        resetAcc.push(() => {
-            el.value = defvalue;
-            _dispatchReset(el);
-        });
+            let checkbox = node.getElementById(prefix + "-notNull");
+            setNumberOrNull(checkbox, el, value);
 
-        let timeout = Number(div.getAttribute("timeout")).valueOf();
-        el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
+            if (update === undefined) {
+                return;
+            }
 
-        return;
-    }
+            let onchange = _mkHandleOnChange(
+                prefix,
+                update,
+                value,
+                () => (checkbox.checked ? Number(el.value).valueOf() : null),
+                (nvalue) => setNumberOrNull(checkbox, el, nvalue),
+            );
+            checkbox.onchange = onchange;
+            el.onchange = onchange;
 
-    case "numberOrNull": {
-        if (etyp !== "number")
-            break;
+            let defvalue = div.getAttribute("data-default");
+            defvalue = defvalue === null || defvalue === "null" ? null : defvalue || "0";
+            resetAcc.push(() => {
+                setNumberOrNull(checkbox, el, defvalue);
+                _dispatchReset(el);
+            });
 
-        let checkbox = node.getElementById(prefix + "-notNull");
-        setNumberOrNull(checkbox, el, value);
+            let timeout = Number(div.getAttribute("timeout")).valueOf();
+            el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
 
-        if (update === undefined)
             return;
+        }
 
-        let onchange = _mkHandleOnChange(
-            prefix, update,
-            value,
-            () => checkbox.checked ? Number(el.value).valueOf() : null,
-            (nvalue) => setNumberOrNull(checkbox, el, nvalue),
-        );
-        checkbox.onchange = onchange;
-        el.onchange = onchange;
+        case "string": {
+            if (etyp !== "text" && etyp !== "search") {
+                break;
+            }
 
-        let defvalue = div.getAttribute("data-default");
-        defvalue = defvalue === null || defvalue === "null" ? null : (defvalue || "0");
-        resetAcc.push(() => {
-            setNumberOrNull(checkbox, el, defvalue);
-            _dispatchReset(el);
-        });
+            el.value = value;
 
-        let timeout = Number(div.getAttribute("timeout")).valueOf();
-        el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
+            if (update === undefined) {
+                return;
+            }
 
-        return;
-    }
+            let trim = div.getAttribute("trim") !== null;
 
-    case "string": {
-        if (etyp !== "text" && etyp !== "search")
-            break;
-
-        el.value = value;
-
-        if (update === undefined)
-            return;
-
-        let trim = div.getAttribute("trim") !== null;
-
-        let onchange = _mkHandleOnChange(
-            prefix, update,
-            value,
-            (event, partial) => {
+            let onchange = _mkHandleOnChange(prefix, update, value, (event, partial) => {
                 let nvalue = String(el.value).valueOf();
 
                 if (trim) {
                     nvalue = nvalue.trim();
-                    if (!partial)
+                    if (!partial) {
                         el.value = nvalue;
+                    }
                 }
 
                 return nvalue;
-            },
-        );
-        el.onchange = onchange;
+            });
+            el.onchange = onchange;
 
-        let defvalue = div.getAttribute("data-default");
-        defvalue = defvalue || "";
-        resetAcc.push(() => {
-            el.value = defvalue;
-            _dispatchReset(el);
-        });
+            let defvalue = div.getAttribute("data-default");
+            defvalue = defvalue || "";
+            resetAcc.push(() => {
+                el.value = defvalue;
+                _dispatchReset(el);
+            });
 
-        let timeout = Number(div.getAttribute("timeout")).valueOf();
-        el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
+            let timeout = Number(div.getAttribute("timeout")).valueOf();
+            el.onkeyup = _mkHandleKeyUp(prefix, timeout, onchange);
 
-        return;
-    }
+            return;
+        }
     }
 
     throw new Error(`setUI: can't set ${typ} to ${etyp}`);
@@ -467,15 +516,17 @@ function setUI(node, prefix, value, update) {
     let resetAcc = [];
     setUIInternal(node, prefix, value, update, resetAcc);
     return () => {
-        for (let func of resetAcc)
+        for (let func of resetAcc) {
             func();
+        }
     };
 }
 
 // setUI, but with recursive updates for when `update` modifies the `value` too
 function setUIRec(node, prefix, value, update) {
-    if (update === undefined)
+    if (update === undefined) {
         return setUI(node, prefix, value);
+    }
 
     function recUpdate(nvalue, path) {
         update(nvalue, path);
@@ -489,45 +540,46 @@ function createUINodes(typ, id, name, tabindex, defvalue) {
     let el = document.createElement("input");
     el.id = id;
     el.name = name;
-    if (isValid(tabindex))
+    if (isValid(tabindex)) {
         el.setAttribute("tabindex", tabindex);
+    }
 
     switch (typ) {
-    case "boolean":
-    case "booleanOrNull":
-        el.type = "checkbox";
-        el.classList.add("toggle");
+        case "boolean":
+        case "booleanOrNull":
+            el.type = "checkbox";
+            el.classList.add("toggle");
 
-        if (typ === "boolean")
-            el.checked = defvalue === "true";
-        else {
-            defvalue = defvalue === null || defvalue === "null" ? null : defvalue === "true";
-            setBooleanOrNull(el, defvalue);
-        }
+            if (typ === "boolean") {
+                el.checked = defvalue === "true";
+            } else {
+                defvalue = defvalue === null || defvalue === "null" ? null : defvalue === "true";
+                setBooleanOrNull(el, defvalue);
+            }
 
-        return [el];
-
-    case "number":
-    case "numberOrNull":
-        el.type = "number";
-
-        if (typ === "number") {
-            el.value = defvalue || "0";
             return [el];
-        }
 
-        let els = createUINodes("boolean", id + "-notNull", id, tabindex, null);
-        els.push(el);
+        case "number":
+        case "numberOrNull":
+            el.type = "number";
 
-        defvalue = defvalue === null || defvalue === "null" ? null : (defvalue || "0");
-        setNumberOrNull(els[0], el, defvalue);
-        return els;
+            if (typ === "number") {
+                el.value = defvalue || "0";
+                return [el];
+            }
 
-    case "string":
-    case "search":
-        el.type = typ === "string" ? "text" : typ;
-        el.value = defvalue || "";
-        return [el];
+            let els = createUINodes("boolean", id + "-notNull", id, tabindex, null);
+            els.push(el);
+
+            defvalue = defvalue === null || defvalue === "null" ? null : defvalue || "0";
+            setNumberOrNull(els[0], el, defvalue);
+            return els;
+
+        case "string":
+        case "search":
+            el.type = typ === "string" ? "text" : typ;
+            el.value = defvalue || "";
+            return [el];
     }
 
     throw new Error(`createUINodes: unknown node type: ${typ}`);
@@ -538,26 +590,29 @@ function placeUINodes(node, places, typ, ...args) {
     let elslen = els.length;
     for (let i = 0; i < els.length; ++i) {
         let child = places[i];
-        if (child !== undefined)
+        if (child !== undefined) {
             node.replaceChild(els[i], child);
-        else if (typ.startsWith("boolean"))
+        } else if (typ.startsWith("boolean")) {
             node.prepend(els[i]);
-        else
+        } else {
             node.append(els[i]);
+        }
     }
 }
 
 // given a DOM node, replace <ui> nodes with corresponding UI elements
 function makeUI(node) {
     for (let child of node.childNodes) {
-        if (child.nodeName === "#text" || child.nodeName === "#comment")
+        if (child.nodeName === "#text" || child.nodeName === "#comment") {
             continue;
+        }
 
         makeUI(child);
     }
 
-    if (node.tagName !== "UI")
+    if (node.tagName !== "UI") {
         return;
+    }
 
     let id = node.getAttribute("id");
     let typ = node.getAttribute("type");
@@ -569,9 +624,10 @@ function makeUI(node) {
     // copy other attributes
     for (let attr of node.attributes) {
         let name = attr.name;
-        if (name === "id" || name === "tabindex")
+        if (name === "id" || name === "tabindex") {
             continue;
-        div.setAttribute(name, node.getAttribute(name))
+        }
+        div.setAttribute(name, node.getAttribute(name));
     }
     div.classList.add("genui");
     div.classList.add(typ);
@@ -586,10 +642,12 @@ function makeUI(node) {
 }
 
 async function verifyLinks(node, onerror, sameOrigin, allowOrigin, remapId) {
-    if (allowOrigin === undefined)
+    if (allowOrigin === undefined) {
         allowOrigin = () => false;
-    if (remapId === undefined)
+    }
+    if (remapId === undefined) {
         remapId = (h, x) => x;
+    }
 
     let selfUrl = new URL(document.location.href);
     selfUrl.hash = "";
@@ -608,11 +666,11 @@ async function verifyLinks(node, onerror, sameOrigin, allowOrigin, remapId) {
         let hashlessHref = hashlessURL.href;
 
         let doc;
-        if (hashlessHref === selfHref)
+        if (hashlessHref === selfHref) {
             // this document
             doc = document;
-        else if (
-            sameOrigin && hashlessURL.origin === selfOrigin ||
+        } else if (
+            (sameOrigin && hashlessURL.origin === selfOrigin) ||
             allowOrigin(hashlessURL.origin)
         ) {
             doc = await asyncCacheSingleton(documents, hashlessHref, async () => {
@@ -642,13 +700,16 @@ async function verifyLinks(node, onerror, sameOrigin, allowOrigin, remapId) {
                     return null;
                 }
             });
-            if (doc === null)
+            if (doc === null) {
                 continue;
-        } else
+            }
+        } else {
             continue;
+        }
 
-        if (target !== "" && doc.getElementById(remapId(hashlessHref, target)) === null)
+        if (target !== "" && doc.getElementById(remapId(hashlessHref, target)) === null) {
             onerror("broken link", href, `from "${text}" at`, selfHref);
+        }
     }
 }
 
@@ -657,8 +718,9 @@ let helpNodes;
 
 // hide current tooltip
 function hideHelp() {
-    if (helpNodes === undefined)
+    if (helpNodes === undefined) {
         return;
+    }
 
     let [helpMark, helpDiv] = helpNodes;
     helpMark.checked = false;
@@ -669,14 +731,16 @@ function hideHelp() {
 // given a DOM node, add help tooltips to all its children with data-help attribute
 function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     for (let child of node.childNodes) {
-        if (child.nodeName === "#text" || child.nodeName === "#comment")
+        if (child.nodeName === "#text" || child.nodeName === "#comment") {
             continue;
+        }
 
         addHelp(child, shortcuts, mapShortcutFunc, true);
     }
 
-    if (!noHide)
+    if (!noHide) {
         node.addEventListener("click", hideHelp);
+    }
 
     let origHelp = node.getAttribute("data-help");
     let help = origHelp;
@@ -684,29 +748,34 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     let shortcut;
     if (shortcuts !== undefined) {
         let sname = node.getAttribute("data-shortcut");
-        if (sname !== null)
+        if (sname !== null) {
             shortcut = shortcuts[sname];
+        }
     }
 
-    if (shortcut !== undefined)
+    if (shortcut !== undefined) {
         help = mapShortcutFunc(help !== null ? help : shortcut.description, shortcut.shortcut);
+    }
 
-    if (!isValid(help))
+    if (!isValid(help)) {
         return;
+    }
 
     node.removeAttribute("data-help");
 
     let classes = node.getAttribute("data-help-class");
-    if (classes !== null)
+    if (classes !== null) {
         classes = classes.split(" ");
-    else
+    } else {
         classes = [];
+    }
     node.removeAttribute("data-help-class");
 
     let helpTip = document.createElement("div");
     helpTip.classList.add("help-tip");
-    if (origHelp !== null)
+    if (origHelp !== null) {
         helpTip.setAttribute("data-orig-help", origHelp);
+    }
     helpTip.style.display = "none";
     helpTip.innerHTML = microMarkdownToHTML(help);
     helpTip.onclick = hideHelp;
@@ -723,14 +792,16 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
         if (helpMark.checked) {
             helpTip.style.display = "block";
             helpNodes = [helpMark, helpTip];
-        } else
+        } else {
             helpTip.style.display = "none";
-    }
+        }
+    };
 
     let root = document.createElement("span");
     root.classList.add("help-root");
-    for (let c of classes)
+    for (let c of classes) {
         root.classList.add(c);
+    }
 
     node.parentElement.replaceChild(root, node);
 
@@ -750,15 +821,17 @@ let _classifyLinksNum = 0;
 // Classify links under `node` based on their URLs. To get link highlights, run
 // `setupHistoryPopState` before running this.
 function classifyLinks(node, urlKlasses, setup) {
-    if (setup === undefined)
+    if (setup === undefined) {
         setup = (link, info) => {
             let klass = info.klass;
-            if (klass !== undefined)
+            if (klass !== undefined) {
                 link.classList.add(klass);
+            }
             link.onclick = (event) => {
                 historyFromTo({ id: info.id });
             };
         };
+    }
 
     for (let link of node.getElementsByTagName("a")) {
         let href = link.href;
@@ -792,8 +865,12 @@ function classifyLinks(node, urlKlasses, setup) {
 // `classifyLinks` with automaic URL mapping relative to
 // `document.location.href`.
 function classifyDocumentLinks(node, urlKlasses, setup) {
-    return classifyLinks(node, urlKlasses.map((v) => {
-        let url = new URL(v[0], document.location.href);
-        return [url.href, v[1]]
-    }), setup);
+    return classifyLinks(
+        node,
+        urlKlasses.map((v) => {
+            let url = new URL(v[0], document.location.href);
+            return [url.href, v[1]];
+        }),
+        setup,
+    );
 }

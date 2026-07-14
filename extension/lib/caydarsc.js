@@ -50,26 +50,33 @@ async function attachDebuggerWithSendCommandsUnsafe(tabId, version, commands, pr
     let lastError = undefined;
     let retry = 0;
     for (; retry < 10; ++retry) {
-        if (pre !== undefined)
+        if (pre !== undefined) {
             pre(tabId, retry);
+        }
 
         try {
             await chrome.debugger.attach(debuggee, version);
         } catch (err) {
             lastError = err;
-            if (typeof err !== "string")
+            if (typeof err !== "string") {
                 throw err;
-            else if (err === "Cannot access a chrome:// URL"
-                || err.startsWith("Cannot access contents of url"))
+            } else if (
+                err === "Cannot access a chrome:// URL" ||
+                err.startsWith("Cannot access contents of url")
+            ) {
                 throw err;
-            else if (!err.startsWith("Another debugger is already attached to the tab with id:"))
+            } else if (
+                !err.startsWith("Another debugger is already attached to the tab with id:")
+            ) {
                 throw err;
+            }
             // otherwise, continue as normal
         }
 
         try {
-            for (let args of commands)
-                 await chrome.debugger.sendCommand(debuggee, ...args);
+            for (let args of commands) {
+                await chrome.debugger.sendCommand(debuggee, ...args);
+            }
         } catch (err) {
             // this could happen if the debugger gets detached immediately
             // after it gets attached, so we retry again
@@ -82,14 +89,17 @@ async function attachDebuggerWithSendCommandsUnsafe(tabId, version, commands, pr
         break;
     }
 
-    if (lastError !== undefined)
+    if (lastError !== undefined) {
         throw lastError;
+    }
 
-    if (DEBUG_CAYDARSC)
+    if (DEBUG_CAYDARSC) {
         console.debug("CAYDARSC: attached debugger to tab", tabId, "on retry", retry);
+    }
 
-    if (post !== undefined)
+    if (post !== undefined) {
         post(tabId, retry);
+    }
 }
 
 // Tabs we are debugging.
@@ -98,15 +108,17 @@ let tabsDebugging = new Set();
 let tabsAttaching = new Map();
 
 function attachDebuggerWithSendCommands(tabId, version, commands, pre, post) {
-    if (tabsDebugging.has(tabId))
+    if (tabsDebugging.has(tabId)) {
         // nothing to do
         return;
+    }
 
     // NB: self-destructing using `tabsAttaching.delete`
-    return cacheSingleton(tabsAttaching, tabId,
-                          (tabId) => attachDebuggerWithSendCommandsUnsafe(tabId, version, commands, pre, post)
-                                     .then(() => tabsDebugging.add(tabId))
-                                     .finally(() => tabsAttaching.delete(tabId)));
+    return cacheSingleton(tabsAttaching, tabId, (tabId) =>
+        attachDebuggerWithSendCommandsUnsafe(tabId, version, commands, pre, post)
+            .then(() => tabsDebugging.add(tabId))
+            .finally(() => tabsAttaching.delete(tabId)),
+    );
 }
 
 function detachDebugger(tabId, post) {
@@ -114,10 +126,12 @@ function detachDebugger(tabId, post) {
     return chrome.debugger.detach(debuggee).then(() => {
         tabsDebugging.delete(tabId);
 
-        if (DEBUG_CAYDARSC)
+        if (DEBUG_CAYDARSC) {
             console.debug("CAYDARSC: detached debugger from tab", tabId);
+        }
 
-        if (post !== undefined)
+        if (post !== undefined) {
             post(tabId);
+        }
     });
 }

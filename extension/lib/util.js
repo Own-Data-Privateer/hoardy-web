@@ -62,10 +62,11 @@ let statePageURL = browser.runtime.getURL("/page/state.html");
 let savedPageURL = browser.runtime.getURL("/page/saved.html");
 
 function iconPath(name, size) {
-    if (useSVGIcons)
+    if (useSVGIcons) {
         return `/icon/${name}.svg?v=${manifest.version}`;
-    else
+    } else {
         return `/icon/${size}/${name}.png?v=${manifest.version}`;
+    }
 }
 
 function iconURL(name, size) {
@@ -82,14 +83,15 @@ async function getTabs(query) {
     let tabs;
     let specific = false;
 
-    if (query instanceof Array && query.length === 1)
+    if (query instanceof Array && query.length === 1) {
         query = query[0];
+    }
 
     if (query === null) {
         tabs = await browser.tabs.query({});
     } else if (typeof query === "number") {
         let res = await browser.tabs.get(query);
-        tabs = [ res ];
+        tabs = [res];
         specific = true;
     } else if (query instanceof Array) {
         let set = new Set(query);
@@ -98,12 +100,14 @@ async function getTabs(query) {
         specific = true;
     } else if (query.windowId !== undefined) {
         let windowId = query.windowId;
-        if (windowId === true)
-            tabs = await browser.tabs.query({currentWindow: true});
-        else
-            tabs = await browser.tabs.query({windowId});
-    } else
+        if (windowId === true) {
+            tabs = await browser.tabs.query({ currentWindow: true });
+        } else {
+            tabs = await browser.tabs.query({ windowId });
+        }
+    } else {
         throw new Error("bad query");
+    }
 
     return [tabs, specific];
 }
@@ -121,7 +125,11 @@ function showHelp(...args) {
 }
 
 function showState(sessionId, windowId, tabId, ...args) {
-    let nargs = [["session", sessionId], ["window", windowId], ["tab", tabId]];
+    let nargs = [
+        ["session", sessionId],
+        ["window", windowId],
+        ["tab", tabId],
+    ];
     nargs = nargs.filter((a) => a[1] !== null);
     let parts = nargs.map((a) => `${a[0]}=${a[1]}`);
     let query = parts.join("&");
@@ -142,13 +150,15 @@ function broadcastToHelp(...args) {
 }
 
 function broadcastToState(tabId, ...args) {
-    if (tabId === undefined)
+    if (tabId === undefined) {
         // nothing to do
         return;
+    }
 
-    if (tabId === null)
+    if (tabId === null) {
         // broadcast to all
         return broadcastToNamePrefix(true, "state", ...args);
+    }
 
     // broadcast to per-tab pages
     let [lazy, res] = broadcastToNamePrefix(true, `state#${tabId}`, ...args);
@@ -167,58 +177,107 @@ function setPageState(state) {
 }
 
 function setPageLoading() {
-    resetSingletonTimeout(scheduledUI, "setPage", 300, () => {
-        replaceElements(document.getElementById("body_loading"), "p", "Loading...");
-        setPageState("loading");
-    }, 100, true);
+    resetSingletonTimeout(
+        scheduledUI,
+        "setPage",
+        300,
+        () => {
+            replaceElements(document.getElementById("body_loading"), "p", "Loading...");
+            setPageState("loading");
+        },
+        100,
+        true,
+    );
 }
 
 function setPageSettling() {
-    resetSingletonTimeout(scheduledUI, "setPage", 300, () => {
-        replaceElements(document.getElementById("body_loading"), "p", "Waiting for the core to settle...");
-        setPageState("loading");
-    }, 100, true);
+    resetSingletonTimeout(
+        scheduledUI,
+        "setPage",
+        300,
+        () => {
+            replaceElements(
+                document.getElementById("body_loading"),
+                "p",
+                "Waiting for the core to settle...",
+            );
+            setPageState("loading");
+        },
+        100,
+        true,
+    );
 }
 
 function setPageError(error) {
     logError(error);
 
-    resetSingletonTimeout(scheduledUI, "setPage", 0, () => {
-        replaceElements(document.getElementById("body_error"), [
-            ["h1", "Exception"],
-            ["pre", "code", errorMessageOf(error)],
-            ["h2", "To see more details"],
-            ["ul", [
-                ["li", [
-                    ["p", "On a Firefox-based browser, go to"],
-                    ["pre", "code", "about:debugging#/runtime/this-firefox"],
-                    ["p", "Then, click \"Inspect\" button on \"Hoardy-Web\", select \"Console\"."],
-                ]],
-                ["li", [
-                    ["p", "On a Chromium-based browser, go to"],
-                    ["pre", "code", "chrome://extensions/"],
-                    ["p", "Then, click \"Inspect views\" link on \"Hoardy-Web\", select \"Console\"."],
-                ]],
-            ]],
-        ]);
-        setPageState("error");
-    }, 0, true);
+    resetSingletonTimeout(
+        scheduledUI,
+        "setPage",
+        0,
+        () => {
+            replaceElements(document.getElementById("body_error"), [
+                ["h1", "Exception"],
+                ["pre", "code", errorMessageOf(error)],
+                ["h2", "To see more details"],
+                [
+                    "ul",
+                    [
+                        [
+                            "li",
+                            [
+                                ["p", "On a Firefox-based browser, go to"],
+                                ["pre", "code", "about:debugging#/runtime/this-firefox"],
+                                [
+                                    "p",
+                                    'Then, click "Inspect" button on "Hoardy-Web", select "Console".',
+                                ],
+                            ],
+                        ],
+                        [
+                            "li",
+                            [
+                                ["p", "On a Chromium-based browser, go to"],
+                                ["pre", "code", "chrome://extensions/"],
+                                [
+                                    "p",
+                                    'Then, click "Inspect views" link on "Hoardy-Web", select "Console".',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ]);
+            setPageState("error");
+        },
+        0,
+        true,
+    );
 }
 
 function setPageDone() {
-    resetSingletonTimeout(scheduledUI, "setPage", 0, () => {
-        setPageState("done");
-    }, 0, true);
+    resetSingletonTimeout(
+        scheduledUI,
+        "setPage",
+        0,
+        () => {
+            setPageState("done");
+        },
+        0,
+        true,
+    );
 }
 
 function setRootClasses(config) {
     let sparse = config.sparse;
-    if (sparse === null && isMobile)
+    if (sparse === null && isMobile) {
         sparse = true;
+    }
 
     let dark = config.colors;
-    if (dark === null && window.matchMedia("(prefers-color-scheme: dark)").matches)
+    if (dark === null && window.matchMedia("(prefers-color-scheme: dark)").matches) {
         dark = true;
+    }
 
     let dnow = new Date();
     let dm = dnow.getMonth() + 1; // JavaScript is ridiculous
@@ -226,18 +285,23 @@ function setRootClasses(config) {
 
     let season = config.season;
     function can(name) {
-        return config.seasonal
-            && season[name] !== false
-            && Array.from(Object.keys(season)).every((k) => k === name || season[k] !== true);
+        return (
+            config.seasonal &&
+            season[name] !== false &&
+            Array.from(Object.keys(season)).every((k) => k === name || season[k] !== true)
+        );
     }
 
-    let halloween = can("halloween") &&
-        (dm === 10 && dd >= 30 || dm === 11 && dd <= 1 || season.halloween === true);
-    let winter = can("winter") &&
-        (dm === 12 && dd >= 20 || dm === 1 && dd <= 8 || season.winter === true);
+    let halloween =
+        can("halloween") &&
+        ((dm === 10 && dd >= 30) || (dm === 11 && dd <= 1) || season.halloween === true);
+    let winter =
+        can("winter") &&
+        ((dm === 12 && dd >= 20) || (dm === 1 && dd <= 8) || season.winter === true);
 
-    if (halloween || winter)
+    if (halloween || winter) {
         dark = true;
+    }
 
     let droot = getRootNode(document);
 
@@ -264,8 +328,9 @@ function mapShortcutName(func, name) {
     }
     name = uncapitalize(name);
     // TODO: remove
-    if (name === "tracking")
+    if (name === "tracking") {
         name = "collecting";
+    }
     return func(name, children);
 }
 
@@ -285,8 +350,9 @@ function isUnknownError(error) {
             error === "webRequest::capture::EMIT_FORCED::BY_CLOSED_TAB" ||
             error === "webRequest::capture::EMIT_FORCED::BY_USER" ||
             error === "filterResponseData::Channel redirected"
-        )
-        return false;
+        ) {
+            return false;
+        }
     } else {
         // Chromium
         if (
@@ -311,8 +377,9 @@ function isUnknownError(error) {
             error === "debugger::capture::NO_RESPONSE_BODY::ACCESS_DENIED" ||
             error === "debugger::capture::NO_RESPONSE_BODY::OTHER" ||
             error.startsWith("debugger::net::ERR_BLOCKED::")
-        )
-        return false;
+        ) {
+            return false;
+        }
     }
     return true;
 }
@@ -326,40 +393,45 @@ function isIncompleteError(error) {
             error === "webRequest::NS_ERROR_NET_ON_SENDING_TO" ||
             error === "webRequest::NS_ERROR_NET_PARTIAL_TRANSFER" ||
             error === "webRequest::NS_ERROR_UNEXPECTED"
-        )
+        ) {
             return true;
+        }
     }
     return false;
 }
 
 function isImportantError(error) {
     if (
-        error.startsWith("webRequest::capture::") && error !== "webRequest::capture::CANCELED::BY_WORK_OFFLINE" ||
+        (error.startsWith("webRequest::capture::") &&
+            error !== "webRequest::capture::CANCELED::BY_WORK_OFFLINE") ||
         error.startsWith("debugger::capture::")
-    )
+    ) {
         return true;
+    }
     return false;
 }
 
 function isTrivialError(error) {
     if (!useDebugger) {
         // Firefox
-        if (
-            error === "filterResponseData::Channel redirected"
-        )
-        return true;
+        if (error === "filterResponseData::Channel redirected") {
+            return true;
+        }
     }
     return false;
 }
 
 // Merge two `updatedTabId`s, `undefined` meanse "none", and `null` means `all`.
-function mergeUpdatedTabIds(a , b) {
-    if (a === b)
+function mergeUpdatedTabIds(a, b) {
+    if (a === b) {
         return a;
-    if (a === undefined)
+    }
+    if (a === undefined) {
         return b;
-    if (b === undefined)
+    }
+    if (b === undefined) {
         return a;
+    }
     return null;
 }
 
@@ -380,12 +452,12 @@ function newRearchiveVars() {
 
 function updateRearchiveVars(rearchive, path) {
     switch (path) {
-    case "rearchive.andDelete":
-        rearchive.andRewrite = rearchive.andRewrite && !rearchive.andDelete;
-        break;
-    case "rearchive.andRewrite":
-        rearchive.andDelete = rearchive.andDelete && !rearchive.andRewrite;
-        break;
+        case "rearchive.andDelete":
+            rearchive.andRewrite = rearchive.andRewrite && !rearchive.andDelete;
+            break;
+        case "rearchive.andRewrite":
+            rearchive.andDelete = rearchive.andDelete && !rearchive.andRewrite;
+            break;
     }
 }
 
@@ -415,84 +487,112 @@ function mkReqresFilter(value) {
 }
 
 function compileReqresFilter(value) {
-    if (value === false)
-        return [mkReqresFilter({limit: 0}), (reqres) => false];
-    if (value === null)
+    if (value === false) {
+        return [mkReqresFilter({ limit: 0 }), (reqres) => false];
+    }
+    if (value === null) {
         return [mkReqresFilter({}), (reqres) => true];
+    }
 
     value = mkReqresFilter(value);
 
     let predicates = [];
 
     // add predicates for the simple checks
-    if (value.sessionId !== null)
+    if (value.sessionId !== null) {
         predicates.push((reqres) => reqres.sessionId === value.sessionId);
-    if (value.windowId !== null)
+    }
+    if (value.windowId !== null) {
         predicates.push((reqres) => reqres.windowId === value.windowId);
-    if (value.tabId !== null)
+    }
+    if (value.tabId !== null) {
         predicates.push((reqres) => reqres.tabId === value.tabId);
-    if (value.picked !== null)
+    }
+    if (value.picked !== null) {
         predicates.push((reqres) => reqres.picked === value.picked);
-    if (value.collected !== null)
+    }
+    if (value.collected !== null) {
         predicates.push((reqres) => reqres.collected === value.collected);
-    if (value.problematic !== null)
+    }
+    if (value.problematic !== null) {
         predicates.push((reqres) => reqres.problematic === value.problematic);
-    if (value.was_problematic !== null)
+    }
+    if (value.was_problematic !== null) {
         predicates.push((reqres) => reqres.was_problematic === value.was_problematic);
-    if (value.in_limbo !== null)
+    }
+    if (value.in_limbo !== null) {
         predicates.push((reqres) => reqres.in_limbo === value.in_limbo);
-    if (value.was_in_limbo !== null)
+    }
+    if (value.was_in_limbo !== null) {
         predicates.push((reqres) => reqres.was_in_limbo === value.was_in_limbo);
-    if (value.with_errors !== null)
-        predicates.push((reqres) => value.with_errors ?
-                                    reqres.errors.length > 0 :
-                                    reqres.errors.length === 0);
-    if (value.did_exportAs !== null)
-        predicates.push((reqres) => value.did_exportAs ?
-                                    reqres.archived & archivedViaExportAs !== 0 :
-                                    reqres.archived & archivedViaExportAs === 0);
-    if (value.did_submitHTTP !== null)
-        predicates.push((reqres) => value.did_submitHTTP ?
-                                    reqres.archived & archivedViaSubmitHTTP !== 0 :
-                                    reqres.archived & archivedViaSubmitHTTP === 0);
-    if (value.in_ls !== null)
+    }
+    if (value.with_errors !== null) {
+        predicates.push((reqres) =>
+            value.with_errors ? reqres.errors.length > 0 : reqres.errors.length === 0,
+        );
+    }
+    if (value.did_exportAs !== null) {
+        predicates.push((reqres) =>
+            value.did_exportAs
+                ? reqres.archived & (archivedViaExportAs !== 0)
+                : reqres.archived & (archivedViaExportAs === 0),
+        );
+    }
+    if (value.did_submitHTTP !== null) {
+        predicates.push((reqres) =>
+            value.did_submitHTTP
+                ? reqres.archived & (archivedViaSubmitHTTP !== 0)
+                : reqres.archived & (archivedViaSubmitHTTP === 0),
+        );
+    }
+    if (value.in_ls !== null) {
         predicates.push((reqres) => reqres.inLS === value.in_ls);
-    if (value.method !== null)
+    }
+    if (value.method !== null) {
         predicates.push((reqres) => reqres.method === value.method);
+    }
 
     // add a predicate that tests that `reqres.url` matches
     let url_algo = value.url_algo;
     let url = value.url;
-    if (url_algo === false)
+    if (url_algo === false) {
         predicates.push((reqres) => reqres.url === url);
-    else if (url_algo === null) {
-        if (url.length !== 0)
+    } else if (url_algo === null) {
+        if (url.length !== 0) {
             predicates.push((reqres) => reqres.url.includes(url));
+        }
         // else, add nothing
     } else if (url_algo === true) {
         let re = new RegExp(url);
         predicates.push((reqres) => re.test(reqres.url));
-    } else
+    } else {
         throw new TypeError("Bad url_algo");
+    }
 
-    return [value, (reqres) => {
-        for (let predicate of predicates) {
-            if (!predicate(reqres))
-                return false;
-        }
-        return true;
-    }];
+    return [
+        value,
+        (reqres) => {
+            for (let predicate of predicates) {
+                if (!predicate(reqres)) {
+                    return false;
+                }
+            }
+            return true;
+        },
+    ];
 }
 
 function escapeNotification(config, what) {
-    if (config.escapeNotifications)
+    if (config.escapeNotifications) {
         return escapeHTMLTags(what);
+    }
     return what;
 }
 
 function annoyingNotification(config, what) {
-    if (config.verbose)
+    if (config.verbose) {
         return `\n\nYou can disable this notification by toggling the "${what}" option in the settings.\nYou can also toggle "User Interface and Accessibily > Verbose notifications" there to make this and similar notifications less verbose.`;
-    else
+    } else {
         return "";
+    }
 }

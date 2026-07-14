@@ -47,8 +47,9 @@ async function evalClosures(closures, updatedTabId) {
     while (closures.length > 0) {
         let [name, func, args] = closures.shift();
 
-        if (config.debugRuntime)
+        if (config.debugRuntime) {
             console.warn("SCHEDULER: running sync", name);
+        }
         runningActions.add(name);
 
         await forceUpdateDisplay(true, updatedTabId);
@@ -56,16 +57,18 @@ async function evalClosures(closures, updatedTabId) {
 
         try {
             let res = func(...args);
-            while (res instanceof Promise)
+            while (res instanceof Promise) {
                 res = await res;
+            }
             updatedTabId = res;
         } catch (err) {
             logError(err);
         }
 
         runningActions.delete(name);
-        if (config.debugRuntime)
+        if (config.debugRuntime) {
             console.warn("SCHEDULER: finished sync", name, updatedTabId);
+        }
     }
 
     return updatedTabId;
@@ -130,7 +133,7 @@ function syncCancelActions() {
 
 // ../page/saved.js implementation
 let wantBroadcastSaved = false;
-let savedFilters = mkReqresFilter({limit: 1024});
+let savedFilters = mkReqresFilter({ limit: 1024 });
 
 function setSavedFilters(rrfilter) {
     savedFilters = updateFromRec(savedFilters, rrfilter);
@@ -173,8 +176,9 @@ function sePopClosures(scheduled, closures, ...args) {
     for (let [tabId, cs] of scheduled.entries()) {
         // NB: the first part is so that `null` would be processed last, the second is so
         // that the third won't be called when `numInFlight === 0`
-        if (tabId === null || numInFlight !== 0 && getInFlightNum({tabId}) !== 0)
+        if (tabId === null || (numInFlight !== 0 && getInFlightNum({ tabId }) !== 0)) {
             continue;
+        }
         closures.push(...cs);
         toDelete.push(tabId);
     }
@@ -188,14 +192,20 @@ function sePopClosures(scheduled, closures, ...args) {
         }
     }
 
-    for (let tabId of toDelete)
+    for (let tabId of toDelete) {
         scheduled.delete(tabId);
+    }
 
     scheduleEndgame(undefined, ...args);
 }
 
 // schedule processArchiving, processAlmostDone, etc
-function scheduleEndgame(updatedTabId, notifyTimeout, skipScheduledWhenNoInFlight, skipScheduledWhenArchived) {
+function scheduleEndgame(
+    updatedTabId,
+    notifyTimeout,
+    skipScheduledWhenNoInFlight,
+    skipScheduledWhenArchived,
+) {
     seUpdatedTabId = mergeUpdatedTabIds(seUpdatedTabId, updatedTabId);
 
     if (wantCheckServer) {
@@ -204,30 +214,55 @@ function scheduleEndgame(updatedTabId, notifyTimeout, skipScheduledWhenNoInFligh
             scheduleEndgame(undefined, notifyTimeout);
         });
     } else if (synchronousClosuresA.length > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0,
-                              () => seEvalClosures(synchronousClosuresA, notifyTimeout));
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, () =>
+            seEvalClosures(synchronousClosuresA, notifyTimeout),
+        );
     } else if (reqresAlmostDone.length > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0,
-                              () => seEvalFunction(processAlmostDone, notifyTimeout));
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, () =>
+            seEvalFunction(processAlmostDone, notifyTimeout),
+        );
     } else if (!skipScheduledWhenNoInFlight && scheduledWhenNoInFlight.size > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0,
-                              // NB: `skipScheduledWhenNoInFlight = true`
-                              () => sePopClosures(scheduledWhenNoInFlight, synchronousClosuresB,
-                                                  notifyTimeout, true, skipScheduledWhenArchived));
+        resetSingletonTimeout(
+            scheduledHidden,
+            "endgame",
+            0,
+            // NB: `skipScheduledWhenNoInFlight = true`
+            () =>
+                sePopClosures(
+                    scheduledWhenNoInFlight,
+                    synchronousClosuresB,
+                    notifyTimeout,
+                    true,
+                    skipScheduledWhenArchived,
+                ),
+        );
     } else if (synchronousClosuresB.length > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0,
-                              () => seEvalClosures(synchronousClosuresB, notifyTimeout));
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, () =>
+            seEvalClosures(synchronousClosuresB, notifyTimeout),
+        );
     } else if (config.archive && reqresQueue.length > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0,
-                              () => seEvalFunction(processArchiving, notifyTimeout));
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, () =>
+            seEvalFunction(processArchiving, notifyTimeout),
+        );
     } else if (!skipScheduledWhenArchived && scheduledWhenArchived.size > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0,
-                              // NB: `skipScheduledWhenArchived = true`
-                              () => sePopClosures(scheduledWhenArchived, synchronousClosuresC,
-                                                  notifyTimeout, skipScheduledWhenNoInFlight, true));
+        resetSingletonTimeout(
+            scheduledHidden,
+            "endgame",
+            0,
+            // NB: `skipScheduledWhenArchived = true`
+            () =>
+                sePopClosures(
+                    scheduledWhenArchived,
+                    synchronousClosuresC,
+                    notifyTimeout,
+                    skipScheduledWhenNoInFlight,
+                    true,
+                ),
+        );
     } else if (synchronousClosuresC.length > 0) {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0,
-                              () => seEvalClosures(synchronousClosuresC, notifyTimeout));
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, () =>
+            seEvalClosures(synchronousClosuresC, notifyTimeout),
+        );
     } else {
         resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
             let updatedTabId = seUpdatedTabId;
@@ -235,7 +270,12 @@ function scheduleEndgame(updatedTabId, notifyTimeout, skipScheduledWhenNoInFligh
 
             if (wantBroadcastSaved) {
                 wantBroadcastSaved = false;
-                scheduleAction(scheduledInternal, "readSaved", 0, loadAndBroadcastSaved(savedFilters));
+                scheduleAction(
+                    scheduledInternal,
+                    "readSaved",
+                    0,
+                    loadAndBroadcastSaved(savedFilters),
+                );
             }
 
             cleanupTabs();
@@ -247,33 +287,40 @@ function scheduleEndgame(updatedTabId, notifyTimeout, skipScheduledWhenNoInFligh
                 wantSaveState = false;
 
                 // save immediately if we want to reload or we just wrote to local storage
-                let timeout = (
+                let timeout =
                     wantReloadSelf ||
                     savedState.stashedLS.number !== state.stashedLS.number ||
                     savedState.stashedIDB.number !== state.stashedIDB.number ||
                     savedState.savedLS.number !== state.savedLS.number ||
                     savedState.savedIDB.number !== state.savedIDB.number
-                ) ? 0 : 1000;
+                        ? 0
+                        : 1000;
                 // delay for longer if there's probably going to be more updates soon or this update is not that important
-                if (haveInFlight || (
-                    savedState.collectedTotal === state.collectedTotal &&
-                    savedState.exportedAsTotal === state.exportedAsTotal &&
-                    savedState.submittedHTTPTotal === state.submittedHTTPTotal &&
-                    savedState.dumpedTotal === state.dumpedTotal &&
-                    savedState.stashedTotal === state.stashedTotal &&
-                    savedState.savedTotal === state.savedTotal
-                ))
+                if (
+                    haveInFlight ||
+                    (savedState.collectedTotal === state.collectedTotal &&
+                        savedState.exportedAsTotal === state.exportedAsTotal &&
+                        savedState.submittedHTTPTotal === state.submittedHTTPTotal &&
+                        savedState.dumpedTotal === state.dumpedTotal &&
+                        savedState.stashedTotal === state.stashedTotal &&
+                        savedState.savedTotal === state.savedTotal)
+                ) {
                     timeout *= 10;
+                }
                 scheduleSaveState(timeout);
             }
 
             if (wantBucketSaveAs) {
                 wantBucketSaveAs = false;
                 // schedule exportAs for all buckets
-                scheduleBucketSaveAs(haveInFlight
-                                     ? config.exportAsInFlightTimeout * 1000
-                                     : (wantReloadSelf ? 0 : config.exportAsTimeout * 1000)
-                                     , null);
+                scheduleBucketSaveAs(
+                    haveInFlight
+                        ? config.exportAsInFlightTimeout * 1000
+                        : wantReloadSelf
+                          ? 0
+                          : config.exportAsTimeout * 1000,
+                    null,
+                );
             }
 
             if (wantRetryAllUnarchived) {
@@ -291,29 +338,43 @@ function scheduleEndgame(updatedTabId, notifyTimeout, skipScheduledWhenNoInFligh
 
 function runThenScheduleEndgame(func, ...args) {
     let res = catchAll(func)(...args);
-    if (res instanceof Promise)
+    if (res instanceof Promise) {
         res.then(() => scheduleEndgame());
-    else
+    } else {
         scheduleEndgame();
+    }
 }
 
 // run `func` after `tabId` settles
 async function runWhenTabSettles(what, desc, tabId, tabcfg, retries, func, ...args) {
     async function doDelay(timeout) {
         if (retries > tabcfg.settleRetries) {
-            await browser.notifications.create(`error-${what}-${tabId}`, {
-                title: "Hoardy-Web: ERROR",
-                message: escapeNotification(config, `Failed to ${desc}:\n- The page did not settle, the number of retries exeeds \`DOM Snapshots > Retry up to <N> times\` setting`),
-                iconUrl: iconURL("error", 128),
-                type: "basic",
-            }).catch(logError);
+            await browser.notifications
+                .create(`error-${what}-${tabId}`, {
+                    title: "Hoardy-Web: ERROR",
+                    message: escapeNotification(
+                        config,
+                        `Failed to ${desc}:\n- The page did not settle, the number of retries exeeds \`DOM Snapshots > Retry up to <N> times\` setting`,
+                    ),
+                    iconUrl: iconURL("error", 128),
+                    type: "basic",
+                })
+                .catch(logError);
             return;
         }
 
         // pause for a bit to let the page's JavaScript process it
         resetSingletonTimeout(scheduledDelayed, `${what}#${tabId}`, timeout, async () => {
             // and try again
-            let updatedTabId = await runWhenTabSettles(what, desc, tabId, tabcfg, retries + 1, func, ...args);
+            let updatedTabId = await runWhenTabSettles(
+                what,
+                desc,
+                tabId,
+                tabcfg,
+                retries + 1,
+                func,
+                ...args,
+            );
             scheduleEndgame(updatedTabId);
         });
 
@@ -322,7 +383,7 @@ async function runWhenTabSettles(what, desc, tabId, tabcfg, retries, func, ...ar
 
     let delay = tabcfg.settleDelay * 1000;
 
-    if (getInFlightNum({tabId}) !== 0) {
+    if (getInFlightNum({ tabId }) !== 0) {
         // if some relevant reqres are still in flight
         runSynchronouslyWhenNoInFlight(tabId, what, () => doDelay(delay));
         return; // undefined
@@ -338,8 +399,9 @@ async function runWhenTabSettles(what, desc, tabId, tabcfg, retries, func, ...ar
 
     // run it
     let res = func(...args);
-    while (res instanceof Promise)
+    while (res instanceof Promise) {
         res = await res;
+    }
     return res;
 }
 
@@ -350,35 +412,45 @@ async function runWhenTabSettles(what, desc, tabId, tabcfg, retries, func, ...ar
 //
 // The scheduled function is experted to return `updatedTabId` value.
 function scheduleActionExtra(map, name, priority, timeout, hurry, func, endgame) {
-    let value = resetSingletonTimeout(map, name, timeout, async () => {
-        if (config.debugRuntime)
-            console.warn("SCHEDULER: running async", name);
-        runningActions.add(name);
+    let value = resetSingletonTimeout(
+        map,
+        name,
+        timeout,
+        async () => {
+            if (config.debugRuntime) {
+                console.warn("SCHEDULER: running async", name);
+            }
+            runningActions.add(name);
 
-        await forceUpdateDisplay(true);
+            await forceUpdateDisplay(true);
 
-        let updatedTabId;
-        try {
-            updatedTabId = func();
-        } catch (err) {
-            logError(err);
-        }
+            let updatedTabId;
+            try {
+                updatedTabId = func();
+            } catch (err) {
+                logError(err);
+            }
 
-        runningActions.delete(name);
-        if (config.debugRuntime)
-            console.warn("SCHEDULER: finished async", name, updatedTabId);
+            runningActions.delete(name);
+            if (config.debugRuntime) {
+                console.warn("SCHEDULER: finished async", name, updatedTabId);
+            }
 
-        return updatedTabId;
-    }, priority, hurry);
+            return updatedTabId;
+        },
+        priority,
+        hurry,
+    );
 
     if (value !== undefined) {
         // if newly scheduled
         async function after(results) {
             let updatedTabId = results.reduce(mergeUpdatedTabIds, undefined);
-            if (endgame)
+            if (endgame) {
                 scheduleEndgame(updatedTabId);
-            else
+            } else {
                 await forceUpdateDisplay(true, updatedTabId);
+            }
         }
         value.delay.push(after);
         value.then.push(after);

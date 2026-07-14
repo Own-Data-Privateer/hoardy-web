@@ -27,16 +27,19 @@
     let ct = document.contentType;
     let errors = [];
 
-    if (document instanceof HTMLDocument && ct === "text/html"
-       || document instanceof XMLDocument && ct === "image/svg+xml") {
+    if (
+        (document instanceof HTMLDocument && ct === "text/html") ||
+        (document instanceof XMLDocument && ct === "image/svg+xml")
+    ) {
         ct = `${ct}; charset=${document.characterSet}`;
 
         let gotDocType = false;
         let cres = [];
         for (let c of document.childNodes) {
             if (c instanceof DocumentType && c.name === "html") {
-                if (gotDocType)
+                if (gotDocType) {
                     errors.push("multiple doctypes");
+                }
                 gotDocType = true;
 
                 cres.push("<!DOCTYPE html>");
@@ -45,19 +48,24 @@
             } else if (c instanceof HTMLHtmlElement) {
                 cres.push(c.outerHTML);
             } else if (c instanceof SVGSVGElement) {
-                if (gotDocType)
+                if (gotDocType) {
                     errors.push("multiple doctypes");
+                }
                 gotDocType = true;
 
-                cres.push(`<?xml version="1.0" encoding="${document.characterSet}" standalone="no"?>`)
+                cres.push(
+                    `<?xml version="1.0" encoding="${document.characterSet}" standalone="no"?>`,
+                );
                 cres.push(c.outerHTML);
-            } else
+            } else {
                 errors.push(`unknown child element type ${c.toString()}`);
+            }
         }
 
         result = cres.join("\n");
-    } else
+    } else {
         errors.push(`snapshotting of frames with \`${ct}\` content type is not implemented`);
+    }
 
     return [now, document.documentURI, document.referrer, document.URL, ct, result, errors];
 })();

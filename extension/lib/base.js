@@ -53,13 +53,15 @@ function sleep(timeout) {
 }
 
 function errorMessageOf(err) {
-    if (typeof err === "string")
+    if (typeof err === "string") {
         return err;
+    }
     let msg = err.message;
-    if (msg === undefined)
+    if (msg === undefined) {
         return err.toString();
-    else
+    } else {
         return msg.replace(/\.$/, "");
+    }
 }
 
 function logError(err) {
@@ -69,8 +71,9 @@ function logError(err) {
 
 function logErrorExceptWhenStartsWith(prefix) {
     return (err) => {
-        if (typeof err === "string" && err.startsWith(prefix))
+        if (typeof err === "string" && err.startsWith(prefix)) {
             return;
+        }
         logError(err);
     };
 }
@@ -91,13 +94,18 @@ function catchAll(func, def) {
             return def;
         }
 
-        if (res instanceof Promise)
-            return new Promise((resolve, reject) => res.catch((err) => {
-                logError(err);
-                return def;
-            }).then(resolve));
-        else
+        if (res instanceof Promise) {
+            return new Promise((resolve, reject) =>
+                res
+                    .catch((err) => {
+                        logError(err);
+                        return def;
+                    })
+                    .then(resolve),
+            );
+        } else {
             return res;
+        }
     };
 }
 
@@ -109,15 +117,18 @@ async function runTests(noConsole) {
     for (let [k, v] of Object.entries(tests)) {
         try {
             let res = v();
-            while (res instanceof Promise)
+            while (res instanceof Promise) {
                 res = await res;
-            if (!noConsole)
+            }
+            if (!noConsole) {
                 console.debug("test PASS", k);
+            }
         } catch (err) {
             let msg = errorMessageOf(err);
             errors[k] = msg;
-            if (!noConsole)
+            if (!noConsole) {
                 console.error("test FAIL", k, ":", msg);
+            }
         }
     }
 
@@ -127,15 +138,16 @@ async function runTests(noConsole) {
 function evalFunctionsAway(iterable) {
     let res = [];
     for (let e of iterable) {
-        if (typeof e !== "function")
+        if (typeof e !== "function") {
             res.push(e);
-        else
+        } else {
             res.push(e());
+        }
     }
     return res;
 }
 
-function asyncAllApply (list, nthis, ...args) {
+function asyncAllApply(list, nthis, ...args) {
     return Promise.all(list.map((f) => f.apply(nthis, args)));
 }
 
@@ -145,10 +157,11 @@ function saveAs(chunks, mime, fileName) {
     var fileURL = URL.createObjectURL(file);
     var el = document.createElement("a");
     el.href = fileURL;
-    if (fileName)
+    if (fileName) {
         el.download = fileName;
+    }
     el.dispatchEvent(new MouseEvent("click"));
-    setTimeout(function() {
+    setTimeout(function () {
         URL.revokeObjectURL(fileURL);
     }, 0);
 }
@@ -162,15 +175,19 @@ function clamp(min, max, value) {
 }
 
 function getFirstDefined(...args) {
-    for (let a of args)
-        if (a !== undefined)
+    for (let a of args) {
+        if (a !== undefined) {
             return a;
+        }
+    }
 }
 
 function getFirstOk(...args) {
-    for (let a of args)
-        if (a)
+    for (let a of args) {
+        if (a) {
             return a;
+        }
+    }
 }
 
 function capitalize(x) {
@@ -183,12 +200,14 @@ function uncapitalize(x) {
 
 // convert milliseconds since UNIX epoch to "YYYY-mm-DD HH:MM:SS"
 function dateToString(epoch) {
-    if (epoch === undefined || typeof epoch !== "number")
+    if (epoch === undefined || typeof epoch !== "number") {
         return "undefined";
+    }
     let str = new Date(epoch).toISOString();
     let pos = str.indexOf(".");
-    if (pos != -1)
+    if (pos != -1) {
         str = str.substr(0, pos);
+    }
     return str.replace("T", " ");
 }
 
@@ -198,12 +217,12 @@ function partitionN(predicate, num, iterable) {
     let first = [];
     let second = [];
     for (let e of iterable) {
-        if ((num === null || total < num)
-            && (predicate === undefined || predicate(e))) {
+        if ((num === null || total < num) && (predicate === undefined || predicate(e))) {
             total += 1;
             first.push(e);
-        } else
+        } else {
             second.push(e);
+        }
     }
 
     return [first, second];
@@ -236,57 +255,92 @@ async function asyncCacheSingleton(map, key, func) {
 //   equivalentRec((x, y) => false, a, b, true)
 // is just a recursive version of `a === b`.
 function equivalentRec(func, a, b, quick, path) {
-    if (a === b)
+    if (a === b) {
         return true;
+    }
 
     if (a instanceof Array && b instanceof Array) {
         let al = a.length;
         let bl = b.length;
 
-        if (quick && al !== bl)
+        if (quick && al !== bl) {
             return false;
+        }
 
         let ml = Math.max(a.length, b.length);
         let res = true;
 
         for (let i = 0; i < ml; ++i) {
-            if (!equivalentRec(func, a[i], b[i], quick, path ? path + "." + i.toString() : i.toString())) {
+            if (
+                !equivalentRec(
+                    func,
+                    a[i],
+                    b[i],
+                    quick,
+                    path ? path + "." + i.toString() : i.toString(),
+                )
+            ) {
                 res = false;
-                if (quick)
+                if (quick) {
                     break;
+                }
             }
         }
 
         return res;
     }
 
-    if (a instanceof Object && !(a instanceof Array) &&
-        b instanceof Object && !(b instanceof Array)) {
+    if (
+        a instanceof Object &&
+        !(a instanceof Array) &&
+        b instanceof Object &&
+        !(b instanceof Array)
+    ) {
         let ae = Array.from(Object.entries(a));
         let be = Array.from(Object.entries(b));
 
-        if (quick && ae.length !== be.length)
+        if (quick && ae.length !== be.length) {
             return false;
+        }
 
         let seen = new Set();
         let res = true;
 
         for (let [k, v] of ae) {
             seen.add(k);
-            if (!equivalentRec(func, v, b[k], quick, path ? path + "." + k.toString() : k.toString())) {
+            if (
+                !equivalentRec(
+                    func,
+                    v,
+                    b[k],
+                    quick,
+                    path ? path + "." + k.toString() : k.toString(),
+                )
+            ) {
                 res = false;
-                if (quick)
+                if (quick) {
                     break;
+                }
             }
         }
 
         for (let [k, v] of be) {
-            if (seen.has(k))
+            if (seen.has(k)) {
                 continue;
-            if (!equivalentRec(func, a[k], v, quick, path ? path + "." + k.toString() : k.toString())) {
+            }
+            if (
+                !equivalentRec(
+                    func,
+                    a[k],
+                    v,
+                    quick,
+                    path ? path + "." + k.toString() : k.toString(),
+                )
+            ) {
                 res = false;
-                if (quick)
+                if (quick) {
                     break;
+                }
             }
         }
 
@@ -303,18 +357,25 @@ function equalRec(a, b, path) {
 
 function equalRecDiff(a, b, path) {
     let diff = [];
-    let res = equivalentRec((a, b, path) => {
-        diff.push([path, a, b]);
-        return false;
-    }, a, b, false, path);
+    let res = equivalentRec(
+        (a, b, path) => {
+            diff.push([path, a, b]);
+            return false;
+        },
+        a,
+        b,
+        false,
+        path,
+    );
     return [res, diff];
 }
 
 function equalRecWarnNeq(a, b, msg, path) {
     let [res, diff] = equalRecDiff(a, b, path);
     if (!res) {
-        for (let [k, a, b] of diff)
+        for (let [k, a, b] of diff) {
             console.warn(msg ? msg : "changed", k, ":", a, "->", b);
+        }
     }
     return res;
 }
@@ -330,33 +391,48 @@ tests.equalRec = () => {
         }
     }
 
-    if (!equalRec([], []))
+    if (!equalRec([], [])) {
         throw new Error("neq []");
+    }
 
-    if (!equalRec({}, {}))
+    if (!equalRec({}, {})) {
         throw new Error("neq {}");
-}
+    }
+};
 
 tests.equivalentRec = () => {
-    if (!equivalentRec((a, b) => a === 2 && b === 3, [2], [3]))
+    if (!equivalentRec((a, b) => a === 2 && b === 3, [2], [3])) {
         throw new Error("neq []1");
+    }
 
-    if (!equivalentRec((a, b) => a === 2 && b === 3 || a === undefined && b === 4, [2], [3, 4]))
+    if (
+        !equivalentRec((a, b) => (a === 2 && b === 3) || (a === undefined && b === 4), [2], [3, 4])
+    ) {
         throw new Error("neq []2");
+    }
 
-    if (!equivalentRec((a, b) => a === 2 && b === 3, {a: 2}, {a: 3}))
+    if (!equivalentRec((a, b) => a === 2 && b === 3, { a: 2 }, { a: 3 })) {
         throw new Error("neq {}1");
+    }
 
-    if (!equivalentRec((a, b) => a === 2 && b === undefined || a === undefined && b === 3, {a: 2}, {b: 3}))
+    if (
+        !equivalentRec(
+            (a, b) => (a === 2 && b === undefined) || (a === undefined && b === 3),
+            { a: 2 },
+            { b: 3 },
+        )
+    ) {
         throw new Error("neq {}2");
+    }
 };
 
 // recursively assign fields in target from fields in values, i.e. `assignRec({}, value)` would just
 // copy `value`
 function assignRec(target, ...values) {
     for (let value of values) {
-        if (value === undefined)
+        if (value === undefined) {
             continue;
+        }
 
         if (value === null) {
             target = value;
@@ -370,10 +446,12 @@ function assignRec(target, ...values) {
         }
 
         if (value instanceof Object) {
-            if (target === undefined)
+            if (target === undefined) {
                 target = {};
-            for (let [k, v] of Object.entries(value))
+            }
+            for (let [k, v] of Object.entries(value)) {
                 target[k] = assignRec(target[k], v);
+            }
         } else {
             console.error("assignRec", typ, target, value);
             throw new Error("what?");
@@ -386,12 +464,14 @@ function assignRec(target, ...values) {
 // like `assignRec`, but only updates fields that already exist in the `target` and checks that
 // their types match
 function updateFromRec(target, ...values) {
-    if (target === undefined)
+    if (target === undefined) {
         return target;
+    }
 
     for (let value of values) {
-        if (value === undefined)
+        if (value === undefined) {
             continue;
+        }
 
         // treat `null` as a value of any type
         if (target === null || value === null) {
@@ -411,8 +491,9 @@ function updateFromRec(target, ...values) {
         }
 
         if (value instanceof Object) {
-            for (let k of Object.keys(target))
+            for (let k of Object.keys(target)) {
                 target[k] = updateFromRec(target[k], value[k]);
+            }
         } else {
             console.error("updateFromRec", typ, target, value);
             throw new Error(`updateFromRec: ${typ} ${target} ${value}`);
@@ -423,17 +504,19 @@ function updateFromRec(target, ...values) {
 }
 
 function numberToPowerString(n, powers) {
-    if (!isValid(n))
+    if (!isValid(n)) {
         return "?";
+    }
 
     function mk(pow, psuf) {
         let v = n / pow;
         let vs = v.toString();
         let dot = vs.indexOf(".");
-        if (dot >= 3)
+        if (dot >= 3) {
             vs = vs.substr(0, dot);
-        else if (dot != -1)
+        } else if (dot != -1) {
             vs = vs.substr(0, dot + 2);
+        }
         return vs + psuf;
     }
 
@@ -444,10 +527,11 @@ function numberToPowerString(n, powers) {
             break;
         }
     }
-    if (res !== undefined)
+    if (res !== undefined) {
         return res;
-    else
+    } else {
         return n.toString();
+    }
 }
 
 let countPowers = [
@@ -499,15 +583,18 @@ function dumpToConsole(dump) {
 
 // return mapped ?`param`= parameter when the URL starts with `op`
 function getMapURLParam(op, param, url, f, def1, def2) {
-    if (url === undefined)
+    if (url === undefined) {
         return def2;
+    }
     let purl = url instanceof URL ? url : new URL(url);
-    if (purl.origin + purl.pathname !== op)
+    if (purl.origin + purl.pathname !== op) {
         return def2;
+    }
     let params = new URLSearchParams(purl.search);
     let id = params.get(param);
-    if (id === null)
+    if (id === null) {
         return def1;
+    }
     return f(id);
 }
 
@@ -519,16 +606,25 @@ function normalizedURL(url) {
 }
 
 function isLocalURL(url) {
-    if (url.startsWith("about:") || url.startsWith("chrome:")
-        || url.startsWith("data:") || url.startsWith("file:"))
+    if (
+        url.startsWith("about:") ||
+        url.startsWith("chrome:") ||
+        url.startsWith("data:") ||
+        url.startsWith("file:")
+    ) {
         return true;
+    }
     return false;
 }
 
 function isExtensionURL(url) {
-    if (url.startsWith("moz-extension://") // Firefox
-        || url.startsWith("chrome-extension://")) // Chromium
+    if (
+        url.startsWith("moz-extension://") || // Firefox
+        url.startsWith("chrome-extension://")
+    ) {
+        // Chromium
         return true;
+    }
     return false;
 }
 
@@ -537,17 +633,12 @@ function isBoringURL(url) {
 }
 
 function escapeHTMLTags(text) {
-    return text
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;");
+    return text.replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 function escapeHTML(text) {
     return escapeHTMLTags(
-        text
-        .replaceAll("&", "&amp;")
-        .replaceAll("\"", "&quot;")
-        .replaceAll("'", "&#039;")
+        text.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"),
     );
 }
 
@@ -556,6 +647,5 @@ function microMarkdownToHTML(text) {
         .replaceAll("\n", "<br />")
         .replaceAll(/[*][*]([^*`]+)[*][*]/g, "<strong>$1</strong>")
         .replaceAll(/[*]([^*`]+)[*]/g, "<em>$1</em>")
-        .replaceAll(/`([^`]+)`/g, "<code>$1</code>")
-    ;
+        .replaceAll(/`([^`]+)`/g, "<code>$1</code>");
 }

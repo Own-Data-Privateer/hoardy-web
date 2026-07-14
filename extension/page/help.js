@@ -40,72 +40,76 @@ function resize() {
 
     // Prevent independent scroll in `columns` layout.
     let h1 = columns ? `${h - 5}px` : null;
-    body.style["min-height"]
-        = body.style["max-height"]
-        = body.style["height"]
-        = h1;
+    body.style["min-height"] = body.style["max-height"] = body.style["height"] = h1;
 
     let ib = iframe.contentDocument.body;
-    if (ib === null)
+    if (ib === null) {
         // not yet loaded
         return;
+    }
 
     // Prevent in-iframe scroll in `linear` layout.
     let h2 = columns ? h1 : `${ib.scrollHeight + 20}px`;
-    iframe.style["min-height"]
-        = iframe.style["max-height"]
-        = iframe.style["height"]
-        = h2;
+    iframe.style["min-height"] = iframe.style["max-height"] = iframe.style["height"] = h2;
 }
 
 function updateLinks(node) {
-    classifyDocumentLinks(node, [
-        ["/page/help.html", "internal"],
-        ["/page/popup.html", "popup"],
-        ["/", "local"],
-    ], (link, info) => {
-        let klass = info.klass;
-        if (klass !== undefined)
-            link.classList.add(klass);
+    classifyDocumentLinks(
+        node,
+        [
+            ["/page/help.html", "internal"],
+            ["/page/popup.html", "popup"],
+            ["/", "local"],
+        ],
+        (link, info) => {
+            let klass = info.klass;
+            if (klass !== undefined) {
+                link.classList.add(klass);
+            }
 
-        switch (info.klass) {
-        case "internal":
-            link.onclick = (event) => {
-                event.stopPropagation();
-                event.preventDefault();
-                historyFromTo({ id: info.id }, { id: info.target });
-                focusNode(info.target);
-            };
-            link.onmouseover = (event) => {
-                if (columns)
-                    broadcastToPopup("highlightNode", null);
-            };
-            break;
-        case "popup":
-            link.onclick = (event) => {
-                event.stopPropagation();
-                event.preventDefault();
-                if (!columns)
-                    historyFromTo({ id: info.id }, info.href);
-                broadcastToPopup("focusNode", info.target);
-            };
-            link.onmouseover = (event) => {
-                if (columns)
-                    broadcastToPopup("focusNode", info.target);
-            };
-            break;
-        case "local":
-        default:
-            link.onclick = (event) => {
-                event.stopPropagation();
-                historyFromTo({ id: info.id });
-            };
-            link.onmouseover = (event) => {
-                if (columns)
-                    broadcastToPopup("highlightNode", null);
-            };
-        }
-    });
+            switch (info.klass) {
+                case "internal":
+                    link.onclick = (event) => {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        historyFromTo({ id: info.id }, { id: info.target });
+                        focusNode(info.target);
+                    };
+                    link.onmouseover = (event) => {
+                        if (columns) {
+                            broadcastToPopup("highlightNode", null);
+                        }
+                    };
+                    break;
+                case "popup":
+                    link.onclick = (event) => {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        if (!columns) {
+                            historyFromTo({ id: info.id }, info.href);
+                        }
+                        broadcastToPopup("focusNode", info.target);
+                    };
+                    link.onmouseover = (event) => {
+                        if (columns) {
+                            broadcastToPopup("focusNode", info.target);
+                        }
+                    };
+                    break;
+                case "local":
+                default:
+                    link.onclick = (event) => {
+                        event.stopPropagation();
+                        historyFromTo({ id: info.id });
+                    };
+                    link.onmouseover = (event) => {
+                        if (columns) {
+                            broadcastToPopup("highlightNode", null);
+                        }
+                    };
+            }
+        },
+    );
 }
 
 // no corresponding popup UI elements
@@ -114,7 +118,7 @@ let noPopup = new Set([
     "showEveryLog",
     "showWindowLog",
     "showTabLog",
-    "closeTabThenDiscardInLimbo"
+    "closeTabThenDiscardInLimbo",
 ]);
 
 // only set on Chromium
@@ -126,9 +130,12 @@ async function updatePage(initial) {
 
     let shortcuts = await getShortcuts(firefoxCommands);
     for (let [name, shortcut] of Object.entries(shortcuts)) {
-        let pointer = name.startsWith("toggleTabConfig") ?
-            mapShortcutName((name, children) => "genui-tabconfig." + (children ? "children." : "") + name, name) :
-            name;
+        let pointer = name.startsWith("toggleTabConfig")
+            ? mapShortcutName(
+                  (name, children) => "genui-tabconfig." + (children ? "children." : "") + name,
+                  name,
+              )
+            : name;
 
         let desc = shortcut.description;
         let [sdesc, ldesc] = desc.split(" : ");
@@ -146,30 +153,39 @@ async function updatePage(initial) {
         let s = document.createElement("span");
 
         if (noPopup.has(name)) {
-            if (ldesc !== undefined)
+            if (ldesc !== undefined) {
                 s.innerHTML = sdesc + ": " + microMarkdownToHTML(ldesc);
-            else
+            } else {
                 s.innerHTML = microMarkdownToHTML(desc);
+            }
             appendElements(tr, "td", s);
         } else {
             s.innerHTML = ": " + microMarkdownToHTML(ldesc);
             appendElements(tr, "td", [
-                [(e) => {
-                    e.href = `./popup.html#${pointer}`;
-                    return e;
-                }, "a", sdesc],
+                [
+                    (e) => {
+                        e.href = `./popup.html#${pointer}`;
+                        return e;
+                    },
+                    "a",
+                    sdesc,
+                ],
                 [s],
             ]);
         }
         appendElements(tr, "td", cur);
         appendElements(
-            tr, "td", "div",
-            cur === def ? "ditto" : browser.commands !== undefined && browser.commands.update !== undefined ?
-                createButton(def, "Reset to default", async () => {
-                    await browser.commands.update({name, shortcut: def});
-                    await updatePage(false);
-                }) :
-                def,
+            tr,
+            "td",
+            "div",
+            cur === def
+                ? "ditto"
+                : browser.commands !== undefined && browser.commands.update !== undefined
+                  ? createButton(def, "Reset to default", async () => {
+                        await browser.commands.update({ name, shortcut: def });
+                        await updatePage(false);
+                    })
+                  : def,
         );
 
         rows.push(tr);
@@ -178,8 +194,9 @@ async function updatePage(initial) {
     let tbody = document.getElementById("tbody-sk");
     tbody.replaceChildren(...rows);
 
-    if (!initial)
+    if (!initial) {
         updateLinks(tbody);
+    }
 
     // expand shortcut macros
     function mapShortcuts(func, nodes) {
@@ -207,7 +224,7 @@ async function updatePage(initial) {
     }, document.getElementsByName("shortcutShort"));
 }
 
-async function helpMain () {
+async function helpMain() {
     setPageLoading();
 
     let body = document.getElementById("body");
@@ -221,13 +238,17 @@ async function helpMain () {
 
     setupHistoryPopState();
 
-    if (useDebugger)
-        firefoxCommands = await fetch(browser.runtime.getURL("/manifest-commands-firefox.json")).then((result) => result.json());
+    if (useDebugger) {
+        firefoxCommands = await fetch(
+            browser.runtime.getURL("/manifest-commands-firefox.json"),
+        ).then((result) => result.json());
+    }
 
-    if (browser.commands !== undefined && browser.commands.onChanged !== undefined)
+    if (browser.commands !== undefined && browser.commands.onChanged !== undefined) {
         browser.commands.onChanged.addListener(() => {
             resetSingletonTimeout(scheduledUI, "updatePage", 300, () => updatePage(false));
         });
+    }
     await updatePage(true);
 
     updateLinks(document);
@@ -235,14 +256,14 @@ async function helpMain () {
     async function processUpdate(update) {
         let [what, data] = update;
         switch (what) {
-        case "updateConfig":
-            setRootClasses(data);
-            break;
-        case "popupResized":
-            resize();
-            break;
-        default:
-            await webextRPCHandleMessageDefault(update);
+            case "updateConfig":
+                setRootClasses(data);
+                break;
+            case "popupResized":
+                resize();
+                break;
+            default:
+                await webextRPCHandleMessageDefault(update);
         }
     }
 
@@ -253,15 +274,18 @@ async function helpMain () {
         let config = await browser.runtime.sendMessage(["getConfig"]);
         setRootClasses(config);
 
-        if (config.debugRuntime)
+        if (config.debugRuntime) {
             setTimeout(
-                () => verifyLinks(document, console.error, true, undefined, (hashlessHref, id) => {
-                    if (hashlessHref === popupPageURL && id.startsWith("genui-"))
-                        return id.substr(6);
-                    return id;
-                }),
+                () =>
+                    verifyLinks(document, console.error, true, undefined, (hashlessHref, id) => {
+                        if (hashlessHref === popupPageURL && id.startsWith("genui-")) {
+                            return id.substr(6);
+                        }
+                        return id;
+                    }),
                 100,
             );
+        }
     }
 
     window.onresize = catchAll(resize);

@@ -30,14 +30,15 @@
 let perWindowUpdates = !useDebugger && !isMobile;
 
 function setTitle(windowId, tabId, title) {
-    if (!isMobile)
+    if (!isMobile) {
         // mobile browsers don't have that much space there
         title = "Hoardy-Web: " + title;
+    }
 
-    let attrs = perWindowUpdates
-        ? { windowId, title }
-        : { tabId, title };
-    return browser.browserAction.setTitle(attrs).catch(logErrorExceptWhenStartsWith("No tab with id:"));
+    let attrs = perWindowUpdates ? { windowId, title } : { tabId, title };
+    return browser.browserAction
+        .setTitle(attrs)
+        .catch(logErrorExceptWhenStartsWith("No tab with id:"));
 }
 
 let windowIdIcon = new Map();
@@ -47,56 +48,66 @@ let windowIdIcon = new Map();
 // stop at the very first icon.
 async function setIcons(windowId, tabId, active, icons, force) {
     let clen = icons.length;
-    if (clen === 0)
+    if (clen === 0) {
         throw new Error("need at least one icon to rotate");
+    }
 
     if (perWindowUpdates) {
-        if (!active)
+        if (!active) {
             // nothing to do
             return;
-        else if (!force) {
+        } else if (!force) {
             // NB: `force` happens when `scheduleUpdateDisplay` is called from
             // `handleTabActivated` or `handleTabUpdated`.
             let wicons = windowIdIcon.get(windowId);
-            if (equalRec(wicons, icons))
+            if (equalRec(wicons, icons)) {
                 // nothing to do
                 return;
+            }
         }
         windowIdIcon.set(windowId, icons);
     }
 
-    let attrs = icons.map((v) => perWindowUpdates
-                          ? { windowId, path: mkIcons(v) }
-                          : { tabId, path: mkIcons(v) });
+    let attrs = icons.map((v) =>
+        perWindowUpdates ? { windowId, path: mkIcons(v) } : { tabId, path: mkIcons(v) },
+    );
 
     let rotatingName = `rotateIcons-${windowId}`;
     let settingName = `setIcon-${tabId}`;
 
-    if (!perWindowUpdates && active)
+    if (!perWindowUpdates && active) {
         // wait for the previous setter to this tab to finish
         await popSingletonTimeout(scheduledHidden, settingName, false, true);
+    }
 
     // set or rotate icons
-    resetSingletonTimeout(scheduledHidden, active ? rotatingName : settingName, 0, async (wantStop) => {
-        try {
-            if (active && clen > 1) {
-                // when on active tab, and with more than one frame, animate.
-                for (let i = 0; i < 20; ++i) {
-                    for (let j = 0; j < clen; ++j) {
-                        if (wantStop())
-                            throw new StopIteration();
-                        await browser.browserAction.setIcon(attrs[j]);
-                        await sleep(config.animateIcon);
+    resetSingletonTimeout(
+        scheduledHidden,
+        active ? rotatingName : settingName,
+        0,
+        async (wantStop) => {
+            try {
+                if (active && clen > 1) {
+                    // when on active tab, and with more than one frame, animate.
+                    for (let i = 0; i < 20; ++i) {
+                        for (let j = 0; j < clen; ++j) {
+                            if (wantStop()) {
+                                throw new StopIteration();
+                            }
+                            await browser.browserAction.setIcon(attrs[j]);
+                            await sleep(config.animateIcon);
+                        }
                     }
                 }
+                // freeze on the first frame
+                await browser.browserAction.setIcon(attrs[0]);
+            } catch (err) {
+                if (!(err instanceof StopIteration)) {
+                    logErrorExceptWhenStartsWith("No tab with id:")(err);
+                }
             }
-            // freeze on the first frame
-            await browser.browserAction.setIcon(attrs[0]);
-        } catch (err) {
-            if (!(err instanceof StopIteration))
-                logErrorExceptWhenStartsWith("No tab with id:")(err);
-        }
-    });
+        },
+    );
 }
 
 // Stats counting.
@@ -117,29 +128,36 @@ function sumIssueAccByReasonStats(m) {
 }
 
 function pushNotRunning(m, actions, prefix, suffix) {
-    if (prefix === undefined)
+    if (prefix === undefined) {
         prefix = "";
-    if (suffix === undefined)
+    }
+    if (suffix === undefined) {
         suffix = "";
+    }
     for (let key of m) {
-        if (runningActions.has(key))
+        if (runningActions.has(key)) {
             continue;
+        }
         actions.push(prefix + key + suffix);
     }
 }
 
 function pushClosures(m, actions, prefix, suffix) {
-    if (prefix === undefined)
+    if (prefix === undefined) {
         prefix = "";
-    if (suffix === undefined)
+    }
+    if (suffix === undefined) {
         suffix = "";
-    for (let v of m)
+    }
+    for (let v of m) {
         actions.push(prefix + v[0] + suffix);
+    }
 }
 
 function pushPerTabClosures(scheduled, actions, prefix) {
-    for (let [tabId, closures] of scheduled.entries())
+    for (let [tabId, closures] of scheduled.entries()) {
         pushClosures(closures, actions, prefix, tabId !== null ? `#${tabId}` : "");
+    }
 }
 
 // Compute total sizes of all queues and similar.
@@ -149,9 +167,15 @@ function getStats() {
 
     let [buggedOut, buggedOutSize] = sumIssueAccByReasonStats(reqresBuggedOutIssueAcc[1].values());
 
-    let [stashFailed, stashFailedSize] = sumStats((m) => sumIssueAccByReasonStats(m.values()), reqresUnstashedIssueAcc[1].values());
+    let [stashFailed, stashFailedSize] = sumStats(
+        (m) => sumIssueAccByReasonStats(m.values()),
+        reqresUnstashedIssueAcc[1].values(),
+    );
 
-    let [archiveFailed, archiveFailedSize] = sumStats((m) => sumIssueAccByReasonStats(m.values()), reqresUnarchivedIssueAcc[1].values());
+    let [archiveFailed, archiveFailedSize] = sumStats(
+        (m) => sumIssueAccByReasonStats(m.values()),
+        reqresUnarchivedIssueAcc[1].values(),
+    );
 
     let [in_flight, finishing_up, almost_done] = getInFlight3Num(null);
 
@@ -227,23 +251,25 @@ function getStats() {
         failed_size: stashFailedSize + archiveFailedSize,
         buggedOut,
         buggedOut_size: buggedOutSize,
-        issues: in_flight
-            + finishing_up
-            + almost_done
-            + reqresProblematic.length
-            + reqresLimbo.length
-            + reqresQueue.length
-            + stashFailed
-            + archiveFailed
-            + buggedOut,
+        issues:
+            in_flight +
+            finishing_up +
+            almost_done +
+            reqresProblematic.length +
+            reqresLimbo.length +
+            reqresQueue.length +
+            stashFailed +
+            archiveFailed +
+            buggedOut,
     };
 }
 
 // Produce a value similar to that of `getStats`, but for a window or a single tab.
 // Used in the UI.
 function getReqresStats(state, rrfilter) {
-    if (state === undefined)
+    if (state === undefined) {
         state = tabStateDefaults;
+    }
 
     let [in_flight, finishing_up, almost_done] = getInFlight3Num(rrfilter);
 
@@ -267,11 +293,11 @@ function getReqresStats(state, rrfilter) {
 }
 
 function getWindowStats(windowId) {
-    return getReqresStats(windowState.get(windowId), {windowId});
+    return getReqresStats(windowState.get(windowId), { windowId });
 }
 
 function getTabStats(tabId) {
-    return getReqresStats(tabState.get(tabId), {tabId});
+    return getReqresStats(tabState.get(tabId), { tabId });
 }
 
 // browserAction state
@@ -313,8 +339,9 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             chunks.push(`${stats.running} running actions`);
         }
 
-        if (stats.issues > 0)
+        if (stats.issues > 0) {
             badge += stats.issues.toString();
+        }
 
         if (stats.buggedOut > 0) {
             badge += "!";
@@ -387,8 +414,9 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             chunks.push("debug log (slow!)");
         }
 
-        if (inFlightNum + stats.queued + stats.bundledAs === 0)
+        if (inFlightNum + stats.queued + stats.bundledAs === 0) {
             chunks.push("idle");
+        }
 
         if (stats.scheduled > stats.scheduled_low) {
             badge += "~";
@@ -412,26 +440,26 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         ) {
             updatedTabId = null;
             wantUpdate = true;
-        } else
-            wantUpdate = (
-                udBadge !== badge ||
-                udColor !== color ||
-                udGTitle !== gtitle
-            );
+        } else {
+            wantUpdate = udBadge !== badge || udColor !== color || udGTitle !== gtitle;
+        }
 
-        if (statsChanged)
+        if (statsChanged) {
             broadcastToPopup("updateStats", stats);
+        }
 
-        if (config.debugRuntime && !statsChanged && !equalRec(udStats, stats))
+        if (config.debugRuntime && !statsChanged && !equalRec(udStats, stats)) {
             logError("`statsChanged` value is incorrect");
+        }
 
         udStats = stats;
     }
 
     if (updatedTabId === undefined) {
-        if (!wantUpdate && !tabChanged)
+        if (!wantUpdate && !tabChanged) {
             // nothing needs updating, skip the rest of this
             return;
+        }
 
         // to simplify the logic below
         updatedTabId = null;
@@ -440,35 +468,38 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
     if (udBadge !== badge) {
         await browser.browserAction.setBadgeText({ text: badge });
         udBadge = badge;
-        if (config.debugRuntime)
+        if (config.debugRuntime) {
             console.info(`browserAction: badge: "${badge}"`);
+        }
     }
 
     if (udColor !== color) {
         let backgroundRGB;
         let colorRGB;
         switch (color) {
-        case 0:
-            backgroundRGB = "#777";
-            colorRGB = "#fff";
-            break;
-        case 1:
-            backgroundRGB = "#e0e020";
-            colorRGB = "#000";
-            break;
-        default:
-            backgroundRGB = "#e02020";
-            colorRGB = "#fff";
+            case 0:
+                backgroundRGB = "#777";
+                colorRGB = "#fff";
+                break;
+            case 1:
+                backgroundRGB = "#e0e020";
+                colorRGB = "#000";
+                break;
+            default:
+                backgroundRGB = "#e02020";
+                colorRGB = "#fff";
         }
         await browser.browserAction.setBadgeBackgroundColor({ color: backgroundRGB });
         await browser.browserAction.setBadgeTextColor({ color: colorRGB });
         udColor = color;
-        if (config.debugRuntime)
+        if (config.debugRuntime) {
             console.info(`browserAction: color: ${color} (bg ${backgroundRGB}, fg ${colorRGB})`);
+        }
     }
 
-    if (udGTitle !== gtitle)
+    if (udGTitle !== gtitle) {
         udGTitle = gtitle;
+    }
 
     let tabs = await browser.tabs.query({ active: true });
 
@@ -516,16 +547,19 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         }
 
         if (iconSlots.some((k) => now[k] !== prev[k])) {
-            if (child)
+            if (child) {
                 // add a separator
                 icons.push("bar");
+            }
             for (let k of iconSlots) {
                 let v = now[k];
-                if (v !== undefined)
+                if (v !== undefined) {
                     icons.push(v);
+                }
             }
-            if (child)
+            if (child) {
                 icons.push("dot");
+            }
         }
 
         return now;
@@ -537,16 +571,18 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         let stateTabId = getStateTabIdOrTabId(tab);
 
         // skip updates for unchanged tabs, when specified
-        if (!(updatedTabId === null || updatedTabId === tabId || updatedTabId === stateTabId))
+        if (!(updatedTabId === null || updatedTabId === tabId || updatedTabId === stateTabId)) {
             continue;
+        }
 
         let active = tab.active;
 
         // we don't use `getTabConfig` here to not introduce new `tabConfig`
         // elements for yet-unprocessed tabs
         let tabcfg = tabConfig.get(stateTabId);
-        if (tabcfg === undefined)
+        if (tabcfg === undefined) {
             tabcfg = prefillChildren(config.root);
+        }
         // this one, handle like usual
         let tabstats = getTabStats(stateTabId);
 
@@ -565,12 +601,15 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         // compute toolbar button state
         let icons = [];
 
-        if (stats.buggedOut > 0)
+        if (stats.buggedOut > 0) {
             icons.push("error");
-        if (stats.failed > 0)
+        }
+        if (stats.failed > 0) {
             icons.push("failed");
-        if (stats.queued + stats.bundledAs > 0)
+        }
+        if (stats.queued + stats.bundledAs > 0) {
             icons.push("archiving");
+        }
 
         let tchunks = [];
         let cchunks = [];
@@ -594,8 +633,9 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
 
         let ttitle = tchunks.join(", ");
         let ctitle = cchunks.join(", ");
-        if (ctitle === ttitle)
+        if (ctitle === ttitle) {
             ctitle = "same";
+        }
 
         let title = `${badge}${badge ? ": " : ""}${gtitle}; this tab: ${ttitle}; its new children: ${ctitle}`;
 
@@ -629,22 +669,30 @@ function scheduleUpdateDisplay(statsChanged, updatedTabId, tabChanged, episodic,
     }
     udEpisode = 1;
 
-    resetSingletonTimeout(scheduledHidden, "updateDisplay", timeout !== undefined ? timeout : 200, async () => {
-        let statsChanged = udStatsChanged;
-        let updatedTabId = udUpdatedTabId;
-        let tabChanged = udTabChanged;
-        // reset
-        udStatsChanged = false;
-        udUpdatedTabId = undefined;
-        udTabChanged = false;
+    resetSingletonTimeout(
+        scheduledHidden,
+        "updateDisplay",
+        timeout !== undefined ? timeout : 200,
+        async () => {
+            let statsChanged = udStatsChanged;
+            let updatedTabId = udUpdatedTabId;
+            let tabChanged = udTabChanged;
+            // reset
+            udStatsChanged = false;
+            udUpdatedTabId = undefined;
+            udTabChanged = false;
 
-        await updateDisplay(statsChanged, updatedTabId, tabChanged);
+            await updateDisplay(statsChanged, updatedTabId, tabChanged);
 
-        // we schedule this here because otherwise we will have to schedule it
-        // almost everywhere `scheduleUpdateDisplay` is used
-        if (wantReloadSelf)
-            resetSingletonTimeout(scheduledHidden, "reload", 300, performReloadSelf);
-    }, undefined, true);
+            // we schedule this here because otherwise we will have to schedule it
+            // almost everywhere `scheduleUpdateDisplay` is used
+            if (wantReloadSelf) {
+                resetSingletonTimeout(scheduledHidden, "reload", 300, performReloadSelf);
+            }
+        },
+        undefined,
+        true,
+    );
 }
 
 async function forceUpdateDisplay(statsChanged, updatedTabId, tabChanged) {
@@ -653,10 +701,11 @@ async function forceUpdateDisplay(statsChanged, updatedTabId, tabChanged) {
 }
 
 function getGoodEpisodic(num) {
-    if (num > 200)
+    if (num > 200) {
         return 100;
-    else if (num > 20)
+    } else if (num > 20) {
         return 10;
-    else
+    } else {
         return 1;
+    }
 }

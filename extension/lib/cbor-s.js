@@ -40,33 +40,38 @@ const pow_2_53 = 9007199254740992;
 class ChunkedBuffer extends Array {
     constructor(value) {
         if (value !== undefined) {
-            for (let e of value)
-                if (!(e instanceof Uint8Array))
+            for (let e of value) {
+                if (!(e instanceof Uint8Array)) {
                     throw new TypeError("expecting Uint8Array");
+                }
+            }
             super(value);
-        }
-        else
+        } else {
             super();
+        }
     }
 
     push(value) {
-        if (value instanceof Uint8Array)
+        if (value instanceof Uint8Array) {
             super.push(value);
-        else
+        } else {
             throw new TypeError("expecting Uint8Array");
+        }
     }
 
     get byteLength() {
         let length = 0;
-        for (let e of this)
+        for (let e of this) {
             length += e.byteLength;
+        }
         return length;
     }
 
     flattern() {
         let len = 0;
-        for (let e of this)
+        for (let e of this) {
             len += e.byteLength;
+        }
 
         const result = new Uint8Array(len);
 
@@ -92,10 +97,13 @@ class CBOREncoder {
         let currently = this.data.byteLength;
         let need = this.offset + length;
 
-        if (currently >= need) return;
+        if (currently >= need) {
+            return;
+        }
 
-        while (currently < need)
+        while (currently < need) {
             currently *= 2;
+        }
 
         let newdata = new ArrayBuffer(currently);
 
@@ -112,8 +120,9 @@ class CBOREncoder {
 
     flush(desired) {
         let currently = this.data.byteLength;
-        if (desired === undefined)
+        if (desired === undefined) {
             desired = currently;
+        }
 
         let offset = this.offset;
         let taken = false;
@@ -122,9 +131,10 @@ class CBOREncoder {
                 // if we are flushing the whole buffer, take it as is
                 this.chunks.push(new Uint8Array(this.data));
                 taken = true;
-            } else
+            } else {
                 // otherwise, slice off the needed part
                 this.chunks.push(new Uint8Array(this.data.slice(0, offset)));
+            }
             this.offset = 0;
         }
 
@@ -146,20 +156,22 @@ class CBOREncoder {
         let length = value.length;
         this.ensureHave(length);
         let offset = this.offset;
-        for (let i = 0; i < length; ++i)
+        for (let i = 0; i < length; ++i) {
             this.view.setUint8(offset + i, value[i]);
+        }
         this.offset += length;
     }
 
     dumpUint8Array(value) {
         let offset = this.offset;
-        if (offset === 0)
+        if (offset === 0) {
             this.chunks.push(value);
-        else if (offset >= pow_2_8 || value.length >= pow_2_12) {
+        } else if (offset >= pow_2_8 || value.length >= pow_2_12) {
             this.flush(pow_2_8);
             this.chunks.push(value);
-        } else
+        } else {
             this.writeUint8Array(value);
+        }
     }
 
     writeUint16(value) {
@@ -209,11 +221,12 @@ class CBOREncoder {
     }
 
     encode(value, limits) {
-        if (limits === undefined)
+        if (limits === undefined) {
             limits = {
                 allowNull: true,
-                allowUndefined: true
+                allowUndefined: true,
             };
+        }
 
         //console.log("CBOR encode", typeof value, value);
 
@@ -224,13 +237,15 @@ class CBOREncoder {
             this.writeUint8(0xf5);
             return this;
         } else if (value === null) {
-            if (!limits.allowNull)
-                throw new Error("trying to encode null")
+            if (!limits.allowNull) {
+                throw new Error("trying to encode null");
+            }
             this.writeUint8(0xf6);
             return this;
         } else if (value === undefined) {
-            if (!limits.allowUndefined)
-                throw new Error("trying to encode undefined")
+            if (!limits.allowUndefined) {
+                throw new Error("trying to encode undefined");
+            }
             this.writeUint8(0xf7);
             return this;
         }
@@ -243,8 +258,9 @@ class CBOREncoder {
                     this.writeTypeAndLength(0, value);
                 } else if (-pow_2_53 <= value && value < 0) {
                     this.writeTypeAndLength(1, -(value + 1));
-                } else
+                } else {
                     throw new TypeError(`can't encode ${value}`);
+                }
             } else {
                 this.writeUint8(0xfb);
                 this.writeFloat64(value);
@@ -255,8 +271,9 @@ class CBOREncoder {
         } else if (value instanceof ChunkedBuffer) {
             // same thing, but given as an array of chunks
             this.writeTypeAndLength(2, value.byteLength);
-            for (let e of value)
+            for (let e of value) {
                 this.dumpUint8Array(e);
+            }
         } else if (typ === "string") {
             let enc = new TextEncoder("utf-8", { fatal: true });
             let utf8data = enc.encode(value);
@@ -265,8 +282,9 @@ class CBOREncoder {
         } else if (Array.isArray(value)) {
             let length = value.length;
             this.writeTypeAndLength(4, length);
-            for (let e of value)
+            for (let e of value) {
                 this.encode(e, limits);
+            }
         } else if (value instanceof Map) {
             this.writeTypeAndLength(5, value.size);
             for (let [k, v] of value.entries()) {
@@ -280,8 +298,9 @@ class CBOREncoder {
                 this.encode(k, limits);
                 this.encode(value[k], limits);
             }
-        } else
+        } else {
             throw new TypeError(`can't encode ${value}`);
+        }
 
         return this;
     }

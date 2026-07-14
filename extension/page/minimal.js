@@ -35,11 +35,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function processUpdate(update) {
         let [what, data] = update;
         switch (what) {
-        case "updateConfig":
-            setRootClasses(data);
-            break;
-        default:
-            await webextRPCHandleMessageDefault(update);
+            case "updateConfig":
+                setRootClasses(data);
+                break;
+            default:
+                await webextRPCHandleMessageDefault(update);
         }
     }
 
@@ -50,8 +50,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         let config = await browser.runtime.sendMessage(["getConfig"]);
         setRootClasses(config);
 
-        if (config.debugRuntime)
+        if (config.debugRuntime) {
             setTimeout(() => verifyLinks(document, console.error, true), 100);
+        }
     }
 
     // show UI

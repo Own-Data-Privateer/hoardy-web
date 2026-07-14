@@ -35,7 +35,11 @@ async function stateMain() {
 
     function updateUI() {
         setRootClasses(config);
-        implySetConditionalOff(dbody, "on-rearchive", !(config.rearchiveExportAs || config.rearchiveSubmitHTTP || rearchive.andRewrite));
+        implySetConditionalOff(
+            dbody,
+            "on-rearchive",
+            !(config.rearchiveExportAs || config.rearchiveSubmitHTTP || rearchive.andRewrite),
+        );
     }
 
     setUIRec(document, "rearchive", rearchive, (newrearchive, path) => {
@@ -44,10 +48,11 @@ async function stateMain() {
     });
 
     async function updateConfig(nconfig) {
-        if (nconfig === undefined)
+        if (nconfig === undefined) {
             config = await browser.runtime.sendMessage(["getConfig"]);
-        else
+        } else {
             config = nconfig;
+        }
 
         updateUI();
     }
@@ -56,17 +61,15 @@ async function stateMain() {
     let [resetSaved, appendSaved] = mkDataNodeUpdater("data", () => savedFilters);
 
     async function updateSavedFilters(nsavedFilters) {
-        if (nsavedFilters === undefined)
+        if (nsavedFilters === undefined) {
             savedFilters = await browser.runtime.sendMessage(["getSavedFilters"]);
-        else
+        } else {
             savedFilters = nsavedFilters;
+        }
 
         let reset = setUI(document, "rrfilters", savedFilters, (value, path, resetting) => {
-            resetSingletonTimeout(
-                scheduledUI,
-                "setSavedFilters",
-                resetting ? 300 : 0,
-                () => browser.runtime.sendMessage(["setSavedFilters", value]).catch(logError)
+            resetSingletonTimeout(scheduledUI, "setSavedFilters", resetting ? 300 : 0, () =>
+                browser.runtime.sendMessage(["setSavedFilters", value]).catch(logError),
             );
         });
         buttonToAction("reset-rrfilters", reset);
@@ -74,45 +77,59 @@ async function stateMain() {
 
     async function processUpdate(update) {
         let [what, data] = update;
-        switch(what) {
-        case "updateConfig":
-            await updateConfig(data);
-            return;
-        case "setSavedFilters":
-            await updateSavedFilters(data);
-            return;
-        case "resetSaved":
-            resetSaved(data);
-            return;
-        // TODO: implement in background
-        case "appendSaved":
-            appendSaved(data);
-            return;
-        default:
-            let res = await webextRPCHandleMessageDefault(update);
-            return res;
+        switch (what) {
+            case "updateConfig":
+                await updateConfig(data);
+                return;
+            case "setSavedFilters":
+                await updateSavedFilters(data);
+                return;
+            case "resetSaved":
+                resetSaved(data);
+                return;
+            // TODO: implement in background
+            case "appendSaved":
+                appendSaved(data);
+                return;
+            default:
+                let res = await webextRPCHandleMessageDefault(update);
+                return res;
         }
     }
 
-    buttonToMessage("rearchiveStarSaved", () => ["rearchiveSaved", savedFilters, true, rearchive.andRewrite, rearchive.andDelete]);
+    buttonToMessage("rearchiveStarSaved", () => [
+        "rearchiveSaved",
+        savedFilters,
+        true,
+        rearchive.andRewrite,
+        rearchive.andDelete,
+    ]);
     buttonToAction("deleteStarSaved", () => {
-        if (!window.confirm("Really?"))
+        if (!window.confirm("Really?")) {
             return;
+        }
 
         browser.runtime.sendMessage(["deleteSaved", savedFilters]).catch(logError);
     });
 
     setPageSettling();
 
-    await subscribeToExtension("saved", 3, async (isInvalid) => {
-        await updateConfig();
-        await updateSavedFilters();
-    }, asyncNoop, processUpdate);
+    await subscribeToExtension(
+        "saved",
+        3,
+        async (isInvalid) => {
+            await updateConfig();
+            await updateSavedFilters();
+        },
+        asyncNoop,
+        processUpdate,
+    );
 
     await browser.runtime.sendMessage(["setSavedFilters", savedFilters]);
 
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         setTimeout(() => verifyLinks(document, console.error, true), 100);
+    }
 
     setPageDone();
 

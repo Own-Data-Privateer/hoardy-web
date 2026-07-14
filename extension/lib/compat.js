@@ -46,8 +46,9 @@ function parseUA() {
             break;
         }
     }
-    if (result === null)
+    if (result === null) {
         throw new Error("unknown/unsupported User-Agent: " + UA);
+    }
     return result;
 }
 
@@ -62,13 +63,15 @@ function makePromiseAPIConst(data) {
 function makePromiseAPI0(old, nthis) {
     return () => {
         return new Promise((resolve, reject) => {
-            old.apply(nthis, [(data) => {
-                if (browser.runtime.lastError === undefined)
-                    resolve(data);
-                else {
-                    reject(browser.runtime.lastError.message);
-                }
-            }]);
+            old.apply(nthis, [
+                (data) => {
+                    if (browser.runtime.lastError === undefined) {
+                        resolve(data);
+                    } else {
+                        reject(browser.runtime.lastError.message);
+                    }
+                },
+            ]);
         });
     };
 }
@@ -76,13 +79,16 @@ function makePromiseAPI0(old, nthis) {
 function makePromiseAPI(old, nthis) {
     return (arg) => {
         return new Promise((resolve, reject) => {
-            old.apply(nthis, [arg, (data) => {
-                if (browser.runtime.lastError === undefined)
-                    resolve(data);
-                else {
-                    reject(browser.runtime.lastError.message);
-                }
-            }]);
+            old.apply(nthis, [
+                arg,
+                (data) => {
+                    if (browser.runtime.lastError === undefined) {
+                        resolve(data);
+                    } else {
+                        reject(browser.runtime.lastError.message);
+                    }
+                },
+            ]);
         });
     };
 }
@@ -90,13 +96,17 @@ function makePromiseAPI(old, nthis) {
 function makePromiseAPI2(old, nthis) {
     return (arg1, arg2) => {
         return new Promise((resolve, reject) => {
-            old.apply(nthis, [arg1, arg2, (data) => {
-                if (browser.runtime.lastError === undefined)
-                    resolve(data);
-                else {
-                    reject(browser.runtime.lastError.message);
-                }
-            }]);
+            old.apply(nthis, [
+                arg1,
+                arg2,
+                (data) => {
+                    if (browser.runtime.lastError === undefined) {
+                        resolve(data);
+                    } else {
+                        reject(browser.runtime.lastError.message);
+                    }
+                },
+            ]);
         });
     };
 }
@@ -104,13 +114,18 @@ function makePromiseAPI2(old, nthis) {
 function makePromiseAPI3(old, nthis) {
     return (arg1, arg2, arg3) => {
         return new Promise((resolve, reject) => {
-            old.apply(nthis, [arg1, arg2, arg3, (data) => {
-                if (browser.runtime.lastError === undefined)
-                    resolve(data);
-                else {
-                    reject(browser.runtime.lastError.message);
-                }
-            }]);
+            old.apply(nthis, [
+                arg1,
+                arg2,
+                arg3,
+                (data) => {
+                    if (browser.runtime.lastError === undefined) {
+                        resolve(data);
+                    } else {
+                        reject(browser.runtime.lastError.message);
+                    }
+                },
+            ]);
         });
     };
 }
@@ -128,7 +143,9 @@ function makeFirefoxish(browser) {
     browser.browserAction.setBadgeTextColor = makePromiseAPIConst(undefined);
     // TODO on V3 do this instead:
     //browser.browserAction.setBadgeTextColor = makePromiseAPI(browser.action.setBadgeTextColor);
-    browser.browserAction.setBadgeBackgroundColor = makePromiseAPI(browser.browserAction.setBadgeBackgroundColor);
+    browser.browserAction.setBadgeBackgroundColor = makePromiseAPI(
+        browser.browserAction.setBadgeBackgroundColor,
+    );
     browser.commands.getAll = makePromiseAPI0(browser.commands.getAll);
     browser.notifications.clear = makePromiseAPI(browser.notifications.clear);
     browser.notifications.create = makePromiseAPI2(browser.notifications.create);

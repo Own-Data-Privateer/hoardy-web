@@ -24,8 +24,9 @@
 "use strict";
 
 async function snapshotOne(tabId, url) {
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.log("DOM-snapshoting tab", tabId, url);
+    }
 
     let start = Date.now();
     let allErrors = [];
@@ -37,8 +38,9 @@ async function snapshotOne(tabId, url) {
             allFrames: true,
         });
 
-        if (config.debugRuntime)
+        if (config.debugRuntime) {
             console.log("snapshot.js returned", allResults);
+        }
 
         let emit = Date.now();
 
@@ -53,8 +55,9 @@ async function snapshotOne(tabId, url) {
             if (!config.snapshotAny && isBoringOrServerURL(url)) {
                 // skip stuff like handleBeforeRequest does, again, now for
                 // sub-frames
-                if (config.debugRuntime)
+                if (config.debugRuntime) {
                     console.log("NOT taking DOM snapshot of sub-frame of tab", tabId, url);
+                }
                 continue;
             } else if (errors.length > 0) {
                 allErrors.push(errors.join("; "));
@@ -91,9 +94,7 @@ async function snapshotOne(tabId, url) {
 
                 responseSize: result.length,
                 responseTimeStamp: date,
-                responseHeaders : [
-                    { name: "Content-Type", value: ct }
-                ],
+                responseHeaders: [{ name: "Content-Type", value: ct }],
                 responseBody: result,
                 responseComplete: true,
 
@@ -109,13 +110,19 @@ async function snapshotOne(tabId, url) {
     } catch (err) {
         allErrors.push(errorMessageOf(err));
     } finally {
-        if (allErrors.length > 0)
-            await browser.notifications.create(`error-snapshot-${tabId}`, {
-                title: "Hoardy-Web: ERROR",
-                message: escapeNotification(config, `While taking a DOM snapshot of tab #${tabId} (${url.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`),
-                iconUrl: iconURL("error", 128),
-                type: "basic",
-            }).catch(logError);
+        if (allErrors.length > 0) {
+            await browser.notifications
+                .create(`error-snapshot-${tabId}`, {
+                    title: "Hoardy-Web: ERROR",
+                    message: escapeNotification(
+                        config,
+                        `While taking a DOM snapshot of tab #${tabId} (${url.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`,
+                    ),
+                    iconUrl: iconURL("error", 128),
+                    type: "basic",
+                })
+                .catch(logError);
+        }
     }
 
     return updatedTabId;
@@ -131,18 +138,24 @@ async function snapshot(query) {
         let url = getTabURL(tab);
 
         if (
-            !specific && !tabcfg.snapshottable ||
-            !config.snapshotAny && isBoringOrServerURL(url)
+            (!specific && !tabcfg.snapshottable) ||
+            (!config.snapshotAny && isBoringOrServerURL(url))
         ) {
-            if (config.debugRuntime)
+            if (config.debugRuntime) {
                 console.log("NOT DOM-snapshoting tab", tabId, url);
+            }
             continue;
         }
 
         let res = await runWhenTabSettles(
-            "snapshot", `take a DOM snapshot of tab #${tabId} (${url.substr(0, 80)})`,
-            tabId, tabcfg, 0,
-            snapshotOne, tabId, url
+            "snapshot",
+            `take a DOM snapshot of tab #${tabId} (${url.substr(0, 80)})`,
+            tabId,
+            tabcfg,
+            0,
+            snapshotOne,
+            tabId,
+            url,
         );
 
         updatedTabId = mergeUpdatedTabIds(updatedTabId, res);

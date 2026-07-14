@@ -31,8 +31,9 @@ function attachDebugger(tabId) {
 }
 
 async function syncDebuggersState(tabs) {
-    if (tabs === undefined)
+    if (tabs === undefined) {
         tabs = await browser.tabs.query({});
+    }
 
     for (let tab of tabs) {
         let url = getTabURL(tab, "");
@@ -47,11 +48,11 @@ async function syncDebuggersState(tabs) {
 
         let attached = tabsDebugging.has(tab.id);
         let tabcfg = getTabConfig(tab.id);
-        let wantAttached = (
+        let wantAttached =
             hasInFlight ||
-            tabcfg.collecting && (!tabcfg.workOffline || tabcfg.collectingWorkOffline) &&
-            (url === "about:blank" || url.startsWith("http://") || url.startsWith("https://"))
-        );
+            (tabcfg.collecting &&
+                (!tabcfg.workOffline || tabcfg.collectingWorkOffline) &&
+                (url === "about:blank" || url.startsWith("http://") || url.startsWith("https://")));
 
         if (!attached && wantAttached) {
             await attachDebugger(tab.id).catch(logError);
@@ -62,48 +63,69 @@ async function syncDebuggersState(tabs) {
 }
 
 async function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
-    scheduleActionExtra(scheduledInternal, `reset-tab#${tabId}`, priority, 100, true, async () => {
-        let r;
-        if (resetFunc !== undefined)
-            r = await resetFunc(tabId);
-        scheduleActionExtra(scheduledInternal, `reload-tab#${tabId}`, priority, 300, true, async () => {
-            try {
-                if (preFunc !== undefined)
-                    await preFunc(tabId);
-                if (actionFunc !== undefined)
-                    await actionFunc(tabId, r);
-            } catch (err) {
-                logError(err);
+    scheduleActionExtra(
+        scheduledInternal,
+        `reset-tab#${tabId}`,
+        priority,
+        100,
+        true,
+        async () => {
+            let r;
+            if (resetFunc !== undefined) {
+                r = await resetFunc(tabId);
             }
-            // because no of the usages need it yet
+            scheduleActionExtra(
+                scheduledInternal,
+                `reload-tab#${tabId}`,
+                priority,
+                300,
+                true,
+                async () => {
+                    try {
+                        if (preFunc !== undefined) {
+                            await preFunc(tabId);
+                        }
+                        if (actionFunc !== undefined) {
+                            await actionFunc(tabId, r);
+                        }
+                    } catch (err) {
+                        logError(err);
+                    }
+                    // because no of the usages need it yet
+                    // return undefined;
+                },
+                false,
+            );
             // return undefined;
-        }, false);
-        // return undefined;
-    }, false);
+        },
+        false,
+    );
 }
 
 function resetAndNavigateTab(tabId, url, priority) {
-    return sleepResetTab(tabId, priority,
-                         navigateTabToBlank, undefined,
-                         (tabId, _ignored) => navigateTabTo(tabId, url));
+    return sleepResetTab(tabId, priority, navigateTabToBlank, undefined, (tabId, _ignored) =>
+        navigateTabTo(tabId, url),
+    );
 }
 
 function resetAttachDebuggerAndNavigateTab(tabId, url, priority) {
-    return sleepResetTab(tabId, priority,
-                         navigateTabToBlank, attachDebugger,
-                         (tabId, _ignored) => navigateTabTo(tabId, url));
+    return sleepResetTab(tabId, priority, navigateTabToBlank, attachDebugger, (tabId, _ignored) =>
+        navigateTabTo(tabId, url),
+    );
 }
 
 function resetAttachDebuggerAndReloadTab(tabId, priority) {
-    return sleepResetTab(tabId, priority,
-                         getTabURLThenNavigateTabToBlank, attachDebugger,
-                         navigateTabTo);
+    return sleepResetTab(
+        tabId,
+        priority,
+        getTabURLThenNavigateTabToBlank,
+        attachDebugger,
+        navigateTabTo,
+    );
 }
 
 function attachDebuggerAndReloadTab(tabId, priority) {
-    return sleepResetTab(tabId, priority,
-                         undefined, attachDebugger,
-                         browser.tabs.reload);
+    return sleepResetTab(tabId, priority, undefined, attachDebugger, browser.tabs.reload);
 }
 
 // State
@@ -124,19 +146,24 @@ let firstNetworkRequest = true;
 // Logging
 
 function applyToReqresInFlight5(func, early, a, b, c, d, e) {
-    for (let v of reqresInFlight.values())
+    for (let v of reqresInFlight.values()) {
         func(v, a);
+    }
     for (let v of debugReqresInFlight.values()) {
         // `.url` can be unset, see (veryEarly) in `emitDebugRequest`.
-        if (early || v.url !== undefined && !isBoringOrServerURL(v.url))
+        if (early || (v.url !== undefined && !isBoringOrServerURL(v.url))) {
             func(v, b);
+        }
     }
-    for (let v of reqresFinishingUp)
+    for (let v of reqresFinishingUp) {
         func(v, c);
-    for (let v of debugReqresFinishingUp)
+    }
+    for (let v of debugReqresFinishingUp) {
         func(v, d);
-    for (let v of reqresAlmostDone)
+    }
+    for (let v of reqresAlmostDone) {
         func(v, d);
+    }
 }
 
 function getInFlight(rrfilter) {
@@ -149,15 +176,17 @@ function getInFlight(rrfilter) {
     function collect(v) {
         if (rrpredicate(v)) {
             res.push(makeLoggable(v));
-            if (limit !== null && res.length >= limit)
+            if (limit !== null && res.length >= limit) {
                 throw new StopIteration();
+            }
         }
     }
     try {
         applyToReqresInFlight5(collect, false);
     } catch (err) {
-        if (!(err instanceof StopIteration))
+        if (!(err instanceof StopIteration)) {
             throw err;
+        }
     }
 
     return res;
@@ -165,28 +194,26 @@ function getInFlight(rrfilter) {
 
 // NB: ignores rrfilter.limit
 function getInFlight3Num(rrfilter) {
-    if (rrfilter === null)
+    if (rrfilter === null) {
         return [
             Math.max(reqresInFlight.size, debugReqresInFlight.size),
             Math.max(reqresFinishingUp.length, debugReqresFinishingUp.length),
             reqresAlmostDone.length,
         ];
+    }
 
     let rrpredicate = compileReqresFilter(rrfilter)[1];
 
-    let counts = {a1: 0, a2: 0, b1: 0, b2: 0, c: 0};
+    let counts = { a1: 0, a2: 0, b1: 0, b2: 0, c: 0 };
 
     function collect(v, k) {
-        if (rrpredicate(v))
+        if (rrpredicate(v)) {
             counts[k] += 1;
+        }
     }
-    applyToReqresInFlight5(collect, true, ...(Object.keys(counts)));
+    applyToReqresInFlight5(collect, true, ...Object.keys(counts));
 
-    return [
-        Math.max(counts.a1, counts.a2),
-        Math.max(counts.b1, counts.b2),
-        counts.c,
-    ];
+    return [Math.max(counts.a1, counts.a2), Math.max(counts.b1, counts.b2), counts.c];
 }
 
 function getInFlightNum(rrfilter) {
@@ -278,18 +305,25 @@ function forceFinishingUpWebRequest(rrpredicate) {
         // disconnect the filter, if not disconnected already
         if (reqres.filter !== undefined) {
             try {
-                reqres.filter.disconnect()
+                reqres.filter.disconnect();
             } catch (e) {
                 //ignore
             }
             delete reqres["filter"];
         }
 
-        if (config.debugCaptures)
-            console.warn("CAPTURE: FORCE-UNSTUCK webRequest requestId", reqres.requestId,
-                         "tabId", reqres.tabId,
-                         "url", reqres.url,
-                         "reqres", reqres);
+        if (config.debugCaptures) {
+            console.warn(
+                "CAPTURE: FORCE-UNSTUCK webRequest requestId",
+                reqres.requestId,
+                "tabId",
+                reqres.tabId,
+                "url",
+                reqres.url,
+                "reqres",
+                reqres,
+            );
+        }
 
         reqresAlmostDone.push(reqres);
         updatedTabId = mergeUpdatedTabIds(updatedTabId, reqres.tabId);
@@ -311,11 +345,18 @@ function forceFinishingUpDebug(rrpredicate) {
             continue;
         }
 
-        if (config.debugCaptures)
-            console.warn("CAPTURE: FORCE-UNSTUCK debugRequest drequestId", dreqres.requestId,
-                         "tabId", dreqres.tabId,
-                         "url", dreqres.url,
-                         "dreqres", dreqres);
+        if (config.debugCaptures) {
+            console.warn(
+                "CAPTURE: FORCE-UNSTUCK debugRequest drequestId",
+                dreqres.requestId,
+                "tabId",
+                dreqres.tabId,
+                "url",
+                dreqres.url,
+                "dreqres",
+                dreqres,
+            );
+        }
 
         // Turn debugging `dreqres` into a structure that can be used as a normal
         // webRequest `reqres`. This is used when Chromium bugs out and forgets to
@@ -368,19 +409,23 @@ function processFinishingUpWebRequest(forcing) {
 
     reqresFinishingUp = notFinished;
 
-    if (!forcing)
+    if (!forcing) {
         scheduleEndgame(updatedTabId);
+    }
 
     return updatedTabId;
 }
 
 // schedule processFinishingUpWebRequest
 function scheduleProcessFinishingUpWebRequest() {
-    if (reqresFinishingUp.length === 0 && debugReqresFinishingUp.length === 0)
+    if (reqresFinishingUp.length === 0 && debugReqresFinishingUp.length === 0) {
         // nothing to do
         return;
+    }
 
-    scheduleAction(scheduledInternal, "finishingUp", 100, () => processFinishingUpWebRequest(false));
+    scheduleAction(scheduledInternal, "finishingUp", 100, () =>
+        processFinishingUpWebRequest(false),
+    );
     scheduleUpdateDisplay(true);
 }
 
@@ -398,14 +443,16 @@ function debugHeadersMatchScore(reqres, dreqres) {
                     if (getHeaderString(header) === getHeaderString(dheader)) {
                         found = true;
                         break;
-                    } else
+                    } else {
                         foundWrong = true;
+                    }
                 }
             }
-            if (found)
+            if (found) {
                 matching += 1;
-            else if (foundWrong)
+            } else if (foundWrong) {
                 unmatching += 1;
+            }
         }
     }
 
@@ -413,39 +460,50 @@ function debugHeadersMatchScore(reqres, dreqres) {
     match(reqres.responseHeaders, dreqres.responseHeaders);
 
     let score = matching - unmatching * 1000;
-    if (config.debugCaptures)
+    if (config.debugCaptures) {
         console.debug("CAPTURE: debugHeadersMatchScore", score, reqres, dreqres);
+    }
 
     return score;
 }
 
 // Update webRequest `reqres` with data collected in the debugging `dreqres`.
 function mergeInDebugReqres(reqres, dreqres) {
-    if (dreqres.documentUrl !== undefined)
+    if (dreqres.documentUrl !== undefined) {
         reqres.documentUrl = dreqres.documentUrl;
+    }
 
-    if (dreqres.requestTimeStamp < reqres.requestTimeStamp)
+    if (dreqres.requestTimeStamp < reqres.requestTimeStamp) {
         reqres.requestTimeStamp = dreqres.requestTimeStamp;
+    }
 
-    for (let e of dreqres.errors)
-        if (reqres.errors.every((v) => v !== e))
+    for (let e of dreqres.errors) {
+        if (reqres.errors.every((v) => v !== e)) {
             reqres.errors.push(e);
+        }
+    }
 
     mergeInHeaders(reqres.requestHeaders, dreqres.requestHeaders);
 
-    if (!dreqres.responded)
+    if (!dreqres.responded) {
         return;
+    }
 
-    if (dreqres.responseTimeStamp < reqres.responseTimeStamp)
+    if (dreqres.responseTimeStamp < reqres.responseTimeStamp) {
         reqres.responseTimeStamp = dreqres.responseTimeStamp;
-    if (dreqres.protocol !== undefined)
+    }
+    if (dreqres.protocol !== undefined) {
         reqres.protocol = dreqres.protocol;
-    if (dreqres.statusCode !== undefined)
+    }
+    if (dreqres.statusCode !== undefined) {
         reqres.statusCode = dreqres.statusCode;
-    if (dreqres.reason !== undefined)
+    }
+    if (dreqres.reason !== undefined) {
         reqres.reason = dreqres.reason;
-    if (dreqres.fromCache)
+    }
+    if (dreqres.fromCache) {
         reqres.fromCache = true;
+    }
 
     mergeInHeaders(reqres.responseHeaders, dreqres.responseHeaders);
 
@@ -480,13 +538,16 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             let matching = [];
             let notMatching = [];
             for (let reqres of reqresFinishingUp) {
-                if (dreqres.tabId === reqres.tabId
-                    && dreqres.statusCode === reqres.statusCode
-                    && dreqres.method === reqres.method
-                    && nurl === normalizedURL(reqres.url))
+                if (
+                    dreqres.tabId === reqres.tabId &&
+                    dreqres.statusCode === reqres.statusCode &&
+                    dreqres.method === reqres.method &&
+                    nurl === normalizedURL(reqres.url)
+                ) {
                     matching.push(reqres);
-                else
+                } else {
                     notMatching.push(reqres);
+                }
             }
 
             if (matching.length > 0) {
@@ -497,24 +558,26 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
                     let next = matching.shift();
                     let nscore = debugHeadersMatchScore(next, dreqres);
                     let ndiff = Math.abs(dreqres.requestTimeStamp - next.requestTimeStamp);
-                    if (nscore > score || nscore === score && ndiff < diff) {
+                    if (nscore > score || (nscore === score && ndiff < diff)) {
                         notMatching.push(closest);
                         closest = next;
                         score = nscore;
                         diff = ndiff;
-                    }
-                    else
+                    } else {
                         notMatching.push(next);
+                    }
                 }
 
-                if (config.debugCaptures)
+                if (config.debugCaptures) {
                     console.info("CAPTURE: MATCHED", dreqres, closest);
+                }
 
                 mergeInDebugReqres(closest, dreqres);
                 reqresAlmostDone.push(closest);
                 updatedTabId = mergeUpdatedTabIds(updatedTabId, closest.tabId);
-            } else
+            } else {
                 notFinished.push(dreqres);
+            }
 
             reqresFinishingUp = notMatching;
         }
@@ -531,12 +594,16 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
         // to lose data.
         //
         // However, `debugReqresFinishingUp` are safe to emit.
-        if (debugReqresFinishingUp.length > 0)
+        if (debugReqresFinishingUp.length > 0) {
             // This means Chromium generated some debug events without
             // generating the corresponding webRequest events. This actually
             // happens sometimes when loading a tab in background. Chromium
             // has a surprising number of bugs...
-            updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpDebug(() => true));
+            updatedTabId = mergeUpdatedTabIds(
+                updatedTabId,
+                forceFinishingUpDebug(() => true),
+            );
+        }
 
         if (reqresFinishingUp.length > 0) {
             // This means Chromium generated some webRequests but did not
@@ -549,46 +616,73 @@ function processMatchFinishingUpWebRequestDebug(forcing) {
             // will be emmited for it. So, to get these out of in-flight
             // state, we run following.
             let updatedTabId2 = updatedTabId;
-            scheduleActionEndgame(scheduledCancelable, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000 + 500, () => {
-                // First, finish up unsent requests (which are usually redirects).
-                let olderThan1 = Date.now() - config.workaroundChromiumDebugTimeout * 1000;
-                updatedTabId2 = mergeUpdatedTabIds(updatedTabId2, forceFinishingUpWebRequest((r) => !r.submitted && r.emitTimeStamp <= olderThan1));
+            scheduleActionEndgame(
+                scheduledCancelable,
+                "debugFinishingUp",
+                config.workaroundChromiumDebugTimeout * 1000 + 500,
+                () => {
+                    // First, finish up unsent requests (which are usually redirects).
+                    let olderThan1 = Date.now() - config.workaroundChromiumDebugTimeout * 1000;
+                    updatedTabId2 = mergeUpdatedTabIds(
+                        updatedTabId2,
+                        forceFinishingUpWebRequest(
+                            (r) => !r.submitted && r.emitTimeStamp <= olderThan1,
+                        ),
+                    );
 
-                // Then, eventually, finish up the rest.
-                scheduleActionEndgame(scheduledCancelable, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 2000 + 500, () => {
-                    let olderThan2 = Date.now() - config.workaroundChromiumDebugTimeout * 2000;
-                    return mergeUpdatedTabIds(updatedTabId2, forceFinishingUpWebRequest((r) => r.emitTimeStamp <= olderThan2));
-                });
+                    // Then, eventually, finish up the rest.
+                    scheduleActionEndgame(
+                        scheduledCancelable,
+                        "debugFinishingUp",
+                        config.workaroundChromiumDebugTimeout * 2000 + 500,
+                        () => {
+                            let olderThan2 =
+                                Date.now() - config.workaroundChromiumDebugTimeout * 2000;
+                            return mergeUpdatedTabIds(
+                                updatedTabId2,
+                                forceFinishingUpWebRequest((r) => r.emitTimeStamp <= olderThan2),
+                            );
+                        },
+                    );
 
-                return updatedTabId2;
-            });
+                    return updatedTabId2;
+                },
+            );
             // NB: not doing scheduleUpdateDisplay here, because scheduleEndgame
             // below (or the function `forcing` this one) will
         }
     }
 
     if (config.debugCaptures) {
-        if (debugReqresInFlight.size > 0 || reqresInFlight.size > 0)
+        if (debugReqresInFlight.size > 0 || reqresInFlight.size > 0) {
             console.debug("CAPTURE: still in-flight", debugReqresInFlight, reqresInFlight);
+        }
 
-        if (debugReqresFinishingUp.length > 0 || reqresFinishingUp.length > 0)
+        if (debugReqresFinishingUp.length > 0 || reqresFinishingUp.length > 0) {
             console.debug("CAPTURE: still unmatched", debugReqresFinishingUp, reqresFinishingUp);
+        }
     }
 
-    if (!forcing)
+    if (!forcing) {
         scheduleEndgame(updatedTabId);
+    }
 
     return updatedTabId;
 }
 
 function scheduleProcessMatchFinishingUpWebRequestDebug() {
-    scheduleAction(scheduledCancelable, "debugFinishingUp", config.workaroundChromiumDebugTimeout * 1000,
-                   processMatchFinishingUpWebRequestDebug);
+    scheduleAction(
+        scheduledCancelable,
+        "debugFinishingUp",
+        config.workaroundChromiumDebugTimeout * 1000,
+        processMatchFinishingUpWebRequestDebug,
+    );
 }
 
 let processFinishingUp = processFinishingUpWebRequest;
-if (useDebugger)
+if (useDebugger) {
     processFinishingUp = processMatchFinishingUpWebRequestDebug;
+}
 
 function emitRequest(requestId, reqres, error, dontFinishUp) {
     reqresInFlight.delete(requestId);
@@ -619,14 +713,23 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
                 }
             }
 
-            if (config.debugCaptures)
+            if (config.debugCaptures) {
                 console.debug("CAPTURE: formData", reqres.formData);
+            }
 
             let enc = new TextEncoder("utf-8", { fatal: true });
 
             if (boundary !== undefined) {
                 for (const [name, value] of Object.entries(reqres.formData)) {
-                    let data = enc.encode("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + encodeURIComponent(name) + "\"\r\n\r\n" + value.join("") + "\r\n")
+                    let data = enc.encode(
+                        "--" +
+                            boundary +
+                            '\r\nContent-Disposition: form-data; name="' +
+                            encodeURIComponent(name) +
+                            '"\r\n\r\n' +
+                            value.join("") +
+                            "\r\n",
+                    );
                     reqres.requestBody.push(data);
                     reqres.requestSize += data.byteLength;
                 }
@@ -634,28 +737,39 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
                 let epilog = enc.encode("--" + boundary + "--\r\n");
                 reqres.requestBody.push(epilog);
                 reqres.requestSize += epilog.byteLength;
-            } else
-                console.warn("CAPTURE: can't recover requestBody from formData, unknown Content-Type format", contentType);
-        } else
-            console.warn("CAPTURE: can't recover requestBody from formData, unknown Content-Type format", contentType);
+            } else {
+                console.warn(
+                    "CAPTURE: can't recover requestBody from formData, unknown Content-Type format",
+                    contentType,
+                );
+            }
+        } else {
+            console.warn(
+                "CAPTURE: can't recover requestBody from formData, unknown Content-Type format",
+                contentType,
+            );
+        }
         delete reqres["formData"];
     }
 
     if (error !== undefined) {
-        if (isUnknownError(error))
+        if (isUnknownError(error)) {
             console.error("CAPTURE: emitRequest", requestId, "error", error, reqres);
+        }
         reqres.errors.push(error);
     }
 
     reqresFinishingUp.push(reqres);
-    if (!dontFinishUp)
+    if (!dontFinishUp) {
         processFinishingUp(false);
+    }
 }
 
 // Encode debugger's headers structure into the one used by webRequest API.
 function debugHeadersToHeaders(dheaders) {
-    if (dheaders === undefined)
+    if (dheaders === undefined) {
         return [];
+    }
 
     let res = [];
     for (let [k, v] of Object.entries(dheaders)) {
@@ -677,8 +791,9 @@ function mergeInHeaders(headers, dheaders) {
                 }
             }
         }
-        if (!found)
+        if (!found) {
             headers.push(dheader);
+        }
     }
     return headers;
 }
@@ -694,8 +809,9 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     //
     // Second case: ignore data, file, end extension URLs.
     if (dreqres.url === undefined || isBoringOrServerURL(dreqres.url)) {
-        if (!dontFinishUp)
+        if (!dontFinishUp) {
             processMatchFinishingUpWebRequestDebug(false, dreqres.tabId);
+        }
         return;
     }
     // NB: We do this here, instead of any other place because Chromium
@@ -704,8 +820,9 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     dreqres.emitTimeStamp = Date.now();
 
     if (error !== undefined) {
-        if (isUnknownError(error))
+        if (isUnknownError(error)) {
             console.error("CAPTURE: emitDebugRequest", requestId, "error", error, dreqres);
+        }
         dreqres.errors.push(error);
     }
 
@@ -715,8 +832,14 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
 
     dreqres.responseHeaders = [];
     if (dreqres.responded) {
-        mergeInHeaders(dreqres.responseHeaders, debugHeadersToHeaders(dreqres.responseHeadersDebug));
-        mergeInHeaders(dreqres.responseHeaders, debugHeadersToHeaders(dreqres.responseHeadersDebugExtra));
+        mergeInHeaders(
+            dreqres.responseHeaders,
+            debugHeadersToHeaders(dreqres.responseHeadersDebug),
+        );
+        mergeInHeaders(
+            dreqres.responseHeaders,
+            debugHeadersToHeaders(dreqres.responseHeadersDebugExtra),
+        );
     }
 
     if (!config.debugCaptures) {
@@ -727,74 +850,107 @@ function emitDebugRequest(requestId, dreqres, withResponse, error, dontFinishUp)
     }
 
     if (withResponse) {
-        browser.debugger.sendCommand({ tabId: dreqres.tabId }, "Network.getResponseBody", { requestId }).then((res) => {
-            if (res.base64Encoded)
-                dreqres.responseBody = unBase64(res.body);
-            else
-                dreqres.responseBody = res.body;
-            dreqres.responseSize = dreqres.responseBody.byteLength;
-            dreqres.responseComplete = error === undefined;
-        }, (err) => {
-            if (typeof err === "string") {
-                if (err.startsWith("Debugger is not attached to the tab with id:")
-                    || err.startsWith("Detached while handling command.")) {
-                    dreqres.errors.push("debugger::capture::NO_RESPONSE_BODY::DETACHED_DEBUGGER");
-                    return;
-                } else if (err.startsWith("Cannot access contents of url")) {
-                    dreqres.errors.push("debugger::capture::NO_RESPONSE_BODY::ACCESS_DENIED");
-                    return;
+        browser.debugger
+            .sendCommand({ tabId: dreqres.tabId }, "Network.getResponseBody", { requestId })
+            .then(
+                (res) => {
+                    if (res.base64Encoded) {
+                        dreqres.responseBody = unBase64(res.body);
+                    } else {
+                        dreqres.responseBody = res.body;
+                    }
+                    dreqres.responseSize = dreqres.responseBody.byteLength;
+                    dreqres.responseComplete = error === undefined;
+                },
+                (err) => {
+                    if (typeof err === "string") {
+                        if (
+                            err.startsWith("Debugger is not attached to the tab with id:") ||
+                            err.startsWith("Detached while handling command.")
+                        ) {
+                            dreqres.errors.push(
+                                "debugger::capture::NO_RESPONSE_BODY::DETACHED_DEBUGGER",
+                            );
+                            return;
+                        } else if (err.startsWith("Cannot access contents of url")) {
+                            dreqres.errors.push(
+                                "debugger::capture::NO_RESPONSE_BODY::ACCESS_DENIED",
+                            );
+                            return;
+                        }
+                    }
+                    dreqres.errors.push("debugger::capture::NO_RESPONSE_BODY::OTHER");
+                    logHandledError(err);
+                },
+            )
+            .finally(() => {
+                debugReqresFinishingUp.push(dreqres);
+                if (config.debugCaptures) {
+                    console.info(
+                        "CAPTURE: CAPTURED debugRequest drequestId",
+                        dreqres.requestId,
+                        "tabId",
+                        dreqres.tabId,
+                        "url",
+                        dreqres.url,
+                        "dreqres",
+                        dreqres,
+                    );
                 }
-            }
-            dreqres.errors.push("debugger::capture::NO_RESPONSE_BODY::OTHER");
-            logHandledError(err);
-        }).finally(() => {
-            debugReqresFinishingUp.push(dreqres);
-            if (config.debugCaptures)
-                console.info("CAPTURE: CAPTURED debugRequest drequestId", dreqres.requestId,
-                             "tabId", dreqres.tabId,
-                             "url", dreqres.url,
-                             "dreqres", dreqres);
-            if (!dontFinishUp)
-                processMatchFinishingUpWebRequestDebug(false, dreqres.tabId);
-        });
+                if (!dontFinishUp) {
+                    processMatchFinishingUpWebRequestDebug(false, dreqres.tabId);
+                }
+            });
     } else {
         dreqres.responseComplete = error === undefined;
         debugReqresFinishingUp.push(dreqres);
-        if (config.debugCaptures)
-            console.info("CAPTURE: CAPTURED debugRequest drequestId", dreqres.requestId,
-                         "tabId", dreqres.tabId,
-                         "url", dreqres.url,
-                         "dreqres", dreqres);
-        if (!dontFinishUp)
+        if (config.debugCaptures) {
+            console.info(
+                "CAPTURE: CAPTURED debugRequest drequestId",
+                dreqres.requestId,
+                "tabId",
+                dreqres.tabId,
+                "url",
+                dreqres.url,
+                "dreqres",
+                dreqres,
+            );
+        }
+        if (!dontFinishUp) {
             processMatchFinishingUpWebRequestDebug(false, dreqres.tabId);
+        }
     }
 }
 
 function emitTabInFlightWebRequest(rrpredicate, reason) {
     for (let [requestId, reqres] of Array.from(reqresInFlight.entries())) {
-        if (rrpredicate(reqres))
+        if (rrpredicate(reqres)) {
             emitRequest(requestId, reqres, "webRequest::" + reason, true);
+        }
     }
 }
 
 function emitTabInFlightDebug(rrpredicate, reason) {
     for (let [requestId, dreqres] of Array.from(debugReqresInFlight.entries())) {
-        if (rrpredicate(dreqres))
+        if (rrpredicate(dreqres)) {
             emitDebugRequest(requestId, dreqres, false, "debugger::" + reason, true);
+        }
     }
 }
 
 function stopInFlight(rrfilter, reason) {
     let rrpredicate = compileReqresFilter(rrfilter)[1];
 
-    if (useDebugger)
+    if (useDebugger) {
         emitTabInFlightDebug(rrpredicate, reason);
+    }
     emitTabInFlightWebRequest(rrpredicate, reason);
 
     let updatedTabId = processFinishingUp(true);
 
-    if (useDebugger)
+    if (useDebugger) {
         updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpDebug(rrpredicate));
+    }
     updatedTabId = mergeUpdatedTabIds(updatedTabId, forceFinishingUpWebRequest(rrpredicate));
 
     return updatedTabId;
@@ -804,14 +960,22 @@ function stopInFlight(rrfilter, reason) {
 // webRequest handlers
 
 function logEvent(rtype, e, reqres) {
-    if (config.debugCaptures)
-        console.info("CAPTURE: EVENT webRequest",
-                     rtype,
-                     "requestId", e.requestId,
-                     "tabId", e.tabId,
-                     "url", e.url,
-                     "event", e,
-                     "reqres", reqres);
+    if (config.debugCaptures) {
+        console.info(
+            "CAPTURE: EVENT webRequest",
+            rtype,
+            "requestId",
+            e.requestId,
+            "tabId",
+            e.tabId,
+            "url",
+            e.url,
+            "event",
+            e,
+            "reqres",
+            reqres,
+        );
+    }
 }
 
 function handleBeforeRequest(e) {
@@ -826,16 +990,18 @@ function handleBeforeRequest(e) {
     // `webRequest` events for those.
     //
     // `isMainFrame` case is handled via (stillBoring) below
-    if (isBoringOrServer && !isMainFrame)
+    if (isBoringOrServer && !isMainFrame) {
         return;
+    }
 
     let initiator;
-    if (isValidStr(e.documentUrl))
+    if (isValidStr(e.documentUrl)) {
         // Firefox
         initiator = e.documentUrl;
-    else if (isValidChromiumStr(e.initiator))
+    } else if (isValidChromiumStr(e.initiator)) {
         // Chromium
         initiator = e.initiator;
+    }
 
     let fromExtension = false;
     if (initiator !== undefined) {
@@ -844,29 +1010,33 @@ function handleBeforeRequest(e) {
             // Firefox
             initiator.startsWith(selfURL) ||
             // Chromium
-            (initiator + "/") === selfURL
-        )
+            initiator + "/" === selfURL
+        ) {
             return;
+        }
 
         // request originates from another extension
-        if (isExtensionURL(initiator))
+        if (isExtensionURL(initiator)) {
             fromExtension = true;
+        }
     }
 
     let tabId = e.tabId;
     let tabcfg = getTabConfig(tabId, fromExtension);
 
     if (isMainFrame) {
-        if (config.debugRuntime)
+        if (config.debugRuntime) {
             console.log("CAPTURE: tab navigation", tabId, url);
+        }
 
         // handle "Auto-replay mode" toggle
         if (tabcfg.autoReplay && !isBoringOrServer) {
             if (checkReplay("Auto-replay")) {
                 let redirectUrl = latestReplayOf(url);
 
-                if (config.debugRuntime)
+                if (config.debugRuntime) {
                     console.warn("CAPTURE: redirecting tab", tabId, "from", url, "to", redirectUrl);
+                }
 
                 // configure this tab based on its URL,
                 // `noBroadcast = true` because it will update soon
@@ -874,17 +1044,19 @@ function handleBeforeRequest(e) {
 
                 // do the redirect
                 return { redirectUrl };
-            } else
+            } else {
                 // cancel it as if `workOffline` was enabled
                 return { cancel: true };
+            }
         }
 
         // configure this tab based on its URL
         setTabConfig(tabId, url, tabcfg, tabcfg);
 
-        if (isBoringOrServer)
+        if (isBoringOrServer) {
             // (stillBoring)
             return;
+        }
     }
 
     let noDebuggerYet = false;
@@ -893,8 +1065,9 @@ function handleBeforeRequest(e) {
     let collecting = tabcfg.collecting && (!workOffline || tabcfg.collectingWorkOffline);
     if (!collecting) {
         // ignore this request if collecting is disabled
-        if (workOffline)
+        if (workOffline) {
             return { cancel: true };
+        }
         return;
     }
 
@@ -903,10 +1076,21 @@ function handleBeforeRequest(e) {
     if (useDebugger) {
         // On Chromium, cancel all requests from a tab that is not yet debugged,
         // start debugging, and then reload the tab.
-        if (!workOffline && tabId !== TAB_ID_NONE && !tabsDebugging.has(tabId)
-            && (url.startsWith("http://") || url.startsWith("https://"))) {
-            if (config.debugRuntime)
-                console.warn("CAPTURE: canceling and restarting request to", url, "as tab", tabId, "is not managed yet");
+        if (
+            !workOffline &&
+            tabId !== TAB_ID_NONE &&
+            !tabsDebugging.has(tabId) &&
+            (url.startsWith("http://") || url.startsWith("https://"))
+        ) {
+            if (config.debugRuntime) {
+                console.warn(
+                    "CAPTURE: canceling and restarting request to",
+                    url,
+                    "as tab",
+                    tabId,
+                    "is not managed yet",
+                );
+            }
             if (isMainFrame) {
                 // attach debugger and reload the main frame
                 attachDebuggerAndReloadTab(tabId).catch(logError);
@@ -916,22 +1100,36 @@ function handleBeforeRequest(e) {
                 //   resetAttachDebuggerAndReloadTab(tabId).catch(logError);
                 // bacause they reset the referrer
                 return { cancel: true };
-            } else
+            } else {
                 // cancel it, but generate a reqres for it, so that it would be
                 // logged
                 noDebuggerYet = true;
+            }
         }
     } else {
         // On Firefox, cancel the very first navigation request, redirect the tab
         // to `about:blank`, and then reload the tab with the original URL to
         // work-around a Firefox bug where it will fail to run `onstop` for the
         // `filterResponseData` of the very first request, thus breaking it.
-        if (!workOffline && firstNetworkRequest
-            && (url.startsWith("http://") || url.startsWith("https://"))) {
+        if (
+            !workOffline &&
+            firstNetworkRequest &&
+            (url.startsWith("http://") || url.startsWith("https://"))
+        ) {
             firstNetworkRequest = false;
-            if (config.workaroundFirefoxFirstRequest && tabId !== TAB_ID_NONE && initiator === undefined && isMainFrame) {
-                if (config.debugRuntime)
-                    console.warn("CAPTURE: canceling and restarting request to", url, "to workaround a bug in Firefox");
+            if (
+                config.workaroundFirefoxFirstRequest &&
+                tabId !== TAB_ID_NONE &&
+                initiator === undefined &&
+                isMainFrame
+            ) {
+                if (config.debugRuntime) {
+                    console.warn(
+                        "CAPTURE: canceling and restarting request to",
+                        url,
+                        "to workaround a bug in Firefox",
+                    );
+                }
                 resetAndNavigateTab(tabId, url).catch(logError);
                 return { cancel: true };
             }
@@ -961,7 +1159,7 @@ function handleBeforeRequest(e) {
         submitted: false,
         responded: false,
 
-        responseHeaders : [],
+        responseHeaders: [],
         responseBody: new ChunkedBuffer(),
         responseSize: 0,
         responseComplete: false,
@@ -969,15 +1167,17 @@ function handleBeforeRequest(e) {
     };
 
     // Set `documentUrl`, when it's not us.
-    if (isValidStr(e.documentUrl) && !e.documentUrl.startsWith(selfURL))
+    if (isValidStr(e.documentUrl) && !e.documentUrl.startsWith(selfURL)) {
         reqres.documentUrl = e.documentUrl;
+    }
 
     // Do not leak extension id in `originUrl` either. E.g., when
     // `config.workaroundFirefoxFirstRequest` fires and such.
-    if (isValidStr(e.originUrl) && !e.originUrl.startsWith(selfURL))
+    if (isValidStr(e.originUrl) && !e.originUrl.startsWith(selfURL)) {
         reqres.originUrl = e.originUrl; // Firefox
-    else if (isValidChromiumStr(e.initiator) && !e.initiator.startsWith(selfURL))
-        reqres.originUrl = e.initiator; // Chromium
+    } else if (isValidChromiumStr(e.initiator) && !e.initiator.startsWith(selfURL)) {
+        reqres.originUrl = e.initiator;
+    } // Chromium
 
     if (e.requestBody !== undefined && e.requestBody !== null) {
         if (e.requestBody.raw !== undefined) {
@@ -1000,10 +1200,12 @@ function handleBeforeRequest(e) {
         }
     }
 
-    if (noDebuggerYet)
-        reqres.errors.push("webRequest::capture::CANCELED::NO_DEBUGGER")
-    if (workOffline)
-        reqres.errors.push("webRequest::capture::CANCELED::BY_WORK_OFFLINE")
+    if (noDebuggerYet) {
+        reqres.errors.push("webRequest::capture::CANCELED::NO_DEBUGGER");
+    }
+    if (workOffline) {
+        reqres.errors.push("webRequest::capture::CANCELED::BY_WORK_OFFLINE");
+    }
     if (noDebuggerYet || workOffline) {
         reqresAlmostDone.push(reqres);
         scheduleEndgame(tabId);
@@ -1014,20 +1216,23 @@ function handleBeforeRequest(e) {
         // Firefox
         let filter = browser.webRequest.filterResponseData(requestId);
         filter.onstart = (event) => {
-            if (config.debugCaptures)
+            if (config.debugCaptures) {
                 console.info("CAPTURE: filterResponseData", requestId, "started");
+            }
         };
         filter.ondata = (event) => {
-            if (config.debugCaptures)
+            if (config.debugCaptures) {
                 console.info("CAPTURE: filterResponseData", requestId, "chunk", event.data);
+            }
             let data = new Uint8Array(event.data);
             reqres.responseBody.push(data);
             reqres.responseSize += data.byteLength;
             filter.write(event.data);
         };
         filter.onstop = (event) => {
-            if (config.debugCaptures)
+            if (config.debugCaptures) {
                 console.info("CAPTURE: filterResponseData", requestId, "finished");
+            }
             reqres.responseComplete = true;
             filter.disconnect();
             scheduleProcessFinishingUpWebRequest(); // in case we were waiting for this filter
@@ -1036,8 +1241,9 @@ function handleBeforeRequest(e) {
             if (filter.error !== "Invalid request ID") {
                 // if filter was actually started
                 let error = "filterResponseData::" + filter.error;
-                if (isUnknownError(error))
+                if (isUnknownError(error)) {
                     console.error("CAPTURE: filterResponseData", requestId, "error", error);
+                }
                 reqres.errors.push(error);
             }
             scheduleProcessFinishingUpWebRequest(); // in case we were waiting for this filter
@@ -1053,16 +1259,18 @@ function handleBeforeRequest(e) {
 
 function handleBeforeSendHeaders(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined)
+    if (reqres === undefined) {
         return;
+    }
 
     logEvent("BeforeSendHeaders", e, reqres);
 }
 
 function handleSendHeaders(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined)
+    if (reqres === undefined) {
         return;
+    }
 
     logEvent("SendHeaders", e, reqres);
     reqres.submitted = true;
@@ -1071,8 +1279,9 @@ function handleSendHeaders(e) {
 
 function handleHeadersRecieved(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined)
+    if (reqres === undefined) {
         return;
+    }
 
     logEvent("HeadersRecieved", e, reqres);
 
@@ -1096,8 +1305,9 @@ function handleHeadersRecieved(e) {
 
 function handleBeforeRedirect(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined)
+    if (reqres === undefined) {
         return;
+    }
 
     logEvent("BeforeRedirect", e, reqres);
 
@@ -1109,7 +1319,10 @@ function handleBeforeRedirect(e) {
         // `handleBeforeRequest` by the browser itself, by another extension,
         // or a service/shared worker.
         let firefoxInternalRedirect = !useDebugger && e.statusCode === 0;
-        let firefoxExtensionRedirectToSelf = !useDebugger && (e.statusCode < 300 || e.statusCode >= 400) && isExtensionURL(e.redirectUrl);
+        let firefoxExtensionRedirectToSelf =
+            !useDebugger &&
+            (e.statusCode < 300 || e.statusCode >= 400) &&
+            isExtensionURL(e.redirectUrl);
         if (firefoxInternalRedirect || firefoxExtensionRedirectToSelf) {
             // Work around internal Firefox redirects giving no codes and
             // statuses or extensions redirecting to their local files under
@@ -1120,14 +1333,14 @@ function handleBeforeRedirect(e) {
             reqres.fromCache = false;
             reqres.statusCode = 307;
             reqres.reason = "Internal Redirect";
-            reqres.responseHeaders = [
-                { name: "Location", value: e.redirectUrl }
-            ];
+            reqres.responseHeaders = [{ name: "Location", value: e.redirectUrl }];
             // these give no data, usually
-            if (firefoxExtensionRedirectToSelf)
+            if (firefoxExtensionRedirectToSelf) {
                 reqres.responseComplete = false;
-        } else
+            }
+        } else {
             fillResponse(reqres, e);
+        }
     }
 
     emitRequest(e.requestId, reqres);
@@ -1138,8 +1351,9 @@ function handleBeforeRedirect(e) {
 
 function handleAuthRequired(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined)
+    if (reqres === undefined) {
         return;
+    }
 
     logEvent("AuthRequired", e, reqres);
 
@@ -1153,8 +1367,9 @@ function handleAuthRequired(e) {
 
 function handleCompleted(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined)
+    if (reqres === undefined) {
         return;
+    }
 
     logEvent("Completed", e, reqres);
 
@@ -1170,8 +1385,9 @@ function handleCompleted(e) {
 
 function handleErrorOccurred(e) {
     let reqres = reqresInFlight.get(e.requestId);
-    if (reqres === undefined)
+    if (reqres === undefined) {
         return;
+    }
 
     logEvent("ErrorOccured", e, reqres);
 
@@ -1190,16 +1406,33 @@ function handleErrorOccurred(e) {
 
 function initCapture() {
     let filterAllR = { urls: ["<all_urls>"] };
-    if (useBlocking)
-        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, ["blocking", "requestBody"]);
-    else
-        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, ["requestBody"]);
-    browser.webRequest.onBeforeSendHeaders.addListener(catchAll(handleBeforeSendHeaders), filterAllR);
-    browser.webRequest.onSendHeaders.addListener(catchAll(handleSendHeaders), filterAllR, ["requestHeaders"]);
-    browser.webRequest.onHeadersReceived.addListener(catchAll(handleHeadersRecieved), filterAllR, ["responseHeaders"]);
-    browser.webRequest.onBeforeRedirect.addListener(catchAll(handleBeforeRedirect), filterAllR, ["responseHeaders"]);
+    if (useBlocking) {
+        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, [
+            "blocking",
+            "requestBody",
+        ]);
+    } else {
+        browser.webRequest.onBeforeRequest.addListener(catchAll(handleBeforeRequest), filterAllR, [
+            "requestBody",
+        ]);
+    }
+    browser.webRequest.onBeforeSendHeaders.addListener(
+        catchAll(handleBeforeSendHeaders),
+        filterAllR,
+    );
+    browser.webRequest.onSendHeaders.addListener(catchAll(handleSendHeaders), filterAllR, [
+        "requestHeaders",
+    ]);
+    browser.webRequest.onHeadersReceived.addListener(catchAll(handleHeadersRecieved), filterAllR, [
+        "responseHeaders",
+    ]);
+    browser.webRequest.onBeforeRedirect.addListener(catchAll(handleBeforeRedirect), filterAllR, [
+        "responseHeaders",
+    ]);
     browser.webRequest.onAuthRequired.addListener(catchAll(handleAuthRequired), filterAllR);
-    browser.webRequest.onCompleted.addListener(catchAll(handleCompleted), filterAllR, ["responseHeaders"]);
+    browser.webRequest.onCompleted.addListener(catchAll(handleCompleted), filterAllR, [
+        "responseHeaders",
+    ]);
     browser.webRequest.onErrorOccurred.addListener(catchAll(handleErrorOccurred), filterAllR);
 }
 
@@ -1208,15 +1441,23 @@ function initCapture() {
 function logDebugEvent(rtype, nonExtra, e, dreqres) {
     if (config.debugCaptures) {
         let url;
-        if (e.request !== undefined)
+        if (e.request !== undefined) {
             url = e.request.url;
-        console.info("CAPTURE: EVENT debugRequest",
-                     rtype + (nonExtra ? "" : "ExtraInfo"),
-                     "drequestId", e.requestId,
-                     "tabId", e.tabId,
-                     "url", url,
-                     "event", e,
-                     "dreqres", dreqres);
+        }
+        console.info(
+            "CAPTURE: EVENT debugRequest",
+            rtype + (nonExtra ? "" : "ExtraInfo"),
+            "drequestId",
+            e.requestId,
+            "tabId",
+            e.tabId,
+            "url",
+            url,
+            "event",
+            e,
+            "dreqres",
+            dreqres,
+        );
     }
 }
 
@@ -1226,65 +1467,71 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
     let tabcfg = getTabConfig(tabId, fromExtension);
 
     let collecting = tabcfg.collecting && (!tabcfg.workOffline || tabcfg.collectingWorkOffline);
-    if (!collecting)
+    if (!collecting) {
         // ignore this request if collecting is disabled
         return;
+    }
 
     popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
     logDebugEvent("requestWillBeSent", nonExtra, e, undefined);
 
-    let dreqres = cacheSingleton(debugReqresInFlight, e.requestId, () => { return {
-        requestId: e.requestId,
+    let dreqres = cacheSingleton(debugReqresInFlight, e.requestId, () => {
+        return {
+            requestId: e.requestId,
 
-        sessionId,
-        windowId: getWindowId(tabId),
-        tabId,
-        fromExtension,
+            sessionId,
+            windowId: getWindowId(tabId),
+            tabId,
+            fromExtension,
 
-        //method: undefined,
-        //url: undefined,
+            //method: undefined,
+            //url: undefined,
 
-        //documentUrl: undefined,
-        //originUrl: undefined,
+            //documentUrl: undefined,
+            //originUrl: undefined,
 
-        errors: [],
+            errors: [],
 
-        //requestTimeStamp: Date.now(),
-        //requestHeaders: undefined,
-        //requestHeadersDebug: undefined,
-        //requestHeadersDebugExtra: undefined,
-        //requestBody: undefined,
-        //requestComplete: false,
+            //requestTimeStamp: Date.now(),
+            //requestHeaders: undefined,
+            //requestHeadersDebug: undefined,
+            //requestHeadersDebugExtra: undefined,
+            //requestBody: undefined,
+            //requestComplete: false,
 
-        submitted: false,
-        responded: false,
+            submitted: false,
+            responded: false,
 
-        //responseTimeStamp: undefined,
-        //protocol: undefined, // on Chromium is a part of the response, not the request
-        //statusCode: undefined,
-        //reason: undefined,
-        //responseHeaders : undefined,
-        //responseHeadersDebug: undefined,
-        //responseHeadersDebugExtra: undefined,
-        //responseBody: undefined,
-        responseComplete: false,
+            //responseTimeStamp: undefined,
+            //protocol: undefined, // on Chromium is a part of the response, not the request
+            //statusCode: undefined,
+            //reason: undefined,
+            //responseHeaders : undefined,
+            //responseHeadersDebug: undefined,
+            //responseHeadersDebugExtra: undefined,
+            //responseBody: undefined,
+            responseComplete: false,
 
-        fromCache: false,
-    }; });
+            fromCache: false,
+        };
+    });
 
     if (nonExtra) {
         dreqres.requestTimeStamp = e.wallTime * 1000;
         dreqres.method = e.request.method;
         dreqres.url = e.request.url;
-        if (isValidStr(e.documentURL))
+        if (isValidStr(e.documentURL)) {
             dreqres.documentUrl = e.documentURL;
+        }
         dreqres.requestHeadersDebug = e.request.headers;
-        if (!isBoringOrServerURL(dreqres.url))
+        if (!isBoringOrServerURL(dreqres.url)) {
             broadcastToState(tabId, "appendInFlight", () => [makeLoggable(dreqres)]);
+        }
     } else {
-        if (dreqres.requestTimeStamp === undefined)
+        if (dreqres.requestTimeStamp === undefined) {
             dreqres.requestTimeStamp = Date.now();
+        }
         dreqres.requestHeadersDebugExtra = e.headers;
     }
 
@@ -1294,8 +1541,9 @@ function handleDebugRequestWillBeSent(nonExtra, e) {
 
 function handleDebugResponseRecieved(nonExtra, e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
-    if (dreqres === undefined)
+    if (dreqres === undefined) {
         return;
+    }
 
     popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
@@ -1307,30 +1555,34 @@ function handleDebugResponseRecieved(nonExtra, e) {
     if (nonExtra) {
         dreqres.responseTimeStamp = e.response.responseTime;
         let protocol = e.response.protocol.toUpperCase();
-        if (protocol === "H3" || protocol === "H3C")
+        if (protocol === "H3" || protocol === "H3C") {
             dreqres.protocol = "HTTP/3.0";
-        else if (protocol === "H2" || protocol === "H2C")
+        } else if (protocol === "H2" || protocol === "H2C") {
             dreqres.protocol = "HTTP/2.0";
-        else
+        } else {
             dreqres.protocol = protocol;
+        }
         dreqres.statusCode = e.response.status;
         dreqres.reason = e.response.statusText;
         dreqres.responseHeadersDebug = e.response.headers;
         scheduleProcessMatchFinishingUpWebRequestDebug();
     } else {
-        if (dreqres.responseTimeStamp === undefined)
+        if (dreqres.responseTimeStamp === undefined) {
             dreqres.responseTimeStamp = Date.now();
-        if (dreqres.statusCode === undefined)
+        }
+        if (dreqres.statusCode === undefined) {
             dreqres.statusCode = e.statusCode;
+        }
         dreqres.statusCodeExtra = e.statusCode;
         dreqres.responseHeadersDebugExtra = e.headers;
-        if (redirectStatusCodes.has(e.statusCode))
+        if (redirectStatusCodes.has(e.statusCode)) {
             // If this is a redirect request, emit it immediately, because
             // there would be neither nonExtra, nor handleDebugLoadingFinished event
             // for it
             emitDebugRequest(e.requestId, dreqres, false);
-        else
+        } else {
             scheduleProcessMatchFinishingUpWebRequestDebug();
+        }
         // can't do the same for 304 Not Modified, because it needs to
         // accumulate both extra and non-extra data first to match to
         // reqresFinishingUp requests, and it does get handleDebugLoadingFinished
@@ -1339,8 +1591,9 @@ function handleDebugResponseRecieved(nonExtra, e) {
 
 function handleRequestServedFromCache(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
-    if (dreqres === undefined)
+    if (dreqres === undefined) {
         return;
+    }
 
     popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
@@ -1353,8 +1606,9 @@ function handleRequestServedFromCache(e) {
 
 function handleDebugLoadingFinished(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
-    if (dreqres === undefined)
+    if (dreqres === undefined) {
         return;
+    }
 
     popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
@@ -1365,80 +1619,101 @@ function handleDebugLoadingFinished(e) {
 
 function handleDebugLoadingFailed(e) {
     let dreqres = debugReqresInFlight.get(e.requestId);
-    if (dreqres === undefined)
+    if (dreqres === undefined) {
         return;
+    }
 
     popSingletonTimeout(scheduledCancelable, "debugFinishingUp");
 
     logDebugEvent("loadingFailed", true, e, dreqres);
 
     if (e.canceled) {
-        emitDebugRequest(e.requestId, dreqres, false, "debugger::" + (e.errorText ? e.errorText : "net::ERR_CANCELED"));
+        emitDebugRequest(
+            e.requestId,
+            dreqres,
+            false,
+            "debugger::" + (e.errorText ? e.errorText : "net::ERR_CANCELED"),
+        );
     } else if (e.blockedReason) {
-        emitDebugRequest(e.requestId, dreqres, false, "debugger::net::ERR_BLOCKED::" + e.blockedReason);
-    } else
+        emitDebugRequest(
+            e.requestId,
+            dreqres,
+            false,
+            "debugger::net::ERR_BLOCKED::" + e.blockedReason,
+        );
+    } else {
         emitDebugRequest(e.requestId, dreqres, true, "debugger::" + e.errorText);
+    }
 }
 
 function handleDebugEvent(debuggee, method, params) {
     switch (method) {
-    case "Network.requestWillBeSent":
-        params.tabId = debuggee.tabId;
-        handleDebugRequestWillBeSent(true, params);
-        break;
-    case "Network.requestWillBeSentExtraInfo":
-        params.tabId = debuggee.tabId;
-        handleDebugRequestWillBeSent(false, params);
-        break;
-    case "Network.responseReceived":
-        params.tabId = debuggee.tabId;
-        handleDebugResponseRecieved(true, params);
-        break;
-    case "Network.responseReceivedExtraInfo":
-        params.tabId = debuggee.tabId;
-        handleDebugResponseRecieved(false, params);
-        break;
-    case "Network.requestServedFromCache":
-        params.tabId = debuggee.tabId;
-        handleRequestServedFromCache(params);
-        break;
-    case "Network.loadingFinished":
-        params.tabId = debuggee.tabId;
-        handleDebugLoadingFinished(params);
-        break;
-    case "Network.loadingFailed":
-        params.tabId = debuggee.tabId;
-        handleDebugLoadingFailed(params);
-        break;
-    //case "Fetch.requestPaused":
-    //    console.warn("CAPTURE: FETCH", params);
-    //    browser.debugger.sendCommand(debuggee, "Fetch.continueRequest", { requestId: params.requestId });
-    //    break;
-    case "Inspector.detached":
-    case "Network.dataReceived":
-    case "Network.resourceChangedPriority":
-        // ignore
-        break;
-    default:
-        console.warn("CAPTURE: debugger said", debuggee, method, params);
+        case "Network.requestWillBeSent":
+            params.tabId = debuggee.tabId;
+            handleDebugRequestWillBeSent(true, params);
+            break;
+        case "Network.requestWillBeSentExtraInfo":
+            params.tabId = debuggee.tabId;
+            handleDebugRequestWillBeSent(false, params);
+            break;
+        case "Network.responseReceived":
+            params.tabId = debuggee.tabId;
+            handleDebugResponseRecieved(true, params);
+            break;
+        case "Network.responseReceivedExtraInfo":
+            params.tabId = debuggee.tabId;
+            handleDebugResponseRecieved(false, params);
+            break;
+        case "Network.requestServedFromCache":
+            params.tabId = debuggee.tabId;
+            handleRequestServedFromCache(params);
+            break;
+        case "Network.loadingFinished":
+            params.tabId = debuggee.tabId;
+            handleDebugLoadingFinished(params);
+            break;
+        case "Network.loadingFailed":
+            params.tabId = debuggee.tabId;
+            handleDebugLoadingFailed(params);
+            break;
+        //case "Fetch.requestPaused":
+        //    console.warn("CAPTURE: FETCH", params);
+        //    browser.debugger.sendCommand(debuggee, "Fetch.continueRequest", { requestId: params.requestId });
+        //    break;
+        case "Inspector.detached":
+        case "Network.dataReceived":
+        case "Network.resourceChangedPriority":
+            // ignore
+            break;
+        default:
+            console.warn("CAPTURE: debugger said", debuggee, method, params);
     }
 }
 
 function handleDebugDetach(debuggee, reason) {
-    let logfunc = reason !== "target_closed" ? console.warn : (config.debugRuntime ? console.debug : undefined);
-    if (logfunc !== undefined)
+    let logfunc =
+        reason !== "target_closed" ? console.warn : config.debugRuntime ? console.debug : undefined;
+    if (logfunc !== undefined) {
         logfunc("CAPTURE: debugger detached unexpectedly from", debuggee, "reason", reason);
+    }
 
     let tabId = debuggee.tabId;
     if (tabId !== undefined) {
         tabsDebugging.delete(tabId);
         // Unfortunately, this means all in-flight reqres of this tab are broken now
-        let updatedTabId = stopInFlight({tabId}, "capture::EMIT_FORCED::BY_DETACHED_DEBUGGER");
+        let updatedTabId = stopInFlight({ tabId }, "capture::EMIT_FORCED::BY_DETACHED_DEBUGGER");
         // In Chrome, it's pretty easy to click the notification or press Escape while doing
         // Control+F and detach the debugger, so let's reattach it immediately in that case
-        if (reason !== "target_closed")
+        if (reason !== "target_closed") {
             // setting url to "about:blank" for simplicity
-            setTimeout(() => syncDebuggersState([{id: tabId, url: "about:blank"}]).catch(logErrorExceptWhenStartsWith("No tab with given id")), 1);
+            setTimeout(
+                () =>
+                    syncDebuggersState([{ id: tabId, url: "about:blank" }]).catch(
+                        logErrorExceptWhenStartsWith("No tab with given id"),
+                    ),
+                1,
+            );
+        }
         scheduleEndgame(updatedTabId);
     }
 }

@@ -28,12 +28,14 @@ function newIssueAcc(callback) {
 }
 
 function getByReasonMapRecord(byReasonMap, reason) {
-    return cacheSingleton(byReasonMap, reason, () => { return {
-        real: true,
-        recoverable: true,
-        queue: [],
-        size: 0,
-    }; });
+    return cacheSingleton(byReasonMap, reason, () => {
+        return {
+            real: true,
+            recoverable: true,
+            queue: [],
+            size: 0,
+        };
+    });
 }
 
 function pushToByReasonRecord(v, real, recoverable, archivable) {
@@ -60,8 +62,9 @@ function pushToByReasonMap(byReasonMap, reason, real, recoverable, archivable) {
 function pushToIssueAcc(accumulator, reason, real, recoverable, archivable) {
     accumulator[0].add(archivable);
     pushToByReasonMap(accumulator[1], reason, real, recoverable, archivable);
-    if (accumulator[2] !== undefined)
+    if (accumulator[2] !== undefined) {
         accumulator[2](recoverable);
+    }
 }
 
 function pushToIssueAcc2(accumulator, storeID, reason, real, recoverable, archivable) {
@@ -73,16 +76,18 @@ function pushManyToIssueAcc2(accumulator, storeID, reason, real, recoverable, ar
     let byReasonMap = cacheSingleton(accumulator[1], storeID, () => new Map());
     let v = getByReasonMapRecord(byReasonMap, reason);
     pushManyToSetByReasonRecord(accumulator[0], v, real, recoverable, archivables);
-    if (accumulator[2] !== undefined)
+    if (accumulator[2] !== undefined) {
         accumulator[2](recoverable);
+    }
 }
 
 function deleteFromIssueAccSet(set, archivables) {
     let toDelete = new Set();
     for (let archivable of archivables) {
         let had = set.delete(archivable);
-        if (had)
+        if (had) {
             toDelete.add(archivable);
+        }
     }
     return toDelete;
 }
@@ -91,11 +96,13 @@ function deleteFromIssueAccMap(map, toDelete) {
     let toCleanup = [];
     for (let [k, v] of map) {
         v.queue = v.queue.filter((archivable) => !toDelete.has(archivable));
-        if (v.queue.length === 0)
+        if (v.queue.length === 0) {
             toCleanup.push(k);
+        }
     }
-    for (let k of toCleanup)
+    for (let k of toCleanup) {
         map.delete(k);
+    }
 }
 
 function deleteFromIssueAcc(accumulator, archivables) {
@@ -109,9 +116,11 @@ function deleteFromIssueAcc2(accumulator, archivables) {
     let toCleanup = [];
     for (let [k, v] of accumulator[1]) {
         deleteFromIssueAccMap(v, toDelete);
-        if (v.size === 0)
+        if (v.size === 0) {
             toCleanup.push(k);
+        }
     }
-    for (let k of toCleanup)
+    for (let k of toCleanup) {
         accumulator[1].delete(k);
+    }
 }

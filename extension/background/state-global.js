@@ -167,12 +167,15 @@ let configDefaults = {
     workOfflineReplay: true,
     autoReplayOffInReplay: true,
 
-    root: assignRec({
-        snapshottable: true,
-        replayable: true,
-        settleDelay: 5,
-        settleRetries: 5,
-    }, sourceConfigDefaults),
+    root: assignRec(
+        {
+            snapshottable: true,
+            replayable: true,
+            settleDelay: 5,
+            settleRetries: 5,
+        },
+        sourceConfigDefaults,
+    ),
 
     background: assignRec({}, sourceConfigDefaults, {
         bucket: "background",
@@ -213,78 +216,82 @@ let serverConfigDefaults = {
 
 function upgradeConfig(config) {
     function rename(from, to, ...args) {
-        if (args.length === 0)
+        if (args.length === 0) {
             args = [config];
+        }
         for (let cfg of args) {
             let old = cfg[from];
-            if (old === undefined)
+            if (old === undefined) {
                 return;
+            }
             delete cfg[from];
             cfg[to] = old;
         }
     }
 
     switch (config.version) {
-    case 1:
-        rename("collectPartialRequests", "archivePartialRequest");
-        rename("collectNoResponse", "archiveNoResponse");
-        rename("collectIncompleteResponses", "archiveIncompleteResponse");
-    case 2:
-        // because it got updated lots
-        config.seenHelp = false;
-    case 3:
-        // making them disjoint
-        if (config.markProblematicWithErrors)
-            config.markProblematicPickedWithErrors = true;
-        rename("markProblematicWithErrors", "markProblematicDroppedWithErrors");
-    case 4:
-        // because that, essentially, was the default before, even though it is not now
-        config.archiveSubmitHTTP = true;
-        config.archiveSaveLS = false;
+        case 1:
+            rename("collectPartialRequests", "archivePartialRequest");
+            rename("collectNoResponse", "archiveNoResponse");
+            rename("collectIncompleteResponses", "archiveIncompleteResponse");
+        case 2:
+            // because it got updated lots
+            config.seenHelp = false;
+        case 3:
+            // making them disjoint
+            if (config.markProblematicWithErrors) {
+                config.markProblematicPickedWithErrors = true;
+            }
+            rename("markProblematicWithErrors", "markProblematicDroppedWithErrors");
+        case 4:
+            // because that, essentially, was the default before, even though it is not now
+            config.archiveSubmitHTTP = true;
+            config.archiveSaveLS = false;
 
-        rename("archiving", "archive")
-        rename("archiveURLBase", "submitHTTPURLBase");
-        rename("archiveNotifyOK", "archiveDoneNotify");
-        rename("archiveNotifyFailed", "archiveFailedNotify");
-        rename("archiveNotifyDisabled", "archiveStuckNotify");
+            rename("archiving", "archive");
+            rename("archiveURLBase", "submitHTTPURLBase");
+            rename("archiveNotifyOK", "archiveDoneNotify");
+            rename("archiveNotifyFailed", "archiveFailedNotify");
+            rename("archiveNotifyDisabled", "archiveStuckNotify");
 
-        rename("profile", "bucket", config.root, config.background, config.extension);
-    case 5:
-        if (config.exportAsMaxSize === 0) {
-            config.exportAsBundle = false;
-            config.exportAsMaxSize = configDefaults.exportAsMaxSize;
-        }
-        // because it got updated lots
-        config.seenHelp = false;
-    case 6:
-        // its semantics changed
-        config.problematicNotify = config.autoNotify ? true : null;
-        rename("debugging", "debugRuntime");
-    case 7:
-        // its semantics changed
-        config.collectingWorkOffline = true;
-    case 8:
-        rename("archiveFailedNotify", "persistFailedNotify");
-        rename("saveLSParanoid", "persistLSParanoid");
+            rename("profile", "bucket", config.root, config.background, config.extension);
+        case 5:
+            if (config.exportAsMaxSize === 0) {
+                config.exportAsBundle = false;
+                config.exportAsMaxSize = configDefaults.exportAsMaxSize;
+            }
+            // because it got updated lots
+            config.seenHelp = false;
+        case 6:
+            // its semantics changed
+            config.problematicNotify = config.autoNotify ? true : null;
+            rename("debugging", "debugRuntime");
+        case 7:
+            // its semantics changed
+            config.collectingWorkOffline = true;
+        case 8:
+            rename("archiveFailedNotify", "persistFailedNotify");
+            rename("saveLSParanoid", "persistLSParanoid");
 
-        config.root.workOffline = config.root.workOffline && config.workOffline;
-        config.root.collecting = config.root.collecting && config.collecting;
-        config.root.collectingWorkOffline = config.collectingWorkOffline;
-        config.background.workOffline = config.background.workOffline && config.workOffline;
-        config.background.collecting = config.background.collecting && config.collecting;
-        config.background.collectingWorkOffline = config.collectingWorkOffline;
-        config.extension.workOffline = config.extension.workOffline && config.workOffline;
-        config.extension.collecting = config.extension.collecting && config.collecting;
-        config.extension.collectingWorkOffline = config.collectingWorkOffline;
-        delete config["workOffline"];
-        delete config["collecting"];
-        delete config["collectingWorkOffline"];
-    case 9:
-
-    // epilog, do NOT move or copy-paste this `break` into the above
-        break;
-    default:
-        console.warn(`Bad old config version ${config.version}, reusing values as-is without updates`);
+            config.root.workOffline = config.root.workOffline && config.workOffline;
+            config.root.collecting = config.root.collecting && config.collecting;
+            config.root.collectingWorkOffline = config.collectingWorkOffline;
+            config.background.workOffline = config.background.workOffline && config.workOffline;
+            config.background.collecting = config.background.collecting && config.collecting;
+            config.background.collectingWorkOffline = config.collectingWorkOffline;
+            config.extension.workOffline = config.extension.workOffline && config.workOffline;
+            config.extension.collecting = config.extension.collecting && config.collecting;
+            config.extension.collectingWorkOffline = config.collectingWorkOffline;
+            delete config["workOffline"];
+            delete config["collecting"];
+            delete config["collectingWorkOffline"];
+        case 9:
+            // epilog, do NOT move or copy-paste this `break` into the above
+            break;
+        default:
+            console.warn(
+                `Bad old config version ${config.version}, reusing values as-is without updates`,
+            );
         // the following updateFromRec will do its best
     }
 
@@ -326,8 +333,9 @@ tests.upgradeConfig = () => {
     let up = upgradeConfig(assignRec({}, value));
 
     // sanity checks
-    if (up.version !== configVersion)
+    if (up.version !== configVersion) {
         throw new Error("upgradeConfig version");
+    }
     try {
         updateFromRec(assignRec({}, configDefaults), up);
     } catch (err) {
@@ -336,18 +344,24 @@ tests.upgradeConfig = () => {
     }
 
     let issues = [];
-    let res = equivalentRec((a, b, prefix) => {
-        if (a === undefined && b !== undefined) {
-            console.error("upgradeConfig", prefix, a, b);
-            issues.push(prefix);
-            return false;
-        }
-        return true;
-    }, configDefaults, up, false);
+    let res = equivalentRec(
+        (a, b, prefix) => {
+            if (a === undefined && b !== undefined) {
+                console.error("upgradeConfig", prefix, a, b);
+                issues.push(prefix);
+                return false;
+            }
+            return true;
+        },
+        configDefaults,
+        up,
+        false,
+    );
 
-    if (!res)
+    if (!res) {
         throw new Error("upgradeConfig fields");
-}
+    }
+};
 
 function setServer(config) {
     let res = assignRec({}, serverConfigDefaults);
@@ -357,21 +371,27 @@ function setServer(config) {
         serverURL = new URL(config.submitHTTPURLBase);
     } catch (err) {
         logHandledError(err);
-        browser.notifications.create("error-server-url", {
-            title: "Hoardy-Web: ERROR",
-            message: escapeNotification(config, `Malformed \`Server URL\` \`${config.submitHTTPURLBase}\`:\n${errorMessageOf(err)}`),
-            iconUrl: iconURL("error", 128),
-            type: "basic",
-        }).catch(logError);
+        browser.notifications
+            .create("error-server-url", {
+                title: "Hoardy-Web: ERROR",
+                message: escapeNotification(
+                    config,
+                    `Malformed \`Server URL\` \`${config.submitHTTPURLBase}\`:\n${errorMessageOf(err)}`,
+                ),
+                iconUrl: iconURL("error", 128),
+                type: "basic",
+            })
+            .catch(logError);
         return;
     }
 
     // clear stale
     browser.notifications.clear("error-server-url").catch(logError);
 
-    if (serverURL.pathname == "/pwebarc/dump")
+    if (serverURL.pathname == "/pwebarc/dump") {
         // handle old-style URLs
         serverURL.pathname = "/";
+    }
     // just in case
     serverURL.search = "";
     serverURL.hash = "";
@@ -384,13 +404,15 @@ function setServer(config) {
 function fixSourceConfig(cfg, defaults, noTab) {
     // if unset, reset to default
     if (!cfg.bucket) {
-        if (typeof defaults === "function")
+        if (typeof defaults === "function") {
             defaults = defaults();
+        }
         cfg.bucket = defaults.bucket;
     }
 
-    if (noTab)
+    if (noTab) {
         return;
+    }
 
     cfg.settleDelay = clamp(0, 60, toNumber(cfg.settleDelay));
     cfg.settleRetries = clamp(0, 100, toNumber(cfg.settleRetries));
@@ -403,94 +425,153 @@ function fixConfig(config, oldConfig, serverConfig) {
     let season = config.season;
     let numSeasons = Array.from(Object.keys(season)).filter((k) => season[k]).length;
     if (numSeasons > 1) {
-        for (let key of Object.keys(season))
-            if (season[key] === oldConfig.season[key])
+        for (let key of Object.keys(season)) {
+            if (season[key] === oldConfig.season[key]) {
                 season[key] = null;
+            }
+        }
     }
 
     config.animateIcon = clamp(100, 5000, toNumber(config.animateIcon));
 
-    config.workaroundChromiumDebugTimeout = clamp(1, 120, toNumber(config.workaroundChromiumDebugTimeout));
+    config.workaroundChromiumDebugTimeout = clamp(
+        1,
+        120,
+        toNumber(config.workaroundChromiumDebugTimeout),
+    );
 
     if (!config.debugConfig && !isMobile && !config.spawnNewTabs) {
         // unavailable
         config.spawnNewTabs = true;
 
-        if (config.hintNotify)
-            browser.notifications.create("hint-configNotSupported-spawnNewTabs", {
-                title: "Hoardy-Web: HINT",
-                message: escapeNotification(config, `"Spawn internal pages in new tabs" can not be disabled on a desktop browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
-                iconUrl: iconURL("main", 128),
-                type: "basic",
-            }).catch(logError);
+        if (config.hintNotify) {
+            browser.notifications
+                .create("hint-configNotSupported-spawnNewTabs", {
+                    title: "Hoardy-Web: HINT",
+                    message: escapeNotification(
+                        config,
+                        `"Spawn internal pages in new tabs" can not be disabled on a desktop browser. See the description of that option for more info.` +
+                            annoyingNotification(
+                                config,
+                                "Generate notifications about > ... UI hints",
+                            ),
+                    ),
+                    iconUrl: iconURL("main", 128),
+                    type: "basic",
+                })
+                .catch(logError);
+        }
     }
 
-    if (reqresIDB === undefined)
+    if (reqresIDB === undefined) {
         config.preferIndexedDB = false;
-    else if (!config.debugConfig && useDebugger && !config.preferIndexedDB) {
+    } else if (!config.debugConfig && useDebugger && !config.preferIndexedDB) {
         // can not be disabled on Chromium ATM, since serialization of
         // Uint8Array to `storage.local` won't work there
         config.preferIndexedDB = true;
 
-        if (config.hintNotify)
-            browser.notifications.create("hint-configNotSupported-preferIndexedDB", {
-                title: "Hoardy-Web: HINT",
-                message: escapeNotification(config, `"Prefer \`IndexedDB\` API" can not be disabled on a Chromium-based browser. See the description of that option for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
-                iconUrl: iconURL("main", 128),
-                type: "basic",
-            }).catch(logError);
+        if (config.hintNotify) {
+            browser.notifications
+                .create("hint-configNotSupported-preferIndexedDB", {
+                    title: "Hoardy-Web: HINT",
+                    message: escapeNotification(
+                        config,
+                        `"Prefer \`IndexedDB\` API" can not be disabled on a Chromium-based browser. See the description of that option for more info.` +
+                            annoyingNotification(
+                                config,
+                                "Generate notifications about > ... UI hints",
+                            ),
+                    ),
+                    iconUrl: iconURL("main", 128),
+                    type: "basic",
+                })
+                .catch(logError);
+        }
     }
 
     let noArchiveExportAs = isMobile && isFirefox;
-    if (!config.debugConfig && noArchiveExportAs && (config.archiveExportAs || config.rearchiveExportAs)) {
+    if (
+        !config.debugConfig &&
+        noArchiveExportAs &&
+        (config.archiveExportAs || config.rearchiveExportAs)
+    ) {
         // Firefox on Android crashes with this set see "Quirks and Bugs" in ../page/help.org
         config.archiveExportAs = false;
         config.rearchiveExportAs = false;
 
-        if (config.hintNotify)
-            browser.notifications.create("hint-configNotSupported-archiveExportAs", {
-                title: "Hoardy-Web: HINT",
-                message: escapeNotification(config, `"Export via \`saveAs\` is not supported on Firefox-based mobile browsers. See the "Help" page for more info.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
-                iconUrl: iconURL("main", 128),
-                type: "basic",
-            }).catch(logError);
+        if (config.hintNotify) {
+            browser.notifications
+                .create("hint-configNotSupported-archiveExportAs", {
+                    title: "Hoardy-Web: HINT",
+                    message: escapeNotification(
+                        config,
+                        `"Export via \`saveAs\` is not supported on Firefox-based mobile browsers. See the "Help" page for more info.` +
+                            annoyingNotification(
+                                config,
+                                "Generate notifications about > ... UI hints",
+                            ),
+                    ),
+                    iconUrl: iconURL("main", 128),
+                    type: "basic",
+                })
+                .catch(logError);
+        }
     }
 
     // at lest one of these must be set
     if (!(config.archiveExportAs || config.archiveSubmitHTTP || config.archiveSaveLS)) {
-        if (config.archiveSaveLS !== oldConfig.archiveSaveLS && !noArchiveExportAs)
+        if (config.archiveSaveLS !== oldConfig.archiveSaveLS && !noArchiveExportAs) {
             config.archiveExportAs = true;
-        else
+        } else {
             config.archiveSaveLS = true;
+        }
     }
 
     // to prevent surprises
-    if (config.archive
-        && (reqresQueue.length > 0 || reqresUnarchivedIssueAcc[0].size > 0)
-        && (config.archiveExportAs !== oldConfig.archiveExportAs
-         || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
-         || config.archiveSaveLS !== oldConfig.archiveSaveLS)) {
+    if (
+        config.archive &&
+        (reqresQueue.length > 0 || reqresUnarchivedIssueAcc[0].size > 0) &&
+        (config.archiveExportAs !== oldConfig.archiveExportAs ||
+            config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP ||
+            config.archiveSaveLS !== oldConfig.archiveSaveLS)
+    ) {
         config.archive = false;
 
-        if (config.hintNotify)
-            browser.notifications.create("hint-notArchivingNow", {
-                title: "Hoardy-Web: HINT",
-                message: escapeNotification(config, `"Archive \`collected\` reqres" option was disabled because the archival queue and/or the list of failed reqres are non-empty.` + annoyingNotification(config, "Generate notifications about > ... UI hints")),
-                iconUrl: iconURL("off", 128),
-                type: "basic",
-            }).catch(logError);
+        if (config.hintNotify) {
+            browser.notifications
+                .create("hint-notArchivingNow", {
+                    title: "Hoardy-Web: HINT",
+                    message: escapeNotification(
+                        config,
+                        `"Archive \`collected\` reqres" option was disabled because the archival queue and/or the list of failed reqres are non-empty.` +
+                            annoyingNotification(
+                                config,
+                                "Generate notifications about > ... UI hints",
+                            ),
+                    ),
+                    iconUrl: iconURL("off", 128),
+                    type: "basic",
+                })
+                .catch(logError);
+        }
     }
 
     config.exportAsMaxSize = clamp(1, 512, toNumber(config.exportAsMaxSize));
     config.exportAsTimeout = clamp(1, 900, toNumber(config.exportAsTimeout));
-    config.exportAsInFlightTimeout = clamp(config.exportAsTimeout, 1200, toNumber(config.exportAsInFlightTimeout));
+    config.exportAsInFlightTimeout = clamp(
+        config.exportAsTimeout,
+        1200,
+        toNumber(config.exportAsInFlightTimeout),
+    );
 
     // if unset, reset to default
-    if (!config.submitHTTPURLBase)
+    if (!config.submitHTTPURLBase) {
         config.submitHTTPURLBase = configDefaults.submitHTTPURLBase;
+    }
 
-    if (config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)
+    if (config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase) {
         serverConfig = setServer(config);
+    }
 
     config.problematicNotifyNumber = clamp(1, 32, toNumber(config.problematicNotifyNumber));
     config.limboMaxNumber = clamp(1, 10240, toNumber(config.limboMaxNumber));
@@ -499,10 +580,11 @@ function fixConfig(config, oldConfig, serverConfig) {
 
     // these are mutually exclusive
     if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard) {
-        if (config.autoPopInLimboCollect != oldConfig.autoPopInLimboCollect)
+        if (config.autoPopInLimboCollect != oldConfig.autoPopInLimboCollect) {
             config.autoPopInLimboDiscard = !config.autoPopInLimboCollect;
-        else
+        } else {
             config.autoPopInLimboCollect = !config.autoPopInLimboDiscard;
+        }
     }
     config.autoTimeout = clamp(0, 3600, toNumber(config.autoTimeout));
 
@@ -537,37 +619,45 @@ let commonStateDefaults = {
 };
 
 // these can be reset by `resetStats`
-let resettableStateDefaults = assignRec({
-    exportedAsTotal: 0,
-    exportedAsSize: 0,
-    submittedHTTPTotal: 0,
-    submittedHTTPSize: 0,
-    dumpedTotal: 0,
-    dumpedUndo: 0,
-    dumpedSize: 0,
-    dumpedReal: 0,
-    stashedTotal: 0,
-    stashedRedo: 0,
-    stashedUndo: 0,
-    savedTotal: 0,
-    savedRedo: 0,
-    savedUndo: 0,
-}, commonStateDefaults);
+let resettableStateDefaults = assignRec(
+    {
+        exportedAsTotal: 0,
+        exportedAsSize: 0,
+        submittedHTTPTotal: 0,
+        submittedHTTPSize: 0,
+        dumpedTotal: 0,
+        dumpedUndo: 0,
+        dumpedSize: 0,
+        dumpedReal: 0,
+        stashedTotal: 0,
+        stashedRedo: 0,
+        stashedUndo: 0,
+        savedTotal: 0,
+        savedRedo: 0,
+        savedUndo: 0,
+    },
+    commonStateDefaults,
+);
 
 let dbStateDefaults = { number: 0, size: 0 };
 
 let stateVersion = 1;
-let stateDefaults = assignRec({
-    version: stateVersion,
-    stashedLS: assignRec({}, dbStateDefaults),
-    stashedIDB: assignRec({}, dbStateDefaults),
-    savedLS: assignRec({}, dbStateDefaults),
-    savedIDB: assignRec({}, dbStateDefaults),
-}, dynamicStateDefaults, resettableStateDefaults);
+let stateDefaults = assignRec(
+    {
+        version: stateVersion,
+        stashedLS: assignRec({}, dbStateDefaults),
+        stashedIDB: assignRec({}, dbStateDefaults),
+        savedLS: assignRec({}, dbStateDefaults),
+        savedIDB: assignRec({}, dbStateDefaults),
+    },
+    dynamicStateDefaults,
+    resettableStateDefaults,
+);
 
 function upgradeState(state) {
-    if (state.version === undefined)
+    if (state.version === undefined) {
         state.version = 1;
+    }
 
     return state;
 }
@@ -590,18 +680,21 @@ let state = assignRec({}, stateDefaults);
 let savedState;
 
 async function saveConfig(force) {
-    if (!force && equalRec(savedConfig, config))
+    if (!force && equalRec(savedConfig, config)) {
         return;
+    }
 
     savedConfig = assignRec({}, config);
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.warn("SAVE: writing config", savedConfig);
+    }
     await browser.storage.local.set({ config: savedConfig }).catch(logError);
 }
 
 function scheduleSaveConfig(timeout, force) {
-    if (!force && equalRecWarnNeq(savedConfig, config, "SAVE:"))
+    if (!force && equalRecWarnNeq(savedConfig, config, "SAVE:")) {
         return;
+    }
 
     scheduleAction(scheduledSaveState, "saveConfig", timeout, () => {
         saveConfig(force);
@@ -611,12 +704,14 @@ function scheduleSaveConfig(timeout, force) {
 }
 
 async function saveState(force) {
-    if (!force && equalRec(savedState, state))
+    if (!force && equalRec(savedState, state)) {
         return;
+    }
 
     savedState = assignRec({}, state);
-    if (config.debugRuntime)
+    if (config.debugRuntime) {
         console.warn("SAVE: writing state", savedState);
+    }
     await browser.storage.local.set({ state: savedState }).catch(logError);
     await browser.storage.local.remove("globals").catch(noop);
     await browser.storage.local.remove("persistentStats").catch(noop);
@@ -624,8 +719,9 @@ async function saveState(force) {
 }
 
 function scheduleSaveState(timeout, force) {
-    if (!force && equalRecWarnNeq(savedState, state, "SAVE:"))
+    if (!force && equalRecWarnNeq(savedState, state, "SAVE:")) {
         return;
+    }
 
     scheduleAction(scheduledSaveState, "saveState", timeout, () => {
         saveState(force);
@@ -646,32 +742,41 @@ function setConfig(newConfig) {
 
     [config, serverConfig] = fixConfig(config, oldConfig, serverConfig);
 
-    if (config.stash && config.stash != oldConfig.stash)
+    if (config.stash && config.stash != oldConfig.stash) {
         syncStashAll(false);
+    }
 
-    if (config.archive && config.archiveSubmitHTTP
-        && (config.archive !== oldConfig.archive
-            || config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP
-            || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)) {
+    if (
+        config.archive &&
+        config.archiveSubmitHTTP &&
+        (config.archive !== oldConfig.archive ||
+            config.archiveSubmitHTTP !== oldConfig.archiveSubmitHTTP ||
+            config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)
+    ) {
         syncRetryUnarchived(true, {});
         wantArchiveDoneNotify = true;
     }
 
-    if (config.rearchiveSubmitHTTP
-        && (config.rearchiveSubmitHTTP !== oldConfig.rearchiveSubmitHTTP
-            || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)
-     || config.replaySubmitHTTP !== false
-        && (config.replaySubmitHTTP !== oldConfig.replaySubmitHTTP
-            || config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase))
+    if (
+        (config.rearchiveSubmitHTTP &&
+            (config.rearchiveSubmitHTTP !== oldConfig.rearchiveSubmitHTTP ||
+                config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase)) ||
+        (config.replaySubmitHTTP !== false &&
+            (config.replaySubmitHTTP !== oldConfig.replaySubmitHTTP ||
+                config.submitHTTPURLBase !== oldConfig.submitHTTPURLBase))
+    ) {
         wantCheckServer = true;
+    }
 
-    if (!config.ephemeral && !equalRec(config, oldConfig))
+    if (!config.ephemeral && !equalRec(config, oldConfig)) {
         // save config after a little pause to give the user time to click
         // the same toggle again without torturing the SSD
         scheduleSaveConfig(1000, true);
+    }
 
-    if (useDebugger)
+    if (useDebugger) {
         syncDebuggersState();
+    }
 
     broadcast(false, "updateConfig", config);
 }

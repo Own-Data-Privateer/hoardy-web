@@ -38,32 +38,35 @@ let webextRPCHandleMessageDefaultIgnore = new Set();
 function webextRPCHandleMessageDefault(request, showAllFunc, hideAllFunc) {
     let [cmd, data1, data2] = request;
 
-    if (webextRPCHandleMessageDefaultIgnore.has(cmd))
+    if (webextRPCHandleMessageDefaultIgnore.has(cmd)) {
         return;
+    }
 
     hideHelp();
 
     switch (cmd) {
-    case "showAll":
-        if (showAllFunc !== undefined)
-            showAllFunc();
-        return;
-    case "hideAll":
-        if (hideAllFunc !== undefined)
-            hideAllFunc();
-        return;
-    case "viewNode":
-        viewNode(data1, data2 || {}, showAllFunc, hideAllFunc);
-        return;
-    case "highlightNode":
-        highlightNode(data1);
-        return;
-    case "focusNode":
-        focusNode(data1, data2 || {}, showAllFunc, hideAllFunc);
-        return;
-    default:
-        console.error("WEBEXT_RPC: unknown request", request);
-        throw new Error(`unknown request`);
+        case "showAll":
+            if (showAllFunc !== undefined) {
+                showAllFunc();
+            }
+            return;
+        case "hideAll":
+            if (hideAllFunc !== undefined) {
+                hideAllFunc();
+            }
+            return;
+        case "viewNode":
+            viewNode(data1, data2 || {}, showAllFunc, hideAllFunc);
+            return;
+        case "highlightNode":
+            highlightNode(data1);
+            return;
+        case "focusNode":
+            focusNode(data1, data2 || {}, showAllFunc, hideAllFunc);
+            return;
+        default:
+            console.error("WEBEXT_RPC: unknown request", request);
+            throw new Error(`unknown request`);
     }
 }
 
@@ -83,42 +86,73 @@ function connectToExtension(name, retries, init, uninit, extensionId, connectInf
         let failed = false;
 
         function doRetry(err, retriesLeft, resolve, reject) {
-            setTimeout(catchAll(() => {
-                if (retriesLeft <= 0)
-                    reject(err);
-                else
-                    connectToExtension(name, retriesLeft, init, uninit, extensionId, connectInfo).then(resolve, reject)
-            }), 1000)
+            setTimeout(
+                catchAll(() => {
+                    if (retriesLeft <= 0) {
+                        reject(err);
+                    } else {
+                        connectToExtension(
+                            name,
+                            retriesLeft,
+                            init,
+                            uninit,
+                            extensionId,
+                            connectInfo,
+                        ).then(resolve, reject);
+                    }
+                }),
+                1000,
+            );
         }
 
-        webextRPCPortToExtension = browser.runtime.connect(extensionId, assignRec({name}, connectInfo));
+        webextRPCPortToExtension = browser.runtime.connect(
+            extensionId,
+            assignRec({ name }, connectInfo),
+        );
         webextRPCPortToExtension.onDisconnect.addListener(() => {
             if (ready) {
                 // if disconnected after "done" below, NB: not decrementing `retries` here
                 ready = false;
-                uninit().then(() => doRetry(webextRPCPortToExtension.error, retries, resolve, reject), reject);
-            } else
+                uninit().then(
+                    () => doRetry(webextRPCPortToExtension.error, retries, resolve, reject),
+                    reject,
+                );
+            } else {
                 // if the above `connect` failed
                 failed = true;
+            }
         });
 
-        if (failed)
+        if (failed) {
             // if the above `connect` failed immediately
             doRetry(webextRPCPortToExtension.error, retries - 1, resolve, reject);
-        else
-            init().then(() => {
-                if (failed)
-                    // if disconnected in the meantime
-                    uninit().then(() => doRetry(webextRPCPortToExtension.error, retries - 1, resolve, reject), reject);
-                else {
-                    // done
-                    ready = true;
-                    resolve();
-                }
-            }, (err) => {
-                // if `init` failed to complete
-                doRetry(err, retries - 1, resolve, reject);
-            });
+        } else {
+            init().then(
+                () => {
+                    if (failed) {
+                        // if disconnected in the meantime
+                        uninit().then(
+                            () =>
+                                doRetry(
+                                    webextRPCPortToExtension.error,
+                                    retries - 1,
+                                    resolve,
+                                    reject,
+                                ),
+                            reject,
+                        );
+                    } else {
+                        // done
+                        ready = true;
+                        resolve();
+                    }
+                },
+                (err) => {
+                    // if `init` failed to complete
+                    doRetry(err, retries - 1, resolve, reject);
+                },
+            );
+        }
     });
 }
 
@@ -139,7 +173,16 @@ function connectToExtension(name, retries, init, uninit, extensionId, connectInf
 // `handleMessage`s should invalidate.
 //
 // `init`, `uninit`, and `handleMessage` can be simple or `async` functions.
-function subscribeToExtension(name, retries, init, uninit, handleMessage, dontPauseBetween, extensionId, connectInfo) {
+function subscribeToExtension(
+    name,
+    retries,
+    init,
+    uninit,
+    handleMessage,
+    dontPauseBetween,
+    extensionId,
+    connectInfo,
+) {
     // A flag denoting if there were any state-invalidating updates while `init` was running
     // asynchronously.
     let invalid = false;
@@ -163,8 +206,9 @@ function subscribeToExtension(name, retries, init, uninit, handleMessage, dontPa
             let res;
             try {
                 res = catchAll(handleMessage)(update);
-                while (res instanceof Promise)
+                while (res instanceof Promise) {
                     res = await res;
+                }
                 invalid = invalid || res === true;
             } catch (err) {
                 invalid = true;
@@ -175,60 +219,92 @@ function subscribeToExtension(name, retries, init, uninit, handleMessage, dontPa
     }
 
     function handleMessageSync(update) {
-        if (!running)
+        if (!running) {
             return;
+        }
 
         updateQueue.push(update);
-        if (queueSyncRunning)
+        if (queueSyncRunning) {
             return;
+        }
         doQueueSync();
     }
 
-    return connectToExtension(name, retries, async () => {
-        webextRPCPortToExtension.onMessage.addListener(handleMessageSync);
+    return connectToExtension(
+        name,
+        retries,
+        async () => {
+            webextRPCPortToExtension.onMessage.addListener(handleMessageSync);
 
-        while (true) {
-            // start processing updates
-            running = true;
-            // reset
-            invalid = false;
+            while (true) {
+                // start processing updates
+                running = true;
+                // reset
+                invalid = false;
 
-            // run init
-            let res = init(isInvalid);
-            while (res instanceof Promise)
-                res = await res;
+                // run init
+                let res = init(isInvalid);
+                while (res instanceof Promise) {
+                    res = await res;
+                }
 
-            // if `init` forces us to continue or there were no state-breaking messages, stop here
-            if (res === true || !invalid)
-                break;
+                // if `init` forces us to continue or there were no state-breaking messages, stop here
+                if (res === true || !invalid) {
+                    break;
+                }
 
-            console.warn("received some breaking `handleMessage`s while doing async page `init`, retrying");
+                console.warn(
+                    "received some breaking `handleMessage`s while doing async page `init`, retrying",
+                );
 
-            if (!dontPauseBetween) {
-                running = false;
-                updateQueue = [];
+                if (!dontPauseBetween) {
+                    running = false;
+                    updateQueue = [];
+                }
+
+                // retry in 1s
+                await sleep(1000);
             }
-
-            // retry in 1s
-            await sleep(1000);
-        }
-    }, async () => {
-        webextRPCPortToExtension.onMessage.removeListener(handleMessageSync);
-        let res = uninit();
-        while (res instanceof Promise)
-            res = await res;
-    }, extensionId, connectInfo);
+        },
+        async () => {
+            webextRPCPortToExtension.onMessage.removeListener(handleMessageSync);
+            let res = uninit();
+            while (res instanceof Promise) {
+                res = await res;
+            }
+        },
+        extensionId,
+        connectInfo,
+    );
 }
 
-function subscribeToExtensionSimple(name, retries, handleMessage, dontPauseBetween, extensionId, connectInfo) {
-    if (handleMessage === undefined)
+function subscribeToExtensionSimple(
+    name,
+    retries,
+    handleMessage,
+    dontPauseBetween,
+    extensionId,
+    connectInfo,
+) {
+    if (handleMessage === undefined) {
         handleMessage = webextRPCHandleMessageDefault;
-    return subscribeToExtension(name, retries, asyncNoop, asyncNoop, handleMessage, dontPauseBetween, extensionId, connectInfo);
+    }
+    return subscribeToExtension(
+        name,
+        retries,
+        asyncNoop,
+        asyncNoop,
+        handleMessage,
+        dontPauseBetween,
+        extensionId,
+        connectInfo,
+    );
 }
 
 function sendMessageWithLazyArgs(lazy, args, ...prefix) {
-    if (lazy)
+    if (lazy) {
         args = evalFunctionsAway(args);
+    }
     browser.runtime.sendMessage([...prefix, ...args]);
     return [false, args];
 }
