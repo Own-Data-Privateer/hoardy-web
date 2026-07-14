@@ -678,8 +678,8 @@ function addHelp(node, shortcuts, mapShortcutFunc, noHide) {
     if (!noHide)
         node.addEventListener("click", hideHelp);
 
-    let origHelp;
-    let help = origHelp = node.getAttribute("data-help");
+    let origHelp = node.getAttribute("data-help");
+    let help = origHelp;
 
     let shortcut;
     if (shortcuts !== undefined) {

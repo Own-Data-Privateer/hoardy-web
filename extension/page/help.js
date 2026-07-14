@@ -136,7 +136,10 @@ async function updatePage(initial) {
         shortcut.ldesc = ldesc;
 
         let cur = shortcut.shortcut || "unbound";
-        let def = shortcut.default = shortcut.suggested_key ? shortcut.suggested_key.default || "unbound" : "unbound";
+        shortcut.default = shortcut.suggested_key
+            ? shortcut.suggested_key.default || "unbound"
+            : "unbound";
+        let def = shortcut.default;
 
         let tr = document.createElement("tr");
         tr.id = `shortcut-${name}`;

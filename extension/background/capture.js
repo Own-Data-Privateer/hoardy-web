@@ -831,15 +831,21 @@ function handleBeforeRequest(e) {
 
     let initiator;
     if (isValidStr(e.documentUrl))
-        initiator = e.documentUrl; // Firefox
+        // Firefox
+        initiator = e.documentUrl;
     else if (isValidChromiumStr(e.initiator))
-        initiator = e.initiator; // Chromium
+        // Chromium
+        initiator = e.initiator;
 
     let fromExtension = false;
     if (initiator !== undefined) {
         // ignore our own requests
-        if (initiator.startsWith(selfURL) // Firefox
-            || (initiator + "/") === selfURL) // Chromium
+        if (
+            // Firefox
+            initiator.startsWith(selfURL) ||
+            // Chromium
+            (initiator + "/") === selfURL
+        )
             return;
 
         // request originates from another extension

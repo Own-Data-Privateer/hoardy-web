@@ -414,8 +414,10 @@ function processNewTab(tabId, windowId, openerTabId) {
     tabstate.windowId = windowId;
     tabstate.emitTimeStamp = Date.now();
 
-    let oldTabcfg;
-    let tabcfg = oldTabcfg = prefillChildren(openerTabId !== undefined ? getTabConfig(openerTabId).children : wincfg);
+    let oldTabcfg = prefillChildren(
+        openerTabId !== undefined ? getTabConfig(openerTabId).children : wincfg,
+    );
+    let tabcfg = oldTabcfg;
 
     if (openerTabId !== undefined && negateConfigFor.delete(openerTabId)) {
         // Negate `tabcfg.collecting` when `openerTabId` is in `negateConfigFor`.

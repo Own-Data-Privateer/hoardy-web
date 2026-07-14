@@ -39,12 +39,17 @@ function pushFirstTo(archivables, res) {
 let redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 let transientStatusCodes = new Set([
     401, 402, 403, 404, 407, 408, 409,
+    //
     412, 416, 418, 421, 423, 424, 425,
+    //
     426, 429, 451,
+    //
     500, 502, 503, 504, 507, 511,
     // unofficial ones
     419, 440, 450, 495, 496,
+    //
     509, 520, 521, 522, 523, 524, 525,
+    //
     526, 530, 540, 598, 599,
 ]);
 
@@ -258,7 +263,8 @@ function mapShortcutName(func, name) {
         children = false;
     }
     name = uncapitalize(name);
-    if (name === "tracking") // TODO: remove
+    // TODO: remove
+    if (name === "tracking")
         name = "collecting";
     return func(name, children);
 }
