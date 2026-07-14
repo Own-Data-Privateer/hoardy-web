@@ -8,8 +8,7 @@ if [[ "$1" == clean ]]; then
     timestamp=$(git log --format='%ci' HEAD~1..HEAD)
 fi
 
-VERSION=$(cat VERSION)
-iconTheme=privateer
+source ./build-env.sh
 
 for target in "$@"; do
     echo "Building $target..."
@@ -23,7 +22,7 @@ for target in "$@"; do
         echo "  Tailing all icons into a single image..."
 
         icons=()
-        for a in icon/"$iconTheme"/{main,work_offline,off,idle,limbo,neglimbo,bothlimbo,tracking,problematic,bar,in_limbo,archiving,failed,unsnapshottable,unreplayable,error,dot}.svg icon/"$iconTheme"/*.svg; do
+        for a in icon/"$ICON_THEME"/{main,work_offline,off,idle,limbo,neglimbo,bothlimbo,tracking,problematic,bar,in_limbo,archiving,failed,unsnapshottable,unreplayable,error,dot}.svg icon/"$ICON_THEME"/*.svg; do
             n=$(basename "$a")
             file="$DEST/$n.png"
             if [[ "$a" -nt "$file" ]]; then
@@ -81,7 +80,7 @@ for target in "$@"; do
     if [[ "$target" =~ firefox-* ]]; then
         pandocArgs+=(-V iconMIME=image/svg+xml -V iconFile=main.svg)
         install -d "$DEST"/icon
-        install -C -t "$DEST"/icon icon/"$iconTheme"/*.svg
+        install -C -t "$DEST"/icon icon/"$ICON_THEME"/*.svg
     elif [[ "$target" =~ chromium-* ]]; then
         pandocArgs+=(-V iconMIME=image/png -V iconFile=128/main.png)
 
@@ -89,7 +88,7 @@ for target in "$@"; do
 
         makeicons() {
             install -d "$DEST/icon/$1"
-            for a in icon/"$iconTheme"/*.svg ; do
+            for a in icon/"$ICON_THEME"/*.svg ; do
                 n=$(basename "$a")
                 file="$DEST/icon/$1/${n%.svg}.png"
                 if [[ "$a" -nt "$file" ]]; then
@@ -107,22 +106,25 @@ for target in "$@"; do
     runPandoc() {
         local format=$1
         local path=$2
-        local template="--template=$2.template"
+        local kind=minimal
+        local template="page/minimal.template"
+        if [[ -e "$path.template" ]]; then
+            kind=$(basename "$path")
+            template="$path.template"
+        fi
         shift 2
 
-        while (($# > 0)); do
-            case "$1" in
-            --template) template="--template=$2.template"; shift 2 ;;
-            *) break; ;;
-            esac
+        local scripts=()
+        for a in $(eval "echo \${SCRIPTS_$kind[@]}"); do
+            scripts+=(-V "scripts=$a")
         done
 
         local destfile="$DEST/$path".html
         mkdir -p "$(dirname "$destfile")"
-        pandoc -f "$format" -t html "$template" \
+        pandoc -f "$format" -t html "--template=$template" \
                --wrap=none \
                -M pagetitle="$path" \
-               "${pandocArgs[@]}" "$@" > "$destfile"
+               "${pandocArgs[@]}" "${scripts[@]}" "$@" > "$destfile"
     }
 
     for p in background/main page/popup page/state page/saved; do
@@ -177,7 +179,7 @@ s%#\([0-9]\+\) on GitHub%[#\1 on GitHub](https://github.com/Own-Data-Privateer/h
 s%@\(\S\+\) on GitHub%[\\@\1 on GitHub](https://github.com/\1)%g
 : end
 ' \
-        | runPandoc markdown page/changelog --template page/minimal -V title=Changelog
+        | runPandoc markdown page/changelog -V title=Changelog
 
     cat ../doc/data-on-disk.md \
         | sed '
@@ -186,13 +188,15 @@ s%\[\([^]]*\)\](\.\./\([^)]*\))%[\1](https://oxij.org/software/hoardy-web/tree/m
 s%#\([0-9]\+\) on GitHub%[#\1 on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues/\1)%g
 s%@\(\S\+\) on GitHub%[\\@\1 on GitHub](https://github.com/\1)%g
 ' \
-        | runPandoc markdown page/data-on-disk --template page/minimal -V title="The WRR Data File Format"
+        | runPandoc markdown page/data-on-disk -V title="The WRR Data File Format"
 
     echo "  Copying files..."
 
+    install -d "$DEST"/vendor
+    install -C -t "$DEST"/vendor ../vendor/pako/dist/pako.js
+
     install -d "$DEST"/lib
     install -C -t "$DEST"/lib lib/*.js
-    install -C -t "$DEST"/lib ../vendor/pako/dist/pako.js
 
     install -d "$DEST"/page
     install -C -t "$DEST"/page page/*.css page/*.js
