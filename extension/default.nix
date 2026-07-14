@@ -3,6 +3,7 @@
   lib ? pkgs.lib,
   source ? import ../source.nix { inherit pkgs; },
   developer ? false,
+  minimal ? false,
 }:
 
 with pkgs;
@@ -21,9 +22,21 @@ stdenv.mkDerivation rec {
     zip
     imagemagick
     vim.xxd
+  ] ++ lib.optionals developer [
+    oxfmt
+  ] ++ lib.optionals (developer && !minimal) [
+    prettier
+    prettier-plugin-curly
   ];
 
+  shellHook = lib.optionalString (developer && !minimal) ''
+    export PRETTIER_CURLY=${prettier-plugin-curly}/lib/node_modules/prettier-plugin-curly/lib/index.cjs
+  '';
+
   buildPhase = ''
+    runHook shellHook
+
+    ./sanity.sh --check
     ./build.sh clean firefox-mv2 chromium-mv2
   '';
 
