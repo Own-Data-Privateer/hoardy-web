@@ -14,7 +14,7 @@ SCRIPTS_main=(
     lib/idbp.js
     lib/lslot.js
     lib/caydarsc.js
-    background/util.js
+    lib/util.js
     background/issue-acc.js
     background/state-global.js
     background/state-tab.js
@@ -36,7 +36,7 @@ PAGE=(
     lib/ui.js
     lib/webext.js
     lib/webext-rpc-client.js
-    background/util.js
+    lib/util.js
 )
 
 SCRIPTS_popup=(
