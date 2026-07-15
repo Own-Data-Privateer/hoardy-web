@@ -807,7 +807,7 @@ async function stashOrSaveOne(archivable, update, what, want, elide, accumulator
         } catch (err) {
             logHandledError(err);
             pushToIssueAcc2(
-                unstashedAccumulator,
+                accumulator,
                 "localStorage",
                 errorMessageOf(err),
                 true,
