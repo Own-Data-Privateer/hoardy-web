@@ -84,7 +84,7 @@ function partitionArchivables(rrfilter, iterable) {
 }
 
 function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
-    if (reqresProblematic.length == 0) {
+    if (reqresProblematic.length === 0) {
         return [undefined, 0];
     }
 
@@ -99,7 +99,7 @@ function unmarkProblematic(rrfilter, newlyUnproblematic, dontBroadcast) {
     let newlyRestashed = [];
 
     for (let archivable of popped) {
-        let [loggable, dump] = archivable;
+        let loggable = archivable[0];
         try {
             let tabstate = getTabState(loggable.tabId, loggable.fromExtension);
             loggable.problematic = false;
@@ -175,7 +175,7 @@ function unmarkProblematicSimilarTo(loggable, allowInLimbo, newlyUnproblematic, 
 }
 
 function rotateProblematic(rrfilter) {
-    if (reqresProblematic.length == 0) {
+    if (reqresProblematic.length === 0) {
         return;
     }
 
@@ -199,7 +199,7 @@ function syncRotateProblematic(...args) {
 }
 
 function popInLimbo(collect, rrfilter) {
-    if (reqresLimbo.length == 0) {
+    if (reqresLimbo.length === 0) {
         return [undefined, 0];
     }
 
@@ -220,7 +220,7 @@ function popInLimbo(collect, rrfilter) {
     let newlyUnstashed = [];
 
     for (let archivable of popped) {
-        let [loggable, dump] = archivable;
+        let loggable = archivable[0];
         someProblematic = someProblematic || loggable.problematic;
         try {
             let dumpSize = loggable.dumpSize;
@@ -293,7 +293,7 @@ function syncPopInLimbo(...args) {
 }
 
 function rotateInLimbo(rrfilter) {
-    if (reqresLimbo.length == 0) {
+    if (reqresLimbo.length === 0) {
         return;
     }
 
@@ -323,7 +323,7 @@ function truncateLog() {
 }
 
 function forgetLog(rrfilter) {
-    if (reqresLog.length == 0) {
+    if (reqresLog.length === 0) {
         return;
     }
 
@@ -348,7 +348,7 @@ function forgetLog(rrfilter) {
 }
 
 function syncForgetLog(...args) {
-    if (reqresLog.length == 0) {
+    if (reqresLog.length === 0) {
         return;
     }
 
@@ -410,8 +410,8 @@ function deserializeLoggable(loggable) {
     if (loggable.errors !== undefined) {
         let [popped, unpopped] = partitionN(
             (err) =>
-                err == "webRequest::capture::RESPONSE::BROKEN" ||
-                err == "webRequest::pWebArc::RESPONSE::BROKEN",
+                err === "webRequest::capture::RESPONSE::BROKEN" ||
+                err === "webRequest::pWebArc::RESPONSE::BROKEN",
             null,
             loggable.errors,
         );
@@ -432,19 +432,18 @@ function getHeaderString(header) {
     if (header.binaryValue !== undefined) {
         let dec = new TextDecoder("utf-8", { fatal: false });
         return dec.decode(header.binaryValue);
-    } else {
-        return header.value;
     }
+    return header.value;
 }
 
 function getHeaderValue(headers, name) {
     name = name.toLowerCase();
     for (let header of headers) {
-        if (header.name.toLowerCase() == name) {
+        if (header.name.toLowerCase() === name) {
             return getHeaderString(header);
         }
     }
-    return;
+    // return undefined;
 }
 
 // encode browser's Headers structure into an Array of [string, Uint8Array] pairs
@@ -553,7 +552,7 @@ function processNonLimbo(
     newlyStashed,
     newlyUnstashed,
 ) {
-    let [loggable, dump] = archivable;
+    let loggable = archivable[0];
     let dumpSize = loggable.dumpSize;
 
     loggable.collected = collect;
@@ -584,7 +583,7 @@ function processNonLimbo(
     newlyLogged.push(loggable);
 }
 
-async function processOneAlmostDone(
+function processOneAlmostDone(
     reqres,
     newlyProblematic,
     newlyUnproblematic,
@@ -706,7 +705,7 @@ async function processOneAlmostDone(
         !useDebugger &&
         statusCode === 200 &&
         reqres.fromCache &&
-        reqres.responseBody.byteLength == 0
+        reqres.responseBody.byteLength === 0
     ) {
         let clength = getHeaderValue(reqres.responseHeaders, "Content-Length");
         if (clength !== undefined && clength !== 0) {
@@ -874,7 +873,7 @@ async function processOneAlmostDone(
     return tabId;
 }
 
-async function processAlmostDone() {
+function processAlmostDone() {
     let updatedTabId;
 
     let newlyProblematic = [];
@@ -890,7 +889,7 @@ async function processAlmostDone() {
 
         let tabId;
         try {
-            tabId = await processOneAlmostDone(
+            tabId = processOneAlmostDone(
                 reqres,
                 newlyProblematic,
                 newlyUnproblematic,

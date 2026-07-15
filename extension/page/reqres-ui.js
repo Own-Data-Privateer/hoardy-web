@@ -28,8 +28,11 @@ let thisSessionId;
 let thisTabId;
 
 // this view should be narrowed to, to be filled in a derived page
+// eslint-disable-next-line no-unassigned-vars
 let narrowSessionId;
+// eslint-disable-next-line no-unassigned-vars
 let narrowWindowId;
+// eslint-disable-next-line no-unassigned-vars
 let narrowTabId;
 
 function switchToReqresTabId(reqresTabId) {

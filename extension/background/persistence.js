@@ -28,7 +28,7 @@
 // archivables that failed to be processed in some way
 // `Map` indexed by error message
 function newReqresBuggedOutIssueAcc() {
-    return newIssueAcc((recoverable) => {
+    return newIssueAcc((_recoverable) => {
         gotNewBuggedOut = true;
     });
 }
@@ -46,7 +46,7 @@ function markAsBuggedOut(err, archivable) {
 // archivables that failed to by stashed to browser's local storage
 // `Map` indexed by error message
 function newReqresUnstashedIssueAcc() {
-    return newIssueAcc((recoverable) => {
+    return newIssueAcc((_recoverable) => {
         gotNewSyncedOrNot = true;
     });
 }
@@ -81,7 +81,7 @@ function getUnarchived() {
     return pushFirstTo(reqresUnarchivedIssueAcc[0], []);
 }
 
-function recordOneAssumedBroken(accumulator, storeID, reason, archivable, dumpSize) {
+function recordOneAssumedBroken(accumulator, storeID, reason, archivable) {
     let byReasonMap = accumulator[1].get(storeID);
     if (byReasonMap === undefined) {
         return false;
@@ -124,10 +124,8 @@ function retryStoreUnarchived(accumulator, storeID, unrecoverable) {
                 continue;
             }
 
-            let [loggable, dump] = archivable;
-            let dumpSize = loggable.dumpSize;
             reqresQueue.push(archivable);
-            reqresQueueSize += dumpSize;
+            reqresQueueSize += archivable[0].dumpSize;
         }
 
         byReasonMap.delete(reason);
@@ -137,22 +135,21 @@ function retryStoreUnarchived(accumulator, storeID, unrecoverable) {
     }
 }
 
-function retryUnarchived(unrecoverable, rrfilter) {
+// TODO: FIXME
+function retryUnarchived(_unrecoverable, rrfilter) {
     if (reqresUnarchivedIssueAcc[0].size === 0) {
         return;
     }
 
-    let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresUnarchivedIssueAcc[0]);
+    let [tabId, popped, _unpopped] = partitionArchivables(rrfilter, reqresUnarchivedIssueAcc[0]);
 
     if (popped.length === 0) {
         return;
     }
 
     for (let archivable of popped) {
-        let [loggable, dump] = archivable;
-        let dumpSize = loggable.dumpSize;
         reqresQueue.push(archivable);
-        reqresQueueSize += dumpSize;
+        reqresQueueSize += archivable[0].dumpSize;
     }
 
     deleteFromIssueAcc2(reqresUnarchivedIssueAcc, popped);
@@ -384,7 +381,7 @@ async function exportAsOne(archivable, bundleBuckets, unarchivedAccumulator) {
 // Archival via submission to an HTTP archiving server.
 
 async function submitHTTPOne(archivable, unarchivedAccumulator) {
-    let [loggable, dump] = archivable;
+    let loggable = archivable[0];
     let dumpSize = loggable.dumpSize;
 
     if (loggable.archived & archivedViaSubmitHTTP) {
@@ -423,7 +420,6 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
             storeID,
             "this archiving server appears to be defunct",
             archivable,
-            dumpSize,
         )
     ) {
         return false;
@@ -433,7 +429,7 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
         console.info("PERSISTENCE: HTTP: submitting", loggable);
     }
 
-    dump = await loadDumpFromStorage(archivable, true, false);
+    let dump = await loadDumpFromStorage(archivable, true, false);
 
     let response;
     try {
@@ -468,7 +464,7 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
     }
 
     state.submittedHTTPTotal += 1;
-    state.submittedHTTPSize += loggable.dumpSize;
+    state.submittedHTTPSize += dumpSize;
     loggable.archived |= archivedViaSubmitHTTP;
     loggable.dirty = true;
 
@@ -483,6 +479,7 @@ async function submitHTTPOne(archivable, unarchivedAccumulator) {
 let reqresIDB; // will be set in `main`
 
 // for debugging
+// biome-ignore lint/correctness/noUnusedVariables: skip
 async function dumpLS() {
     await lslotDump();
 
@@ -504,7 +501,7 @@ async function loadDumpFromStorage(archivable, unelide, allowNull) {
                 reqresIDB,
                 "readonly",
                 ["dump"],
-                async (transaction, dumpStore) => {
+                async (_transaction, dumpStore) => {
                     let res = await dumpStore.get(dumpId);
                     return res.dump;
                 },
@@ -550,20 +547,16 @@ function mkLSlotTransaction(func) {
 }
 
 function selectTSS(inLS) {
-    let mkTransaction;
-    let stashStats;
-    let savedStats;
     if (inLS) {
         return [mkLSlotTransaction, state.stashedLS, state.savedLS];
-    } else {
-        return [mkIDBTransaction, state.stashedIDB, state.savedIDB];
     }
+    return [mkIDBTransaction, state.stashedIDB, state.savedIDB];
 }
 
 async function wipeFromStorage(tss, dumpSize, dumpId, stashId, saveId) {
     let [mkTransaction, stashStats, savedStats] = tss;
 
-    await mkTransaction(async (transaction, dumpStore, stashStore, saveStore) => {
+    await mkTransaction(async (_transaction, dumpStore, stashStore, saveStore) => {
         if (dumpId !== undefined) {
             await dumpStore.delete(dumpId);
         }
@@ -599,7 +592,7 @@ async function writeToStorage(tss, want, clean, dump, dumpSize, dumpId, stashId,
     let [mkTransaction, stashStats, savedStats] = tss;
     let writtenSize = 0;
 
-    await mkTransaction(async (transaction, dumpStore, stashStore, saveStore) => {
+    await mkTransaction(async (_transaction, dumpStore, stashStore, saveStore) => {
         if (dumpId === undefined && dump !== null) {
             if (config.gzipLSDumps) {
                 dump = deflateMaybe(
@@ -781,11 +774,8 @@ async function syncWithStorage(archivable, want, elide) {
 
 async function stashOrSaveOne(archivable, update, what, want, elide, accumulator) {
     try {
-        let [loggable, dump] = archivable;
-        let dumpSize = loggable.dumpSize;
-
         if (update) {
-            updateLoggable(loggable);
+            updateLoggable(archivable[0]);
         }
 
         if (
@@ -795,7 +785,6 @@ async function stashOrSaveOne(archivable, update, what, want, elide, accumulator
                 "localStorage",
                 `this ${what} method appears to be defunct`,
                 archivable,
-                dumpSize,
             )
         ) {
             return false;
@@ -858,9 +847,10 @@ async function forEachInStorage(storeName, func, limit) {
         browser.storage.local,
         "readonly",
         [storeName],
-        async (transaction, store) => {
+        async (_transaction, store) => {
             try {
-                await store.forEach(async (loggable, slot) => {
+                // biome-ignore lint/suspicious/useIterableCallbackReturn: skip
+                await store.forEach((loggable, slot) => {
                     if (limit !== null && loaded >= limit) {
                         throw new StopIteration();
                     }
@@ -891,7 +881,7 @@ async function forEachInStorage(storeName, func, limit) {
         reqresIDB,
         "readonly",
         ["dump", storeName],
-        async (transaction, dumpStore, store) => {
+        async (_transaction, _dumpStore, store) => {
             let allKeys = await store.getAllKeys();
             try {
                 for (let key of allKeys) {
@@ -985,7 +975,7 @@ async function deleteOne(archivable) {
 
 async function deleteMany(archivables) {
     for (let archivable of archivables) {
-        deleteOne(archivable);
+        await deleteOne(archivable);
     }
 
     return null;
@@ -1060,7 +1050,7 @@ async function loadSaved(rrfilter, wantStop, mapFunc) {
     let [newSavedLS, newSavedIDB] = await forEachInStorage(
         "save",
         (loggable) => {
-            if (wantStop !== undefined && wantStop()) {
+            if (wantStop?.()) {
                 throw new StopIteration();
             }
             deserializeLoggable(loggable);
@@ -1110,9 +1100,10 @@ async function fsckDumps() {
         browser.storage.local,
         "readonly",
         ["dump"],
-        async (transaction, store) => {
+        async (_transaction, store) => {
             try {
-                await store.forEach(async (dump, key) => {
+                // biome-ignore lint/suspicious/useIterableCallbackReturn: skip
+                await store.forEach((dump, key) => {
                     console.error("DUMP:", key, dump);
                     return true;
                 }, 4096);
@@ -1128,7 +1119,7 @@ async function fsckDumps() {
         return;
     }
 
-    await idbTransaction(reqresIDB, "readonly", ["dump"], async (transaction, store) => {
+    await idbTransaction(reqresIDB, "readonly", ["dump"], async (_transaction, store) => {
         let allKeys = await store.getAllKeys();
         try {
             for (let key of allKeys) {
@@ -1179,7 +1170,7 @@ async function archive(
 
     for (let archivable of archivables) {
         try {
-            let [loggable, dump] = archivable;
+            let loggable = archivable[0];
 
             if (loggable.archived === undefined) {
                 loggable.archived = 0;
@@ -1295,7 +1286,7 @@ async function processArchiving() {
         let archivable = reqresQueue.shift();
 
         try {
-            let [loggable, dump] = archivable;
+            let loggable = archivable[0];
             let dumpSize = loggable.dumpSize;
             reqresQueueSize -= dumpSize;
 
@@ -1311,7 +1302,7 @@ async function processArchiving() {
 
             updateLoggable(loggable);
 
-            let [changedNum, exportedNum, submittedNum, savedNum, deletedNum] = await archive(
+            let [_changedNum, exportedNum, submittedNum, savedNum, _deletedNum] = await archive(
                 [archivable],
                 wantArchived,
                 false,
@@ -1503,13 +1494,13 @@ function syncDeleteSaved(rrfilter) {
     });
 }
 
-function syncArchiveBuggedOut(rrfilter, reset, andRewrite, andDelete) {
+function syncArchiveBuggedOut(rrfilter) {
     if (reqresBuggedOutIssueAcc[0].size === 0) {
         return;
     }
 
-    runSynchronouslyB("archiveBuggedOut", async () => {
-        let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresBuggedOutIssueAcc[0]);
+    runSynchronouslyB("archiveBuggedOut", () => {
+        let [tabId, popped, _unpopped] = partitionArchivables(rrfilter, reqresBuggedOutIssueAcc[0]);
 
         if (popped.length === 0) {
             return;
@@ -1519,7 +1510,7 @@ function syncArchiveBuggedOut(rrfilter, reset, andRewrite, andDelete) {
 
         let newlyQueued = [];
         for (let archivable of popped) {
-            let [loggable, dump] = archivable;
+            let loggable = archivable[0];
             let dumpSize = loggable.dumpSize;
             reqresQueue.push(archivable);
             reqresQueueSize += dumpSize;
@@ -1539,7 +1530,7 @@ function syncDeleteBuggedOut(rrfilter) {
     }
 
     runSynchronouslyB("deleteBuggedOut", async () => {
-        let [tabId, popped, unpopped] = partitionArchivables(rrfilter, reqresBuggedOutIssueAcc[0]);
+        let [tabId, popped, _unpopped] = partitionArchivables(rrfilter, reqresBuggedOutIssueAcc[0]);
 
         if (popped.length === 0) {
             return;

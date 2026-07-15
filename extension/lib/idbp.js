@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Jan Malakhovski <oxij@oxij.org>
+ * Copyright (c) 2024-2026 Jan Malakhovski <oxij@oxij.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -57,7 +57,7 @@ function idbStoreProxyPromise(obj) {
 function idbOpen(name, version, upgradeFunc) {
     return new Promise((resolve, reject) => {
         let request = window.indexedDB.open(name, version);
-        request.onblocked = (event) => reject("blocked");
+        request.onblocked = (_event) => reject("blocked");
         request.onerror = (event) => reject(event.target.error);
         request.onsuccess = (event) => resolve(event.target.result);
         if (upgradeFunc !== undefined) {
@@ -67,7 +67,9 @@ function idbOpen(name, version, upgradeFunc) {
                     upgradeFunc(db, event.oldVersion, event.newVersion);
                 } catch (err) {
                     reject(err);
-                    throw new Error("upgradeFunc threw an error, aborting indexdeDB upgrade");
+                    throw new Error("upgradeFunc threw an error, aborting indexdeDB upgrade", {
+                        cause: err,
+                    });
                 }
             };
         }
@@ -84,7 +86,7 @@ function idbTransaction(db, mode, objectStoreNames, func) {
         let result;
         let error;
         transaction.onerror = (event) => reject(error !== undefined ? error : event.target.error);
-        transaction.oncomplete = (event) => {
+        transaction.oncomplete = (_event) => {
             if (result instanceof Promise) {
                 result.then(resolve, reject);
             } else {
@@ -114,7 +116,7 @@ function idbTransaction(db, mode, objectStoreNames, func) {
 async function idbDump(db) {
     for (let name of db.objectStoreNames) {
         console.log("store", name);
-        await idbTransaction(db, "readonly", [name], async (transaction, store) => {
+        await idbTransaction(db, "readonly", [name], async (_transaction, store) => {
             let keys = await store.getAllKeys();
             console.log(name);
             for (let k of keys) {
@@ -125,19 +127,20 @@ async function idbDump(db) {
     }
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: skip
 async function idbExampleTest() {
     try {
-        let db = await idbOpen("test", 1, (db, oldVersion, newVersion) => {
+        let db = await idbOpen("test", 1, (db, _oldVersion, _newVersion) => {
             db.createObjectStore("archive", { autoIncrement: true });
         });
         let res = await idbTransaction(
             db,
             "readwrite",
             ["archive"],
-            async (transaction, archiveStore) => {
+            async (_transaction, archiveStore) => {
                 let one = await archiveStore.add({ data: "abc" });
                 let two = await archiveStore.add({ data: new Uint8Array([1, 2, 3]) });
-                //transaction.abort();
+                //_transaction.abort();
                 //throw new Error("bad");
                 return [one, two];
             },

@@ -49,7 +49,9 @@ function isValidChromiumStr(...args) {
 class StopIteration extends Error {}
 
 function sleep(timeout) {
-    return new Promise((resolve, reject) => setTimeout(resolve, timeout));
+    return new Promise((resolve, _reject) => {
+        setTimeout(resolve, timeout);
+    });
 }
 
 function errorMessageOf(err) {
@@ -59,9 +61,8 @@ function errorMessageOf(err) {
     let msg = err.message;
     if (msg === undefined) {
         return err.toString();
-    } else {
-        return msg.replace(/\.$/, "");
     }
+    return msg.replace(/\.$/u, "");
 }
 
 function logError(err) {
@@ -95,17 +96,13 @@ function catchAll(func, def) {
         }
 
         if (res instanceof Promise) {
-            return new Promise((resolve, reject) =>
-                res
-                    .catch((err) => {
-                        logError(err);
-                        return def;
-                    })
-                    .then(resolve),
-            );
-        } else {
-            return res;
+            return res.catch((err) => {
+                logError(err);
+                return def;
+            });
         }
+
+        return res;
     };
 }
 
@@ -161,7 +158,7 @@ function saveAs(chunks, mime, fileName) {
         el.download = fileName;
     }
     el.dispatchEvent(new MouseEvent("click"));
-    setTimeout(function () {
+    setTimeout(() => {
         URL.revokeObjectURL(fileURL);
     }, 0);
 }
@@ -182,6 +179,7 @@ function getFirstDefined(...args) {
     }
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: skip
 function getFirstOk(...args) {
     for (let a of args) {
         if (a) {
@@ -205,7 +203,7 @@ function dateToString(epoch) {
     }
     let str = new Date(epoch).toISOString();
     let pos = str.indexOf(".");
-    if (pos != -1) {
+    if (pos !== -1) {
         str = str.substr(0, pos);
     }
     return str.replace("T", " ");
@@ -259,7 +257,7 @@ function equivalentRec(func, a, b, quick, path) {
         return true;
     }
 
-    if (a instanceof Array && b instanceof Array) {
+    if (Array.isArray(a) && Array.isArray(b)) {
         let al = a.length;
         let bl = b.length;
 
@@ -290,12 +288,7 @@ function equivalentRec(func, a, b, quick, path) {
         return res;
     }
 
-    if (
-        a instanceof Object &&
-        !(a instanceof Array) &&
-        b instanceof Object &&
-        !(b instanceof Array)
-    ) {
+    if (a instanceof Object && !Array.isArray(a) && b instanceof Object && !Array.isArray(b)) {
         let ae = Array.from(Object.entries(a));
         let be = Array.from(Object.entries(b));
 
@@ -440,7 +433,7 @@ function assignRec(target, ...values) {
         }
 
         let typ = typeof value;
-        if (typ == "boolean" || typ == "number" || typ == "string" || value instanceof Array) {
+        if (typ === "boolean" || typ === "number" || typ === "string" || Array.isArray(value)) {
             target = value;
             continue;
         }
@@ -485,7 +478,7 @@ function updateFromRec(target, ...values) {
             throw new Error(`updateFromRec: ${typ} ${target} ${value}`);
         }
 
-        if (typ == "boolean" || typ == "number" || typ == "string") {
+        if (typ === "boolean" || typ === "number" || typ === "string") {
             target = value;
             continue;
         }
@@ -514,7 +507,7 @@ function numberToPowerString(n, powers) {
         let dot = vs.indexOf(".");
         if (dot >= 3) {
             vs = vs.substr(0, dot);
-        } else if (dot != -1) {
+        } else if (dot !== -1) {
             vs = vs.substr(0, dot + 2);
         }
         return vs + psuf;
@@ -529,16 +522,15 @@ function numberToPowerString(n, powers) {
     }
     if (res !== undefined) {
         return res;
-    } else {
-        return n.toString();
     }
+    return n.toString();
 }
 
 let countPowers = [
-    [Math.pow(1000, 5), "P"],
-    [Math.pow(1000, 4), "T"],
-    [Math.pow(1000, 3), "G"],
-    [Math.pow(1000, 2), "M"],
+    [1000 ** 5, "P"],
+    [1000 ** 4, "T"],
+    [1000 ** 3, "G"],
+    [1000 ** 2, "M"],
     [1000, "K"],
 ];
 
@@ -645,7 +637,7 @@ function escapeHTML(text) {
 function microMarkdownToHTML(text) {
     return escapeHTML(text)
         .replaceAll("\n", "<br />")
-        .replaceAll(/[*][*]([^*`]+)[*][*]/g, "<strong>$1</strong>")
-        .replaceAll(/[*]([^*`]+)[*]/g, "<em>$1</em>")
-        .replaceAll(/`([^`]+)`/g, "<code>$1</code>");
+        .replaceAll(/[*][*]([^*`]+)[*][*]/gu, "<strong>$1</strong>")
+        .replaceAll(/[*]([^*`]+)[*]/gu, "<em>$1</em>")
+        .replaceAll(/`([^`]+)`/gu, "<code>$1</code>");
 }

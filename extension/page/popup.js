@@ -36,7 +36,7 @@ function showTab(name) {
     }
     document.getElementById(`showTag-${name}`).classList.add("active");
 
-    if (name == "all") {
+    if (name === "all") {
         for (let tn of tagNames) {
             for (let node of document.getElementsByClassName(`tag-${tn}`)) {
                 node.classList.remove("hidden");
@@ -65,6 +65,7 @@ function showTab(name) {
     if (name !== "def") {
         for (let node of dbody.getElementsByTagName("input")) {
             let ti = node.getAttribute("tabindex");
+            // biome-ignore lint/suspicious/noDoubleEquals: skip
             if (ti !== null && ti != -1) {
                 node.removeAttribute("tabindex");
                 node.setAttribute("less-tabindex", ti);
@@ -124,7 +125,7 @@ async function popupMain() {
     });
 
     // allow to un-highlight currently highlighted node
-    dbody.addEventListener("click", (event) => {
+    dbody.addEventListener("click", (_event) => {
         highlightNode(null);
     });
 
@@ -198,7 +199,7 @@ async function popupMain() {
     // sync config state and UI state
     let pureTextState = true;
     function resetPureText() {
-        if (pureTextState == config.pureText) {
+        if (pureTextState === config.pureText) {
             return;
         }
 
@@ -392,6 +393,7 @@ async function popupMain() {
         "stopTabInFlight",
     ];
     for (let id of shortcutButtons) {
+        // eslint-disable-next-line no-loop-func
         buttonToMessage(id, () => [id, narrowTabId]);
     }
 
@@ -482,7 +484,7 @@ async function popupMain() {
             cfg = await browser.runtime.sendMessage([get, ...args]);
         }
 
-        setUI(document, prefix, cfg, (newCfg, path) => {
+        setUI(document, prefix, cfg, (newCfg, _path) => {
             browser.runtime.sendMessage([set, ...args, newCfg]).catch(logError);
         });
 
@@ -569,9 +571,10 @@ async function popupMain() {
                     narrowTabId = arg2;
                 }
                 return true;
-            default:
+            default: {
                 let res = await webextRPCHandleMessageDefault(update, () => showTab("all"));
                 return res;
+            }
         }
     }
 

@@ -64,9 +64,8 @@ let savedPageURL = browser.runtime.getURL("/page/saved.html");
 function iconPath(name, size) {
     if (useSVGIcons) {
         return `/icon/${name}.svg?v=${manifest.version}`;
-    } else {
-        return `/icon/${size}/${name}.png?v=${manifest.version}`;
     }
+    return `/icon/${size}/${name}.png?v=${manifest.version}`;
 }
 
 function iconURL(name, size) {
@@ -83,7 +82,7 @@ async function getTabs(query) {
     let tabs;
     let specific = false;
 
-    if (query instanceof Array && query.length === 1) {
+    if (Array.isArray(query) && query.length === 1) {
         query = query[0];
     }
 
@@ -93,7 +92,7 @@ async function getTabs(query) {
         let res = await browser.tabs.get(query);
         tabs = [res];
         specific = true;
-    } else if (query instanceof Array) {
+    } else if (Array.isArray(query)) {
         let set = new Set(query);
         let res = await browser.tabs.query({});
         tabs = res.filter((tab) => set.has(tab.id));
@@ -355,6 +354,7 @@ function isUnknownError(error) {
         }
     } else {
         // Chromium
+        // eslint-disable-next-line no-lonely-if
         if (
             error === "webRequest::net::ERR_ABORTED" ||
             error === "webRequest::net::ERR_CANCELED" ||
@@ -488,10 +488,10 @@ function mkReqresFilter(value) {
 
 function compileReqresFilter(value) {
     if (value === false) {
-        return [mkReqresFilter({ limit: 0 }), (reqres) => false];
+        return [mkReqresFilter({ limit: 0 }), (_reqres) => false];
     }
     if (value === null) {
-        return [mkReqresFilter({}), (reqres) => true];
+        return [mkReqresFilter({}), (_reqres) => true];
     }
 
     value = mkReqresFilter(value);
@@ -563,7 +563,7 @@ function compileReqresFilter(value) {
         }
         // else, add nothing
     } else if (url_algo === true) {
-        let re = new RegExp(url);
+        let re = new RegExp(url, "u");
         predicates.push((reqres) => re.test(reqres.url));
     } else {
         throw new TypeError("Bad url_algo");
@@ -592,7 +592,6 @@ function escapeNotification(config, what) {
 function annoyingNotification(config, what) {
     if (config.verbose) {
         return `\n\nYou can disable this notification by toggling the "${what}" option in the settings.\nYou can also toggle "User Interface and Accessibily > Verbose notifications" there to make this and similar notifications less verbose.`;
-    } else {
-        return "";
     }
+    return "";
 }

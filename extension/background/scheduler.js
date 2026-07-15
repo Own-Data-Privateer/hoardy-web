@@ -156,7 +156,11 @@ async function seEvalFunction(func, ...args) {
     seUpdatedTabId = undefined; // reset
 
     await forceUpdateDisplay(true, updatedTabId);
-    updatedTabId = await func();
+
+    updatedTabId = func();
+    while (updatedTabId instanceof Promise) {
+        updatedTabId = await updatedTabId;
+    }
     scheduleEndgame(updatedTabId, ...args);
 }
 
@@ -164,7 +168,10 @@ async function seEvalClosures(closures, ...args) {
     let updatedTabId = seUpdatedTabId;
     seUpdatedTabId = undefined; // reset
 
-    updatedTabId = await evalClosures(closures, updatedTabId);
+    updatedTabId = evalClosures(closures, updatedTabId);
+    while (updatedTabId instanceof Promise) {
+        updatedTabId = await updatedTabId;
+    }
     scheduleEndgame(updatedTabId, ...args);
 }
 
@@ -264,7 +271,7 @@ function scheduleEndgame(
             seEvalClosures(synchronousClosuresC, notifyTimeout),
         );
     } else {
-        resetSingletonTimeout(scheduledHidden, "endgame", 0, async () => {
+        resetSingletonTimeout(scheduledHidden, "endgame", 0, () => {
             let updatedTabId = seUpdatedTabId;
             seUpdatedTabId = undefined; // reset
 
@@ -444,6 +451,7 @@ function scheduleActionExtra(map, name, priority, timeout, hurry, func, endgame)
 
     if (value !== undefined) {
         // if newly scheduled
+        // eslint-disable-next-line no-inner-declarations
         async function after(results) {
             let updatedTabId = results.reduce(mergeUpdatedTabIds, undefined);
             if (endgame) {
@@ -452,8 +460,8 @@ function scheduleActionExtra(map, name, priority, timeout, hurry, func, endgame)
                 await forceUpdateDisplay(true, updatedTabId);
             }
         }
-        value.delay.push(after);
-        value.then.push(after);
+        value.onDelay.push(after);
+        value.andThen.push(after);
     }
 
     return value;

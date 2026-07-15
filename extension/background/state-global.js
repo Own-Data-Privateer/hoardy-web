@@ -234,15 +234,18 @@ function upgradeConfig(config) {
             rename("collectPartialRequests", "archivePartialRequest");
             rename("collectNoResponse", "archiveNoResponse");
             rename("collectIncompleteResponses", "archiveIncompleteResponse");
+        // fallthrough
         case 2:
             // because it got updated lots
             config.seenHelp = false;
+        // fallthrough
         case 3:
             // making them disjoint
             if (config.markProblematicWithErrors) {
                 config.markProblematicPickedWithErrors = true;
             }
             rename("markProblematicWithErrors", "markProblematicDroppedWithErrors");
+        // fallthrough
         case 4:
             // because that, essentially, was the default before, even though it is not now
             config.archiveSubmitHTTP = true;
@@ -255,6 +258,7 @@ function upgradeConfig(config) {
             rename("archiveNotifyDisabled", "archiveStuckNotify");
 
             rename("profile", "bucket", config.root, config.background, config.extension);
+        // fallthrough
         case 5:
             if (config.exportAsMaxSize === 0) {
                 config.exportAsBundle = false;
@@ -262,13 +266,16 @@ function upgradeConfig(config) {
             }
             // because it got updated lots
             config.seenHelp = false;
+        // fallthrough
         case 6:
             // its semantics changed
             config.problematicNotify = config.autoNotify ? true : null;
             rename("debugging", "debugRuntime");
+        // fallthrough
         case 7:
             // its semantics changed
             config.collectingWorkOffline = true;
+        // fallthrough
         case 8:
             rename("archiveFailedNotify", "persistFailedNotify");
             rename("saveLSParanoid", "persistLSParanoid");
@@ -285,6 +292,7 @@ function upgradeConfig(config) {
             delete config["workOffline"];
             delete config["collecting"];
             delete config["collectingWorkOffline"];
+        // fallthrough
         case 9:
             // epilog, do NOT move or copy-paste this `break` into the above
             break;
@@ -388,7 +396,7 @@ function setServer(config) {
     // clear stale
     browser.notifications.clear("error-server-url").catch(logError);
 
-    if (serverURL.pathname == "/pwebarc/dump") {
+    if (serverURL.pathname === "/pwebarc/dump") {
         // handle old-style URLs
         serverURL.pathname = "/";
     }
@@ -580,7 +588,7 @@ function fixConfig(config, oldConfig, serverConfig) {
 
     // these are mutually exclusive
     if (config.autoPopInLimboCollect && config.autoPopInLimboDiscard) {
-        if (config.autoPopInLimboCollect != oldConfig.autoPopInLimboCollect) {
+        if (config.autoPopInLimboCollect !== oldConfig.autoPopInLimboCollect) {
             config.autoPopInLimboDiscard = !config.autoPopInLimboCollect;
         } else {
             config.autoPopInLimboCollect = !config.autoPopInLimboDiscard;
@@ -742,7 +750,7 @@ function setConfig(newConfig) {
 
     [config, serverConfig] = fixConfig(config, oldConfig, serverConfig);
 
-    if (config.stash && config.stash != oldConfig.stash) {
+    if (config.stash && config.stash !== oldConfig.stash) {
         syncStashAll(false);
     }
 

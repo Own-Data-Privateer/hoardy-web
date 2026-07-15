@@ -106,6 +106,7 @@ async function checkServer(wantDump) {
             iconUrl: iconURL("failed", 128),
             type: "basic",
         });
+
         return;
     } else if (wantDump && !serverConfig.canDump) {
         await browser.notifications.create("error-server", {
@@ -117,11 +118,12 @@ async function checkServer(wantDump) {
             iconUrl: iconURL("failed", 128),
             type: "basic",
         });
+
         return;
-    } else {
-        // clear stale
-        await browser.notifications.clear("error-server");
     }
+
+    // clear stale
+    await browser.notifications.clear("error-server");
 
     if (serverConfig.info.version < 0) {
         await browser.notifications.create("warning-server", {
@@ -133,10 +135,12 @@ async function checkServer(wantDump) {
             iconUrl: iconURL("archiving", 128),
             type: "basic",
         });
-    } else {
-        // clear stale
-        await browser.notifications.clear("warning-server");
+
+        return;
     }
+
+    // clear stale
+    await browser.notifications.clear("warning-server");
 }
 
 function checkReplay(replayType) {
@@ -189,10 +193,10 @@ function checkReplay(replayType) {
             .catch(logError);
 
         return false;
-    } else {
-        // clear stale
-        browser.notifications.clear("error-replay").catch(logError);
     }
+
+    // clear stale
+    browser.notifications.clear("error-replay").catch(logError);
 
     return true;
 }
@@ -226,7 +230,7 @@ function replayOne(tabId, url) {
     // return undefined;
 }
 
-async function replay(query, direction) {
+async function replay(query, _direction) {
     if (!checkReplay()) {
         return;
     }
@@ -269,7 +273,7 @@ async function replay(query, direction) {
     scheduleEndgame(updatedTabId);
 }
 
-function spawnReplay(url, direction, newWindow, tab) {
+function spawnReplay(url, _direction, newWindow, tab) {
     if (!checkReplay()) {
         return;
     }
@@ -301,7 +305,7 @@ function spawnNegated(url, newWindow, tab) {
 // is there a new version ready to be used?
 let updateAvailable = false;
 
-function handleUpdateAvailable(details) {
+function handleUpdateAvailable(_details) {
     updateAvailable = true;
     if (config.autoReloadOnUpdates) {
         shortcutCommands.reloadSelf();
@@ -310,7 +314,7 @@ function handleUpdateAvailable(details) {
     }
 }
 
-async function handleBeforeNavigate(e) {
+function handleBeforeNavigate(e) {
     if (config.debugRuntime) {
         console.log("BROWSER: tab navigation", e.tabId, e.url);
     }
@@ -322,9 +326,7 @@ function chromiumResetRootTab(tabId, tabcfg) {
     // NB: `priority` argument here overrides `attachDebuggerAndReloadTab` what
     // `handleBeforeRequest` does. Thus, this action wins.
     if (tabcfg.collecting && config.workaroundChromiumResetRootTab) {
-        resetAttachDebuggerAndNavigateTab(tabId, config.workaroundChromiumResetRootTabURL, 0).catch(
-            logError,
-        );
+        resetAttachDebuggerAndNavigateTab(tabId, config.workaroundChromiumResetRootTabURL, 0);
     }
 }
 
@@ -376,7 +378,7 @@ function handleTabActivated(tab) {
     forceUpdateDisplay(false, tabId, true);
 }
 
-function handleTabUpdated(tabId, changeInfo, tab) {
+function handleTabUpdated(tabId, _changeInfo, tab) {
     if (config.debugRuntime) {
         console.log("BROWSER: tab updated", tabId, tab.windowId, getTabURL(tab));
     }
@@ -429,9 +431,9 @@ let rpcCommands = {
     replay: (tabId, direction) => {
         replay(tabId, direction);
     },
-    spawnReplay: (tabId, direction) => {
+    spawnReplay: (tabId, direction, newWindow) => {
         browser.tabs.get(tabId).then((tab) => {
-            spawnReplay(getTabURL(tab), false, false, tab);
+            spawnReplay(getTabURL(tab), direction, newWindow, tab);
         });
     },
 
@@ -503,8 +505,8 @@ let shortcutCommands = {
     replayEvery: () => rpcCommands.replay(null, null),
 
     forgetEveryLog: () => runThenScheduleEndgame(syncForgetLog, {}),
-    showEveryState: (tabId, activeTabId) => showState(null, null, null, "top", activeTabId),
-    showEveryLog: (tabId, activeTabId) =>
+    showEveryState: (_tabId, activeTabId) => showState(null, null, null, "top", activeTabId),
+    showEveryLog: (_tabId, activeTabId) =>
         showState(null, null, null, "tail", activeTabId, true, scrollEndIntoView),
 
     stopEveryInFlight: () => rpcCommands.stopInFlight(null),
@@ -563,7 +565,7 @@ let shortcutCommands = {
     snapshotTab: rpcCommands.snapshot,
     replayTabBackward: (tabId) => rpcCommands.replay(tabId, false),
     replayTabForward: (tabId) => rpcCommands.replay(tabId, true),
-    spawnReplayTabBackward: (tabId) => rpcCommands.spawnReplay(tabId, false),
+    spawnReplayTabBackward: (tabId) => rpcCommands.spawnReplay(tabId, false, false),
 
     forgetTabLog: (tabId) => runThenScheduleEndgame(syncForgetLog, { tabId }),
     showTabState: (tabId, activeTabId) => showState(sessionId, null, tabId, "top", activeTabId),
@@ -665,7 +667,7 @@ function evalRPCRequest(request) {
     throw new Error(`unknown request`);
 }
 
-function handleInternalMessage(request, sender, sendResponse) {
+function handleInternalMessage(request, _sender, sendResponse) {
     sendResponse(evalRPCRequest(request));
 }
 
@@ -780,7 +782,7 @@ function initMenus() {
 
         // Firefox provides `browser.menus.onShown` event, so `updateMenu` can be called on-demand
         browser.menus.onShown.addListener(
-            catchAll((info, tab) => {
+            catchAll((_info, tab) => {
                 if (tab === undefined) {
                     return;
                 }
@@ -853,7 +855,7 @@ async function main() {
     let lastSeenVersion = config.lastSeenVersion;
     config.lastSeenVersion = manifest.version;
 
-    if (lastSeenVersion != manifest.version) {
+    if (lastSeenVersion !== manifest.version) {
         if (config.seenChangelog) {
             // reset `config.seenChangelog` when major version changes
             let vOld = lastSeenVersion.split(".");
@@ -874,17 +876,11 @@ async function main() {
             .catch(logError);
     }
 
-    // for debugging
-    if (false) {
-        config.ephemeral = true;
-        config.debugRuntime = true;
-    }
-
     // Init IndexedDB.
 
     // try opening indexedDB
     try {
-        reqresIDB = await idbOpen("pwebarc", 1, (db, oldVersion, newVersion) => {
+        reqresIDB = await idbOpen("pwebarc", 1, (db, _oldVersion, _newVersion) => {
             db.createObjectStore("dump", { autoIncrement: true });
             db.createObjectStore("stash", { autoIncrement: true });
             db.createObjectStore("save", { autoIncrement: true });

@@ -33,7 +33,7 @@ function getWindowConfig(windowId) {
     return cacheSingleton(windowConfig, windowId, () => assignRec({}, config.root));
 }
 
-function setWindowConfig(windowId, wincfg, oldWincfg, dontBroadcast) {
+function setWindowConfig(windowId, wincfg, _oldWincfg, dontBroadcast) {
     fixSourceConfig(wincfg, config.root);
     windowConfig.set(windowId, wincfg);
 
@@ -79,6 +79,7 @@ let tabStateProxyFuncs = {
         let old = obj[name];
         obj[name] = value;
 
+        // biome-ignore lint/suspicious/noPrototypeBuiltins: skip
         if (!windowStateDefaults.hasOwnProperty(name)) {
             return true;
         }
@@ -280,19 +281,19 @@ async function smartSwitchTabs(highlight, direction, roundRobin) {
                         ),
                     )
                     .catch(logError);
-            } else {
-                return browser.tabs
-                    .highlight(
-                        assignRec(
-                            { windowId, tabs: [tabs[0].index] },
-                            useDebugger ? undefined : { populate: false },
-                        ),
-                    )
-                    .catch(logError);
             }
+
             // NB: not doing
             //   return browser.tabs.update(tabs[0].id, {active: true}).catch(logError);
             // instead because that keeps old highlight if `tabs[0]` was highlighted too
+            return browser.tabs
+                .highlight(
+                    assignRec(
+                        { windowId, tabs: [tabs[0].index] },
+                        useDebugger ? undefined : { populate: false },
+                    ),
+                )
+                .catch(logError);
         }, tabs),
     );
 }

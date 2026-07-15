@@ -80,7 +80,7 @@ async function performReloadSelf() {
     }
 
     function isInSyncWithLS(archivable) {
-        let [loggable, dump] = archivable;
+        let loggable = archivable[0];
         return loggable.inLS !== undefined && !loggable.dirty;
     }
 
@@ -104,6 +104,8 @@ async function performReloadSelf() {
     let currentTabs = await browser.tabs.query({});
     for (let tab of currentTabs) {
         let windowId = tab.windowId;
+
+        // biome-ignore lint/suspicious/noPrototypeBuiltins: skip
         if (!savedWindows.hasOwnProperty(windowId)) {
             savedWindows[windowId] = {
                 cfg: windowConfig.get(windowId),

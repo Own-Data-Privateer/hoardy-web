@@ -68,8 +68,8 @@ function makeSingletonTimeout(priority, timeout, func) {
         // - `true` means "stop running new `task`s, ask the running `task` to stop gracefully, if possible"
         wantStop: false,
         results: [],
-        delay: [],
-        then: [],
+        onDelay: [],
+        andThen: [],
     };
     value.tid = setTimeout(() => evalSingletonTimeout(value), timeout);
     return value;
@@ -146,7 +146,7 @@ async function evalSingletonTimeout(value) {
             ntimeout = value.when - Date.now();
             if (ntimeout > 0) {
                 // the next part should not be running yet
-                await asyncAllApply(value.delay, undefined, value.results);
+                await asyncAllApply(value.onDelay, undefined, value.results);
                 value.tid = setTimeout(() => evalSingletonTimeout(value), ntimeout);
                 return;
             }
@@ -174,12 +174,12 @@ async function evalSingletonTimeout(value) {
     // mark it as finished
     value.tid = undefined;
 
-    await asyncAllApply(value.then, undefined, value.results);
+    await asyncAllApply(value.andThen, undefined, value.results);
 
     // GC
     value.results = undefined;
-    value.delay = undefined;
-    value.then = undefined;
+    value.onDelay = undefined;
+    value.andThen = undefined;
 }
 
 // Immediately run or cancel a given singletonTimeout.
@@ -207,8 +207,8 @@ function emitSingletonTimeout(value, run, wait) {
 
     // it is already running
     if (wait) {
-        return new Promise((resolve, reject) => {
-            value.then.push(resolve);
+        return new Promise((resolve, _reject) => {
+            value.andThen.push(resolve);
         });
     }
 }
@@ -223,7 +223,7 @@ function resetSingletonTimeout(map, key, timeout, func, priority, hurry) {
     value = setSingletonTimeout(value, priority, timeout, func, hurry);
     if (value !== undefined) {
         // a newly created one
-        value.then.push(() => map.delete(key));
+        value.andThen.push(() => map.delete(key));
         map.set(key, value);
     }
     return value;

@@ -39,7 +39,7 @@ async function syncDebuggersState(tabs) {
         let url = getTabURL(tab, "");
 
         let hasInFlight = false;
-        for (let [requestId, dreqres] of debugReqresInFlight.entries()) {
+        for (let [_requestId, dreqres] of debugReqresInFlight.entries()) {
             if (dreqres.tabId === tab.id) {
                 hasInFlight = true;
                 break;
@@ -62,8 +62,8 @@ async function syncDebuggersState(tabs) {
     }
 }
 
-async function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
-    scheduleActionExtra(
+function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
+    return scheduleActionExtra(
         scheduledInternal,
         `reset-tab#${tabId}`,
         priority,
@@ -114,6 +114,7 @@ function resetAttachDebuggerAndNavigateTab(tabId, url, priority) {
     );
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: skip
 function resetAttachDebuggerAndReloadTab(tabId, priority) {
     return sleepResetTab(
         tabId,
@@ -306,7 +307,8 @@ function forceFinishingUpWebRequest(rrpredicate) {
         if (reqres.filter !== undefined) {
             try {
                 reqres.filter.disconnect();
-            } catch (e) {
+                // biome-ignore lint/correctness/noUnusedVariables: skip
+            } catch (err) {
                 //ignore
             }
             delete reqres["filter"];
@@ -697,6 +699,7 @@ function emitRequest(requestId, reqres, error, dontFinishUp) {
             let bodyParts = [];
             for (const [name, value] of Object.entries(reqres.formData)) {
                 bodyParts.push(
+                    // eslint-disable-next-line require-unicode-regexp
                     `${encodeURIComponent(name)}=${encodeURIComponent(value.join("")).replace(/%20/g, "+")}`,
                 );
             }
@@ -1044,10 +1047,9 @@ function handleBeforeRequest(e) {
 
                 // do the redirect
                 return { redirectUrl };
-            } else {
-                // cancel it as if `workOffline` was enabled
-                return { cancel: true };
             }
+            // cancel it as if `workOffline` was enabled
+            return { cancel: true };
         }
 
         // configure this tab based on its URL
@@ -1092,25 +1094,27 @@ function handleBeforeRequest(e) {
                 );
             }
             if (isMainFrame) {
-                // attach debugger and reload the main frame
-                attachDebuggerAndReloadTab(tabId).catch(logError);
-                // not using
-                //   resetAttachDebuggerAndNavigateTab(tabId, url).catch(logError);
+                // attach debugger, schedule a reload, but cancel this request
+                //
+                // NB: not using
+                //   resetAttachDebuggerAndNavigateTab(tabId, url);
                 // or
-                //   resetAttachDebuggerAndReloadTab(tabId).catch(logError);
+                //   resetAttachDebuggerAndReloadTab(tabId);
                 // bacause they reset the referrer
+                attachDebuggerAndReloadTab(tabId);
                 return { cancel: true };
-            } else {
-                // cancel it, but generate a reqres for it, so that it would be
-                // logged
-                noDebuggerYet = true;
             }
+
+            // cancel this request, but generate a reqres for it, for the log
+            noDebuggerYet = true;
         }
     } else {
         // On Firefox, cancel the very first navigation request, redirect the tab
         // to `about:blank`, and then reload the tab with the original URL to
         // work-around a Firefox bug where it will fail to run `onstop` for the
         // `filterResponseData` of the very first request, thus breaking it.
+        //
+        // eslint-disable-next-line no-lonely-if
         if (
             !workOffline &&
             firstNetworkRequest &&
@@ -1130,7 +1134,7 @@ function handleBeforeRequest(e) {
                         "to workaround a bug in Firefox",
                     );
                 }
-                resetAndNavigateTab(tabId, url).catch(logError);
+                resetAndNavigateTab(tabId, url);
                 return { cancel: true };
             }
         }
@@ -1215,7 +1219,7 @@ function handleBeforeRequest(e) {
     if (!useDebugger) {
         // Firefox
         let filter = browser.webRequest.filterResponseData(requestId);
-        filter.onstart = (event) => {
+        filter.onstart = (_event) => {
             if (config.debugCaptures) {
                 console.info("CAPTURE: filterResponseData", requestId, "started");
             }
@@ -1229,7 +1233,7 @@ function handleBeforeRequest(e) {
             reqres.responseSize += data.byteLength;
             filter.write(event.data);
         };
-        filter.onstop = (event) => {
+        filter.onstop = (_event) => {
             if (config.debugCaptures) {
                 console.info("CAPTURE: filterResponseData", requestId, "finished");
             }
@@ -1237,7 +1241,7 @@ function handleBeforeRequest(e) {
             filter.disconnect();
             scheduleProcessFinishingUpWebRequest(); // in case we were waiting for this filter
         };
-        filter.onerror = (event) => {
+        filter.onerror = (_event) => {
             if (filter.error !== "Invalid request ID") {
                 // if filter was actually started
                 let error = "filterResponseData::" + filter.error;

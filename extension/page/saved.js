@@ -67,7 +67,7 @@ async function stateMain() {
             savedFilters = nsavedFilters;
         }
 
-        let reset = setUI(document, "rrfilters", savedFilters, (value, path, resetting) => {
+        let reset = setUI(document, "rrfilters", savedFilters, (value, _path, resetting) => {
             resetSingletonTimeout(scheduledUI, "setSavedFilters", resetting ? 300 : 0, () =>
                 browser.runtime.sendMessage(["setSavedFilters", value]).catch(logError),
             );
@@ -91,9 +91,10 @@ async function stateMain() {
             case "appendSaved":
                 appendSaved(data);
                 return;
-            default:
+            default: {
                 let res = await webextRPCHandleMessageDefault(update);
                 return res;
+            }
         }
     }
 
@@ -117,7 +118,7 @@ async function stateMain() {
     await subscribeToExtension(
         "saved",
         3,
-        async (isInvalid) => {
+        async (_isInvalid) => {
             await updateConfig();
             await updateSavedFilters();
         },

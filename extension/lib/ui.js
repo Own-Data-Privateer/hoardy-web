@@ -153,8 +153,7 @@ function historyFromTo(fromState, toURLOrState) {
     if (
         history.state !== null &&
         typeof history.state === "object" &&
-        history.state.id !== undefined &&
-        history.state.id.startsWith("link-")
+        history.state.id?.startsWith("link-")
     ) {
         history.replaceState(fromState, "", fromURL);
     } else {
@@ -181,7 +180,7 @@ function buttonToAction(id, action) {
 
 function createElements(arg, ...args) {
     if (args.length === 0) {
-        if (arg instanceof Array) {
+        if (Array.isArray(arg)) {
             let res = [];
             for (let e of arg) {
                 res.push(...createElements(...e));
@@ -476,7 +475,7 @@ function setUIInternal(node, prefix, value, update, resetAcc) {
 
             let trim = div.getAttribute("trim") !== null;
 
-            let onchange = _mkHandleOnChange(prefix, update, value, (event, partial) => {
+            let onchange = _mkHandleOnChange(prefix, update, value, (_event, partial) => {
                 let nvalue = String(el.value).valueOf();
 
                 if (trim) {
@@ -560,7 +559,7 @@ function createUINodes(typ, id, name, tabindex, defvalue) {
             return [el];
 
         case "number":
-        case "numberOrNull":
+        case "numberOrNull": {
             el.type = "number";
 
             if (typ === "number") {
@@ -574,6 +573,7 @@ function createUINodes(typ, id, name, tabindex, defvalue) {
             defvalue = defvalue === null || defvalue === "null" ? null : defvalue || "0";
             setNumberOrNull(els[0], el, defvalue);
             return els;
+        }
 
         case "string":
         case "search":
@@ -587,7 +587,6 @@ function createUINodes(typ, id, name, tabindex, defvalue) {
 
 function placeUINodes(node, places, typ, ...args) {
     let els = createUINodes(typ, ...args);
-    let elslen = els.length;
     for (let i = 0; i < els.length; ++i) {
         let child = places[i];
         if (child !== undefined) {
@@ -646,7 +645,7 @@ async function verifyLinks(node, onerror, sameOrigin, allowOrigin, remapId) {
         allowOrigin = () => false;
     }
     if (remapId === undefined) {
-        remapId = (h, x) => x;
+        remapId = (_h, x) => x;
     }
 
     let selfUrl = new URL(document.location.href);
@@ -827,7 +826,7 @@ function classifyLinks(node, urlKlasses, setup) {
             if (klass !== undefined) {
                 link.classList.add(klass);
             }
-            link.onclick = (event) => {
+            link.onclick = (_event) => {
                 historyFromTo({ id: info.id });
             };
         };

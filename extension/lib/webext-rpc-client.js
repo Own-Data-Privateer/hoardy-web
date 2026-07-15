@@ -28,6 +28,10 @@
 
 "use strict";
 
+// This declaration exists only to turn simultaneos loading of
+// `webext-rpc-server.js` and `webext-rpc-client.js` into an error.
+//
+// biome-ignore lint/correctness/noUnusedVariables: skip
 let WEBEXT_RPC_MODE = 1;
 
 // Set to enable debugging.

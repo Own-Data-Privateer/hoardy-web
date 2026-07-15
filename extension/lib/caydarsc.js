@@ -47,7 +47,7 @@ let DEBUG_CAYDARSC = false;
 async function attachDebuggerWithSendCommandsUnsafe(tabId, version, commands, pre, post) {
     let debuggee = { tabId };
 
-    let lastError = undefined;
+    let lastError;
     let retry = 0;
     for (; retry < 10; ++retry) {
         if (pre !== undefined) {
@@ -90,6 +90,7 @@ async function attachDebuggerWithSendCommandsUnsafe(tabId, version, commands, pr
     }
 
     if (lastError !== undefined) {
+        // eslint-disable-next-line no-throw-literal
         throw lastError;
     }
 

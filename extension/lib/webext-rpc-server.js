@@ -28,6 +28,10 @@
 
 "use strict";
 
+// This declaration exists only to turn simultaneos loading of
+// `webext-rpc-server.js` and `webext-rpc-client.js` into an error.
+//
+// biome-ignore lint/correctness/noUnusedVariables: skip
 let WEBEXT_RPC_MODE = 0;
 
 // Set to enable debugging.
@@ -68,7 +72,7 @@ function webextRPCHandleConnect(port) {
 function broadcastToMatching(lazy, predicate, ...args) {
     let res = args;
     let number = 0;
-    for (let [portId, info] of webextRPCOpenPorts.entries()) {
+    for (let [_portId, info] of webextRPCOpenPorts.entries()) {
         if (predicate === undefined || predicate(info)) {
             if (lazy) {
                 res = evalFunctionsAway(res);

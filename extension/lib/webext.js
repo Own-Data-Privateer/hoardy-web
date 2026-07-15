@@ -84,9 +84,8 @@ async function getShortcuts(...args) {
 function buttonToMessage(id, func) {
     if (func === undefined) {
         return buttonToAction(id, () => browser.runtime.sendMessage([id]));
-    } else {
-        return buttonToAction(id, () => browser.runtime.sendMessage(func()));
     }
+    return buttonToAction(id, () => browser.runtime.sendMessage(func()));
 }
 
 // activate a tab with a given document URL if exists, or open new if not
@@ -115,19 +114,20 @@ async function showInternalPageAtNode(url, id, openerTabId, spawn, scrollIntoVie
     if (spawn === false) {
         window.location = rurl;
         return null;
-    } else {
-        let tab, spawned;
-        try {
-            [tab, spawned] = await spawnOrActivateTab(rurl, { openerTabId });
-        } catch (e) {
-            // in case openerTabId points to a dead tab
-            [tab, spawned] = await spawnOrActivateTab(rurl);
-        }
-        if (!spawned && id !== undefined) {
-            broadcastToURL(false, url, "viewNode", id, scrollIntoViewOptions);
-        }
-        return tab.id;
     }
+
+    let spawned, tab;
+    try {
+        [tab, spawned] = await spawnOrActivateTab(rurl, { openerTabId });
+        // biome-ignore lint/correctness/noUnusedVariables: skip
+    } catch (err) {
+        // in case openerTabId points to a dead tab
+        [tab, spawned] = await spawnOrActivateTab(rurl);
+    }
+    if (!spawned && id !== undefined) {
+        broadcastToURL(false, url, "viewNode", id, scrollIntoViewOptions);
+    }
+    return tab.id;
 }
 
 // For a given list of `tabs`, split them by `windowId`, then run `func` for each `windowId` and its

@@ -423,7 +423,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             color = Math.max(color, 1);
             chunks.push(`${stats.scheduled} scheduled actions`);
         }
-        if (stats.scheduled == stats.scheduled_low && stats.scheduled_low > 0) {
+        if (stats.scheduled === stats.scheduled_low && stats.scheduled_low > 0) {
             badge += ".";
             chunks.push(`${stats.scheduled_low} low-priority scheduled actions`);
         }
@@ -703,9 +703,9 @@ async function forceUpdateDisplay(statsChanged, updatedTabId, tabChanged) {
 function getGoodEpisodic(num) {
     if (num > 200) {
         return 100;
-    } else if (num > 20) {
-        return 10;
-    } else {
-        return 1;
     }
+    if (num > 20) {
+        return 10;
+    }
+    return 1;
 }

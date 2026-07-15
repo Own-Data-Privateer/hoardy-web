@@ -54,7 +54,7 @@ function parseUA() {
 
 function makePromiseAPIConst(data) {
     return () => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, _reject) => {
             resolve(data);
         });
     };
@@ -183,6 +183,8 @@ function makeFirefoxish(browser) {
     return browser;
 }
 
+// eslint-disable-next-line no-unassigned-vars
+var chrome;
 var browser;
 if (browser === undefined) {
     browser = makeFirefoxish(chrome);

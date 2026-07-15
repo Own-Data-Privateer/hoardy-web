@@ -86,7 +86,7 @@ class ChunkedBuffer extends Array {
 }
 
 class CBOREncoder {
-    constructor(value) {
+    constructor() {
         this.chunks = new ChunkedBuffer();
         this.data = new ArrayBuffer(pow_2_8);
         this.view = new DataView(this.data);

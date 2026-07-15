@@ -77,7 +77,7 @@ function updateLinks(node) {
                         historyFromTo({ id: info.id }, { id: info.target });
                         focusNode(info.target);
                     };
-                    link.onmouseover = (event) => {
+                    link.onmouseover = (_event) => {
                         if (columns) {
                             broadcastToPopup("highlightNode", null);
                         }
@@ -92,19 +92,18 @@ function updateLinks(node) {
                         }
                         broadcastToPopup("focusNode", info.target);
                     };
-                    link.onmouseover = (event) => {
+                    link.onmouseover = (_event) => {
                         if (columns) {
                             broadcastToPopup("focusNode", info.target);
                         }
                     };
                     break;
-                case "local":
                 default:
                     link.onclick = (event) => {
                         event.stopPropagation();
                         historyFromTo({ id: info.id });
                     };
-                    link.onmouseover = (event) => {
+                    link.onmouseover = (_event) => {
                         if (columns) {
                             broadcastToPopup("highlightNode", null);
                         }
@@ -233,7 +232,7 @@ async function helpMain() {
     iframe = document.getElementById("iframe");
 
     // allow to un-highlight currently highlighted node
-    document.body.addEventListener("click", (event) => {
+    document.body.addEventListener("click", (_event) => {
         highlightNode(null);
         broadcastToPopup("highlightNode", null);
     });

@@ -176,11 +176,10 @@ class LSlotObjectStore {
             this.transaction.put(metaid, meta);
             this.transaction.put(sid, data);
             return id;
-        } else {
-            let sid = lslotDataIdOf(this.name, slot);
-            this.transaction.put(sid, data);
-            return slot;
         }
+        let sid = lslotDataIdOf(this.name, slot);
+        this.transaction.put(sid, data);
+        return slot;
     }
 
     async delete(slot) {
@@ -222,7 +221,7 @@ class LSlotObjectStore {
     }
 }
 
-async function lslotTransaction(storage, /* ignored */ mode, names, func) {
+async function lslotTransaction(storage, _mode, names, func) {
     let transaction = new LSlotTransaction(storage);
 
     let args = [];

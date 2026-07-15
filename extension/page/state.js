@@ -103,11 +103,16 @@ async function stateMain() {
             continue;
         }
 
-        let reset = setUI(document, "rrfilters." + id, rrfilters[id], (value, path, resetting) => {
-            resetSingletonTimeout(scheduledUI, resetCid, resetting ? 300 : 0, () =>
-                browser.runtime.sendMessage(getCid).then(resetFunc).catch(logError),
-            );
-        });
+        let reset = setUI(
+            document,
+            "rrfilters." + id,
+            rrfilters[id],
+            (_value, _path, resetting) => {
+                resetSingletonTimeout(scheduledUI, resetCid, resetting ? 300 : 0, () =>
+                    browser.runtime.sendMessage(getCid).then(resetFunc).catch(logError),
+                );
+            },
+        );
         buttonToAction("reset-rrfilters." + id, reset);
     }
 
@@ -127,7 +132,7 @@ async function stateMain() {
             case "updateConfig":
                 await updateConfig(data);
                 return;
-            default:
+            default: {
                 let updateFunc = dataNodeUpdaters[what];
                 if (updateFunc !== undefined) {
                     return updateFunc(data);
@@ -135,6 +140,7 @@ async function stateMain() {
 
                 let res = await webextRPCHandleMessageDefault(update);
                 return res;
+            }
         }
     }
 
