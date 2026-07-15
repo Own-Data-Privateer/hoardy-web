@@ -1,0 +1,23 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["oxc"],
+    "categories": {
+        "correctness": "error",
+        "suspicious": "error",
+        "pedantic": "error"
+    },
+    "rules": {
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        "max-classes-per-file": "off",
+        "max-depth": "off",
+        "no-underscore-dangle": "off",
+        "no-shadow": "off",
+        "no-negated-condition": "off",
+        "no-warning-comments": "off",
+        "no-inline-comments": "off"
+    },
+    "env": {
+        "builtin": true
+    }
+}

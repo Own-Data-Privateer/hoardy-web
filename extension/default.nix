@@ -24,9 +24,11 @@ stdenv.mkDerivation rec {
     vim.xxd
   ] ++ lib.optionals developer [
     oxfmt
+    oxlint
   ] ++ lib.optionals (developer && !minimal) [
     prettier
     prettier-plugin-curly
+    biome
   ];
 
   shellHook = lib.optionalString (developer && !minimal) ''

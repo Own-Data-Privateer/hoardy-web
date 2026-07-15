@@ -1,0 +1,28 @@
+{
+    "$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "correctness": "error",
+            "complexity": "error",
+            "complexity": {
+                "noExcessiveCognitiveComplexity": "off",
+                "useLiteralKeys": "off"
+            },
+            "security": "error",
+            "security": {
+                "noSecrets": "off"
+            },
+            "style": "warn",
+            "style": {
+                "useConst": "off",
+                "useTemplate": "off"
+            },
+            "suspicious": "error",
+            "suspicious": {
+                "noRedundantUseStrict": "off",
+                "noFallthroughSwitchClause": "off"
+            }
+        }
+    }
+}
