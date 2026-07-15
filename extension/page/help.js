@@ -23,6 +23,8 @@
 
 "use strict";
 
+let pbody;
+let iframe;
 let minWidth = 1355; // see ./help.template
 let columns = true;
 
@@ -40,7 +42,7 @@ function resize() {
 
     // Prevent independent scroll in `columns` layout.
     let h1 = columns ? `${h - 5}px` : null;
-    body.style["min-height"] = body.style["max-height"] = body.style["height"] = h1;
+    pbody.style["min-height"] = pbody.style["max-height"] = pbody.style["height"] = h1;
 
     let ib = iframe.contentDocument.body;
     if (ib === null) {
@@ -227,8 +229,8 @@ async function updatePage(initial) {
 async function helpMain() {
     setPageLoading();
 
-    let body = document.getElementById("body");
-    let iframe = document.getElementById("iframe");
+    pbody = document.getElementById("body");
+    iframe = document.getElementById("iframe");
 
     // allow to un-highlight currently highlighted node
     document.body.addEventListener("click", (event) => {
@@ -295,7 +297,7 @@ async function helpMain() {
     await sleep(1);
 
     // show UI
-    body.style["visibility"] = null;
+    pbody.style["visibility"] = null;
     document.getElementById("container").style["visibility"] = null;
 
     // finish
