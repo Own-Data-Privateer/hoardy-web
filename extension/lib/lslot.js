@@ -31,10 +31,6 @@ async function storageGetOne(storage, id) {
     return res[id];
 }
 
-function getFromLocalStorage(id) {
-    return storageGetOne(browser.storage.local, id);
-}
-
 class LSlotTransaction {
     constructor(storage) {
         this.storage = storage;
