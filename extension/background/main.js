@@ -293,7 +293,7 @@ function spawnReplay(url, direction, newWindow, tab) {
 
 function spawnNegated(url, newWindow, tab) {
     negateConfigFor.add(tab.id);
-    spawnChildTab(newURL, newWindow, tab);
+    spawnChildTab(url, newWindow, tab);
 }
 
 // Handlers.
