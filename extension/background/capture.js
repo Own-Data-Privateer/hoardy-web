@@ -162,7 +162,7 @@ function applyToReqresInFlight5(func, early, a, b, c, d, e) {
         func(v, d);
     }
     for (let v of reqresAlmostDone) {
-        func(v, d);
+        func(v, e);
     }
 }
 
