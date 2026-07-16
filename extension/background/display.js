@@ -338,6 +338,15 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
             color = Math.max(color, 1);
             chunks.push(`${stats.running} running actions`);
         }
+        if (stats.scheduled > stats.scheduled_low) {
+            badge += "~";
+            color = Math.max(color, 1);
+            chunks.push(`${stats.scheduled} high-priority scheduled actions`);
+        }
+        if (stats.scheduled === stats.scheduled_low && stats.scheduled_low > 0) {
+            badge += ".";
+            chunks.push(`${stats.scheduled_low} low-priority scheduled actions`);
+        }
 
         if (stats.issues > 0) {
             badge += stats.issues.toString();
@@ -416,16 +425,6 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
 
         if (inFlightNum + stats.queued + stats.bundledAs === 0) {
             chunks.push("idle");
-        }
-
-        if (stats.scheduled > stats.scheduled_low) {
-            badge += "~";
-            color = Math.max(color, 1);
-            chunks.push(`${stats.scheduled} scheduled actions`);
-        }
-        if (stats.scheduled === stats.scheduled_low && stats.scheduled_low > 0) {
-            badge += ".";
-            chunks.push(`${stats.scheduled_low} low-priority scheduled actions`);
         }
 
         gtitle = chunks.join(", ");
