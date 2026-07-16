@@ -42,15 +42,7 @@ function showTab(name) {
                 node.classList.remove("hidden");
             }
         }
-
-        for (let node of document.getElementsByClassName("not-all")) {
-            node.classList.add("hidden");
-        }
     } else {
-        for (let node of document.getElementsByClassName("not-all")) {
-            node.classList.remove("hidden");
-        }
-
         for (let tn of tagNames) {
             for (let node of document.getElementsByClassName(`tag-${tn}`)) {
                 node.classList.add("hidden");
