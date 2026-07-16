@@ -504,7 +504,6 @@ let shortcutCommands = {
     snapshotEvery: () => rpcCommands.snapshot(null),
     replayEvery: () => rpcCommands.replay(null, null),
 
-    forgetEveryLog: () => runThenScheduleEndgame(syncForgetLog, {}),
     showEveryState: (_tabId, activeTabId) => showState(null, null, null, "top", activeTabId),
     showEveryLog: (_tabId, activeTabId) =>
         showState(null, null, null, "tail", activeTabId, true, scrollEndIntoView),
@@ -518,8 +517,6 @@ let shortcutCommands = {
     snapshotWindow: (tabId) => rpcCommands.snapshot({ windowId: getWindowId(tabId) }),
     replayWindow: (tabId) => rpcCommands.replay({ windowId: getWindowId(tabId) }, false),
 
-    forgetWindowLog: (tabId) =>
-        runThenScheduleEndgame(syncForgetLog, { windowId: getWindowId(tabId) }),
     showWindowState: (tabId, activeTabId) =>
         showState(sessionId, getWindowId(tabId), null, "top", activeTabId),
     showWindowLog: (tabId, activeTabId) =>
@@ -567,7 +564,6 @@ let shortcutCommands = {
     replayTabForward: (tabId) => rpcCommands.replay(tabId, true),
     spawnReplayTabBackward: (tabId) => rpcCommands.spawnReplay(tabId, false, false),
 
-    forgetTabLog: (tabId) => runThenScheduleEndgame(syncForgetLog, { tabId }),
     showTabState: (tabId, activeTabId) => showState(sessionId, null, tabId, "top", activeTabId),
     showTabLog: (tabId, activeTabId) =>
         showState(sessionId, null, tabId, "tail", activeTabId, true, scrollEndIntoView),

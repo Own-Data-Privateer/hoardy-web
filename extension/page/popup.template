@@ -231,7 +231,6 @@ section {
       <span class="right tag-def tag-glob">
         <input id="snapshotEvery" type="button" data-shortcut="snapshotEvery" value="Snapshot" />
         <input id="replayEvery" type="button" class="on-replay" data-shortcut="replayEvery" value="Replay" />
-        <input id="forgetEveryLog" type="button" data-help="Forget recent history." value="Forget" />
         <input id="showEveryState" type="button" data-shortcut="showEveryState" value="State" />
       </span>
     </h1>
@@ -842,7 +841,6 @@ Specifically:
       <span class="right tag-def tag-win">
         <input id="snapshotWindow" type="button" data-shortcut="snapshotWindow" value="Snapshot" />
         <input id="replayWindow" type="button" class="on-replay" data-shortcut="replayWindow" value="Replay" />
-        <input id="forgetWindowLog" type="button" data-help="For reqres of the tabs of this window, forget recent history." value="Forget" />
         <input id="showWindowState" type="button" data-shortcut="showWindowState" value="State" />
       </span>
     </h2>
@@ -962,7 +960,6 @@ Specifically:
         <input id="replayTabBackward" type="button" class="on-replay" data-shortcut="replayTabBackward" value="Replay" />
         <input id="spawnReplayTabBackward" type="button" class="on-replay" data-shortcut="spawnReplayTabBackward" value="Replay+" />
         <!-- input id="replayTabForward" type="button" class="on-replay" data-shortcut="replayTabForward" data-help="" value="Replay Forward" / -->
-        <input id="forgetTabLog" type="button" data-help="For reqres of this tab, forget recent history." value="Forget" />
         <input id="showTabState" type="button" tabindex=2 data-shortcut="showTabState" value="State" />
       </span>
     </h3>

@@ -18,7 +18,6 @@
 #+MACRO: shortcutButton2 {{{button2($1,$2)}}} {{{shortcutKey($1)}}}
 #+MACRO: replay {{{buttons(replayEvery,replayWindow,replayTabBackward)}}}
 #+MACRO: snapshot {{{buttons(snapshotEvery,snapshotWindow,snapshotTab)}}}
-#+MACRO: forgetLog {{{buttons(forgetEveryLog,forgetWindowLog,forgetTabLog)}}}
 #+MACRO: logPage {{{buttons(showEveryState,showWindowState,showTabState)}}}
 #+MACRO: collectInLimbo {{{buttons(collectEveryInLimbo,collectWindowInLimbo,collectTabInLimbo)}}}
 #+MACRO: discardInLimbo {{{buttons(discardEveryInLimbo,discardWindowInLimbo,discardTabInLimbo)}}}
@@ -406,8 +405,7 @@ On exit from the =finished= state of the [[#diagram][diagram]], after the [[#cla
 
 On entering =collected= or =discarded= state, =loggable= metadata of each reqres is copied into the recent reqres log {{{logPage}}} and is kept there until the size of the log reaches {{{config2(history,this many elements)}}}, at which point the older elements of the log start being elided automatically.
 
-You can also ask =Hoardy-Web= to forget that history manually by pressing the appropriate buttons {{{forgetLog}}} or do the same by using similar buttons in the logs {{{logPage}}}.
-Using the latter allows for more granular control via the reqres filtering options available there.
+You can also ask =Hoardy-Web= to forget a subset or all of those log elements manually by opening an appropriate log page {{{logPage}}}, setting some filters to produce a desired subset, and then pressing the =Forget all= button.
 
 *However, note that reqres still [[#problematic][marked as =problematic=]], can't be automatically elided or manually dropped from the logs until they get unmarked.*
 *** Normal mode

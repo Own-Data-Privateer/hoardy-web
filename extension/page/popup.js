@@ -144,7 +144,6 @@ async function popupMain() {
 
         snapshotEvery: "📸",
         replayEvery: "⏏",
-        forgetEveryLog: "🧹",
         showEveryState: "📜",
 
         collectEveryInLimbo: "✔",
@@ -155,7 +154,6 @@ async function popupMain() {
         // per-Window
         snapshotWindow: "📸",
         replayWindow: "⏏",
-        forgetWindowLog: "🧹",
         showWindowState: "📜",
 
         smartSwitchTabsBackward: "⏮🎠",
@@ -175,7 +173,6 @@ async function popupMain() {
         replayTabBackward: "⏮",
         //replayTabForward: "⏭",
         spawnReplayTabBackward: "⏮🆕",
-        forgetTabLog: "🧹",
         showTabState: "📜",
 
         collectTabInLimbo: "✔",
@@ -356,7 +353,6 @@ async function popupMain() {
 
         "snapshotEvery",
         "replayEvery",
-        "forgetEveryLog",
 
         "collectEveryInLimbo",
         "discardEveryInLimbo",
@@ -366,7 +362,6 @@ async function popupMain() {
         // per-Window
         "snapshotWindow",
         "replayWindow",
-        "forgetWindowLog",
 
         "smartSwitchTabsBackward",
         "smartSwitchTabsForward",
@@ -385,7 +380,6 @@ async function popupMain() {
         "replayTabBackward",
         // "replayTabForward"
         "spawnReplayTabBackward",
-        "forgetTabLog",
 
         "collectTabInLimbo",
         "discardTabInLimbo",
