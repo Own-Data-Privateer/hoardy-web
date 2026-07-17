@@ -971,20 +971,16 @@ async function main() {
 
             addToWindowState(windowId, tabstate);
 
-            if (windowId === WINDOW_ID_NONE || doneWindows.has(windowId)) {
-                continue;
+            if (windowId !== WINDOW_ID_NONE && !doneWindows.has(windowId)) {
+                // NB: referring back by `tabstate.windowId`, but writing to `windowId`
+                let oldWindow = sessionWindows[tabstate.windowId];
+                if (oldWindow !== undefined) {
+                    let wincfg = updateFromRec(assignRec({}, config.root), oldWindow.cfg);
+                    windowConfig.set(windowId, wincfg);
+
+                    doneWindows.add(windowId);
+                }
             }
-
-            // NB: referring back by `tabstate.windowId`, but writing to `windowId`
-            let oldWindow = sessionWindows[tabstate.windowId];
-            if (oldWindow === undefined) {
-                continue;
-            }
-
-            let wincfg = updateFromRec(assignRec({}, config.root), oldWindow.cfg);
-            windowConfig.set(windowId, wincfg);
-
-            doneWindows.add(windowId);
         }
 
         setTabConfig(tabId, undefined, tabcfg, tabcfg, true);
