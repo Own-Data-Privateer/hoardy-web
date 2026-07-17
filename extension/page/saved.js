@@ -23,8 +23,6 @@
 
 "use strict";
 
-let dbody = document.body;
-
 async function stateMain() {
     setPageLoading();
 

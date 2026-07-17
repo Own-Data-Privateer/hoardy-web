@@ -23,6 +23,7 @@
 
 "use strict";
 
+let dbody = document.body;
 let pbody;
 let iframe;
 let minWidth = 1355; // see ./help.template
@@ -37,8 +38,8 @@ function resize() {
     console.log("current viewport:", w, h);
     columns = w >= minWidth;
 
-    setConditionalClass(document.body, "columns", columns);
-    setConditionalClass(document.body, "linear", !columns);
+    setConditionalClass(dbody, "columns", columns);
+    setConditionalClass(dbody, "linear", !columns);
 
     // Prevent independent scroll in `columns` layout.
     let h1 = columns ? `${h - 5}px` : null;
@@ -232,7 +233,7 @@ async function helpMain() {
     iframe = document.getElementById("iframe");
 
     // allow to un-highlight currently highlighted node
-    document.body.addEventListener("click", (_event) => {
+    pbody.addEventListener("click", (_event) => {
         highlightNode(null);
         broadcastToPopup("highlightNode", null);
     });

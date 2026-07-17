@@ -24,6 +24,7 @@
 "use strict";
 
 let dbody = document.body;
+let pbody;
 
 const tagNames = ["def", "glob", "win", "tab", "cls", "sar", "bh", "ui", "all"];
 
@@ -106,18 +107,19 @@ async function popupMain() {
         narrowTabId = getStateTabIdOrTabId(tab);
     }
 
+    pbody = document.getElementById("body");
+
     // generate UI
-    let body = document.getElementById("body");
-    makeUI(body);
+    makeUI(pbody);
 
     let shortcuts = await getShortcuts();
-    addHelp(body, shortcuts, (help, shortcut) => {
+    addHelp(pbody, shortcuts, (help, shortcut) => {
         let sk = shortcut ? `\`${shortcut}\`` : "unbound";
         return `(${sk}) ${help}`;
     });
 
     // allow to un-highlight currently highlighted node
-    dbody.addEventListener("click", (_event) => {
+    pbody.addEventListener("click", (_event) => {
         highlightNode(null);
     });
 

@@ -112,7 +112,7 @@ done
 
     cat lib/*.js background/*.js page/*.js | sed -E '
 /"use strict"/ d
-s/let (WEBEXT_RPC_MODE|DEBUG_WEBEXT_RPC|dbody) =/var \1 =/
+s/let (WEBEXT_RPC_MODE|DEBUG_WEBEXT_RPC|dbody|pbody)( =|;)/var \1\2/
 s%^(function broadcast|var DEBUG_WEBEXT_RPC)%\n//biome-ignore lint: lint/correctness/noUnusedVariables: skip\n\1%
 '
 } > "$biljs"

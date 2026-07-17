@@ -23,6 +23,9 @@
 
 "use strict";
 
+let dbody = document.body;
+let pbody;
+
 // current values, to be filled in `commonMain`
 let thisSessionId;
 let thisTabId;
@@ -334,9 +337,10 @@ async function commonMain() {
     let thisTab = await getActiveTab();
     thisTabId = thisTab !== null ? thisTab.id : null;
 
+    pbody = document.getElementById("body");
+
     // generate UI
-    let body = document.body;
-    makeUI(body);
+    makeUI(pbody);
 
     function firstOrMake(el, tagName, addFunc) {
         let res = el.getElementsByTagName(tagName)[0];
@@ -364,5 +368,5 @@ async function commonMain() {
         });
     }
 
-    addHelp(body);
+    addHelp(pbody);
 }
