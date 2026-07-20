@@ -1340,18 +1340,16 @@ async function processArchiving() {
 let rearchiveNum = 0;
 
 async function processRearchiving(getArchivables, reset, andRewrite, andDelete) {
-    rearchiveNum += 1;
-
     if (config.rearchiveSubmitHTTP) {
         await checkServer(true);
 
         if (!config.rearchiveExportAs && !(serverConfig.alive && serverConfig.canDump)) {
             await browser.notifications
-                .create(`running-rearchive-${rearchiveNum}`, {
+                .create(`error-rearchive`, {
                     title: "Hoardy-Web: ERROR",
                     message: escapeNotification(
                         config,
-                        "Re-archival is was aborted because the archiving server appears to be unavailable or defunct.",
+                        "Re-archival was aborted because the archiving server appears to be unavailable or defunct.",
                     ),
                     iconUrl: iconURL("failed", 128),
                     type: "basic",
@@ -1361,6 +1359,7 @@ async function processRearchiving(getArchivables, reset, andRewrite, andDelete) 
         }
     }
 
+    rearchiveNum += 1;
     await browser.notifications
         .create(`running-rearchive-${rearchiveNum}`, {
             title: "Hoardy-Web: RUNNING",
