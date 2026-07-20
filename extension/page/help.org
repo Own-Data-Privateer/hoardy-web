@@ -1078,12 +1078,15 @@ So, while this setup is not super-secure if your Tor Browser allows web pages to
   - =... Failed to archive <N> items because this archiving server is unavailable=,
   - =... Failed to archive <N> items because this archiving server does not support archiving=,
   - =... Failed to archive <N> items because this archiving server appears to be defunct=, or
-  - =... Failed to archive <N> items because `Hoardy-Web` can't establish a connection to the archiving server: <reason>=:
+  - =... Failed to archive <N> items because `Hoardy-Web` can't establish a connection to the archiving server: <reason>=,
+  - =Re-archival was aborted because the archiving server appears to be unavailable or defunct=:
 
   Are you running the [[../../simple_server/][=hoardy-web-sas= archiving server script]] or a [[../../tool/][=hoardy-web serve=]] instance?
 
   In the case of =hoardy-web serve=, does that server instance allow archiving?
   Is it replay-only, maybe?
+
+  If the archiving server is on another machine did you open the port it is listening to on your firewall or did you forward it via =adb reverse=?
 
   If you fixed it and the error persists, press {{{button2(retryAllFailed,this button)}}}.
 
