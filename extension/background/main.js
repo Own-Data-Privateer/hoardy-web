@@ -48,7 +48,7 @@ async function checkServer(wantDump) {
 
     let baseURL = serverConfig.baseURL;
 
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("MAIN: checking the archiving server at", baseURL);
     }
 
@@ -244,7 +244,7 @@ async function replay(query, _direction) {
         let url = getTabURL(tab);
 
         if ((!specific && !tabcfg.replayable) || isBoringOrServerURL(url)) {
-            if (config.debugRuntime) {
+            if (config.logRuntime) {
                 console.log("MAIN: NOT replaying tabId", tabId, "url", url);
             }
             continue;
@@ -252,7 +252,7 @@ async function replay(query, _direction) {
 
         let replayURL = latestReplayOf(url);
 
-        if (config.debugRuntime) {
+        if (config.logRuntime) {
             console.log("MAIN: replaying tabId", tabId, "url", url, "->", replayURL);
         }
 
@@ -281,13 +281,13 @@ function spawnReplay(url, _direction, newWindow, tab) {
     let newURL = url;
 
     if (isBoringOrServerURL(url)) {
-        if (config.debugRuntime) {
+        if (config.logRuntime) {
             console.log("MAIN: spawn-cloning from tabId", tab.id, "url", url);
         }
     } else {
         newURL = latestReplayOf(url);
 
-        if (config.debugRuntime) {
+        if (config.logRuntime) {
             console.log("MAIN: spawn-replaying from tabId", tab.id, "url", url, "->", newURL);
         }
     }
@@ -315,7 +315,7 @@ function handleUpdateAvailable(_details) {
 }
 
 function handleBeforeNavigate(e) {
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("BROWSER: tab navigation", e.tabId, e.url);
     }
 }
@@ -333,7 +333,7 @@ function chromiumResetRootTab(tabId, tabcfg) {
 function handleTabCreated(tab) {
     let tabId = tab.id;
 
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("BROWSER: tab added", tabId, tab.openerTabId);
     }
 
@@ -349,14 +349,14 @@ function handleTabCreated(tab) {
 }
 
 function handleTabRemoved(tabId) {
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("BROWSER: tab removed", tabId);
     }
     processRemoveTab(tabId);
 }
 
 function handleTabReplaced(addedTabId, removedTabId) {
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("BROWSER: tab replaced", removedTabId, addedTabId);
     }
     processReplaceTab(addedTabId, removedTabId);
@@ -365,7 +365,7 @@ function handleTabReplaced(addedTabId, removedTabId) {
 function handleTabActivated(tab) {
     let tabId = tab.tabId;
 
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("BROWSER: tab activated", tabId);
     }
 
@@ -379,7 +379,7 @@ function handleTabActivated(tab) {
 }
 
 function handleTabUpdated(tabId, _changeInfo, tab) {
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("BROWSER: tab updated", tabId, tab.windowId, getTabURL(tab));
     }
 
@@ -607,7 +607,7 @@ function initShortcutCommands() {
 }
 
 async function handleShortcut(request) {
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("BROWSER: SHORTCUT: request", request);
     }
 
@@ -668,7 +668,7 @@ function handleInternalMessage(request, _sender, sendResponse) {
 }
 
 function handleNotificationClicked(notificationId) {
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("BROWSER: NOTIFICATION: clicked", notificationId);
     }
 
@@ -726,7 +726,7 @@ function updateMenu(tabcfg) {
 }
 
 function handleMenuAction(info, tab) {
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("BROWSER: MENU: request", info, "in tab", tab);
     }
 

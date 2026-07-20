@@ -719,16 +719,16 @@ section {
 
     <ui id="config.autoReloadOnUpdates" type="boolean" data-help="When the browser has a new version of `Hoardy-Web` fetched and ready to go, automatically reload `Hoardy-Web` to update. Disabled by default because `Hoardy-Web` does not preserve all of its state on reloads and this feature is a bit experimental at the moment. However, this feature is awfully useful for debugging.">Auto-reload on updates</ui>
     <ui id="config.ephemeral" type="boolean" class="prefer-off" data-help="Make all changes to settings in this popup ephemeral from this point on. Restarting the browser or reloading the extension will reset config to the last state when this setting was off.">Ephemeral config</ui>
+    <ui id="config.debugConfig" type="boolean" class="prefer-off" data-help="Disable config sanity checks, allowing you to set various config options into states unsupported by your current browser. Which will probably crash either `Hoardy-Web` or your browser. Toggling this option off will automatically fix your config again.">Allow unsafe config values</ui>
     <ui id="config.debugRuntime" type="boolean" data-help="Enable runtime debugging. This is (relatively) cheap.
 
 Specifically:
 
 - When extension (re-)starts, run all available unit tests in background and report any errors into extension's debugging log (in Firefox: `about:debugging`; in Chromium: extension inspector) and via notifications.
 - Every time an internal/bundled page gets opened, verify validity all of its links to other internal/bundled pages and report any issues into extension's debugging log.
-- Log all internal events and broadcasts into extension's debugging log.
 - Enable display of all debugging-related popup UI elements. E.g., the `Reload` button will be shown regardless of new extension versions being available.
 ">Debug runtime</ui>
-    <ui id="config.debugConfig" type="boolean" class="prefer-off" data-help="Disable config sanity checks, allowing you to set various config options into states unsupported by your current browser. Which will probably crash either `Hoardy-Web` or your browser. Toggling this option off will automatically fix your config again.">Allow unsafe config values</ui>
+    <ui id="config.logRuntime" type="boolean" data-help="Log all internal events and broadcasts into extension's debugging log. This is (relatively) cheap.">Log events</ui>
     <ui id="config.debugPersisence" type="boolean" data-help="Report stashes, archivals, and other writes to local storage into extension's debugging log. This is, usually, cheap.">Log persistence</ui>
     <ui id="config.debugCaptures" type="boolean" class="prefer-off" data-help="Log captures and their progress into extension's debugging log. This will make things very slow and will eat lots of memory. Do not enable unless you know what you are doing.">Log captures (!)</ui>
     <ui id="config.dumpCaptures" type="boolean" class="prefer-off" data-help="Log raw WRR dumps into extension's debugging log. Makes things even slower and eats even more memory. Do not enable unless you know what you are doing.">Log raw WRRs (!!)</ui>

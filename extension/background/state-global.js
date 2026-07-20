@@ -187,13 +187,13 @@ let configDefaults = {
 
     // debugging options
     ephemeral: false, // stop the config from being saved to disk
-    snapshotAny: false, // snapshot isBoringOrServerURL
-
     debugConfig: false, // allow unsafe config
-    debugRuntime: false, // log runtime events
+    debugRuntime: false, // runtime debugging
+    logRuntime: false, // log runtime events
+    debugPersisence: false, // log stashes and archivals
     debugCaptures: false, // log capture events
     dumpCaptures: false, // log CBOR dumps
-    debugPersisence: false, // log stashes and archivals
+    snapshotAny: false, // snapshot isBoringOrServerURL
     discardAll: false, // drop all reqres on archival
 
     // meta
@@ -601,7 +601,7 @@ function fixConfig(config, oldConfig, serverConfig) {
     fixSourceConfig(config.background, configDefaults.background, true);
     fixSourceConfig(config.extension, configDefaults.extension, true);
 
-    DEBUG_WEBEXT_RPC = DEBUG_CAYDARSC = config.debugRuntime;
+    DEBUG_WEBEXT_RPC = DEBUG_CAYDARSC = config.logRuntime;
 
     return [config, serverConfig];
 }
@@ -693,7 +693,7 @@ async function saveConfig(force) {
     }
 
     savedConfig = assignRec({}, config);
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.warn("SAVE: writing config", savedConfig);
     }
     await browser.storage.local.set({ config: savedConfig }).catch(logError);
@@ -717,7 +717,7 @@ async function saveState(force) {
     }
 
     savedState = assignRec({}, state);
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.warn("SAVE: writing state", savedState);
     }
     await browser.storage.local.set({ state: savedState }).catch(logError);

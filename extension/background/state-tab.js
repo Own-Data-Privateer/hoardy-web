@@ -264,7 +264,7 @@ async function smartSwitchTabs(highlight, direction, roundRobin) {
 
     await Promise.all(
         act((windowId, tabs) => {
-            if (config.debugRuntime) {
+            if (config.logRuntime) {
                 console.log(
                     "smartSwitchTabs",
                     windowId,
@@ -307,7 +307,7 @@ function cleanupTabs() {
         if (tabId === TAB_ID_NONE || openTabs.has(tabId) || usedTabs.has(tabId)) {
             continue;
         }
-        if (config.debugRuntime) {
+        if (config.logRuntime) {
             console.log("removing config of tab", tabId);
         }
         tabConfig.delete(tabId);
@@ -327,7 +327,7 @@ function cleanupTabs() {
 // Closed tab auto-cleanup.
 
 function cleanupProblematicAfterTab(tabId) {
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("MAIN: cleaning up reqresProblematic after tab", tabId);
     }
 
@@ -350,7 +350,7 @@ function cleanupProblematicAfterTab(tabId) {
 }
 
 function cleanupLimboAfterTab(tabId) {
-    if (config.debugRuntime) {
+    if (config.logRuntime) {
         console.log("MAIN: cleaning up reqresLimbo after tab", tabId);
     }
 

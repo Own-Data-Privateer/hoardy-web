@@ -47,7 +47,7 @@ async function evalClosures(closures, updatedTabId) {
     while (closures.length > 0) {
         let [name, func, args] = closures.shift();
 
-        if (config.debugRuntime) {
+        if (config.logRuntime) {
             console.warn("SCHEDULER: running sync", name);
         }
         runningActions.add(name);
@@ -66,7 +66,7 @@ async function evalClosures(closures, updatedTabId) {
         }
 
         runningActions.delete(name);
-        if (config.debugRuntime) {
+        if (config.logRuntime) {
             console.warn("SCHEDULER: finished sync", name, updatedTabId);
         }
     }
@@ -424,7 +424,7 @@ function scheduleActionExtra(map, name, priority, timeout, hurry, func, endgame)
         name,
         timeout,
         async () => {
-            if (config.debugRuntime) {
+            if (config.logRuntime) {
                 console.warn("SCHEDULER: running async", name);
             }
             runningActions.add(name);
@@ -439,7 +439,7 @@ function scheduleActionExtra(map, name, priority, timeout, hurry, func, endgame)
             }
 
             runningActions.delete(name);
-            if (config.debugRuntime) {
+            if (config.logRuntime) {
                 console.warn("SCHEDULER: finished async", name, updatedTabId);
             }
 

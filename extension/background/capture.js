@@ -1028,7 +1028,7 @@ function handleBeforeRequest(e) {
     let tabcfg = getTabConfig(tabId, fromExtension);
 
     if (isMainFrame) {
-        if (config.debugRuntime) {
+        if (config.logRuntime) {
             console.log("CAPTURE: tab navigation", tabId, url);
         }
 
@@ -1037,7 +1037,7 @@ function handleBeforeRequest(e) {
             if (checkReplay("Auto-replay")) {
                 let redirectUrl = latestReplayOf(url);
 
-                if (config.debugRuntime) {
+                if (config.logRuntime) {
                     console.warn("CAPTURE: redirecting tab", tabId, "from", url, "to", redirectUrl);
                 }
 
@@ -1084,7 +1084,7 @@ function handleBeforeRequest(e) {
             !tabsDebugging.has(tabId) &&
             (url.startsWith("http://") || url.startsWith("https://"))
         ) {
-            if (config.debugRuntime) {
+            if (config.logRuntime) {
                 console.warn(
                     "CAPTURE: canceling and restarting request to",
                     url,
@@ -1127,7 +1127,7 @@ function handleBeforeRequest(e) {
                 initiator === undefined &&
                 isMainFrame
             ) {
-                if (config.debugRuntime) {
+                if (config.logRuntime) {
                     console.warn(
                         "CAPTURE: canceling and restarting request to",
                         url,
@@ -1696,7 +1696,7 @@ function handleDebugEvent(debuggee, method, params) {
 
 function handleDebugDetach(debuggee, reason) {
     let logfunc =
-        reason !== "target_closed" ? console.warn : config.debugRuntime ? console.debug : undefined;
+        reason !== "target_closed" ? console.warn : config.logRuntime ? console.debug : undefined;
     if (logfunc !== undefined) {
         logfunc("CAPTURE: debugger detached unexpectedly from", debuggee, "reason", reason);
     }

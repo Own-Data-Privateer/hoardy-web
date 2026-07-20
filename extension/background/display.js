@@ -467,7 +467,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
     if (udBadge !== badge) {
         await browser.browserAction.setBadgeText({ text: badge });
         udBadge = badge;
-        if (config.debugRuntime) {
+        if (config.logRuntime) {
             console.info(`browserAction: badge: "${badge}"`);
         }
     }
@@ -491,7 +491,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         await browser.browserAction.setBadgeBackgroundColor({ color: backgroundRGB });
         await browser.browserAction.setBadgeTextColor({ color: colorRGB });
         udColor = color;
-        if (config.debugRuntime) {
+        if (config.logRuntime) {
             console.info(`browserAction: color: ${color} (bg ${backgroundRGB}, fg ${colorRGB})`);
         }
     }
@@ -642,7 +642,7 @@ async function updateDisplay(statsChanged, updatedTabId, tabChanged) {
         await setTitle(windowId, tabId, title);
         await setIcons(windowId, tabId, active, icons, tabChanged);
 
-        if (config.debugRuntime) {
+        if (config.logRuntime) {
             console.info(`browserAction of tab ${tabId}: icons: [${icons.join(", ")}]`);
             console.info(`browserAction of tab ${tabId}: title: "${title}"`);
         }
