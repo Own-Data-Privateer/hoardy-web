@@ -948,9 +948,6 @@ Which you can then follow up by {{{shortcutButton(replayWindow)}}} to confirm th
 :CUSTOM_ID: keyboard-shortcuts
 :END:
 
-- On Firefox-based browsers, you can see and edit all keyboard shortcuts via =Add-ons and themes= (=about:addons=) -> the gear icon -> =Manage Extension Shortcuts=.
-- On Chromium-based browsers, you can see and edit all keyboard shortcuts via the menu -> =Extensions= -> =Manage Extensions= (=chrome://extensions/=) -> =Keyboard shortcuts= (on the left).
-
 =Hoardy-Web= implements the following keyboard shortcuts:
 
 #+BEGIN_EXPORT html
@@ -967,6 +964,13 @@ Which you can then follow up by {{{shortcutButton(replayWindow)}}} to confirm th
 </table>
 #+END_EXPORT
 
+The above table implements some rudimentary shortcut editing on the browsers that support it.
+Outside of that, you can view and edit all of your keyboard shortcuts via:
+
+- on Firefox-based browsers, the menu -> =Extensions and themes= (=about:addons=, =Ctrl+Shift+A=) -> the gear icon -> =Manage Extension Shortcuts=.
+- on Chromium-based browsers, the menu -> =Extensions= -> =Manage Extensions= (=chrome://extensions/=) -> =Keyboard shortcuts= (on the left).
+
+Also, note a [[#faq-website-shortcuts][very relevant "FAQ" item below]].
 * Context menu actions
 :PROPERTIES:
 :CUSTOM_ID: context-menu-actions
@@ -1536,6 +1540,37 @@ Most notably:
   this issue has no good work-around and, AFAIK, all alternatives to =Hoardy-Web= running on Chromium-based browser suffer from it (and work around it by silently re-downloading said files the second time in background);
 
   try using =Hoardy-Web= under a Firefox-based browser instead.
+*** On Firefox, some websites define/implement keyboard shortcuts that make =Hoardy-Web= hard to use. E.g., Wikipedia defines a ton of conflicting keyboard shortcuts making =Alt+U= navigate to their "Upload" page and =Alt+O= to their "Login" page, among others. Firefox then treats all of those as having higher priority than both =Hoardy-Web='s and its own shortcuts, making things really annoying. Can this be worked around somehow?
+:PROPERTIES:
+:CUSTOM_ID: faq-website-shortcuts
+:END:
+
+Kind of.
+
+Go to =about:config= and set =ui.key.generalAccessKey= to =0=.
+Doing that will make Firefox ignore all web page shortcuts defined via =HTML='s =accesskey= mechanism.
+Which is not ideal if you use those sometimes, but this is better than your shortcuts doing completely random things on random websites.
+
+Doing that will, at the very least, fix =Hoardy-Web= usage on Wikipedia and other =MediaWiki= websites.
+However, the above will not fix =Hoardy-Web= usage on websites that implement shortcuts via =JavaScript= handlers, those will be used with higher priority anyway.
+
+Personally, I think that Firefox's implementation of this whole thing is a bit weird.
+On Firefox, shortcuts defined by web pages have higher priority than browser's own shortcuts, but add-on shortcuts have lower priority than both web page's and browser's own shortcuts.
+That is, on Firefox, their priority order is =pages > browser > extensions=.
+Both =pages > extensions > browser= and =browser > extensions > pages= orders I can justify:
+- the former is most configurable, allowing websites to override their =Control+P= printing actions and such;
+- the latter is most consistent, only allowing websites and add-ons override things that are not bound to something else already.
+Meanwhile, Firefox's order makes absolutely no sense to me.
+
+In a better world, both the above order and browser's own shortcuts would be configurable.
+In such a world, when using =pages > extensions > browser= order, browsers would also treat web page shortcuts as per-host opt-ins configurable with firewall-like rules, similarly how =uBlock Origin= configures itself.
+
+In a simpler world, all browsers would just use =browser > extensions > pages= order.
+How many websites properly override browser's own shortcuts in a useful and OS- and locale-aware way, anyway?
+Are users of those websites even aware that this feature is even supported there?
+I'm pretty sure the answers to the above questions are "almost none" and "some, most of these are power-users who discover it while trying use those shortcuts for something else".
+So, IMHO, that feature introduces a lot of power-user-oriented annoyances while implementing a very fringe supposedly layperson-oriented use case.
+Please, remind me again, how many laypersons use keyboard shortcuts at all?
 ** Archival
 :PROPERTIES:
 :CUSTOM_ID: faq-archive
