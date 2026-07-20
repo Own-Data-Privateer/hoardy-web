@@ -84,6 +84,19 @@ function logHandledError(err) {
     console.trace();
 }
 
+// turn a function into one that always returns `ret`
+function replaceResult(func, ret) {
+    return (...args) => {
+        let res = func(...args);
+
+        if (res instanceof Promise) {
+            return res.then((_result) => ret);
+        }
+
+        return ret;
+    };
+}
+
 // turn all uncaught exceptions into console.error
 function catchAll(func, def) {
     return (...args) => {

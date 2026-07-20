@@ -215,14 +215,8 @@ function replayOne(tabId, url) {
         `replay#${tabId}`,
         (tabId, url) => {
             popInLimbo(true, { tabId });
-            runSynchronouslyWhenArchived(
-                tabId,
-                "replay",
-                // force return undefined
-                (tabId, url) => navigateTabTo(tabId, url).then(noop),
-                tabId,
-                url,
-            );
+            // `replaceResult` to force `return undefined`
+            runSynchronouslyWhenArchived(tabId, "replay", replaceResult(navigateTabTo), tabId, url);
         },
         tabId,
         url,
