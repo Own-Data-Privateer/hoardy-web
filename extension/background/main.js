@@ -272,21 +272,24 @@ function spawnReplay(url, _direction, newWindow, tab) {
         return;
     }
 
+    let tabId = tab.id;
     let newURL = url;
 
     if (isBoringOrServerURL(url)) {
         if (config.logRuntime) {
-            console.log("MAIN: spawn-cloning from tabId", tab.id, "url", url);
+            console.log("MAIN: spawn-cloning from tabId", tabId, "url", url);
         }
     } else {
         newURL = latestReplayOf(url);
 
         if (config.logRuntime) {
-            console.log("MAIN: spawn-replaying from tabId", tab.id, "url", url, "->", newURL);
+            console.log("MAIN: spawn-replaying from tabId", tabId, "url", url, "->", newURL);
         }
     }
 
-    spawnChildTab(newURL, newWindow, tab);
+    // `replaceResult` to force `return undefined`
+    runSynchronouslyC(`spawnReplay#${tabId}`, replaceResult(spawnChildTab), newURL, newWindow, tab);
+    scheduleEndgame();
 }
 
 function spawnNegated(url, newWindow, tab) {
