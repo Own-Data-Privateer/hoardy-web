@@ -65,7 +65,7 @@ async function syncDebuggersState(tabs) {
 function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
     return scheduleActionExtra(
         scheduledInternal,
-        `reset-tab#${tabId}`,
+        `resetTab#${tabId}`,
         priority,
         100,
         true,
@@ -76,7 +76,7 @@ function sleepResetTab(tabId, priority, resetFunc, preFunc, actionFunc) {
             }
             scheduleActionExtra(
                 scheduledInternal,
-                `reload-tab#${tabId}`,
+                `reloadTab#${tabId}`,
                 priority,
                 300,
                 true,

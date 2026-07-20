@@ -401,7 +401,7 @@ function cleanupAfterTab(tabId) {
             cleanupLimboAfterTab(tabId);
             updatedTabId = tabId;
         } else {
-            let name = `cleanup-tab#${tabId}`;
+            let name = `cleanupTab#${tabId}`;
             resetSingletonTimeout(scheduledDelayed, name, config.autoTimeout * 1000, () => {
                 runSynchronouslyB(name, cleanupLimboAfterTab, tabId);
                 scheduleEndgame(tabId);
@@ -413,7 +413,7 @@ function cleanupAfterTab(tabId) {
 }
 
 function closeTabThenDiscardInLimbo(tabId) {
-    runSynchronouslyB("closeTabThenDiscardInLimbo", async () => {
+    runSynchronouslyB(`discardTab#${tabId}`, async () => {
         try {
             await browser.tabs.remove(tabId);
         } catch (err) {
