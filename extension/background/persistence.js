@@ -1280,6 +1280,7 @@ async function processArchiving() {
     while (
         config.archive &&
         synchronousClosuresA.length === 0 &&
+        reqresAlmostDone.length === 0 &&
         synchronousClosuresB.length === 0 &&
         reqresQueue.length > 0
     ) {
