@@ -35,6 +35,7 @@ let scheduledDelayed = new Map();
 let scheduledSaveState = new Map();
 // scheduled internal functions
 let scheduledInternal = new Map();
+let scheduledInternalCancelable = new Map();
 // scheduled internal functions hidden from the UI
 let scheduledHidden = new Map();
 
@@ -91,13 +92,99 @@ function runSynchronouslyC(name, func, ...args) {
 let scheduledWhenNoInFlight = new Map();
 // similarly, but until all tabId's reqres are processed
 let scheduledWhenArchived = new Map();
+// similarly, but taking `settleDelay` and `settleRetries` into account
+let scheduledWhenSettled = new Map();
 
-function runSynchronouslyWhenNoInFlight(tabId, name, func, ...args) {
-    cacheSingleton(scheduledWhenNoInFlight, tabId, () => []).push([name, func, args]);
+function scheduleSynchronouslyWhenNoInFlight(tabId, name, func, ...args) {
+    let res = cacheSingleton(scheduledWhenNoInFlight, tabId, () => {
+        return {};
+    });
+    delete res[name];
+    res[name] = [name, func, args];
 }
 
-function runSynchronouslyWhenArchived(tabId, name, func, ...args) {
-    cacheSingleton(scheduledWhenArchived, tabId, () => []).push([name, func, args]);
+function scheduleSynchronouslyWhenArchived(tabId, name, func, ...args) {
+    let res = cacheSingleton(scheduledWhenArchived, tabId, () => {
+        return {};
+    });
+    delete res[name];
+    res[name] = [name, func, args];
+}
+
+function scheduleSettleTab(tabId, settleDelay, settleRetries, retries) {
+    if (synchronousClosuresA.length > 0 || getInFlightNum({ tabId }) !== 0) {
+        // some relevant actions were not run yet or some reqres are still in flight
+        //
+        // wait for them to finish
+        scheduleSynchronouslyWhenNoInFlight(
+            tabId,
+            `settle#${tabId}`,
+            scheduleSettleTab,
+            tabId,
+            settleDelay,
+            settleRetries,
+            retries,
+        );
+        return;
+    }
+
+    if (retries > settleRetries) {
+        scheduledWhenSettled.delete(tabId);
+        browser.notifications
+            .create(`error-settle-${tabId}`, {
+                title: "Hoardy-Web: ERROR",
+                message: escapeNotification(
+                    config,
+                    `Failed to settle tab #${tabId}: the number of retries exeeds \`... retry up to <N> times\` setting`,
+                ),
+                iconUrl: iconURL("error", 128),
+                type: "basic",
+            })
+            .catch(logError);
+        return;
+    }
+
+    let tabstate = getTabState(tabId);
+    let timeout = tabstate.emitTimeStamp + settleDelay - Date.now();
+
+    if (timeout > 0) {
+        // pause for a bit to let the page's JavaScript process those reqres and retry
+        scheduleActionEndgame(scheduledInternalCancelable, `settle#${tabId}`, timeout, () =>
+            scheduleSettleTab(tabId, settleDelay, settleRetries, retries + 1),
+        );
+        scheduleUpdateDisplay(true);
+        return;
+    }
+
+    scheduleActionEndgame(scheduledInternalCancelable, `settle#${tabId}`, 0, () => {
+        let closures = scheduledWhenSettled.get(tabId);
+        if (closures === undefined) {
+            return;
+        }
+
+        let [_name, closure, left] = popObjectField(closures);
+        let [name, func, args] = closure;
+
+        if (left === 0) {
+            scheduledWhenSettled.delete(tabId);
+        }
+
+        runSynchronouslyA(name, func, ...args);
+
+        if (left !== 0) {
+            scheduleSettleTab(tabId, settleDelay, settleRetries, retries);
+        }
+    });
+    // no `scheduleUpdateDisplay` because the above will be run immediately
+}
+
+function scheduleSynchronouslyWhenSettled(tabId, settleDelay, settleRetries, name, func, ...args) {
+    let res = cacheSingleton(scheduledWhenSettled, tabId, () => {
+        return {};
+    });
+    delete res[name];
+    res[name] = [name, func, args];
+    scheduleSettleTab(tabId, settleDelay, settleRetries, 0);
 }
 
 // actions
@@ -118,6 +205,8 @@ function syncRunActions() {
 function syncCancelActions() {
     runSynchronouslyA("cancelAll0", async () => {
         await cancelAllSingletonTimeouts(scheduledCancelable);
+        await cancelAllSingletonTimeouts(scheduledInternalCancelable);
+        scheduledWhenSettled = new Map();
         await cancelAllSingletonTimeouts(scheduledRetry);
         await cancelAllSingletonTimeouts(scheduledDelayed);
         return null;
@@ -175,26 +264,30 @@ async function seEvalClosures(closures, ...args) {
     scheduleEndgame(updatedTabId, ...args);
 }
 
-function sePopClosures(scheduled, closures, ...args) {
+function sePopClosures(scheduled, target, ...args) {
     let toDelete = [];
 
     let numInFlight = getInFlightNum(null);
 
-    for (let [tabId, cs] of scheduled.entries()) {
+    for (let [tabId, closures] of scheduled.entries()) {
         // NB: the first part is so that `null` would be processed last, the second is so
         // that the third won't be called when `numInFlight === 0`
         if (tabId === null || (numInFlight !== 0 && getInFlightNum({ tabId }) !== 0)) {
             continue;
         }
-        closures.push(...cs);
+        for (let v of Object.values(closures)) {
+            target.push(v);
+        }
         toDelete.push(tabId);
     }
 
     if (numInFlight === 0) {
         // process `null` last
-        let cs = scheduled.get(null);
-        if (cs !== undefined) {
-            closures.push(...cs);
+        let closures = scheduled.get(null);
+        if (closures !== undefined) {
+            for (let v of Object.values(closures)) {
+                target.push(v);
+            }
             toDelete.push(null);
         }
     }
@@ -350,66 +443,6 @@ function runThenScheduleEndgame(func, ...args) {
     } else {
         scheduleEndgame();
     }
-}
-
-// run `func` after `tabId` settles
-async function runWhenTabSettles(what, desc, tabId, tabcfg, retries, func, ...args) {
-    async function doDelay(timeout) {
-        if (retries > tabcfg.settleRetries) {
-            await browser.notifications
-                .create(`error-${what}-${tabId}`, {
-                    title: "Hoardy-Web: ERROR",
-                    message: escapeNotification(
-                        config,
-                        `Failed to ${desc}:\n- The page did not settle, the number of retries exeeds \`DOM Snapshots > Retry up to <N> times\` setting`,
-                    ),
-                    iconUrl: iconURL("error", 128),
-                    type: "basic",
-                })
-                .catch(logError);
-            return;
-        }
-
-        // pause for a bit to let the page's JavaScript process it
-        resetSingletonTimeout(scheduledDelayed, `${what}#${tabId}`, timeout, async () => {
-            // and try again
-            let updatedTabId = await runWhenTabSettles(
-                what,
-                desc,
-                tabId,
-                tabcfg,
-                retries + 1,
-                func,
-                ...args,
-            );
-            scheduleEndgame(updatedTabId);
-        });
-
-        // return undefined;
-    }
-
-    let delay = tabcfg.settleDelay * 1000;
-
-    if (getInFlightNum({ tabId }) !== 0) {
-        // if some relevant reqres are still in flight
-        runSynchronouslyWhenNoInFlight(tabId, what, () => doDelay(delay));
-        return; // undefined
-    }
-
-    let tabstate = getTabState(tabId);
-    let left = tabstate.emitTimeStamp + delay - Date.now();
-
-    if (left > 0) {
-        await doDelay(left);
-        return; // undefined
-    }
-
-    // run it
-    let res = func(...args);
-    while (res instanceof Promise) {
-        res = await res;
-    }
-    return res;
 }
 
 // Schedule a given function using `resetSingletonTimeout`. But just

@@ -216,7 +216,13 @@ function replayOne(tabId, url) {
         (tabId, url) => {
             popInLimbo(true, { tabId });
             // `replaceResult` to force `return undefined`
-            runSynchronouslyWhenArchived(tabId, "replay", replaceResult(navigateTabTo), tabId, url);
+            scheduleSynchronouslyWhenArchived(
+                tabId,
+                "replay",
+                replaceResult(navigateTabTo),
+                tabId,
+                url,
+            );
         },
         tabId,
         url,
@@ -230,7 +236,6 @@ async function replay(query, _direction) {
     }
 
     let [tabs, specific] = await getTabs(query);
-    let updatedTabId;
 
     for (let tab of tabs) {
         let tabId = tab.id;
@@ -250,21 +255,16 @@ async function replay(query, _direction) {
             console.log("MAIN: replaying tabId", tabId, "url", url, "->", replayURL);
         }
 
-        await runWhenTabSettles(
-            "replay",
-            `replay tab #${tabId} (${url.substr(0, 80)})`,
+        scheduleSynchronouslyWhenSettled(
             tabId,
-            tabcfg,
-            0,
+            tabcfg.settleDelay * 1000,
+            tabcfg.settleRetries,
+            `replay#${tabId}`,
             replayOne,
             tabId,
             replayURL,
         );
-
-        updatedTabId = mergeUpdatedTabIds(updatedTabId, tabId);
     }
-
-    scheduleEndgame(updatedTabId);
 }
 
 function spawnReplay(url, _direction, newWindow, tab) {
@@ -421,13 +421,8 @@ let rpcCommands = {
     getWindowStats,
     getTabStats,
 
-    // NB: not wrapping these ones because they return `Promise`s
-    snapshot: (tabId) => {
-        snapshot(tabId);
-    },
-    replay: (tabId, direction) => {
-        replay(tabId, direction);
-    },
+    snapshot: (tabId) => runThenScheduleEndgame(snapshot, tabId),
+    replay: (tabId, direction) => runThenScheduleEndgame(replay, tabId, direction),
     spawnReplay: (tabId, direction, newWindow) => {
         browser.tabs.get(tabId).then((tab) => {
             spawnReplay(getTabURL(tab), direction, newWindow, tab);

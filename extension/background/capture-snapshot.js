@@ -130,7 +130,6 @@ async function snapshotOne(tabId, url) {
 
 async function snapshot(query) {
     let [tabs, specific] = await getTabs(query);
-    let updatedTabId;
 
     for (let tab of tabs) {
         let tabId = tab.id;
@@ -147,19 +146,14 @@ async function snapshot(query) {
             continue;
         }
 
-        let res = await runWhenTabSettles(
-            "snapshot",
-            `take a DOM snapshot of tab #${tabId} (${url.substr(0, 80)})`,
+        scheduleSynchronouslyWhenSettled(
             tabId,
-            tabcfg,
-            0,
+            tabcfg.settleDelay * 1000,
+            tabcfg.settleRetries,
+            `snapshot#${tabId}`,
             snapshotOne,
             tabId,
             url,
         );
-
-        updatedTabId = mergeUpdatedTabIds(updatedTabId, res);
     }
-
-    scheduleEndgame(updatedTabId);
 }

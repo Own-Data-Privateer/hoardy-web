@@ -222,6 +222,17 @@ function dateToString(epoch) {
     return str.replace("T", " ");
 }
 
+function popObjectField(obj) {
+    let keys = Object.keys(obj);
+    if (keys.length === 0) {
+        return [undefined, undefined, 0];
+    }
+    let first = keys.shift();
+    let res = obj[first];
+    delete obj[first];
+    return [first, res, keys.length];
+}
+
 // partition an iterable via a predicate, but stop after num elements
 function partitionN(predicate, num, iterable) {
     let total = 0;

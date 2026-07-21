@@ -142,21 +142,23 @@ function pushNotRunning(m, actions, prefix, suffix) {
     }
 }
 
-function pushClosures(m, actions, prefix, suffix) {
+function pushClosures(m, actions, prefix) {
     if (prefix === undefined) {
         prefix = "";
     }
-    if (suffix === undefined) {
-        suffix = "";
-    }
     for (let v of m) {
-        actions.push(prefix + v[0] + suffix);
+        actions.push(prefix + v[0]);
     }
 }
 
-function pushPerTabClosures(scheduled, actions, prefix) {
-    for (let [tabId, closures] of scheduled.entries()) {
-        pushClosures(closures, actions, prefix, tabId !== null ? `#${tabId}` : "");
+function pushPerTabClosures(m, actions, prefix) {
+    if (prefix === undefined) {
+        prefix = "";
+    }
+    for (let closures of m.values()) {
+        for (let name of Object.keys(closures)) {
+            actions.push(prefix + name);
+        }
     }
 }
 
@@ -190,6 +192,7 @@ function getStats() {
     let low_prio = actions.length;
 
     pushNotRunning(scheduledInternal.keys(), actions, "d:");
+    pushNotRunning(scheduledInternalCancelable.keys(), actions, "d:");
     // scheduledHidden are not shown to the UI
 
     // "q:" for "queued"
@@ -200,6 +203,7 @@ function getStats() {
     // "w:" for "waiting/when"
     pushPerTabClosures(scheduledWhenNoInFlight, actions, "w:ni:");
     pushPerTabClosures(scheduledWhenArchived, actions, "w:a:");
+    pushPerTabClosures(scheduledWhenSettled, actions, "w:s:");
 
     return {
         update_available: updateAvailable,

@@ -172,6 +172,14 @@ function fixTabConfig(tabId, url, cfg, oldCfg) {
             cfg.children[field] = cfg[field];
         }
     }
+
+    // apply updated values
+    if (
+        (cfg.settleDelay !== oldCfg.settleDelay || cfg.settleRetries !== oldCfg.settleRetries) &&
+        scheduledWhenSettled.get(tabId) !== undefined
+    ) {
+        scheduleSettleTab(tabId, cfg.settleDelay * 1000, cfg.settleRetries, 0);
+    }
 }
 
 function setTabConfig(tabId, tabUrl, tabcfg, oldTabcfg, dontBroadcast) {
@@ -423,7 +431,7 @@ function closeTabThenDiscardInLimbo(tabId) {
         // drop some stuff immediately
         popInLimbo(false, { tabId });
         // drop the rest when it finishes
-        runSynchronouslyWhenNoInFlight(tabId, `discardTab#${tabId}`, () =>
+        scheduleSynchronouslyWhenNoInFlight(tabId, `discardTab#${tabId}`, () =>
             syncPopInLimbo(false, { tabId }),
         );
     });
