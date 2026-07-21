@@ -11,7 +11,7 @@
         "description": "Browser: Snapshot : Take `DOM` snapshots of all open tabs for which `Include in global snapshots` setting is enabled."
     },
     "replayEvery": {
-        "description": "Browser: Replay : Re-navigate all open tabs for which `Include in global replays` setting is enabled to their replays. If the archiving server doesn't support replays, do nothing."
+        "description": "Browser: Replay : Re-navigate all open tabs for which `Include in global replays` setting is enabled to their replays. If the archiving server doesn't support replays, this action does nothing."
     },
     "showEveryState": {
         "firefox": {
@@ -41,7 +41,7 @@
         "description": "Window: Snapshot : Take `DOM` snapshots of all tabs of the currently active window."
     },
     "replayWindow": {
-        "description": "Window: Replay : Re-navigate all tabs of the currently active window to their replays. If the archiving server doesn't support replays, do nothing."
+        "description": "Window: Replay : Re-navigate all tabs of the currently active window to their replays. If the archiving server doesn't support replays, this action does nothing."
     },
     "showWindowState": {
         "description": "Window: Show State : Open the `Internal State` page narrowed to the currently active window."
@@ -110,13 +110,13 @@
         "firefox": {
             "default": "Alt+P"
         },
-        "description": "Tab: Replay : Re-navigate the currently active tab to its replay, regardless of its `Include in global replays` setting. If the archiving server doesn't support replays, do nothing."
+        "description": "Tab: Replay : Re-navigate the currently active tab to its replay, regardless of its `Include in global replays` setting. Specifically: wait for the tab to settle, collect any associated `in_limbo` reqres, wait for all `queued` reqres to finish archiving, and then re-navigate the tab to its replay. If the archiving server doesn't support replays, this actios does nothing."
     },
     "spawnReplayTabBackward": {
         "firefox": {
             "default": "Alt+Shift+P"
         },
-        "description": "Tab: Replay in a New Tab : Replay the URL of the currently active tab in a newly spawned tab. If the archiving server doesn't support replays, do nothing. If the tab already contains a replay, clone it."
+        "description": "Tab: Replay in a New Tab : Replay the URL of the currently active tab in a newly spawned tab. If the tab already contains a replay, clone it. Note that this action neither waits for the tab to settle nor collects anything from limbo. It does, however, wait for all `queued` reqres to finish archiving. If the archiving server doesn't support replays, this actios does nothing."
     },
     "showTabState": {
         "firefox": {
