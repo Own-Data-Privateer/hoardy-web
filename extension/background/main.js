@@ -211,18 +211,19 @@ function latestReplayOf(url) {
 }
 
 function replayOne(tabId, url) {
-    runSynchronouslyB(
+    scheduleSynchronouslyWhenArchived(
+        tabId,
         `replay#${tabId}`,
         (tabId, url) => {
-            popInLimbo(true, { tabId });
-            // `replaceResult` to force `return undefined`
-            scheduleSynchronouslyWhenArchived(
-                tabId,
-                "replay",
-                replaceResult(navigateTabTo),
-                tabId,
-                url,
-            );
+            // `popInLimbo` again, in case new reqres appeared while we were waiting
+            let unlimbo = popInLimbo(true, { tabId })[1];
+            if (unlimbo !== 0) {
+                // retry after they get archived
+                replayOne(tabId, url);
+            } else {
+                navigateTabTo(tabId, url);
+            }
+            return unlimbo > 0 ? tabId : undefined;
         },
         tabId,
         url,
@@ -254,6 +255,10 @@ async function replay(query, _direction) {
         if (config.logRuntime) {
             console.log("MAIN: replaying tabId", tabId, "url", url, "->", replayURL);
         }
+
+        // start archiving these immediately so that most of the work would be done while we are
+        // waiting for the tab to settle
+        syncPopInLimbo(true, { tabId });
 
         scheduleSynchronouslyWhenSettled(
             tabId,
