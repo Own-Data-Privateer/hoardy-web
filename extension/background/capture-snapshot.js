@@ -23,7 +23,7 @@
 
 "use strict";
 
-async function snapshotOne(tabId, url) {
+async function snapshotOne(tabId, windowId, url) {
     if (config.logRuntime) {
         console.log("DOM-snapshoting tab", tabId, url);
     }
@@ -71,6 +71,7 @@ async function snapshotOne(tabId, url) {
                 sessionId,
                 requestId: undefined,
                 tabId,
+                windowId,
                 fromExtension: false,
 
                 protocol: "SNAPSHOT",
@@ -153,6 +154,7 @@ async function snapshot(query) {
             `snapshot#${tabId}`,
             snapshotOne,
             tabId,
+            tab.windowId,
             url,
         );
     }
