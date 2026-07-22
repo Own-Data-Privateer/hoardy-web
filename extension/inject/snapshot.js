@@ -23,8 +23,8 @@
 
 (() => {
     let now = Date.now();
-    let result = null;
     let ct = document.contentType;
+    let data = null;
     let errors = [];
 
     if (
@@ -33,39 +33,53 @@
     ) {
         ct = `${ct}; charset=${document.characterSet}`;
 
+        let ok = true;
         let gotDocType = false;
         let cres = [];
-        for (let c of document.childNodes) {
-            if (c instanceof DocumentType && c.name === "html") {
-                if (gotDocType) {
-                    errors.push("multiple doctypes");
-                }
-                gotDocType = true;
 
-                cres.push("<!DOCTYPE html>");
-            } else if (c instanceof Comment) {
-                cres.push(`<!-- ${c.nodeValue.trim()} -->`);
-            } else if (c instanceof HTMLHtmlElement) {
-                cres.push(c.outerHTML);
-            } else if (c instanceof SVGSVGElement) {
-                if (gotDocType) {
-                    errors.push("multiple doctypes");
-                }
-                gotDocType = true;
+        try {
+            for (let c of document.childNodes) {
+                if (c instanceof DocumentType && c.name === "html") {
+                    if (gotDocType) {
+                        errors.push("snapshot::capture::MULTIPLE_DOCTYPES");
+                    }
+                    gotDocType = true;
 
-                cres.push(
-                    `<?xml version="1.0" encoding="${document.characterSet}" standalone="no"?>`,
-                );
-                cres.push(c.outerHTML);
-            } else {
-                errors.push(`unknown child element type ${c.toString()}`);
+                    cres.push("<!DOCTYPE html>");
+                } else if (c instanceof Comment) {
+                    cres.push(`<!-- ${c.nodeValue.trim()} -->`);
+                } else if (c instanceof HTMLHtmlElement) {
+                    cres.push(c.outerHTML);
+                } else if (c instanceof SVGSVGElement) {
+                    if (gotDocType) {
+                        errors.push("snapshot::capture::MULTIPLE_DOCTYPES");
+                    }
+                    gotDocType = true;
+
+                    cres.push(
+                        `<?xml version="1.0" encoding="${document.characterSet}" standalone="no"?>`,
+                    );
+                    cres.push(c.outerHTML);
+                } else {
+                    console.error("SNAPSHOT: unknown element type:", c.toString());
+                    errors.push("snapshot::capture::UNKNOWN_ELEMENT_TYPE");
+                    ok = false;
+                    break;
+                }
             }
+        } catch (err) {
+            console.error("SNAPSHOT: error:", err);
+            errors.push("snapshot::capture::OTHER");
+            ok = false;
         }
 
-        result = cres.join("\n");
+        if (ok) {
+            data = cres.join("\n");
+        }
     } else {
-        errors.push(`snapshotting of frames with \`${ct}\` content type is not implemented`);
+        console.error("SNAPSHOT: unknown content type:", ct);
+        errors.push("snapshot::capture::UNKNOWN_CONTENT_TYPE");
     }
 
-    return [now, document.documentURI, document.referrer, document.URL, ct, result, errors];
+    return [now, document.referrer, ct, data, errors];
 })();

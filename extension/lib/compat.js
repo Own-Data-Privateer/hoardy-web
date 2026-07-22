@@ -163,6 +163,8 @@ function makeFirefoxish(browser) {
         browser.windows.create = makePromiseAPI(browser.windows.create);
     }
 
+    browser.webNavigation.getAllFrames = makePromiseAPI(browser.webNavigation.getAllFrames);
+
     browser.menus = browser.contextMenus;
     browser.menus.create = makePromiseAPI(browser.contextMenus.create);
     browser.menus.update = makePromiseAPI2(browser.contextMenus.update);

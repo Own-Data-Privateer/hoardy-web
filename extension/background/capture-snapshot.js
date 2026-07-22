@@ -23,110 +23,154 @@
 
 "use strict";
 
-async function snapshotOne(tabId, windowId, url) {
+async function snapshotOne(tabId, windowId, documentUrl) {
     if (config.logRuntime) {
-        console.log("DOM-snapshoting tab", tabId, url);
+        console.log("DOM-snapshoting tab", tabId, "url", documentUrl);
     }
 
-    let start = Date.now();
-    let allErrors = [];
-    let updatedTabId;
+    let requestTimeStamp = Date.now();
 
-    try {
-        let allResults = await browser.tabs.executeScript(tabId, {
-            file: "/inject/snapshot.js",
-            allFrames: true,
-        });
+    let frames = await browser.webNavigation.getAllFrames({ tabId });
 
-        if (config.logRuntime) {
-            console.log("snapshot.js returned", allResults);
+    let results = [];
+    let resultsByFrame = new Map();
+    let issues = [];
+
+    for (let frame of frames) {
+        let url = frame.url;
+        let frameId = frame.frameId;
+        let parentFrameId = frame.parentFrameId;
+        let result;
+
+        try {
+            let res = await browser.tabs.executeScript(tabId, {
+                frameId,
+                file: "/inject/snapshot.js",
+            });
+            if (config.logRuntime) {
+                console.log(
+                    "SNAPSHOT: tab",
+                    tabId,
+                    "frame",
+                    frameId,
+                    "executeScript returned",
+                    res,
+                );
+            }
+            if (res === undefined) {
+                throw new Error("access denied");
+            }
+            if (!(Array.isArray(res) && res.length === 1)) {
+                throw new Error("unexpected result type");
+            }
+            result = res[0];
+        } catch (err) {
+            if (url !== "about:blank") {
+                console.error("SNAPSHOT: executeScript:", errorMessageOf(err));
+            }
+            result = [
+                Date.now(),
+                "",
+                "application/octet-stream",
+                null,
+                ["snapshot::capture::NO_EXEC"],
+            ];
         }
 
-        let emit = Date.now();
+        let [responseTimeStamp, originUrl, ct, data, errors] = result;
 
-        for (let data of allResults) {
-            if (data === undefined) {
-                allErrors.push("access denied");
-                continue;
-            }
-
-            let [date, documentUrl, originUrl, url, ct, result, errors] = data;
-
-            if (!config.snapshotAny && isBoringOrServerURL(url)) {
-                // skip stuff like handleBeforeRequest does, again, now for
-                // sub-frames
-                if (config.logRuntime) {
-                    console.log("NOT taking DOM snapshot of sub-frame of tab", tabId, url);
-                }
-                continue;
-            } else if (errors.length > 0) {
-                allErrors.push(errors.join("; "));
-                continue;
-            } else if (typeof result !== "string") {
-                allErrors.push(`failed to snapshot a frame with \`${ct}\` content type`);
-                continue;
-            }
-
-            let reqres = {
-                sessionId,
-                requestId: undefined,
-                tabId,
-                windowId,
-                fromExtension: false,
-
-                protocol: "SNAPSHOT",
-                method: "DOM",
-                url,
-
-                documentUrl,
-                originUrl,
-
-                errors: [],
-
-                requestSize: 0,
-                requestTimeStamp: start,
-                requestHeaders: [],
-                requestBody: new ChunkedBuffer(),
-                requestComplete: true,
-
-                submitted: false,
-                responded: true,
-                fromCache: false,
-
-                responseSize: result.length,
-                responseTimeStamp: date,
-                responseHeaders: [{ name: "Content-Type", value: ct }],
-                responseBody: result,
-                responseComplete: true,
-
-                statusCode: 200,
-                reason: "OK",
-
-                emitTimeStamp: emit,
-            };
-
-            reqresAlmostDone.push(reqres);
-            updatedTabId = tabId;
+        if (data !== null && typeof data !== "string") {
+            errors.push("snapshot::capture::UNKNOWN_DATA_TYPE");
+            data = null;
         }
-    } catch (err) {
-        allErrors.push(errorMessageOf(err));
-    } finally {
-        if (allErrors.length > 0) {
-            await browser.notifications
-                .create(`error-snapshot-${tabId}`, {
-                    title: "Hoardy-Web: ERROR",
-                    message: escapeNotification(
-                        config,
-                        `While taking a DOM snapshot of tab #${tabId} (${url.substr(0, 80)}):\n- ${allErrors.join("\n- ")}`,
-                    ),
-                    iconUrl: iconURL("error", 128),
-                    type: "basic",
-                })
-                .catch(logError);
+
+        let reqres = {
+            sessionId,
+            requestId: undefined,
+            tabId,
+            windowId,
+            fromExtension: false,
+
+            protocol: "SNAPSHOT",
+            method: "DOM",
+            url,
+
+            originUrl,
+
+            errors,
+
+            requestSize: 0,
+            requestTimeStamp,
+            requestHeaders: [],
+            requestBody: new ChunkedBuffer(),
+            requestComplete: true,
+
+            submitted: false,
+            responded: true,
+            fromCache: false,
+
+            responseSize: data !== null ? data.length : 0,
+            responseTimeStamp,
+            responseHeaders: [{ name: "Content-Type", value: ct }],
+            responseBody: data !== null ? data : "",
+            responseComplete: data !== null,
+
+            statusCode: 200,
+            reason: "OK",
+
+            emitTimeStamp: Date.now(),
+
+            subframes: [],
+        };
+
+        let res = [url, frameId, parentFrameId, reqres];
+        results.push(res);
+        resultsByFrame.set(frameId, res);
+
+        if (errors.length > 0 && url !== "about:blank") {
+            issues.push(
+                `frame ${frameId} (${url.substr(0, 80)}): failed to take snapshot: ` +
+                    errors.join("; "),
+            );
         }
     }
 
-    return updatedTabId;
+    let toEmit = [];
+
+    for (let [url, _frameId, parentFrameId, reqres] of results) {
+        let parentResult = resultsByFrame.get(parentFrameId);
+        if (parentResult !== undefined) {
+            let [parentUrl, _parentFrameId, _parentParentFrameId, parentReqres] = parentResult;
+
+            reqres.documentUrl = parentUrl;
+
+            if (url === "about:blank" || url === parentUrl) {
+                // this is an anonymous iframe, store it as a subframe, since it can't really be
+                // emitted separately
+                parentReqres.subframes.push(reqres);
+                continue;
+            }
+        }
+        toEmit.push(reqres);
+    }
+
+    reqresAlmostDone.push(...toEmit);
+
+    if (issues.length > 0) {
+        await browser.notifications
+            .create(`error-snapshot-${tabId}`, {
+                title: "Hoardy-Web: WARNING",
+                message: escapeNotification(
+                    config,
+                    `While taking a DOM snapshot of tab #${tabId} (${documentUrl.substr(0, 80)}):\n- ${issues.join("\n- ")}`,
+                ),
+                iconUrl: iconURL("problematic", 128),
+                type: "basic",
+            })
+            .catch(logError);
+    }
+
+    return results.length > 0 ? tabId : undefined;
 }
 
 async function snapshot(query) {
@@ -142,7 +186,7 @@ async function snapshot(query) {
             (!config.snapshotAny && isBoringOrServerURL(url))
         ) {
             if (config.logRuntime) {
-                console.log("NOT DOM-snapshoting tab", tabId, url);
+                console.log("NOT DOM-snapshoting tab", tabId, "url", url);
             }
             continue;
         }

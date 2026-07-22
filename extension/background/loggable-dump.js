@@ -469,8 +469,8 @@ function encodeHeaders(headers) {
 
 let sourceDesc = browser.nameVersion + "+Hoardy-Web/" + manifest.version;
 
-// render reqres structure into a CBOR dump
-function renderReqres(encoder, reqres) {
+// render reqres structure into a WRRv1 dump structure
+function reqresToWRRv1(reqres) {
     let rest = {};
 
     if (isValidStr(reqres.documentUrl)) {
@@ -507,6 +507,11 @@ function renderReqres(encoder, reqres) {
         rest.generated = true;
     }
 
+    if (reqres.subframes !== undefined && reqres.subframes.length > 0) {
+        // encode sub-frames recursively
+        rest.subframes = reqres.subframes.map(reqresToWRRv1);
+    }
+
     let response = null;
     if (reqres.responded) {
         response = [
@@ -519,28 +524,22 @@ function renderReqres(encoder, reqres) {
         ];
     }
 
-    encoder.encode(
+    return [
+        "WEBREQRES/1",
+        sourceDesc,
+        reqres.protocol,
         [
-            "WEBREQRES/1",
-            sourceDesc,
-            reqres.protocol,
-            [
-                Math.floor(reqres.requestTimeStamp),
-                reqres.method,
-                reqres.url,
-                encodeHeaders(reqres.requestHeaders),
-                reqres.requestComplete,
-                reqres.requestBody,
-            ],
-            response,
-            Math.floor(reqres.emitTimeStamp),
-            rest,
+            Math.floor(reqres.requestTimeStamp),
+            reqres.method,
+            reqres.url,
+            encodeHeaders(reqres.requestHeaders),
+            reqres.requestComplete,
+            reqres.requestBody,
         ],
-        {
-            allowNull: true,
-            allowUndefined: false,
-        },
-    );
+        response,
+        Math.floor(reqres.emitTimeStamp),
+        rest,
+    ];
 }
 
 function processNonLimbo(
@@ -805,8 +804,13 @@ function processOneAlmostDone(
     let dump;
     let dumpSize;
     {
+        let data = reqresToWRRv1(reqres);
+
         let encoder = new CBOREncoder();
-        renderReqres(encoder, reqres);
+        encoder.encode(data, {
+            allowNull: true,
+            allowUndefined: false,
+        });
 
         if (in_limbo || picked) {
             dump = encoder.result();
