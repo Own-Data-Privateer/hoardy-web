@@ -670,18 +670,21 @@ function processOneAlmostDone(
     console.assert(tabId !== undefined, "tabId !== undefined");
     let fromExtension = reqres.fromExtension;
     let statusCode = reqres.statusCode;
+    let isSnapshot = reqres.protocol === "SNAPSHOT";
 
     let tabcfg = getTabConfig(tabId, fromExtension);
     let tabstate = getTabState(tabId, fromExtension);
 
-    // for `tabcfg.settleDelay` and `smartSwitchTabs`
-    tabstate.emitTimeStamp = reqres.emitTimeStamp;
+    if (!isSnapshot) {
+        // for `tabcfg.settleDelay` and `smartSwitchTabs`
+        tabstate.emitTimeStamp = reqres.emitTimeStamp;
+    }
 
     let state = "complete";
     let problematic = false;
     let picked = true;
 
-    if (reqres.protocol === "SNAPSHOT") {
+    if (isSnapshot) {
         // it's a snapshot
         state = "snapshot";
     } else if (!reqres.submitted) {
