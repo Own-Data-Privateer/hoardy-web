@@ -819,11 +819,14 @@ This way, even with notifications disabled, you would still be to able see the c
 :CUSTOM_ID: settle
 :END:
 
-=Hoardy-Web= tracks both the number of =in_flight= reqres and the timestamp of the last =finished= reqres for each tab and uses them to track when a tab's content /settles/.
+=Hoardy-Web= tracks both the number of =in_flight= reqres and the timestamp of the last *network-fetched =finished= reqres* for each tab and uses them to track when a tab's content /settles/.
 
 Which is to say, =Hoardy-Web= can delay some actions in a tab (currently, [[#replay][replays]] and [[#snapshot][snapshots]]) until all in-flight reqres in that tab become =finished=, then wait an additional configurable delay {{{tabconfigs(settleDelay)}}} to allow that page's =JavaScript= to process its fetched data (and, possibly, update its =DOM= and/or generate new requests), and then run the actual action only if the tab generates no new requests in the meantime.
 
 If the tab does generate new requests, the process will repeat from the beginning up to configured number of times {{{tabconfigs(settleRetries)}}} and produce an error notification if that number of retries gets exceeded.
+
+Also, note that the *network-fetched =finished= reqres* bit above is important as reqres produced by the [[#snapshot][=DOM= snapshotting machinery]] are ignored by the tab settling machinery.
+If they were not, a =DOM= snapshot followed by a replay or another =DOM= snapshot would have to wait for the page to re-settle again, which would be annoying.
 
 When a =Hoardy-Web= action affects multiple tabs, each tab settles, or fails to settle, independently from the others.
 ** Replay of previously archived data
