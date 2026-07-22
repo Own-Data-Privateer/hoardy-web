@@ -802,13 +802,6 @@ function processOneAlmostDone(
         );
     }
 
-    let loggable = makeLoggable(reqres);
-    loggable.bucket = tabcfg.bucket;
-    loggable.net_state = state;
-    loggable.was_problematic = loggable.problematic = problematic;
-    loggable.picked = picked;
-    loggable.was_in_limbo = loggable.in_limbo = in_limbo;
-
     let dump;
     let dumpSize;
     {
@@ -828,7 +821,14 @@ function processOneAlmostDone(
         }
     }
 
+    let loggable = makeLoggable(reqres);
+    loggable.net_state = state;
+    loggable.was_problematic = loggable.problematic = problematic;
+    loggable.picked = picked;
+    loggable.was_in_limbo = loggable.in_limbo = in_limbo;
+    loggable.bucket = tabcfg.bucket;
     loggable.dumpSize = dumpSize;
+
     let archivable = [loggable, dump];
 
     unmarkProblematicSimilarTo(loggable, true, newlyUnproblematic, true);
