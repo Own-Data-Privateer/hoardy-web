@@ -77,7 +77,7 @@ async function snapshotOne(tabId, windowId, documentUrl) {
             ];
         }
 
-        let [responseTimeStamp, originUrl, ct, data, errors] = result;
+        let [responseTimeStamp, referrerUrl, ct, data, errors] = result;
 
         if (data !== null && typeof data !== "string") {
             errors.push("snapshot::capture::UNKNOWN_DATA_TYPE");
@@ -95,13 +95,15 @@ async function snapshotOne(tabId, windowId, documentUrl) {
             method: "DOM",
             url,
 
-            originUrl,
+            documentUrl: parentFrameId !== -1 ? documentUrl : undefined,
 
             errors,
 
             requestSize: 0,
             requestTimeStamp,
-            requestHeaders: [],
+            requestHeaders: isValidStr(referrerUrl)
+                ? [{ name: "Referrer", value: referrerUrl }]
+                : [],
             requestBody: new ChunkedBuffer(),
             requestComplete: true,
 
@@ -142,7 +144,7 @@ async function snapshotOne(tabId, windowId, documentUrl) {
         if (parentResult !== undefined) {
             let [parentUrl, _parentFrameId, _parentParentFrameId, parentReqres] = parentResult;
 
-            reqres.documentUrl = parentUrl;
+            reqres.originUrl = parentUrl;
 
             if (url === "about:blank" || url === parentUrl) {
                 // this is an anonymous iframe, store it as a subframe, since it can't really be
