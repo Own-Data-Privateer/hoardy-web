@@ -291,40 +291,45 @@ function mkDataNodeUpdaters(rrfilters) {
 const headerHTML = `
 <th><span data-help="Source of this reqres:
 
-- &quot;ext&quot; for reqres produced by extensions,
-- &quot;bg&quot; for reqres produced by background tasks,
-- &quot;tab #N&quot; for reqres produced by the tab with id \`N\`, optionally followed by &quot;of *S&quot where \`S\` is the last three digits of reqres' \`sessionId\`.
+- \`bg\` for reqres produced by background requests,
+- \`ext\` for reqres produced by requests made by extensions,
+- \`tab #&lt;N&gt;\` for reqres produced by requests of tab with id \`N\`, optionally followed by \`of *&lt;S&gt;\` where \`S\` is the last three digits of reqres' \`sessionId\`.
 
 For reqres belonging to tabs of the current session the label becomes a button which switches currently active tab to the tab in question.
 
-If the current page is not narrowed to a session and the reqres in question belongs to an older session, then a button labled &quot;S&quot; follows. That button opens another state page narrowed to the session in question.
+If the current page is not narrowed to a session and the reqres in question belongs to an older session, then a button labled \`S\` follows. That button opens another state page narrowed to the session in question.
 
-Otherwise, if the current page is not narrowed to a tab, a button labled &quot;T&quot; or &quot;ST&quot; follows. That buton open another state page narrowed to the tab (and session) in question.">Src</span></th>
+Otherwise, if the current page is not narrowed to a tab, a button labled \`T\` or \`ST\` follows. That buton open another state page narrowed to the tab (and session) in question.">Src</span></th>
 <th><span data-help="State-related information of this reqres.
 
-The \`status\` uses the same format as \`status\` in \`hoardy-web\`: &quot;I&quot; or &quot;C&quot; character (for &quot;Incomplete&quot; and &quot;Complete&quot; respectively) representing the value of \`request.complete\` followed by either &quot;N&quot; (for &quot;No response&quot;) or an HTTP status code (integer, e.g. &quot;200&quot;) which is followed by &quot;I&quot; or &quot;C&quot; (same as above) representing the value of \`response.complete\`.
+The first value uses the same format as \`status\` in \`hoardy-web\`:
+- \`I\` or \`C\` character (for &quot;Incomplete&quot; and &quot;Complete&quot; respectively) representing the value of \`request.complete\`,
+- followed by either \`N\` (for &quot;No response&quot;) or an HTTP status code (integer, e.g. \`200\`),
+- followed by \`I\` or \`C\` (same as above) representing the value of \`response.complete\`.
 
-After that comes one of &quot;@&quot; symbol prepended to the name of the \`current state\`.
+After that comes \`@\` symbol prepended to the name of the \`current state\` of this reqres.
 
-After that comes &quot;$&quot; symbol prepended to the name of the \`final networking state\`.
+After that comes \`$\` symbol prepended to the name of the \`final networking state\` of this reqres.
 
-That can be followed by
-- &quot;partial&quot; when this reqres has partial request body (not \`request.complete\`);
-- &quot;incomplete&quot; when it has incomplete response body (not \`response.compete\`);
-- &quot;buggy&quot; when it has buggy metadata;
-- &quot;redirected&quot; when it is a redirect;
-- either &quot;problematic!&quot; or &quot;was_problematic&quot; if it is or was marked as \`problematic\`;
-- either &quot;@in_limbo&quot; or &quot;was_in_limbo&quot; if it is or was in limbo.
+Which can then be followed by
+- \`partial\` when this reqres has partial request body (not \`request.complete\`);
+- \`incomplete\` when it has incomplete response body (not \`response.compete\`);
+- \`buggy_request\` and/or \`buggy_response\` when it has buggy metadata;
+- \`redirected\` when it is a redirect;
+- either \`problematic!\` or \`was_problematic\` if it is or was previously marked as \`problematic\`;
+- either \`@in_limbo\` or \`was_in_limbo\` if it is or was previously in limbo.
 
 See the \`Help\` page for more info.
 ">Info</span></th>
 <th><span data-help="Timestamp of when the first byte of HTTP request headers was sent.">Request at</span></th>
 <th><span data-help="Protocol/version.">P</span></th>
 <th><span data-help="Protocol method.">M</span></th>
-<th><span data-help="Request URL, followed by &quot; -> &quot; and a redirect URL when this reqres is a redirect.">URL</span></th>
+<th><span data-help="Request URL, followed by \` -> \` and a redirect URL when this reqres is a redirect.">URL</span></th>
 <th><span data-help="Timestamp of when the first byte of HTTP response headers was received.">Response at</span></th>
 <th><span data-help="HTTP protocol response reason, if any. Note that the HTTP response code is displayed as a part of the &quot;Info&quot; field.">R</span></th>
-<th><span data-help="The (uncompressed) size of the whole WRR dump followed by the (uncompressed) sizes of \`request.body\` and \`response.body\`.
+<th><span data-help="The size of the whole WRR dump, followed by &quot;=&quot;, followed by the sum of sizes of \`request.body\`, \`response.body\`, and the remainder.
+The reminder is just the first value minus the latter two, it represents the sum of sizes of CBOR-encoded HTTP headers, reqres metadata, and the encoded CBOR structure itself.
+All sizes are given for uncompressed data.
 
 At the moment, the values in this column don't auto-update even when they should. Reload the whole page manually if you want to track changes.">Sizes</span></th>
 `;
