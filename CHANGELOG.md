@@ -6,6 +6,145 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Also, at the bottom of this file there is a [TODO list](#todo) with planned future changes.
 
+## [extension-v1.30.0] - 2026-07-27: Better `DOM`-snapshots, incremental improvements, bug fixes
+
+Yes, `extension-v1.29.0` was skipped deliberately.
+
+### Changed/Fixed: `DOM`-snapshots
+
+- Core:
+
+  - **From now on, `DOM`-snapshoting machinery generates incomplete reqres for failed-to-snapshot frames instead of just failing to produce any snapshots for that tab at all.**
+
+  - From now on, `DOM`-snapshots record and dump anonymous `iframe`s as sub-reqres/`WRR` of their parent-frame reqres/`WRR` instead of trying to dump them into separate reqres/`WRR`s.
+
+    **This fixed a bug where trying to naively snapshot and then replay a tab with a bunch of anonymous `iframe`s would often produce incorrect results.**
+
+  - Changed `documentUrl`, `originUrl`, and `Referrer` header handling so that the resulting `WRR`s would match `WRR`s produced by `webRequest`/`debugger`-generated reqres.
+
+    **In other words, fixed a bug where `DOM`-snapshots needed special handling when filtering with the `hoardy-web` tool.**
+
+    Also, I partially screwed this change up on my first attempt and then captured and archived a couple of gigabytes of useful complex `JavaScript`-heavy web pages using that version while stress-testing this and other related changes.
+    Thus, `extension-v1.29.0` was skipped to make those snapshots easy to filter and fix programmatically later.
+    Which should not matter to you, unless you are planning to build and run between-release extension versions.
+
+    Automatic/semi-automatic fixups for those and older `WRR`s in the `hoardy-web` are a to-do item ATM.
+
+  - Fixed a bug where snapshoting and then immediately replaying an already settled tab could sometimes leave newly created `SNAPSHOT` reqres `in_limbo`.
+
+    Implementing this in a way that actually works property took a surprising amount of debugging and tweaking of tab-settling machinery.
+
+    **However, from now on you can totally set `Settle in <N>s ...` to a large-enough value, spawn a bunch of tabs to load a bunch of `JavaScript`-heavy web pages, then, press `Snapshot all` and `Replay all` per-window buttons immediately one after the other, and `Hoardy-Web` will do its best to snapshot, archive, and replay those tabs as they become ready.**
+
+  - From now on, `SNAPSHOT` reqres get ignored for the purposes of tab settling and smart tab switches.
+
+    Which is to say, performing a `DOM`-snapshot no longer un-settles its tab, nor does it change that tab's position in the smart tab switching order.
+
+- Core, [`Internal State` pages](#state-in-extension-ui-only):
+
+  - Fixed a bug where `SNAPSHOT` reqres would fail to be filtered by `windowId`s.
+
+### Changed/Fixed: Misc
+
+- Core:
+
+  - **Fixed a bug where some per-tab configs and stats/states would frequently fail to be restored properly on extension reload.**
+
+  - Fixed a bug where collecting `in_limbo` reqres and then immediately spawning a replay in a new tab could replay a partial result.
+
+  - From now on, replaying a tab collects all `in_limbo` reqres immediately instead of waiting for the tab to settle.
+    Then, it collects the rest as the tab settles and gets re-navigated to its replay.
+
+    **In other words, fixed a bug where some stuff could be left `in_limbo` when you re-navigate a tab to its replay.**
+
+    Additionally, this way usually allows the archiving server to do most of the required work while the tab is settling, making things more wall-time efficient.
+
+  - Fixed a bug where some reqres could become stuck in the `in_flight` state for a very long time when a bunch of stuff is being archived in background, thus preventing other scheduled actions from firing as early as they should.
+
+  - Fixed some context menu action failing to work.
+
+    A bug introduced in `extension-v1.28.0`.
+    Found by `biome lint`.
+
+  - Fixed a potential crash when stashing and/or archiving reqres into local storage.
+
+    A bug introduced in `extension-v1.27.0`.
+    Found by `biome lint`.
+
+  - Fixed a bunch of minor code issues found by `biome lint` and `oxlint`.
+
+  - From now on, generated `WRR`s get dumped into canonical `CBOR`s, with sorted dictionary keys.
+
+### Changed/Fixed/Removed: UI, API
+
+- Core, Toolbar Button:
+
+  - From now on, all stats describing scheduled actions get listed first in the toolbar button's badge and title.
+
+- Core, Popup UI:
+
+  - Reworked the core to make updates to `Settle in <N>s ...` and/or `... retry up to <M> times` options apply immediately.
+
+    That is, you can set `Settle in <N>s ...` to a large value, load a new tab, ask for a `DOM`-snapshot or a replay in it, then set `Settle in <N>s ...` to 0, press `Enter`, and the scheduled action will be run immediately instead of the new value of that setting only applying to the next action you schedule.
+
+  - Improved popup layout a bit.
+
+  - Made it hide most of the global stuff on the default tab/tag.
+
+  - Removed all `Forget (log)` buttons and their RPC calls.
+
+    Those buttons were an atavism, they were implemented for a popup UI design that did not work out and I have not used them once since.
+
+  - Improved and homogenized some scheduled action names.
+
+  - Separated `Log events` option out of `Debug runtime` option.
+
+  - Fixed a bug where `almost_done` reqres would fail to be counted and displayed properly.
+
+    Found by `oxlint`.
+
+- [`Help` page](./extension/page/help.org):
+
+  - Fixed a bug where single-column layout would not work.
+
+    A bug introduced in `extension-v1.28.0`.
+
+    Found by `oxlint`.
+
+- Core, Notifications, Logging:
+
+  - Improved re-archiving-related notification generation.
+
+  - Fixed some typos in notification messages.
+
+  - Improved some internal logging messages.
+
+### Changed: Documentation
+
+- [`Help` page](./extension/page/help.org), Keyboard shortcuts:
+
+  - Documented [how to disable `accesskey`-defined shortcuts on Firefox](./extension/page/help.org#faq-website-shortcuts).
+
+  - Improved ["Keyboard Shortcuts" section](./extension/page/help.org#keyboard-shortcuts) a bit.
+
+  - Improved some keyboard shortcut descriptions.
+
+- [`Help` page](./extension/page/help.org):
+
+  - Documented all re-archival errors in the [appropriate section](./extension/page/help.org#errors).
+
+  - Updated it to reflect other changes described above.
+
+- [`Internal State` pages](#state-in-extension-ui-only), [`Saved in Local Storage` page](#saved-in-extension-ui-only):
+
+  - Improved help strings.
+
+### Changed: Misc
+
+- `*`:
+
+  - Formatted code using `prettier`+`prettier-plugin-curly` and/or `oxfmt`.
+
 ## [extension-v1.28.0] - 2026-07-13: Keyboard shortcuts, per-window things, Fenix UI, incremental improvements, bug fixes
 
 ### Changed: Incompatible changes to keyboard shortcuts
@@ -3616,6 +3755,7 @@ All planned features are complete now.
 
   - Initial public release.
 
+[extension-v1.30.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.28.0...extension-v1.30.0
 [extension-v1.28.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.27.0...extension-v1.28.0
 [extension-v1.27.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.26.0...extension-v1.27.0
 [extension-v1.26.0]: https://github.com/Own-Data-Privateer/hoardy-web/compare/extension-v1.25.0...extension-v1.26.0
@@ -3726,6 +3866,7 @@ All planned features are complete now.
 ## `hoardy-web` tool
 
 - `*`:
+  - Automagically fixup `DOM`-snapshots of `extension <= v1.30.0`.
   - Allow unloading and lazy re-loading of reqres loaded from anything other than separate `WRR` files.
     The fact that this is not possible at the moment makes memory consumption in those cases rather abysmal.
 - `serve`, `*`:
