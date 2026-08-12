@@ -22,8 +22,8 @@
 
 """LINear State Transformer Domain Specific Language (DSL).
 
-   A caching translator that compiles expressions like "net_url|sha256|take_prefix 2|to_hex"
-   into Python functions.
+A caching translator that compiles expressions like "net_url|sha256|take_prefix 2|to_hex"
+into Python functions.
 """
 
 import hashlib as _hashlib

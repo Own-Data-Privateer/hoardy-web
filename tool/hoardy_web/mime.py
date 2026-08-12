@@ -17,8 +17,8 @@
 
 """MIME types normalization and sniffing.
 
-  In general, this follows https://mimesniff.spec.whatwg.org/ but
-  usually does more than mimesniff requires.
+In general, this follows https://mimesniff.spec.whatwg.org/ but
+usually does more than mimesniff requires.
 """
 
 import enum as _enum

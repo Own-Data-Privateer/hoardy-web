@@ -2520,7 +2520,7 @@ def cmd_serve(cargs: _t.Any) -> None:
     PSpec = _t.ParamSpec("PSpec")
 
     def with_no_signals(
-        func: _t.Callable[PSpec, BottleReturnType]
+        func: _t.Callable[PSpec, BottleReturnType],
     ) -> _t.Callable[PSpec, BottleReturnType]:
         def decorated(*args: PSpec.args, **kwargs: PSpec.kwargs) -> BottleReturnType:
             with no_signals():
@@ -2529,7 +2529,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         return decorated
 
     def with_plain_error(
-        func: _t.Callable[PSpec, BottleReturnType]
+        func: _t.Callable[PSpec, BottleReturnType],
     ) -> _t.Callable[PSpec, BottleReturnType]:
         def decorated(*args: PSpec.args, **kwargs: PSpec.kwargs) -> BottleReturnType:
             bottle.response.set_header("content-type", "text/plain; charset=utf-8")
