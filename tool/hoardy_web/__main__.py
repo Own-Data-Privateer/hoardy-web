@@ -1519,8 +1519,8 @@ def make_deferred_emit(
     output_format: _t.AnyStr,
     actioning: str,
     defer: _t.Callable[
-        [ReqresExpr[DeferredSourceType], _t.AnyStr, bool, bool],
-        DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr],
+        [ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr, bool, bool],
+        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr],
     ],
     allow_updates: bool,
     moving: bool = False,
@@ -1533,14 +1533,17 @@ def make_deferred_emit(
 
     # ReqresExpr cache indexed by destination path, this exists mainly
     # to minimize the number of calls to `stat`.
-    rrexpr_cache: _c.OrderedDict[_t.AnyStr, ReqresExpr[DeferredSourceType]] = _c.OrderedDict()
+    rrexpr_cache: _c.OrderedDict[
+        _t.AnyStr, ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType]
+    ] = _c.OrderedDict()
 
     # Deferred IO operations (aka "intents") that are yet to be executed,
     # indexed by filesystem paths. This is used both as a queue and as an
     # LRU-cache so that, e.g. repeated updates to the same output file would be
     # computed in memory.
     deferred: _c.OrderedDict[
-        _t.AnyStr, DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr]
+        _t.AnyStr,
+        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr],
     ] = _c.OrderedDict()
 
     # Deferred file system updates. This collects references to everything
@@ -1575,7 +1578,9 @@ def make_deferred_emit(
 
         def run_intent(
             abs_out_path: _t.AnyStr,
-            intent: DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr],
+            intent: DeferredOperation[
+                ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr
+            ],
         ) -> None:
             mem.consumption -= intent.approx_size() + len(abs_out_path)
             rrexpr = intent.source
@@ -1677,13 +1682,14 @@ def make_deferred_emit(
         assert mem.consumption == 0
 
     def load_defer(
-        prev_rrexpr: ReqresExpr[DeferredSourceType] | None,
-        new_rrexpr: ReqresExpr[DeferredSourceType],
+        prev_rrexpr: ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType] | None,
+        new_rrexpr: ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType],
         abs_out_path: _t.AnyStr,
     ) -> tuple[
         bool,
-        ReqresExpr[DeferredSourceType] | None,
-        DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr] | None,
+        ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType] | None,
+        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr]
+        | None,
     ]:
         new_source = new_rrexpr.source
         if isinstance(new_source, FileSource) and new_source.path == abs_out_path:
@@ -1755,13 +1761,18 @@ def make_deferred_emit(
                 rel_out_path = _os.path.join(destination, _os.fsencode(output_format % new_rrexpr))
             abs_out_path: _t.AnyStr = _os.path.abspath(rel_out_path)
 
-            old_rrexpr: ReqresExpr[DeferredSourceType] | None
+            old_rrexpr: ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType] | None
             old_rrexpr = rrexpr_cache.pop(abs_out_path, None)
             if old_rrexpr is not None:
                 mem.consumption -= len(abs_out_path)
 
-            updated_rrexpr: ReqresExpr[DeferredSourceType] | None
-            intent: DeferredOperation[ReqresExpr[DeferredSourceType], _t.AnyStr] | None
+            updated_rrexpr: ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType] | None
+            intent: (
+                DeferredOperation[
+                    ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr
+                ]
+                | None
+            )
             intent = deferred.pop(abs_out_path, None)
             if intent is None:
                 try:
@@ -1862,11 +1873,13 @@ def make_organize_emit(
     AnyStr2 = _t.TypeVar("AnyStr2", str, bytes)
 
     class DeferredOrganize(
-        DeferredFileWrite[ReqresExpr[DeferredSourceType2], AnyStr2],
+        DeferredFileWrite[ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType2], AnyStr2],
         _t.Generic[DeferredSourceType2, AnyStr2],
     ):
         def switch_source(
-            self, new_rrexpr: ReqresExpr[DeferredSourceType2], force: bool = False
+            self,
+            new_rrexpr: ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType2],
+            force: bool = False,
         ) -> bool:
             old_rrexpr = self.source
             old_source = old_rrexpr.source
@@ -2974,6 +2987,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         except Failure as exc:
             exc.elaborate("while processing [%s] `%s`", stime.format(), turl)
             bottle.abort(500, exc.get_message(gettext))
+            return None
         finally:
             rrexpr.unload()
 
@@ -3540,7 +3554,7 @@ def make_argparser(real: bool = True) -> argparse.BetterArgumentParser:
         grp.set_defaults(sniff=SniffContentType.NONE)
 
     def no_cmd(_cargs: _t.Any) -> None:
-        parser.print_help(stderr)  # type: ignore
+        parser.print_help(stderr)
         _sys.exit(2)
 
     parser.set_defaults(func=no_cmd)
