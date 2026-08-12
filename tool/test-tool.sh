@@ -6,7 +6,7 @@
 
 usage() {
     cat << EOF
-# usage: $0 [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] PATH [PATH ...]
+# usage: $0 [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] [--only TARGET]* PATH [PATH ...]
 
 Sanity check and test \`hoardy-web\` command-line interface.
 
@@ -119,6 +119,10 @@ while (($# > 0)); do
             short=$2
             shift
             ;;
+        --only)
+            TARGETS+=("$2")
+            shift
+            ;;
         --)
             shift
             args+=("$@")
@@ -190,7 +194,7 @@ for arg in "${args[@]}"; do
 
     cd "$tmpdir"
 
-    start "import bundle"
+    begin import bundle
 
     if [[ -z "$in_wine" ]]; then
         ok_no_stderr self import bundle --quiet --stdin0 --to import-bundle < "$stdin0"
@@ -213,9 +217,7 @@ for arg in "${args[@]}"; do
         sinput0="$input0"
     fi
 
-    if [[ -z "$in_wine" ]]; then
-        start "filter out \`.part\`s"
-
+    if [[ -z "$in_wine" ]] && start filter .part; then
         ok_stdio2 dotpart.1.out self stream --format=raw -ue url "$idir"
 
         while IFS= read -r -d $'\0' fname; do
@@ -229,35 +231,27 @@ for arg in "${args[@]}"; do
         done < "$sinput0"
 
         equal_file dotpart.1.out dotpart.2.out
+    fi
 
-        end
-
-        start find
-
+    if [[ -z "$in_wine" ]] && start find; then
         fixed_stdio_selfsame "$src" find-200-1024 "$idir" "$input0" \
                              self find --status-re .200C --and "response.body|len|> 1024"
 
         fixed_stdio_selfsame "$src" find-html-potter "$idir" "$input0" \
                              self find --response-mime text/html --grep-re '\bPotter\b'
+    fi
 
-        end
-
-        start pprint
-
+    if [[ -z "$in_wine" ]] && start pprint; then
         ok_selfsame pprint "$idir" "$input0" self pprint
         ok_selfsame pprint-u "$idir" "$input0" self pprint -u
+    fi
 
-        end
-
-        start stream
-
+    if [[ -z "$in_wine" ]] && start stream; then
         ok_selfsame stream "$idir" "$input0" self stream "${exprs[@]}"
         ok_selfsame stream-u "$idir" "$input0" self stream -u "${exprs[@]}"
+    fi
 
-        end
-
-        start organize
-
+    if [[ -z "$in_wine" ]] && start organize; then
         ok_no_stderr self organize --quiet --copy --to organize "$idir"
         equal_dir organize "$idir"
 
@@ -281,11 +275,9 @@ for arg in "${args[@]}"; do
             cat reorganize.log
             die "re-organize is not a noop"
         fi
+    fi
 
-        end
-
-        start "organize --symlink --latest"
-
+    if [[ -z "$in_wine" ]] && start "organize --symlink --latest"; then
         fixed_stdio "$src" organize-sl \
                     self organize --symlink --latest --output hupq \
                     --to organize-sl \
@@ -322,113 +314,97 @@ for arg in "${args[@]}"; do
         # ensure `organize` did not touch the source dir
         describe-forest import-bundle > import-bundle.describe-dir.2
         equal_file import-bundle.describe-dir import-bundle.describe-dir.2
-
-        end
     fi
 
-    start "serve archival"
-    # feed results of `import bundle` to `serve` via `curl`, then check
-    # that the results are the same
+    if start serve; then
+        # feed results of `import bundle` to `serve` via `curl`, then check
+        # that the results are the same
 
-    mkdir -p serve
-    if [[ -z "$in_wine" ]]; then
-        python3 -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to serve &
-    else
-        wine python -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to serve &
-    fi
-    tmppid=$!
-    sleep 3
-
-    # just to be sure
-    curl "http://127.1.1.1:3210/hoardy-web/server-info" > serve.info 2> /dev/null
-    fixed_file "$src" serve.info
-
-    # feed it some data
-    while IFS= read -r -d $'\0' fname; do
-        zcat "$fname" | curl --data-binary "@-" -H "Content-type: application/x-wrr+cbor" "http://127.1.1.1:3210/pwebarc/dump"
-    done < "$sinput0"
-
-    # kill immediately, which must work
-    kill "$tmppid"
-    tmppid=
-
-    # ensure no .part files are left
-    find serve -name '*.part' > serve.parts
-
-    if [[ -s serve.parts ]]; then
-        cat serve.parts
-        error "serve left some \`.part\` files"
-    fi
-
-    # check equality to import-bundle
-    while IFS= read -r -d $'\0' fname; do
-        if ! diff "$fname" "serve/default/${fname#import-bundle/}" > /dev/null ; then
-            error "$fname is not the same"
+        mkdir -p serve
+        if [[ -z "$in_wine" ]]; then
+            python3 -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to serve &
+        else
+            wine python -m hoardy_web serve --host 127.1.1.1 --implicit --archive-to serve &
         fi
-    done < "$sinput0"
+        tmppid=$!
+        sleep 3
 
-    end
+        # just to be sure
+        curl "http://127.1.1.1:3210/hoardy-web/server-info" > serve.info 2> /dev/null
+        fixed_file "$src" serve.info
 
-    if [[ -z "$in_wine" ]]; then
-        start "mirror urls"
+        # feed it some data
+        while IFS= read -r -d $'\0' fname; do
+            zcat "$fname" | curl --data-binary "@-" -H "Content-type: application/x-wrr+cbor" "http://127.1.1.1:3210/pwebarc/dump"
+        done < "$sinput0"
 
+        # kill immediately, which must work
+        kill "$tmppid"
+        tmppid=
+
+        # ensure no .part files are left
+        find serve -name '*.part' > serve.parts
+
+        if [[ -s serve.parts ]]; then
+            cat serve.parts
+            error "serve left some \`.part\` files"
+        fi
+
+        # check equality to import-bundle
+        while IFS= read -r -d $'\0' fname; do
+            if ! diff "$fname" "serve/default/${fname#import-bundle/}" > /dev/null ; then
+                error "$fname is not the same"
+            fi
+        done < "$sinput0"
+    fi
+
+    if [[ -z "$in_wine" ]] && start mirror url; then
         fixed_stdio "$src" mirror-urls \
                     self mirror --copy --to mirror-urls --output hupq_n \
                     "${uexprs[@]}" \
                     "$idir"
         [[ -n "$do_fixed_dir" ]] && fixed_dir "$src" mirror-urls
+    fi
 
-        end
-
-        start "mirror responses"
-
+    if [[ -z "$in_wine" ]] && start mirror response; then
         fixed_stdio "$src" mirror-responses \
                     self mirror --to mirror-responses --output hupq_n \
                     "$idir"
         [[ -n "$do_fixed_dir" ]] && fixed_dir "$src" mirror-responses
+    fi
 
-        end
-
-        start get
-
+    if [[ -z "$in_wine" ]] && start get; then
         while IFS= read -r -d $'\0' path; do
             ok_no_stderr self get "${exprs[@]}" "$path"
             ok_no_stderr self get --sniff-force "${exprs[@]}" "$path"
             ok_no_stderr self get --sniff-paranoid "${exprs[@]}" "$path"
         done < "$sinput0"
+    fi
 
-        end
-
-        start run
-
+    if [[ -z "$in_wine" ]] && start run; then
         while IFS= read -r -d $'\0' path; do
             ok_no_stderr self run cat "$path"
             ok_no_stderr self run -n 2 -- diff "$path" "$path"
         done < "$sinput0"
+    fi
 
-        end
-
-        start "stream --format=raw"
-
+    if [[ -z "$in_wine" ]] && start stream raw; then
         ok_selfsame stream-raw   "$idir" "$input0" self stream --format=raw "${exprs[@]}"
         ok_selfsame stream-raw-u "$idir" "$input0" self stream --format=raw -u "${exprs[@]}"
+    fi
 
-        end
-
-        start "stream --format=json"
-
+    if [[ -z "$in_wine" ]] && start stream json; then
         ok_selfsame stream-json    "$idir" "$input0" self stream --format=json "${exprs[@]}"
         ok_selfsame stream-json-u  "$idir" "$input0" self stream --format=json -u "${exprs[@]}"
-
-        end
-
-        #start "stream --format=cbor"
-
-        #ok_selfsame stream-cbor    "$idir" "$input0" self stream --format=cbor "${exprs[@]}"
-        #ok_selfsame stream-cbor-u  "$idir" "$input0" self stream --format=cbor -u "${exprs[@]}"
-
-        #end
     fi
+
+    # currently broken
+    if false && [[ -z "$in_wine" ]] && start stream cbor; then
+        ok_selfsame stream-cbor    "$idir" "$input0" self stream --format=cbor "${exprs[@]}"
+        ok_selfsame stream-cbor-u  "$idir" "$input0" self stream --format=cbor -u "${exprs[@]}"
+    fi
+
+    end
 
     cd "$ORIG_PWD"
     rm -rf "$tmpdir"
