@@ -1059,6 +1059,8 @@ def test_unparse_link_header() -> None:
     def check(x: ParsedLinkHeader, expected: str) -> None:
         res = unparse_link_header(x)
         assert res == expected
+        back = parse_link_header(res)
+        assert back == x
 
     check(
         [
@@ -1167,13 +1169,28 @@ def test_parse_srcset_attr() -> None:
             assert res == expected
 
     check(
-        "https://example.org",
+        [
+            "https://example.org",
+            " https://example.org",
+            "https://example.org ",
+            " https://example.org ",
+            ", https://example.org",
+            " , https://example.org",
+            " , https://example.org,",
+            " , https://example.org, ",
+            " , https://example.org , ",
+        ],
         [
             ("https://example.org", None),
         ],
     )
     check(
-        "https://example.org/1.jpg, https://example.org/2.jpg",
+        [
+            "https://example.org/1.jpg, https://example.org/2.jpg",
+            "https://example.org/1.jpg , https://example.org/2.jpg",
+            " https://example.org/1.jpg , https://example.org/2.jpg",
+            " https://example.org/1.jpg , https://example.org/2.jpg ",
+        ],
         [
             ("https://example.org/1.jpg", None),
             ("https://example.org/2.jpg", None),
@@ -1192,4 +1209,34 @@ def test_parse_srcset_attr() -> None:
             ("https://example.org/1.jpg", "2.5x"),
             ("https://example.org/2.jpg", None),
         ],
+    )
+
+
+def test_unparse_srcset_attr() -> None:
+    def check(x: ParsedSrcsetAttr, expected: str) -> None:
+        res = unparse_srcset_attr(x)
+        assert res == expected
+        back = parse_srcset_attr(res)
+        assert back == x
+
+    check(
+        [
+            ("https://example.org/1.jpg", None),
+        ],
+        "https://example.org/1.jpg",
+    )
+    check(
+        [
+            ("https://example.org/1.jpg", None),
+            ("https://example.org/2.jpg", None),
+        ],
+        "https://example.org/1.jpg, https://example.org/2.jpg",
+    )
+    check(
+        [
+            ("https://example.org/1.jpg", "5x"),
+            ("https://example.org/2.jpg", "2.5x"),
+            ("https://example.org/3.jpg", None),
+        ],
+        "https://example.org/1.jpg 5x, https://example.org/2.jpg 2.5x, https://example.org/3.jpg",
     )
