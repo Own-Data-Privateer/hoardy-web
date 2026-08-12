@@ -92,25 +92,47 @@ fixed_stdio_selfsame() {
 
 [[ $# < 1 ]] && die "need at least one source"
 
-opts=1
 subset=
 short=
+args=()
 
 while (($# > 0)); do
-    if [[ -n "$opts" ]]; then
-        case "$1" in
-        --help) usage; exit 0; ;;
-        --wine) in_wine=1 ; shift ; continue ;;
-        --all) subset= ; shift ; continue ;;
-        --subset) subset=$2 ; shift 2 ; continue ;;
-        --long) short= ; shift ; continue ;;
-        --short) short=$2 ; shift 2 ; continue ;;
-        --) opts= ; shift ; continue ;;
-        esac
-    fi
-
-    src=$(readlink -f "$1")
+    case "$1" in
+        --help)
+            usage;
+            exit 0;
+            ;;
+        --wine)
+            in_wine=1
+            ;;
+        --all)
+            subset=
+            ;;
+        --subset)
+            subset=$2
+            shift
+            ;;
+        --long)
+            short=
+            ;;
+        --short)
+            short=$2
+            shift
+            ;;
+        --)
+            shift
+            args+=("$@")
+            break
+            ;;
+        *)
+            args+=("$1")
+            ;;
+    esac
     shift
+done
+
+for arg in "${args[@]}"; do
+    src=$(readlink -f "$arg")
 
     set_tmpdir
 
