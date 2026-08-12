@@ -338,9 +338,13 @@ for arg in "${args[@]}"; do
         curl "http://127.1.1.1:3210/hoardy-web/server-info" > serve.info 2> /dev/null
         fixed_file "$src" serve.info
 
+        submit() {
+            curl --data-binary "@-" -H "Content-type: application/x-wrr+cbor" "http://127.1.1.1:3210/pwebarc/dump"
+        }
+
         # feed it some data
         while IFS= read -r -d $'\0' fname; do
-            zcat "$fname" | curl --data-binary "@-" -H "Content-type: application/x-wrr+cbor" "http://127.1.1.1:3210/pwebarc/dump"
+            zcat "$fname" | submit
         done < "$sinput0"
 
         # kill immediately, which must work
@@ -349,7 +353,6 @@ for arg in "${args[@]}"; do
 
         # ensure no .part files are left
         find serve -name '*.part' > serve.parts
-
         if [[ -s serve.parts ]]; then
             cat serve.parts
             error "serve left some \`.part\` files"
@@ -357,7 +360,7 @@ for arg in "${args[@]}"; do
 
         # check equality to import-bundle
         while IFS= read -r -d $'\0' fname; do
-            if ! diff "$fname" "serve/default/${fname#import-bundle/}" > /dev/null ; then
+            if ! diff -U 0 "$fname" "serve/default/${fname#import-bundle/}" ; then
                 error "$fname is not the same"
             fi
         done < "$sinput0"

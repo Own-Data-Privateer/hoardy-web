@@ -1039,15 +1039,9 @@ def mk_fallback_ReqresExpr(
 
 
 def test_ReqresExpr_url_parts() -> None:
-    def check(x: ReqresExpr[_t.Any], name: str, value: _t.Any) -> None:
-        if x[name] != value:
-            raise CatastrophicFailure(
-                "while evaluating `%s` of `%s`: expected `%s`, got `%s`",
-                name,
-                x.reqres.request.url,
-                value,
-                x[name],
-            )
+    def check(x: ReqresExpr[_t.Any], attr: str, expected: _t.Any) -> None:
+        # print(attr, x[attr], expected)
+        assert x[attr] == expected
 
     def check_fp(url: str, ext: str, *parts: str) -> None:
         x = mk_trivial_ReqresExpr(url)
@@ -1144,56 +1138,52 @@ def check_rrexpr(cmd: str, rrexpr: _t.Any) -> ReqresExpr[_t.Any]:
     return rrexpr
 
 
-def check_scrub(opts: str, url: str, ct: str, headers: Headers, data: str, eres: str) -> None:
-    def sc(sniff: bool) -> None:
-        t = trivial_Reqres(
-            parse_url(url), ct, sniff=sniff, headers=headers, data=data.encode("utf-8")
-        )
-        x = ReqresExpr(UnknownSource(), t)
+def test_ReqresExpr_scrub() -> None:
+    def check(
+        opts: str,
+        url: str,
+        ct: str,
+        headers: Headers,
+        data: str,
+        expected: str,
+    ) -> None:
+        purl = parse_url(url)
 
-        res = x[f"response.body|eb|scrub response {opts}"].decode("utf-8")
-        if res != eres:
-            stdout = _stdout
-            stdout.write_ln("input:")
-            stdout.write_ln("==== START ====")
-            stdout.write_ln(data)
-            stdout.write_ln("===== END =====")
-            stdout.write_ln("expected:")
-            stdout.write_ln("==== START ====")
-            stdout.write_ln(eres)
-            stdout.write_ln("===== END =====")
-            stdout.write_ln("got:")
-            stdout.write_ln("==== START ====")
-            stdout.write_ln(res)
-            stdout.write_ln("===== END =====")
-            stdout.flush()
-            raise CatastrophicFailure(
-                "while evaluating `%s` of `%s`: expected `%s`, got `%s`",
-                opts,
-                x,
-                repr(eres),
-                repr(res),
+        def sc(sniff: bool) -> None:
+            rrexpr = ReqresExpr(
+                UnknownSource(),
+                trivial_Reqres(purl, ct, sniff=sniff, headers=headers, data=data.encode("utf-8")),
             )
 
-    sc(False)
-    sc(True)
+            res = rrexpr[f"response.body|eb|scrub response {opts}"].decode("utf-8")
+            if res != expected:
+                stdout = _stdout
+                stdout.write_ln("input:")
+                stdout.write_ln("==== START ====")
+                stdout.write_ln(data)
+                stdout.write_ln("===== END =====")
+                stdout.write_ln("expected:")
+                stdout.write_ln("==== START ====")
+                stdout.write_ln(expected)
+                stdout.write_ln("===== END =====")
+                stdout.write_ln("got:")
+                stdout.write_ln("==== START ====")
+                stdout.write_ln(res)
+                stdout.write_ln("===== END =====")
+                stdout.flush()
+                assert False
 
+        sc(False)
+        sc(True)
 
-test_css_in1 = """
-body {
-  background: url(./background.jpg);
-  *zoom: 1;
-}
-"""
+    # check CSS scrubbing
 
-test_css_out1 = """
-body {
-  background: url(data:text/plain,%20);
-  *zoom: 1;
-}
-"""
-
-test_css_in2 = """
+    check(
+        "+verbose,+whitespace",
+        "https://example.com/test.css",
+        "text/css",
+        [],
+        """
 @import "main.css";
 @import "main.css" layer(default);
 @import url(main.css);
@@ -1202,9 +1192,8 @@ test_css_in2 = """
 @import url("media.css") print, screen;
 @import url("spports.css") supports(display: grid) screen and (max-width: 400px);
 @import url(./all.css) layer(default) supports(display: grid) screen;
-"""
-
-test_css_out2 = """
+""",
+        """
 @import url(data:text/plain,%20);
 @import url(data:text/plain,%20) layer(default);
 @import url(data:text/plain,%20);
@@ -1213,11 +1202,24 @@ test_css_out2 = """
 @import url(data:text/plain,%20) print, screen;
 @import url(data:text/plain,%20) supports(display: grid) screen and (max-width: 400px);
 @import url(data:text/plain,%20) layer(default) supports(display: grid) screen;
+""",
+    )
+
+    test_css_in1 = """
+body {
+  background: url(./background.jpg);
+  *zoom: 1;
+}
 """
 
+    test_css_out1 = """
+body {
+  background: url(data:text/plain,%20);
+  *zoom: 1;
+}
+"""
 
-def test_ReqresExpr_scrub_css() -> None:
-    check_scrub(
+    check(
         "+verbose,+whitespace",
         "https://example.com/test.css",
         "text/css",
@@ -1225,17 +1227,10 @@ def test_ReqresExpr_scrub_css() -> None:
         test_css_in1,
         test_css_out1,
     )
-    check_scrub(
-        "+verbose,+whitespace",
-        "https://example.com/test.css",
-        "text/css",
-        [],
-        test_css_in2,
-        test_css_out2,
-    )
 
+    # check HTML scrubbing
 
-test_html_in1 = f"""<!DOCTYPE html>
+    test_html_in1 = f"""<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -1266,9 +1261,7 @@ test_html_in1 = f"""<!DOCTYPE html>
 </html>
 """
 
-
-def test_ReqresExpr_scrub_html() -> None:
-    check_scrub(
+    check(
         "-all_dyns,-verbose,-whitespace,+indent",
         "https://example.com/",
         "text/html",
@@ -1288,7 +1281,7 @@ def test_ReqresExpr_scrub_html() -> None:
 </html>""",
     )
 
-    check_scrub(
+    check(
         "+verbose,+whitespace",
         "https://example.com/",
         "text/html",
@@ -1329,7 +1322,7 @@ body {
 </body></html>""",
     )
 
-    check_scrub(
+    check(
         "+all_refs,+scripts,+prefetches,+navigations,+verbose,-whitespace,+indent",
         "https://example.com/",
         "text/html",
@@ -1401,9 +1394,9 @@ body {
 </html>""",
     )
 
+    # check CSS scrubbing inside data: URLs inside HTML
 
-def test_ReqresExpr_scrub_html_data_url_css() -> None:
-    check_scrub(
+    check(
         "+verbose,+whitespace",
         "https://example.com/",
         "text/html",

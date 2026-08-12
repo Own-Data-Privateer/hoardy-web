@@ -32,17 +32,6 @@ from kisstdlib.parsing import *
 from kisstdlib.string_ext import quoter, safe_char
 
 
-def scheck(v: _t.Any, what: str, value: _t.Any, expected: _t.Any) -> None:
-    if value != expected:
-        raise CatastrophicFailure(
-            "while evaluating `%s` of `%s`: expected `%s`, got `%s`",
-            what,
-            repr(v),
-            repr(expected),
-            repr(value),
-        )
-
-
 ### URL parsing
 
 # URL double-slash scheme
@@ -441,49 +430,43 @@ def parse_url(url: str) -> ParsedURL:
 
 
 def test_parse_url() -> None:
-    def check(x: ParsedURL, name: str, value: _t.Any) -> None:
-        if getattr(x, name) != value:
-            raise CatastrophicFailure(
-                "while evaluating `%s` of `%s`: expected `%s`, got `%s`",
-                name,
-                x.raw_url,
-                value,
-                getattr(x, name),
-            )
+    def check(x: ParsedURL, attr: str, expected: _t.Any) -> None:
+        # print(attr, getattr(x, attr), expected)
+        assert getattr(x, attr) == expected
 
-    example_org = [
+    example_org = (
         "http://example.org/",
         "http://example.org/",
         "http://example.org/",
         "http://example.org/",
         "http://example.org/",
         "http://example.org/",
-    ]
+    )
 
-    example_org_hash = [
+    example_org_hash = (
         "http://example.org/",
         "http://example.org/#hash",
         "http://example.org/#hash",
         "http://example.org/",
         "http://example.org/#hash",
         "http://example.org/",
-    ]
+    )
 
-    tests1: list[list[str]]
+    tests1: list[tuple[str, str, str, str, str, str, str]]
     tests1 = [
-        ["http://example.org"] + example_org,
-        ["http://example.org/"] + example_org,
+        ("http://example.org", *example_org),
+        ("http://example.org/", *example_org),
         #
         # with fragments
-        ["http://example.org#hash"] + example_org_hash,
-        ["http://example.org/#hash"] + example_org_hash,
+        ("http://example.org#hash", *example_org_hash),
+        ("http://example.org/#hash", *example_org_hash),
         #
-        # work-around for common typos
-        ["http://%20example.org"] + example_org,
-        ["http://%20example.org/"] + example_org,
+        # workarounds for common typos silently worked-around by web browsers
+        ("http://%20example.org", *example_org),
+        ("http://%20example.org/", *example_org),
         #
         # with fragments and quoting
-        [
+        (
             "http://example.org/one+two#hash",
             "http://example.org/one%2Btwo",
             "http://example.org/one%2Btwo#hash",
@@ -491,10 +474,10 @@ def test_parse_url() -> None:
             "http://example.org/one+two",
             "http://example.org/one+two#hash",
             "http://example.org/one+two",
-        ],
+        ),
         #
-        # web.archive.org alikes
-        [
+        # web.archive.org-alikes
+        (
             "http://example.org/web/2/http://archived.example.org/one+two#hash",
             "http://example.org/web/2/http://archived.example.org/one%2Btwo",
             "http://example.org/web/2/http://archived.example.org/one%2Btwo#hash",
@@ -502,7 +485,7 @@ def test_parse_url() -> None:
             "http://example.org/web/2/http://archived.example.org/one+two",
             "http://example.org/web/2/http:/archived.example.org/one+two#hash",
             "http://example.org/web/2/http:/archived.example.org/one+two",
-        ],
+        ),
     ]
 
     for raw_url, net_url, url, purl, pnet_url, pnurl, pnet_nurl in tests1:
@@ -515,79 +498,77 @@ def test_parse_url() -> None:
         check(x, "pretty_net_nurl", pnet_nurl)
         check(x, "pretty_nurl", pnurl)
 
-    tests2: list[list[str | None]]
+    tests2: list[tuple[str, str | None]]
     tests2 = [
-        ["http://example.org/", None],
-        ["http://example.org/test", None],
-        ["http://example.org/test/", None],
-        ["http://example.org/unfinished/query?", None],
+        ("http://example.org/", None),
+        ("http://example.org/test", None),
+        ("http://example.org/test/", None),
+        ("http://example.org/unfinished/query?", None),
         #
-        ["http://example.org/unfinished/query?param", "http://example.org/unfinished/query?"],
+        ("http://example.org/unfinished/query?param", "http://example.org/unfinished/query?"),
         #
-        ["http://example.org/unfinished/query?param=", "http://example.org/unfinished/query?"],
+        ("http://example.org/unfinished/query?param=", "http://example.org/unfinished/query?"),
         #
-        ["http://example.org/unfinished/query?param=0", None],
-        ["http://example.org/unfinished/query?param=0&param=1", None],
+        ("http://example.org/unfinished/query?param=0", None),
+        ("http://example.org/unfinished/query?param=0&param=1", None),
         #
-        [
+        (
             "http://example.org/web/2/https://archived.example.org",
             "http://example.org/web/2/https:/archived.example.org",
-        ],
+        ),
         #
-        [
+        (
             "http://example.org/web/2/https://archived.example.org/",
             "http://example.org/web/2/https:/archived.example.org/",
-        ],
+        ),
         #
-        [
+        (
             "http://example.org/web/2/https://archived.example.org/test",
             "http://example.org/web/2/https:/archived.example.org/test",
-        ],
+        ),
         #
-        [
+        (
             "http://example.org/web/2/https://archived.example.org/test/",
             "http://example.org/web/2/https:/archived.example.org/test/",
-        ],
+        ),
         #
-        [
+        (
             "http://example.org/web/2/https://archived.example.org/unfinished/query?",
             "http://example.org/web/2/https:/archived.example.org/unfinished/query?",
-        ],
+        ),
         #
-        [
+        (
             "http://example.org/web/2/https://archived.example.org/unfinished/query?param",
             "http://example.org/web/2/https:/archived.example.org/unfinished/query?",
-        ],
+        ),
         #
-        [
+        (
             "http://example.org/web/2/https://archived.example.org/unfinished/query?param=",
             "http://example.org/web/2/https:/archived.example.org/unfinished/query?",
-        ],
+        ),
         #
-        [
+        (
             "http://example.org/web/2/https://archived.example.org/unfinished/query?param=0",
             "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0",
-        ],
+        ),
         #
-        [
+        (
             "http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=",
             "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0",
-        ],
+        ),
         #
-        [
+        (
             "http://example.org/web/2/https://archived.example.org/unfinished/query?param=0&param=1",
             "http://example.org/web/2/https:/archived.example.org/unfinished/query?param=0&param=1",
-        ],
+        ),
         #
         # work-arounds for hostnames that `idna` module fails to parse
-        ["http://ab-cd-xxxxxxxxx-yyyy.example.org/", None],
-        ["http://ab--cd-xxxxxxxxx-yyyy.example.org/", None],
-        ["http://ab---cd-xxxxxxxxx-yyyy.example.org/", None],
+        ("http://ab-cd-xxxxxxxxx-yyyy.example.org/", None),
+        ("http://ab--cd-xxxxxxxxx-yyyy.example.org/", None),
+        ("http://ab---cd-xxxxxxxxx-yyyy.example.org/", None),
     ]
 
-    for murl, xurl in tests2:
-        assert murl is not None
-        url = murl
+    for url, nurl in tests2:
         x = parse_url(url)
         check(x, "raw_url", url)
         check(x, "net_url", url)
@@ -595,7 +576,7 @@ def test_parse_url() -> None:
         check(x, "pretty_net_url", url)
         check(x, "pretty_url", url)
 
-        nurl = xurl if xurl is not None else url
+        nurl = url if nurl is None else nurl
         check(x, "pretty_net_nurl", nurl)
         check(x, "pretty_nurl", nurl)
 
@@ -794,36 +775,28 @@ def unparse_data_url(mime_type: str, params: Parameters, data: bytes) -> str:
 
 
 def test_parse_data_url() -> None:
-    def check(
-        values: list[str],
-        expected_mime_type: str,
-        expected_params: Parameters,
-        expected_data: bytes,
-    ) -> None:
-        for value in values:
-            mime_type, params, data = parse_data_url(value)
-            scheck(value, "mime_type", mime_type, expected_mime_type)
-            scheck(value, "params", params, expected_params)
-            scheck(value, "data", data, expected_data)
+    def check(xs: str | list[str], expected: tuple[str, Parameters, bytes]) -> None:
+        if isinstance(xs, str):
+            xs = [xs]
+        for x in xs:
+            res = parse_data_url(x)
+            assert res == expected
 
     check(
-        [
-            "data:,Hello%2C%20World%21",
-        ],
-        "text/plain",
-        [("charset", "US-ASCII")],
-        b"Hello, World!",
+        "data:,Hello%2C%20World%21",
+        ("text/plain", [("charset", "US-ASCII")], b"Hello, World!"),
     )
-    check(["data:text/plain,Hello%2C%20World%21"], "text/plain", [], b"Hello, World!")
+    check(
+        "data:text/plain,Hello%2C%20World%21",
+        ("text/plain", [], b"Hello, World!"),
+    )
     check(
         [
             "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==",
             "data:text/plain; base64,SGVsbG8sIFdvcmxkIQ==",
             "data:text/plain; base64 ,SGVsbG8sIFdvcmxkIQ==",
         ],
-        "text/plain",
-        [],
-        b"Hello, World!",
+        ("text/plain", [], b"Hello, World!"),
     )
     check(
         [
@@ -831,9 +804,7 @@ def test_parse_data_url() -> None:
             "data:text/plain; charset=UTF-8;base64,SGVsbG8sIFdvcmxkIQ==",
             "data:text/plain; charset=UTF-8 ;base64,SGVsbG8sIFdvcmxkIQ==",
         ],
-        "text/plain",
-        [("charset", "UTF-8")],
-        b"Hello, World!",
+        ("text/plain", [("charset", "UTF-8")], b"Hello, World!"),
     )
     # because RFC says invalid content types are to be interpreted as `text/plain`
     check(
@@ -841,29 +812,32 @@ def test_parse_data_url() -> None:
             "data: ,Hello%2C%20World%21",
             "data:bla,Hello%2C%20World%21",
         ],
-        "text/plain",
-        [],
-        b"Hello, World!",
+        ("text/plain", [], b"Hello, World!"),
     )
 
 
 def test_unparse_data_url() -> None:
-    def check(value: str, *args: _t.Any) -> None:
-        res = unparse_data_url(*args)
-        scheck(args, "unparse", value, res)
+    def check(x: tuple[str, Parameters, bytes], expected: str) -> None:
+        res = unparse_data_url(*x)
+        assert res == expected
         back = parse_data_url(res)
-        scheck(value, "re-parse", back, args)
+        assert back == x
 
-    check("data:text/plain;base64,", "text/plain", [], b"")
-    check("data:text/html;base64,TllB", "text/html", [], b"NYA")
     check(
-        'data:text/plain;charset="utf-8";base64,QUJD', "text/plain", [("charset", "utf-8")], b"ABC"
+        ("text/plain", [], b""),
+        "data:text/plain;base64,",
     )
     check(
+        ("text/html", [], b"NYA"),
+        "data:text/html;base64,TllB",
+    )
+    check(
+        ("text/plain", [("charset", "utf-8")], b"ABC"),
+        'data:text/plain;charset="utf-8";base64,QUJD',
+    )
+    check(
+        ("text/plain", [("charset", "US-ASCII"), ("token", '"'), ("token", "'A")], b"data"),
         'data:text/plain;charset="US-ASCII";token="\\"";token="\'A";base64,ZGF0YQ==',
-        "text/plain",
-        [("charset", "US-ASCII"), ("token", '"'), ("token", "'A")],
-        b"data",
     )
 
 
@@ -917,14 +891,21 @@ def parse_content_type_header(value: str) -> tuple[str, Parameters]:
 
 
 def test_parse_content_type_header() -> None:
-    def check(cts: list[str], expected_mime_type: str, expected_params: Parameters) -> None:
-        for ct in cts:
-            mime_type, params = parse_content_type_header(ct)
-            scheck(ct, "mime_type", mime_type, expected_mime_type)
-            scheck(ct, "params", params, expected_params)
+    def check(xs: str | list[str], expected: tuple[str, Parameters]) -> None:
+        if isinstance(xs, str):
+            xs = [xs]
+        for x in xs:
+            res = parse_content_type_header(x)
+            assert res == expected
 
-    check(["text/plain"], "text/plain", [])
-    check(["text/html"], "text/html", [])
+    check(
+        ["text/plain"],
+        ("text/plain", []),
+    )
+    check(
+        ["text/html"],
+        ("text/html", []),
+    )
     check(
         [
             "text/html;charset=utf-8",
@@ -935,8 +916,7 @@ def test_parse_content_type_header() -> None:
             'text/html;; charset="utf-8";; ',
             'text/html; ; charset="utf-8"; ; ',
         ],
-        "text/html",
-        [("charset", "utf-8")],
+        ("text/html", [("charset", "utf-8")]),
     )
     check(
         [
@@ -947,27 +927,27 @@ def test_parse_content_type_header() -> None:
             'text/html;; charset="utf-8"; lang=en;; ',
             'text/html; ; charset="utf-8"; lang=en; ; ',
         ],
-        "text/html",
-        [("charset", "utf-8"), ("lang", "en")],
+        ("text/html", [("charset", "utf-8"), ("lang", "en")]),
     )
     check(
         [
             'text/html;charset="\\"utf-8\\"";lang=en',
             'text/html; charset="\\"utf-8\\""; lang=en',
         ],
-        "text/html",
-        [("charset", '"utf-8"'), ("lang", "en")],
+        ("text/html", [("charset", '"utf-8"'), ("lang", "en")]),
     )
     check(
         [
             'text/html; charset="utf-8"; %%; lang=en',
             'text/html; charset="utf-8"; %% ; lang=en',
         ],
-        "text/html",
-        [("charset", "utf-8"), ("%%", ""), ("lang", "en")],
+        ("text/html", [("charset", "utf-8"), ("%%", ""), ("lang", "en")]),
     )
     # because RFC says invalid content types are to be interpreted as `text/plain`
-    check(["bla; charset=utf-8; lang=en"], "text/plain", [("charset", "utf-8"), ("lang", "en")])
+    check(
+        ["bla; charset=utf-8; lang=en"],
+        ("text/plain", [("charset", "utf-8"), ("lang", "en")]),
+    )
 
 
 link_url_re = _re.compile(url_re_str("<>"))
@@ -1011,15 +991,12 @@ def unparse_link_header(links: ParsedLinkHeader) -> str:
 
 
 def test_parse_link_header() -> None:
-    def check(lhs: list[str], expected_values: ParsedLinkHeader) -> None:
-        for lh in lhs:
-            values = parse_link_header(lh)
-            for i, val in enumerate(expected_values):
-                url, params = values[i]
-                expected_url, expected_params = val
-                scheck(lh, "url", url, expected_url)
-                scheck(lh, "params", params, expected_params)
-            scheck(lh, "the whole", values, expected_values)
+    def check(xs: str | list[str], expected: ParsedLinkHeader) -> None:
+        if isinstance(xs, str):
+            xs = [xs]
+        for x in xs:
+            res = parse_link_header(x)
+            assert res == expected
 
     check(
         [
@@ -1079,11 +1056,16 @@ def test_parse_link_header() -> None:
 
 
 def test_unparse_link_header() -> None:
-    def check(lh: ParsedLinkHeader, expected_value: str) -> None:
-        value = unparse_link_header(lh)
-        scheck(lh, "unparse", value, expected_value)
+    def check(x: ParsedLinkHeader, expected: str) -> None:
+        res = unparse_link_header(x)
+        assert res == expected
 
-    check([("https://example.org", [("rel", "me")])], '<https://example.org>; rel="me"')
+    check(
+        [
+            ("https://example.org", [("rel", "me")]),
+        ],
+        '<https://example.org>; rel="me"',
+    )
     check(
         [
             ("https://example.org", [("rel", "preconnect")]),
@@ -1119,11 +1101,12 @@ def unparse_refresh_header(secs: int, url: str) -> str:
 
 
 def test_parse_refresh_header() -> None:
-    def check(rhs: list[str], expected_num: _t.Any, expected_url: _t.Any) -> None:
-        for rh in rhs:
-            num, url = parse_refresh_header(rh)
-            scheck(rh, "num", num, expected_num)
-            scheck(rh, "url", url, expected_url)
+    def check(xs: str | list[str], expected: tuple[int, str]) -> None:
+        if isinstance(xs, str):
+            xs = [xs]
+        for x in xs:
+            res = parse_refresh_header(x)
+            assert res == expected
 
     check(
         [
@@ -1133,8 +1116,7 @@ def test_parse_refresh_header() -> None:
             " 10;url=https://example.org/",
             "10 ; url=https://example.org/",
         ],
-        10,
-        "https://example.org/",
+        (10, "https://example.org/"),
     )
 
 
@@ -1177,14 +1159,12 @@ def unparse_srcset_attr(value: ParsedSrcsetAttr) -> str:
 
 
 def test_parse_srcset_attr() -> None:
-    def check(attr: str, expected_values: ParsedSrcsetAttr) -> None:
-        values = parse_srcset_attr(attr)
-        for i, val in enumerate(expected_values):
-            url, cond = values[i]
-            expected_url, expected_cond = val
-            scheck(attr, "url", url, expected_url)
-            scheck(attr, "cond", cond, expected_cond)
-        scheck(attr, "the whole", values, expected_values)
+    def check(xs: str | list[str], expected: ParsedSrcsetAttr) -> None:
+        if isinstance(xs, str):
+            xs = [xs]
+        for x in xs:
+            res = parse_srcset_attr(x)
+            assert res == expected
 
     check(
         "https://example.org",
@@ -1200,18 +1180,14 @@ def test_parse_srcset_attr() -> None:
         ],
     )
     check(
-        "https://example.org/1.jpg 2.5x, https://example.org/2.jpg",
         [
-            ("https://example.org/1.jpg", "2.5x"),
-            ("https://example.org/2.jpg", None),
-        ],
-    )
-    check(
-        """
+            "https://example.org/1.jpg 2.5x, https://example.org/2.jpg",
+            """
         https://example.org/1.jpg    2.5x
         ,
         https://example.org/2.jpg
     """,
+        ],
         [
             ("https://example.org/1.jpg", "2.5x"),
             ("https://example.org/2.jpg", None),
