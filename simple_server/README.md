@@ -83,12 +83,12 @@ options:
   --version             show program's version number and exit
   --host HOST           listen on what host/IP; default: `127.0.0.1`
   --port PORT           listen on what port; default: `3210`
-  -t ROOT, --to ROOT, --archive-to ROOT, --root ROOT
+  -t, --to, --archive-to, --root ROOT
                         path to dump data into; default: `pwebarc-dump`
   --compress            compress new archivals before dumping them to disk; default
   --no-compress, --uncompressed
                         dump new archivals to disk without compression
-  --default-bucket NAME, --default-profile NAME
+  --default-bucket, --default-profile NAME
                         default bucket to use when no `profile` query parameter is supplied by the extension; default: `default`
   --ignore-buckets, --ignore-profiles
                         ignore `profile` query parameter supplied by the extension and use the value of `--default-bucket` instead
