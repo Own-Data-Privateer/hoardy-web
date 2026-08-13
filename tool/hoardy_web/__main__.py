@@ -3130,10 +3130,39 @@ def make_argparser(real: bool = True) -> argparse.BetterArgumentParser:
 - `ignore`: `skip`, but don't report the failure"""),
         )
 
-    date_spec = _("; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`")
-    date_spec_id = _("; the `DATE` format is the same as above")
-    interval_date_spec = _("; the `INTERVAL_DATE` is parsed as a time interval the middle point of which is taken as target value; e.g., `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year), `2024-12-31` becomes `2024-12-31 12:00:00`, `2024-12-31 12` -> `2024-12-31 12:30:00`, `2024-12-31 12:00` -> `2024-12-31 12:00:30`, `2024-12-31 12:00:01` -> `2024-12-31 12:00:01.5`, etc")
-    interval_date_spec_id = _("; the `INTERVAL_DATE` format and semantics is the same as above")
+    datetime_spec = _("""; the `DATETIME` can be specified as
+- `@<decimal>` format, where `<decimal>` can be:
+  - a floating point number of seconds since UNIX epoch,
+  - "-inf", or
+  - "+inf";
+- one of the following formats:
+  - `YYYY`;
+  - `YYYY-mm`,
+  - `YYYY-mm-DD`,
+  - `YYYY-mm-DD HH:MM`,
+  - `YYYY-mm-DD HH:MM:SS`,
+  - `YYYY-mm-DD HH:MM:SS.[FF*]`;
+
+both formats can be followed by a time zone specified as `(+|-)HHMM`;
+if the time zone is not specified, the `DATETIME` is assumed to be in local time;
+
+if other parts of the date are not specified, they get substituted from `<year>-01-01 00:00:00.0`, e.g.:
+- `2024` becomes `2024-01-01 00:00:00`,
+- `2024-12` becomes `2024-12-01 00:00:00`,
+- `2024-12-31` becomes `2024-12-31 00:00:00`,
+- `2024-12-31 10` becomes `2024-12-31 10:00:00`,
+- `2024-12-31 10:01` becomes `2024-12-31 10:01:00`,
+- `2024-12-31 10:01:02` becomes `2024-12-31 10:01:02.0`;"""
+    )
+    datetime_spec_id = _("; the `DATETIME` format is the same as above")
+    datetime_spec_middle = _("""; the `DATETIME` uses the same format as the `--before` option above (which see), except if some parts of the date are not specified, the `DATETIME` is instead parsed as a time interval and the middle point of that interval is then taken as the resulting value, e.g.:
+- `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year),
+- `2024-12-31` becomes `2024-12-31 12:00:00`,
+- `2024-12-31 10` becomes `2024-12-31 10:30:00`,
+- `2024-12-31 10:01` becomes `2024-12-31 10:01:30`,
+- `2024-12-31 10:01:02` becomes `2024-12-31 10:01:02.5`;"""
+    )
+
     fullmatch_re = _("; this option matches the given regular expression against the whole input value; to match against any part of the input value, use `.*<re>.*` or `^.*<re>.*$`")
     ie_whitelist = _("; in short, this option defines a whitelisted element rule")
     ie_blacklist = _("; in short, this option defines a blacklisted element rule")
@@ -3167,14 +3196,14 @@ def make_argparser(real: bool = True) -> argparse.BetterArgumentParser:
         )
 
         def add_time_filter(opt: str, what: str, sub: str) -> None:
-            agrp.add_argument(f"--{opt_prefix}{opt}", metavar="DATE", action="append", type=str, default=[],
-                help=_(f"{do_what} its `stime` is {what} than this") + sub,
+            agrp.add_argument(f"--{opt_prefix}{opt}", metavar="DATETIME", action="append", type=str, default=[],
+                help=_(f"{do_what} its `stime` is {what} than this value") + sub,
             )
 
-        add_time_filter("before", "smaller", date_spec)
-        add_time_filter("not-before", "larger or equal", date_spec_id)
-        add_time_filter("after", "larger", date_spec_id)
-        add_time_filter("not-after", "smaller or equal", date_spec_id)
+        add_time_filter("before", "smaller", datetime_spec)
+        add_time_filter("not-before", "larger or equal", datetime_spec_id)
+        add_time_filter("after", "larger", datetime_spec_id)
+        add_time_filter("not-after", "smaller or equal", datetime_spec_id)
 
         def map_opts(suffix: str, *opts: str) -> list[str]:
             return list(map(lambda opt: f"--{opt_prefix}{opt}{suffix}", opts))
@@ -4134,20 +4163,17 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
     add_common(cmd, "mirror", "consider reqres for mirroring when")
     add_expr(cmd, "mirror")
 
-    agrp = cmd.add_argument_group("mirror what")
+    agrp = cmd.add_argument_group("for each URL, mirror")
     grp = agrp.add_mutually_exclusive_group()
 
-    def which(x: str) -> str:
-        return _(f"for each URL, mirror {x}")
-
-    oldest = which("its oldest available version")
-    near = which("an available version that is closest to the given `INTERVAL_DATE` value")
-    near_long = near + interval_date_spec
-    near_short = near + interval_date_spec_id
-    latest = which("its latest available version")
+    near = _("... a version that is closest to the given `DATETIME` value")
+    oldest = _("... its oldest available version")
+    latest = _("... its latest available version")
     hybrid = _(", except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document")
-    hybrid_long = hybrid + _("; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`")
-    hybrid_short = hybrid + _("; see `--oldest-hybrid` above for more info")
+    hybrid_ie = _("; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`")
+
+    def alias_for(s: str) -> str:
+        return _("; an alias for `%s` (which see)") % (s,)
 
     class EmitNear(argparse.Action):
         def __call__(
@@ -4159,23 +4185,23 @@ Essentially, this is a combination of `{__prog__} organize --copy` followed by i
         ) -> None:
             setattr(cfg, self.dest, self.const(timerange(value).middle))
 
+    grp.add_argument("--nearest", dest="mode", metavar="DATETIME", action=EmitNear, const=lambda x: (True, x),
+        help=near + datetime_spec_middle,
+    )
+    grp.add_argument("--nearest-hybrid", dest="mode", metavar="DATETIME", action=EmitNear, const=lambda x: (False, x),
+        help=near + datetime_spec_id + hybrid + hybrid_ie,
+    )
     grp.add_argument("--oldest", dest="mode", action="store_const", const=(True, anytime.start),
-        help=oldest,
+        help=oldest + alias_for("--nearest @-inf"),
     )
     grp.add_argument("--oldest-hybrid", dest="mode", action="store_const", const=(False, anytime.start),
-        help=oldest + hybrid_long,
-    )
-    grp.add_argument("--nearest", dest="mode", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: (True, x),
-        help=near_long,
-    )
-    grp.add_argument("--nearest-hybrid", dest="mode", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: (False, x),
-        help=near_short + hybrid_short,
+        help=oldest + hybrid + alias_for("--nearest-hybrid @-inf"),
     )
     grp.add_argument("--latest", dest="mode", action="store_const", const=(True, anytime.end),
-        help=latest + _("; default"),
+        help=latest + alias_for("--nearest @+inf") + _("; default"),
     )
     grp.add_argument("--latest-hybrid", dest="mode", action="store_const", const=(False, anytime.end),
-        help=latest + hybrid_short,
+        help=latest + hybrid + alias_for("--nearest-hybrid @+inf"),
     )
     grp.add_argument("--all", dest="mode", action="store_const", const=(False, None),
         help=_("mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!"),
@@ -4282,33 +4308,32 @@ The end.
     add_expr(cmd, "serve")
 
     agrp = cmd.add_argument_group("buckets")
-    agrp.add_argument("--default-bucket", "--default-profile", metavar="NAME", default="default", type=str,
-        help=_("default bucket name to use when a client does not specify any; default: `%(default)s`"),
+    agrp.add_argument("--default-bucket", "--default-profile", metavar="STR", default="default", type=str,
+        help=_("a bucket name to use when an `HTTP`-submission does not specify any; default: `%(default)s`"),
     )
     agrp.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true",
-        help=_("ignore bucket names specified by clients and always use `--default-bucket` instead"),
+        help=_("ignore bucket names specified by `HTTP`-submissions and use the value of `--default-bucket` instead"),
     )
 
     add_fileout(cmd, "serve")
 
-    agrp = cmd.add_argument_group("replay what")
+    agrp = cmd.add_argument_group("for each URL, index and replay")
     grp = agrp.add_mutually_exclusive_group()
-    fiar = "for each URL, index and replay only"
-    grp.add_argument("--no-replay", dest="replay", action="store_const", const=False,
-        help=_("disable replay functionality, makes this into an archive-only server, like `hoardy-web-sas` is"),
+    grp.add_argument("--nearest", dest="replay", metavar="DATETIME", action=EmitNear, const=lambda x: x,
+        help=_("... only the visit closest to the given `DATETIME` value; if `--to` is set, each new archival will also update the index, replacing old reqres with new reqres if their `stime` is closer to `DATETIME`")
+        + datetime_spec_middle,
     )
     grp.add_argument("--oldest", dest="replay", action="store_const", const=anytime.start,
-        help=_(f"{fiar} the oldest visit; if `--to` is set, archiving a new visit for a URL will keep the indexed and replayable version as-is"),
-    )
-    grp.add_argument("--nearest", dest="replay", metavar="INTERVAL_DATE", action=EmitNear, const=lambda x: x,
-        help=_(f"{fiar} the visit closest to the given `INTERVAL_DATE` value; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version if `INTERVAL_DATE` is in the future and keep it as-is otherwise")
-        + interval_date_spec,
+        help=_("... only the oldest visit") + alias_for("--nearest @-inf"),
     )
     grp.add_argument("--latest", dest="replay", action="store_const", const=anytime.end,
-        help=_("{fiar} the latest visit; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version with a new one"),
+        help=_("... only the latest visit") + alias_for("--nearest @+inf"),
     )
     grp.add_argument("--all", dest="replay", action="store_const", const=None,
-        help=_("index and replay all visits to all available URLs; if `--to` is given, archiving a new visit for a URL will update the index and make the new visit available for replay; default"),
+        help=_("... all available visits; if `--to` is set, each new archival will also be added to the index and made available for replay; default"),
+    )
+    grp.add_argument("--no-replay", dest="replay", action="store_const", const=False,
+        help=_("disable replay functionality completely, making this instance into an archive-only server, like `hoardy-web-sas` is"),
     )
     cmd.set_defaults(replay=None)  # --all
 

@@ -880,14 +880,36 @@ Glossary: a `reqres` (`Reqres` when a type/class) is an instance of a structure 
   : when filtering with `--*grep*`, match case-insensitively if there are no uppercase letters in the corresponding `*PATTERN*` option argument and case-sensitively otherwise; default
 
 - input filters; if none are specified, then all reqres from input `PATH`s will be taken; can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
-  - `--before DATE`
-  : accept reqres for processing when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
-  - `--not-before DATE`
-  : accept reqres for processing when its `stime` is larger or equal than this; the `DATE` format is the same as above
-  - `--after DATE`
-  : accept reqres for processing when its `stime` is larger than this; the `DATE` format is the same as above
-  - `--not-after DATE`
-  : accept reqres for processing when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  - `--before DATETIME`
+  : accept reqres for processing when its `stime` is smaller than this value; the `DATETIME` can be specified as
+    - `@<decimal>` format, where `<decimal>` can be:
+      - a floating point number of seconds since UNIX epoch,
+      - "-inf", or
+      - "+inf";
+    - one of the following formats:
+      - `YYYY`;
+      - `YYYY-mm`,
+      - `YYYY-mm-DD`,
+      - `YYYY-mm-DD HH:MM`,
+      - `YYYY-mm-DD HH:MM:SS`,
+      - `YYYY-mm-DD HH:MM:SS.[FF*]`;
+    
+    both formats can be followed by a time zone specified as `(+|-)HHMM`;
+    if the time zone is not specified, the `DATETIME` is assumed to be in local time;
+    
+    if other parts of the date are not specified, they get substituted from `<year>-01-01 00:00:00.0`, e.g.:
+    - `2024` becomes `2024-01-01 00:00:00`,
+    - `2024-12` becomes `2024-12-01 00:00:00`,
+    - `2024-12-31` becomes `2024-12-31 00:00:00`,
+    - `2024-12-31 10` becomes `2024-12-31 10:00:00`,
+    - `2024-12-31 10:01` becomes `2024-12-31 10:01:00`,
+    - `2024-12-31 10:01:02` becomes `2024-12-31 10:01:02.0`;
+  - `--not-before DATETIME`
+  : accept reqres for processing when its `stime` is larger or equal than this value; the `DATETIME` format is the same as above
+  - `--after DATETIME`
+  : accept reqres for processing when its `stime` is larger than this value; the `DATETIME` format is the same as above
+  - `--not-after DATETIME`
+  : accept reqres for processing when its `stime` is smaller or equal than this value; the `DATETIME` format is the same as above
   - `--protocol PROTOCOL`
   : accept reqres for processing when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--protocol-prefix PROTOCOL_PREFIX`
@@ -2602,19 +2624,24 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
   - `--absolute`
   : when remapping URLs to local files, produce links and references with absolute URLs; default when `--symlink`
 
-- mirror what:
+- for each URL, mirror:
+  - `--nearest DATETIME`
+  : ... a version that is closest to the given `DATETIME` value; the `DATETIME` uses the same format as the `--before` option above (which see), except if some parts of the date are not specified, the `DATETIME` is instead parsed as a time interval and the middle point of that interval is then taken as the resulting value, e.g.:
+    - `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year),
+    - `2024-12-31` becomes `2024-12-31 12:00:00`,
+    - `2024-12-31 10` becomes `2024-12-31 10:30:00`,
+    - `2024-12-31 10:01` becomes `2024-12-31 10:01:30`,
+    - `2024-12-31 10:01:02` becomes `2024-12-31 10:01:02.5`;
+  - `--nearest-hybrid DATETIME`
+  : ... a version that is closest to the given `DATETIME` value; the `DATETIME` format is the same as above, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`
   - `--oldest`
-  : for each URL, mirror its oldest available version
+  : ... its oldest available version; an alias for `--nearest @-inf` (which see)
   - `--oldest-hybrid`
-  : for each URL, mirror its oldest available version, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; i.e., this will make each mirrored page refer to requisites (images, media, `CSS`, fonts, etc) that were archived around the time the page itself was archived, even if those requisite resources changed in time; this produces results that are as close to the original web page as possible at the cost of much more memory to `mirror`
-  - `--nearest INTERVAL_DATE`
-  : for each URL, mirror an available version that is closest to the given `INTERVAL_DATE` value; the `INTERVAL_DATE` is parsed as a time interval the middle point of which is taken as target value; e.g., `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year), `2024-12-31` becomes `2024-12-31 12:00:00`, `2024-12-31 12` -> `2024-12-31 12:30:00`, `2024-12-31 12:00` -> `2024-12-31 12:00:30`, `2024-12-31 12:00:01` -> `2024-12-31 12:00:01.5`, etc
-  - `--nearest-hybrid INTERVAL_DATE`
-  : for each URL, mirror an available version that is closest to the given `INTERVAL_DATE` value; the `INTERVAL_DATE` format and semantics is the same as above, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; see `--oldest-hybrid` above for more info
+  : ... its oldest available version, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; an alias for `--nearest-hybrid @-inf` (which see)
   - `--latest`
-  : for each URL, mirror its latest available version; default
+  : ... its latest available version; an alias for `--nearest @+inf` (which see); default
   - `--latest-hybrid`
-  : for each URL, mirror its latest available version, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; see `--oldest-hybrid` above for more info
+  : ... its latest available version, except, for each URL that is a requisite resource, mirror a version that is time-closest to the referencing document; an alias for `--nearest-hybrid @+inf` (which see)
   - `--all`
   : mirror all available versions of all available URLs; this is likely to take a lot of time and eat a lot of memory!
 
@@ -2667,14 +2694,36 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
       - `content_sha256`: alias for `content|sha256`
 
 - recursion root filters; if none are specified, then all URLs available from input `PATH`s will be treated as roots (except for those given via `--boring`); can be specified multiple times in arbitrary combinations; the resulting logical expression that will be checked is `all_of(before) and all_of(not_before) and all_of(after) and all_of(not_after) and any_of(protocol) and not any_of(not_protcol) and any_of(request_method) and not any_of(not_request_method) ... and any_of(grep) and not any_of(not_grep) and all_of(and_grep) and not all_of(not_and_grep) and all_of(ands) and any_of(ors)`:
-  - `--root-before DATE`
-  : take reqres as a root when its `stime` is smaller than this; the `DATE` can be specified either as a number of seconds since UNIX epoch using `@<number>` format where `<number>` can be a floating point, or using one of the following formats:`YYYY-mm-DD HH:MM:SS[.NN*] (+|-)HHMM`, `YYYY-mm-DD HH:MM:SS[.NN*]`, `YYYY-mm-DD HH:MM:SS`, `YYYY-mm-DD HH:MM`, `YYYY-mm-DD`, `YYYY-mm`, `YYYY`; if no `(+|-)HHMM` part is specified, the `DATE` is assumed to be in local time; if other parts are unspecified they are inherited from `<year>-01-01 00:00:00.0`
-  - `--root-not-before DATE`
-  : take reqres as a root when its `stime` is larger or equal than this; the `DATE` format is the same as above
-  - `--root-after DATE`
-  : take reqres as a root when its `stime` is larger than this; the `DATE` format is the same as above
-  - `--root-not-after DATE`
-  : take reqres as a root when its `stime` is smaller or equal than this; the `DATE` format is the same as above
+  - `--root-before DATETIME`
+  : take reqres as a root when its `stime` is smaller than this value; the `DATETIME` can be specified as
+    - `@<decimal>` format, where `<decimal>` can be:
+      - a floating point number of seconds since UNIX epoch,
+      - "-inf", or
+      - "+inf";
+    - one of the following formats:
+      - `YYYY`;
+      - `YYYY-mm`,
+      - `YYYY-mm-DD`,
+      - `YYYY-mm-DD HH:MM`,
+      - `YYYY-mm-DD HH:MM:SS`,
+      - `YYYY-mm-DD HH:MM:SS.[FF*]`;
+    
+    both formats can be followed by a time zone specified as `(+|-)HHMM`;
+    if the time zone is not specified, the `DATETIME` is assumed to be in local time;
+    
+    if other parts of the date are not specified, they get substituted from `<year>-01-01 00:00:00.0`, e.g.:
+    - `2024` becomes `2024-01-01 00:00:00`,
+    - `2024-12` becomes `2024-12-01 00:00:00`,
+    - `2024-12-31` becomes `2024-12-31 00:00:00`,
+    - `2024-12-31 10` becomes `2024-12-31 10:00:00`,
+    - `2024-12-31 10:01` becomes `2024-12-31 10:01:00`,
+    - `2024-12-31 10:01:02` becomes `2024-12-31 10:01:02.0`;
+  - `--root-not-before DATETIME`
+  : take reqres as a root when its `stime` is larger or equal than this value; the `DATETIME` format is the same as above
+  - `--root-after DATETIME`
+  : take reqres as a root when its `stime` is larger than this value; the `DATETIME` format is the same as above
+  - `--root-not-after DATETIME`
+  : take reqres as a root when its `stime` is smaller or equal than this value; the `DATETIME` format is the same as above
   - `--root-protocol PROTOCOL`
   : take reqres as a root when one of the given `PROTOCOL` option arguments is equal to its `protocol` (of `hoardy-web get --expr`, which see); in short, this option defines a whitelisted element rule
   - `--root-protocol-prefix PROTOCOL_PREFIX`
@@ -2960,10 +3009,10 @@ The end.
   : set the default value of `--expr` to `response.body|eb|scrub response &all_refs,-inline_headers`; i.e. `scrub` response body as follows: remap all links and references to their replay URLs, even when they are not available in the index, censor out all dynamic content; results will be self-contained; default
 
 - buckets:
-  - `--default-bucket, --default-profile NAME`
-  : default bucket name to use when a client does not specify any; default: `default`
+  - `--default-bucket, --default-profile STR`
+  : a bucket name to use when an `HTTP`-submission does not specify any; default: `default`
   - `--ignore-buckets, --ignore-profiles`
-  : ignore bucket names specified by clients and always use `--default-bucket` instead
+  : ignore bucket names specified by `HTTP`-submissions and use the value of `--default-bucket` instead
 
 - file output options:
   - `--compress`
@@ -2987,17 +3036,22 @@ The end.
   - `-z, --zero-terminated`
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
 
-- replay what:
-  - `--no-replay`
-  : disable replay functionality, makes this into an archive-only server, like `hoardy-web-sas` is
+- for each URL, index and replay:
+  - `--nearest DATETIME`
+  : ... only the visit closest to the given `DATETIME` value; if `--to` is set, each new archival will also update the index, replacing old reqres with new reqres if their `stime` is closer to `DATETIME`; the `DATETIME` uses the same format as the `--before` option above (which see), except if some parts of the date are not specified, the `DATETIME` is instead parsed as a time interval and the middle point of that interval is then taken as the resulting value, e.g.:
+    - `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year),
+    - `2024-12-31` becomes `2024-12-31 12:00:00`,
+    - `2024-12-31 10` becomes `2024-12-31 10:30:00`,
+    - `2024-12-31 10:01` becomes `2024-12-31 10:01:30`,
+    - `2024-12-31 10:01:02` becomes `2024-12-31 10:01:02.5`;
   - `--oldest`
-  : for each URL, index and replay only the oldest visit; if `--to` is set, archiving a new visit for a URL will keep the indexed and replayable version as-is
-  - `--nearest INTERVAL_DATE`
-  : for each URL, index and replay only the visit closest to the given `INTERVAL_DATE` value; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version if `INTERVAL_DATE` is in the future and keep it as-is otherwise; the `INTERVAL_DATE` is parsed as a time interval the middle point of which is taken as target value; e.g., `2024` becomes `2024-07-02 00:00:00` (which is the exact middle point of that year), `2024-12-31` becomes `2024-12-31 12:00:00`, `2024-12-31 12` -> `2024-12-31 12:30:00`, `2024-12-31 12:00` -> `2024-12-31 12:00:30`, `2024-12-31 12:00:01` -> `2024-12-31 12:00:01.5`, etc
+  : ... only the oldest visit; an alias for `--nearest @-inf` (which see)
   - `--latest`
-  : {fiar} the latest visit; if `--to` is set, archiving a new visit for a URL will replace the indexed and replayable version with a new one
+  : ... only the latest visit; an alias for `--nearest @+inf` (which see)
   - `--all`
-  : index and replay all visits to all available URLs; if `--to` is given, archiving a new visit for a URL will update the index and make the new visit available for replay; default
+  : ... all available visits; if `--to` is set, each new archival will also be added to the index and made available for replay; default
+  - `--no-replay`
+  : disable replay functionality completely, making this instance into an archive-only server, like `hoardy-web-sas` is
 
 - replay how:
   - `--web`
