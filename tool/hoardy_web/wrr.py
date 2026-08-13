@@ -1120,7 +1120,7 @@ def test_ReqresExpr_url_parts() -> None:
 
 
 def check_request_response(cmd: str, part: str) -> bool:
-    if part not in ["request", "response"]:
+    if part not in ("request", "response"):
         raise CatastrophicFailure(
             "`%s`: unexpected argument, expected `request` or `response`, got `%s`", cmd, part
         )

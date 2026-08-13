@@ -2049,7 +2049,7 @@ def complete_response(indexed: IndexedReqres) -> bool:
 
 
 def normal_document(indexed: IndexedReqres) -> bool:
-    return complete_response(indexed) and indexed[1].reqres.request.method in ["GET", "DOM"]
+    return complete_response(indexed) and indexed[1].reqres.request.method in ("GET", "DOM")
 
 
 def cmd_mirror(cargs: _t.Any) -> None:
@@ -2696,7 +2696,7 @@ def cmd_serve(cargs: _t.Any) -> None:
             )
 
         ctype = bottle.request.content_type
-        if ctype not in ["application/x-wrr+cbor", "application/cbor"]:
+        if ctype not in ("application/x-wrr+cbor", "application/cbor"):
             raise Failure("expected CBOR data, got `%s`", ctype)
 
         env = bottle.request.environ
@@ -2811,10 +2811,10 @@ def cmd_serve(cargs: _t.Any) -> None:
             )
 
         ideal: TimeStamp
-        if selector in ["-inf", "0", "1", "oldest", "old", "first"]:
+        if selector in ("-inf", "0", "1", "oldest", "old", "first"):
             interval = anytime
             ideal = anytime.start
-        elif selector in ["+inf", "2", "latest", "last", "newest", "new"]:
+        elif selector in ("+inf", "2", "latest", "last", "newest", "new"):
             interval = anytime
             ideal = anytime.end
         else:
@@ -3399,7 +3399,7 @@ def make_argparser(real: bool = True) -> argparse.BetterArgumentParser:
         if real:
             add_filter_options(cmd)
             add_filters(cmd, filter_what)
-        if kind in ["mirror", "serve"]:
+        if kind in ("mirror", "serve"):
             add_default_filters(cmd)
         if kind == "mirror":
             add_default_filters(cmd, "root")
@@ -3673,7 +3673,7 @@ def make_argparser(real: bool = True) -> argparse.BetterArgumentParser:
         if kind == "stream":
             add_terminator(cmd, "`--format=raw` `--expr` printing", "print `--format=raw` `--expr` output values")
             cmd.set_defaults(default_expr="dot")
-        elif kind in ["mirror", "serve"]:
+        elif kind in ("mirror", "serve"):
             add_separator(cmd, "rendering of `--expr` values", "render `--expr` values into outputs", short=False)
             cmd.set_defaults(default_expr="all")
         else:
@@ -3698,7 +3698,7 @@ def make_argparser(real: bool = True) -> argparse.BetterArgumentParser:
         grp.add_argument("--raw-sbody", "--no-remap", dest="default_expr", action="store_const", const="raw_sbody",
             help=alias("raw_sbody")
             + _("; i.e. produce the raw response body")
-            + (_("; default") if kind in ["get", "run"] else ""),
+            + (_("; default") if kind in ("get", "run") else ""),
         )
 
         grp.add_argument("--remap-id", dest="default_expr", action="store_const", const="id",
@@ -3948,7 +3948,7 @@ most useful when doing `{__prog__} organize --symlink --latest --output flat` or
                 + ";\n  - `num`: "
                 + _("number of times the resulting output path was encountered before; adding this parameter to your `--output` format will ensure all generated file names will be unique"),
             )
-        elif kind in ["import", "mirror", "serve"]:
+        elif kind in ("import", "mirror", "serve"):
             if kind != "serve":
                 agrp.add_argument("-t", "--to", f"--{kind}-to", dest="destination", metavar="OUTPUT_DESTINATION", type=str, required=True,
                     help=_("destination directory; required"),
