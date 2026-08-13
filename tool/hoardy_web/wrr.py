@@ -34,12 +34,13 @@ import cbor2 as _cbor2
 from kisstdlib.base import Decimal, getattr_rec
 from kisstdlib.compression import *
 from kisstdlib.failure import *
+from kisstdlib.fs import fsdecode
+from kisstdlib.io.base import BytesIOReader
 from kisstdlib.io.stdio import stdout as _stdout
 from kisstdlib.time import *
 
 from .tracking import *
 from .linst import *
-from .source import *
 from .web import *
 
 
@@ -127,27 +128,6 @@ class WebSocketFrame:
         return 40 + len(self.content)
 
 
-Reqres_fields = {
-    "version": "WEBREQRES format version; int",
-    "agent": "`+`-separated list of applications that produced this reqres; str",
-    "protocol": 'protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str',
-    "request.started_at": "request start time in seconds since 1970-01-01 00:00; TimeStamp",
-    "request.method": 'request `HTTP` method; e.g. `"GET"`, `"POST"`, etc; str',
-    "request.url": "request URL, including the `fragment`/hash part; str",
-    "request.headers": "request headers; list[tuple[str, bytes]]",
-    "request.complete": "is request body complete?; bool",
-    "request.body": "request body; bytes",
-    "response.started_at": "response start time in seconds since 1970-01-01 00:00; TimeStamp",
-    "response.code": "`HTTP` response code; e.g. `200`, `404`, etc; int",
-    "response.reason": '`HTTP` response reason; e.g. `"OK"`, `"Not Found"`, etc; usually empty for Chromium and filled for Firefox; str',
-    "response.headers": "response headers; list[tuple[str, bytes]]",
-    "response.complete": "is response body complete?; bool",
-    "response.body": "response body; Firefox gives raw bytes, Chromium gives UTF-8 encoded strings; bytes | str",
-    "finished_at": "request completion time in seconds since 1970-01-01 00:00; TimeStamp",
-    "websocket": "a list of WebSocket frames",
-}
-
-
 @_dc.dataclass
 class Reqres:
     version: int
@@ -179,7 +159,164 @@ class Reqres:
         return self._approx_size
 
 
+Reqres_fields = {
+    "version": "WEBREQRES format version; int",
+    "agent": "`+`-separated list of applications that produced this reqres; str",
+    "protocol": 'protocol; e.g. `"HTTP/1.1"`, `"HTTP/2.0"`; str',
+    "request.started_at": "request start time in seconds since 1970-01-01 00:00; TimeStamp",
+    "request.method": 'request `HTTP` method; e.g. `"GET"`, `"POST"`, etc; str',
+    "request.url": "request URL, including the `fragment`/hash part; str",
+    "request.headers": "request headers; list[tuple[str, bytes]]",
+    "request.complete": "is request body complete?; bool",
+    "request.body": "request body; bytes",
+    "response.started_at": "response start time in seconds since 1970-01-01 00:00; TimeStamp",
+    "response.code": "`HTTP` response code; e.g. `200`, `404`, etc; int",
+    "response.reason": '`HTTP` response reason; e.g. `"OK"`, `"Not Found"`, etc; usually empty for Chromium and filled for Firefox; str',
+    "response.headers": "response headers; list[tuple[str, bytes]]",
+    "response.complete": "is response body complete?; bool",
+    "response.body": "response body; Firefox gives raw bytes, Chromium gives UTF-8 encoded strings; bytes | str",
+    "finished_at": "request completion time in seconds since 1970-01-01 00:00; TimeStamp",
+    "websocket": "a list of WebSocket frames",
+}
+
+
 Reqres_url_schemes = frozenset(["http", "https", "ftp", "ftps", "ws", "wss"])
+
+
+class DeferredSource(metaclass=_abc.ABCMeta):
+    @_abc.abstractmethod
+    def approx_size(self) -> int:
+        raise NotImplementedError()
+
+    @_abc.abstractmethod
+    def show_source(self) -> str:
+        raise NotImplementedError()
+
+    @_abc.abstractmethod
+    def get_fileobj(self) -> _io.BufferedReader:
+        raise NotImplementedError()
+
+    def get_bytes(self) -> bytes:
+        with self.get_fileobj() as f:
+            return f.read()
+
+    def same_as(self, other: _t.Any) -> bool:  # pylint: disable=unused-argument
+        return False
+
+    def replaces(self, other: _t.Any) -> bool:  # pylint: disable=unused-argument
+        return True
+
+
+class UnknownSource(DeferredSource):
+    def approx_size(self) -> int:
+        return 8
+
+    def show_source(self) -> str:
+        return f"<UnknownSource {id(self)}>"
+
+    def get_fileobj(self) -> _io.BufferedReader:
+        raise NotImplementedError()
+
+    def get_bytes(self) -> bytes:
+        raise NotImplementedError()
+
+
+@_dc.dataclass
+class BytesSource(DeferredSource):
+    data: bytes
+
+    def approx_size(self) -> int:
+        return 16 + len(self.data)
+
+    def show_source(self) -> str:
+        return f"<BytesSource {id(self)} {repr(self.data)}>"
+
+    def get_fileobj(self) -> _io.BufferedReader:
+        return BytesIOReader(self.data)
+
+    def get_bytes(self) -> bytes:
+        return self.data
+
+    def replaces(self, other: DeferredSource) -> bool:
+        if isinstance(other, BytesSource) and self.data == other.data:
+            return False
+        return True
+
+
+@_dc.dataclass
+class FileSource(DeferredSource):
+    path: str | bytes
+    st_mtime_ns: int
+    st_dev: int
+    st_ino: int
+
+    def approx_size(self) -> int:
+        return 40 + len(self.path)
+
+    def show_source(self) -> str:
+        return fsdecode(self.path)
+
+    def get_fileobj(self) -> _io.BufferedReader:
+        fobj = open(self.path, "rb")  # pylint: disable=consider-using-with
+        try:
+            in_stat = _os.fstat(fobj.fileno())
+            if self.st_mtime_ns != in_stat.st_mtime_ns:
+                raise Failure("`%s` changed between accesses", self.path)
+        except Exception:
+            try:
+                fobj.close()
+            except Exception:
+                pass
+            raise
+        return fobj
+
+    def same_as(self, other: DeferredSource) -> bool:
+        if (
+            isinstance(other, FileSource)
+            and self.st_ino != 0
+            and other.st_ino != 0
+            and self.st_dev == other.st_dev
+            and self.st_ino == other.st_ino
+        ):
+            # same source file inode
+            return True
+        return False
+
+    def replaces(self, other: DeferredSource) -> bool:
+        if isinstance(other, FileSource) and self.path == other.path:
+            return False
+        return True
+
+
+def make_FileSource(path: str | bytes, in_stat: _os.stat_result) -> FileSource:
+    return FileSource(path, in_stat.st_mtime_ns, in_stat.st_dev, in_stat.st_ino)
+
+
+@_dc.dataclass
+class StreamElementSource[Source: DeferredSource](DeferredSource):
+    stream_source: Source
+    num: int
+
+    def approx_size(self) -> int:
+        return 24 + self.stream_source.approx_size()
+
+    def show_source(self) -> str:
+        return self.stream_source.show_source() + "//" + str(self.num)
+
+    def get_fileobj(self) -> _io.BufferedReader:
+        raise NotImplementedError()
+
+    def get_bytes(self) -> bytes:
+        raise NotImplementedError()
+
+    def replaces(self, other: DeferredSource) -> bool:
+        if (
+            isinstance(other, StreamElementSource)
+            and self.stream_source == other.stream_source
+            and self.num == other.num
+        ):
+            return False
+        return True
 
 
 class WRRParsingFailure(ParsingFailure):
