@@ -24,6 +24,7 @@ import io as _io
 import json as _json
 import logging as _logging
 import os as _os
+import os.path as _op
 import re as _re
 import shutil as _shutil
 import signal as _signal
@@ -211,7 +212,7 @@ def elaborate_output(kind: str, aliases: dict[str, str], value: str) -> str:
 
 def elaborate_paths(paths: list[str | bytes]) -> None:
     for i, p in enumerate(paths):
-        paths[i] = _os.path.expanduser(p)
+        paths[i] = _op.expanduser(p)
 
 
 def handle_paths(cargs: _t.Any) -> None:
@@ -246,7 +247,7 @@ def load_map_orderly[AnyStr: (
     errors: str = "fail",
 ) -> None:
     if seen_paths is not None:
-        abs_dir_or_file_path = _os.path.abspath(dir_or_file_path)
+        abs_dir_or_file_path = _op.abspath(dir_or_file_path)
         if abs_dir_or_file_path in seen_paths:
             return
         seen_paths.add(abs_dir_or_file_path)
@@ -261,10 +262,10 @@ def load_map_orderly[AnyStr: (
     ):
         raise_first_delayed_signal()
 
-        abs_path = _os.path.abspath(path)
+        abs_path = _op.abspath(path)
         try:
             if follow_symlinks:
-                abs_path = _os.path.realpath(abs_path)
+                abs_path = _op.realpath(abs_path)
 
             if (
                 seen_paths is not None
@@ -460,7 +461,7 @@ def cmd_get(cargs: _t.Any) -> None:
     if len(cargs.mexprs) == 0:
         cargs.mexprs = {stdout: [compile_expr(default_expr("get", cargs.default_expr))]}
 
-    exp_path = _os.path.expanduser(cargs.path)
+    exp_path = _op.expanduser(cargs.path)
     rrexpr = rrexpr_wrr_loadf(exp_path)
     rrexpr.sniff = cargs.sniff
 
@@ -1733,7 +1734,7 @@ def make_deferred_emit[Source: DeferredSource, AnyStr: (
 
                 # get symlink target and use it as abs_out_path, thus
                 # (SETSRC) below will re-create the original source
-                abs_in_path = _os.path.realpath(abs_out_path)
+                abs_in_path = _op.realpath(abs_out_path)
 
                 if isinstance(new_source, FileSource) and new_source.path == abs_out_path:
                     # similarly to the above
@@ -1763,10 +1764,10 @@ def make_deferred_emit[Source: DeferredSource, AnyStr: (
         while True:
             new_rrexpr.values["num"] = seen_counter.count(def_out_path)
             if isinstance(destination, str):
-                rel_out_path = _os.path.join(destination, output_format % new_rrexpr)
+                rel_out_path = _op.join(destination, output_format % new_rrexpr)
             else:
-                rel_out_path = _os.path.join(destination, _os.fsencode(output_format % new_rrexpr))
-            abs_out_path: AnyStr = _os.path.abspath(rel_out_path)
+                rel_out_path = _op.join(destination, _os.fsencode(output_format % new_rrexpr))
+            abs_out_path: AnyStr = _op.abspath(rel_out_path)
 
             old_rrexpr: ReqresExpr[FileSource] | ReqresExpr[Source] | None
             old_rrexpr = rrexpr_cache.pop(abs_out_path, None)
@@ -1965,7 +1966,7 @@ def cmd_organize(cargs: _t.Any) -> None:
     if cargs.destination is not None:
         # destination is set explicitly
         emit, finish = make_organize_emit(
-            cargs, _os.path.expanduser(cargs.destination), output_format, cargs.allow_updates
+            cargs, _op.expanduser(cargs.destination), output_format, cargs.allow_updates
         )
         try:
             map_wrr_paths(cargs, rrexprs_load, filters_allow, emit, cargs.paths)
@@ -2056,13 +2057,13 @@ def cmd_mirror(cargs: _t.Any) -> None:
         cargs.exprs = [compile_expr(default_expr("mirror", cargs.default_expr))]
 
     output_format = elaborate_output("--output", output_alias, cargs.output)
-    destination = _os.path.expanduser(cargs.destination)
+    destination = _op.expanduser(cargs.destination)
 
     content_output_format = elaborate_output(
         "--content-output", content_output_alias, cargs.content_output
     )
     if cargs.content_destination is not None:
-        content_destination = _os.path.expanduser(cargs.content_destination)
+        content_destination = _op.expanduser(cargs.content_destination)
     else:
         content_destination = destination
 
@@ -2113,9 +2114,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
             rrexpr.values["num"] = 0
             def_out_path = output_format % rrexpr
             rrexpr.values["num"] = seen_counter.count(def_out_path)
-            committed[id(rrexpr)] = rel_out_path = _os.path.join(
-                destination, output_format % rrexpr
-            )
+            committed[id(rrexpr)] = rel_out_path = _op.join(destination, output_format % rrexpr)
             mem.consumption += 8 + len(rel_out_path)
             return rel_out_path
 
@@ -2236,7 +2235,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
     ) -> PathType:
         trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime))
         trrexpr.values["num"] = 0
-        return _os.path.join(destination, output_format % trrexpr)
+        return _op.join(destination, output_format % trrexpr)
 
     class Mutable:
         n: int = 0
@@ -2308,7 +2307,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
         try:
             done[id(rrexpr)] = None  # (breakCycles)
 
-            document_dir = _os.path.dirname(rel_out_path)
+            document_dir = _op.dirname(rel_out_path)
 
             def remap_url(
                 unet_url: URLType,
@@ -2416,9 +2415,9 @@ def cmd_mirror(cargs: _t.Any) -> None:
                         return None
 
                 if relative:
-                    out_path = _os.path.relpath(urel_out_path, document_dir)
+                    out_path = _op.relpath(urel_out_path, document_dir)
                 else:
-                    out_path = _os.path.abspath(urel_out_path)
+                    out_path = _op.abspath(urel_out_path)
 
                 return path_to_url(out_path) + upurl.ofm + upurl.fragment
 
@@ -2455,9 +2454,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                     rrexpr.values["content_sha256"] = sha256_raw = _hashlib.sha256(data).digest()
                     sha256_hex = sha256_raw.hex()
 
-                    real_out_path = _os.path.join(
-                        content_destination, content_output_format % rrexpr
-                    )
+                    real_out_path = _op.join(content_destination, content_output_format % rrexpr)
 
                     old_content = read_file_maybe(real_out_path)
 
@@ -2575,7 +2572,7 @@ def cmd_serve(cargs: _t.Any) -> None:
 
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
     destination = map_optional(
-        lambda x: _os.path.expanduser(x), cargs.destination  # pylint: disable=unnecessary-lambda
+        lambda x: _op.expanduser(x), cargs.destination  # pylint: disable=unnecessary-lambda
     )
 
     bucket_re = _re.compile(r"[\w -]+")
@@ -2630,7 +2627,7 @@ def cmd_serve(cargs: _t.Any) -> None:
 
         rrexprs_load = mk_rrexprs_load(cargs)
         seen_paths: set[PathType] = set()
-        if destination is not None and cargs.implicit and _os.path.exists(destination):
+        if destination is not None and cargs.implicit and _op.exists(destination):
             map_wrr_paths(
                 cargs, rrexprs_load, filters_allow, emit, [destination], seen_paths=seen_paths
             )
@@ -2744,8 +2741,8 @@ def cmd_serve(cargs: _t.Any) -> None:
         trrexpr.values["num"] = 0
         prev_path: str | None = None
         while True:
-            rel_out_path = _os.path.join(destination, bucket, output_format % trrexpr)
-            abs_out_path = _os.path.abspath(rel_out_path)
+            rel_out_path = _op.join(destination, bucket, output_format % trrexpr)
+            abs_out_path = _op.abspath(rel_out_path)
 
             if prev_path == abs_out_path:
                 raise Failure("destination already exists" + variance_help)
