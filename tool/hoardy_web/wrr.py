@@ -246,12 +246,13 @@ class BytesSource(DeferredSource):
 @_dc.dataclass
 class FileSource(DeferredSource):
     path: str | bytes
+    st_size: int
     st_mtime_ns: int
     st_dev: int
     st_ino: int
 
     def approx_size(self) -> int:
-        return 40 + len(self.path)
+        return 48 + len(self.path)
 
     def show_source(self) -> str:
         return fsdecode(self.path)
@@ -260,7 +261,7 @@ class FileSource(DeferredSource):
         fobj = open(self.path, "rb")  # pylint: disable=consider-using-with
         try:
             in_stat = _os.fstat(fobj.fileno())
-            if self.st_mtime_ns != in_stat.st_mtime_ns:
+            if self.st_size != in_stat.st_size or self.st_mtime_ns != in_stat.st_mtime_ns:
                 raise Failure("`%s` changed between accesses", self.path)
         except Exception:
             try:
@@ -273,12 +274,16 @@ class FileSource(DeferredSource):
     def same_as(self, other: DeferredSource) -> bool:
         if (
             isinstance(other, FileSource)
-            and self.st_ino != 0
-            and other.st_ino != 0
-            and self.st_dev == other.st_dev
-            and self.st_ino == other.st_ino
+            and self.st_size == other.st_size
+            and self.st_mtime_ns == other.st_mtime_ns
+            and (
+                self.st_ino != 0
+                and self.st_dev == other.st_dev
+                and self.st_ino == other.st_ino
+                or self.path == other.path
+            )
         ):
-            # same source file inode
+            # same size, mtime, inode/path
             return True
         return False
 
@@ -289,7 +294,7 @@ class FileSource(DeferredSource):
 
 
 def make_FileSource(path: str | bytes, in_stat: _os.stat_result) -> FileSource:
-    return FileSource(path, in_stat.st_mtime_ns, in_stat.st_dev, in_stat.st_ino)
+    return FileSource(path, in_stat.st_size, in_stat.st_mtime_ns, in_stat.st_dev, in_stat.st_ino)
 
 
 @_dc.dataclass
