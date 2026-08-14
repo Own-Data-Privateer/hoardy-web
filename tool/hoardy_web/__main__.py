@@ -3757,7 +3757,7 @@ if other parts of the date are not specified, they get substituted from `<year>-
             help=alias("open")
             + _("; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-id` does, censor out all dynamic content; results almost certainly will NOT be self-contained"),
         )
-        grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="open",
+        grp.add_argument("--remap-closed", dest="default_expr", action="store_const", const="closed",
             help=alias("closed")
             + _("; i.e. `scrub` response body as follows: remap all URLs present in input `PATH`s and reachable from `--root-*`s in no more that `--depth` steps to their corresponding `--output` paths, remap all other URLs like `--remap-void` does, censor out all dynamic content; results will be self-contained"),
         )
