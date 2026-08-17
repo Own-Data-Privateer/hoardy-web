@@ -2602,6 +2602,9 @@ def cmd_serve(cargs: _t.Any) -> None:
     bucket_prefix = cargs.bucket_prefix
     fallback_bucket_prefix = cargs.fallback_bucket_prefix
 
+    if not default_bucket:
+        raise CatastrophicFailure("`--default-bucket` can't be empty")
+
     fallback = cargs.fallback
     compression = cargs.compression
     terminator = cargs.terminator
