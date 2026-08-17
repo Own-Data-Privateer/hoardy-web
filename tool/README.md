@@ -3015,6 +3015,8 @@ The end.
   : a bucket name to use when an `HTTP`-submission does not specify any; default: `default`
   - `--ignore-buckets, --ignore-profiles`
   : ignore bucket names specified by `HTTP`-submissions and use the value of `--default-bucket` instead
+  - `--bucket-prefix STR`
+  : when writing files to disk, prepend the following prefix to all bucket values, including the `--default-bucket` one; default: ``
 
 - file output options:
   - `--compress`

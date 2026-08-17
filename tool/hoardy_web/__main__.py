@@ -2599,6 +2599,7 @@ def cmd_serve(cargs: _t.Any) -> None:
     bucket_re = _re.compile(r"[\w -]+")
     ignore_buckets = cargs.ignore_buckets
     default_bucket = cargs.default_bucket
+    bucket_prefix = cargs.bucket_prefix
     fallback_bucket_prefix = cargs.fallback_bucket_prefix
 
     fallback = cargs.fallback
@@ -2761,7 +2762,7 @@ def cmd_serve(cargs: _t.Any) -> None:
                 raise Failure("failed to parse content body: %s", str(exc)) from exc
 
             trrexpr = ReqresExpr(UnknownSource(), reqres)
-            this_bucket = bucket
+            this_bucket = bucket_prefix + bucket
             this_format = default_output
             this_replay = do_replay
         except Exception as exc:
@@ -4371,6 +4372,9 @@ The end.
     )
     agrp.add_argument("--ignore-buckets", "--ignore-profiles", action="store_true",
         help=_("ignore bucket names specified by `HTTP`-submissions and use the value of `--default-bucket` instead"),
+    )
+    agrp.add_argument("--bucket-prefix", metavar="STR", default="", type=str,
+        help=_("when writing files to disk, prepend the following prefix to all bucket values, including the `--default-bucket` one; default: `%(default)s`"),
     )
 
     add_fileout(cmd, "serve")
