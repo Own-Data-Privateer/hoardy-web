@@ -2790,6 +2790,12 @@ def cmd_serve(cargs: _t.Any) -> None:
             bottle.abort(403, "Replay is forbidden on this server")
             return None
 
+        is_unavailable = namespace == "unavailable"
+        if is_unavailable and bottle.request.get_header("sec-fetch-dest", "document") != "document":
+            # speedup unavailable `remap_url` results
+            bottle.abort(404, "Not Found")
+            return None
+
         env = bottle.request.environ
         query = env.get("QUERY_STRING", "")
         turl = url_path
@@ -2875,9 +2881,10 @@ def cmd_serve(cargs: _t.Any) -> None:
                 )
 
         stime, rrexpr = uobj
-        stime_selector = stime.format(*time_format_s, precision=precision)
-        if stime not in interval or interval.delta > precision_delta:
-            bottle.redirect(f"/{namespace}/{stime_selector}/{turl}", 302)
+        want_namespace = "web" if is_unavailable else namespace
+        stime_selector = stime.format(*time_format, precision=precision)
+        if namespace != want_namespace or stime not in interval or interval.delta > precision_delta:
+            bottle.redirect(f"/{want_namespace}/{stime_selector}/{turl}", 302)
             return None
 
         try:
