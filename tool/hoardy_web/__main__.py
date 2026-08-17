@@ -2107,14 +2107,14 @@ def cmd_mirror(cargs: _t.Any) -> None:
     committed: dict[int, PathType] = {}
     done: dict[int, PathType | None] = {}
 
-    def get_rel_out_path(rrexpr: ReqresExpr[_t.Any]) -> PathType:
+    def get_rel_out_path(rrexpr_id: int, rrexpr: ReqresExpr[_t.Any]) -> PathType:
         try:
-            return committed[id(rrexpr)]
+            return committed[rrexpr_id]
         except KeyError:
             rrexpr.values["num"] = 0
             def_out_path = output_format % rrexpr
             rrexpr.values["num"] = seen_counter.count(def_out_path)
-            committed[id(rrexpr)] = rel_out_path = _op.join(destination, output_format % rrexpr)
+            committed[rrexpr_id] = rel_out_path = _op.join(destination, output_format % rrexpr)
             mem.consumption += 8 + len(rel_out_path)
             return rel_out_path
 
@@ -2251,16 +2251,20 @@ def cmd_mirror(cargs: _t.Any) -> None:
         new_queue: Queue,
         level: int,
     ) -> PathType | None:
-        source = rrexpr.source
+        rrexpr_id = id(rrexpr)
+        assert rrexpr_id not in done
+        done[rrexpr_id] = None  # (breakCycles)
 
         level0 = level == 0
-        Mutable.n += 1
+        n = Mutable.n = Mutable.n + 1
         if level0:
-            Mutable.doc_n += 1
-        n = Mutable.n
-        doc_n = Mutable.doc_n
+            doc_n = Mutable.doc_n = Mutable.doc_n + 1
+        else:
+            doc_n = Mutable.doc_n
         n100 = 100 * n
         n_total = n + len(new_queue) + len(queue)
+
+        source = rrexpr.source
 
         if stdout.isatty():
             if level0:
@@ -2305,8 +2309,6 @@ def cmd_mirror(cargs: _t.Any) -> None:
             printf_err(ispace + gettext(msg), *args, color=1)
 
         try:
-            done[id(rrexpr)] = None  # (breakCycles)
-
             document_dir = _op.dirname(rel_out_path)
 
             def remap_url(
@@ -2356,13 +2358,13 @@ def cmd_mirror(cargs: _t.Any) -> None:
                     urel_out_path = None
                 else:
                     ustime, urrexpr = uobj
+                    urrexpr_id = id(urrexpr)
                     urequest_id = get_request_id(unet_url, urrexpr)
                     upage_id = (ustime, urequest_id)
 
                     if is_requisite:
-                        # use content_destination path here
                         try:
-                            urel_out_path = done[id(urrexpr)]
+                            urel_out_path = done[urrexpr_id]
                         except KeyError:
                             # unqueue it
                             for q in (new_queue, queue):
@@ -2377,11 +2379,13 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
                             # render it immediately
                             # NB: (breakCycles) breaks dependency cycles that can make this loop infinitely
-                            urel_out_path = render(ustime, unet_url, urrexpr, get_rel_out_path(urrexpr), enqueue, new_queue, level + 1)  # fmt: skip
+                            # NB: using content_destination path here
+                            urel_out_path = get_rel_out_path(urrexpr_id, urrexpr)
+                            urel_out_path = render(ustime, unet_url, urrexpr, urel_out_path, enqueue, new_queue, level + 1)  # fmt: skip
                             urrexpr.unload()
-                    elif id(urrexpr) in done:
+                    elif urrexpr_id in done:
                         # nothing to do
-                        urel_out_path = get_rel_out_path(urrexpr)
+                        urel_out_path = get_rel_out_path(urrexpr_id, urrexpr)
                         # NB: will be unloaded already
                     elif (
                         upage_id in new_queue
@@ -2390,11 +2394,11 @@ def cmd_mirror(cargs: _t.Any) -> None:
                         or urequest_id in queue
                     ):
                         # nothing to do
-                        urel_out_path = get_rel_out_path(urrexpr)
+                        urel_out_path = get_rel_out_path(urrexpr_id, urrexpr)
                         if mem.consumption > max_memory_mib:
                             urrexpr.unload()
                     elif enqueue:
-                        urel_out_path = get_rel_out_path(urrexpr)
+                        urel_out_path = get_rel_out_path(urrexpr_id, urrexpr)
                         new_queue[upage_id] = uobj
                         report_queued(ustime, unet_url, upurl.pretty_net_url, urrexpr.source, level + 1)  # fmt: skip
                         if mem.consumption > max_memory_mib:
@@ -2402,11 +2406,14 @@ def cmd_mirror(cargs: _t.Any) -> None:
                     else:
                         # this will not be mirrored
                         urel_out_path = None
-                        # NB: Not setting `committed[id(rrexpr)] = None` here
-                        # because it might be a requisite for another
-                        # page. In which case, when not running with
-                        # `--remap-all`, this page will void this
-                        # `unet_url` unnecessarily, yes.
+                        # NB: Not setting
+                        #
+                        #  committed[urrexpr_id] = None
+                        #
+                        # because it might be a requisite for another page.
+                        #
+                        # In which case, when not running with `--remap-all`, this page will void
+                        # this link unnecessarily, yes.
 
                 if urel_out_path is None:
                     if fallbacks is not None:
@@ -2476,7 +2483,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                 stdout.write_str_ln(ispace + gettext("dst %s") % (rel_out_path,))
                 stdout.flush()
 
-                done[id(rrexpr)] = real_out_path
+                done[rrexpr_id] = real_out_path
                 return real_out_path
             except FileExistsError as exc:
                 raise Failure(
@@ -2511,7 +2518,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
             _qpid, qobj = queue.popitem(False)
             qstime, qrrexpr = qobj
-            render(qstime, qrrexpr.net_url, qrrexpr, get_rel_out_path(qrrexpr), enqueue, new_queue, 0)  # fmt: skip
+            render(qstime, qrrexpr.net_url, qrrexpr, get_rel_out_path(id(qrrexpr), qrrexpr), enqueue, new_queue, 0)  # fmt: skip
             qrrexpr.unload()
 
         queue = new_queue
