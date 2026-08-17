@@ -342,6 +342,10 @@ for arg in "${args[@]}"; do
             curl --data-binary "@-" -H "Content-type: application/x-wrr+cbor" "http://127.1.1.1:3210/pwebarc/dump"
         }
 
+        # feed it some trash
+        echo -n ABC | submit
+        echo -n BCD | submit
+
         # feed it some data
         while IFS= read -r -d $'\0' fname; do
             zcat "$fname" | submit
@@ -350,6 +354,18 @@ for arg in "${args[@]}"; do
         # kill immediately, which must work
         kill "$tmppid"
         tmppid=
+
+        # ensure the trash was put into fallback-default
+        describe-forest serve/fallback-default > serve.fallbacks
+        fbs=$(cat serve.fallbacks | grep reg | wc -l)
+        if (($fbs != 2)); then
+            cat serve.fallbacks
+            error "incorrect serve fallbacks number"
+        fi
+        if ! grep b5d4045c3f466fa91fe2cc6abe79232a1a57cdf104f7a26e716e0a1e2789df78 serve.fallbacks &>/dev/null || \
+           ! grep eff1f7c83bd8f6918571a75d6e1905cc97c246c5d4cf5f16efaeeb9a0141edbb serve.fallbacks &>/dev/null ; then
+            error "incorrect serve fallbacks content"
+        fi
 
         # ensure no .part files are left
         find serve -name '*.part' > serve.parts
