@@ -621,6 +621,7 @@ ofh4 = "%(net_url|to_ascii|sha256|take_prefix 2|to_hex)s"
 
 output_alias = {
     "default":       f"{ofdsd}/{ofdms}_%(qtime_ms)s_%(method)s_{ofh4}_%(status)s_%(hostname)s_%(num)d",
+    "fallback":      f"{ofdsd}/{ofdms}_%(qtime_ms)s_%(num)d",
     "short":         f"{ofdsd}/%(stime_ms)d_%(qtime_ms)s_%(num)d",
 
     "surl":           "%(scheme)s/%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s",
@@ -746,6 +747,16 @@ default:      1970/01/01/001640000_0_GET_4f11_C200C_königsgäßchen.example.org
 default:      1970/01/01/001640000_0_GET_c4ae_C200C_ジャジェメント.ですの.example.org_0
 default:      ==
 default:      ==
+fallback:     1970/01/01/001640000_0_0
+fallback:     ==
+fallback:     ==
+fallback:     ==
+fallback:     ==
+fallback:     ==
+fallback:     ==
+fallback:     ==
+fallback:     ==
+fallback:     ==
 short:        1970/01/01/1000000_0_0
 short:        ==
 short:        ==
@@ -2577,7 +2588,10 @@ def cmd_serve(cargs: _t.Any) -> None:
     precision = 0
     precision_delta = Decimal(10) ** -precision
 
-    output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
+    default_output = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
+    fallback_output = (
+        elaborate_output("--fallback-output", output_alias, cargs.fallback_output) + ".wrr"
+    )
     destination = map_optional(
         lambda x: _op.expanduser(x), cargs.destination  # pylint: disable=unnecessary-lambda
     )
@@ -2585,7 +2599,9 @@ def cmd_serve(cargs: _t.Any) -> None:
     bucket_re = _re.compile(r"[\w -]+")
     ignore_buckets = cargs.ignore_buckets
     default_bucket = cargs.default_bucket
+    fallback_bucket_prefix = cargs.fallback_bucket_prefix
 
+    fallback = cargs.fallback
     compression = cargs.compression
     terminator = cargs.terminator
 
@@ -2712,7 +2728,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         if not ignore_buckets:
             bucket_param = bottle.request.query.get("profile", "")
             bucket = "".join(bucket_re.findall(bucket_param))
-        if len(bucket) == 0:
+        if not bucket:
             bucket = default_bucket
 
         # read request body data
@@ -2731,24 +2747,51 @@ def cmd_serve(cargs: _t.Any) -> None:
             todo -= len(res)
 
         cborf.seek(0)
-        try:
-            reqres = wrr_load_cbor_fileobj(cborf)
-        except Failure as exc:
-            raise exc.elaborate("failed to parse content body")
-        except Exception as exc:
-            raise Failure("failed to parse content body: %s", str(exc)) from exc
-
-        cborf.seek(0)
         data = cborf.getvalue()  # type: ignore
-        del cborf
         if compression:
             data = gzip_maybe(data)
 
-        trrexpr = ReqresExpr(UnknownSource(), reqres)
+        cborf.seek(0)
+        try:
+            try:
+                reqres = wrr_load_cbor_fileobj(cborf)
+            except Failure as exc:
+                raise exc.elaborate("failed to parse content body")
+            except Exception as exc:
+                raise Failure("failed to parse content body: %s", str(exc)) from exc
+
+            trrexpr = ReqresExpr(UnknownSource(), reqres)
+            this_bucket = bucket
+            this_format = default_output
+            this_replay = do_replay
+        except Exception as exc:
+            if not fallback:
+                raise
+
+            if not quiet:
+                stderr.write_str_ln(get_traceback(exc))
+                stderr.flush()
+
+            now = TimeStamp.from_now()
+            trrexpr = ReqresExpr(
+                UnknownSource(),
+                trivial_Reqres(
+                    parse_url("https://example.org/fallback"),
+                    "application/octet-stream",
+                    now,
+                    now,
+                    now,
+                ),
+            )
+            this_bucket = fallback_bucket_prefix + bucket
+            this_format = fallback_output
+            this_replay = False
+        del cborf
+
         trrexpr.values["num"] = 0
         prev_path: str | None = None
         while True:
-            rel_out_path = _op.join(destination, bucket, output_format % trrexpr)
+            rel_out_path = _op.join(destination, this_bucket, this_format % trrexpr)
             abs_out_path = _op.abspath(rel_out_path)
 
             if prev_path == abs_out_path:
@@ -2766,20 +2809,21 @@ def cmd_serve(cargs: _t.Any) -> None:
 
             trrexpr.values["num"] += 1
 
-        if do_replay:
+        if this_replay:
             rrexpr = ReqresExpr(make_FileSource(abs_out_path, _os.stat(abs_out_path)), reqres)
             rrexpr.values = trrexpr.values
             if filters_allow(rrexpr):
                 emit(rrexpr)
                 all_urls.add(url_info(rrexpr.net_url, rrexpr.reqres.request.url))
+            stderr.write_str_ln(gettext("archived %s -> %s") % (rrexpr.net_url, abs_out_path))
+        else:
+            stderr.write_str_ln(gettext("fallback-archived something -> %s") % (abs_out_path,))
+        stderr.flush()
 
         if terminator is not None:
             stdout.write(abs_out_path)
             stdout.write_bytes(terminator)
             stdout.flush()
-
-        stderr.write_str_ln(gettext("archived %s -> %s") % (rrexpr.net_url, abs_out_path))
-        stderr.flush()
 
         return b""
 
@@ -4330,6 +4374,28 @@ The end.
     )
 
     add_fileout(cmd, "serve")
+
+    agrp = cmd.add_argument_group("when `--to` is set but parsing of an `HTTP`-submitted `WRR`-dump fails")
+    agrp.add_argument("--fallback", dest="fallback", action="store_const", const=True,
+        help=_("... write the dump into a separate file with the name derived using `--fallback-*` options below, skip adding it to replay index, and report success to the submitter, similarly to how `hoardy-web-sas` does it") + _("; default"),
+    )
+    agrp.add_argument("--no-fallback", dest="fallback", action="store_const", const=False,
+        help=_(f"... don't write anything to disk, don't touch the index, return an `HTTP` error to the submitter; enabling this will prevent `HTTP` clients from submitting garbage to this archiving server instance, but it will also make it impossible to archive perfectly correct `WRR`-dumps in situations when `cbor2` library or `WRR` parsing code of `{__prog__}` itself fail to parse them properly (which does happen, rarely)"),
+    )
+    cmd.set_defaults(fallback=True)  # --fallback
+
+    agrp = cmd.add_argument_group("when `--to` and `--fallback` are set but parsing of an `HTTP`-submitted `WRR`-dump fails")
+    agrp.add_argument("--fallback-bucket-prefix", metavar="STR", default="fallback-", type=str,
+        help=_("... when writing files to disk, prepend the following prefix to the submitted bucket value; default: `%(default)s`"),
+    )
+    agrp.add_argument("--fallback-output", metavar="OUTPUT_FORMAT", default="fallback", type=str,
+        help=_("""... use this value as an `--output` format (which see);
+since this value will be evaluated with without an associated reqres, the following rules apply:
+- all time-related substitutions (`qtime`, `stime`, `ftime`, `qyear`, `syear`, `fyear`, etc) will be set using current date and time,
+- the `num` substitution will work as normal,
+- all other substitutions will be filled with placeholders;
+thus, when setting this option to a custom value, you should probably only use the first two;"""),
+    )
 
     agrp = cmd.add_argument_group("for each URL, index and replay")
     grp = agrp.add_mutually_exclusive_group()

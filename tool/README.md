@@ -1755,6 +1755,8 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
             - `https://example.org/view?one=1&two=2&three=&three=3#fragment` -> `1970/01/01/001640000_0_GET_5658_C200C_example.org_0`
             - `https://königsgäßchen.example.org/index.html` -> `1970/01/01/001640000_0_GET_4f11_C200C_königsgäßchen.example.org_0`
             - `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `1970/01/01/001640000_0_GET_c4ae_C200C_ジャジェメント.ですの.example.org_0`
+      - `fallback`    : `%(syear)d/%(smonth)02d/%(sday)02d/%(shour)02d%(sminute)02d%(ssecond)02d%(stime_msq)03d_%(qtime_ms)s_%(num)d`
+            - `https://example.org`, `https://example.org/`, `https://example.org/index.html`, `https://example.org/media`, `https://example.org/media/`, `https://example.org/view?one=1&two=2&three=&three=3#fragment`, `https://königsgäßchen.example.org/index.html`, `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `1970/01/01/001640000_0_0`
       - `short`       : `%(syear)d/%(smonth)02d/%(sday)02d/%(stime_ms)d_%(qtime_ms)s_%(num)d`
             - `https://example.org`, `https://example.org/`, `https://example.org/index.html`, `https://example.org/media`, `https://example.org/media/`, `https://example.org/view?one=1&two=2&three=&three=3#fragment`, `https://königsgäßchen.example.org/index.html`, `https://ジャジェメント.ですの.example.org/испытание/is/`, `https://xn--hck7aa9d8fj9i.xn--88j1aw.example.org/%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/`, `https://xn--hck7aa9d8fj9i.ですの.example.org/исп%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/is/` -> `1970/01/01/1000000_0_0`
       - `surl`        : `%(scheme)s/%(netloc)s/%(mq_npath)s%(oqm)s%(mq_query)s`
@@ -3035,6 +3037,23 @@ The end.
   : print absolute paths of newly produced or replaced files terminated with `\n` (LF) newline characters
   - `-z, --zero-terminated`
   : print absolute paths of newly produced or replaced files terminated with `\0` (NUL) bytes
+
+- when `--to` is set but parsing of an `HTTP`-submitted `WRR`-dump fails:
+  - `--fallback`
+  : ... write the dump into a separate file with the name derived using `--fallback-*` options below, skip adding it to replay index, and report success to the submitter, similarly to how `hoardy-web-sas` does it; default
+  - `--no-fallback`
+  : ... don't write anything to disk, don't touch the index, return an `HTTP` error to the submitter; enabling this will prevent `HTTP` clients from submitting garbage to this archiving server instance, but it will also make it impossible to archive perfectly correct `WRR`-dumps in situations when `cbor2` library or `WRR` parsing code of `hoardy-web` itself fail to parse them properly (which does happen, rarely)
+
+- when `--to` and `--fallback` are set but parsing of an `HTTP`-submitted `WRR`-dump fails:
+  - `--fallback-bucket-prefix STR`
+  : ... when writing files to disk, prepend the following prefix to the submitted bucket value; default: `fallback-`
+  - `--fallback-output OUTPUT_FORMAT`
+  : ... use this value as an `--output` format (which see);
+    since this value will be evaluated with without an associated reqres, the following rules apply:
+    - all time-related substitutions (`qtime`, `stime`, `ftime`, `qyear`, `syear`, `fyear`, etc) will be set using current date and time,
+    - the `num` substitution will work as normal,
+    - all other substitutions will be filled with placeholders;
+    thus, when setting this option to a custom value, you should probably only use the first two;
 
 - for each URL, index and replay:
   - `--nearest DATETIME`
