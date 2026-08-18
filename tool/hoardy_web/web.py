@@ -594,7 +594,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
         errors: bool = False,
     ) -> list[CSSNode]:
         if not_styles:
-            if not_verbose:
+            if yes_verbose:
                 node = _tcss.ast.Comment(0, 0, " hoardy-web censored out CSS data from here ")
                 return [node]
             return []
@@ -1002,9 +1002,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                                     )
                                 )
                             elif yes_verbose:
-                                new_attrs[ann] = (
-                                    "/* hoardy-web censored out a CSS data from here */"
-                                )
+                                new_attrs[ann] = "/* hoardy-web censored out CSS data from here */"
                             else:
                                 new_attrs[ann] = None
                         elif ann == srcset_attr:
