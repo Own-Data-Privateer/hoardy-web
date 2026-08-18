@@ -159,6 +159,7 @@ def debug_walker(nodes: _t.Iterator[HTML5Node]) -> _t.Iterator[HTML5Node]:
 htmlns = _h5.constants.namespaces["html"]
 xlinkns = _h5.constants.namespaces["xlink"]
 xmlns = _h5.constants.namespaces["xml"]
+svgns = _h5.constants.namespaces["svg"]
 
 htmlns_a = (htmlns, "a")
 htmlns_area = (htmlns, "area")
@@ -392,9 +393,12 @@ attr_ref_type = {
     (htmlns_input, src_attr): (LinkType.REQ, image_mime, True),
     (htmlns_script, src_attr): (LinkType.REQ, script_mime, True),
     (htmlns_source, src_attr): (LinkType.REQ, media_mime, True),
+    (htmlns_source, srcset_attr): (LinkType.REQ, image_mime, False),
     (htmlns_track, src_attr): (LinkType.REQ, track_mime, True),
     (htmlns_video, poster_attr): (LinkType.REQ, image_mime, True),
     (htmlns_video, src_attr): (LinkType.REQ, video_mime + audio_video_mime, True),
+    #
+    ((svgns, "use"), href_attr): (LinkType.REQ, ["image/svg+xml"], True),
 }
 
 preload_link_rels = frozenset(
