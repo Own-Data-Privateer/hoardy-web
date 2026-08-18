@@ -68,6 +68,7 @@ def get_void_url(link_type: LinkType) -> str:
 
 RefType = tuple[LinkType, list[URLType]]  # tuple[LinkType, possible mime types]
 URLRemapperType = _t.Callable[[URLType, LinkType, list[str] | None], URLType | None]
+ParsedURLRemapperType = _t.Callable[[ParsedURL, LinkType, list[str] | None], URLType | None]
 
 web_url_schemes = frozenset(["http", "https", "ftp", "ftps"])
 noop_url_schemes = frozenset(["mailto", "irc", "magnet"])
@@ -83,7 +84,7 @@ def remappable_web(scheme: str) -> bool | None:
 
 def cached_remap_url(
     document_net_url: URLType,
-    remap_url: _t.Callable[[URLType, ParsedURL, LinkType, list[str] | None], URLType | None],
+    remap_url: ParsedURLRemapperType,
     *,
     remappable: _t.Callable[[str], bool | None] = remappable_web,
     paranoid: bool = False,
@@ -128,14 +129,12 @@ def cached_remap_url(
             remap_cache[cache_id] = url
             return url
 
-        net_url = purl.net_url
-
-        if net_url == document_net_url:
+        if purl.net_url == document_net_url:
             # this is a reference to an inter-page `id`
             remap_cache[cache_id] = res = purl.ofm + purl.fragment
             return res
 
-        remap_cache[cache_id] = res = remap_url(net_url, purl, link_type, fallbacks)
+        remap_cache[cache_id] = res = remap_url(purl, link_type, fallbacks)
         return res
 
     return our_remap_url
@@ -566,7 +565,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
 
         rurl: URLType | None = None
         if remap_url is not None:
-            rurl = remap_url(url, link_type, None if rt != RemapType.FALLBACK else fallbacks)
+            rurl = remap_url(url, link_type, fallbacks if rt == RemapType.FALLBACK else None)
 
         if rurl is not None:
             return rurl

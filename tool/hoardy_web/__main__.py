@@ -2323,13 +2323,13 @@ def cmd_mirror(cargs: _t.Any) -> None:
             document_dir = _op.dirname(rel_out_path)
 
             def remap_url(
-                unet_url: URLType,
                 upurl: ParsedURL,
                 link_type: LinkType,
                 fallbacks: list[str] | None,
             ) -> URLType | None:
                 raise_first_delayed_signal()
 
+                unet_url = upurl.net_url
                 is_requisite = link_type == LinkType.REQ
                 ustime = stime if nearest is None or is_requisite else nearest
                 upredicate = normal_document if link_type != LinkType.ACTION else complete_response
@@ -2938,13 +2938,13 @@ def cmd_serve(cargs: _t.Any) -> None:
         try:
 
             def remap_url(
-                unet_url: URLType,
                 upurl: ParsedURL,
                 _link_type: LinkType,
                 fallbacks: list[str] | None,
             ) -> URLType | None:
+                unet_url = upurl.net_url
                 unamespace = "unavailable"
-                ustime_selector = stime_selector if fallbacks is not None else None
+                ustime_selector = None if fallbacks is None else stime_selector
 
                 for uobj in index.iter_closest(unet_url, stime, normal_document):
                     ustime, urrexpr = uobj
