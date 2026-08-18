@@ -25,6 +25,8 @@ import re as _re
 import typing as _t
 import urllib.parse as _up
 
+from functools import cached_property
+
 import idna as _idna
 
 from kisstdlib.failure import *
@@ -195,7 +197,7 @@ class ParsedURL:
     ofm: str
     fragment: str
 
-    @property
+    @cached_property
     def net_auth(self) -> str:
         if self.user != "":
             if self.password != "":
@@ -203,43 +205,43 @@ class ParsedURL:
             return f"{self.user}@"
         return ""
 
-    @property
+    @cached_property
     def rhostname(self) -> str:
         hparts = self.hostname.split(".")
         hparts.reverse()
         return ".".join(hparts)
 
-    @property
+    @cached_property
     def netloc(self) -> str:
         hn = self.hostname
         if self.brackets:
             hn = "[" + hn + "]"
         return "".join([self.net_auth, hn, self.opm, self.port])
 
-    @property
+    @cached_property
     def net_netloc(self) -> str:
         hn = self.net_hostname
         if self.brackets:
             hn = "[" + hn + "]"
         return "".join([self.net_auth, hn, self.opm, self.port])
 
-    @property
+    @cached_property
     def path_parts(self) -> list[str]:
         return parse_path(self.raw_path)
 
-    @property
+    @cached_property
     def path(self) -> str:
         return unparse_path(self.path_parts)
 
-    @property
+    @cached_property
     def query_parts(self) -> list[tuple[str, str | None]]:
         return parse_query(self.raw_query)
 
-    @property
+    @cached_property
     def query(self) -> str:
         return unparse_query(self.query_parts)
 
-    @property
+    @cached_property
     def net_url(self) -> str:
         path = self.path
         if self.raw_hostname:
@@ -255,11 +257,11 @@ class ParsedURL:
             f"{self.scheme}:{path}{self.oqm}{self.query}", safe="%/:=&?~#+!$,;'@()*[]|"
         )
 
-    @property
+    @cached_property
     def url(self) -> str:
         return f"{self.net_url}{self.ofm}{self.fragment}"
 
-    @property
+    @cached_property
     def npath_parts(self) -> list[str]:
         parts_insecure = [e for e in self.path_parts if e != ""]
 
@@ -292,7 +294,7 @@ class ParsedURL:
             return parts[:-1] + [last_name], ".data"
         return parts[:-1] + [last], ".data"
 
-    @property
+    @cached_property
     def query_nparts(self) -> list[tuple[str, str]]:
         res: list[tuple[str, str]] = []
         for e in self.query_parts:
@@ -301,23 +303,23 @@ class ParsedURL:
                 res.append(e)  # type: ignore
         return res
 
-    @property
+    @cached_property
     def mq_path(self) -> str:
         return pp_to_path(self.path_parts)
 
-    @property
+    @cached_property
     def mq_npath(self) -> str:
         return pp_to_path(self.npath_parts)
 
-    @property
+    @cached_property
     def mq_query(self) -> str:
         return qsl_to_path(self.query_parts)
 
-    @property
+    @cached_property
     def mq_nquery(self) -> str:
         return qsl_to_path(self.query_nparts)
 
-    @property
+    @cached_property
     def pretty_net_url(self) -> str:
         if self.raw_hostname:
             nl = self.netloc
@@ -327,11 +329,11 @@ class ParsedURL:
             return f"{self.scheme}:{nl}{self.mq_path}{slash}{self.oqm}{self.mq_query}"
         return f"{self.scheme}:{self.mq_path}{self.oqm}{self.mq_query}"
 
-    @property
+    @cached_property
     def pretty_url(self) -> str:
         return f"{self.pretty_net_url}{self.ofm}{self.fragment}"
 
-    @property
+    @cached_property
     def pretty_net_nurl(self) -> str:
         mq_npath = self.mq_npath
         if self.raw_hostname:
@@ -343,7 +345,7 @@ class ParsedURL:
         slash = "/" if self.raw_path.endswith("/") else ""
         return f"{self.scheme}:{mq_npath}{slash}{self.oqm}{self.mq_nquery}"
 
-    @property
+    @cached_property
     def pretty_nurl(self) -> str:
         return f"{self.pretty_net_nurl}{self.ofm}{self.fragment}"
 
