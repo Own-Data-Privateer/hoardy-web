@@ -1413,6 +1413,14 @@ body {
     </p>
     <img src="/img/1.jpg">
     <img src="./img/miss2.jpg" srcset="./img/3.jpg 2x, ./img/miss4.jpg 1.5x, ./img/5.jpg">
+    <picture>
+      <source srcset="./img/1.jpg">
+      <source srcset="./img/3.jpg 2x, ./img/miss4.jpg 1.5x, ./img/5.jpg">
+      <img src="/img/miss6.jpg">
+    </picture>
+    <svg xmlns="http://www.w3.org/2000/svg" role="img">
+      <use href="/svg/1.svg#subelement"></use>
+    </svg>
     <script>x = 2;</script>
     <script src="https://asset.example.com/inc2-asset.js"></script>
     <script src="inc2-base.js"></script>
@@ -1441,6 +1449,14 @@ body {
     </p>
     <img>
     <img>
+    <picture>
+      <source>
+      <source>
+      <img>
+    </picture>
+    <svg xmlns="http://www.w3.org/2000/svg" role=img>
+      <use></use>
+    </svg>
   </body>
 </html>""",
     )
@@ -1483,6 +1499,14 @@ body {
     </p>
     <img censored-src="https://base.example.com/img/1.jpg">
     <img censored-src="https://base.example.com/img/miss2.jpg" censored-srcset="https://base.example.com/img/3.jpg https://base.example.com/img/miss4.jpg https://base.example.com/img/5.jpg">
+    <picture>
+      <source censored-srcset="https://base.example.com/img/1.jpg">
+      <source censored-srcset="https://base.example.com/img/3.jpg https://base.example.com/img/miss4.jpg https://base.example.com/img/5.jpg">
+      <img censored-src="https://base.example.com/img/miss6.jpg">
+    </picture>
+    <svg xmlns="http://www.w3.org/2000/svg" role=img>
+      <use censored-href="https://base.example.com/svg/1.svg#subelement"></use>
+    </svg>
     <!-- hoardy-web censored out AssembledTag script from here -->
     <!-- hoardy-web censored out AssembledTag script from here -->
     <!-- hoardy-web censored out AssembledTag script from here -->
@@ -1559,6 +1583,14 @@ body {
     </p>
     <img src="https://base.example.com/img/1.jpg">
     <img src="https://base.example.com/img/miss2.jpg" srcset="https://base.example.com/img/3.jpg 2x, https://base.example.com/img/miss4.jpg 1.5x, https://base.example.com/img/5.jpg">
+    <picture>
+      <source srcset="https://base.example.com/img/1.jpg">
+      <source srcset="https://base.example.com/img/3.jpg 2x, https://base.example.com/img/miss4.jpg 1.5x, https://base.example.com/img/5.jpg">
+      <img src="https://base.example.com/img/miss6.jpg">
+    </picture>
+    <svg xmlns="http://www.w3.org/2000/svg" role=img>
+      <use href="https://base.example.com/svg/1.svg#subelement"></use>
+    </svg>
     <script>
       x = 2;
     </script>
@@ -1609,6 +1641,14 @@ body {
     </p>
     <img src="remap+https://base.example.com/img/1.jpg">
     <img srcset="remap+https://base.example.com/img/3.jpg 2x, remap+https://base.example.com/img/5.jpg" censored-src="https://base.example.com/img/miss2.jpg" censored-srcset="https://base.example.com/img/miss4.jpg">
+    <picture>
+      <source srcset="remap+https://base.example.com/img/1.jpg">
+      <source srcset="remap+https://base.example.com/img/3.jpg 2x, remap+https://base.example.com/img/5.jpg" censored-srcset="https://base.example.com/img/miss4.jpg">
+      <img censored-src="https://base.example.com/img/miss6.jpg">
+    </picture>
+    <svg xmlns="http://www.w3.org/2000/svg" role=img>
+      <use href="remap+https://base.example.com/svg/1.svg#subelement"></use>
+    </svg>
     <script>
       x = 2;
     </script>
@@ -1660,6 +1700,14 @@ body {
     </p>
     <img src="remap+https://base.example.com/img/1.jpg">
     <img src="fallback+https://base.example.com/img/miss2.jpg" srcset="remap+https://base.example.com/img/3.jpg 2x, remap+https://base.example.com/img/5.jpg" censored-srcset="https://base.example.com/img/miss4.jpg">
+    <picture>
+      <source srcset="remap+https://base.example.com/img/1.jpg">
+      <source srcset="remap+https://base.example.com/img/3.jpg 2x, remap+https://base.example.com/img/5.jpg" censored-srcset="https://base.example.com/img/miss4.jpg">
+      <img src="fallback+https://base.example.com/img/miss6.jpg">
+    </picture>
+    <svg xmlns="http://www.w3.org/2000/svg" role=img>
+      <use href="remap+https://base.example.com/svg/1.svg#subelement"></use>
+    </svg>
     <script>
       x = 2;
     </script>
@@ -1708,6 +1756,14 @@ body {
     </p>
     <img src="remap+https://base.example.com/img/1.jpg">
     <img src="fallback+https://base.example.com/img/miss2.jpg" srcset="remap+https://base.example.com/img/3.jpg 2x, remap+https://base.example.com/img/5.jpg">
+    <picture>
+      <source srcset="remap+https://base.example.com/img/1.jpg">
+      <source srcset="remap+https://base.example.com/img/3.jpg 2x, remap+https://base.example.com/img/5.jpg">
+      <img src="fallback+https://base.example.com/img/miss6.jpg">
+    </picture>
+    <svg xmlns="http://www.w3.org/2000/svg" role=img>
+      <use href="remap+https://base.example.com/svg/1.svg#subelement"></use>
+    </svg>
     <script>
       x = 2;
     </script>
