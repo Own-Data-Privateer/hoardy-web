@@ -1281,6 +1281,17 @@ def check_rrexpr(cmd: str, rrexpr: _t.Any) -> ReqresExpr[_t.Any]:
 
 
 def test_ReqresExpr_scrub() -> None:
+    def remap_url(
+        purl: ParsedURL,
+        _link_type: LinkType,
+        fallbacks: list[str] | None,
+    ) -> URLType | None:
+        if "miss" in purl.net_url:
+            if fallbacks is not None:
+                return f"fallback+{purl.url}"
+            return None
+        return f"remap+{purl.url}"
+
     def check(
         opts: str,
         url: str,
@@ -1288,6 +1299,7 @@ def test_ReqresExpr_scrub() -> None:
         headers: Headers,
         data: str,
         expected: str,
+        remap: bool = False,
     ) -> None:
         purl = parse_url(url)
 
@@ -1296,6 +1308,8 @@ def test_ReqresExpr_scrub() -> None:
                 UnknownSource(),
                 trivial_Reqres(purl, ct, sniff=sniff, headers=headers, data=data.encode("utf-8")),
             )
+            if remap:
+                rrexpr.remap_url = cached_remap_url(purl.net_url, remap_url)
 
             res = rrexpr[f"response.body|eb|scrub response {opts}"].decode("utf-8")
             if res != expected:
@@ -1395,7 +1409,12 @@ body {
   </head>
   <body>
     <h1>Test page</h1>
-    <p>Test para.</p>
+    <p>Test para.
+      <a href="/other.html">Test link.</a>
+      <a href="/miss.html">Missing link.</a>
+    </p>
+    <img src="/img/1.jpg">
+    <img src="./img/miss2.jpg" srcset="./img/3.jpg 2x, ./img/miss4.jpg 1.5x, ./img/5.jpg">
     <script>x = 2;</script>
     <script src="https://asset.example.com/inc2-asset.js"></script>
     <script src="inc2-base.js"></script>
@@ -1404,7 +1423,7 @@ body {
 """
 
     check(
-        "-all_dyns,-verbose,-whitespace,+indent",
+        "-all_refs,-all_dyns,-verbose,-whitespace,+indent",
         "https://example.com/",
         "text/html",
         [],
@@ -1418,7 +1437,12 @@ body {
   </head>
   <body>
     <h1>Test page</h1>
-    <p>Test para.</p>
+    <p>Test para.
+      <a>Test link.</a>
+      <a>Missing link.</a>
+    </p>
+    <img>
+    <img>
   </body>
 </html>""",
     )
@@ -1455,7 +1479,12 @@ body {
   </head>
   <body>
     <h1>Test page</h1>
-    <p>Test para.</p>
+    <p>Test para.
+      <a href="https://base.example.com/other.html">Test link.</a>
+      <a href="https://base.example.com/miss.html">Missing link.</a>
+    </p>
+    <img>
+    <img>
     <!-- hoardy-web censored out AssembledTag script from here -->
     <!-- hoardy-web censored out AssembledTag script from here -->
     <!-- hoardy-web censored out AssembledTag script from here -->
@@ -1465,7 +1494,7 @@ body {
     )
 
     check(
-        "+all_refs,+scripts,+prefetches,+navigations,+verbose,-whitespace,+indent",
+        "+all_refs,+all_dyns,+verbose,-whitespace,+indent",
         "https://example.com/",
         "text/html",
         [
@@ -1526,7 +1555,12 @@ body {
   </head>
   <body>
     <h1>Test page</h1>
-    <p>Test para.</p>
+    <p>Test para.
+      <a href="https://base.example.com/other.html">Test link.</a>
+      <a href="https://base.example.com/miss.html">Missing link.</a>
+    </p>
+    <img src="https://base.example.com/img/1.jpg">
+    <img src="https://base.example.com/img/miss2.jpg" srcset="https://base.example.com/img/3.jpg 2x, https://base.example.com/img/miss4.jpg 1.5x, https://base.example.com/img/5.jpg">
     <script>
       x = 2;
     </script>
@@ -1534,6 +1568,156 @@ body {
     <script src="https://base.example.com/inc2-base.js"></script>
   </body>
 </html>""",
+    )
+
+    check(
+        "/all_refs,+all_dyns,+verbose,+whitespace,+indent",
+        "https://example.com/",
+        "text/html",
+        [],
+        test_html_in1,
+        """<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <!-- hoardy-web censored out EmptyTag base from here -->
+    <base target=_blank>
+    <!-- hoardy-web censored out EmptyTag base from here -->
+    <!-- hoardy-web censored out EmptyTag base from here -->
+    <title>Test page</title>
+    <link as=script rel=preload href="remap+https://asset.example.com/asset.js">
+    <link as=script rel=preload href="remap+https://base.example.com/base.js">
+    <link rel=stylesheet href="remap+https://asset.example.com/asset.css">
+    <link rel=stylesheet href="remap+https://base.example.com/base.css">
+    <style>
+      body {
+  background: url(remap+https://base.example.com/background.jpg);
+  *zoom: 1;
+}
+    </style>
+    <noscript><link rel=stylesheet href="remap+https://base.example.com/noscript.css"></noscript>
+    <script>
+      x = 1;
+    </script>
+    <script src="remap+https://asset.example.com/inc1-asset.js"></script>
+    <script src="remap+https://base.example.com/inc1-base.js"></script>
+    <link href="remap+https://base.example.com/favicon.ico" rel=icon>
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.
+      <a href="remap+https://base.example.com/other.html">Test link.</a>
+      <a>Missing link.</a>
+    </p>
+    <img src="remap+https://base.example.com/img/1.jpg">
+    <img srcset="remap+https://base.example.com/img/3.jpg 2x, remap+https://base.example.com/img/5.jpg">
+    <script>
+      x = 2;
+    </script>
+    <script src="remap+https://asset.example.com/inc2-asset.js"></script>
+    <script src="remap+https://base.example.com/inc2-base.js"></script>
+  </body>
+</html>""",
+        True,
+    )
+
+    check(
+        "&all_refs,+all_dyns,+verbose,+whitespace,+indent",
+        "https://example.com/",
+        "text/html",
+        [],
+        test_html_in1,
+        """<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <!-- hoardy-web censored out EmptyTag base from here -->
+    <base target=_blank>
+    <!-- hoardy-web censored out EmptyTag base from here -->
+    <!-- hoardy-web censored out EmptyTag base from here -->
+    <title>Test page</title>
+    <link as=script rel=preload href="remap+https://asset.example.com/asset.js">
+    <link as=script rel=preload href="remap+https://base.example.com/base.js">
+    <link rel=stylesheet href="remap+https://asset.example.com/asset.css">
+    <link rel=stylesheet href="remap+https://base.example.com/base.css">
+    <style>
+      body {
+  background: url(remap+https://base.example.com/background.jpg);
+  *zoom: 1;
+}
+    </style>
+    <noscript><link rel=stylesheet href="remap+https://base.example.com/noscript.css"></noscript>
+    <script>
+      x = 1;
+    </script>
+    <script src="remap+https://asset.example.com/inc1-asset.js"></script>
+    <script src="remap+https://base.example.com/inc1-base.js"></script>
+    <link href="remap+https://base.example.com/favicon.ico" rel=icon>
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.
+      <a href="remap+https://base.example.com/other.html">Test link.</a>
+      <a href="fallback+https://base.example.com/miss.html">Missing link.</a>
+    </p>
+    <img src="remap+https://base.example.com/img/1.jpg">
+    <img src="fallback+https://base.example.com/img/miss2.jpg" srcset="remap+https://base.example.com/img/3.jpg 2x, fallback+https://base.example.com/img/miss4.jpg 1.5x, remap+https://base.example.com/img/5.jpg">
+    <script>
+      x = 2;
+    </script>
+    <script src="remap+https://asset.example.com/inc2-asset.js"></script>
+    <script src="remap+https://base.example.com/inc2-base.js"></script>
+  </body>
+</html>""",
+        True,
+    )
+
+    check(
+        "&all_refs,+all_dyns,-verbose,+whitespace,+indent",
+        "https://example.com/",
+        "text/html",
+        [],
+        test_html_in1,
+        """<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <base target=_blank>
+    <title>Test page</title>
+    <link as=script rel=preload href="remap+https://asset.example.com/asset.js">
+    <link as=script rel=preload href="remap+https://base.example.com/base.js">
+    <link rel=stylesheet href="remap+https://asset.example.com/asset.css">
+    <link rel=stylesheet href="remap+https://base.example.com/base.css">
+    <style>
+      body {
+  background: url(remap+https://base.example.com/background.jpg);
+  *zoom: 1;
+}
+    </style>
+    <noscript><link rel=stylesheet href="remap+https://base.example.com/noscript.css"></noscript>
+    <script>
+      x = 1;
+    </script>
+    <script src="remap+https://asset.example.com/inc1-asset.js"></script>
+    <script src="remap+https://base.example.com/inc1-base.js"></script>
+    <link href="remap+https://base.example.com/favicon.ico" rel=icon>
+  </head>
+  <body>
+    <h1>Test page</h1>
+    <p>Test para.
+      <a href="remap+https://base.example.com/other.html">Test link.</a>
+      <a href="fallback+https://base.example.com/miss.html">Missing link.</a>
+    </p>
+    <img src="remap+https://base.example.com/img/1.jpg">
+    <img src="fallback+https://base.example.com/img/miss2.jpg" srcset="remap+https://base.example.com/img/3.jpg 2x, fallback+https://base.example.com/img/miss4.jpg 1.5x, remap+https://base.example.com/img/5.jpg">
+    <script>
+      x = 2;
+    </script>
+    <script src="remap+https://asset.example.com/inc2-asset.js"></script>
+    <script src="remap+https://base.example.com/inc2-base.js"></script>
+  </body>
+</html>""",
+        True,
     )
 
     # check CSS scrubbing inside data: URLs inside HTML
