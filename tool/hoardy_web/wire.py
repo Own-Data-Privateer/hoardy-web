@@ -114,7 +114,7 @@ def parse_path(path: str, encoding: str = "utf-8", errors: str = "replace") -> l
 def unparse_path(
     path_parts: _t.Sequence[str], encoding: str = "utf-8", errors: str = "strict"
 ) -> str:
-    return "/".join(map(lambda p: _up.quote(p, ":", encoding=encoding, errors=errors), path_parts))
+    return "/".join(map(lambda p: _up.quote(p, ":=", encoding=encoding, errors=errors), path_parts))
 
 
 def parse_query(
@@ -156,9 +156,9 @@ def unparse_query(
     return "&".join(l)
 
 
-quote_path = quoter("%", "", safe_char("", "/?")).escape
-quote_key = quoter("%", "", safe_char("", "/&=")).escape
-quote_value = quoter("%", "", safe_char("", "/&")).escape
+quote_path = quoter("%", "", safe_char("", "/?#")).escape
+quote_key = quoter("%", "", safe_char("", "/&=#")).escape
+quote_value = quoter("%", "", safe_char("", "/&#")).escape
 
 
 def pp_to_path(parts: list[str]) -> str:
