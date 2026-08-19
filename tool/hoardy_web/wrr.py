@@ -1260,6 +1260,16 @@ def test_ReqresExpr_url_parts() -> None:
     check(x, "fragment", "hash")
     check(x, "net_url", f"https://{ehostname}{path_query}")
 
+    url = "https://example.org/ABC==/XY/.jpg"
+    x = mk_trivial_ReqresExpr(url)
+    check(x, "net_url", url)
+    check(x, "pretty_net_url", url)
+
+    url = "https://example.org/index%23.txt"
+    x = mk_trivial_ReqresExpr(url)
+    check(x, "net_url", url)
+    check(x, "pretty_net_url", url)
+
 
 def check_request_response(cmd: str, part: str) -> bool:
     if part not in ("request", "response"):
