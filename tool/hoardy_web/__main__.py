@@ -2833,9 +2833,9 @@ def cmd_serve(cargs: _t.Any) -> None:
 
         return b""
 
-    @app.route("/<namespace:re:(web|redirect|unavailable|other)>/<selector>/<url_path:path>")  # type: ignore
+    @app.route("/<namespace:re:(web|redirect|unavailable|other)>/<selector>/<surl:path>")  # type: ignore
     @with_no_signals
-    def from_archive(namespace: str, selector: str, url_path: str) -> BottleReturnType:
+    def from_archive(namespace: str, selector: str, surl: str) -> BottleReturnType:
         if not do_replay:
             bottle.abort(403, "Replay is forbidden on this server")
             return None
@@ -2846,11 +2846,9 @@ def cmd_serve(cargs: _t.Any) -> None:
             bottle.abort(404, "Not Found")
             return None
 
-        env = bottle.request.environ
-        query = env.get("QUERY_STRING", "")
-        turl = url_path
+        query = bottle.request.environ.get("QUERY_STRING", "")
         if len(query) > 0:
-            turl += "?" + _up.unquote(query)
+            surl += "?" + _up.unquote(query)
 
         interval: TimeRange
         if selector.endswith("*"):
@@ -2859,7 +2857,7 @@ def cmd_serve(cargs: _t.Any) -> None:
             except CatastrophicFailure as exc:
                 bottle.abort(400, exc.get_message(gettext))
                 return None
-            url_like_re = _re.compile(translate(turl))
+            url_like_re = _re.compile(translate(surl))
             visits_total, url_visits = get_visits(url_like_re, interval.start, interval.end)
             return locate_page.render(  # type: ignore
                 {
@@ -2867,7 +2865,7 @@ def cmd_serve(cargs: _t.Any) -> None:
                     "selector": selector,
                     "start": interval.start.format(*time_format),
                     "end": interval.end.format(*time_format),
-                    "pattern": turl,
+                    "pattern": surl,
                     "visits_total": visits_total,
                     "url_visits": url_visits,
                 }
@@ -2889,12 +2887,12 @@ def cmd_serve(cargs: _t.Any) -> None:
                 return None
 
         try:
-            pturl = parse_url(turl)
+            purl = parse_url(surl)
         except URLParsingError:
-            bottle.abort(400, gettext("malformed URL `%s`") % (turl,))
+            bottle.abort(400, gettext("malformed URL `%s`") % (surl,))
             return None
 
-        net_url = pturl.net_url
+        net_url = purl.net_url
 
         uobj = index.get_closest(net_url, ideal, normal_document)
         if uobj is None:
@@ -2903,14 +2901,14 @@ def cmd_serve(cargs: _t.Any) -> None:
                 # when it was given by the client, so we have to check
                 uobj = index.get_closest(net_url + "?", ideal, normal_document)
             if uobj is None:
-                if "*" in turl:
-                    url_like_re = _re.compile(translate(turl))
-                    pattern = turl
+                if "*" in surl:
+                    url_like_re = _re.compile(translate(surl))
+                    pattern = surl
                 else:
-                    mq_path = pturl.mq_path
+                    mq_path = purl.mq_path
                     if mq_path.endswith("/"):
                         mq_path = mq_path[:-1]
-                    loc = pturl.netloc + mq_path
+                    loc = purl.netloc + mq_path
                     url_like_re = _re.compile(".*" + _re.escape(loc) + ".*")
                     pattern = "*" + loc + "*"
 
@@ -2921,7 +2919,7 @@ def cmd_serve(cargs: _t.Any) -> None:
                     {
                         "matching": False,
                         "net_url": net_url,
-                        "pretty_net_url": turl,
+                        "pretty_net_url": surl,
                         "selector": "*",
                         # "start": anytime.start.format(), "end": anytime.end.format(),
                         "pattern": pattern,
@@ -2934,7 +2932,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         want_namespace = "web" if is_unavailable else namespace
         stime_selector = stime.format(*time_format, precision=precision)
         if namespace != want_namespace or stime not in interval or interval.delta > precision_delta:
-            bottle.redirect(f"/{want_namespace}/{stime_selector}/{turl}", 302)
+            bottle.redirect(f"/{want_namespace}/{stime_selector}/{surl}", 302)
             return None
 
         try:
@@ -3057,7 +3055,7 @@ def cmd_serve(cargs: _t.Any) -> None:
 
             return data
         except Failure as exc:
-            exc.elaborate("while processing [%s] `%s`", stime.format(*time_format), turl)
+            exc.elaborate("while processing [%s] `%s`", stime.format(*time_format), surl)
             bottle.abort(500, exc.get_message(gettext))
             return None
         finally:
