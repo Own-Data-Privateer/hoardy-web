@@ -2846,6 +2846,7 @@ def cmd_serve(cargs: _t.Any) -> None:
             bottle.abort(404, "Not Found")
             return None
 
+        surl = surl.replace("#", "%23")
         query = bottle.request.environ.get("QUERY_STRING", "")
         if len(query) > 0:
             surl += "?" + _up.unquote(query)
