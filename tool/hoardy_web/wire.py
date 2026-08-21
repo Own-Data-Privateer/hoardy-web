@@ -108,7 +108,9 @@ url_re = _re.compile(url_re_str(""))
 
 
 def parse_path(path: str, encoding: str = "utf-8", errors: str = "replace") -> list[str]:
-    return [_up.unquote(e, encoding=encoding, errors=errors) for e in path.split("/")]
+    if path in ("", "/"):
+        return []
+    return [_up.unquote(e, encoding=encoding, errors=errors) for e in path[1:].split("/")]
 
 
 def unparse_path(
@@ -243,18 +245,16 @@ class ParsedURL:
 
     @cached_property
     def net_url(self) -> str:
-        path = self.path
         if self.raw_hostname:
             nl = self.net_netloc
             if nl != "":
                 nl = "//" + nl
-            slash = "/" if path == "" else ""
             return _up.quote(
-                f"{self.scheme}:{nl}{path}{slash}{self.oqm}{self.query}",
-                safe="%/:=&?~#+!$,;'@()*[]|",
+                f"{self.scheme}:{nl}/{self.path}{self.oqm}{self.query}",
+                "%/:=&?~#+!$,;'@()*[]|",
             )
         return _up.quote(
-            f"{self.scheme}:{path}{self.oqm}{self.query}", safe="%/:=&?~#+!$,;'@()*[]|"
+            f"{self.scheme}:{self.path}{self.oqm}{self.query}", "%/:=&?~#+!$,;'@()*[]|"
         )
 
     @cached_property
@@ -263,11 +263,14 @@ class ParsedURL:
 
     @cached_property
     def npath_parts(self) -> list[str]:
-        parts_insecure = [e for e in self.path_parts if e != ""]
-
-        # remove dots and securely interpret double dots
         parts: list[str] = []
-        for e in parts_insecure:
+        last_es = False
+        for e in self.path_parts:
+            last_es = False
+            if e == "":
+                last_es = True
+                continue
+            # remove dots, interpret double dots
             if e == ".":
                 continue
             if e == "..":
@@ -275,12 +278,17 @@ class ParsedURL:
                     parts.pop()
                 continue
             parts.append(e)
+        # re-add the last "" so that things like "/test/" would work as expected
+        if last_es:
+            parts.append("")
         return parts
 
     def filepath_parts_ext(self, default: str, extensions: list[str]) -> tuple[list[str], str]:
         parts = self.npath_parts
-        if len(parts) == 0 or self.raw_path.endswith("/"):
+        if len(parts) == 0:
             return parts + [default], extensions[0] if len(extensions) > 0 else ".data"
+        if parts[len(parts) - 1] == "":
+            return parts[:-1] + [default], extensions[0] if len(extensions) > 0 else ".data"
 
         last = parts[-1].lower()
         last_name, last_ext = _os.path.splitext(last)
@@ -325,8 +333,7 @@ class ParsedURL:
             nl = self.netloc
             if nl != "":
                 nl = "//" + nl
-            slash = "/" if self.raw_path == "" else ""
-            return f"{self.scheme}:{nl}{self.mq_path}{slash}{self.oqm}{self.mq_query}"
+            return f"{self.scheme}:{nl}/{self.mq_path}{self.oqm}{self.mq_query}"
         return f"{self.scheme}:{self.mq_path}{self.oqm}{self.mq_query}"
 
     @cached_property
@@ -335,15 +342,12 @@ class ParsedURL:
 
     @cached_property
     def pretty_net_nurl(self) -> str:
-        mq_npath = self.mq_npath
         if self.raw_hostname:
             nl = self.netloc
             if nl != "":
                 nl = "//" + nl
-            slash = "/" if self.raw_path.endswith("/") and len(mq_npath) > 0 else ""
-            return f"{self.scheme}:{nl}/{mq_npath}{slash}{self.oqm}{self.mq_nquery}"
-        slash = "/" if self.raw_path.endswith("/") else ""
-        return f"{self.scheme}:{mq_npath}{slash}{self.oqm}{self.mq_nquery}"
+            return f"{self.scheme}:{nl}/{self.mq_npath}{self.oqm}{self.mq_nquery}"
+        return f"{self.scheme}:{self.mq_npath}{self.oqm}{self.mq_nquery}"
 
     @cached_property
     def pretty_nurl(self) -> str:
@@ -363,8 +367,8 @@ def parse_url(url: str) -> ParsedURL:
     userinfo, has_user, hostinfo = netloc.rpartition("@")
     if has_user:
         user, _, password = userinfo.partition(":")
-        user = _up.quote(_up.unquote(user), safe="")
-        password = _up.quote(_up.unquote(password), safe="")
+        user = _up.quote(_up.unquote(user), "")
+        password = _up.quote(_up.unquote(password), "")
     else:
         user = ""
         password = ""

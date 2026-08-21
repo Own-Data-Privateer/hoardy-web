@@ -617,9 +617,9 @@ ReqresExpr_url_attrs = {
     "netloc": "netloc part of `raw_url`; i.e., in the most general case, `<username>:<password>@<hostname>:<port>`; str",
     #
     "raw_path": 'raw path part of `raw_url` as it is recorded is the reqres; e.g. `"https://www.example.org"` -> `""`, `"https://www.example.org/"` -> `"/"`, `"https://www.example.org/index.html"` -> `"/index.html"`; str',
-    "path_parts": 'component-wise unquoted "/"-split `raw_path`; list[str]',
-    "path": "`path_parts` turned back into a quoted string, i.e. `raw_path` normalized like browsers do it; str",
-    "npath_parts": '`path_parts` with empty components removed and dots and double dots interpreted away; e.g. `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]` , `"https://www.example.org/skipped/.//../used/"` -> `["used"]`; list[str]',
+    "path_parts": 'parsed components of `raw_path`; e.g., `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]`, `"https://www.example.org/main/"` -> `["main", ""]`; list[str]',
+    "path": "`path_parts` turned back into a quoted string, i.e., `raw_path` normalized like browsers do it; str",
+    "npath_parts": '`path_parts` with empty components removed and dots and double dots interpreted away; e.g., `"https://www.example.org"` -> `[]`, `"https://www.example.org/"` -> `[]`, `"https://www.example.org/index.html"` -> `["index.html"]`, `"https://www.example.org/skipped/.//../used/"` -> `["used", ""]`; list[str]',
     "mq_path": "`path_parts` turned back into a minimally-quoted string; str",
     "mq_npath": "`npath_parts` turned back into a minimally-quoted string; str",
     #
@@ -642,7 +642,7 @@ ReqresExpr_derived_attrs.update(
         "request_mime": "`request.body` `MIME` type, note the underscore, this is not a field of `request`, this is a derived value that depends on `request` `Content-Type` header and `--sniff*` settings; str or None",
         "response_mime": "`response.body` `MIME` type, note the underscore, this is not a field of `response`, this is a derived value that depends on `response` `Content-Type` header and `--sniff*` settings; str or None",
         #
-        "filepath_parts": '`npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response_mime`; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]`, but if it has a `JSON` `MIME` type then `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
+        "filepath_parts": '`npath_parts` transformed into components usable as an exportable file name; i.e. `npath_parts` with an optional additional `"index"` appended, depending on `raw_url` and `response_mime`; extension will be stored separately in `filepath_ext`; e.g. for `HTML` documents: `"https://www.example.org/"` -> `["index"]`, `"https://www.example.org/test.html"` -> `["test"]`, `"https://www.example.org/test"` -> `["test", "index"]`, `"https://www.example.org/test.json"` -> `["test.json", "index"]` (and `filepath_ext` will be set to `".htm"`); but for a `JSON` `MIME` type: `"https://www.example.org/test.json"` -> `["test"]` (and `filepath_ext` will be set to `".json"`); this is similar to what `wget -mpk` does, but a bit smarter; list[str]',
         "filepath_ext": 'extension of the last component of `filepath_parts` for recognized `MIME` types, `".data"` otherwise; str',
     }
 )
@@ -1145,10 +1145,10 @@ def fallback_Reqres(
     if len(npath_parts) == 0 or url.raw_path.endswith("/"):
         cts = page_mime
     else:
-        last = npath_parts[-1].lower()
+        last = npath_parts[len(npath_parts) - 1]
         _, ext = _os.path.splitext(last)
         try:
-            cts = possible_mimes_of_ext[ext]
+            cts = possible_mimes_of_ext[ext.lower()]
         except KeyError:
             cts = any_mime
 
@@ -1230,10 +1230,9 @@ def test_ReqresExpr_url_parts() -> None:
 
     url = "https://example.org//first/./skipped/../second/?query=this"
     x = mk_trivial_ReqresExpr(url)
-    path_components = ["first", "second"]
     check(x, "net_url", url)
-    check(x, "npath_parts", path_components)
-    check(x, "filepath_parts", path_components + ["index"])
+    check(x, "npath_parts", ["first", "second", ""])
+    check(x, "filepath_parts", ["first", "second", "index"])
     check(x, "filepath_ext", ".htm")
     check(x, "query_parts", [("query", "this")])
 
