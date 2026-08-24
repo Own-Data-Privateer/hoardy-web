@@ -81,11 +81,10 @@ mime_info_of: dict[str, tuple[list[str], list[str]]]
 mime_info_of = {
     "application/gzip": (["archive"], [".gz", ".gzip"]),
     "application/ogg": (["audio", "video"], [".ogg"]),
-    "application/pdf": (["dyndoc"], [".pdf"]),
-    "application/postscript": (["dyndoc"], [".ps"]),
+    "application/postscript": (["psdoc"], [".ps"]),
+    "application/pdf": (["psdoc"], [".pdf"]),
     "application/rar": (["archive"], [".rar"]),
-    # "dyndoc" because of EPUB
-    "application/zip": (["archive", "dyndoc"], [".zip", ".epub", ".apk"]),  # fmt: skip
+    "application/zip": (["archive"], [".zip", ".epub", ".apk"]),
     "audio/aiff": (["audio"], [".aif", ".aiff", ".aifc"]),
     "audio/midi": (["audio"], [".mid", ".midi"]),
     "audio/mpeg": (["audio"], [".mp3"]),
@@ -134,7 +133,7 @@ def populate_possible_mimes_of_ext() -> None:
 
 populate_possible_mimes_of_ext()
 
-unknown_binary = ["unknown", "image", "audio", "video", "font", "dyndoc", "archive"]
+unknown_binary = ["unknown", "image", "audio", "video", "font", "psdoc", "archive"]
 any_text = ["text", "javascript", "css", "json"]
 any_text_ext = [".txt", ".js", ".mjs", ".css", ".mcss", ".json"]
 

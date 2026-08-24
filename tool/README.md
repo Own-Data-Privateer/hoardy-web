@@ -1218,19 +1218,18 @@ The end.
               - `(+|-|*|/|&)actions` controls how action-links (`a ping`, `form action`, and similar `HTML` tag attributes) should be remapped or censored out; same rewrite options as above;
               - `(+|-|*|/|&)reqs` controls how references to page requisites (`img src`, `iframe src`, and similar `HTML` tag attributes, as well as `link src` attributes which have `rel` attribute of their `HTML` tag set to `stylesheet` or `icon`, `CSS` `url` references, etc) should be remapped or censored out; same rewrite options as above;
               - `(+|-|*|/|&)all_refs` is equivalent to setting all of `jumps`, `actions`, and `reqs` simultaneously;
-              - `(+|-)styles` controls whether `CSS` stylesheets (both separate files and `HTML` tags and attributes) should be kept in or censored out;
               - `(+|-)scripts` controls whether `JavaScript` (both separate files and `HTML` tags and attributes) should be kept in or censored out;
+              - `(+|-)styles` controls whether `CSS` stylesheets (both separate files and `HTML` tags and attributes) should be kept in or censored out;
               - `(+|-)iepragmas` controls whether Internet Explorer's `HTML` pragmas should be kept in or censored out;
               - `(+|-)iframes` controls whether `<iframe>` `HTML` tags should be kept in or censored out;
               - `(+|-)prefetches` controls whether `HTML` content prefetch `link` tags should be kept in or censored out;
               - `(+|-)tracking` controls whether other tracking `HTML` tags and attributes (like `a ping`) should be kept in or censored out;
               - `(+|-)navigations` controls whether automatic navigations (`Refresh` `HTTP` headers and `<meta http-equiv>` `HTML` tags) should be kept in or censored out;
-              - `(+|-)all_dyns` is equivalent to setting all of `styles`, `scripts`, `iepragmas`, `iframes`, `prefetches`, `tracking`, and `navigations` simultaneously;
+              - `(+|-)all_dyns` is equivalent to setting all of `scripts`, `styles`, `iepragmas`, `iframes`, `prefetches`, `tracking`, and `navigations` simultaneously;
               - `(+|-)inline_headers` controls whether certain `HTTP` headers (`Content-Security-Policy`, `Default-Style`, `Link`, `Refresh`, and `X-UA-Compatible`) should be inlined as `<meta http-equiv=*>` `HTML` tags;
                  `scrub` will then interpret the contents of and process those tags as usual, as if they were present in the document to begin with;
               - `(+|-)inline_fallback_icon` controls whether `<link rel="icon" href="/favicon.ico">` `HTML` tag browsers use as a fallback when a page does not declare any icons should be made explicit and inlined into the result; that URL will then get remapped like a normal page requisite using `reqs` and the tag will not be added if that `/favicon.ico` URL gets remapped into void;
               - `(+|-)interpret_noscript` controls whether the contents of `noscript` tags should be inlined when `-scripts` is set;
-              - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively);
               - `(+|-)verbose` controls whether `HTML` tag and attribute censoring controlled by the above options is to be reported in the output (as comments and renamed attributes) or stuff should be wiped from existence without evidence instead;
               - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away;
               - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them;
@@ -1239,6 +1238,8 @@ The end.
               - `-pretty` is an alias for `+whitespace,-indent` which produces the approximation of the original markup with censoring applied;
               - `+debug` is a variant of `+pretty` that also uses a much more aggressive version of `indent` that ignores the semantics of original whitespace placement, i.e. it indents `<p>not<em>sep</em>arated</p>` as if there was whitespace before and after `p`, `em`, `/em`, and `/p` tags; this is useful for debugging;
               - `-debug` is a noop;
+              - `(+|-)psdocs` controls whether `PostScript` (`*.ps`) and `Portable Document Format` (`*.pdf`) documents should be kept in or censored out;
+              - `(+|-)unknown` controls whether documents with unknown content types should be kept in or censored out;
             - the `defaults` are:
               - `*jumps,&actions,&reqs`, because these produce a self-contained result that can be fed into another tool --- be it a web browser or `pandoc` --- without that tool trying to access the Internet;
               - `-prefetches,-tracking,-navigations`, because these ensure the result will not try to prefetch or track anything, or re-navigate elsewhere, when loaded in a web browser;
@@ -1252,7 +1253,8 @@ The end.
               - `+verbose`, because this allows you to inspect the generated output and see what `hoardy-web` did to it, i.e., this minimizes surprises;
               - `+whitespace,-indent`, to keep the output as close to the original as possible;
               - `+optional_tags`, because many tools fail to parse minimized `HTML` properly;
-              - `+unknown` which keeps data of unknown content `MIME` types as-is;
+              - `+psdocs`, because `*.ps` and `*.pdf` documents are (usually) self-contained;
+              - `+unknown`, to keep data of unknown content `MIME` types as-is;
             - note however, that most `--remap-*` options set different defaults;
           
     - reqres fields, these work the same way as constants above, i.e. they replace current value of `None` with field's value, if reqres is missing the field in question, which could happen for `response*` fields, the result is `None`:

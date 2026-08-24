@@ -322,27 +322,30 @@ class RemapType(_enum.IntEnum):
 
 @_dc.dataclass
 class ScrubbingOptions:
+    # Web documents
     jumps: RemapType = _dc.field(default=RemapType.OPEN)
     actions: RemapType = _dc.field(default=RemapType.FALLBACK)
     reqs: RemapType = _dc.field(default=RemapType.FALLBACK)
-    styles: bool = _dc.field(default=True)
     scripts: bool = _dc.field(default=False)
+    styles: bool = _dc.field(default=True)
     iepragmas: bool = _dc.field(default=False)
     iframes: bool = _dc.field(default=True)
     prefetches: bool = _dc.field(default=False)
     tracking: bool = _dc.field(default=False)
     navigations: bool = _dc.field(default=False)
+
     inline_headers: bool = _dc.field(default=True)
     inline_fallback_icon: bool | None = _dc.field(default=None)
     interpret_noscript: bool = _dc.field(default=True)
-    unknown: bool = _dc.field(default=True)
-
     verbose: bool = _dc.field(default=True)
     whitespace: bool = _dc.field(default=True)
     optional_tags: bool = _dc.field(default=True)
     indent: bool = _dc.field(default=False)
     indent_step: int = _dc.field(default=2)
     debug: bool = _dc.field(default=False)
+
+    psdocs: bool = _dc.field(default=True)
+    unknown: bool = _dc.field(default=True)
 
 
 ScrubbingReferenceOptions = ["jumps", "actions", "reqs"]
