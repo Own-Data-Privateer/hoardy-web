@@ -10,7 +10,7 @@ for i in 0 1; do
     echo "</details>"
     echo
 
-    sed -n "/# What is/,$ p" README.md
+    sed -n '/^# What is/,$ p' README.md
 } > README.new
 mv README.new README.md
 done
