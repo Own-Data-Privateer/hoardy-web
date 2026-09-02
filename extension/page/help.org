@@ -1041,6 +1041,29 @@ I highly recommend you make a new browser profile specifically for archived anon
 - Then, if you ever accidentally login in "anonymous" profile and archive those captures, move the resulting dumps out of the "anonymous" directory immediately.
 
 This way, in the future, you can easily share dumps from the "anonymous" instance without worrying about leaking your private data or login credentials.
+** Preventing capture of login credentials
+:PROPERTIES:
+:CUSTOM_ID: no-credentials
+:END:
+
+If you use =Hoardy-Web= to capture and archive web pages in your logged-in browser/profile, you'll probably want to configure that instance of =Hoardy-Web= in a way that prevents it from capturing your login credentials.
+To do that, you should:
+- Disable {{{config2(stash,=Stash reqres into local storage= option)}}}.
+- Enable {{{config2(root.limbo,limbo mode globally)}}}.
+- Train yourself to perform logins in separate tabs the captured data of which you then discard.
+
+Alternatively, you can also
+- train yourself to perform logins in separate tabs with {{{tabconfig2(collecting,capture)}}} disabled, or
+- disable {{{config2(root.collecting,capture by default)}}} and only enable {{{tabconfig2(collecting,it)}}} in tabs where you never login,
+but I found both of these workflows to be rather more error-prone.
+
+Thus, the recommended workflow for this use case is as follows:
+- Navigate to a URL, see a wrong result because you are logged out.
+- Discard all in-limbo data there {{{discardInLimbo}}}, because it's useless.
+- Middle-click the "Login" link there to open it in a separate tab.
+- Perform your login there.
+- Press {{{shortcut(closeTabThenDiscardInLimbo)}}} keyboard shortcut in that tab.
+- Reload the original tab with =Ctrl+F5= to ensure all page requisites get archived properly.
 ** Fenix (Firefox on Android)
 :PROPERTIES:
 :CUSTOM_ID: fenix
