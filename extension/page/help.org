@@ -13,8 +13,8 @@
 #+MACRO: button2 {{{popup2($1,$2)}}}
 #+MACRO: buttons ({{{button2($1,glob)}}}, {{{button2($2,win)}}}, {{{button2($3,tab)}}})
 #+MACRO: shortcutKey (@@html:<span name="shortcutKey" data-macro-shortcut="$1">@@[[#shortcut-$1][shortcut key of $1]]@@html:</span>@@)
-#+MACRO: shortcut @@html:<span name="shortcutShort" data-macro-shortcut="$1">@@[[#shortcut-$1][shortcut short of $1]]@@html:</span>@@ {{{shortcutKey($1)}}}
-#+MACRO: shortcutButton @@html:<span name="shortcutShort" data-macro-shortcut="$1">@@{{{button2($1,shortcut short of $1)}}}@@html:</span>@@ {{{shortcutKey($1)}}}
+#+MACRO: shortcut @@html:<span name="shortcutShort" data-macro-shortcut="$1">@@[[#shortcut-$1][shortcut name of $1]]@@html:</span>@@ {{{shortcutKey($1)}}}
+#+MACRO: shortcutButton @@html:<span name="shortcutShort" data-macro-shortcut="$1">@@{{{button2($1,shortcut name of $1)}}}@@html:</span>@@ {{{shortcutKey($1)}}}
 #+MACRO: shortcutButton2 {{{button2($1,$2)}}} {{{shortcutKey($1)}}}
 #+MACRO: replay {{{buttons(replayEvery,replayWindow,replayTabBackward)}}}
 #+MACRO: snapshot {{{buttons(snapshotEvery,snapshotWindow,snapshotTab)}}}
@@ -121,7 +121,7 @@ The rest of this document is organized as follows:
   - its integration with [[../../tool/][=hoardy-web serve= archival and replay server]], which greatly simplifies many workflows that involve [[#replay][replays]] of your previously archived data.
 - Which is then followed by a [[#keyboard-shortcuts][table of all keyboard shortcuts]] =Hoardy-Web= implements.
 - The [[#context-menu-actions][section after that]] discusses context menu actions =Hoardy-Web= implements.
-- Which is then followed by a [[#workflow][discussion of several common workflows]] =Hoardy-Web= supports.
+- Which is then followed by [[#recommendations][browser setup and workflow recommendations]].
 - Which is then followed by a [[#errors][list of all error messages and codes]] =Hoardy-Web= can generate.
 - Which is then followed by a [[#bugs][list of all known =Hoardy-Web='s issues and all relevant web browser bugs]].
 - Finally, the [[#faq][last section]] answers frequently asked questions.
@@ -1001,11 +1001,47 @@ Also, note a [[#faq-website-shortcuts][very relevant "FAQ" item below]].
 - do either of the above, and then move that newly created tab into a new window;
 
   in which case, the [[#hier-copy][per-window config copying rules]] will apply.
-* Workflows
+* Setup and workflow recommendations
 :PROPERTIES:
-:CUSTOM_ID: workflow
+:CUSTOM_ID: recommendations
 :END:
-** Using =Hoardy-Web= with Fenix (Firefox on Android)
+** Browser profiles
+:PROPERTIES:
+:CUSTOM_ID: browser-profiles
+:END:
+
+I highly recommend you make a new browser profile specifically for archived anonymous browsing:
+
+- Run Firefox as =firefox -no-remote -ProfileManager= to get to the appropriate UI.
+
+  On Windows, you can just edit your desktop or toolbar shortcut to target
+
+  #+BEGIN_SRC cmd
+  "C:\Program Files\Mozilla Firefox\firefox.exe" -no-remote -ProfileManager
+  #+END_SRC
+
+  or similar to make it ask your which browser profile you would want to use on startup by default.
+
+  On GNU/Linux, you can archive similar results by editing the appropriate =*.desktop= file.
+
+- Or, simply use different browsers for this, e.g.:
+  - LibreWolf for anonymous browsing,
+  - Firefox for logged-in.
+
+- Then, set the "anonymous" browser profile to always run in Private Browsing mode to prevent login persistence there.
+
+- Then, install =Hoardy-Web= into the first or both of those.
+
+- Then, configure those =Hoardy-Web= instances to use different
+
+  - {{{config2(root.bucket,default "Bucket" settings)}}}; or
+
+  - {{{config2(submitHTTPURLBase,archiving server instances)}}} dumping data to different directories on disk.
+
+- Then, if you ever accidentally login in "anonymous" profile and archive those captures, move the resulting dumps out of the "anonymous" directory immediately.
+
+This way, in the future, you can easily share dumps from the "anonymous" instance without worrying about leaking your private data or login credentials.
+** Fenix (Firefox on Android)
 :PROPERTIES:
 :CUSTOM_ID: fenix
 :END:
@@ -1035,7 +1071,7 @@ There are several ways you can do this:
   - enable {{{config2(rearchiveSubmitHTTP,re-archival via =HTTP=)}}};
   - configure your PC and your {{{config2(submitHTTPURLBase,=Server URL= setting)}}} using one of the above ways;
   - and then, after getting back to your PC and connecting your Android device to it via Wi-Fi or USB (with the above =adb= commands included), [[#rearchive][re-archive]] your archived data incrementally.
-** Using =Hoardy-Web= with Tor Browser
+** Tor Browser
 :PROPERTIES:
 :CUSTOM_ID: tor-browser
 :END:
