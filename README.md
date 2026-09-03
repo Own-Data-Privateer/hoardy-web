@@ -2,18 +2,22 @@
 <details><summary>(Click me to see it.)</summary>
 <ul>
 <li><a href="#what-is-hoardy-web" id="toc-what-is-hoardy-web">What is <code>Hoardy-Web</code>?</a></li>
-<li><a href="#who-hoardy-web-is-for" id="toc-who-hoardy-web-is-for">Who <code>Hoardy-Web</code> is for?</a></li>
+<li><a href="#who-is-hoardy-web-for" id="toc-who-is-hoardy-web-for">Who is <code>Hoardy-Web</code> for?</a></li>
 <li><a href="#why-does-hoardy-web-exist" id="toc-why-does-hoardy-web-exist">Why does <code>Hoardy-Web</code> exist?</a>
 <ul>
-<li><a href="#in-short" id="toc-in-short">In short</a></li>
-<li><a href="#in-long" id="toc-in-long">In long</a></li>
+<li><a href="#do-you-use-your-browsers-bookmarks-andor-open-tabs-as-a-to-read-later-list" id="toc-do-you-use-your-browsers-bookmarks-andor-open-tabs-as-a-to-read-later-list">Do you use your browser’s bookmarks and/or open tabs as a “To Read Later” list?</a></li>
+<li><a href="#do-you-ever-find-yourself-wanting-to-refer-back-to-web-pages-youve-visited-a-long-time-ago" id="toc-do-you-ever-find-yourself-wanting-to-refer-back-to-web-pages-youve-visited-a-long-time-ago">Do you ever find yourself wanting to refer back to web pages you’ve visited a long time ago?</a></li>
+<li><a href="#do-you-find-yourself-making-custom-website-data-scrapers-for-accessibility-andor-data-extractionprocessing-reasons" id="toc-do-you-find-yourself-making-custom-website-data-scrapers-for-accessibility-andor-data-extractionprocessing-reasons">Do you find yourself making custom website data scrapers, for accessibility and/or data extraction/processing reasons?</a></li>
+<li><a href="#and-thus" id="toc-and-thus">And thus …</a></li>
 </ul></li>
 <li><a href="#walkthrough" id="toc-walkthrough">Walkthrough</a>
 <ul>
-<li><a href="#replay-controls" id="toc-replay-controls">Replay controls</a></li>
-<li><a href="#replay-workflows" id="toc-replay-workflows">Replay workflows</a></li>
-<li><a href="#search" id="toc-search">Search</a></li>
-<li><a href="#well-alright-this-is-kinda-nice-but-i.-need.-more-power" id="toc-well-alright-this-is-kinda-nice-but-i.-need.-more-power">Well, alright, this is kinda nice, but I. Need. More! POWER!</a></li>
+<li><a href="#archiving-and-replaying-a-single-page" id="toc-archiving-and-replaying-a-single-page">Archiving and replaying a single page</a></li>
+<li><a href="#archiving-and-replaying-almost-everything" id="toc-archiving-and-replaying-almost-everything">Archiving and replaying (almost) everything</a>
+<ul>
+<li><a href="#the-workflow" id="toc-the-workflow">The workflow</a></li>
+</ul></li>
+<li><a href="#advanced-features" id="toc-advanced-features">Advanced features</a></li>
 </ul></li>
 <li><a href="#parts-and-pieces" id="toc-parts-and-pieces">Parts and pieces</a>
 <ul>
@@ -32,9 +36,8 @@
 <li><a href="#and-if-all-you-want-is-archival-you-are-done" id="toc-and-if-all-you-want-is-archival-you-are-done">… and, if all you want is archival, you are done</a></li>
 <li><a href="#switch-to-using-an-archiving-server" id="toc-switch-to-using-an-archiving-server">Switch to using an archiving server</a></li>
 <li><a href="#or-if-you-are-unable-or-unwilling-to-do-that" id="toc-or-if-you-are-unable-or-unwilling-to-do-that">… or, if you are unable or unwilling to do that</a></li>
-</ul></li>
 <li><a href="#alternatively-on-a-system-with-nix-package-manager" id="toc-alternatively-on-a-system-with-nix-package-manager">Alternatively, on a system with Nix package manager</a></li>
-<li><a href="#setup-recommendations" id="toc-setup-recommendations">Setup recommendations</a></li>
+</ul></li>
 <li><a href="#recommended-next-steps" id="toc-recommended-next-steps">Recommended next steps</a></li>
 <li><a href="#alternatives" id="toc-alternatives">Alternatives</a>
 <ul>
@@ -81,147 +84,137 @@
 Not just the URLs, but also the contents and the requisite resources (images, media, `CSS`, fonts, etc) of the pages you visit.
 Not just the last 3 months, but from the moment you start using it.
 
-Practically speaking, you [install `Hoardy-Web`'s extension/add-on into your web browser](#quickstart) and just browse the web normally while it passively, in background, captures and archives `HTTP` requests and responses your web browser does in the process.
-The extension has a lot of configuration options to help you tweak what should or should not be archived, provides indicators that can help you fully capture each page you do want to archive (it can notify you when some parts of a page failed to load), and has a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless you explicitly configure it to do otherwise to, e.g., minimize writes to disk instead).
+Practically speaking, you [install `Hoardy-Web`'s extension/add-on into your web browser](#quickstart) and just browse the web normally while it passively, in background, captures and archives all `HTTP` requests and responses your web browser does in the process.
+Moreover, the extension/add-on implements capture of `DOM` snapshots (raw `HTML` contents of web pages after all CAPTCHAs, authentication steps, etc were completed and all `JavaScript` was run), provides a lot of configuration options that can help you tweak what should or should not be archived, implements indicators that can help you fully capture each page you do want to archive (it can notify you when some parts of a page failed to load or snapshot properly), and has a very low memory footprint, keeping you browsing experience snappy even on ancient hardware (unless you explicitly configure it to do otherwise to, e.g., minimize writes to disk instead).
 
 You can then view, replay, mirror, scrape, and/or index your archived data later by [using `Hoardy-Web`'s own tool set](./tool/), by plugging these tools into others, and/or by parsing and processing its [outputs](./doc/data-on-disk.md) with your own tools.
 
 `Hoardy-Web` was previously known as "Personal Private Passive Web Archive" aka "pwebarc".
 
-# Who `Hoardy-Web` is for?
+# Who is `Hoardy-Web` for?
 
-If you are running multiple browsers or browser profiles to isolate different browsing sessions from each other, and you now want to introduce some historic persistence and automatic archival into your setup, then `Hoardy-Web` is for you.
+In short, if you like the idea of being able to refer back to web pages your browser loaded before, exactly as they were when you've loaded them, regardless of your reasons for doing so, then `Hoardy-Web` is for you.
 
-**If you are not isolating your browsing sessions already, however, then introducing `Hoardy-Web` into your setup, in the long run, will probably be a liability.
+If you are already running multiple browsers or browser profiles to isolate your logged-out/anonymous and logged-in browsing sessions from each other and you only want to add capture and archival to the former, then `Hoardy-Web` will integrate into [your existing browsing workflow](./extension/page/help.org#browser-profiles) seamlessly.
+
+**However, if you want to archive your logged-in sessions too, or if you are not isolating your browsing sessions at all, then introducing `Hoardy-Web` into your setup could instead become a liability.
 If you let it, `Hoardy-Web` will happily capture and archive all your login credentials, in plain text.**
-[There are ways to work around this](#setup), so, if you must, you can use `Hoardy-Web` even then, but it will require special care and self-training to do safely.
+[There are ways to work around this](./extension/page/help.org#no-credentials), so, you can use `Hoardy-Web` even then, but it will require special care and self-training.
 
 # <span id="why"/>Why does `Hoardy-Web` exist?
 
-## In short
+## Do you use your browser's bookmarks and/or open tabs as a "To Read Later" list?
 
-> "If it is on the Internet, it is on Internet forever\!" they said. \
+If so, isn't it kind of annoying that your browser has to re-fetch things from the Internet and/or re-run all the relevant `JavaScript` each time you return to a bookmarked page or browser tab that was previously unloaded from memory, or after a browser restart, or after a PC reboot?
+
+Wouldn't it be nice if there was a tool that could allow you to instead **view the contents of your old bookmarks and/or tabs, instantly, even if your browser unloaded them, without re-loading anything from the Internet and/or re-running any `JavaScript` at all**, by re-loading previously captured states from disk instead, thus making things both more efficient (especially when you capture and then replay `DOM` snapshots of websites that offload their `HTML` rendering to client-side `JavaScript`), convenient (since you can now read those old tabs on a plane, or at sea), and more private (since your replays won't be tracking you even if the original pages did)?
+
+## Do you ever find yourself wanting to refer back to web pages you've visited a long time ago?
+
+Say, you wake up remembering something interesting you saw on the Web a long time ago.
+Knowing you won't find it in your normal browsing history, which only contains the URLs and the titles of the pages you visited in the last 3 months, you try looking it up on Google.
+You fail.
+Eventually, you remember the website you seen it at, or maybe you re-discover the link in question in an old message to/from a friend, or maybe a tool like [recoll](https://www.lesbonscomptes.com/recoll/index.html) or [Promnesia](https://github.com/karlicoss/promnesia) helps you.
+You open the link… and discover it offline/gone/a parked domain.
+Not a problem\! Have no fear\!
+You go to [Wayback Machine](https://web.archive.org/) and look it up there… and discover they only archived an ancient version of it and the actual content you want to refer back to is missing there.
+
+Or, say, you remember reading a cool fanfiction on [AO3](https://archiveofourown.org/) years ago, you even wrote down the URL, you go back to it wanting to experience it again… and discover the author made it private... or rewrote it, and the new version is worse in your opinion, and Wayback Machine saved only the very first chapter of the original.
+
+> "If it is on the Internet, it is on Internet forever\!" they said.
+
+**Unfortunately, the actual rate of link rot on the web is rather distressing.**
+To quote [Wikipedia](https://en.wikipedia.org/wiki/Link_rot):
+
+> A 2003 study found that on the Web, about one link out of every 200 broke each week, suggesting a half-life of 138 weeks.
+> This rate was largely confirmed by a 2016–2017 study of links in Yahoo! Directory (which had stopped updating in 2014 after 21 years of development) that found the half-life of the directory's links to be two years.
+
+**That is, on average, if you bookmark 100 random web pages today, only 3 of them will still be available 10 years later.
+Moreover, the real situation is even worse than that, since, as noted above, sometimes web pages don't simply vanish, but get replaced with worse versions, a situation which is completely ignored by studies quoted above.**
+
+A very relevant [article by Gwern Branwen](https://gwern.net/archiving) cites more distressing statistics on the topic, ending that section with:
+
+> [...] it's always the apocalypse somewhere for someone [...] none of that will survive on its own, [it] will be lost and forgotten, and if you don't preserve it, probably no one else will either.
+
+**So, if you want to ensure that some piece of data useful personally to you persists into the future, you'll probably have to archive it yourself.**
+Sure, web archiving services are awesome, but:
+
+- **Such services probably won't save all of your bookmarks if you don't explicitly ask them to (via [Save Page Now](https://web.archive.org/save/) or similar).**
+
+  Personally, I discovered that when I wanted to refer back to a now dead web page I did not previously archive --- which, as will be discussed below, means that most of those pages are 9 years or older --- then, with about 80% probability, Wayback Machine does not have that web page archived either.
+
+- **Such services probably won't save all of your bookmarks even if you ask them to, because they frequently remove pages from their archives on request or by court order.**
+
+  There are firms that provide services of systematically cleaning out any compromising materials about a person or a company from all web archives.
+  Many countries have [easily abusable "privacy laws"](https://en.wikipedia.org/wiki/Right_to_be_forgotten) that make it relatively cheap and easy to do.
+
+  Additionally, sometimes copyright holders request removal of old content from web archives to force you to buy the same or a worse ([enshittified](https://en.wikipedia.org/wiki/Enshittification) or just more commercially palatable) version of it in a new package later.
+
+  Meanwhile, archiving services that don't submit to such censorship [get harassed by law-enforcement agencies](https://en.wikipedia.org/wiki/Archive.today#History).
+  (And while `archive.today` are jerks who'd [served DDoSing code to their users and tampered with the data they served because of a personal disagreement with a blog author](https://en.wikipedia.org/wiki/Wikipedia:Requests_for_comment/Archive.is_RFC_5#Evidence_of_altering_snapshots), this and that are different issues.)
+
+  So, a polite request here, a DMCA take-down notice there, a letter from a lawyer another time, a domain take-down and equipment seizure eventually, ... and nothing really interesting stays easily available in the long term.
+
+  Also, some copyright holders now [disallow web archiving services from fetching their pages to prevent LLM companies from scraping them through such services](https://www.forbes.com/sites/anishasircar/2026/04/14/why-major-news-sites-are-blocking-the-internet-archives-wayback-machine/).
+
+- **Most such services archive only a small subset of the web they can reach and are unable to archive pages hidden behind CAPTCHAs, authentications, paywalls, `HTTP POST`s, etc.**
+
+  There are some services that can do some of these things by allowing their users to save `DOM` snapshots into them.
+
+  However, most archiving services don't implement this feature because they don't really know where those `DOM` snapshots come from.
+  If a `DOM` snapshot gets captured from a page hidden behind [a "technological measure that effectively controls access to a work"](https://oxij.org/note/cybercrud/#copyright-ac) and then gets redistributed to the public, then it's "piracy", with all the usual consequences.
+
+  Meanwhile, doing similar things personally for personal use is legal.
+
+- **Wayback Machine in particular is pretty inefficient in how it archives things, [Save Page Now](https://web.archive.org/save/) is a distributed system without a shared page cache.**
+
+  This makes systematic archival of web pages into there without a use of dedicated personal web crawler rather painful.
+
+- **Wayback Machine is frequently overloaded.**
+
+  Especially now, when old web pages suddenly became useful for LLM training and all LLM companies are downloading stuff from there constantly.
+
+- **Dependence on Wayback Machine makes the [Internet Archive](https://archive.org) a single point of failure.**
+
+  Meanwhile, running your own web crawler over the pages you recently visited is both inefficient (since it will fetch everything twice) and annoying to setup.
+
+So, wouldn't it be nice if there was a tool that could allow you to **automatically and efficiently capture everything your browser fetches from the Internet while you surf the Web, put it all into your own private archive nobody else could censor, and allow you to easily search, mirror, replay, and share captured versions of previously visited web pages later**?
+
+## Do you find yourself making custom website data scrapers, for accessibility and/or data extraction/processing reasons?
+
+Say, there is a web page that can not be easily fetched via `curl`/`wget` (because it is behind a paywall or complex authentication method that is hard to reproduce outside of a browser) but for accessibility or just simple reading comfort reasons each time you visit that page you want to automatically feed its source to a script that strips and/or modifies its `HTML` markup in a website-specific way and feeds it into a TTS engine, a Braille display, or a book reader app.
+
+With most modern web browsers you can do TTS either out-of-the-box or by installing an add-on (though, be aware of privacy issues when using most of those), but tools that can do website-specific accessibility without also being website-specific UI apps are very few.
+
+Or, say, there's a web page/app you use (like a banking app), but it lacks some features you want, and in your browser's Network Monitor you can see it uses `JSON RPC` or some such to fetch its data, and you want those `JSON`s for yourself (e.g., to compute statistics and supplement the app output with them), but the app in question has no public API and scraping it with a script is non-trivial (e.g., the site does complicated `JavaScript`+multifactor-based auth, tries to detect you are actually using a browser, and bans you immediately if not).
+
+Or, maybe, you want to parse those behind-auth pages with a script, save the results to a database, and then do interesting things with them (e.g., track price changes, manually classify, annotate, and merge pages representing the same product by different sellers, do complex queries, like sorting by price per unit/weight/volume/power/etc, limit results by geographical locations extracted from text labels, etc).
+
+Or, say, you want to fetch a bunch of pages belonging to two recommendation lists on AO3 or [GoodReads](https://www.goodreads.com/), get all outgoing links for each fetched page, union sets for the pages belonging to the same recommendation list, and then intersect the results of the two lists to get a shorter list of things you might want to read with higher probability.
+
+Or, more generally, say, you want to tag web pages referenced from a certain set of other web pages with some tag in your indexing software and update it automatically each time you re-visit any of those pages.
+
+Or, say, you want to combine a full-text indexing engine, your browsing and derived web link graph data, your states/ratings/notes from [org-mode](https://orgmode.org/), messages from your friends, and other archives, so that you could do arbitrarily complex queries over it all, like "show me all GoodReads pages for all books not marked as `DONE` or `CANCELED` in my `org-mode` files, ever mentioned by any of my friends, ordered by undirected-graph [Pagerank](https://en.wikipedia.org/wiki/Pagerank) algorithm biased with my own book ratings (so that books sharing GoodReads lists with the books I finished and liked will get higher scores)".
+
+So, basically, you want a private personalized Bayesian recommendation system.
+
 > "Everything will have a RESTful API\!" they said. \
 > "Semantic Web will allow arbitrarily complex queries spanning multiple data sources\!" they said.
 
-**Unfortunately, things did not work out this way:**
+**Unfortunately, things did not work out this way.**
 
-- Useful information vanishes from the Internet, the Web, and web archiving services (like the [Wayback Machine](https://web.archive.org/)) all the time.
+A lot of useful web services never got RESTful APIs.
+Those RESTful APIs that exist are not used as much as their user-facing web page counterparts and, thus, are frequently buggy.
+So, if you want to extract some interesting data from some such services, you'll probably have to scrape it from relevant `HTML`s anyway.
 
-  So, if you want to ensure that some piece of data useful personally to you persists into the future, you'll probably have to archive it personally.
+"RDF Model and Syntax Specification" was published in 1999, 25+ years later, almost no progress there, the most commonly used subset of RDF does what indexing systems in 1970s did, but less efficiently and with a worse UI.
+So, if you want to run some interesting queries over multiple data sources, you'll probably have to scrape and then process those websites yourself.
 
-- A lot of useful web services never got RESTful APIs.
-  Those RESTful APIs that exist are frequently buggy.
+Wouldn't it be nice if instead of trying to automate scraping in the more complex situations described above, you could simply **visit all of those websites with your web browser, capture all `HTTP` requests and responses performed in the process of fetching them, capture `DOM` snapshots, when those are relevant, and then, possibly years later, reuse those captures as inputs to your data scraping pipelines**?
 
-  So, if you want to extract some interesting data from some such services, you'll probably have to scrape it from relevant `HTML`s anyway.
+## And thus ...
 
-- "RDF Model and Syntax Specification" was published in 1999, 25+ years later, almost no progress there, the most commonly used subset of RDF does what indexing systems in 1970s did, but less efficiently and with a worse UI.
-
-  So, if you want to run some interesting queries over multiple data sources, you'll probably have to process those scraped `HTML`s in interesting ways yourself.
-
-Meanwhile, `Hoardy-Web` does its best to make "If you archive it first" variants of the above statements to be true:
-
-> "If you archive it first, it will stay with you forever\! (Assuming you do backups properly.)" \
-> "If you archive it first, you can add RESTful (or any other types of) APIs to anything you already have\!" \
-> "If you archive it first, you can run arbitrarily complex queries spanning multiple data sources\!"
-
-## In long
-
-- Do you happen to use your browser's open tabs as a "To Read Later" list?
-
-  Isn't it kind of annoying that your browser has to re-fetch things from the Internet again each time you return to a browser tab that was previously unloaded from memory, or after a browser restart, or after a PC reboot?
-
-  Wouldn't it be nice if there was a tool that would allow you to **view your old tabs, instantly, even if your browser unloaded them, without re-loading anything from the Internet**, by re-loading previously captured states from disk instead, thus making things both more convenient (since you can now read those old tabs on a plane, or at sea) and more private (since the origin web servers will not learn about you returning to an old tab)?
-
-- Do you ever refer back to web pages you visited before?
-
-  - Say, you wake up remembering something interesting you saw a long time ago.
-    Knowing you won't find it in your normal browsing history, which only contains the URLs and the titles of the pages you visited in the last 3 months, you try looking it up on Google.
-    You fail.
-    Eventually, you remember the website you seen it at, or maybe you re-discovered the link in question in an old message to/from a friend, or maybe a tool like [recoll](https://www.lesbonscomptes.com/recoll/index.html) or [Promnesia](https://github.com/karlicoss/promnesia) helped you.
-    You open the link… and discover it offline/gone/a parked domain.
-    Not a problem\! Have no fear\!
-    You go to [Wayback Machine](https://web.archive.org/) and look it up there… and discover they only archived an ancient version of it and the thing you wanted is missing there.
-
-  - Or, say, you remember you read a cool fanfiction on [AO3](https://archiveofourown.org/) years ago, you even wrote down the URL, you go back to it wanting to experience it again… and discover the author made it private... or rewrote it, and the new version is worse in your opinion, and Wayback Machine saved only the very first chapter of the original.
-
-  **Unfortunately, on the Internet, things vanish completely all the time and change for the worse without older better versions being preserved sometime.**
-
-  The amount of link rot on the web is rather distressing, to quote [Wikipedia](https://en.wikipedia.org/wiki/Link_rot):
-
-  > A 2003 study found that on the Web, about one link out of every 200 broke each week, suggesting a half-life of 138 weeks.
-  > This rate was largely confirmed by a 2016–2017 study of links in Yahoo! Directory (which had stopped updating in 2014 after 21 years of development) that found the half-life of the directory's links to be two years.
-
-  **That is, on average, if you bookmark 100 random web pages today, only 3 of them will still be available 10 years later.**
-
-  A very relevant [article by Gwern Branwen](https://gwern.net/archiving) cites more distressing statistics on the topic, ending that section with:
-
-  > [...] it's always the apocalypse somewhere for someone [...] none of that will survive on its own, [it] will be lost and forgotten, and if you don't preserve it, probably no one else will either.
-
-  Wayback Machine and similar web archiving services are awesome, but:
-
-  - **Such services probably won't save all of your bookmarks if you don't explicitly ask them to (via [Save Page Now](https://web.archive.org/save/) or similar).**
-
-    Personally, I discovered that when I wanted to refer back to a now dead web page I did not previously archive --- which, as will be discussed below, means that most of those pages are 9 years or older --- then, with about 80% probability, Wayback Machine does not have that web page archived either.
-
-  - **Such services probably won't save all of your bookmarks even if you ask them to, because they frequently remove pages from their archives on request or by court order.**
-
-    There are firms that provide services of systematically cleaning out any compromising materials about a person or a company from all web archives.
-    Many countries have [easily abusable "privacy laws"](https://en.wikipedia.org/wiki/Right_to_be_forgotten) that make it easy to do.
-
-    Additionally, sometimes copyright holders request removal of old content from web archives to force you to buy the same or a worse ([enshittified](https://en.wikipedia.org/wiki/Enshittification) or just more commercially palatable) version of it in a new package later.
-
-    Meanwhile, archiving services that don't submit to such censorship [get harassed by law-enforcement agencies](https://en.wikipedia.org/wiki/Archive.today#History).
-    (And while `archive.today` are jerks who'd [served DDoSing code to their users and tampered with the data they serve because of personal disagreements with a blog author](https://en.wikipedia.org/wiki/Wikipedia:Requests_for_comment/Archive.is_RFC_5#Evidence_of_altering_snapshots), this and that are different issues.)
-
-    So, a polite request here, a DMCA take-down notice there, a letter from a lawyer another time, a domain take-down and equipment seizure eventually, ... and nothing really interesting stays easily available in the long term.
-
-    Also, some copyright holders now [disallow web archiving services from fetching their pages to prevent "AI" companies from scraping them through such services](https://www.forbes.com/sites/anishasircar/2026/04/14/why-major-news-sites-are-blocking-the-internet-archives-wayback-machine/).
-
-  - **Most such services archive only a small subset of the web they can reach and are unable to archive pages hidden behind CAPTCHAs, authentications, paywalls, `HTTP POST`s, etc.**
-
-    There are some services that can do some of these things by allowing their users to save `HTML DOM` snapshots (which are snapshots of pages' raw `HTML` contents after all CAPTCHAs, authentication steps, etc were completed and all `JavaScript` was run) into them.
-
-    However, most archiving services don't implement this feature because they don't really know where those `DOM` snapshots come from.
-    If a `DOM` snapshot gets captured from a page hidden behind [a "technological measure that effectively controls access to a work"](https://oxij.org/note/cybercrud/#copyright-ac) and then gets redistributed to the public, then it's "piracy", with all the usual consequences.
-
-    Meanwhile, doing similar things personally for personal use is legal.
-
-  - **Wayback Machine in particular is pretty inefficient in how it archives pages, [Save Page Now](https://web.archive.org/save/) is a distributed system without a shared page cache.**
-
-    This makes systematic archival of web pages into there without a use of dedicated personal web crawler rather painful.
-
-  - **Wayback Machine is frequently overloaded.**
-
-    Especially now, when old web pages suddenly became useful for "AI" training and all "AI" companies are downloading stuff from there constantly.
-
-  - **Dependence on Wayback Machine makes the [Internet Archive](https://archive.org) a single point of failure.**
-
-    Meanwhile, running your own web crawler over the pages you recently visited is both inefficient (since it will fetch everything twice) and annoying to setup.
-
-  So, wouldn't it be nice if there was a tool that would allow you to **automatically and efficiently capture everything your browser fetches from the Internet while you surf the Web, put it all into your own private archive nobody else could censor, and allow you to easily search, mirror, replay, and share captured versions of previously visited web pages later**?
-
-- Do you frequently find yourself making custom website data scrapers, for accessibility and/or data extraction/processing reasons?
-
-  - Say, there is a web page that can not be easily reached via `curl`/`wget` (because it is behind a paywall or complex authentication method that is hard to reproduce outside of a browser) but for accessibility or just simple reading comfort reasons each time you visit that page you want to automatically feed its source to a script that strips and/or modifies its `HTML` markup in a website-specific way and feeds it into a TTS engine, a Braille display, or a book reader app.
-
-    With most modern web browsers you can do TTS either out-of-the-box or by installing an add-on (though, be aware of privacy issues when using most of these), but tools that can do website-specific accessibility without also being website-specific UI apps are very few.
-
-  - Or, say, there's a web page/app you use (like a banking app), but it lacks some features you want, and in your browser's Network Monitor you can see it uses `JSON RPC` or some such to fetch its data, and you want those `JSON`s for yourself (e.g., to compute statistics and supplement the app output with them), but the app in question has no public API and scraping it with a script is non-trivial (e.g., the site does complicated `JavaScript`+multifactor-based auth, tries to detect you are actually using a browser, and bans you immediately if not).
-
-  - Or, maybe, you want to parse those behind-auth pages with a script, save the results to a database, and then do interesting things with them (e.g., track price changes, manually classify, annotate, and merge pages representing the same product by different sellers, do complex queries, like sorting by price/unit or price/weight, limit results by geographical locations extracted from text labels, etc).
-
-  - Or, say, you want to fetch a bunch of pages belonging to two recommendation lists on AO3 or [GoodReads](https://www.goodreads.com/), get all outgoing links for each fetched page, union sets for the pages belonging to the same recommendation list, and then intersect the results of the two lists to get a shorter list of things you might want to read with higher probability.
-
-  - Or, more generally, say, you want to tag web pages referenced from a certain set of other web pages with some tag in your indexing software, and update it automatically each time you visit any of the source pages.
-
-  - Or, say, you want to combine a full-text indexing engine, your browsing and derived web link graph data, your states/ratings/notes from [org-mode](https://orgmode.org/), messages from your friends, and other archives, so that you could do arbitrarily complex queries over it all, like "show me all GoodReads pages for all books not marked as `DONE` or `CANCELED` in my `org-mode` files, ever mentioned by any of my friends, ordered by undirected-graph [Pagerank](https://en.wikipedia.org/wiki/Pagerank) algorithm biased with my own book ratings (so that books sharing GoodReads lists with the books I finished and liked will get higher scores)".
-
-    So, basically, you want a private personalized Bayesian recommendation system.
-
-  Wouldn't it be nice if you could simply **visit all of these websites with your web browser, record all `HTTP` requests and responses performed in the process, and then, possibly years later, reuse those captures as inputs to your data scraping pipelines**?
-
-`Hoardy-Web` exists to help you do all of the above, and more.
+`Hoardy-Web` exist to do this, and more, but mainly this.
 
 # Walkthrough
 
@@ -232,18 +225,20 @@ With `Hoardy-Web`, technically speaking, capture, archival, and replay are all i
 This allows `Hoardy-Web` to be used in rather complex setups.
 When all the pieces are used together, however, they integrate into a rather smooth workflow, demonstrated below.
 
+## Archiving and replaying a single page
+
 So, for illustrative purposes, I [added the `Hoardy-Web` extension to a new browser profile in my Firefox, started a `hoardy-web serve` archiving server instance](#quickstart), ensured the extension is running in `Submit dumps via 'HTTP'` mode and its `Server URL` setting points to my `hoardy-web serve` instance ([like this screenshot of the `P&R` tab shows](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.28.0-pr.png)), and then visited a Wikipedia page:
 
 ![Screenshot of Firefox's viewport with extension's popup shown.](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.28.0-popup.png)
 
 Also note that, for illustrative purposes, I had enabled `Hoardy-Web`'s ["limbo mode"](./extension/page/help.org#limbo) before visiting it so that `Hoardy-Web` would capture that page and all its requisite resources and then put them all into "limbo" instead of immediately archiving them, thus allowing me to look at the page first.
-This is most useful for when you are about to visit a new page and you are not yet sure you will want to archive that visit.
+This is most useful when you are about to visit a new page and you are not yet sure you will want to archive that visit.
 Or for dynamically generated pages that update all the time with only some versions deserving being archived.
 
 So, then, I decided I do want to save that page and its resources.
 Hence, I pressed the lower of "In limbo" check-mark buttons there to collect and archive everything from that tab to my `hoardy-web serve` archiving server instance.
 
-(Actually, the above step can be skipped, since the following step will do that automatically.)
+(Actually, this step can be skipped, since the following step will do that automatically.)
 
 Then, I pressed the "Replay" button to switch to a replay page generated by `hoardy-web serve` for the above capture (i.e. that button re-navigated that tab to <http://127.0.0.1:3210/web/2/https://en.wikipedia.org/wiki/Bibliometrics>, which `hoardy-web serve` then immediately redirected to the latest archived replay version of that URL):
 
@@ -254,102 +249,70 @@ Note how the tooltip on the above screenshot shows which shortcut that action is
 
 **Then, I closed the browser, reopened it, restored the last session, and that tab was restored back with zero requests to the Internet.**
 
-## Replay controls
+## Archiving and replaying (almost) everything
 
-Now, note that `Hoardy-Web` provides
+Note that `Hoardy-Web` provides
 
-- a button that re-navigates the currently active tab to its replay (the button labeled with "previous track" symbol on the "This tab" line), as noted above;
+- a per-tab action that re-navigates a tab to its replay (see the button labeled with the "previous track" symbol on the "This tab" line on the above screenshot);
 
-- buttons that which re-navigate all tabs, except those for which `Include in global replays` per-tab toggle is disabled, that don't yet display replay pages to their replays (the buttons labeled with "eject" symbols on the "Hoardy-Web"/"Globally" and "This window" lines);
+- a per-window action that re-navigates all tabs of a browser window that don't yet show replay pages to their replays (see the button labeled with "eject" symbol on the "This window" line above);
 
-- per-tab `Auto-Replay` mode toggles which automatically redirect all navigations in corresponding tabs to their replays instead trying to load them from the Internet.
+- a per-browser action that does the same for all tabs;
 
-## Replay workflows
+- a per-tab `Include in global replays` toggle that allows you to exclude some tabs from the above multi-tab actions;
 
-That is, you can use `Hoardy-Web` to implement the following browser workflow:
+- a per-tab `Auto-Replay` mode toggle which automatically redirects all navigations in the corresponding tab to their replays instead of trying to load them from the Internet.
 
-- You re-navigate most of your tabs to their replays or you enable `Auto-Replay` mode in those tabs.
+### The workflow
 
-- You allow your browser to unload those tabs as it pleases.
+Thus, by using the features discussed above you can implement the following workflow:
 
-- You refer back to those tabs later, like usual, but now, with `Hoardy-Web`, you no longer need to worry about those tabs being unloaded and later re-fetched from the Internet while you experience
+- Navigate to, load, and capture a bunch of web pages using a bunch of browser tabs.
 
-  - intermittent Internet connection issues, like when on a plane or at sea;
+- Optionally, capture some or all of those tabs as `DOM` snapshots.
 
-  - the original website going down exactly when you want to refer back to it;
+- Archive your captures.
 
-  - the page in question becoming unpublished, removed, edited, or censored;
+- Bookmark their original URLs.
 
-  - all those web servers learning that you use your browser's tabs as a "To Read Later" list and you just selected that old tab to start reading.
+- Optionally, disable `Include in global replays` in some of your tabs.
 
-  After all, with `Hoardy-Web`, re-loading a manually or automatically replayed tab won't fetch anything from the Internet.
+- Re-navigate some or all of those tabs to their replays.
 
-- If you feel like you have too many open tabs, you can simply bookmark and close some of them, and then re-open them again later, without loading anything from the Internet.
+- Quit your browser, crash your OS, let your PC loose power.
 
-  If you re-navigate a page to its replay and bookmark the resulting URL, you'll even get the exact version of the page when you open that bookmark.
+- Re-open your browser, let it restore its last session and get back all of those (non-excluded) tabs exactly as they were, even if the Internet is currently down.
 
-  If you instead bookmark the original URL and then open that bookmark with `Auto-Replay` mode enabled, you'll see the most recent archived version by default.
+- Then, later, you can also:
 
-- You can now quit your browser, crash your OS, let your PC loose power, and then get back all those tabs exactly as you left them off, even if the Internet is currently down.
+  - Open a new empty tab.
 
-  Simply restore your last browsing session.
+  - Enable `Auto-Replay` mode in it.
+
+  - Load a normal (non-replay) URL in there, e.g., by copy-pasting it from somewhere else or by clicking one of your bookmarks.
+
+  - And `Hoardy-Web` will redirect you to a replay of, by default, the most recently archived version of that page instead.
 
 **This is simply a superior way to live.**
 
-## Search
+## Advanced features
 
-The `hoardy-web serve` replay service also supports most things you would expect from a local Wayback Machine-like thingy, like:
+You can then:
 
-- List all visits to a certain URL <http://127.0.0.1:3210/web/*/https://en.wikipedia.org/wiki/Bibliometrics>.
-- List latest visits of URLs matching a given `glob` pattern <http://127.0.0.1:3210/web/2/https://en.wikipedia.org/wiki/*>.
-- The same, but with visits in 2024 <http://127.0.0.1:3210/web/2024*/https://en.wikipedia.org/wiki/*>
-- ... or in October of 2024 <http://127.0.0.1:3210/web/2024-10*/https://en.wikipedia.org/wiki/*>
-- ... or between given dates <http://127.0.0.1:3210/web/2024-04-04--2024-05-12/https://en.wikipedia.org/wiki/*>.
-- List latest visits to everything ever archived <http://127.0.0.1:3210/web/2/*> (might take awhile).
-- List everything <http://127.0.0.1:3210/web/*/*> (will probably take quite a while).
-- Etc.
+- use your `hoardy-web serve` instance to run advanced queries over your archived visits in a [Wayback Machine](https://web.archive.org/)-like manner, e.g.:
 
-## Well, alright, this is kinda nice, but I. Need. More! POWER!
+  - list all visits matching a `glob` pattern <http://127.0.0.1:3210/web/*/https://en.wikipedia.org/wiki/*>,
+  - ... but only in 2024 <http://127.0.0.1:3210/web/2024*/https://en.wikipedia.org/wiki/*>,
+  - list all visits matching a `re` pattern collected in the last two weeks <http://127.0.0.1:3210/web/today-2w--now,re/https://archiveofourown.org/works/[0-9]+/?.*>,
+  - etc;
 
-Now, assuming you've been using `Hoardy-Web` for a while, capturing and archiving a bunch of stuff, you can now also use [`hoardy-web` command-line interface](./tool/) to query and process your archived data in various ways.
-For instance:
-
-- You can generate a static offline website mirror from (a subset of) your archives:
+- use `hoardy-web mirror` to generate static website mirrors from your archived data in a `wget -mpk`-like manner, e.g., to mirror all URL matching a certain prefix and any of their requisites (so that, e.g., images hosted on other hosts would be mirrored too):
 
   ```bash
-  hoardy-web mirror --to ~/hoardy-web/mirror-ao3 \
-    --root-url-prefix 'https://archiveofourown.org/' \
-    ~/hoardy-web/raw
+  hoardy-web mirror --to ~/hoardy-web/mirror-ao3 --root-url-prefix 'https://archiveofourown.org/' ~/hoardy-web/raw
   ```
 
-  producing a bunch of interlinked `HTML`, `CSS`, images, and other files.
-
-  - You can then share them by putting those results onto a private `HTTP` server and sharing a link.
-    Or just `zip` them and share the resulting file.
-
-  - Or, you can sync that `~/hoardy-web/mirror-ao3` directory to your phone with `adb push`, [syncthing](https://syncthing.net/), or some such, and then read/listen them with a e-book reading app there.
-
-    There is a ton of website-specific alternatives to this.
-    Like, for example, specifically `archiveofourown.org` provides `EPUB` downloads for its fiction pages, which might be more convenient in some cases.
-    But a combination of `hoardy-web` with `syncthing`, or some such, will work for all websites and can be easily automated.
-
-  - Or, you can feed those files to [recoll](https://www.lesbonscomptes.com/recoll/index.html) or some such to get full-text search.
-
-- Alternatively, you can use some [ready-made scripts distributed with `hoardy-web`](./tool/script/) to
-
-  - view archived `HTML` documents via `pandoc` piped into `less` in [your favorite tty emulator](https://st.suckless.org/),
-
-  - listen to their contents with a TTS engine via `spd-say`,
-
-  - open files stored inside those dumps via `xdg-open` (so, e.g., you can view images stored inside without first running `hoardy-web mirror`),
-
-  - etc.
-
-- Or, you can use [`hoardy-web get` and `run`](./tool/) sub-commands to make your own scripts for processing archived web pages and files in arbitrary ways.
-
-  Or, you can use `hoardy-web find` to find paths of dumps matching a specified criteria and then parse the original [`CBOR`-formatted `WRR` files](./doc/data-on-disk.md) yourself with readily-available libraries.
-
-- Then, suddenly, you feel a need to see the list of the last 10 domains you visited that used CloudFlare:
+- use other `hoardy-web`'s subcommands to query your archives programmatically, e.g., to see the list of the last 10 domains you visited that used CloudFlare:
 
   ```bash
   hoardy-web stream --walk-reversed --format=raw -ue hostname \
@@ -357,15 +320,7 @@ For instance:
     ~/hoardy-web/raw | uniq | head -n 10
   ```
 
-- Or, say, you just encountered a very uncooperative web app that does various tricks to prevent you from inspecting its web traffic in browser's Network Monitor (it's not hard to fingerprint you using it), but you want to inspect `JSON RPC` calls it does anyway:
-
-  ```bash
-  hoardy-web pprint -u --url-re 'https://app\.example\.org/rpc/.*' \
-    --response-mime text/json \
-    ~/hoardy-web/raw
-  ```
-
-The possibilities are, essentially, endless.
+See [`hoardy-web` tool's documentation](./tool/) for more info and ready-made recipes.
 
 # <span id="structure"/>Parts and pieces
 
@@ -373,7 +328,7 @@ At the moment, `Hoardy-Web` tool set consists of the following pieces, all devel
 
 ## [The `Hoardy-Web` WebExtensions browser add-on](./extension/)
 
-... which can capture all `HTTP` requests and responses (and [`DOM` snapshots](./extension/page/help.org#snapshot)) your browser fetches, dump them [into `WRR` format](./doc/data-on-disk.md), and then archive those dumps
+... which can capture all `HTTP` requests and responses your browser fetches from the Internet, as well as `DOM` snapshots, dump them [into `WRR` format](./doc/data-on-disk.md), and then archive those dumps
 
 - into browser's local storage (the default),
 
@@ -414,9 +369,9 @@ Note, however, that while `Hoardy-Web` works under Chromium-based browsers, user
 The extension does, however, try its best to collect all web traffic you browser generates.
 Therefore, it can
 
-- trivially archive web pages hidden behind CAPTCHAs, requiring special cookies, multi-factor logins, paywalls, anti-scraping/`curl`/`wget` measures, and etc (after all, the website in question only interacts with your normal web browser, not with a custom web crawler);
+- trivially archive web pages hidden behind CAPTCHAs, requiring special cookies, multi-factor logins, paywalls, anti-scraping/`curl`/`wget` measures, etc (after all, the website in question only interacts with your normal web browser, not with a custom web crawler);
 
-- archive most `HTTP`-level data, not just web pages, and not just things available via `HTTP GET` requests (e.g., it can archive answer pages of web search engines fetched via `HTTP POST`, `AJAX` data, `JSON RPC` calls, etc; though, at the moment, [it can not archive `WebSockets` data](./extension/page/help.org#bugs));
+- archive most `HTTP`- and `DOM`-level data, not just web pages, and not just things available via `HTTP GET` requests (e.g., it can archive answer pages of web search engines fetched via `HTTP POST`, `AJAX` data, `JSON RPC` calls, etc; though, at the moment, [it can not archive `WebSockets` data](./extension/page/help.org#bugs));
 
 all the while
 
@@ -434,7 +389,7 @@ Also, `Hoardy-Web` is tested much less on Chromium than on Firefox.
 
 ... which does a bunch of stuff, to quote from there:
 
-> `hoardy-web` is a tool to inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://oxij.org/software/hoardy-web/tree/master/), also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.
+> `hoardy-web` is a tool to inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay web archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://oxij.org/software/hoardy-web/tree/master/), also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.
 
 With the `hoardy-web` tool, you can view your archived data by:
 
@@ -448,15 +403,15 @@ With the `hoardy-web` tool, you can view your archived data by:
 
 - making you own scripts built on top of `hoardy-web`.
 
-`hoardy-web serve` can also play a role of an advanced archiving server for the `Hoardy-Web` browser extension.
+Additionally, note that `hoardy-web serve` can play a role of an advanced archiving server for the `Hoardy-Web` browser extension.
 I.e., it can do archival, replay, or both at the same time.
 
-`hoardy-web` allows you to search your archives
+Additionally, note that `hoardy-web` tool allows you to search your archives
 
 - directly from `hoardy-web serve` by using glob-URL links like <http://127.0.0.1:3210/web/*/https://archiveofourown.org/works/[0-9]*>, a-la Wayback Machine;
 - via [`hoardy-web find` or `hoardy-web stream`](./tool/README.md#filter) sub-commands.
 
-Also note that
+Finally, note that
 
 - most sub-commands of `hoardy-web` tool can do full-text search via the `--*grep*` options;
 
@@ -605,11 +560,9 @@ Assuming the extension reported success: **Congratulations\!**
 You are now collecting and archiving all your web browsing traffic originating from that browser.
 Repeat extension installation for all browsers/browser profiles as needed.
 
-**If you just want to collect and archive everything and don't have time to figure out how to use the rest of this suite of tools right this moment, you can stop here.**
+**Then, if you just want to collect and archive everything and don't have time to figure out how to use the rest of this suite of tools right this moment, you can stop here.**
 
-**Except, if you use your browser to login into things, be sure to see ["Setup recommendations"](#setup) below.
-If you let it, `Hoardy-Web` will happily capture and archive all your login credentials, in plain text.
-So, in this case you should learn to use it properly as soon as possible.**
+**(Except, if you use the browser `Hoardy-Web` is installed into to login into things, you should also go read ["Preventing capture of login credentials" section of the extension's `Help` page](./extension/page/help.org#no-credentials) immediately.)**
 
 It took me about 6 months before I had to refer back to previously archived data for the first time when I started using [mitmproxy](https://github.com/mitmproxy/mitmproxy) to sporadically collect my `HTTP` traffic in 2017.
 So, I recommend you start collecting immediately and be lazy about the rest.
@@ -620,9 +573,11 @@ They do this because such requests can't be captured and inspected with browser'
 
 ## Switch to using an archiving server
 
-In practice, though, your will probably want to [install the `hoardy-web` tool and run `hoardy-web serve` archiving server](./tool/README.md#quickstart), then, [switch `Hoardy-Web` to `Submit dumps via 'HTTP'` mode](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.19.0-pr.png), and then enjoy safe persistent archival with replay and search, like on the screenshots above.
+In practice, though, your will probably want to [install the `hoardy-web` tool and run `hoardy-web serve` archiving server](./tool/README.md#quickstart), then, [switch `Hoardy-Web` to `Submit dumps via 'HTTP'` mode](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.28.0-pr.png), and then enjoy safe persistent archival with replay and search, like on the screenshots above.
 
 Or, alternatively, you might want to use the [`hoardy-web-sas` simple archiving server](./simple_server/) instead.
+
+You'll probably also want to add `hoardy-web serve`/`hoardy-web-sas` to Autorun or start it from your `~/.xsession`, `systemd --user`, etc.
 
 ## ... or, if you are unable or unwilling to do that
 
@@ -630,7 +585,7 @@ Alternatively, you can use the combination of archiving by saving of data to bro
 
 Or, alternatively, you can switch to `Export dumps via 'saveAs'` mode by default and simply accept the resulting slightly more annoying UI ([on Firefox, it can be fixed with a small `about:config` change](./extension/page/help.org#faq-firefox-saveas)) and [slight unsafety](./extension/page/help.org#faq-unsafe-archive).
 
-# Alternatively, on a system with [Nix package manager](https://nixos.org/nix/)
+## Alternatively, on a system with [Nix package manager](https://nixos.org/nix/)
 
 - Install everything by running
 
@@ -654,70 +609,28 @@ Or, alternatively, you can switch to `Export dumps via 'saveAs'` mode by default
   instead.
   See the [extension's README](./extension/#build) for more info on how to install them manually.
 
-# <span id="setup"/>Setup recommendations
-
-- It's highly recommended to make a new browser profile specifically for archived anonymous browsing.
-
-  - Run Firefox as `firefox -no-remote -ProfileManager` to get to the appropriate UI.
-    On Windows you can just edit your desktop or toolbar shortcut to target
-
-    ``` cmd
-    "C:\Program Files\Mozilla Firefox\firefox.exe" -no-remote -ProfileManager
-    ```
-
-    or similar by default to switch between profiles on browser startup.
-
-  - Or just use different browsers for this, e.g. LibreWolf for anonymous browsing, Firefox for logged-in.
-
-  - Then, set the "anonymous" browser profile to always run in `Private Browsing` mode to prevent login persistence there.
-
-  - Then, in `Hoardy-Web`, either
-
-    - set different extension instances to use different default `Bucket` values;
-
-    - or, alternatively, in a more paranoid setup, point them to separate archiving server instances dumping data to different directories on disk.
-
-  If you do accidentally login in "anonymous" profile, move those dumps out of the "anonymous" directory immediately.
-
-  This way, in the future, you can easily share dumps from the "anonymous" instance without worrying about leaking your private data or login credentials.
-
-- In a logged-in browser/profile you should either
-
-  - train yourself to perform logins in separate tabs with capture disabled, or
-
-  - disable capture by default and only enable it in tabs you never login in, or
-
-  - (which, in author's humble opinion, is both most convenient and sufficiently paranoid)
-    enable "limbo" mode by default, disable `Stash reqres into local storage`,
-    and then train yourself to perform logins in separate tabs (which is rather simple in this case: simply middle-click all "Login" links), the collected data of which you then discard.
-
-  This way, no login credentials will ever get accidentally saved by `Hoardy-Web`.
-
-- You can add `hoardy-web serve`/`hoardy-web-sas` to Autorun or start it from your `~/.xsession`, `systemd --user`, etc.
-
 # Recommended next steps
 
-After you've installed all the parts you want to use, you should read:
+After you've installed all the parts you want to use, you should:
 
-- The [`Hoardy-Web` extension's `Help` page](./extension/page/help.org) for a long detailed description of what the extension does step-by-step.
+- **Ideally, read all of [`Hoardy-Web` extension's `Help` page](./extension/page/help.org).**
 
-  It is a must-read, though instead of reading that file raw I highly recommend you read it by pressing the `Help` button in extension's UI, since doing that will make the whole thing pretty interactive, see the [screenshot gallery](./doc/gallery.md) for screenshots of how this will look.
+  That page contains a detailed description of what `Hoardy-Web` extension does under the hood, explains how to use it properly, and lists and explains all of its quirks known to me.
 
-  In there, especially see:
+  Also, instead of reading that page raw I highly recommend you read it by pressing the `Help` button in extension's UI.
+  Doing it this way will make many parts of that page interactive, see the [screenshot gallery](./doc/gallery.md) for screenshots of how this will look.
 
-  - the ["Frequently Asked Questions" section](./extension/page/help.org#faq) for the answers to the frequently asked questions, including those about common quirks you can encounter while using it; and
+  **If you don't have the time to read all of that page properly, you should, at the very least, read the following of its sections:**
 
-  - the ["Quirks and Bugs" section](./extension/page/help.org#bugs) for more info on quirks and limitations of `Hoardy-Web` when used on different browsers.
+  - ["Browser setup and workflow recommendations"](./extension/page/help.org#recommendations),
+  - ["Quirks and Bugs"](./extension/page/help.org#bugs), and
+  - ["Frequently Asked Questions"](./extension/page/help.org#faq).
 
-- The [`hoardy-web`'s `README`](./tool/README.md) and/or the [`hoardy-web-sas`'s `README`](./simple_server/README.md).
-
-  The [former](./tool/README.md) of which has a bunch of advanced usage examples.
-
-  Also, you might want to see [`hoardy-web`'s example scripts](./tool/script/).
+- Read [`hoardy-web` tool's](./tool/README.md) and/or [`hoardy-web-sas` tool's](./simple_server/README.md) `README`s, the former of which has a bunch of advanced usage examples.
 
 Then, to follow the development:
 
-- See the ["Changelog" page](./CHANGELOG.md) for the progress log and human-readable description of recent changes (which is much shorter and more comprehensible than the commit log).
+- Follow the ["Changelog" page](./CHANGELOG.md) for the progress log and human-readable description of recent changes (which is much shorter and more comprehensible than the commit log).
 
   You can simply bookmark that URL and return to it periodically to follow new releases.
 
@@ -727,11 +640,15 @@ Then, to follow the development:
 
 If you are a developer yourself:
 
-- See the ["Development" section of extension's `README.md`](./extension/README.md#development) for building from source and debugging instructions.
+- If you want to modify `Hoardy-Web` extension's sources, build them, install the result into your web browser, and then, possibly, test and debug it, see the ["Development" section of extension's `README.md`](./extension/README.md#development).
 
-- See all the `hoardy-web`'s-related links above, and also see the description of the [on-disk file format used by all these tools](./doc/data-on-disk.md).
+- If you want to modify, test, and debug [`hoardy-web` tool](./tool/)'s sources, use `nix-shell` and/or see [there](./tool/default.nix).
 
-Finally, if your questions are still unanswered, then [open an issue on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues) or [get in touch otherwise](https://oxij.org/#contact).
+- If you want to use [`hoardy-web` tool](./tool/) in your own scripts, go read [its `README`](./tool/README.md) and the sources of [its example scripts](./tool/script/) first.
+
+- If you want to parse `Hoardy-Web`'s `WRR` outputs yourself, see the [description of the on-disk file format used by all these tools](./doc/data-on-disk.md).
+
+Finally, if you have a question unanswered by all of the above, [open an issue on GitHub](https://github.com/Own-Data-Privateer/hoardy-web/issues) or [get in touch otherwise](https://oxij.org/#contact).
 
 # <span id="alternatives"/>Alternatives
 
