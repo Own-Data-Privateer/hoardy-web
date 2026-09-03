@@ -178,9 +178,18 @@ See [`chromium-web-store`'s README](https://github.com/NeverDecaf/chromium-web-s
 
 ### On Firefox-based browsers
 
-- To get the debugger console go to `about:debugging#/runtime/this-firefox` and press extension's `Inspect` button.
-- You should also probably set "Persist Logs" setting on the "Console" tab.
+To get the debugger console go to `about:debugging#/runtime/this-firefox` and press extension's `Inspect` button.
+
+You should also probably set "Persist Logs" setting on the "Console" tab.
 
 ### On Chromium-based browsers
 
-- To get the debugger console go to `Extensions > Manage Extensions` and press `Inspect views` link after the extension's ID.
+To get the debugger console go to `Extensions > Manage Extensions` and press `Inspect views` link after the extension's ID.
+
+### On both
+
+See the `Debugging` section on the `BH` tab of extension's popup UI.
+
+While doing development, you should, at the very least, enable the `Debug runtime` option there.
+
+To make your debugger outputs more useful you might also want enable some of the `Log ...` options there.
