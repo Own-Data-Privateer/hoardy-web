@@ -1118,7 +1118,7 @@ Pretty-print given inputs to stdout.
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
-- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this simply populates the `potentially` lists in the output in various ways:
+- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand this simply populates the `potentially` lists in the output in various ways:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
   - `--sniff-force`
@@ -1148,7 +1148,7 @@ The end.
   - `--markdown`
   : show `--help` formatted in Markdown
 
-- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
   - `--sniff-force`
@@ -1212,9 +1212,9 @@ The end.
               - `(+|-|*|/|&)jumps` controls how jump-links (`a href`, `area href`, and similar `HTML` tag attributes) should be remapped or censored out:
                 - `+` rewrites their values into full URLs, e.g. `<a href="/path?query">` -> `<a href="https://example.org/path?query">`;
                 - `-` "voids" all of them, i.e., simply drops their `HTML` tag attributes, rewrites them to `javascript:void(0)`, empty `data:` URLs, etc, depending on context;
-                - `*` rewrites links in an "open-ended" way, i.e. points them to locally mirrored versions of their URLs when available and leaves them pointing to their original URL otherwise; this is only supported when `scrub` is used within `mirror` and `serve` sub-commands; under other sub-commands this is equivalent to `+`;
-                - `/` rewrites links in a "close-ended" way, i.e. points them to locally mirrored versions of their URLs when available and voids them otherwise; this is only supported when `scrub` is used within `mirror` and `serve` sub-commands; under other sub-commands this is equivalent to `-`;
-                - `&` rewrites links in a "close-ended" way like `/` does, except this option uses fallbacks to remap unavailable URLs whenever possible; this is only supported when `scrub` is used within `mirror` and `serve` sub-commands; under other sub-commands this is equivalent to `-`; see the documentation of the `--remap-all` option for more info;
+                - `*` rewrites links in an "open-ended" way, i.e. points them to locally mirrored versions of their URLs when available and leaves them pointing to their original URL otherwise; this is only supported when `scrub` is used within `mirror` and `serve` subcommands; under other subcommands this is equivalent to `+`;
+                - `/` rewrites links in a "close-ended" way, i.e. points them to locally mirrored versions of their URLs when available and voids them otherwise; this is only supported when `scrub` is used within `mirror` and `serve` subcommands; under other subcommands this is equivalent to `-`;
+                - `&` rewrites links in a "close-ended" way like `/` does, except this option uses fallbacks to remap unavailable URLs whenever possible; this is only supported when `scrub` is used within `mirror` and `serve` subcommands; under other subcommands this is equivalent to `-`; see the documentation of the `--remap-all` option for more info;
               - `(+|-|*|/|&)actions` controls how action-links (`a ping`, `form action`, and similar `HTML` tag attributes) should be remapped or censored out; same rewrite options as above;
               - `(+|-|*|/|&)reqs` controls how references to page requisites (`img src`, `iframe src`, and similar `HTML` tag attributes, as well as `link src` attributes which have `rel` attribute of their `HTML` tag set to `stylesheet` or `icon`, `CSS` `url` references, etc) should be remapped or censored out; same rewrite options as above;
               - `(+|-|*|/|&)all_refs` is equivalent to setting all of `jumps`, `actions`, and `reqs` simultaneously;
@@ -1439,7 +1439,7 @@ Essentially, this is `{__prog__} get` into a temporary file for each given `PATH
   - `-n, --num-args NUM`
   : number of `PATH`s; default: `1`
 
-- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
   - `--sniff-force`
@@ -1538,7 +1538,7 @@ Esentially, this is a generalized `{__prog__} get`.
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
-- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
   - `--sniff-force`
@@ -1626,7 +1626,7 @@ The end.
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
-- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
   - `--sniff-force`
@@ -1725,7 +1725,7 @@ E.g. `hoardy-web organize --move` will not overwrite any files, which is why the
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
-- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
+- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
   - `--sniff-force`
@@ -2365,7 +2365,7 @@ Parse each `INPUT` `PATH` as a `WRR` bundle (an optionally compressed sequence o
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
-- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
+- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
   - `--sniff-force`
@@ -2467,7 +2467,7 @@ Parse each `INPUT` `PATH` as `mitmproxy` stream dump (by using `mitmproxy`'s own
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
-- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
+- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
   - `--sniff-force`
@@ -2570,7 +2570,7 @@ Essentially, this is a combination of `hoardy-web organize --copy` followed by i
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
-- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content; also, higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand this influeences generated file names because `filepath_parts` and `filepath_ext` of `hoardy-web get --expr` (which see) depend on both the original file extension present in the URL and the detected `MIME` type of its content; also, higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
   - `--sniff-force`
@@ -2970,7 +2970,7 @@ The end.
   - `PATH`
   : inputs, can be a mix of files and directories (which will be traversed recursively)
 
-- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
+- `MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand higher values make the `scrub` function (which see) censor out more things when `-unknown`, `-styles`, or `-scripts` options are set; in particular, at the moment, with `--sniff-paranoid` and `-scripts` most plain text files will be censored out as potential `JavaScript`:
   - `--sniff-default`
   : run `mimesniff` when the spec says it should be run; i.e. trust `Content-Type` `HTTP` headers most of the time; default
   - `--sniff-force`
@@ -3086,7 +3086,7 @@ The end.
   - `--web`
   : replay `HTTP` responses as close as possible to their original captures; default
   - `--mirror`
-  : replay `HTTP` responses like `hoardy-web mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `hoardy-web mirror`; i.e., enabling this option will, essentially, turn this sub-command into an on-demand `hoardy-web mirror` which you can query with `curl` or some such
+  : replay `HTTP` responses like `hoardy-web mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `hoardy-web mirror`; i.e., enabling this option will, essentially, turn this subcommand into an on-demand `hoardy-web mirror` which you can query with `curl` or some such
 
 ## Examples
 

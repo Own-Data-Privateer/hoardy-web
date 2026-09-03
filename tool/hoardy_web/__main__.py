@@ -475,7 +475,7 @@ def cmd_run(cargs: _t.Any) -> None:
         cargs.exprs = [compile_expr(default_expr("run", cargs.default_expr))]
 
     if cargs.num_args < 1:
-        raise Failure("`run` sub-command requires at least one PATH")
+        raise Failure("`run` subcommand requires at least one PATH")
     if cargs.num_args - 1 > len(cargs.args):
         raise Failure("not enough arguments to satisfy `--num-args`")
 
@@ -3639,7 +3639,7 @@ if other parts of the date are not specified, they get substituted from `<year>-
             what = f"{oscrub}; also, {wscrub}"
 
         agrp = cmd.add_argument_group(
-            _("`MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this sub-command " + what)
+            _("`MIME` type sniffing; this controls the use of the [`mimesniff` algorithm](https://mimesniff.spec.whatwg.org/); for this subcommand " + what)
         )
         grp = agrp.add_mutually_exclusive_group()
         grp.add_argument("--sniff-default", dest="sniff", action="store_const", const=SniffContentType.NONE,
@@ -4436,7 +4436,7 @@ thus, when setting this option to a custom value, you should probably only use t
         help=_("replay `HTTP` responses as close as possible to their original captures; default"),
     )
     agrp.add_argument("--mirror", dest="web_replay", action="store_const", const=False,
-        help=_(f"replay `HTTP` responses like `{__prog__} mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `{__prog__} mirror`; i.e., enabling this option will, essentially, turn this sub-command into an on-demand `{__prog__} mirror` which you can query with `curl` or some such"),
+        help=_(f"replay `HTTP` responses like `{__prog__} mirror` does; setting this option will disable replay of all `HTTP` headers except for `Location` and enable `inline_headers` option in `scrub` calls used in default `EXPR`s, similar to `{__prog__} mirror`; i.e., enabling this option will, essentially, turn this subcommand into an on-demand `{__prog__} mirror` which you can query with `curl` or some such"),
     )
     cmd.set_defaults(web_replay=True)
 

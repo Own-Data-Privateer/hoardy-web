@@ -771,7 +771,7 @@ def linst_scrub() -> LinstAtom:
 
 
 def _scrub_to(x: str) -> str:
-    return f"this is only supported when `scrub` is used within `mirror` and `serve` sub-commands; under other sub-commands this is equivalent to `{x}`"
+    return f"this is only supported when `scrub` is used within `mirror` and `serve` subcommands; under other subcommands this is equivalent to `{x}`"
 
 
 _in_out = "should be kept in or censored out"
