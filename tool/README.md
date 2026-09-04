@@ -1,7 +1,10 @@
 # Table of Contents
 <details><summary>(Click me to see it.)</summary>
 <ul>
-<li><a href="#what-is-hoardy-web" id="toc-what-is-hoardy-web">What is <code>hoardy-web</code>?</a></li>
+<li><a href="#what-is-hoardy-web" id="toc-what-is-hoardy-web">What is <code>hoardy-web</code>?</a>
+<ul>
+<li><a href="#supported-formats" id="toc-supported-formats">Supported formats</a></li>
+</ul></li>
 <li><a href="#how-to-read-this-document" id="toc-how-to-read-this-document">How to read this document</a></li>
 <li><a href="#quickstart" id="toc-quickstart">Quickstart</a>
 <ul>
@@ -11,10 +14,11 @@
 <li><a href="#capture-and-archive-some-websites" id="toc-capture-and-archive-some-websites">Capture and archive some websites</a></li>
 <li><a href="#viewreplay-your-archived-data-interactively-over-http" id="toc-viewreplay-your-archived-data-interactively-over-http">View/replay your archived data interactively over <code>HTTP</code></a></li>
 <li><a href="#make-a-website-mirror-from-your-archived-data" id="toc-make-a-website-mirror-from-your-archived-data">Make a website mirror from your archived data</a></li>
+<li><a href="#well-alright-this-is-kinda-nice-but-i.-need.-more-power" id="toc-well-alright-this-is-kinda-nice-but-i.-need.-more-power">Well, alright, this is kinda nice, but I. Need. More! POWER!</a></li>
 </ul></li>
-<li><a href="#supported-input-file-formats" id="toc-supported-input-file-formats">Supported input file formats</a></li>
 <li><a href="#recipes" id="toc-recipes">Recipes</a>
 <ul>
+<li><a href="#parsing-of-inputs" id="toc-parsing-of-inputs">Parsing of inputs</a></li>
 <li><a href="#convert-anything-to-wrr" id="toc-convert-anything-to-wrr">Convert anything to <code>WRR</code></a></li>
 <li><a href="#find-and-filter-things" id="toc-find-and-filter-things">Find and filter things</a></li>
 <li><a href="#merge-multiple-archive-directories" id="toc-merge-multiple-archive-directories">Merge multiple archive directories</a></li>
@@ -71,7 +75,26 @@
 
 # What is `hoardy-web`?
 
-`hoardy-web` is a tool to inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://oxij.org/software/hoardy-web/tree/master/), also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.
+`hoardy-web` is a tool to inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay web archives/dumps in `WRR` ("Web Request+Response", produced by the [`Hoardy-Web` Web Extension browser add-on](https://oxij.org/software/hoardy-web/tree/master/), also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/)) and [`mitmproxy`](https://github.com/mitmproxy/mitmproxy) (`mitmdump`) file formats.
+
+## Supported formats
+
+At the moment `hoardy-web` tool can take the following types of files as inputs (for definitions of all these abbreviations, see [this](../doc/data-on-disk.md)):
+
+- `WRR` files (both compressed and not);
+- `WRR` bundles (similarly);
+- `mitmproxy` dumps; and
+- `HAR` (using `mitmproxy`'s parser);
+- (`WARC` and built-in `HAR` support will be added [soon-ish](../CHANGELOG.md#todo), `PCAP` support will be added eventually);
+
+filter them (that is, conditionally ignore some of the given inputs), and generate the following types of outputs:
+
+- `HTTP` headers, request and response bodies, as well as `DOM` snapshots contained in the abovementioned file formats, optionally processed in various ways
+  - served over `HTTP` or
+  - written into files;
+- `WRR` files (similarly);
+- `WRR` bundles (similarly);
+- arbitrary values derived from each processed *reqres* (captured `HTTP` REQuest+RESponse pair) by computing user-defined expressions over them, formatting those as text, bytes, `JSON`, or [`CBOR` (RFC8949)](https://datatracker.ietf.org/doc/html/rfc8949) values and then dumping them into many separate per-reqres-input files or just streaming them all to `stdout`.
 
 # How to read this document
 
@@ -153,16 +176,15 @@ hoardy-web serve --implicit --archive-to ~/hoardy-web/raw
 ## Capture and archive some websites
 
 See [`Hoardy-Web`'s "Quickstart"](https://oxij.org/software/hoardy-web/tree/master/README.md#quickstart) (also on [GitHub](https://github.com/Own-Data-Privateer/hoardy-web/tree/master/README.md#quickstart)).
-
 In short:
 
 - Install `Hoardy-Web`'s extension into your browser.
-- Switch it to `Submit dumps via 'HTTP'` mode and ensure it points to the URL of the above `hoardy-web serve` instance ([like this screenshot of the `P&R` tab shows](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.19.0-pr.png)).
+- Switch it to `Submit dumps via 'HTTP'` mode and ensure it points to the URL of the above `hoardy-web serve` instance ([like this screenshot of the `P&R` tab shows](https://oxij.org/asset/demo/software/hoardy-web/extension-v1.28.0-pr.png)).
 - Browse some websites.
 
 ## View/replay your archived data interactively over `HTTP`
 
-You can then navigate to
+You can then use your `hoardy-web serve` instance to browse your archived data:
 
 - <http://127.0.0.1:3210/web/*/*> to see the list of all available URLs and their versions (visits), or to
 - something like <http://127.0.0.1:3210/web/2/https://archiveofourown.org/works/3733123> to view the latest archived version of that URL, or to
@@ -175,7 +197,7 @@ This is very reminiscent of the [Wayback Machine](https://web.archive.org/) by d
 
 You can also use your archived data to generate a local offline static website mirror that can be opened in a web browser without accessing the Internet, similar to what `wget -mpk` does.
 
-The precise invocation is slightly dependent on whether the archives were exported via `saveAs` by the [`Hoardy-Web` extension](../extension/) itself, saved via the [`hoardy-web-sas` simple archiving server](../simple_server/), or via `hoardy-web serve --archive-to` (see below):
+The precise invocation is slightly dependent on whether the archives were exported via `saveAs` by the [`Hoardy-Web` extension](../extension/) itself, saved via the [`hoardy-web-sas` simple archiving server](../simple_server/), or via `hoardy-web serve --archive-to`:
 
 ```bash
 # for "Export via `saveAs`"
@@ -185,46 +207,91 @@ hoardy-web mirror --to ~/hoardy-web/mirror1 ~/Downloads/Hoardy-Web-export-*
 hoardy-web mirror --to ~/hoardy-web/mirror1 ../simple_server/pwebarc-dump ~/hoardy-web/raw
 ```
 
-You can then, e.g. `rsync`/`syncthing`/`adb push`/copy `~/hoardy-web/mirror1` to your phone/e-book reader before hopping on a plane or going on a deep-sea dive, and still be able to read all those pages.
+You can generate a static offline website mirror from (a subset of) your archives:
+
+```bash
+hoardy-web mirror --to ~/hoardy-web/mirror-ao3 \
+  --root-url-prefix 'https://archiveofourown.org/' \
+  ../simple_server/pwebarc-dump ~/hoardy-web/raw
+```
+
+You can then, e.g.:
+
+- Share your rendered results by putting the outputs of the above command onto a private `HTTP` server and sharing a link.
+
+- Or, just `zip` them and share the resulting file.
+
+- Or, sync your `~/hoardy-web/mirror*` directories to your phone with `adb push`, [syncthing](https://syncthing.net/), or some such, and then read/listen them with a e-book reading app there.
+
+  There is a ton of website-specific alternatives to this.
+  Like, for example, specifically `archiveofourown.org` provides `EPUB` downloads for its fiction pages, which might be more convenient in some cases.
+  But a combination of `hoardy-web` with `syncthing`, or some such, will work for all websites and can be easily automated.
+
+- Or, you can feed those files to [recoll](https://www.lesbonscomptes.com/recoll/index.html) or some such to get full-text search.
 
 The default settings should work for most simple websites, but a [section below](#mirror) contains more info and more usage examples.
 
-# Supported input file formats
+## Well, alright, this is kinda nice, but I. Need. More! POWER!
 
-For definitions, see the ["Data formats used by `Hoardy-Web`" page](../doc/data-on-disk.md).
+Now, assuming you've been using `Hoardy-Web` for a while, capturing and archiving a bunch of stuff, you can now also use `hoardy-web` command-line interface to query and process your archived data in various advanced ways.
+For instance:
 
-At the moment `hoardy-web` tool supports
+- You can use some [ready-made scripts distributed with `hoardy-web`](./script/) to
 
-- `WRR` files (both compressed and not),
-- `WRR` bundles (similarly),
-- `mitmproxy` dumps, and
-- `HAR` (using `mitmproxy`'s parser).
+  - view archived `HTML` documents via `pandoc` piped into `less` in [your favorite tty emulator](https://st.suckless.org/),
 
-`WARC` and built-in `HAR` support will be added [soon-ish](../CHANGELOG.md#todo), `PCAP` support will be added eventually.
+  - listen to their contents with a TTS engine via `spd-say` or some such,
 
-All sub-commands of `hoardy-web` except for
+  - open files stored inside those dumps via `xdg-open` (so, e.g., you can view images stored inside without first running `hoardy-web mirror`),
 
-- `organize` when run with `--move`, `--hardlink`, or `--symlink` (i.e. with anything other than `--copy`),
-- `get`, and
-- `run`
+  - etc.
 
-can take all supported file formats as inputs.
+- Or, you can use `hoardy-web get` and `run` subcommands to make your own scripts for processing archived web pages and files in arbitrary ways.
+
+  Or, you can use `hoardy-web find` to find paths of dumps matching a specified criteria and then parse the original [`CBOR`-formatted `WRR` files](../doc/data-on-disk.md) yourself with readily-available libraries.
+
+- Then, suddenly, you feel a need to see the list of the last 10 domains you visited that used CloudFlare:
+
+  ```bash
+  hoardy-web stream --walk-reversed --format=raw -ue hostname \
+    --response-headers-grep-re '^server: cloudflare' \
+    ~/hoardy-web/raw | uniq | head -n 10
+  ```
+
+- Or, say, you just encountered a very uncooperative web app that does various tricks to prevent you from inspecting its web traffic in browser's Network Monitor (it's not hard to fingerprint you using it), but you want to inspect `JSON RPC` calls it does anyway:
+
+  ```bash
+  hoardy-web pprint -u --url-re 'https://app\.example\.org/rpc/.*' \
+    --response-mime text/json \
+    ~/hoardy-web/raw
+  ```
+
+The possibilities are, essentially, endless.
+
+# Recipes
+
+## Parsing of inputs
+
+All subcommands of `hoardy-web` except for
+
+- `hoardy-web organize --(move|hardlink|symlink)`,
+- `hoardy-web get`, and
+- `hoardy-web run`
+
+can take all [supported formats](#supported-formats) as inputs.
 So, most examples described below will work fine with any mix of inputs as arguments.
 
 You can, however, force `hoardy-web` to use a specific loader for all given inputs, e.g.:
 
 ```
-hoardy-web mirror --to ~/hoardy-web/mirror1 \
-  --load-mitmproxy mitmproxy.*.dump
+hoardy-web mirror --to ~/hoardy-web/mirror1 --load-mitmproxy mitmproxy.*.dump
 ```
 
 This is slightly faster than the default `--load-any` and, for most loaders, produces more specific errors that explain exactly what failed to parse, instead of simply saying that all tried parsers failed to work.
 
-# Recipes
-
 ## Convert anything to `WRR`
 
-To use `hoardy-web organize`, `get`, and `run` sub-commands on data stored in file formats other than separate `WRR` files, you will have to import them first:
+To use `hoardy-web organize --(move|hardlink|symlink)`, `get`, and `run` subcommands on data stored in file formats other than separate `WRR` files, you will have to import them first:
 
 ```bash
 hoardy-web import bundle --to ~/hoardy-web/raw ~/Downloads/Hoardy-Web-export-*
@@ -243,7 +310,7 @@ In fact, internally, `hoardy-web import bundle` is actually an alias for `hoardy
 
 ## <span id="filter"/>Find and filter things
 
-You can search your archive directory by using `hoardy-web find` sub-command, that prints paths to those of its inputs which match given conditions.
+You can search your archive directory by using `hoardy-web find` subcommand, that prints paths to those of its inputs which match given conditions.
 For example, to list reqres from `~/hoardy-web/raw` that contain complete `GET` requests with `200 OK` responses, you can run:
 
 ```bash
@@ -257,7 +324,7 @@ hoardy-web find --method GET --method DOM --status-re .200C --response-mime text
   --response-body-grep-re "\bPotter\b" ~/hoardy-web/raw
 ```
 
-Most other sub-commands also accept the same filtering options.
+Most other subcommands also accept the same filtering options.
 So, for instance, you can pretty-print or generate a static mirror from such files instead:
 
 ```bash
@@ -466,7 +533,7 @@ hoardy-web mirror \
   --to ~/hoardy-web/mirror2 ~/hoardy-web/raw
 ```
 
-See the documentation for the `--remap-*` options of `mirror` sub-command and the options of the `scrub` function below for more info.
+See the documentation for the `--remap-*` options of `mirror` subcommand and the options of the `scrub` function below for more info.
 
 If you instead want a mirror made of raw files without any content censorship or link conversions, run:
 
@@ -568,12 +635,12 @@ hoardy-web mirror \
 ```
 
 The `--root-*` options have exactly the same syntax and semantics as the normal input filtering options, except they start with `--root-` prefix, and instead of making `hoardy-web` accept reqres satisfying them as inputs, they make `hoardy-web mirror` queue such reqres for `mirror`ing at the initial `depth` of `0`.
-An yes, there is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root-*`s and then `mirror` all those URLs and their requisites too.
+And yes, there is also `--depth` option, which works similarly to `wget`'s `--level` option in that it will follow all jump (`a href`) and action links accessible with no more than `--depth` browser navigations from recursion `--root-*`s and then `mirror` all those URLs and their requisites too.
 
 When using `--root-*` options, `--remap-open` works exactly like `wget`'s `--convert-links` in that it will only remap the URLs that are going to be mirrored and will keep the rest as-is.
 Similarly, `--remap-semi` and `--remap-closed` will consider only the URLs reachable from the `--root-*`s in no more that `--depth` jumps as available.
 
-Unlike most other sub-commands of `hoardy-web` which set no default filters, `mirror` runs with implied `--ignore-some-inputs` and `--skip-some-indexed` options which set some useful default input and root filters.
+Unlike most other subcommands of `hoardy-web` which set no default filters, `mirror` runs with implied `--ignore-some-inputs` and `--skip-some-indexed` options which set some useful default input and root filters.
 This can be disabled with `--index-all-inputs` and/or `--queue-all-indexed`, which can useful when using `mirror` to do weird things with custom `--expr`s, with the default `--expr`s, using these options is likely to produce a broken mirror, unless you add some specific filters manually.
 See the documentation all of those options below for more info.
 
@@ -589,7 +656,7 @@ I.e., `mirror` will produce a new file containing an `HTML` document only after 
 I.e., when mirroring into an empty directory, if you see `mirror` generated an `HTML` document, you can be sure that all of its requisites loaded (indexed) by this `mirror` invocation are rendered too.
 Meaning, you can go ahead and open it in your browser, even if `mirror` did not finish yet.
 
-Moreover, unlike all other sub-commands `mirror` handles duplication in its input files in a special way: it remembers the files it has already seen and ignores them when they are given the second time.
+Moreover, unlike all other subcommands `mirror` handles duplication in its input files in a special way: it remembers the files it has already seen and ignores them when they are given the second time.
 (All other commands don't, they will just process the same file the second time, the third time, and so on.
 This is by design, other commands are designed to handle potentially enormous file hierarchies in constant memory.)
 
@@ -618,18 +685,19 @@ hoardy-web mirror \
 
 will mirror all pages those URLs start with `https://archiveofourown.org/works/` and all their requisites, but the pages contained in files named `~/hoardy-web/latest/archiveofourown.org/works__3733123*.wrr` and their requisites will be mirrored first.
 
-Finally, there is also the `--boring` option, which allows you to load some input `PATH`s without queuing them as roots, even when no `--root-*` options are specified or specified `--root-*` options say those reqres should be taken as roots.
+Finally, there is also the `--boring` option, which allows you to load some input `PATH`s without queuing them as roots, even when the lack of or the specified `--root-*` options imply that they should be.
 E.g., the following
 
 ```
 hoardy-web mirror \
   --to ~/hoardy-web/mirror8 \
-  --boring ~/hoardy-web/latest/i.imgur.com \
+  ~/hoardy-web/latest/archiveofourown.org/works__[0-9]*.wrr \
   --boring ~/hoardy-web/latest/archiveofourown.org \
-  ~/hoardy-web/latest/archiveofourown.org/works__[0-9]*.wrr
+  --boring ~/hoardy-web/latest/i.imgur.com
 ```
 
-will load (an index of) everything under `~/hoardy-web/latest/i.imgur.com` and `~/hoardy-web/latest/archiveofourown.org` into memory but will only mirror the contents of `~/hoardy-web/latest/archiveofourown.org/works__[0-9]*.wrr` files and their requisites.
+will load (an index of) everything under `~/hoardy-web/latest/archiveofourown.org` and `~/hoardy-web/latest/i.imgur.com` into memory but will only mirror the contents of `~/hoardy-web/latest/archiveofourown.org/works__[0-9]*.wrr` files and their requisites.
+That is, images and `CSS` stylesheets from `archiveofourown.org` and images from `i.imgur.com` that are referenced by pages from `archiveofourown.org/works__[0-9]*.wrr` will be `mirror`ed together with the latter, but any other URLs from those `--boring` inputs will be ignored.
 
 ### Control which versions (visits) get mirrored
 
@@ -838,7 +906,7 @@ See the [`script` sub-directory](./script/) for examples that show how to use `p
 
 ## hoardy-web
 
-Inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay `HTTP` archives/dumps in `WRR` ("Web Request+Response", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.
+Inspect, search, organize, programmatically extract values and generate static website mirrors from, archive, view, and replay web archives/dumps in `WRR` ("Web Request+Response", produced by the `Hoardy-Web` Web Extension browser add-on) and `mitmproxy` (`mitmdump`) file formats.
 
 Glossary: a `reqres` (`Reqres` when a type/class) is an instance of a structure representing `HTTP` request+response pair with some additional metadata.
 
