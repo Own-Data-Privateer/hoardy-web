@@ -31,13 +31,13 @@ mem = Memory()
 
 
 @_dc.dataclass
-class SeenCounter(_t.Generic[_t.AnyStr]):
-    _state: _c.OrderedDict[_t.AnyStr, int] = _dc.field(default_factory=_c.OrderedDict)
+class SeenCounter[AnyStr: (str, bytes)]:
+    _state: _c.OrderedDict[AnyStr, int] = _dc.field(default_factory=_c.OrderedDict)
 
     def __len__(self) -> int:
         return len(self._state)
 
-    def count(self, value: _t.AnyStr) -> int:
+    def count(self, value: AnyStr) -> int:
         try:
             count = self._state[value]
         except KeyError:
@@ -48,7 +48,7 @@ class SeenCounter(_t.Generic[_t.AnyStr]):
         self._state[value] = count
         return count
 
-    def pop(self) -> tuple[_t.AnyStr, int]:
+    def pop(self) -> tuple[AnyStr, int]:
         res = self._state.popitem(False)
         value, _ = res
         mem.consumption -= 16 + len(value)

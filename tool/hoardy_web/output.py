@@ -42,7 +42,10 @@ def plainify(obj: _t.Any) -> _t.Any:
     raise Failure("can't plainify a value of type `%s`", type(obj).__name__)
 
 
-def abridge_anystr(value: _t.AnyStr, length: int, ln: bool) -> tuple[bool, _t.AnyStr]:
+def abridge_anystr[AnyStr: (
+    str,
+    bytes,
+),](value: AnyStr, length: int, ln: bool) -> tuple[bool, AnyStr]:
     hlength = length // 2
     if len(value) > length:
         if isinstance(value, bytes):
@@ -238,7 +241,7 @@ class CBORStreamEncoder(StreamEncoder):
         enc.encode(plainify(obj))
 
     @staticmethod
-    def encode_cbor_abridged(enc: _cbor2.CBOREncoder, obj: _t.Any) -> None:
+    def encode_cbor_abridged[AnyStr: (str, bytes)](enc: _cbor2.CBOREncoder, obj: AnyStr) -> None:
         _abridged, value = abridge_anystr(obj, 256, False)
         if isinstance(value, bytes):
             enc.encode_bytestring(value)
@@ -289,7 +292,7 @@ class PyStreamEncoder(StreamEncoder):
             enc.encode(plainify(obj))
 
     @staticmethod
-    def encode_py_abridged(enc: PyReprEncoder, obj: _t.AnyStr) -> None:
+    def encode_py_abridged(enc: PyReprEncoder, obj: str | bytes) -> None:
         abridged, value = abridge_anystr(repr(obj), 256, False)
         enc.lexeme(value)
         if abridged:
@@ -388,9 +391,9 @@ class RawStreamEncoder(StreamEncoder):
             raise Failure("can't raw-encode a value of type `%s`", type(obj).__name__)
 
     @staticmethod
-    def encode_raw_abridged(enc: TIOEncoder, obj: _t.AnyStr) -> None:
+    def encode_raw_abridged[AnyStr: (str, bytes)](enc: TIOEncoder, obj: AnyStr) -> None:
         abridged, value = abridge_anystr(obj, 256, False)
-        if isinstance(obj, bytes):
+        if isinstance(value, bytes):
             enc.write_bytes(value)
         else:
             enc.write_str(value)

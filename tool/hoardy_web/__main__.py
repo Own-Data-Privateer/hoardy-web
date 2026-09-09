@@ -230,17 +230,19 @@ def handle_paths(cargs: _t.Any) -> None:
         cargs.paths.sort(reverse=cargs.walk_paths == WalkOrder.REVERSE)
 
 
-LoadResult = _t.TypeVar("LoadResult")
-LoadFFunc = _t.Callable[[_t.AnyStr], LoadResult]
-EmitFunc = _t.Callable[[LoadResult], None]
+type LoadFFunc[LoadPath, LoadResult] = _t.Callable[[LoadPath], LoadResult]
+type EmitFunc[LoadResult] = _t.Callable[[LoadResult], None]
 
 
-def load_map_orderly(
-    load_func: LoadFFunc[_t.AnyStr, LoadResult],
-    emit_func: EmitFunc[LoadResult],
-    dir_or_file_path: _t.AnyStr,
+def load_map_orderly[AnyStr: (
+    str,
+    bytes,
+), Result](
+    load_func: LoadFFunc[AnyStr, Result],
+    emit_func: EmitFunc[Result],
+    dir_or_file_path: AnyStr,
     *,
-    seen_paths: set[_t.AnyStr] | None = None,
+    seen_paths: set[AnyStr] | None = None,
     follow_symlinks: bool = True,
     order: WalkOrder = WalkOrder.REVERSE,
     errors: str = "fail",
@@ -291,12 +293,15 @@ def load_map_orderly(
             raise exc
 
 
-def map_wrr_paths(
+def map_wrr_paths[AnyStr: (
+    str,
+    bytes,
+)](
     cargs: _t.Any,
-    loadf_func: LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]],
+    loadf_func: LoadFFunc[AnyStr, _t.Iterator[ReqresExpr[_t.Any]]],
     filters_allow: _t.Callable[[ReqresExpr[_t.Any]], bool],
     emit_func: EmitFunc[ReqresExpr[_t.Any]],
-    paths: list[_t.AnyStr],
+    paths: list[AnyStr],
     **kwargs: _t.Any,
 ) -> None:
     def emit_many(rrexprs: _t.Iterator[ReqresExpr[_t.Any]]) -> None:
@@ -314,7 +319,10 @@ def map_wrr_paths(
         )
 
 
-def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
+def dispatch_rrexprs_load[AnyStr: (
+    str,
+    bytes,
+)]() -> LoadFFunc[AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
     import_failed = []
 
     class Mutable:
@@ -328,10 +336,10 @@ def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.An
     else:
         have_mitmproxy = True
 
-    is_wrr: IncludeFilesFunc[_t.AnyStr] = with_extension_in([".wrr", b".wrr"])
-    is_wrrb: IncludeFilesFunc[_t.AnyStr] = with_extension_in([".wrrb", b".wrrb"])
+    is_wrr: IncludeFilesFunc[AnyStr] = with_extension_in([".wrr", b".wrr"])
+    is_wrrb: IncludeFilesFunc[AnyStr] = with_extension_in([".wrrb", b".wrrb"])
 
-    def warn(path: _t.AnyStr, parser: str, exc: Exception) -> None:
+    def warn(path: AnyStr, parser: str, exc: Exception) -> None:
         _logging.warning(
             "while processing `%s`: failed to parse with `%s` parser: %s",
             path,
@@ -339,7 +347,7 @@ def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.An
             get_traceback(exc),
         )
 
-    def rrexprs_load(path: _t.AnyStr) -> _t.Iterator[ReqresExpr[_t.Any]]:
+    def rrexprs_load(path: AnyStr) -> _t.Iterator[ReqresExpr[_t.Any]]:
         if is_wrr(path):
             try:
                 yield rrexpr_wrr_loadf(path)
@@ -368,7 +376,10 @@ def dispatch_rrexprs_load() -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.An
     return rrexprs_load
 
 
-def mk_rrexprs_load(cargs: _t.Any) -> LoadFFunc[_t.AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
+def mk_rrexprs_load[AnyStr: (
+    str,
+    bytes,
+)](cargs: _t.Any) -> LoadFFunc[AnyStr, _t.Iterator[ReqresExpr[_t.Any]]]:
     loader = cargs.loader
     if loader is None:
         return dispatch_rrexprs_load()
@@ -396,7 +407,7 @@ def get_bytes(value: _t.Any) -> bytes:
 
 
 def cmd_pprint(cargs: _t.Any) -> None:
-    def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
+    def emit[Source: DeferredSource](rrexpr: ReqresExpr[Source]) -> None:
         wrr_pprint(stdout, rrexpr.reqres, rrexpr.source.show_source(), cargs.abridged, cargs.sniff)
         stdout.flush()
 
@@ -517,7 +528,7 @@ def cmd_stream(cargs: _t.Any) -> None:
 
     stream = get_StreamEncoder(cargs)
 
-    def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
+    def emit[Source: DeferredSource](rrexpr: ReqresExpr[Source]) -> None:
         values: list[_t.Any] = []
         for expr, func in cargs.exprs:
             try:
@@ -539,7 +550,7 @@ def cmd_stream(cargs: _t.Any) -> None:
 
 
 def cmd_find(cargs: _t.Any) -> None:
-    def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
+    def emit[Source: DeferredSource](rrexpr: ReqresExpr[Source]) -> None:
         stdout.write(rrexpr.source.show_source())
         stdout.write_bytes(cargs.terminator)
         stdout.flush()
@@ -1436,7 +1447,7 @@ variance_help = (
 )
 
 
-class DeferredOperation(_t.Generic[DeferredSourceType, _t.AnyStr]):
+class DeferredOperation[Source: DeferredSource, AnyStr: (str, bytes)]:
     """A deferred `source` -> `destination` operation with updatable `source`.
 
     This exists to help you to eliminatate away repeated `os.rename`,
@@ -1444,13 +1455,13 @@ class DeferredOperation(_t.Generic[DeferredSourceType, _t.AnyStr]):
     implementing disk writes batching.
     """
 
-    source: DeferredSourceType
-    destination: _t.AnyStr
+    source: Source
+    destination: AnyStr
 
     def __init__(
         self,
-        source: DeferredSourceType,
-        destination: _t.AnyStr,
+        source: Source,
+        destination: AnyStr,
         overwrite: bool,
         allow_updates: bool,
     ) -> None:
@@ -1463,7 +1474,7 @@ class DeferredOperation(_t.Generic[DeferredSourceType, _t.AnyStr]):
     def approx_size(self) -> int:
         return 48
 
-    def switch_source(self, new_source: DeferredSourceType, force: bool = False) -> bool:
+    def switch_source(self, new_source: Source, force: bool = False) -> bool:
         """Switch source of this operation.
 
         Returns `True` if this change was permitted.
@@ -1486,7 +1497,7 @@ class DeferredOperation(_t.Generic[DeferredSourceType, _t.AnyStr]):
         self.updated = True
         return True
 
-    def run(self, sync: DeferredSync[_t.AnyStr] | bool = True) -> None:
+    def run(self, sync: DeferredSync[AnyStr] | bool = True) -> None:
         """Write the `source` to `destination`."""
         raise NotImplementedError()
 
@@ -1499,13 +1510,13 @@ def handle_ENAMETOOLONG(exc: OSError, name: str | bytes) -> None:
         ) from exc
 
 
-class DeferredFileWrite(
-    DeferredOperation[DeferredSourceType, _t.AnyStr], _t.Generic[DeferredSourceType, _t.AnyStr]
+class DeferredFileWrite[Source: DeferredSource, AnyStr: (str, bytes)](
+    DeferredOperation[Source, AnyStr]
 ):
     def approx_size(self) -> int:
         return super().approx_size() + len(self.destination)
 
-    def run(self, sync: DeferredSync[_t.AnyStr] | bool = True) -> None:
+    def run(self, sync: DeferredSync[AnyStr] | bool = True) -> None:
         data = self.source.get_bytes()
         if self.updated and file_data_equals(self.destination, data):
             # nothing to do
@@ -1513,43 +1524,46 @@ class DeferredFileWrite(
         atomic_write(data, self.destination, self.overwrite or self.allow_updates, sync=sync)
 
 
-def make_deferred_emit(
+def make_deferred_emit[Source: DeferredSource, AnyStr: (
+    str,
+    bytes,
+)](
     cargs: _t.Any,
-    destination: _t.AnyStr,
-    output_format: _t.AnyStr,
+    destination: AnyStr,
+    output_format: AnyStr,
     actioning: str,
     defer: _t.Callable[
-        [ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr, bool, bool],
-        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr],
+        [ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr, bool, bool],
+        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr],
     ],
     allow_updates: bool,
     moving: bool = False,
     symlinking: bool = False,
-) -> tuple[_t.Callable[[ReqresExpr[DeferredSourceType]], None], _t.Callable[[], None]]:
+) -> tuple[_t.Callable[[ReqresExpr[Source]], None], _t.Callable[[], None]]:
     terminator: bytes | None = cargs.terminator if cargs.dry_run is not None else None
 
     # for each `--output` value, how many times it was seen
-    seen_counter: SeenCounter[_t.AnyStr] = SeenCounter()
+    seen_counter: SeenCounter[AnyStr] = SeenCounter()
 
     # ReqresExpr cache indexed by destination path, this exists mainly
     # to minimize the number of calls to `stat`.
-    rrexpr_cache: _c.OrderedDict[
-        _t.AnyStr, ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType]
-    ] = _c.OrderedDict()
+    rrexpr_cache: _c.OrderedDict[AnyStr, ReqresExpr[FileSource] | ReqresExpr[Source]] = (
+        _c.OrderedDict()
+    )
 
     # Deferred IO operations (aka "intents") that are yet to be executed,
     # indexed by filesystem paths. This is used both as a queue and as an
     # LRU-cache so that, e.g. repeated updates to the same output file would be
     # computed in memory.
     deferred: _c.OrderedDict[
-        _t.AnyStr,
-        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr],
+        AnyStr,
+        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr],
     ] = _c.OrderedDict()
 
     # Deferred file system updates. This collects references to everything
     # that should be fsynced to disk before proceeding to make flush_updates
     # below both atomic and efficient.
-    sync: DeferredSync[_t.AnyStr] = DeferredSync(True)
+    sync: DeferredSync[AnyStr] = DeferredSync(True)
 
     max_memory_mib = cargs.max_memory * 1024 * 1024
 
@@ -1572,15 +1586,13 @@ def make_deferred_emit(
         ):
             return
 
-        done_files: list[_t.AnyStr] | None = None
+        done_files: list[AnyStr] | None = None
         if terminator is not None:
             done_files = []
 
         def run_intent(
-            abs_out_path: _t.AnyStr,
-            intent: DeferredOperation[
-                ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr
-            ],
+            abs_out_path: AnyStr,
+            intent: DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr],
         ) -> None:
             mem.consumption -= intent.approx_size() + len(abs_out_path)
             rrexpr = intent.source
@@ -1682,14 +1694,13 @@ def make_deferred_emit(
         assert mem.consumption == 0
 
     def load_defer(
-        prev_rrexpr: ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType] | None,
-        new_rrexpr: ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType],
-        abs_out_path: _t.AnyStr,
+        prev_rrexpr: ReqresExpr[FileSource] | ReqresExpr[Source] | None,
+        new_rrexpr: ReqresExpr[FileSource] | ReqresExpr[Source],
+        abs_out_path: AnyStr,
     ) -> tuple[
         bool,
-        ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType] | None,
-        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr]
-        | None,
+        ReqresExpr[FileSource] | ReqresExpr[Source] | None,
+        DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr] | None,
     ]:
         new_source = new_rrexpr.source
         if isinstance(new_source, FileSource) and new_source.path == abs_out_path:
@@ -1747,7 +1758,7 @@ def make_deferred_emit(
         permitted = intent.switch_source(new_rrexpr, moving)
         return permitted, intent.source, (intent if intent.source is not old_rrexpr else None)
 
-    def emit(new_rrexpr: ReqresExpr[DeferredSourceType]) -> None:
+    def emit(new_rrexpr: ReqresExpr[Source]) -> None:
         raise_first_delayed_signal()
 
         new_rrexpr.values["num"] = 0
@@ -1759,20 +1770,15 @@ def make_deferred_emit(
                 rel_out_path = _os.path.join(destination, output_format % new_rrexpr)
             else:
                 rel_out_path = _os.path.join(destination, _os.fsencode(output_format % new_rrexpr))
-            abs_out_path: _t.AnyStr = _os.path.abspath(rel_out_path)
+            abs_out_path: AnyStr = _os.path.abspath(rel_out_path)
 
-            old_rrexpr: ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType] | None
+            old_rrexpr: ReqresExpr[FileSource] | ReqresExpr[Source] | None
             old_rrexpr = rrexpr_cache.pop(abs_out_path, None)
             if old_rrexpr is not None:
                 mem.consumption -= len(abs_out_path)
 
-            updated_rrexpr: ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType] | None
-            intent: (
-                DeferredOperation[
-                    ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType], _t.AnyStr
-                ]
-                | None
-            )
+            updated_rrexpr: ReqresExpr[FileSource] | ReqresExpr[Source] | None
+            intent: DeferredOperation[ReqresExpr[FileSource] | ReqresExpr[Source], AnyStr] | None
             intent = deferred.pop(abs_out_path, None)
             if intent is None:
                 try:
@@ -1827,9 +1833,12 @@ def make_deferred_emit(
     return emit, finish_updates
 
 
-def make_organize_emit(
-    cargs: _t.Any, destination: _t.AnyStr, output_format: _t.AnyStr, allow_updates: bool
-) -> tuple[_t.Callable[[ReqresExpr[DeferredSourceType]], None], _t.Callable[[], None]]:
+def make_organize_emit[Source: DeferredSource, AnyStr: (
+    str,
+    bytes,
+)](cargs: _t.Any, destination: AnyStr, output_format: AnyStr, allow_updates: bool) -> tuple[
+    _t.Callable[[ReqresExpr[Source]], None], _t.Callable[[], None]
+]:
     action_op: _t.Any
     action = cargs.action
     if allow_updates:
@@ -1868,17 +1877,12 @@ def make_organize_emit(
     else:
         assert False
 
-    # becase we can't explicitly reuse the type variables bound by the whole function above
-    DeferredSourceType2 = _t.TypeVar("DeferredSourceType2", bound=DeferredSource)
-    AnyStr2 = _t.TypeVar("AnyStr2", str, bytes)
-
-    class DeferredOrganize(
-        DeferredFileWrite[ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType2], AnyStr2],
-        _t.Generic[DeferredSourceType2, AnyStr2],
+    class DeferredOrganize[Source2: DeferredSource, AnyStr2: (str, bytes)](
+        DeferredFileWrite[ReqresExpr[FileSource] | ReqresExpr[Source2], AnyStr2]
     ):
         def switch_source(
             self,
-            new_rrexpr: ReqresExpr[FileSource] | ReqresExpr[DeferredSourceType2],
+            new_rrexpr: ReqresExpr[FileSource] | ReqresExpr[Source2],
             force: bool = False,
         ) -> bool:
             old_rrexpr = self.source
@@ -1995,16 +1999,16 @@ def cmd_organize(cargs: _t.Any) -> None:
     filters_warn()
 
 
-def cmd_import_generic(
+def cmd_import_generic[Source: DeferredSource](
     cargs: _t.Any,
-    rrexprs_loadf: _t.Callable[[str | bytes], _t.Iterator[ReqresExpr[DeferredSourceType]]],
+    rrexprs_loadf: _t.Callable[[str | bytes], _t.Iterator[ReqresExpr[Source]]],
 ) -> None:
     output_format = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
 
     _num, filters_allow, filters_warn = compile_filters(cargs)
 
     handle_paths(cargs)
-    emit: EmitFunc[ReqresExpr[DeferredSourceType]]
+    emit: EmitFunc[ReqresExpr[Source]]
     emit, finish = make_deferred_emit(
         cargs,
         cargs.destination,
@@ -2145,11 +2149,11 @@ def cmd_mirror(cargs: _t.Any) -> None:
         stdout.write_bytes(b"\033[0m")
     stdout.flush()
 
-    def report_queued(
+    def report_queued[Source: DeferredSource](
         stime: Timestamp,
         net_url: URLType,
         pretty_net_url: URLType,
-        source: DeferredSourceType,
+        source: Source,
         level: int,
         old_stime: Timestamp | None = None,
     ) -> None:
@@ -2178,8 +2182,8 @@ def cmd_mirror(cargs: _t.Any) -> None:
             stdout.write_bytes(b"\033[0m")
         stdout.flush()
 
-    def collect(should_enqueue: bool) -> EmitFunc[ReqresExpr[DeferredSourceType]]:
-        def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
+    def collect[Source: DeferredSource](should_enqueue: bool) -> EmitFunc[ReqresExpr[Source]]:
+        def emit(rrexpr: ReqresExpr[Source]) -> None:
             stime = rrexpr.stime
             net_url = rrexpr.net_url
             indexed = (stime, rrexpr)
@@ -2238,10 +2242,10 @@ def cmd_mirror(cargs: _t.Any) -> None:
         doc_n: int = 0
         depth: int = 0
 
-    def render(
+    def render[Source: DeferredSource](
         stime: Timestamp,
         net_url: URLType,
-        rrexpr: ReqresExpr[DeferredSourceType],
+        rrexpr: ReqresExpr[Source],
         rel_out_path: PathType,
         enqueue: bool,
         new_queue: Queue,
@@ -2605,7 +2609,7 @@ def cmd_serve(cargs: _t.Any) -> None:
         ideal=cargs.replay if cargs.replay is not False else anytime.end,
     )
 
-    def emit(rrexpr: ReqresExpr[DeferredSourceType]) -> None:
+    def emit[Source: DeferredSource](rrexpr: ReqresExpr[Source]) -> None:
         stime = rrexpr.stime
         net_url = rrexpr.net_url
         indexed = (stime, rrexpr)

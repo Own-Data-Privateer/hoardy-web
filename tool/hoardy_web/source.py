@@ -144,12 +144,9 @@ def make_FileSource(path: str | bytes, in_stat: _os.stat_result) -> FileSource:
     return FileSource(path, in_stat.st_mtime_ns, in_stat.st_dev, in_stat.st_ino)
 
 
-DeferredSourceType = _t.TypeVar("DeferredSourceType", bound=DeferredSource)
-
-
 @_dc.dataclass
-class StreamElementSource(DeferredSource, _t.Generic[DeferredSourceType]):
-    stream_source: DeferredSourceType
+class StreamElementSource[Source: DeferredSource](DeferredSource):
+    stream_source: Source
     num: int
 
     def approx_size(self) -> int:

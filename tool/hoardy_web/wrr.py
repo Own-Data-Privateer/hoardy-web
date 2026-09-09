@@ -360,7 +360,7 @@ def wrr_bundle_load(fobj: _io.BufferedReader) -> _t.Iterator[Reqres]:
         yield wrr_load_cbor_fileobj(fobj)
 
 
-def wrr_loadf(path: _t.AnyStr) -> Reqres:
+def wrr_loadf(path: str | bytes) -> Reqres:
     with open(path, "rb") as f:
         return wrr_load(f)
 
@@ -724,8 +724,8 @@ ReqresExpr_time_attrs = frozenset(
 
 
 @_dc.dataclass
-class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType]):
-    source: DeferredSourceType
+class ReqresExpr[Source: DeferredSource](DeferredSource, LinstEvaluator):
+    source: Source
 
     _reqres: Reqres | None
 
@@ -891,6 +891,11 @@ class ReqresExpr(DeferredSource, LinstEvaluator, _t.Generic[DeferredSourceType])
             return self.values[name]
         except KeyError:
             assert False
+
+
+# FIXME: remove, can't remove yet because BufferedReader won't be
+# reference counted properly because of a bug in CPython
+DeferredSourceType = _t.TypeVar("DeferredSourceType", bound=DeferredSource)
 
 
 def rrexpr_wrr_load(
