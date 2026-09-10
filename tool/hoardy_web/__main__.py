@@ -2241,10 +2241,8 @@ def cmd_mirror(cargs: _t.Any) -> None:
 
     indexed_num = index.size
 
-    def remap_url_fallback(
-        stime: TimeStamp, purl: ParsedURL, expected_content_types: list[str]
-    ) -> PathType:
-        trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_content_types, stime))
+    def remap_url_fallback(stime: TimeStamp, purl: ParsedURL, expected_cts: list[str]) -> PathType:
+        trrexpr = ReqresExpr(UnknownSource(), fallback_Reqres(purl, expected_cts, stime))
         trrexpr.values["num"] = 0
         return _op.join(destination, output_format % trrexpr)
 
@@ -2325,8 +2323,9 @@ def cmd_mirror(cargs: _t.Any) -> None:
             def remap_url(
                 upurl: ParsedURL,
                 link_type: LinkType,
-                fallbacks: list[str] | None,
-            ) -> URLType | None:
+                expected_cts: list[str],
+                allow_fallbacks: bool,
+            ) -> tuple[URLType, bool] | None:
                 raise_first_delayed_signal()
 
                 unet_url = upurl.net_url
@@ -2426,9 +2425,12 @@ def cmd_mirror(cargs: _t.Any) -> None:
                         # In which case, when not running with `--remap-all`, this page will void
                         # this link unnecessarily, yes.
 
+                exists = True
+
                 if urel_out_path is None:
-                    if fallbacks is not None:
-                        urel_out_path = remap_url_fallback(stime, upurl, fallbacks)
+                    if allow_fallbacks:
+                        urel_out_path = remap_url_fallback(stime, upurl, expected_cts)
+                        exists = False
                     else:
                         return None
 
@@ -2437,7 +2439,7 @@ def cmd_mirror(cargs: _t.Any) -> None:
                 else:
                     out_path = _op.abspath(urel_out_path)
 
-                return path_to_url(out_path) + upurl.ofm + upurl.fragment
+                return path_to_url(out_path) + upurl.ofm + upurl.fragment, exists
 
             rrexpr.remap_url = cached_remap_url(net_url, remap_url, handle_warning=handle_warning)
 
@@ -2937,50 +2939,55 @@ def cmd_serve(cargs: _t.Any) -> None:
 
         try:
 
-            def remap_url(
+            def remap_url_(
                 upurl: ParsedURL,
                 _link_type: LinkType,
-                fallbacks: list[str] | None,
-            ) -> URLType | None:
-                unet_url = upurl.net_url
+                _expected_cts: list[str],
+                _allow_fallbacks: bool,
+            ) -> tuple[URLType, bool] | None:
                 unamespace = "unavailable"
-                ustime_selector = None if fallbacks is None else stime_selector
+                ustime_selector = stime_selector
+                unet_url = upurl.net_url
+                exist = False
 
                 for uobj in index.iter_closest(unet_url, stime, normal_document):
+                    exist = True
                     ustime, urrexpr = uobj
                     response = urrexpr.reqres.response
                     assert response is not None
                     code = response.code
                     if take_whatever or code in definitive_response_codes:
-                        # that's a definitive answer page, point this directly
-                        # there to optimize away redirects
+                        # that's a definitive answer page, point this directly there, including to
+                        # its timestamp, to optimize away above redirects
                         unamespace = "web"
                         ustime_selector = ustime.format(*time_format_s, precision=precision)
                         break
                     if code in redirect_response_codes:
-                        # that's a redirect, point it there, but timestamp transitively
+                        # that's a redirect, point it there
                         unamespace = "redirect"
-                        ustime_selector = stime_selector
                         break
                     # something else
                     unamespace = "other"
-                    ustime_selector = stime_selector
                     # NB: continue trying other visits in this case
 
-                if ustime_selector is None:
-                    return None
+                return (
+                    f"/{unamespace}/{ustime_selector}/{unet_url}" + upurl.ofm + upurl.fragment,
+                    exist,
+                )
 
-                return f"/{unamespace}/{ustime_selector}/{unet_url}" + upurl.ofm + upurl.fragment
-
-            remap_url_cached = cached_remap_url(net_url, remap_url, handle_warning=_logging.warn)
-            rrexpr.remap_url = remap_url_cached
+            rrexpr.remap_url = remap_url = cached_remap_url(
+                net_url, remap_url_, handle_warning=_logging.warn
+            )
 
             def rebase_remap_url(url: URLType) -> URLType | None:
                 try:
                     href = _up.urljoin(net_url, url)
                 except ValueError:
                     return None
-                return remap_url_cached(href, LinkType.JUMP, [])
+                res = remap_url(href, LinkType.JUMP, [], True)
+                if res is not None:
+                    return res[0]
+                return None
 
             # TODO: inherit MIME from generated expression type instead
             rere_obj: Request | Response | None = None
@@ -2994,7 +3001,7 @@ def cmd_serve(cargs: _t.Any) -> None:
 
                     for hn, hv in get_headers(rere_obj.headers):
                         hl = hn.lower()
-                        hr: str | None = None
+                        hr: URLType | None = None
                         if hl == "location":
                             hr = rebase_remap_url(hv.strip())
                         elif not_web_replay:

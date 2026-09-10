@@ -746,8 +746,8 @@ def linst_scrub() -> LinstAtom:
             if "html" in kinds:
                 return scrub_html(
                     scrubbers,
-                    rrexpr.net_url,
                     rrexpr.remap_url,
+                    rrexpr.net_url,
                     rere_obj.headers,
                     rere_obj.body,
                     charset,
@@ -755,8 +755,8 @@ def linst_scrub() -> LinstAtom:
             if "css" in kinds:
                 return scrub_css(
                     scrubbers,
-                    rrexpr.net_url,
                     rrexpr.remap_url,
+                    rrexpr.net_url,
                     rere_obj.headers,
                     rere_obj.body,
                     charset,
@@ -771,7 +771,7 @@ def linst_scrub() -> LinstAtom:
 
 
 def _scrub_to(x: str) -> str:
-    return f"this is only supported when `scrub` is used with `mirror` sub-command; under other sub-commands this is equivalent to `{x}`"
+    return f"this is only supported when `scrub` is used within `mirror` and `serve` sub-commands; under other sub-commands this is equivalent to `{x}`"
 
 
 _in_out = "should be kept in or censored out"
@@ -809,10 +809,10 @@ ReqresExpr_atoms.update(
   - the second is either `defaults` or ","-separated string of tokens which control the scrubbing behaviour:
     - `(+|-|*|/|&)jumps` controls how jump-links (`a href`, `area href`, and similar `HTML` tag attributes) should be remapped or censored out:
       - `+` rewrites their values into full URLs, e.g. `<a href="/path?query">` -> `<a href="https://example.org/path?query">`;
-      - `-` "voids" all of them, i.e. rewrites them to `javascript:void(0)` and empty `data:` URLs;
-      - `*` rewrites links in an "open"-ended way, i.e. points them to locally mirrored versions of their URLs when available and leaves them pointing to their original URL otherwise; {_scrub_to("+")};
-      - `/` rewrites links in a "close"-ended way, i.e. points them to locally mirrored versions of their URLs when available and voids them otherwise; {_scrub_to("-")};
-      - `&` rewrites links in a "close"-ended way like `/` does, except this option uses fallbacks to remap unavailable URLs whenever possible; {_scrub_to("-")}; see the documentation of the `--remap-all` option for more info;
+      - `-` "voids" all of them, i.e., simply drops their `HTML` tag attributes, rewrites them to `javascript:void(0)`, empty `data:` URLs, etc, depending on context;
+      - `*` rewrites links in an "open-ended" way, i.e. points them to locally mirrored versions of their URLs when available and leaves them pointing to their original URL otherwise; {_scrub_to("+")};
+      - `/` rewrites links in a "close-ended" way, i.e. points them to locally mirrored versions of their URLs when available and voids them otherwise; {_scrub_to("-")};
+      - `&` rewrites links in a "close-ended" way like `/` does, except this option uses fallbacks to remap unavailable URLs whenever possible; {_scrub_to("-")}; see the documentation of the `--remap-all` option for more info;
     - `(+|-|*|/|&)actions` controls how action-links (`a ping`, `form action`, and similar `HTML` tag attributes) should be remapped or censored out; same rewrite options as above;
     - `(+|-|*|/|&)reqs` controls how references to page requisites (`img src`, `iframe src`, and similar `HTML` tag attributes, as well as `link src` attributes which have `rel` attribute of their `HTML` tag set to `stylesheet` or `icon`, `CSS` `url` references, etc) should be remapped or censored out; same rewrite options as above;
     - `(+|-|*|/|&)all_refs` is equivalent to setting all of `jumps`, `actions`, and `reqs` simultaneously;
@@ -829,7 +829,7 @@ ReqresExpr_atoms.update(
     - `(+|-)inline_fallback_icon` controls whether `<link rel="icon" href="/favicon.ico">` `HTML` tag browsers use as a fallback when a page does not declare any icons should be made explicit and inlined into the result; that URL will then get remapped like a normal page requisite using `reqs` and the tag will not be added if that `/favicon.ico` URL gets remapped into void;
     - `(+|-)interpret_noscript` controls whether the contents of `noscript` tags should be inlined when `-scripts` is set;
     - `(+|-)unknown` controls if the data with unknown content types should passed to the output unchanged or censored out (respectively);
-    - `(+|-)verbose` controls whether tag censoring controlled by the above options is to be reported in the output (as comments) or stuff should be wiped from existence without evidence instead;
+    - `(+|-)verbose` controls whether `HTML` tag and attribute censoring controlled by the above options is to be reported in the output (as comments and renamed attributes) or stuff should be wiped from existence without evidence instead;
     - `(+|-)whitespace` controls whether `HTML` and `CSS` renderers should keep the original whitespace as-is or collapse it away;
     - `(+|-)optional_tags` controls whether `HTML` renderer should put optional `HTML` tags into the output or skip them;
     - `(+|-)indent` controls whether `HTML` and `CSS` renderers should indent their outputs (where whitespace placement in the original markup allows for it) or not;
@@ -1282,15 +1282,13 @@ def check_rrexpr(cmd: str, rrexpr: _t.Any) -> ReqresExpr[_t.Any]:
 
 def test_ReqresExpr_scrub() -> None:
     def remap_url(
-        purl: ParsedURL,
-        _link_type: LinkType,
-        fallbacks: list[str] | None,
-    ) -> URLType | None:
+        purl: ParsedURL, _link_type: LinkType, _expected_cts: list[str], allow_fallbacks: bool
+    ) -> tuple[URLType, bool] | None:
         if "miss" in purl.net_url:
-            if fallbacks is not None:
-                return f"fallback+{purl.url}"
+            if allow_fallbacks:
+                return f"fallback+{purl.url}", False
             return None
-        return f"remap+{purl.url}"
+        return f"remap+{purl.url}", True
 
     def check(
         opts: str,
@@ -1483,8 +1481,8 @@ body {
       <a href="https://base.example.com/other.html">Test link.</a>
       <a href="https://base.example.com/miss.html">Missing link.</a>
     </p>
-    <img>
-    <img>
+    <img censored-src="https://base.example.com/img/1.jpg">
+    <img censored-src="https://base.example.com/img/miss2.jpg" censored-srcset="https://base.example.com/img/3.jpg https://base.example.com/img/miss4.jpg https://base.example.com/img/5.jpg">
     <!-- hoardy-web censored out AssembledTag script from here -->
     <!-- hoardy-web censored out AssembledTag script from here -->
     <!-- hoardy-web censored out AssembledTag script from here -->
@@ -1607,10 +1605,10 @@ body {
     <h1>Test page</h1>
     <p>Test para.
       <a href="remap+https://base.example.com/other.html">Test link.</a>
-      <a>Missing link.</a>
+      <a censored-href="https://base.example.com/miss.html">Missing link.</a>
     </p>
     <img src="remap+https://base.example.com/img/1.jpg">
-    <img srcset="remap+https://base.example.com/img/3.jpg 2x, remap+https://base.example.com/img/5.jpg">
+    <img srcset="remap+https://base.example.com/img/3.jpg 2x, remap+https://base.example.com/img/5.jpg" censored-src="https://base.example.com/img/miss2.jpg" censored-srcset="https://base.example.com/img/miss4.jpg">
     <script>
       x = 2;
     </script>
@@ -1661,7 +1659,7 @@ body {
       <a href="fallback+https://base.example.com/miss.html">Missing link.</a>
     </p>
     <img src="remap+https://base.example.com/img/1.jpg">
-    <img src="fallback+https://base.example.com/img/miss2.jpg" srcset="remap+https://base.example.com/img/3.jpg 2x, fallback+https://base.example.com/img/miss4.jpg 1.5x, remap+https://base.example.com/img/5.jpg">
+    <img src="fallback+https://base.example.com/img/miss2.jpg" srcset="remap+https://base.example.com/img/3.jpg 2x, remap+https://base.example.com/img/5.jpg" censored-srcset="https://base.example.com/img/miss4.jpg">
     <script>
       x = 2;
     </script>
@@ -1709,7 +1707,7 @@ body {
       <a href="fallback+https://base.example.com/miss.html">Missing link.</a>
     </p>
     <img src="remap+https://base.example.com/img/1.jpg">
-    <img src="fallback+https://base.example.com/img/miss2.jpg" srcset="remap+https://base.example.com/img/3.jpg 2x, fallback+https://base.example.com/img/miss4.jpg 1.5x, remap+https://base.example.com/img/5.jpg">
+    <img src="fallback+https://base.example.com/img/miss2.jpg" srcset="remap+https://base.example.com/img/3.jpg 2x, remap+https://base.example.com/img/5.jpg">
     <script>
       x = 2;
     </script>

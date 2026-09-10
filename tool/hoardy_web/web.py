@@ -54,7 +54,7 @@ def is_page_url(url: URLType) -> bool:
     return url.startswith("http:") or url.startswith("https:")
 
 
-class LinkType(_enum.Enum):
+class LinkType(_enum.IntEnum):
     JUMP = 0
     ACTION = 1
     REQ = 2
@@ -66,9 +66,12 @@ def get_void_url(link_type: LinkType) -> str:
     return "javascript:void(0)"
 
 
-RefType = tuple[LinkType, list[URLType]]  # tuple[LinkType, possible mime types]
-URLRemapperType = _t.Callable[[URLType, LinkType, list[str] | None], URLType | None]
-ParsedURLRemapperType = _t.Callable[[ParsedURL, LinkType, list[str] | None], URLType | None]
+# LinkType, list[expected_content_type], allow_fallbacks
+RefType = tuple[LinkType, list[URLType], bool]
+URLRemapperType = _t.Callable[[URLType, LinkType, list[str], bool], tuple[URLType, bool] | None]
+ParsedURLRemapperType = _t.Callable[
+    [ParsedURL, LinkType, list[str], bool], tuple[URLType, bool] | None
+]
 
 web_url_schemes = frozenset(["http", "https", "ftp", "ftps"])
 noop_url_schemes = frozenset(["mailto", "irc", "magnet"])
@@ -90,51 +93,51 @@ def cached_remap_url(
     paranoid: bool = False,
     handle_warning: _t.Callable[..., None] | None = None,
 ) -> URLRemapperType:
-    remap_cache: dict[tuple[URLType, bool], URLType | None] = {}
+    remap_cache: dict[tuple[URLType, int], tuple[URLType, bool] | None] = {}
 
     def our_remap_url(
-        url: URLType, link_type: LinkType, fallbacks: list[str] | None
-    ) -> URLType | None:
+        url: URLType, link_type: LinkType, expected_cts: list[str], allow_fallbacks: bool
+    ) -> tuple[URLType, bool] | None:
         is_requisite = link_type == LinkType.REQ
-        cache_id = (url, is_requisite)
+        cache_id = (url, (1 if is_requisite else 0) + (2 if allow_fallbacks else 0))
         try:
             return remap_cache[cache_id]
         except KeyError:
             pass
 
-        res: URLType | None
+        res: tuple[URLType, bool] | None
         try:
             purl = parse_url(url)
         except URLParsingError:
             if handle_warning is not None:
                 handle_warning("malformed URL `%s`", url)
             if is_requisite or paranoid:
-                remap_cache[cache_id] = res = get_void_url(link_type)
+                remap_cache[cache_id] = res = get_void_url(link_type), False
                 return res
-            remap_cache[cache_id] = url
-            return url
+            remap_cache[cache_id] = res = url, True
+            return res
 
         cr = remappable(purl.scheme)
         if cr is None:
-            remap_cache[cache_id] = url
-            return url
+            remap_cache[cache_id] = res = url, True
+            return res
         if not cr:
             if is_requisite:
                 if handle_warning is not None:
                     handle_warning("malformed requisite URL `%s`", url)
-                remap_cache[cache_id] = res = get_void_url(link_type)
+                remap_cache[cache_id] = res = get_void_url(link_type), False
                 return res
             if handle_warning is not None:
                 handle_warning("not remapping `%s`", url)
-            remap_cache[cache_id] = url
-            return url
+            remap_cache[cache_id] = res = url, True
+            return res
 
         if purl.net_url == document_net_url:
             # this is a reference to an inter-page `id`
-            remap_cache[cache_id] = res = purl.ofm + purl.fragment
+            remap_cache[cache_id] = res = purl.ofm + purl.fragment, True
             return res
 
-        remap_cache[cache_id] = res = remap_url(purl, link_type, fallbacks)
+        remap_cache[cache_id] = res = remap_url(purl, link_type, expected_cts, allow_fallbacks)
         return res
 
     return our_remap_url
@@ -351,7 +354,7 @@ class CSSScrubbingError(Failure):
 
 ScrubberNode = _t.TypeVar("ScrubberNode")
 ScrubberType = _t.Callable[
-    [URLType, URLRemapperType | None, Headers, _t.Iterator[ScrubberNode]], _t.Iterable[ScrubberNode]
+    [URLRemapperType | None, URLType, Headers, _t.Iterator[ScrubberNode]], _t.Iterable[ScrubberNode]
 ]
 Scrubbers = tuple[ScrubberType[HTML5Node], ScrubberType[CSSNode]]
 
@@ -359,8 +362,8 @@ iepragma_re = _re.compile(
     r"\s*(\[if ((lt|lte|gt|gte)\s+)?IE [^]]*\].*\[endif\]|\[if !IE\]><!|<!\[endif\])\s*"
 )
 
-jump_ref: RefType = (LinkType.JUMP, page_mime)
-action_ref: RefType = (LinkType.ACTION, page_mime)
+jump_ref: RefType = (LinkType.JUMP, page_mime, True)
+action_ref: RefType = (LinkType.ACTION, page_mime, True)
 
 attr_ref_type: dict[HTML5NodeAttr, RefType]
 attr_ref_type = {
@@ -380,18 +383,18 @@ attr_ref_type = {
     (htmlns_form, action_attr): action_ref,
     (htmlns_input, formaction_attr): action_ref,
     #
-    (htmlns_audio, src_attr): (LinkType.REQ, audio_mime + audio_video_mime),
-    (htmlns_embed, src_attr): (LinkType.REQ, ["application/octet-stream"]),
-    (htmlns_frame, src_attr): (LinkType.REQ, page_mime),
-    (htmlns_iframe, src_attr): (LinkType.REQ, page_mime),
-    (htmlns_img, src_attr): (LinkType.REQ, image_mime),
-    # (htmlns_img,    srcset_attr): handled_separately,
-    (htmlns_input, src_attr): (LinkType.REQ, image_mime),
-    (htmlns_script, src_attr): (LinkType.REQ, script_mime),
-    (htmlns_source, src_attr): (LinkType.REQ, media_mime),
-    (htmlns_track, src_attr): (LinkType.REQ, track_mime),
-    (htmlns_video, poster_attr): (LinkType.REQ, image_mime),
-    (htmlns_video, src_attr): (LinkType.REQ, video_mime + audio_video_mime),
+    (htmlns_audio, src_attr): (LinkType.REQ, audio_mime + audio_video_mime, True),
+    (htmlns_embed, src_attr): (LinkType.REQ, ["application/octet-stream"], True),
+    (htmlns_frame, src_attr): (LinkType.REQ, page_mime, True),
+    (htmlns_iframe, src_attr): (LinkType.REQ, page_mime, True),
+    (htmlns_img, src_attr): (LinkType.REQ, image_mime, True),
+    (htmlns_img, srcset_attr): (LinkType.REQ, image_mime, False),
+    (htmlns_input, src_attr): (LinkType.REQ, image_mime, True),
+    (htmlns_script, src_attr): (LinkType.REQ, script_mime, True),
+    (htmlns_source, src_attr): (LinkType.REQ, media_mime, True),
+    (htmlns_track, src_attr): (LinkType.REQ, track_mime, True),
+    (htmlns_video, poster_attr): (LinkType.REQ, image_mime, True),
+    (htmlns_video, src_attr): (LinkType.REQ, video_mime + audio_video_mime, True),
 }
 
 preload_link_rels = frozenset(
@@ -433,9 +436,9 @@ link_rel_ref_type = {}
 
 def populate_link_rel_ref_type() -> None:
     for e in stylesheet_link_rels:
-        link_rel_ref_type[e] = (LinkType.REQ, stylesheet_mime)
+        link_rel_ref_type[e] = (LinkType.REQ, stylesheet_mime, True)
     for e in icon_link_rels:
-        link_rel_ref_type[e] = (LinkType.REQ, image_mime)
+        link_rel_ref_type[e] = (LinkType.REQ, image_mime, False)
 
 
 populate_link_rel_ref_type()
@@ -455,16 +458,16 @@ def link_rels_of(
     ]
 
 
-def rel_ref_type_of(link_rels: list[str]) -> RefType:
-    slink_type = None
+def rel_ref_type_of(link_rels: _t.Iterable[str]) -> RefType:
+    link_type: LinkType = LinkType.JUMP
     cts = []
+    allow_fallbacks = True
     for rel in link_rels:
-        link_type_, cts_ = link_rel_ref_type.get(rel, jump_ref)
-        if slink_type is None or link_type_ == LinkType.REQ:
-            slink_type = link_type_
+        link_type_, cts_, allow_fallbacks_ = link_rel_ref_type.get(rel, jump_ref)
+        link_type = max(link_type, link_type_)
         cts += [e for e in cts_ if e not in cts]
-    link_type = slink_type if slink_type is not None else LinkType.JUMP
-    return link_type, cts
+        allow_fallbacks = allow_fallbacks and allow_fallbacks_
+    return link_type, cts, allow_fallbacks
 
 
 tracking_node_attrs = frozenset(
@@ -531,18 +534,13 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
     yes_indent = opts.indent
     indent_step = opts.indent_step
 
-    def remap_link_maybe(
-        base_url: URLType,
+    def remap_url_maybe(
+        remap_url: URLRemapperType | None,
         url: URLType,
         link_type: LinkType,
-        fallbacks: list[str],
-        remap_url: URLRemapperType | None,
+        expected_cts: list[str],
+        allow_fallbacks: bool,
     ) -> URLType | None:
-        try:
-            url = _up.urljoin(base_url, url)
-        except ValueError:
-            return None
-
         if is_data_url(url):
             return url
         if is_script_url(url):
@@ -550,13 +548,11 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                 return None
             return url
 
-        rt: RemapType
-        if link_type == LinkType.JUMP:
-            rt = jumps
-        elif link_type == LinkType.ACTION:
-            rt = actions
-        else:
-            rt = reqs
+        rt: RemapType = (
+            jumps
+            if link_type == LinkType.JUMP
+            else (actions if link_type == LinkType.ACTION else reqs)
+        )
 
         if rt == RemapType.ID:
             return url
@@ -565,30 +561,59 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
 
         rurl: URLType | None = None
         if remap_url is not None:
-            rurl = remap_url(url, link_type, fallbacks if rt == RemapType.FALLBACK else None)
+            res = remap_url(url, link_type, expected_cts, allow_fallbacks)
+            if res is not None and (res[1] or allow_fallbacks and rt == RemapType.FALLBACK):
+                rurl = res[0]
 
         if rurl is not None:
             return rurl
         if rt == RemapType.OPEN:
             return url
-        # if rt in (RemapType.CLOSED, RemapType.FALLBACK):
         return None
 
-    def remap_link_or_void(
+    def try_to_urljoin(
+        base_url: URLType,
+        url: URLType,
+    ) -> tuple[bool, URLType]:
+        try:
+            res = _up.urljoin(base_url, url)
+        except ValueError:
+            return False, url
+        return True, res
+
+    def remap_href_maybe(
+        remap_url: URLRemapperType | None,
         base_url: URLType,
         url: URLType,
         link_type: LinkType,
-        fallbacks: list[str],
+        expected_cts: list[str],
+        allow_fallbacks: bool,
+    ) -> URLType | None:
+        try:
+            url = _up.urljoin(base_url, url)
+        except ValueError:
+            return None
+        return remap_url_maybe(remap_url, url, link_type, expected_cts, allow_fallbacks)
+
+    def remap_href_or_void(
         remap_url: URLRemapperType | None,
+        base_url: URLType,
+        url: URLType,
+        link_type: LinkType,
+        expected_cts: list[str],
+        allow_fallbacks: bool,
     ) -> URLType:
-        res = remap_link_maybe(base_url, url, link_type, fallbacks, remap_url)
+        res = remap_href_maybe(remap_url, base_url, url, link_type, expected_cts, allow_fallbacks)
         if res is None:
             return get_void_url(link_type)
         return res
 
+    def censored_attr(ann: HTML5NN) -> HTML5NN:
+        return (ann[0], "censored-" + ann[1])
+
     def scrub_css_nodes(
-        base_url: URLType,
         remap_url: URLRemapperType | None,
+        base_url: URLType,
         nodes: _t.Iterator[CSSNode],
         current: int | None = None,
         errors: bool = False,
@@ -636,20 +661,20 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                     prelude = at_import_prelude(node.prelude)
                 else:
                     prelude = node.prelude
-                node.prelude = scrub_css_nodes(base_url, remap_url, prelude)
+                node.prelude = scrub_css_nodes(remap_url, base_url, prelude)
                 if node.content is not None:
                     if current is not None:
                         try:
                             content = scrub_css_nodes(
-                                base_url,
                                 remap_url,
+                                base_url,
                                 _tcss.parse_blocks_contents(node.content),
                                 current + 1,
                                 True,
                             )
                         except CSSScrubbingError:
                             # it does not parse, scrub the tokens instead
-                            content = scrub_css_nodes(base_url, remap_url, node.content)
+                            content = scrub_css_nodes(remap_url, base_url, node.content)
                         node.content = (
                             [_tcss.ast.WhitespaceToken(0, 0, "\n")]
                             + content
@@ -662,14 +687,14 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                         del content
                     else:
                         # NB: no need to parse with `_tcss.parse_blocks_contents` in this case
-                        node.content = scrub_css_nodes(base_url, remap_url, node.content)
+                        node.content = scrub_css_nodes(remap_url, base_url, node.content)
             elif isinstance(node, _tcss.ast.Declaration):
                 emit_indent()
-                node.value = scrub_css_nodes(base_url, remap_url, node.value)
+                node.value = scrub_css_nodes(remap_url, base_url, node.value)
             elif isinstance(node, _tcss.ast.URLToken):
                 # remap the URL
-                url = remap_link_or_void(
-                    base_url, node.value, LinkType.REQ, css_url_mime, remap_url
+                url = remap_href_or_void(
+                    remap_url, base_url, node.value, LinkType.REQ, css_url_mime, True
                 )
                 rep = f"url({_tcss.serializer.serialize_url(url)})"
                 node.value = url
@@ -677,17 +702,18 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
             elif isinstance(node, _tcss.ast.FunctionBlock):
                 if node.lower_name == "url":
                     # technically, this is a bug in the CSS we are processing, but browsers work around this, so do we
-                    url = remap_link_or_void(
+                    url = remap_href_or_void(
+                        remap_url,
                         base_url,
                         "".join([n.value for n in node.arguments if n.type == "string"]),
                         LinkType.REQ,
                         css_url_mime,
-                        remap_url,
+                        True,
                     )
                     rep = f"url({_tcss.serializer.serialize_url(url)})"
                     res.append(_tcss.ast.URLToken(node.source_line, node.source_column, url, rep))
                     continue
-                node.arguments = scrub_css_nodes(base_url, remap_url, node.arguments)
+                node.arguments = scrub_css_nodes(remap_url, base_url, node.arguments)
             elif isinstance(
                 node,
                 (
@@ -696,7 +722,7 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                     _tcss.ast.CurlyBracketsBlock,
                 ),
             ):
-                node.content = scrub_css_nodes(base_url, remap_url, node.content)
+                node.content = scrub_css_nodes(remap_url, base_url, node.content)
             elif isinstance(node, _tcss.ast.Comment):
                 emit_indent()
             elif isinstance(node, _tcss.ast.ParseError):
@@ -738,8 +764,8 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
         return False
 
     def scrub_html_nodes(
-        orig_base_url: URLType,
         remap_url: URLRemapperType | None,
+        orig_base_url: URLType,
         headers: Headers,
         nodes: _t.Iterator[HTML5Node],
     ) -> _t.Iterator[HTML5Node]:
@@ -866,8 +892,13 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                         except ValueError:
                             censor = True
                         else:
-                            href = remap_link_maybe(
-                                orig_base_url, href, LinkType.JUMP, page_mime, remap_url
+                            href = remap_href_maybe(
+                                remap_url,
+                                orig_base_url,
+                                href,
+                                LinkType.JUMP,
+                                page_mime,
+                                True,
                             )
                             if href is not None:
                                 attrs[content_attr] = unparse_refresh_header(osecs, href)
@@ -921,66 +952,71 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
 
                 new_attrs: _c.OrderedDict[HTML5NN, str | None] = _c.OrderedDict()
                 if not censor and nn == htmlns_link:
+                    # scrub `link`s
+
+                    href = map_optional(lambda x: x.strip(), attrs.get(href_attr, None))
                     # scrub `link` `rel` attributes
-                    link_rels = link_rels_of(attrs.get(rel_attr, ""), blacklist=link_rel_blacklist)
-                    if len(link_rels) > 0:
-                        link_rels_set = set(link_rels)
+                    allowed_rels = link_rels_of(
+                        attrs.get(rel_attr, ""), blacklist=link_rel_blacklist
+                    )
+                    allowed = len(allowed_rels) > 0
 
-                        if (
-                            fallback_icon_unset
-                            and "icon" in link_rels_set
-                            or "shortcut" in link_rels_set
-                        ):
-                            fallback_icon_unset = False
-
+                    if allowed and href is not None:
                         # scrub `link` `href` attributes
-                        href = map_optional(lambda x: x.strip(), attrs.get(href_attr, None))
-                        if href is not None:
-                            if is_data_url(href) and not link_rels_set.isdisjoint(
-                                stylesheet_link_rels
+                        allowed_set = set(allowed_rels)
+                        if is_data_url(href) and not allowed_set.isdisjoint(stylesheet_link_rels):
+                            # handle stylsheets given as `data:` URLs.
+                            # yes, this is actually allowed =/
+                            try:
+                                href_mime, href_params, href_data = parse_data_url(href)
+                                href_mime = canonicalize_mime(href_mime)
+                                if href_mime not in stylesheet_mime:
+                                    raise ValueError("not a stylesheet")
+                                href_protocol_encoding = get_parameter_value(
+                                    href_params, "charset", "utf-8"
+                                )
+                                href_nodes, href_encoding = _tcss.parse_stylesheet_bytes(
+                                    href_data, protocol_encoding=href_protocol_encoding
+                                )
+                                href_charset = href_encoding.name
+                                href_params = set_parameter(href_params, "charset", href_charset)
+                                href = unparse_data_url(
+                                    href_mime,
+                                    href_params,
+                                    _tcss.serialize(
+                                        scrub_css_nodes(remap_url, base_url, href_nodes, None)
+                                    ).encode(href_charset),
+                                )
+                            except ValueError:
+                                href = None
+                        else:
+                            if fallback_icon_unset and (
+                                "icon" in allowed_set or "shortcut" in allowed_set
                             ):
-                                # handle stylsheets given as `data:` URLs.
-                                # yes, this is actually allowed =/
-                                try:
-                                    href_mime, href_params, href_data = parse_data_url(href)
-                                    href_mime = canonicalize_mime(href_mime)
-                                    if href_mime not in stylesheet_mime:
-                                        raise ValueError("not a stylesheet")
-                                    href_protocol_encoding = get_parameter_value(
-                                        href_params, "charset", "utf-8"
-                                    )
-                                    href_nodes, href_encoding = _tcss.parse_stylesheet_bytes(
-                                        href_data, protocol_encoding=href_protocol_encoding
-                                    )
-                                    href_charset = href_encoding.name
-                                    href_params = set_parameter(
-                                        href_params, "charset", href_charset
-                                    )
-                                    href = unparse_data_url(
-                                        href_mime,
-                                        href_params,
-                                        _tcss.serialize(
-                                            scrub_css_nodes(base_url, remap_url, href_nodes, None)
-                                        ).encode(href_charset),
-                                    )
-                                except ValueError:
-                                    href = None
-                            else:
-                                link_type, cts = rel_ref_type_of(link_rels)
-                                href = remap_link_maybe(base_url, href, link_type, cts, remap_url)
-                    else:
-                        href = None
+                                fallback_icon_unset = False
 
-                    new_attrs[rel_attr] = " ".join(link_rels)
-                    new_attrs[href_attr] = href
-                    if href is None:
-                        # censor the whole tag in this case
+                            ok, href = try_to_urljoin(base_url, href)
+                            href = (
+                                remap_url_maybe(remap_url, href, *rel_ref_type_of(allowed_rels))
+                                if ok
+                                else None
+                            )
+
+                        if href is not None:
+                            new_attrs[rel_attr] = " ".join(allowed_rels)
+                            new_attrs[href_attr] = href
+                        else:
+                            # censor the whole tag in this case
+                            censor = True
+                    else:
+                        # similarly
                         censor = True
 
                 if not censor:
                     # scrub other attributes
                     for ann, value in attrs.items():
                         nnann = (nn, ann)
+
                         if (
                             nnann in attr_blacklist
                             or not_scripts
@@ -990,13 +1026,15 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                             # censor out blacklisted attrs,
                             # censor out javascript on* attributes, e.g. `onclick`
                             new_attrs[ann] = None
-                        elif ann == style_attr:
+                            continue
+
+                        if ann == style_attr:
                             # scrub inline styles
                             if yes_styles:
                                 new_attrs[ann] = _tcss.serialize(
                                     scrub_css_nodes(
-                                        base_url,
                                         remap_url,
+                                        base_url,
                                         _tcss.parse_blocks_contents(value),
                                         0 if yes_indent else None,
                                     )
@@ -1005,26 +1043,53 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                                 new_attrs[ann] = "/* hoardy-web censored out CSS data from here */"
                             else:
                                 new_attrs[ann] = None
-                        elif ann == srcset_attr:
-                            # scrub `srcset` attributes
-                            new_srcset = []
+                            continue
+
+                        # handle other attributes containing URLs
+
+                        ref = attr_ref_type.get(nnann, None)
+                        if ref is None:
+                            # ignore this one
+                            continue
+
+                        link_type, cts, allow_fallbacks = ref
+
+                        if ann == srcset_attr:
+                            # handle srcsets
+                            new_srcs = []
+                            censored_srcs = []
+
                             for url, cond in parse_srcset_attr(value):
-                                href = remap_link_maybe(
-                                    base_url, url, LinkType.REQ, image_mime, remap_url
+                                ok, url = try_to_urljoin(base_url, url)
+                                if not ok:
+                                    censored_srcs.append(url)
+                                    continue
+
+                                href = remap_url_maybe(
+                                    remap_url, url, link_type, cts, allow_fallbacks
                                 )
-                                if href is not None:
-                                    new_srcset.append((href, cond))
+                                if href is None:
+                                    censored_srcs.append(url)
+                                    continue
+
+                                new_srcs.append((href, cond))
+
                             new_attrs[ann] = (
-                                unparse_srcset_attr(new_srcset) if len(new_srcset) > 0 else None
+                                unparse_srcset_attr(new_srcs) if len(new_srcs) > 0 else None
                             )
-                        else:
-                            # handle other attributes containing URLs
-                            ref = attr_ref_type.get(nnann, None)
-                            if ref is not None:
-                                link_type, cts = ref
-                                new_attrs[ann] = remap_link_maybe(
-                                    base_url, value.strip(), link_type, cts, remap_url
-                                )
+                            if yes_verbose and len(censored_srcs) > 0:
+                                new_attrs[censored_attr(ann)] = " ".join(censored_srcs)
+                            continue
+
+                        # handle everything else
+                        ok, url = try_to_urljoin(base_url, value.strip())
+                        new_attrs[ann] = res = (
+                            remap_url_maybe(remap_url, url, link_type, cts, allow_fallbacks)
+                            if ok
+                            else None
+                        )
+                        if yes_verbose and res is None:
+                            new_attrs[censored_attr(ann)] = url
 
                     # apply changes
                     for ann, ovalue in new_attrs.items():
@@ -1056,8 +1121,8 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                         if assemble_nn == htmlns_style:
                             adata = _tcss.serialize(
                                 scrub_css_nodes(
-                                    base_url,
                                     remap_url,
+                                    base_url,
                                     _tcss.parse_stylesheet(adata),
                                     stack_len if not_whitespace else None,
                                 )
@@ -1101,8 +1166,8 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
                         # as a fallback, add a dummy favicon, if not set
                         if fallback_icon_unset:
                             fallback_icon_unset = False
-                            href = remap_link_maybe(
-                                base_url, "/favicon.ico", LinkType.REQ, image_mime, remap_url
+                            href = remap_href_maybe(
+                                remap_url, base_url, "/favicon.ico", LinkType.REQ, image_mime, False
                             )
                             if href is not None:
                                 yield {
@@ -1143,19 +1208,19 @@ def make_scrubbers(opts: ScrubbingOptions) -> Scrubbers:
     pipe = compose_pipe(stages)
 
     return (
-        lambda base_url, remap_url, headers, nodes: pipe(
-            scrub_html_nodes(base_url, remap_url, headers, nodes)
+        lambda remap_url, base_url, headers, nodes: pipe(
+            scrub_html_nodes(remap_url, base_url, headers, nodes)
         ),
-        lambda base_url, remap_url, headers, nodes: scrub_css_nodes(
-            base_url, remap_url, nodes, 0 if yes_indent else None
+        lambda remap_url, base_url, headers, nodes: scrub_css_nodes(
+            remap_url, base_url, nodes, 0 if yes_indent else None
         ),
     )
 
 
 def scrub_css(
     scrubbers: Scrubbers,
-    base_url: URLType,
     remap_url: URLRemapperType | None,
+    base_url: URLType,
     headers: Headers,
     body: str | bytes,
     protocol_encoding: str | None,
@@ -1166,7 +1231,7 @@ def scrub_css(
     else:
         nodes = _tcss.parse_stylesheet(body)
         charset = "utf-8"
-    res = scrubbers[1](base_url, remap_url, headers, nodes)
+    res = scrubbers[1](remap_url, base_url, headers, nodes)
     return _tcss.serialize(res).encode(charset)  # type: ignore
 
 
@@ -1178,8 +1243,8 @@ _html5serializer = _h5.serializer.HTMLSerializer(strip_whitespace=False, omit_op
 
 def scrub_html(
     scrubbers: Scrubbers,
-    base_url: URLType,
     remap_url: URLRemapperType | None,
+    base_url: URLType,
     headers: Headers,
     body: str | bytes,
     protocol_encoding: str | None,
@@ -1190,5 +1255,5 @@ def scrub_html(
     else:
         dom = _html5parser.parse(body)
         charset = "utf-8"
-    walker = scrubbers[0](base_url, remap_url, headers, _html5walker(dom))
+    walker = scrubbers[0](remap_url, base_url, headers, _html5walker(dom))
     return _html5serializer.render(walker, charset)  # type: ignore
