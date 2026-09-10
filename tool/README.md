@@ -62,7 +62,7 @@
 <li><a href="#how-to-handle-binary-data" id="toc-how-to-handle-binary-data">How to handle binary data</a></li>
 </ul></li>
 </ul></li>
-<li><a href="#development-.test-tool.sh---help---wine---all--subset-num---long--short-num---only-target-path-path-..." id="toc-development-.test-tool.sh---help---wine---all--subset-num---long--short-num---only-target-path-path-...">Development: <code>./test-tool.sh [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] [--only TARGET]* PATH [PATH ...]</code></a>
+<li><a href="#development-.test-tool.sh---help---wine---all--subset-num---long--short-num---only-target---keep-path-path-..." id="toc-development-.test-tool.sh---help---wine---all--subset-num---long--short-num---only-target---keep-path-path-...">Development: <code>./test-tool.sh [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] [--only TARGET]* [--keep] PATH [PATH ...]</code></a>
 <ul>
 <li><a href="#examples-1" id="toc-examples-1">Examples</a></li>
 </ul></li>
@@ -3140,7 +3140,7 @@ hoardy-web stream --format=raw -ue response.body ../simple_server/pwebarc-dump/p
 hoardy-web get ../simple_server/pwebarc-dump/path/to/file.wrr | less
 ```
 
-# Development: `./test-tool.sh [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] [--only TARGET]* PATH [PATH ...]`
+# Development: `./test-tool.sh [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] [--only TARGET]* [--keep] PATH [PATH ...]`
 
 Sanity check and test `hoardy-web` command-line interface.
 

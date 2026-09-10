@@ -6,7 +6,7 @@
 
 usage() {
     cat << EOF
-# usage: $0 [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] [--only TARGET]* PATH [PATH ...]
+# usage: $0 [--help] [--wine] [--all|--subset NUM] [--long|--short NUM] [--only TARGET]* [--keep] PATH [PATH ...]
 
 Sanity check and test \`hoardy-web\` command-line interface.
 
@@ -94,6 +94,7 @@ fixed_stdio_selfsame() {
 
 subset=
 short=
+keep=
 args=()
 
 while (($# > 0)); do
@@ -121,6 +122,10 @@ while (($# > 0)); do
             ;;
         --only)
             TARGETS+=("$2")
+            shift
+            ;;
+        --keep)
+            keep=1
             shift
             ;;
         --)
@@ -407,7 +412,12 @@ for arg in "${args[@]}"; do
     end
 
     cd "$ORIG_PWD"
-    rm -rf "$tmpdir"
+    if [[ -z "$keep" ]]; then
+        rm -rf "$tmpdir"
+    else
+        echo "keeping $tmpdir"
+        tmpdir=
+    fi
 done
 
 finish
