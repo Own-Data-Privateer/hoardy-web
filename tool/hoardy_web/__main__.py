@@ -41,6 +41,7 @@ from kisstdlib import *
 from kisstdlib import argparse_ext as argparse
 from kisstdlib.fs import *
 from kisstdlib.io import *
+from kisstdlib.parsing import run_parser
 
 from .filter import *
 from .wrr import *
@@ -2052,6 +2053,7 @@ redirect_response_codes = frozenset([301, 302, 303, 307, 308])
 
 IndexedReqres = tuple[TimeStamp, ReqresExpr[_t.Any]]
 type SortedReqresIndex = SortedDictIndex[URLType, TimeStamp, IndexedReqres]
+type UnsortedReqresIndex = DictIndex[URLType, TimeStamp, IndexedReqres]
 
 
 def complete_response(indexed: IndexedReqres) -> bool:
@@ -2587,9 +2589,6 @@ def cmd_serve(cargs: _t.Any) -> None:
 
         return decorated
 
-    precision = 0
-    precision_delta = Decimal(10) ** -precision
-
     default_output = elaborate_output("--output", output_alias, cargs.output) + ".wrr"
     fallback_output = (
         elaborate_output("--fallback-output", output_alias, cargs.fallback_output) + ".wrr"
@@ -2631,8 +2630,25 @@ def cmd_serve(cargs: _t.Any) -> None:
 
     PathType: _t.TypeAlias = str
 
+    # net_url -> rhostname, unquoted, pretty_net_url
+    cached_url_keys: LRUCache[URLType, tuple[str, str, URLType]] = LRUCache(512)
+
+    def url_key(net_url: URLType, purl: ParsedURL | None = None) -> tuple[str, str, URLType]:
+        """A key function to sort urls by `rhostname`."""
+        try:
+            return cached_url_keys[net_url]
+        except KeyError:
+            if purl is None:
+                purl = parse_url(net_url)
+            cached_url_keys[net_url] = res = (
+                purl.rhostname,
+                f"{purl.mq_path}{purl.oqm}{purl.mq_query}",
+                purl.pretty_net_url,
+            )
+            return res
+
     index: SortedReqresIndex = SortedDictIndex(
-        key_key=identity,
+        key_key=url_key,
         value_key=fst,
         ideal=cargs.replay if cargs.replay is not False else anytime.end,
     )
@@ -2641,6 +2657,9 @@ def cmd_serve(cargs: _t.Any) -> None:
         stime = rrexpr.stime
         net_url = rrexpr.net_url
         indexed = (stime, rrexpr)
+        # a bit of a hack ...
+        url_key(net_url, rrexpr.reqres.request.url)
+        # ... to make the following line skip re-parsing of the `net_url`
         index.insert(net_url, indexed)
         rrexpr.unload()
 
@@ -2669,29 +2688,35 @@ def cmd_serve(cargs: _t.Any) -> None:
     if not quiet:
         filters_warn()
 
-    def url_info(net_url: str, pu: ParsedURL) -> tuple[str, str, str]:
-        return pu.rhostname, pu.pretty_net_url, net_url
+    def json_fmtts(stime: TimeStamp) -> list[str]:
+        return [str(Decimal(stime)), stime.format(*time_format_s)]
 
-    all_urls = SortedList(map(lambda net_url: url_info(net_url, parse_url(net_url)), index.keys()))
+    def needed_precision(stime: TimeStamp, not_including: list[TimeStamp]) -> int:
+        """Compute `precision` such that formatting `stime` with it would not include
+        any of `not_including` (except for those equal to `stime` itself) in the
+        resulting selector.
+        """
+        prec = 0
+        delta = Decimal(1)
+        for t in not_including:
+            d = abs(stime - t)
+            while d != 0 and d < delta:
+                prec += 1
+                delta /= 10
+        return prec
 
-    def get_visits(
-        url_like_re: _re.Pattern[str], start: TimeStamp, end: TimeStamp
-    ) -> tuple[int, list[tuple[str, str, list[str]]]]:
-        visits_total = 0
-        url_visits = []
-        for _rhost, pretty_net_url, net_url in all_urls:
-            if not url_like_re.fullmatch(pretty_net_url):
-                continue
+    def uni_fmtts(stime: TimeStamp, not_including: list[TimeStamp] = []) -> str:
+        """Produce a timestamp uniquely localizing `net_url` w.r.t. `not_including`."""
+        return stime.format(*time_format_s, precision=needed_precision(stime, not_including))
 
-            visits = []
-            for when, _rrexpr in index.iter_range(net_url, start, end):
-                # if normal_document(t, v):
-                visits.append(when.format(*time_format_s, precision=precision))
-                visits_total += 1
-
-            if len(visits) > 0:
-                url_visits.append((net_url, pretty_net_url, visits))
-        return visits_total, url_visits
+    def url_fmtts(net_url: URLType, stime: TimeStamp) -> str:
+        """Produce a timestamp uniquely localizing `net_url` in the index."""
+        not_including: list[TimeStamp] = []
+        # NB: not adding `normal_document` here, since we want a globally unique result
+        for u in index.get_adjacent(net_url, stime, anytime.start, anytime.end):
+            if u is not None:
+                not_including.append(u[0])
+        return uni_fmtts(stime, not_including)
 
     server_info_dict: dict[str, _t.Any] = {
         "version": 1,
@@ -2699,11 +2724,9 @@ def cmd_serve(cargs: _t.Any) -> None:
     if destination is not None:
         server_info_dict["dump_wrr"] = "/pwebarc/dump"
     if do_replay:
-        server_info_dict["index_ideal"] = map_optional(
-            lambda x: x.format(*time_format_s), index.ideal
-        )
-        server_info_dict["replay_oldest"] = "/web/-inf/{url}"
-        server_info_dict["replay_latest"] = "/web/+inf/{url}"
+        server_info_dict["index_ideal"] = map_optional(json_fmtts, index.ideal)
+        server_info_dict["replay_oldest"] = "/web/0/{url}"
+        server_info_dict["replay_latest"] = "/web/2/{url}"
         if index.ideal is None:
             server_info_dict["replay_any"] = "/web/{timestamp}/{url}"
     server_info_json = _json.dumps(server_info_dict).encode("utf-8")
@@ -2713,6 +2736,83 @@ def cmd_serve(cargs: _t.Any) -> None:
     @with_no_signals
     def server_info() -> bytes:
         return server_info_json
+
+    @_dc.dataclass
+    class Options:
+        re: bool = False
+        glob: bool = False
+        similar: bool = False
+
+    type Selector = tuple[list[TimeStamp], list[TimeRange], Options]
+
+    def parse_selector(selector: str) -> Selector:
+        stamps = []
+        ranges = []
+        opts = Options()
+        for part in selector.split(","):
+            part = part.strip()
+
+            if part == "re":
+                opts.re = True
+            elif part == "glob":
+                opts.glob = True
+            elif part == "similar":
+                opts.similar = True
+            elif part in ("0", "1", "oldest", "old", "first", "-inf"):
+                stamps.append(anytime.start)
+            elif part in ("2", "latest", "last", "newest", "new", "+inf"):
+                stamps.append(anytime.end)
+            else:
+                res, wide = run_parser(TimeRange.parse, True, part)[0]
+                if wide:
+                    ranges.append(res)
+                else:
+                    stamps.append(res.middle)
+        stamps.sort()
+        ranges.sort()
+        return stamps, ranges, opts
+
+    def explain_selector(selector: Selector) -> list[tuple[str, str]]:
+        res: list[tuple[str, str]] = []
+        for s in selector[0]:
+            res.append((gettext("closest to"), s.format(*time_format)))
+        for r in selector[1]:
+            res.append(
+                (
+                    gettext("inside of"),
+                    r.format3(*time_format, range_fmt="[{0}]--[{1}] => {2}"),
+                )
+            )
+        return res
+
+    def search_by_net_url(
+        results: UnsortedReqresIndex, inet_url: URLType, selector: Selector
+    ) -> None:
+        """For a given `inet_url`, slurp its matching subset of reqres from `index` to `results`."""
+        for s in selector[0]:
+            iobj = index.get_closest(inet_url, s, normal_document)
+            if iobj is not None:
+                results.insert(inet_url, iobj)
+        for r in selector[1]:
+            for iobj in index.iter_range(inet_url, r.start, r.end, 0, normal_document):
+                results.insert(inet_url, iobj)
+
+    def search_by_regexp(
+        results: UnsortedReqresIndex, pattern: str, selector: Selector
+    ) -> UnsortedReqresIndex:
+        """`search` all urls matching a regexp."""
+        if pattern == ".*" and any(map(lambda s: s == anytime, selector[1])):
+            # make "/find/*/*" and similar requests really cheap
+            return index
+
+        cpat = _re.compile(pattern)
+        for inet_url in index.keys():
+            if inet_url in results:
+                continue
+            ipretty_net_url = url_key(inet_url)[2]
+            if cpat.fullmatch(ipretty_net_url):
+                search_by_net_url(results, inet_url, selector)
+        return results
 
     @app.route("/pwebarc/dump", method="POST")  # type: ignore
     @with_plain_error
@@ -2820,7 +2920,6 @@ def cmd_serve(cargs: _t.Any) -> None:
             rrexpr.values = trrexpr.values
             if filters_allow(rrexpr):
                 emit(rrexpr)
-                all_urls.add(url_info(rrexpr.net_url, rrexpr.reqres.request.url))
             stderr.write_str_ln(gettext("archived %s -> %s") % (rrexpr.net_url, abs_out_path))
         else:
             stderr.write_str_ln(gettext("fallback-archived something -> %s") % (abs_out_path,))
@@ -2833,7 +2932,7 @@ def cmd_serve(cargs: _t.Any) -> None:
 
         return b""
 
-    @app.route("/<namespace:re:(web|redirect|unavailable|other)>/<selector>/<surl:path>")  # type: ignore
+    @app.route("/<namespace:re:(find|web|redirect|unavailable|other)>/<selector>/<surl:path>")  # type: ignore
     @with_no_signals
     def from_archive(namespace: str, selector: str, surl: str) -> BottleReturnType:
         if not do_replay:
@@ -2846,95 +2945,136 @@ def cmd_serve(cargs: _t.Any) -> None:
             bottle.abort(404, "Not Found")
             return None
 
+        is_find = not is_unavailable and namespace == "find"
+
         surl = surl.replace("#", "%23")
         query = bottle.request.environ.get("QUERY_STRING", "")
         if len(query) > 0:
             surl += "?" + _up.unquote(query)
 
-        interval: TimeRange
-        if selector.endswith("*"):
-            try:
-                interval = timerange(selector)
-            except CatastrophicFailure as exc:
-                bottle.abort(400, exc.get_message(gettext))
-                return None
-            url_like_re = _re.compile(translate(surl))
-            visits_total, url_visits = get_visits(url_like_re, interval.start, interval.end)
-            return locate_page.render(  # type: ignore
-                {
-                    "matching": True,
-                    "selector": selector,
-                    "start": interval.start.format(*time_format),
-                    "end": interval.end.format(*time_format),
-                    "pattern": surl,
-                    "visits_total": visits_total,
-                    "url_visits": url_visits,
-                }
-            )
+        try:
+            pselector = parse_selector(selector)
+        except CatastrophicFailure as exc:
+            bottle.abort(400, exc.get_message(gettext))
+            return None
 
-        ideal: TimeStamp
-        if selector in ("-inf", "0", "1", "oldest", "old", "first"):
-            interval = anytime
-            ideal = anytime.start
-        elif selector in ("+inf", "2", "latest", "last", "newest", "new"):
-            interval = anytime
-            ideal = anytime.end
-        else:
-            try:
-                interval = timerange(selector)
-                ideal = interval.middle
-            except CatastrophicFailure as exc:
-                bottle.abort(400, exc.get_message(gettext))
-                return None
+        stamps, ranges, opts = pselector
+        is_match = opts.re or opts.glob and opts.similar
+
+        if (len(stamps) > 1 or len(ranges) > 0 or is_match) and not is_find:
+            # must be a search page
+            bottle.redirect(f"/find/{selector}/{surl}", 302)
+            return None
 
         try:
             purl = parse_url(surl)
         except URLParsingError:
-            bottle.abort(400, gettext("malformed URL `%s`") % (surl,))
+            # fallback
+            have_purl = False
+            pretty_net_url = surl
+            net_url = surl
+        else:
+            have_purl = True
+            pretty_net_url = purl.pretty_net_url
+            net_url = purl.net_url
+
+        results: UnsortedReqresIndex = DictIndex(value_key=fst)
+
+        if is_match:
+            # fallthrough
+            pass
+        elif net_url in index:
+            # search the exact net_url
+            search_by_net_url(results, net_url, pselector)
+        elif len(query) == 0:
+            # When the query is empty, WSGI loses the trailing "?" even
+            # when it was given by the client, so we have to check
+            net_url_ = net_url + "?"
+            if net_url_ in index:
+                net_url = net_url_
+                pretty_net_url += "?"
+                search_by_net_url(results, net_url, pselector)
+            del net_url_
+
+        if results.size != 1 and not is_find:
+            # redirect so the search page
+            bottle.redirect(f"/find/{selector}/{surl}", 302)
             return None
 
-        net_url = purl.net_url
+        if is_find:
+            # generate a search page
 
-        uobj = index.get_closest(net_url, ideal, normal_document)
-        if uobj is None:
-            if len(query) == 0:
-                # When the query is empty, WSGI loses the trailing "?" even
-                # when it was given by the client, so we have to check
-                uobj = index.get_closest(net_url + "?", ideal, normal_document)
-            if uobj is None:
-                if "*" in surl:
-                    url_like_re = _re.compile(translate(surl))
-                    pattern = surl
-                else:
+            not_found = results.size == 0
+
+            pattern: str | None
+            if opts.re:
+                pattern = surl
+            elif opts.glob:
+                pattern = translate(surl)[4:-3]
+            elif opts.similar or not_found and "*" in surl:
+                opts.similar = True
+                if have_purl and purl.scheme.startswith("http"):
+                    # if it can be parsed as a valid URL, also glob without the scheme and with the
+                    # slash at the end of the path and the query optional
                     mq_path = purl.mq_path
                     if mq_path.endswith("/"):
                         mq_path = mq_path[:-1]
-                    loc = purl.netloc + mq_path
-                    url_like_re = _re.compile(".*" + _re.escape(loc) + ".*")
-                    pattern = "*" + loc + "*"
+                    if mq_path.endswith("*"):
+                        mq_path = mq_path[:-1]
+                    pattern = ".*://" + translate(purl.netloc + "/" + mq_path)[4:-3] + ".*"
+                else:
+                    # fallback to globbing
+                    opts.glob = True
+                    pattern = translate(surl)[4:-3]
+            else:
+                pattern = None
 
-                visits_total, url_visits = get_visits(url_like_re, anytime.start, anytime.end)
+            if pattern is not None:
+                results = search_by_regexp(results, pattern, pselector)
 
-                bottle.response.status = 404
-                return locate_page.render(  # type: ignore
-                    {
-                        "matching": False,
-                        "net_url": net_url,
-                        "pretty_net_url": surl,
-                        "selector": "*",
-                        # "start": anytime.start.format(), "end": anytime.end.format(),
-                        "pattern": pattern,
-                        "visits_total": visits_total,
-                        "url_visits": url_visits,
-                    }
-                )
+            results_size = results.size
 
+            # set code to "Not Found" or "Multiple Choices", depending
+            bottle.response.status = 404 if results_size == 0 else 300
+
+            answer = {
+                "url": pretty_net_url,
+                "net_url": net_url,
+                "selector": selector,
+                "explained_selector": explain_selector(pselector),
+                "not_found": not_found,
+                "pattern": pattern,
+                "matching": (
+                    "Visits to this exact URL" if pattern is None else "Visits to matching URLs"
+                ),
+                "matching_kind": (
+                    "exact"
+                    if pattern is None
+                    else "re" if opts.re else "glob" if opts.glob else "similar"
+                ),
+                "results": results,
+                "results_len": len(results),
+                "results_size": results_size,
+                # functions
+                "url_fmtts": url_fmtts,
+                "pretty": lambda x: url_key(x)[2],
+            }
+            return locate_page.render(answer)  # type: ignore
+
+        # get the result
+        uobj = first(results.values(), None)
+        del results
+        assert uobj is not None
         stime, rrexpr = uobj
+
         want_namespace = "web" if is_unavailable else namespace
-        stime_selector = stime.format(*time_format, precision=precision)
-        if namespace != want_namespace or stime not in interval or interval.delta > precision_delta:
+        stime_selector = url_fmtts(net_url, stime)
+        if namespace != want_namespace or selector != stime_selector:
+            # redirect to right namespace and timestamp
             bottle.redirect(f"/{want_namespace}/{stime_selector}/{surl}", 302)
             return None
+
+        # render the replay
 
         try:
 
@@ -2959,7 +3099,7 @@ def cmd_serve(cargs: _t.Any) -> None:
                         # that's a definitive answer page, point this directly there, including to
                         # its timestamp, to optimize away above redirects
                         unamespace = "web"
-                        ustime_selector = ustime.format(*time_format_s, precision=precision)
+                        ustime_selector = url_fmtts(unet_url, ustime)
                         break
                     if code in redirect_response_codes:
                         # that's a redirect, point it there
