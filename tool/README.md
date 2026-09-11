@@ -186,12 +186,80 @@ In short:
 
 You can then use your `hoardy-web serve` instance to browse your archived data:
 
-- <http://127.0.0.1:3210/web/*/*> to see the list of all available URLs and their versions (visits), or to
-- something like <http://127.0.0.1:3210/web/2/https://archiveofourown.org/works/3733123> to view the latest archived version of that URL, or to
-- something like <http://127.0.0.1:3210/web/*/https://archiveofourown.org/works/3733123> to view the list of all visits to this URL,
-- which also works with glob patterns <http://127.0.0.1:3210/web/*/https://archiveofourown.org/works/[0-9]*>.
+- Replay a given URL:
+  - its latest available visit <http://127.0.0.1:3210/web/2/https://archiveofourown.org/works/3733123>;
+  - ... which is the same as <http://127.0.0.1:3210/web/+inf/https://archiveofourown.org/works/3733123>;
+  - its oldest available visit <http://127.0.0.1:3210/web/0/https://archiveofourown.org/works/3733123>;
+  - ... which is the same as <http://127.0.0.1:3210/web/-inf/https://archiveofourown.org/works/3733123>;
+  - the visit closest to the middle point of a given date-time interval, e.g.:
+    - <http://127.0.0.1:3210/web/2024-10-03_12:01:02/https://en.wikipedia.org/wiki/Bibliometrics> replays the visit closest to `2024-10-03_12:01:02.5` (the exact middle point of the interval specified by `2024-10-03_12:01:02`);
+    - <http://127.0.0.1:3210/web/2024-10/https://en.wikipedia.org/wiki/Bibliometrics> replays the visit closest to `2024-10-16 00:00:00` (the exact middle of `2024-10`);
+    - <http://127.0.0.1:3210/web/2024/https://en.wikipedia.org/wiki/Bibliometrics> replays the visit closest to `2024-07-02 00:00:00` (the exact middle of `2024`).
 
-This is very reminiscent of the [Wayback Machine](https://web.archive.org/) by design, yes.
+- List all visits to:
+  - a certain URL <http://127.0.0.1:3210/web/*/https://en.wikipedia.org/wiki/Bibliometrics>;
+  - all URLs matching a given `re`gular expression <http://127.0.0.1:3210/web/*,re/https://archiveofourown.org/works/[0-9]+/?.*>;
+  - all URLs matching a given `glob` expression <http://127.0.0.1:3210/web/*,glob/https://en.wikipedia.org/wiki/*>;
+  - all URLs similar to a given one <http://127.0.0.1:3210/web/*,similar/https://archiveofourown.org/works/3733123?view_full_work=true>.
+
+  In the latter case, the given URL/query will be parsed as a proper URL, but with `glob` syntax allowed in various URL parts.
+  Should such parsing succeed, `hoardy-web` will then attempt to relax the result to make it match not just the given but also other similar URLs, matching all URL `scheme`s, `query` parameters, without optional slashes in the `path`, etc.
+  Should such parsing fail, however, it will be treated as a normal `glob` instead.
+
+  In other words, the semantics of `similar` is "all URLs similar to the given `glob`-containing URL or just a `glob`".
+
+  **Additionally, when `hoardy-web` can't find any reqres matching a given URL/query in its index, neither of `glob` and `re` are set, and the given URL/query contains a "\*", the `similar` option becomes implied.
+  Thus, by adding a "\*" to the end your query, you can make `hoardy-web` automagically search for the given and similar URLs, or, if your query does not parse as a URL, just `glob` with it instead.
+  Which is why the following examples will be written without specifying the `glob` option.**
+
+- List visits to all URLs matching a given `similar` pattern, but only when those visits were collected:
+  - in 2024 <http://127.0.0.1:3210/web/2024*/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/2024--.$/https://en.wikipedia.org/wiki/*>
+    (`.$` after `--` means "the end of the previous interval");
+  - ... which is the same as <http://127.0.0.1:3210/web/2024--2024.$/https://en.wikipedia.org/wiki/*>
+    (`.$` after a date-time means "the end of the given interval");
+  - ... which is the same as <http://127.0.0.1:3210/web/2024--2025/https://en.wikipedia.org/wiki/*>;
+  - in October of 2024 <http://127.0.0.1:3210/web/2024-10*/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/2024-10--.$/https://en.wikipedia.org/wiki/*>
+  - ... which is the same as <http://127.0.0.1:3210/web/2024-10--2024-10.$/https://en.wikipedia.org/wiki/*>
+  - ... which is the same as <http://127.0.0.1:3210/web/2024-10--2024-11/https://en.wikipedia.org/wiki/*>
+  - on 3rd of October of 2024 <http://127.0.0.1:3210/web/2024-10-03*/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/2024-10-03--.$/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/2024-10-03--2024-10-03.$/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/2024-10-03--2024-10-04/https://en.wikipedia.org/wiki/*>;
+  - in the 12th hour of 3rd of October of 2024 <http://127.0.0.1:3210/web/2024-10-03_12*/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/2024-10-03_12--.$/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/2024-10-03_12--2024-10-03_12.$/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/2024-10-03_12:00:00--2024-10-03_13:00:00/https://en.wikipedia.org/wiki/*>;
+  - between two arbitrary date-times <http://127.0.0.1:3210/web/2024-04-04_00:01:02--2024-05-12_03:04:05/https://en.wikipedia.org/wiki/*>;
+  - inside of any of the given intervals <http://127.0.0.1:3210/web/2023-01*,2024-01*,2024-04-04--2024-05-12/https://en.wikipedia.org/wiki/*>;
+  - inside of any of the given intervals and/or the latest one (closet to `+inf`inity) <http://127.0.0.1:3210/web/2023-01*,2022-01*,+inf/https://en.wikipedia.org/wiki/*>;
+  - today <http://127.0.0.1:3210/web/today/https://en.wikipedia.org/wiki/*>;
+  - last 7 days <http://127.0.0.1:3210/web/today-1w--now/https://en.wikipedia.org/wiki/*>;
+  - this ISO week, counting days from Monday <http://127.0.0.1:3210/web/this_week/https://en.wikipedia.org/wiki/*>;
+  - this US week, counting days from Sunday (except, if today is Sunday, this will resolve to the previous week instead) <http://127.0.0.1:3210/web/this_week-1d/https://en.wikipedia.org/wiki/*>;
+  - previous ISO week <http://127.0.0.1:3210/web/prev_week/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/last_week/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/this_week-1w--this_week/https://en.wikipedia.org/wiki/*>;
+  - previous US week (with the same caveats) <http://127.0.0.1:3210/web/prev_week-1d/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/this_week-1w1d--this_week-1d/https://en.wikipedia.org/wiki/*>;
+  - the ISO week before the last <http://127.0.0.1:3210/web/this_week-2w/https://en.wikipedia.org/wiki/*>;
+  - ... which is the same as <http://127.0.0.1:3210/web/this_week-2w--this_week-1w/https://en.wikipedia.org/wiki/*>;
+  - the US week before the last (with the same caveats) <http://127.0.0.1:3210/web/this_week-2w1d/https://en.wikipedia.org/wiki/*>;
+  - this month <http://127.0.0.1:3210/web/this_month/https://en.wikipedia.org/wiki/*>;
+  - previous month <http://127.0.0.1:3210/web/prev_month/https://en.wikipedia.org/wiki/*>;
+  - between this day number of the previous month and now <http://127.0.0.1:3210/web/today-1m--now/https://en.wikipedia.org/wiki/*>;
+  - this year <http://127.0.0.1:3210/web/this_year/https://en.wikipedia.org/wiki/*>;
+  - etc.
+- Use all of the above in arbitrary combinations, e.g.:
+  - List the latest visit for each URL matching a `re`gular expression <http://127.0.0.1:3210/web/2,re/https://archiveofourown.org/works/[0-9]+/?.*>.
+  - List the latest visit for every archived URL <http://127.0.0.1:3210/web/2/*> (might take awhile).
+  - List everything <http://127.0.0.1:3210/web/*/*> (will probably take quite a while).
+
+This UI is reminiscent of the [Wayback Machine](https://web.archive.org/) by design, yes.
+
+**Also note that generated search (`/find/`) pages of `hoardy-web` explain how the given query was parsed and how the resulting search was performed in detail.
+So, if you ever get confused by your search results, you should scroll down to the bottom of the generated page and look for an explanation there first.**
 
 ## Make a website mirror from your archived data
 
